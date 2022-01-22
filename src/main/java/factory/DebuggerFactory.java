@@ -8,6 +8,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import interfaces.InternalCB;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -40,7 +41,7 @@ public class DebuggerFactory implements ToolWindowFactory {
 //        bugsTable.setTableValues();
         this.currentProject = project;
         this.toolWindow = toolWindow;
-        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
+        //PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
         try {
             checkProject();
         } catch (IOException e) {
@@ -51,13 +52,23 @@ public class DebuggerFactory implements ToolWindowFactory {
     }
 
     private void checkProject() throws IOException {
+
+        contentFactory = ContentFactory.SERVICE.getInstance();
+
         projectname = ModuleManager.getInstance(currentProject).getModules()[0].getName();
 
         String storedName = PropertiesComponent.getInstance().getValue(Constants.PROJECT_NAME);
 
-        if (storedName != projectname) {
+        if (!storedName.equals(projectname)) {
             createProject(projectname);
+            return;
         }
+
+        bugsTable = new HorBugTable(toolWindow);
+        bugsTable.setTableValues();
+        bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
+        toolWindow.getContentManager().addContent(bugsContent);
+
         return;
     }
 
@@ -90,18 +101,15 @@ public class DebuggerFactory implements ToolWindowFactory {
         };
 
         String url =  PropertiesComponent.getInstance().getValue(Constants.BASE_URL, "");
-        contentFactory = ContentFactory.SERVICE.getInstance();
         if (url == "") {
-            credentials = new Credentials(this.currentProject, this.toolWindow);
+            credentials = new Credentials(this.currentProject, new InternalCB() {
+                @Override
+                public void onSuccess() {
+
+                }
+            });
             credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
             this.toolWindow.getContentManager().addContent(credentialContent);
-            return;
-        }
-        else {
-            bugsTable = new HorBugTable(toolWindow);
-            bugsTable.setTableValues();
-            bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
-            this.toolWindow.getContentManager().addContent(bugsContent);
             return;
         }
 

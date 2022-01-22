@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import interfaces.InternalCB;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -33,12 +34,12 @@ public class Credentials {
     String videobugURL, passwordText;
     Callback signinCallback, createProjectcallback, signupCallback;
     Project project;
-    ToolWindow toolWindow;
 
+    InternalCB internalCB;
 
-    public Credentials(Project project, ToolWindow toolWindow) {
+    public Credentials(Project project, InternalCB internalCB) {
+        this.internalCB = internalCB;
         this.project = project;
-        this.toolWindow = toolWindow;
         signupSigninButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -157,8 +158,6 @@ public class Credentials {
         }
         builder.post(body);
 
-
-
         Request request = builder.build();
 
         client.newCall(request).enqueue(callback);
@@ -184,7 +183,10 @@ public class Credentials {
 
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
                     String project_id = jsonObject.getAsString("id");
+                    System.out.print(project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
+                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
+
                     errorLable.setText("Your project is now created!");
 
                     createBugsTable();
@@ -197,11 +199,7 @@ public class Credentials {
     }
 
     private void createBugsTable() {
-        HorBugTable bugsTable = new HorBugTable(toolWindow);
-        bugsTable.setTableValues();
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-        Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
-        this.toolWindow.getContentManager().addContent(bugsContent);
+        internalCB.onSuccess();
     }
 
 }
