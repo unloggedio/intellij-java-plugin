@@ -19,5 +19,4 @@ public class Constants {
     public static final String PROJECT_ID = "projectId";
 
     public static final String NPE = "java.lang.NullPointerException";
-    public static final
 }

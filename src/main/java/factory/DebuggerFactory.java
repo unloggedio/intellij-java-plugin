@@ -22,6 +22,12 @@ public class DebuggerFactory implements ToolWindowFactory {
     Callback callback;
     OkHttpClient client;
     String projectname;
+    Credentials credentials;
+    ContentFactory contentFactory;
+    HorBugTable bugsTable;
+    Content credentialContent, bugsContent;
+    ToolWindow toolWindow;
+
 
     /**
      * Create the tool window content.
@@ -33,18 +39,15 @@ public class DebuggerFactory implements ToolWindowFactory {
 //        HorBugTable bugsTable = new HorBugTable(toolWindow);
 //        bugsTable.setTableValues();
         this.currentProject = project;
+        this.toolWindow = toolWindow;
+        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
         try {
             checkProject();
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        Credentials credentials = new Credentials();
-//
-//        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-//        Content content1 = contentFactory.createContent(bugsTable.getContent(), "Bugs", false);
-//        Content content2 = contentFactory.createContent(credentials.getContent(), "Credentials", false);
-//        toolWindow.getContentManager().addContent(content1);
-//        toolWindow.getContentManager().addContent(content2);
+
+
     }
 
     private void checkProject() throws IOException {
@@ -54,7 +57,6 @@ public class DebuggerFactory implements ToolWindowFactory {
 
         if (storedName != projectname) {
             createProject(projectname);
-            return;
         }
         return;
     }
@@ -87,26 +89,25 @@ public class DebuggerFactory implements ToolWindowFactory {
             }
         };
 
-        String url =  PropertiesComponent.getInstance().getValue(Constants.BASE_URL, "http://localhost:8080");
+        String url =  PropertiesComponent.getInstance().getValue(Constants.BASE_URL, "");
+        contentFactory = ContentFactory.SERVICE.getInstance();
         if (url == "") {
+            credentials = new Credentials(this.currentProject, this.toolWindow);
+            credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
+            this.toolWindow.getContentManager().addContent(credentialContent);
+            return;
+        }
+        else {
+            bugsTable = new HorBugTable(toolWindow);
+            bugsTable.setTableValues();
+            bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
+            this.toolWindow.getContentManager().addContent(bugsContent);
             return;
         }
 
-        post(url + Constants.CREATE_PROJECT + "?name=" + projectname, "");
     }
 
-    private void post(String url, String json) throws IOException {
-        client = new OkHttpClient();
-        RequestBody body = RequestBody.create(json, Constants.JSON); // new
 
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .addHeader("Authorization", "Bearer " + PropertiesComponent.getInstance().getValue(Constants.TOKEN))
-                .build();
-
-        client.newCall(request).enqueue(callback);
-    }
 
 }
 
