@@ -71,6 +71,7 @@ public class HorBugTable {
             }
         };
         defaultTableModel.setDataVector(objects, headers);
+
         this.bugs.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent listSelectionEvent) {
@@ -130,6 +131,10 @@ public class HorBugTable {
     private void parseTableItems() {
         JSONArray jsonArray = (JSONArray)errorsJson.get("items");
         for (int i=0; i<jsonArray.size(); i++) {
+            JSONObject jsonObject = (JSONObject) jsonArray.get(i);
+            String dataId = jsonObject.getAsString("dataId");
+            String valueId = jsonObject.getAsString("value");
+            String executionSessionId = jsonObject.getAsString("executionSessionId");
 
         }
     }
