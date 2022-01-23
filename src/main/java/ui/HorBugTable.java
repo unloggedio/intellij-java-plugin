@@ -201,7 +201,7 @@ public class HorBugTable {
         JSONArray arr = new JSONArray();
         arr.add(bugs.getValue());
         dataJson.put("valueId", arr);
-        dataJson.put("pageSize", 10);
+        dataJson.put("pageSize", 50);
         dataJson.put("pageNumber", 0);
         dataJson.put("debugPoints", new JSONArray());
         dataJson.put("sortOrder", "DESC");
@@ -267,14 +267,19 @@ public class HorBugTable {
             JSONObject dataInfoTemp = (JSONObject)dataInfo.get(String.valueOf(dataId) + "_" + executionSessionId);
             JSONObject attributesMap = (JSONObject) dataInfoTemp.get("attributesMap");
             String variableName = attributesMap.getAsString("Name");
+            String variableType = attributesMap.getAsString("Type");
             long classId = dataInfoTemp.getAsNumber("classId").longValue();
             int lineNum = dataInfoTemp.getAsNumber("line").intValue();
             JSONObject classInfoTemp = (JSONObject) classInfo.get(String.valueOf(classId) + "_" + executionSessionId);
             String filename = classInfoTemp.getAsString("filename");
-            JSONObject tempStringJson = (JSONObject) stringInfo.get(String.valueOf(dataValue) + "_" + executionSessionId);
             String dataIdstr = String.valueOf(dataValue);
-            if (tempStringJson != null) {
-                dataIdstr = tempStringJson.getAsString("content");
+            if (variableType != null) {
+                if (variableType.contains("java/lang/String")) {
+                    JSONObject tempStringJson = (JSONObject) stringInfo.get(dataValue + "_" + executionSessionId);
+                    if (tempStringJson != null) {
+                        dataIdstr = tempStringJson.getAsString("content");
+                    }
+                }
             }
 
             if (variableName != null) {
