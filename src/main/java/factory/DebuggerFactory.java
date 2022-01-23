@@ -40,7 +40,6 @@ public class DebuggerFactory implements ToolWindowFactory {
         this.currentProject = project;
         this.toolWindow = toolWindow;
 
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
 
         contentFactory = ContentFactory.SERVICE.getInstance();
 

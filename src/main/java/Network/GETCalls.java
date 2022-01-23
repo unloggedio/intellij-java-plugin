@@ -6,9 +6,11 @@ import net.minidev.json.JSONObject;
 import okhttp3.*;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class GETCalls {
-OkHttpClient client = new OkHttpClient();
+OkHttpClient client;
 String url;
 Callback callback;
 
@@ -19,10 +21,16 @@ Callback callback;
     }
 
     public void run() throws Exception {
+        client = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
         Request request = new Request.Builder()
                 .url(url)
                 .addHeader("Authorization", "Bearer " + PropertiesComponent.getInstance().getValue(Constants.TOKEN))
                 .build();
+
 
         client.newCall(request).enqueue(this.callback);
     }

@@ -4,6 +4,7 @@ import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.wm.ToolWindow;
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -100,7 +101,7 @@ public class HorBugTable {
         errorCallback = new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
+                e.printStackTrace();
             }
 
             @Override
@@ -110,6 +111,7 @@ public class HorBugTable {
 
                     System.out.print(responseBody.string());
                     errorsJson = (JSONObject) JSONValue.parse(responseBody.string());
+                    parseTableItems();
                 }
             }
         };
@@ -124,5 +126,12 @@ public class HorBugTable {
             + "&pageSize=10", errorCallback);
     }
 
+
+    private void parseTableItems() {
+        JSONArray jsonArray = (JSONArray)errorsJson.get("items");
+        for (int i=0; i<jsonArray.size(); i++) {
+
+        }
+    }
 
 }
