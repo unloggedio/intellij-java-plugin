@@ -15,7 +15,7 @@ public class Constants {
     public static final String SIGN_UP = "/api/auth/signup";
     public static final String TOKEN = "token";
     public static final String PROJECT_NAME = "project_name";
-    public static final String CREATE_PROJECT = "/api/data/project";
+    public static final String PROJECT_URL = "/api/data/project";
     public static final String PROJECT_ID = "projectId";
 
     public static final String NPE = "java.lang.NullPointerException";

@@ -2,10 +2,11 @@ package ui;
 
 import Network.GETCalls;
 import actions.Constants;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.wm.ToolWindow;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
+import net.minidev.json.JSONObject;
+import net.minidev.json.JSONValue;
+import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
@@ -28,6 +29,9 @@ public class HorBugTable {
     private JLabel values;
     private JButton fetchSessionButton;
     private JButton refreshButton;
+    OkHttpClient client;
+    Callback errorCallback;
+    JSONObject errorsJson;
 
     public HorBugTable(ToolWindow toolWindow) {
 
@@ -37,7 +41,9 @@ public class HorBugTable {
         return panel1;
     }
 
-    public void setTableValues() {
+    public void setTableValues() throws Exception {
+
+        getErrors(0);
 
         Object[] headers = {"Type", "FileName", "LineNum", "Time"};
         Object[][] objects = {
@@ -86,8 +92,41 @@ public class HorBugTable {
         values.setText(value);
     }
 
-    private void getErrors() {
-
+    public void hideAll() {
+        panel12.setVisible(false);
     }
+
+    private void getErrors(int pageNum) throws Exception {
+        errorCallback = new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                    Headers responseHeaders = response.headers();
+                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+                    }
+                    System.out.print(responseBody.string());
+                    errorsJson = (JSONObject) JSONValue.parse(responseBody.string());
+                }
+            }
+        };
+
+    String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+    GETCalls getCalls = new GETCalls();
+    getCalls.getCall(PropertiesComponent.getInstance().getValue(Constants.BASE_URL) + Constants.PROJECT_URL
+            + "/" + projectId
+            + "/traceByException?exceptionClass="
+            + Constants.NPE
+            + "&pageNumber=" + String.valueOf(pageNum)
+            + "&pageSize=10", errorCallback);
+    }
+
 
 }

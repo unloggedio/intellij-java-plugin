@@ -177,14 +177,14 @@ public class Credentials {
                     System.out.print(project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
-
+                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
                     errorLable.setText("Your project is now created!");
 
                 }
             }
         };
 
-        post(videobugURL.toString() + Constants.CREATE_PROJECT + "?name=" + projectName, "", createProjectcallback);
+        post(videobugURL.toString() + Constants.PROJECT_URL + "?name=" + projectName, "", createProjectcallback);
 
     }
 

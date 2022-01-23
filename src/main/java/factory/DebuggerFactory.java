@@ -42,24 +42,32 @@ public class DebuggerFactory implements ToolWindowFactory {
 
         contentFactory = ContentFactory.SERVICE.getInstance();
 
-        bugsTable = new HorBugTable(toolWindow);
-        bugsTable.setTableValues();
-        bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
-        toolWindow.getContentManager().addContent(bugsContent);
-
         credentials = new Credentials(this.currentProject);
         credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
         toolWindow.getContentManager().addContent(credentialContent);
 
+        bugsTable = new HorBugTable(toolWindow);
+        try {
+            bugsTable.setTableValues();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
+        toolWindow.getContentManager().addContent(bugsContent);
+
+
+
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
 
         if (token == "") {
-
+            bugsTable.hideAll();
+            bugsTable.setVariable("");
+            bugsTable.setVarValue("Set your credentials first!");
         }
-
         else {
 
         }
+
 //
 //
 //
