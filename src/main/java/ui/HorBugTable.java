@@ -10,6 +10,7 @@ import net.minidev.json.JSONValue;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import pojo.Bugs;
+import pojo.VarsValues;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -18,7 +19,11 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,12 +40,25 @@ public class HorBugTable {
     private JButton refreshButton;
     OkHttpClient client;
     Callback errorCallback;
-    JSONObject errorsJson;
+    JSONObject errorsJson, dataPointsJson;
     DefaultTableModel defaultTableModel;
     Object[] headers;
+    List<Bugs> bugList;
+    List<VarsValues> dataList;
+    String executionSessionId;
 
     public HorBugTable(ToolWindow toolWindow) {
 
+        fetchSessionButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                try {
+                    loadBug(bugs.getSelectedRow());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public JPanel getContent() {
@@ -48,7 +66,12 @@ public class HorBugTable {
     }
 
     public void setTableValues() throws Exception {
-
+        defaultTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
         getErrors(0);
 
         Object[] headers = {"Type", "FileName", "LineNum", "Time"};
@@ -69,22 +92,9 @@ public class HorBugTable {
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         this.bugs.setCellEditor(this.bugs.getDefaultEditor( Boolean.class ) );
-        defaultTableModel = new DefaultTableModel() {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
 
+        //defaultTableModel.setDataVector(objects, headers);
 
-        defaultTableModel.setDataVector(objects, headers);
-
-        this.bugs.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent listSelectionEvent) {
-                //System.out.print(bugs.getValueAt(bugs.getSelectedRow(), 0).toString());
-            }
-        });
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -116,8 +126,6 @@ public class HorBugTable {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 try (ResponseBody responseBody = response.body()) {
                     if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    System.out.print(responseBody.string());
                     errorsJson = (JSONObject) JSONValue.parse(responseBody.string());
                     parseTableItems();
                 }
@@ -132,6 +140,7 @@ public class HorBugTable {
             + Constants.NPE
             + "&pageNumber=" + String.valueOf(pageNum)
             + "&pageSize=10", errorCallback);
+
     }
 
 
@@ -141,13 +150,13 @@ public class HorBugTable {
         JSONObject classInfo = (JSONObject) metadata.get("classInfo");
         JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
 
-        List<Bugs> bugList = new ArrayList<>();
+        bugList = new ArrayList<>();
 
         for (int i=0; i<jsonArray.size(); i++) {
             JSONObject jsonObject = (JSONObject) jsonArray.get(i);
-            long dataId = (Long)jsonObject.get("dataId");
-            long threadId = (Long)jsonObject.get("threadId");
-            long valueId = (Long)jsonObject.get("value");
+            long dataId = jsonObject.getAsNumber("dataId").longValue();
+            long threadId = jsonObject.getAsNumber("threadId").longValue();
+            long valueId = jsonObject.getAsNumber("value").longValue();
             String executionSessionId = jsonObject.getAsString("executionSessionId");
             long classId;
             long line;
@@ -155,8 +164,8 @@ public class HorBugTable {
             String filename, classname;
             JSONObject dataInfoObject = (JSONObject)dataInfo.get(dataId + "_" + executionSessionId);
             if (dataInfoObject != null) {
-                classId = (Long) dataInfoObject.get("classId");
-                line = (Long) dataInfoObject.get("line");
+                classId = dataInfoObject.getAsNumber("classId").longValue();
+                line = dataInfoObject.getAsNumber("line").longValue();
                 sessionId = dataInfoObject.getAsString("sessionId");
 
                 JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
@@ -178,6 +187,76 @@ public class HorBugTable {
         defaultTableModel.setDataVector(sampleObject, headers);
     }
 
+    private void loadBug(int rowNum) throws IOException {
+        Bugs bugs = bugList.get(rowNum);
+        JSONObject dataJson = new JSONObject();
+        executionSessionId = bugs.getExecutionSessionId();
+        dataJson.put("sessionId", executionSessionId);
+        dataJson.put("threadId", bugs.getThreadId());
+        dataJson.put("valueId", new JSONArray().add(bugs.getValue()));
+        dataJson.put("pageSize", 10);
+        dataJson.put("pageNumber", 0);
+        dataJson.put("debugPoints", new JSONArray());
+        dataJson.put("sortOrder", "DESC");
 
+        Callback datapointsCallback = new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
 
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+                    dataPointsJson = (JSONObject) JSONValue.parse(responseBody.string());
+                    parseDatapoints();
+                }
+            }
+        };
+
+        post(PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
+                + Constants.PROJECT_URL
+                + "/"
+                + PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID)
+                + "/filterDataEvents", dataJson.toJSONString(), datapointsCallback);
+    }
+
+    private  void post(String url, String json, Callback callback) throws IOException {
+        client = new OkHttpClient();
+        RequestBody body = RequestBody.create(json, Constants.JSON); // new
+
+        Request.Builder builder = new Request.Builder();
+
+        builder.url(url);
+        String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
+        if ( token != null) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        builder.post(body);
+
+        Request request = builder.build();
+
+        client.newCall(request).enqueue(callback);
+    }
+
+    private void parseDatapoints() {
+        JSONArray datapointsArray = (JSONArray)dataPointsJson.get("items");
+        JSONObject metadata = (JSONObject)dataPointsJson.get("metadata");
+        JSONObject classInfo = (JSONObject) metadata.get("classInfo");
+        JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
+
+        dataList = new ArrayList<>();
+
+        for (int i=0; i<datapointsArray.size(); i++) {
+            JSONObject jsonObject = (JSONObject) datapointsArray.get(i);
+            long dataId = jsonObject.getAsNumber("dataId").longValue();
+            JSONObject dataInfoTemp = (JSONObject)dataInfo.get(String.valueOf(dataId) + "_" + executionSessionId);
+            long classId = dataInfoTemp.getAsNumber("classId").longValue();
+            int lineNum = dataInfoTemp.getAsNumber("line").intValue();
+            JSONObject classInfoTemp = (JSONObject) classInfo.get(String.valueOf(classId) + "_" + executionSessionId);
+            String filename = classInfoTemp.getAsString("filename");
+            String className = classInfoTemp.getAsString("className");
+        }
+    }
 }
