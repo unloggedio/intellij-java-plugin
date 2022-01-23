@@ -38,6 +38,7 @@ public class HorBugTable {
     }
 
     public void setTableValues() {
+
         Object[] headers = {"Type", "FileName", "LineNum", "Time"};
         Object[][] objects = {
                 {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:01"},

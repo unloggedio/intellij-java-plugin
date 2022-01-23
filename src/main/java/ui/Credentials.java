@@ -4,10 +4,6 @@ import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
-import interfaces.InternalCB;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -16,8 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 
 public class Credentials {
@@ -35,10 +29,7 @@ public class Credentials {
     Callback signinCallback, createProjectcallback, signupCallback;
     Project project;
 
-    InternalCB internalCB;
-
-    public Credentials(Project project, InternalCB internalCB) {
-        this.internalCB = internalCB;
+    public Credentials(Project project) {
         this.project = project;
         signupSigninButton.addActionListener(new ActionListener() {
             @Override
@@ -189,7 +180,6 @@ public class Credentials {
 
                     errorLable.setText("Your project is now created!");
 
-                    createBugsTable();
                 }
             }
         };
@@ -198,8 +188,5 @@ public class Credentials {
 
     }
 
-    private void createBugsTable() {
-        internalCB.onSuccess();
-    }
 
 }
