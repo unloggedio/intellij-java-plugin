@@ -78,7 +78,7 @@ public class JumpForward extends AnAction {
 
         ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
 
-        HorBugTable horBugTable = new HorBugTable(toolWindow);
+        HorBugTable horBugTable = new HorBugTable(project, toolWindow);
         horBugTable.setVariable("Changing Content:");
         horBugTable.setVarValue(UUID.randomUUID().toString());
 

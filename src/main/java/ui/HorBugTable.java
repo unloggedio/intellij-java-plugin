@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class HorBugTable {
     private JPanel panel1;
@@ -197,7 +198,9 @@ public class HorBugTable {
         executionSessionId = bugs.getExecutionSessionId();
         dataJson.put("sessionId", executionSessionId);
         dataJson.put("threadId", bugs.getThreadId());
-        dataJson.put("valueId", new JSONArray().add(bugs.getValue()));
+        JSONArray arr = new JSONArray();
+        arr.add(bugs.getValue());
+        dataJson.put("valueId", arr);
         dataJson.put("pageSize", 10);
         dataJson.put("pageNumber", 0);
         dataJson.put("debugPoints", new JSONArray());
@@ -206,7 +209,7 @@ public class HorBugTable {
         Callback datapointsCallback = new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
+                e.printStackTrace();
             }
 
             @Override
@@ -227,7 +230,11 @@ public class HorBugTable {
     }
 
     private  void post(String url, String json, Callback callback) throws IOException {
-        client = new OkHttpClient();
+        client = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
         RequestBody body = RequestBody.create(json, Constants.JSON); // new
 
         Request.Builder builder = new Request.Builder();
@@ -277,7 +284,7 @@ public class HorBugTable {
         }
 
         String debugpoints = JSONArray.toJSONString(dataList) ;
-        String path = project.getBasePath() + "-DebugPoints.json";
+        String path = project.getBasePath() + "/DebugPoints.json";
         File file = new File(path);
         FileWriter fileWriter = new FileWriter(file);
         fileWriter.write(debugpoints);

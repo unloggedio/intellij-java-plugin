@@ -47,7 +47,7 @@ public class DebuggerFactory implements ToolWindowFactory {
         credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
         toolWindow.getContentManager().addContent(credentialContent);
 
-        bugsTable = new HorBugTable(toolWindow);
+        bugsTable = new HorBugTable(project, toolWindow);
 
         bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
         toolWindow.getContentManager().addContent(bugsContent);
