@@ -40,6 +40,8 @@ public class DebuggerFactory implements ToolWindowFactory {
         this.currentProject = project;
         this.toolWindow = toolWindow;
 
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
+
         contentFactory = ContentFactory.SERVICE.getInstance();
 
         credentials = new Credentials(this.currentProject);
@@ -47,15 +49,9 @@ public class DebuggerFactory implements ToolWindowFactory {
         toolWindow.getContentManager().addContent(credentialContent);
 
         bugsTable = new HorBugTable(toolWindow);
-        try {
-            bugsTable.setTableValues();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
         bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
         toolWindow.getContentManager().addContent(bugsContent);
-
-
 
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
 
@@ -65,76 +61,15 @@ public class DebuggerFactory implements ToolWindowFactory {
             bugsTable.setVarValue("Set your credentials first!");
         }
         else {
-
-        }
-
-//
-//
-//
-//        //PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
-//        try {
-//            checkProject();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-
-    }
-
-    private void checkProject() throws IOException {
-
-
-        projectname = ModuleManager.getInstance(currentProject).getModules()[0].getName();
-
-        String storedName = PropertiesComponent.getInstance().getValue(Constants.PROJECT_NAME);
-
-        if (!storedName.equals(projectname)) {
-            createProject(projectname);
-            return;
-        }
-
-
-
-        return;
-    }
-
-    private void createProject(String projectName) throws IOException {
-        callback = new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
+            try {
+                bugsTable.setTableValues();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-
-                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, jsonObject.getAsString("id"));
-
-                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
-
-                    System.out.print(PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID));
-                }
-            }
-        };
-
-        String url =  PropertiesComponent.getInstance().getValue(Constants.BASE_URL, "");
-        if (url == "") {
-
-            return;
         }
 
+
     }
-
-
 
 }
 

@@ -17,6 +17,7 @@ public class Constants {
     public static final String PROJECT_NAME = "project_name";
     public static final String PROJECT_URL = "/api/data/project";
     public static final String PROJECT_ID = "projectId";
+    public static final String GENERATE_PROJ_AUTH = "/api/auth/generateAgentToken";
 
     public static final String NPE = "java.lang.NullPointerException";
 }

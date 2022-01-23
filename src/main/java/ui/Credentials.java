@@ -1,9 +1,11 @@
 package ui;
 
+import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -26,8 +28,9 @@ public class Credentials {
     OkHttpClient client;
     String usernameText;
     String videobugURL, passwordText;
-    Callback signinCallback, createProjectcallback, signupCallback;
+    Callback signinCallback, createProjectcallback, signupCallback, checkProjectcallback, projectTokenCallback;
     Project project;
+    String projectName, project_id;
 
     public Credentials(Project project) {
         this.project = project;
@@ -68,14 +71,6 @@ public class Credentials {
         return m.matches();
     }
 
-    public boolean isURL(String url) {
-        try {
-            (new java.net.URL(url)).openStream().close();
-            return true;
-        } catch (Exception ex) { }
-        return false;
-    }
-
     private void signin() throws IOException {
 
         JSONObject jsonObject = new JSONObject();
@@ -110,13 +105,57 @@ public class Credentials {
 
                     errorLable.setText("You are now signed in!");
 
-                    createProject();
+                    try {
+                        getandCheckProject();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         };
 
         post(videobugURL.toString() + Constants.SIGN_IN, jsonObject.toJSONString(), signinCallback);
 
+    }
+
+    private void getandCheckProject() throws Exception {
+        GETCalls getCalls = new GETCalls();
+        projectName = ModuleManager.getInstance(project).getModules()[0].getName();
+
+        checkProjectcallback = new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                    Headers responseHeaders = response.headers();
+                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+                    }
+
+                    JSONObject jsonProjects = (JSONObject) JSONValue.parse(responseBody.string());
+                    JSONArray jsonArray = (JSONArray)jsonProjects.get("items");
+                    if (jsonArray.size() == 0) {
+                        createProject();
+                    }
+                    else {
+                        JSONObject projectIdJson = (JSONObject)jsonArray.get(0);
+                        project_id = projectIdJson.getAsString("id");
+                        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
+                        getProjectToken();
+                    }
+
+                }
+            }
+        };
+        getCalls.getCall(videobugURL.toString()
+                + Constants.PROJECT_URL
+                + "s?name=" + projectName, checkProjectcallback);
     }
 
     private void signup(JSONObject jsonObject) throws IOException {
@@ -155,7 +194,6 @@ public class Credentials {
     }
 
     private void createProject() throws IOException {
-        String projectName = ModuleManager.getInstance(project).getModules()[0].getName();
         createProjectcallback = new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -173,19 +211,48 @@ public class Credentials {
                     }
 
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-                    String project_id = jsonObject.getAsString("id");
+                    project_id = jsonObject.getAsString("id");
                     System.out.print(project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
                     PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
                     errorLable.setText("Your project is now created!");
-
+                    getProjectToken();
                 }
             }
         };
 
         post(videobugURL.toString() + Constants.PROJECT_URL + "?name=" + projectName, "", createProjectcallback);
 
+    }
+
+    private void getProjectToken() throws IOException {
+        projectTokenCallback = new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                    Headers responseHeaders = response.headers();
+                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+                    }
+
+                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
+                    System.out.print(jsonObject.getAsString(Constants.TOKEN));
+                    errorLable.setText("Project Token: \n" + jsonObject.getAsString(Constants.TOKEN));
+                }
+
+            }
+        };
+
+        post(videobugURL.toString() + Constants.GENERATE_PROJ_AUTH + "?projectId=" + project_id, "", projectTokenCallback);
     }
 
 
