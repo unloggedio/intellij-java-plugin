@@ -3,6 +3,7 @@ package ui;
 import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
@@ -21,6 +22,8 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -46,9 +49,10 @@ public class HorBugTable {
     List<Bugs> bugList;
     List<VarsValues> dataList;
     String executionSessionId;
+    Project project;
 
-    public HorBugTable(ToolWindow toolWindow) {
-
+    public HorBugTable(Project project, ToolWindow toolWindow) {
+        this.project = project;
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -240,7 +244,7 @@ public class HorBugTable {
         client.newCall(request).enqueue(callback);
     }
 
-    private void parseDatapoints() {
+    private void parseDatapoints() throws IOException {
         JSONArray datapointsArray = (JSONArray)dataPointsJson.get("items");
         JSONObject metadata = (JSONObject)dataPointsJson.get("metadata");
         JSONObject classInfo = (JSONObject) metadata.get("classInfo");
@@ -260,7 +264,6 @@ public class HorBugTable {
             int lineNum = dataInfoTemp.getAsNumber("line").intValue();
             JSONObject classInfoTemp = (JSONObject) classInfo.get(String.valueOf(classId) + "_" + executionSessionId);
             String filename = classInfoTemp.getAsString("filename");
-            String className = classInfoTemp.getAsString("className");
             JSONObject tempStringJson = (JSONObject) stringInfo.get(String.valueOf(dataValue) + "_" + executionSessionId);
             String dataIdstr = String.valueOf(dataValue);
             if (tempStringJson != null) {
@@ -273,5 +276,12 @@ public class HorBugTable {
             }
         }
 
+        String debugpoints = JSONArray.toJSONString(dataList) ;
+        String path = project.getBasePath() + "-DebugPoints.json";
+        File file = new File(path);
+        FileWriter fileWriter = new FileWriter(file);
+        fileWriter.write(debugpoints);
+        fileWriter.close();
     }
+
 }
