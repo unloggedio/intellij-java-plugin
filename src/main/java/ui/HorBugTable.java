@@ -9,6 +9,7 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
+import pojo.Bugs;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -18,6 +19,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class HorBugTable {
     private JPanel panel1;
@@ -70,6 +73,8 @@ public class HorBugTable {
                 return false;
             }
         };
+
+
         defaultTableModel.setDataVector(objects, headers);
 
         this.bugs.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
@@ -130,13 +135,37 @@ public class HorBugTable {
 
     private void parseTableItems() {
         JSONArray jsonArray = (JSONArray)errorsJson.get("items");
+        JSONObject metadata = (JSONObject)errorsJson.get("metadata");
+        JSONObject classInfo = (JSONObject) metadata.get("classInfo");
+        JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
+
+        List<Bugs> bugList = new ArrayList<>();
+
         for (int i=0; i<jsonArray.size(); i++) {
             JSONObject jsonObject = (JSONObject) jsonArray.get(i);
-            String dataId = jsonObject.getAsString("dataId");
-            String valueId = jsonObject.getAsString("value");
+            long dataId = (Long)jsonObject.get("dataId");
+            long threadId = (Long)jsonObject.get("threadId");
+            long valueId = (Long)jsonObject.get("value");
             String executionSessionId = jsonObject.getAsString("executionSessionId");
+            long classId;
+            long line;
+            String sessionId;
+            String filename, classname;
+            JSONObject dataInfoObject = (JSONObject)dataInfo.get(dataId + "_" + executionSessionId);
+            if (dataInfoObject != null) {
+                classId = (Long) dataInfoObject.get("classId");
+                line = (Long) dataInfoObject.get("line");
+                sessionId = dataInfoObject.getAsString("sessionId");
+
+                JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
+                filename = tempClass.getAsString("filename");
+                classname = tempClass.getAsString("className");
+                Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
+                bugList.add(bug);
+            }
 
         }
     }
+
 
 }
