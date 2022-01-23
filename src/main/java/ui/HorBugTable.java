@@ -36,6 +36,8 @@ public class HorBugTable {
     OkHttpClient client;
     Callback errorCallback;
     JSONObject errorsJson;
+    DefaultTableModel defaultTableModel;
+    Object[] headers;
 
     public HorBugTable(ToolWindow toolWindow) {
 
@@ -67,7 +69,7 @@ public class HorBugTable {
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         this.bugs.setCellEditor(this.bugs.getDefaultEditor( Boolean.class ) );
-        DefaultTableModel defaultTableModel = new DefaultTableModel() {
+        defaultTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -165,7 +167,17 @@ public class HorBugTable {
             }
 
         }
+
+        Object[][] sampleObject = new Object[bugList.size()][];
+        Object[] headers = {"ClassName", "LineNum", "ThreadId"};
+
+        for (int i=0; i < bugList.size(); i++) {
+            sampleObject[i] = new String[]{bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
+        }
+
+        defaultTableModel.setDataVector(sampleObject, headers);
     }
+
 
 
 }
