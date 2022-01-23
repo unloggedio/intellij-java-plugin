@@ -2,14 +2,14 @@ package pojo;
 
 public class VarsValues {
 
-    public VarsValues(long lineNum, String filename, String variableName, String variableValue) {
+    public VarsValues(int lineNum, String filename, String variableName, String variableValue) {
         this.lineNum = lineNum;
         this.filename = filename;
         this.variableName = variableName;
         this.variableValue = variableValue;
     }
 
-    public String getLineNum() {
+    public int getLineNum() {
         return lineNum;
     }
 
@@ -25,6 +25,6 @@ public class VarsValues {
         return variableValue;
     }
 
-    String lineNum, filename, variableName, variableValue;
-
+    String filename, variableName, variableValue;
+    int lineNum;
 }
