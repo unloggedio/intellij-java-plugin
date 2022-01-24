@@ -3,8 +3,16 @@ package ui;
 import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.markup.EffectType;
+import com.intellij.openapi.editor.markup.HighlighterLayer;
+import com.intellij.openapi.editor.markup.TextAttributes;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
+import interfaces.HighlighterInterface;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -14,8 +22,6 @@ import pojo.Bugs;
 import pojo.VarsValues;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -25,11 +31,10 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class HorBugTable {
     private JPanel panel1;
@@ -42,6 +47,8 @@ public class HorBugTable {
     private JLabel values;
     private JButton fetchSessionButton;
     private JButton refreshButton;
+    private JTable varsValue;
+    private JScrollPane varsvalueTable;
     OkHttpClient client;
     Callback errorCallback;
     JSONObject errorsJson, dataPointsJson;
@@ -51,9 +58,21 @@ public class HorBugTable {
     List<VarsValues> dataList;
     String executionSessionId;
     Project project;
+    String basepath;
+    Editor editor;
+    FileEditorManager editorManager;
+    TextAttributes textattributes;
+    Color backgroundColor = new Color(240, 57, 45, 80);
+    HighlighterInterface highlighter;
 
-    public HorBugTable(Project project, ToolWindow toolWindow) {
+    public HorBugTable(Project project, ToolWindow toolWindow, HighlighterInterface highlighter) {
         this.project = project;
+        this.highlighter = highlighter;
+        basepath = this.project.getBasePath();
+        editorManager = FileEditorManager.getInstance(project);
+        editor = editorManager.getSelectedTextEditor();
+        textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
+
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -64,6 +83,7 @@ public class HorBugTable {
                 }
             }
         });
+
     }
 
     public JPanel getContent() {
@@ -106,14 +126,6 @@ public class HorBugTable {
         this.bugs.setModel(defaultTableModel);
         this.bugs.setDefaultRenderer(Object.class, centerRenderer);
         this.bugs.setAutoCreateRowSorter(true);
-    }
-
-    public void setVariable(String variablestr) {
-        variables.setText(variablestr);
-    }
-
-    public void setVarValue(String value) {
-        values.setText(value);
     }
 
     public void hideAll() {
@@ -218,9 +230,12 @@ public class HorBugTable {
                     if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
                     dataPointsJson = (JSONObject) JSONValue.parse(responseBody.string());
                     parseDatapoints();
+                    highlighter.highlight("", 20);
+                    //highlightCrash(bugs.getFilename(), (int)bugs.getLinenum());
                 }
             }
         };
+
 
         post(PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
                 + Constants.PROJECT_URL
@@ -293,13 +308,27 @@ public class HorBugTable {
 
             }
         }
-
-        String debugpoints = JSONArray.toJSONString(dataList) ;
-        String path = project.getBasePath() + "/DebugPoints.json";
+        String content = JSONArray.toJSONString(dataList);
+        String path = project.getBasePath() + "/variablevalues.json";
         File file = new File(path);
         FileWriter fileWriter = new FileWriter(file);
-        fileWriter.write(debugpoints);
+        fileWriter.write(content);
         fileWriter.close();
+    }
+
+    private void highlightCrash(String filename, int linenumber) {
+        String path = basepath + "/src/main/java/" + filename + ".java";
+
+        VirtualFile file = LocalFileSystem
+                .getInstance().findFileByIoFile(new File(path));
+
+        if (project == null) {
+            System.out.print("project");
+        }
+
+        FileEditorManager.getInstance(project).openFile(file, true);
+        editor.getMarkupModel().removeAllHighlighters();
+        editor.getMarkupModel().addLineHighlighter(linenumber, HighlighterLayer.CARET_ROW, textattributes);
     }
 
 }

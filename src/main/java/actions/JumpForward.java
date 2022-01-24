@@ -19,11 +19,16 @@ import com.intellij.psi.impl.file.PsiPackageBase;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
+import pojo.VarsValues;
 import ui.HorBugTable;
 
 import java.awt.*;
 import java.io.File;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class JumpForward extends AnAction {
     int lineNum;
@@ -40,31 +45,20 @@ public class JumpForward extends AnAction {
         textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
         editorManager = FileEditorManager.getInstance(project);
         editor = editorManager.getSelectedTextEditor();
-        //PsiPackage pack = JavaPsiFacade.getInstance(project).findPackage("");
-        basePath = project.getBasePath();
 
-        System.out.print( ModuleManager.getInstance(project).getModules()[0].getName());
-        //testDropdown();
-        //highlight();
-        //jumpForwardToLine();
-        //getThreadIds();
+        basePath = project.getBasePath();
+        jumpForwardToLine();
+
     }
 
     private void jumpForwardToLine() {
-        String fileName = PropertiesComponent.getInstance().getValue("lineNum");
-        if (fileName == null) {
-            System.out.print("No Line Number Found\n");
-            return;
-        }
-
-
 
         VirtualFile file = LocalFileSystem
-                .getInstance().findFileByIoFile(new File(basePath + fileName));
+                .getInstance().findFileByIoFile(new File("/Users/shardul/Desktop/jwt-spring-security-demo/src/main/java/org/zerhusen/service/GCDService.java"));
 
         FileEditorManager.getInstance(project).openFile(file, true);
 
-        lineNum = PropertiesComponent.getInstance().getInt("lineNum", 0);
+        lineNum = PropertiesComponent.getInstance().getInt("lineNum", 21);
 
         if (lineNum ==0) {
             return;
@@ -74,25 +68,27 @@ public class JumpForward extends AnAction {
 
     private void highlight() {
         editor.getMarkupModel().removeAllHighlighters();
-        editor.getMarkupModel().addLineHighlighter(lineNum++, HighlighterLayer.CARET_ROW, textattributes);
+        editor.getMarkupModel().addLineHighlighter(lineNum - 1, HighlighterLayer.CARET_ROW, textattributes);
 
-        ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
+        //ToolWindow toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
 
-        HorBugTable horBugTable = new HorBugTable(project, toolWindow);
-        horBugTable.setVariable("Changing Content:");
-        horBugTable.setVarValue(UUID.randomUUID().toString());
+//        HorBugTable horBugTable = new HorBugTable(project, toolWindow);
+//        horBugTable.setVariable("Changing Content:");
+//        horBugTable.setVarValue(UUID.randomUUID().toString());
 
 //        DebuggerWindow myToolWindow = new DebuggerWindow(toolWindow);
 //        myToolWindow.setVariableType("Changing Content:");
 //        myToolWindow.setVariableValue(UUID.randomUUID().toString());
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-        Content content = contentFactory.createContent(horBugTable.getContent(), "", false);
-        toolWindow.getContentManager().addContent(content);
+//        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+//        Content content = contentFactory.createContent(horBugTable.getContent(), "", false);
+//        toolWindow.getContentManager().addContent(content);
     }
 
     private void getThreadIds() {
-        //GET call
+//        Map<Integer, java.util.List<VarsValues>> groupedData = dataList.stream().collect(Collectors.groupingBy(e -> e.getLineNum()));
+//        List<Integer> sortedKey = groupedData.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
     }
+
 
 
 }

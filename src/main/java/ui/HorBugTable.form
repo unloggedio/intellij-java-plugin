@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="panel1" default-binding="true" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="20" y="20" width="529" height="400"/>
+      <xy x="20" y="20" width="602" height="400"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -62,7 +62,7 @@
                       <hideActionText value="false"/>
                       <horizontalAlignment value="0"/>
                       <icon value="actions/lightning.png"/>
-                      <margin top="2" left="2" bottom="2" right="2"/>
+                      <margin top="0" left="0" bottom="0" right="0"/>
                       <text value="Fetch Session"/>
                     </properties>
                   </component>
@@ -74,7 +74,7 @@
                       <font name="JetBrains Mono" size="16" style="0"/>
                       <icon value="actions/refresh.png"/>
                       <inheritsPopupMenu value="true"/>
-                      <margin top="2" left="2" bottom="2" right="2"/>
+                      <margin top="0" left="0" bottom="0" right="0"/>
                       <text value="Refresh"/>
                     </properties>
                   </component>
@@ -82,7 +82,7 @@
               </grid>
             </children>
           </grid>
-          <grid id="cfff0" binding="varpanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+          <grid id="cfff0" binding="varpanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
               <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -90,26 +90,19 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="87e04" class="javax.swing.JLabel" binding="variables">
+              <scrollpane id="4b2a" binding="varsvalueTable">
                 <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties>
-                  <font name="Fira Code" size="16" style="0"/>
-                  <horizontalAlignment value="10"/>
-                  <text value="Variables:"/>
-                </properties>
-              </component>
-              <component id="d2603" class="javax.swing.JLabel" binding="values">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <font name="Fira Code" size="16" style="0"/>
-                  <horizontalAlignment value="11"/>
-                  <text value="Values"/>
-                </properties>
-              </component>
+                <properties/>
+                <border type="none"/>
+                <children>
+                  <component id="b299d" class="javax.swing.JTable" binding="varsValue">
+                    <constraints/>
+                    <properties/>
+                  </component>
+                </children>
+              </scrollpane>
             </children>
           </grid>
         </children>
