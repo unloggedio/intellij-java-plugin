@@ -3,6 +3,7 @@ package ui;
 import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
@@ -12,7 +13,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
-import interfaces.HighlighterInterface;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -31,10 +31,9 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class HorBugTable {
     private JPanel panel1;
@@ -63,11 +62,9 @@ public class HorBugTable {
     FileEditorManager editorManager;
     TextAttributes textattributes;
     Color backgroundColor = new Color(240, 57, 45, 80);
-    HighlighterInterface highlighter;
 
-    public HorBugTable(Project project, ToolWindow toolWindow, HighlighterInterface highlighter) {
+    public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
-        this.highlighter = highlighter;
         basepath = this.project.getBasePath();
         editorManager = FileEditorManager.getInstance(project);
         editor = editorManager.getSelectedTextEditor();
@@ -230,8 +227,12 @@ public class HorBugTable {
                     if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
                     dataPointsJson = (JSONObject) JSONValue.parse(responseBody.string());
                     parseDatapoints();
-                    highlighter.highlight("", 20);
-                    //highlightCrash(bugs.getFilename(), (int)bugs.getLinenum());
+                    ApplicationManager.getApplication().invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            highlightCrash(bugs.getFilename(), (int)bugs.getLinenum());
+                        }
+                    });
                 }
             }
         };
@@ -322,13 +323,9 @@ public class HorBugTable {
         VirtualFile file = LocalFileSystem
                 .getInstance().findFileByIoFile(new File(path));
 
-        if (project == null) {
-            System.out.print("project");
-        }
-
         FileEditorManager.getInstance(project).openFile(file, true);
         editor.getMarkupModel().removeAllHighlighters();
-        editor.getMarkupModel().addLineHighlighter(linenumber, HighlighterLayer.CARET_ROW, textattributes);
+        editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
     }
 
 }
