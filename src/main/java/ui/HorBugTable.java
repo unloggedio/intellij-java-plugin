@@ -283,8 +283,14 @@ public class HorBugTable {
             }
 
             if (variableName != null) {
-                VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr);
-                dataList.add(varsValues);
+                if (variableName.equals("<init>") || variableName.equals("makeConcatWithConstants")) {
+
+                }
+                else {
+                    VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr);
+                    dataList.add(varsValues);
+                }
+
             }
         }
 
