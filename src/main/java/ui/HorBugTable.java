@@ -309,6 +309,7 @@ public class HorBugTable {
 
             }
         }
+
         String content = JSONArray.toJSONString(dataList);
         String path = project.getBasePath() + "/variablevalues.json";
         File file = new File(path);
@@ -326,6 +327,8 @@ public class HorBugTable {
         FileEditorManager.getInstance(project).openFile(file, true);
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
+
+        PropertiesComponent.getInstance().setValue(Constants.CURRENT_LINE, linenumber, 0);
     }
 
 }

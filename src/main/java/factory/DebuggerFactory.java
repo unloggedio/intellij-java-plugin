@@ -42,7 +42,7 @@ public class DebuggerFactory implements ToolWindowFactory {
      * @param toolWindow current tool window
      */
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QGdtYWlsLmNvbSIsImlhdCI6MTY0MzAxMzQ0NSwiZXhwIjoxNjQzMDk5ODQ1fQ.-djUHjMidAymm0LRQD0ZEofd8_1143hepMwAJ7YPO7RsqF-jAwhewGjJSx_UNmELSnqss6iP8uF2Ah7Fg-ikLA");
         this.currentProject = project;
         this.toolWindow = toolWindow;
 
