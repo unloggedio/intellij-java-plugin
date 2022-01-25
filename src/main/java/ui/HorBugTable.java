@@ -331,8 +331,8 @@ public class HorBugTable {
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
-        Object[][] sampleObject = {{"test", "ok"}, {"something", "ok"}};
-        //Object[][] sampleObject = new Object[dataListTemp.size()][];
+
+        Object[][] sampleObject = new Object[dataListTemp.size()][];
         for (int i=0; i < dataListTemp.size(); i++) {
             sampleObject[i] = new String[]{dataListTemp.get(i).getVariableName(), dataListTemp.get(i).getVariableValue()};
         }
@@ -344,7 +344,6 @@ public class HorBugTable {
         this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
         this.varsValuesTable.setAutoCreateRowSorter(true);
 
-        System.out.print("test here!\n");
     }
 
 }

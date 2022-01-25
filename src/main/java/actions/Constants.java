@@ -27,7 +27,7 @@ public class Constants {
 
     public static final String NPE = "java.lang.NullPointerException";
     public static final String CURRENT_LINE = "current_line";
-
+    public static final String TRACK_LINE = "track_lines";
 
     public static List<VarsValues> convert(JSONArray jArr)
     {
