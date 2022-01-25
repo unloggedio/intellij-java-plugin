@@ -328,7 +328,7 @@ public class HorBugTable {
     }
 
     public void setVariables(List<VarsValues> dataListTemp) {
-        JTableHeader header = this.bugs.getTableHeader();
+        JTableHeader header = this.varsValuesTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
 

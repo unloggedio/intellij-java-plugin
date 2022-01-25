@@ -115,7 +115,11 @@
                   <component id="6084a" class="javax.swing.JTable" binding="varsValuesTable">
                     <constraints/>
                     <properties>
+                      <font name="Fira Code" size="16" style="0"/>
+                      <intercellSpacing width="2" height="4"/>
                       <name value="varsvaluetablename"/>
+                      <rowHeight value="24"/>
+                      <selectionBackground color="-1033939"/>
                       <toolTipText value="varsValuesTable"/>
                       <updateSelectionOnSort value="false"/>
                     </properties>
