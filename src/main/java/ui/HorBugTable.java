@@ -324,7 +324,7 @@ public class HorBugTable {
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
 
-        PropertiesComponent.getInstance().setValue(Constants.CURRENT_LINE, linenumber, 0);
+        PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, 0, 0);
     }
 
     public void setVariables(List<VarsValues> dataListTemp) {
