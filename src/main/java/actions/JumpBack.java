@@ -36,7 +36,7 @@ public class JumpBack extends AnAction {
     TextAttributes textattributes;
     ToolWindow toolWindow;
     HorBugTable horBugTable;
-    int lineNum;
+    int readIndex;
     String[] linevalues;
     Map<Integer, List<VarsValues>> groupedData;
     List<Integer> sortedKey;
@@ -50,21 +50,16 @@ public class JumpBack extends AnAction {
         toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
 
         try {
-            jumpBackToLine();
+            highlight();;
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    private void jumpBackToLine() throws IOException {
-        String basePath = project.getBasePath();
-        highlight();
-    }
-
     private void highlight() throws IOException {
-        lineNum = PropertiesComponent.getInstance().getInt(Constants.TRACK_LINE, 0);
+        readIndex = PropertiesComponent.getInstance().getInt(Constants.TRACK_LINE, 0);
 
-        if (lineNum == 0) {
+        if (readIndex == 0) {
             String path = project.getBasePath() + "/variablevalues.json";
 
             String content = Files.readString(Paths.get(path));
@@ -81,16 +76,20 @@ public class JumpBack extends AnAction {
             for (int i = 0; i < sortedKey.size(); i++) {
                 linevalues[i] = sortedKey.get(i).toString();
             }
+            updateColorData();
         }
         else {
-
+            updateColorData();
         }
 
+    }
 
+    private void updateColorData() {
         HorBugTable horBugTable = ServiceManager.getService(project, DebuggerFactory.ProjectService.class).getHoBugTable();
-        horBugTable.setVariables(groupedData.get(Integer.valueOf(linevalues[lineNum++])));
-//        editor.getMarkupModel().removeAllHighlighters();
-//        editor.getMarkupModel().addLineHighlighter(i - 1, HighlighterLayer.CARET_ROW, textattributes);
-
+        horBugTable.setVariables(groupedData.get(Integer.valueOf(linevalues[readIndex])));
+        editor.getMarkupModel().removeAllHighlighters();
+        editor.getMarkupModel().addLineHighlighter(Integer.valueOf(linevalues[readIndex]) - 1, HighlighterLayer.CARET_ROW, textattributes);
+        readIndex++;
+        PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, readIndex, 0);
     }
 }

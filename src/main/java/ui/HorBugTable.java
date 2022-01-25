@@ -206,7 +206,7 @@ public class HorBugTable {
         JSONArray arr = new JSONArray();
         arr.add(bugs.getValue());
         dataJson.put("valueId", arr);
-        dataJson.put("pageSize", 50);
+        dataJson.put("pageSize", 100);
         dataJson.put("pageNumber", 0);
         dataJson.put("debugPoints", new JSONArray());
         dataJson.put("sortOrder", "DESC");
