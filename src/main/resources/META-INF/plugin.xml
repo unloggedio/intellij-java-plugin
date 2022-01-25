@@ -44,6 +44,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
                     factoryClass="factory.DebuggerFactory"/>
+
+        <projectService serviceInterface="factory.DebuggerFactory$ProjectService"
+                        serviceImplementation="factory.DebuggerFactory$ProjectService"/>
     </extensions>
 
 </idea-plugin>

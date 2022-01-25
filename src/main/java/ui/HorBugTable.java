@@ -47,11 +47,13 @@ public class HorBugTable {
     private JButton fetchSessionButton;
     private JButton refreshButton;
     private JTable varsValue;
-    private JScrollPane varsvalueTable;
+    private JScrollPane varsvaluePane;
+    private JTable varsValuesTable;
+    private JLabel someLable;
     OkHttpClient client;
     Callback errorCallback;
     JSONObject errorsJson, dataPointsJson;
-    DefaultTableModel defaultTableModel;
+    DefaultTableModel defaultTableModel, varsDefaultTableModel;
     Object[] headers;
     List<Bugs> bugList;
     List<VarsValues> dataList;
@@ -62,6 +64,7 @@ public class HorBugTable {
     FileEditorManager editorManager;
     TextAttributes textattributes;
     Color backgroundColor = new Color(240, 57, 45, 80);
+    DefaultTableCellRenderer centerRenderer;
 
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -81,13 +84,23 @@ public class HorBugTable {
             }
         });
 
+        varsDefaultTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
     }
 
     public JPanel getContent() {
         return panel1;
     }
 
+
+
     public void setTableValues() throws Exception {
+
         defaultTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -96,33 +109,16 @@ public class HorBugTable {
         };
         getErrors(0);
 
-        Object[] headers = {"Type", "FileName", "LineNum", "Time"};
-        Object[][] objects = {
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:01"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19", "12-Jan-2022 10:00:02"},
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:03"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19", "12-Jan-2022 10:00:04"},
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:05"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19", "12-Jan-2022 10:00:06"},
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:07"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19","12-Jan-2022 10:00:08"},
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:09"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19", "12-Dec-2022 10:00:11"},
-                {"Null Pointer Exception", "/org/io/video/Bug.java", "16", "12-Jan-2022 10:00:14"},
-                {"Null Pointer Exception", "/org/io/video/Video.java", "19", "12-Jan-2022 00:00:01"}
-        };
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         this.bugs.setCellEditor(this.bugs.getDefaultEditor( Boolean.class ) );
 
-        //defaultTableModel.setDataVector(objects, headers);
-
-
-        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
         this.bugs.setModel(defaultTableModel);
         this.bugs.setDefaultRenderer(Object.class, centerRenderer);
         this.bugs.setAutoCreateRowSorter(true);
+
     }
 
     public void hideAll() {
@@ -329,6 +325,26 @@ public class HorBugTable {
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
 
         PropertiesComponent.getInstance().setValue(Constants.CURRENT_LINE, linenumber, 0);
+    }
+
+    public void setVariables(List<VarsValues> dataListTemp) {
+        JTableHeader header = this.bugs.getTableHeader();
+        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+        Object[] headers = {"Variable Name", "Variable Value"};
+        Object[][] sampleObject = {{"test", "ok"}, {"something", "ok"}};
+        //Object[][] sampleObject = new Object[dataListTemp.size()][];
+        for (int i=0; i < dataListTemp.size(); i++) {
+            sampleObject[i] = new String[]{dataListTemp.get(i).getVariableName(), dataListTemp.get(i).getVariableValue()};
+        }
+        if (centerRenderer == null) {
+            centerRenderer = new DefaultTableCellRenderer();
+        }
+        varsDefaultTableModel.setDataVector(sampleObject, headers);
+        this.varsValuesTable.setModel(varsDefaultTableModel);
+        this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
+        this.varsValuesTable.setAutoCreateRowSorter(true);
+
+        System.out.print("test here!\n");
     }
 
 }

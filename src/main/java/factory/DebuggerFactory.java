@@ -2,10 +2,13 @@ package factory;
 
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.module.ModuleServiceManager;
+import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -19,7 +22,7 @@ import ui.HorBugTable;
 
 import java.awt.*;
 
-public class DebuggerFactory implements ToolWindowFactory {
+public class DebuggerFactory implements ToolWindowFactory, DumbAware {
     Project currentProject;
     Callback callback;
     OkHttpClient client;
@@ -56,7 +59,7 @@ public class DebuggerFactory implements ToolWindowFactory {
         credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
         toolWindow.getContentManager().addContent(credentialContent);
 
-        bugsTable = new HorBugTable(currentProject, toolWindow);
+        bugsTable = new HorBugTable(currentProject, this.toolWindow);
 
         bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
         toolWindow.getContentManager().addContent(bugsContent);
@@ -75,7 +78,21 @@ public class DebuggerFactory implements ToolWindowFactory {
                 e.printStackTrace();
             }
         }
+        ProjectService projectService =  ServiceManager.getService(project, ProjectService.class);
+        projectService.setHorBugTable(bugsTable);
 
+    }
+
+    public static class ProjectService {
+        private HorBugTable bugsTable;
+
+        public HorBugTable getHoBugTable() {
+            return bugsTable;
+        }
+
+        void setHorBugTable(HorBugTable bugsTable) {
+            this.bugsTable = bugsTable;
+        }
     }
 
 }
