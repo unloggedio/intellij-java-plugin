@@ -42,9 +42,15 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
      * @param toolWindow current tool window
      */
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+<<<<<<< Updated upstream
         PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
         PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
         PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
+=======
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhcnRwYXJAZ21haWwuY29tIiwiaWF0IjoxNjQzMTkwNzUyLCJleHAiOjE2NDMyNzcxNTJ9.jGOZloQak1XF-tDYQoAMT6FCH12zNGGOXf5QmArg7fpSo7loO2ItcntNsz4ajtHWOVQHe3DoXxvBi4gN8E_BCA");
+        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, "fc3c836c-2c38-4275-a30b-206921c8716b");
+        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "http://localhost:8080");
+>>>>>>> Stashed changes
 
         this.currentProject = project;
         this.toolWindow = toolWindow;
