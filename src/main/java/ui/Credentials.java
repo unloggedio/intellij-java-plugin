@@ -253,6 +253,7 @@ public class Credentials {
                     DebuggerFactory.ProjectService projectService =  ServiceManager.getService(project, DebuggerFactory.ProjectService.class);
                     HorBugTable bugTable = projectService.getHoBugTable();
                     bugTable.setTableValues();
+
                     Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "BugsTable", false);
 
                     ApplicationManager.getApplication().invokeLater(new Runnable() {

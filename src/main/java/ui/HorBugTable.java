@@ -174,6 +174,7 @@ public class HorBugTable {
         JSONObject metadata = (JSONObject)errorsJson.get("metadata");
         JSONObject classInfo = (JSONObject) metadata.get("classInfo");
         JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
+        JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
 
         bugList = new ArrayList<>();
 
@@ -193,11 +194,19 @@ public class HorBugTable {
                 line = dataInfoObject.getAsNumber("line").longValue();
                 sessionId = dataInfoObject.getAsString("sessionId");
 
-                JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
-                filename = tempClass.getAsString("filename");
-                classname = tempClass.getAsString("className");
-                Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
-                bugList.add(bug);
+                JSONObject attributesMap = (JSONObject)dataInfoObject.get("attributesMap");
+
+                if (attributesMap.containsKey("ExceptionalExit") || attributesMap.containsKey("ExceptionalExit-Rethrow")) {
+                    continue;
+                }
+                else {
+                    JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
+                    filename = tempClass.getAsString("filename");
+                    classname = tempClass.getAsString("className");
+                    Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
+                    bugList.add(bug);
+                }
+
             }
 
         }
@@ -296,6 +305,7 @@ public class HorBugTable {
             long dataValue = jsonObject.getAsNumber("value").longValue();
             JSONObject dataInfoTemp = (JSONObject)dataInfo.get(String.valueOf(dataId) + "_" + executionSessionId);
             JSONObject attributesMap = (JSONObject) dataInfoTemp.get("attributesMap");
+
             String variableName = attributesMap.getAsString("Name");
             String variableType = attributesMap.getAsString("Type");
             long classId = dataInfoTemp.getAsNumber("classId").longValue();
