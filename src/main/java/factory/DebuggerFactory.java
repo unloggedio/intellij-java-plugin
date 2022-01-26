@@ -24,9 +24,6 @@ import java.awt.*;
 
 public class DebuggerFactory implements ToolWindowFactory, DumbAware {
     Project currentProject;
-    Callback callback;
-    OkHttpClient client;
-    String projectname;
     Credentials credentials;
     ContentFactory contentFactory;
     HorBugTable bugsTable;
@@ -45,7 +42,10 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
      * @param toolWindow current tool window
      */
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QGdtYWlsLmNvbSIsImlhdCI6MTY0MzE4MzY3MiwiZXhwIjoxNjQzMjcwMDcyfQ.tgaTEm1U5VzSTHqzCD8tDj_9xy60ACT6QRrLGCuU89CNA-DD7faMbfe6P6QcQyzPVneQPSIMnKPN83HM0JwdSw");
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
+        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
+        PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
+
         this.currentProject = project;
         this.toolWindow = toolWindow;
 

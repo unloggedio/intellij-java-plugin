@@ -43,10 +43,12 @@ public class Credentials {
 
                 if (!isValidEmailAddress(usernameText)) {
                     errorLable.setText("Enter a valid email address");
+                    return;
                 }
 
                 if (passwordText == null) {
                     errorLable.setText("Enter a valid Password");
+                    return;
                 }
 
                 try {
@@ -101,8 +103,6 @@ public class Credentials {
 
                     PropertiesComponent.getInstance().setValue(Constants.TOKEN, jsonObject.getAsString(Constants.TOKEN));
 
-                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
-
                     errorLable.setText("You are now signed in!");
 
                     try {
@@ -132,11 +132,6 @@ public class Credentials {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 try (ResponseBody responseBody = response.body()) {
                     if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
 
                     JSONObject jsonProjects = (JSONObject) JSONValue.parse(responseBody.string());
                     JSONArray jsonArray = (JSONArray)jsonProjects.get("items");
@@ -245,8 +240,9 @@ public class Credentials {
                     }
 
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-                    System.out.print(jsonObject.getAsString(Constants.TOKEN));
-                    errorLable.setText("Project Token: \n" + jsonObject.getAsString(Constants.TOKEN));
+                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, jsonObject.getAsString(Constants.TOKEN));
+                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
+
                 }
 
             }
