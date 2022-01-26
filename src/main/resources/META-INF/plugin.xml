@@ -19,10 +19,6 @@
             <action icon="/icons/videobug_Icon_16x16.svg" class="actions.PopupDialogAction" description="Test Description" id="fetchSession" text="Fetch Session"/>
         </group>
 
-<!--        <group id="Demo.GetDebugPoints" text="Select your debug points" description="You need to select your debug points first">-->
-<!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
-<!--            <action class="actions.SearchAction" description="Test Description" id="fetchDebugpoints" text="Fetch Debug Points" icon="AllIcons.Debugger.ThreadRunning"/>-->
-<!--        </group>-->
 
         <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
@@ -33,11 +29,6 @@
             <add-to-group group-id="MainToolBar" anchor="last"/>
             <action class="actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward" icon="AllIcons.Debugger.NextStatement"/>
         </group>
-
-<!--        <group id="Demo.DropDown" text="Select Thread Id here" description="Select Thread Id here">-->
-<!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
-<!--            <action class="actions.MyComboBox" description="Test Description" id="searchThread" text="Search Thread" icon="AllIcons.Actions.SearchWithHistory"/>-->
-<!--        </group>-->
 
     </actions>
 

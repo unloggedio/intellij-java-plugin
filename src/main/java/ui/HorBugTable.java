@@ -69,8 +69,7 @@ public class HorBugTable {
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
         basepath = this.project.getBasePath();
-        editorManager = FileEditorManager.getInstance(project);
-        editor = editorManager.getSelectedTextEditor();
+
         textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
 
         fetchSessionButton.addActionListener(new ActionListener() {
@@ -206,7 +205,7 @@ public class HorBugTable {
         JSONArray arr = new JSONArray();
         arr.add(bugs.getValue());
         dataJson.put("valueId", arr);
-        dataJson.put("pageSize", 100);
+        dataJson.put("pageSize", 200);
         dataJson.put("pageNumber", 0);
         dataJson.put("debugPoints", new JSONArray());
         dataJson.put("sortOrder", "DESC");
@@ -317,10 +316,16 @@ public class HorBugTable {
     private void highlightCrash(String filename, int linenumber) {
         String path = basepath + "/src/main/java/" + filename + ".java";
 
+
+
         VirtualFile file = LocalFileSystem
                 .getInstance().findFileByIoFile(new File(path));
 
         FileEditorManager.getInstance(project).openFile(file, true);
+
+        editorManager = FileEditorManager.getInstance(project);
+        editor = editorManager.getSelectedTextEditor();
+
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
 
