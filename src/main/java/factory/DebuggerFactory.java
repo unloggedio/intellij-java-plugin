@@ -45,7 +45,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
      * @param toolWindow current tool window
      */
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QGdtYWlsLmNvbSIsImlhdCI6MTY0MzA5NjExMiwiZXhwIjoxNjQzMTgyNTEyfQ.SB2h0SFKYVdTSNY9eIARzs5DgHhF6iIFzzEbLuZtS32krh-YwLPIat4AIeOics63d7yzc_FnTVek8wY5o1nEXA");
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0QGdtYWlsLmNvbSIsImlhdCI6MTY0MzE4MzY3MiwiZXhwIjoxNjQzMjcwMDcyfQ.tgaTEm1U5VzSTHqzCD8tDj_9xy60ACT6QRrLGCuU89CNA-DD7faMbfe6P6QcQyzPVneQPSIMnKPN83HM0JwdSw");
         this.currentProject = project;
         this.toolWindow = toolWindow;
 

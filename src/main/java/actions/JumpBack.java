@@ -59,29 +59,24 @@ public class JumpBack extends AnAction {
     private void highlight() throws IOException {
         readIndex = PropertiesComponent.getInstance().getInt(Constants.TRACK_LINE, 0);
 
-        if (readIndex == 0) {
-            String path = project.getBasePath() + "/variablevalues.json";
+        String path = project.getBasePath() + "/variablevalues.json";
 
-            String content = Files.readString(Paths.get(path));
+        String content = Files.readString(Paths.get(path));
 
-            JSONArray jsonArray = (JSONArray)JSONValue.parse(content);
+        JSONArray jsonArray = (JSONArray)JSONValue.parse(content);
 
-            List<VarsValues> dataList = Constants.convert(jsonArray);
+        List<VarsValues> dataList = Constants.convert(jsonArray);
 
-            groupedData = dataList.stream().collect(Collectors.groupingBy(e -> e.getLineNum()));
-            sortedKey = groupedData.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+        groupedData = dataList.stream().collect(Collectors.groupingBy(e -> e.getLineNum()));
+        sortedKey = groupedData.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
-            linevalues = new String[sortedKey.size()];
+        linevalues = new String[sortedKey.size()];
 
-            for (int i = 0; i < sortedKey.size(); i++) {
-                linevalues[i] = sortedKey.get(i).toString();
-            }
-            updateColorData();
-        }
-        else {
-            updateColorData();
+        for (int i = 0; i < sortedKey.size(); i++) {
+            linevalues[i] = sortedKey.get(i).toString();
         }
 
+        updateColorData();
     }
 
     private void updateColorData() {
