@@ -90,6 +90,17 @@ public class HorBugTable {
             }
         };
 
+        refreshButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                try {
+                    scrollpanel.setVisible(true);
+                    setTableValues();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     public JPanel getContent() {
@@ -121,7 +132,7 @@ public class HorBugTable {
     }
 
     public void hideAll() {
-        panel12.setVisible(false);
+        scrollpanel.setVisible(false);
     }
 
     private void getErrors(int pageNum) throws Exception {
@@ -134,7 +145,10 @@ public class HorBugTable {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+                    if (!response.isSuccessful()) {
+                        clearAll();
+                        throw new IOException("Unexpected code " + response);
+                    }
                     errorsJson = (JSONObject) JSONValue.parse(responseBody.string());
                     parseTableItems();
                 }
@@ -219,7 +233,10 @@ public class HorBugTable {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+                    if (!response.isSuccessful()) {
+                        clearAll();
+                        throw new IOException("Unexpected code " + response);
+                    }
                     dataPointsJson = (JSONObject) JSONValue.parse(responseBody.string());
                     parseDatapoints();
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
@@ -349,6 +366,13 @@ public class HorBugTable {
         this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
         this.varsValuesTable.setAutoCreateRowSorter(true);
 
+    }
+
+    private void clearAll() {
+        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
+        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, "");
+        PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
     }
 
 }
