@@ -3,8 +3,14 @@ package ui;
 import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentFactory;
+import factory.DebuggerFactory;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -31,9 +37,11 @@ public class Credentials {
     Callback signinCallback, createProjectcallback, signupCallback, checkProjectcallback, projectTokenCallback;
     Project project;
     String projectName, project_id;
+    ToolWindow toolWindow;
 
-    public Credentials(Project project) {
+    public Credentials(Project project, ToolWindow toolWindow) {
         this.project = project;
+        this.toolWindow = toolWindow;
         signupSigninButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -211,7 +219,7 @@ public class Credentials {
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
                     PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
-                    errorLable.setText("Your project is now created!");
+
                     getProjectToken();
                 }
             }
@@ -242,7 +250,22 @@ public class Credentials {
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, jsonObject.getAsString(Constants.TOKEN));
                     PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
+                    DebuggerFactory.ProjectService projectService =  ServiceManager.getService(project, DebuggerFactory.ProjectService.class);
+                    HorBugTable bugTable = projectService.getHoBugTable();
+                    bugTable.setTableValues();
+                    Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "BugsTable", false);
 
+                    ApplicationManager.getApplication().invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            toolWindow.getContentManager().addContent(bugsContent);
+                        }
+                    });
+
+                    errorLable.setText("All Set! Check BugsTable now");
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
 
             }

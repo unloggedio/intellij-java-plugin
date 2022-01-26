@@ -55,7 +55,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
         contentFactory = ContentFactory.SERVICE.getInstance();
 
-        credentials = new Credentials(this.currentProject);
+        credentials = new Credentials(this.currentProject, this.toolWindow);
         credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
         toolWindow.getContentManager().addContent(credentialContent);
 
@@ -67,7 +67,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
 
         if (token.equals("")) {
-            bugsTable.hideAll();
+            toolWindow.getContentManager().removeContent(bugsContent, true);
         }
         else {
             try {
