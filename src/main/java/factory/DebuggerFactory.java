@@ -68,8 +68,6 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
         if (token == "") {
             bugsTable.hideAll();
-            //bugsTable.setVariable("");
-            //bugsTable.setVarValue("Set your credentials first!");
         }
         else {
             try {

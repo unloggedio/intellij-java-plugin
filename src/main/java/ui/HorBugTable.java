@@ -148,7 +148,7 @@ public class HorBugTable {
             + "/traceByException?exceptionClass="
             + Constants.NPE
             + "&pageNumber=" + String.valueOf(pageNum)
-            + "&pageSize=10", errorCallback);
+            + "&pageSize=30", errorCallback);
 
     }
 
