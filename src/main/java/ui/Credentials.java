@@ -10,7 +10,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
-import factory.DebuggerFactory;
+import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -250,8 +250,8 @@ public class Credentials {
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, jsonObject.getAsString(Constants.TOKEN));
                     PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
-                    DebuggerFactory.ProjectService projectService =  ServiceManager.getService(project, DebuggerFactory.ProjectService.class);
-                    HorBugTable bugTable = projectService.getHoBugTable();
+                    ProjectService projectService =  ServiceManager.getService(project, ProjectService.class);
+                    HorBugTable bugTable = projectService.getHorBugTable();
                     bugTable.setTableValues();
 
                     Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "BugsTable", false);

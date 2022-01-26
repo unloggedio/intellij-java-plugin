@@ -2,11 +2,16 @@ package pojo;
 
 public class VarsValues {
 
-    public VarsValues(int lineNum, String filename, String variableName, String variableValue) {
+    long nanoTime;
+    String filename, variableName, variableValue;
+    int lineNum;
+
+    public VarsValues(int lineNum, String filename, String variableName, String variableValue, long nanoTime) {
         this.lineNum = lineNum;
         this.filename = filename;
         this.variableName = variableName;
         this.variableValue = variableValue;
+        this.nanoTime = nanoTime;
     }
 
     public int getLineNum() {
@@ -25,6 +30,7 @@ public class VarsValues {
         return variableValue;
     }
 
-    String filename, variableName, variableValue;
-    int lineNum;
+    public long getNanoTime() {
+        return nanoTime;
+    }
 }
