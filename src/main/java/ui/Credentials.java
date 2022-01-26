@@ -274,5 +274,4 @@ public class Credentials {
         post(videobugURL.toString() + Constants.GENERATE_PROJ_AUTH + "?projectId=" + project_id, "", projectTokenCallback);
     }
 
-
 }

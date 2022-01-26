@@ -51,8 +51,8 @@ public class HorBugTable {
     private JTable varsValuesTable;
     private JLabel someLable;
     OkHttpClient client;
-    Callback errorCallback;
-    JSONObject errorsJson, dataPointsJson;
+    Callback errorCallback, lastSessioncallback;
+    JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel;
     Object[] headers;
     List<Bugs> bugList;
@@ -117,7 +117,7 @@ public class HorBugTable {
                 return false;
             }
         };
-        getErrors(0);
+        getLastSessions(0);
 
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
@@ -135,7 +135,7 @@ public class HorBugTable {
         scrollpanel.setVisible(false);
     }
 
-    private void getErrors(int pageNum) throws Exception {
+    private void getErrors(int pageNum, String sessionId) throws Exception {
         errorCallback = new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -159,7 +159,9 @@ public class HorBugTable {
     GETCalls getCalls = new GETCalls();
     getCalls.getCall(PropertiesComponent.getInstance().getValue(Constants.BASE_URL) + Constants.PROJECT_URL
             + "/" + projectId
-            + "/traceByException?exceptionClass="
+            + "/traceByException"
+            + "/" + sessionId
+            + "?exceptionClass="
             + Constants.NPE
             + "&pageNumber=" + String.valueOf(pageNum)
             + "&pageSize=30", errorCallback);
@@ -373,6 +375,41 @@ public class HorBugTable {
         PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
         PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, "");
         PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
+    }
+
+    private void getLastSessions(int pageNum) throws Exception {
+        lastSessioncallback = new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                try (ResponseBody responseBody = response.body()) {
+                    if (!response.isSuccessful()) {
+                        clearAll();
+                        throw new IOException("Unexpected code " + response);
+                    }
+                    sessionJson = (JSONObject) JSONValue.parse(responseBody.string());
+                    JSONArray sessionArray = (JSONArray)sessionJson.get("items");
+                    JSONObject firstItem = (JSONObject)sessionJson.get(0);
+                    getErrors(0, firstItem.getAsString("id"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        String url = PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
+                     + Constants.PROJECT_URL
+                     + "/"
+                     + PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID)
+                     + "/executions"
+                     + "&pageNumber=" + String.valueOf(pageNum)
+                     + "&pageSize=30";
+
+        GETCalls getCalls = new GETCalls();
+        getCalls.getCall(url, lastSessioncallback);
     }
 
 }
