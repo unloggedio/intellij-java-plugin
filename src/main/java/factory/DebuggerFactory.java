@@ -66,7 +66,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
 
-        if (token == "") {
+        if (token.equals("")) {
             bugsTable.hideAll();
         }
         else {
