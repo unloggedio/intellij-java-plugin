@@ -393,7 +393,7 @@ public class HorBugTable {
                     }
                     sessionJson = (JSONObject) JSONValue.parse(responseBody.string());
                     JSONArray sessionArray = (JSONArray)sessionJson.get("items");
-                    JSONObject firstItem = (JSONObject)sessionJson.get(0);
+                    JSONObject firstItem = (JSONObject)sessionArray.get(0);
                     getErrors(0, firstItem.getAsString("id"));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -404,7 +404,7 @@ public class HorBugTable {
                      + Constants.PROJECT_URL
                      + "/"
                      + PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID)
-                     + "/executions"
+                     + "/executions?"
                      + "&pageNumber=" + String.valueOf(pageNum)
                      + "&pageSize=30";
 

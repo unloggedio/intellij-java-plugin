@@ -43,8 +43,8 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
      */
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
+        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, "");
         PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
-        PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
 
         this.currentProject = project;
         this.toolWindow = toolWindow;
