@@ -4,6 +4,8 @@ import Network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.HighlighterLayer;
@@ -13,6 +15,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
+import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -31,25 +34,12 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class HorBugTable {
-    private JPanel panel1;
-    private JTable bugs;
-    private JPanel panel11;
-    private JPanel panel12;
-    private JScrollPane scrollpanel;
-    private JPanel varpanel;
-    private JLabel variables;
-    private JLabel values;
-    private JButton fetchSessionButton;
-    private JButton refreshButton;
-    private JTable varsValue;
-    private JScrollPane varsvaluePane;
-    private JTable varsValuesTable;
-    private JLabel someLable;
+    private final ProjectService projectService;
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
@@ -65,10 +55,30 @@ public class HorBugTable {
     TextAttributes textattributes;
     Color backgroundColor = new Color(240, 57, 45, 80);
     DefaultTableCellRenderer centerRenderer;
+    private JPanel panel1;
+    private JTable bugs;
+    private JPanel panel11;
+    private JPanel panel12;
+    private JScrollPane scrollpanel;
+    private JPanel varpanel;
+    private JLabel variables;
+    private JLabel values;
+    private JButton fetchSessionButton;
+    private JButton refreshButton;
+    private JTable varsValue;
+    private JScrollPane varsvaluePane;
+    private JTable varsValuesTable;
+    private JLabel someLable;
+
+    private static final Logger logger = Logger.getInstance(HorBugTable.class);
 
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
         basepath = this.project.getBasePath();
+
+        this.projectService = ServiceManager.getService(project, ProjectService.class);
+
+        this.projectService.setHorBugTable(this);
 
         textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
 
@@ -108,7 +118,6 @@ public class HorBugTable {
     }
 
 
-
     public void setTableValues() throws Exception {
 
         defaultTableModel = new DefaultTableModel() {
@@ -121,7 +130,7 @@ public class HorBugTable {
 
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        this.bugs.setCellEditor(this.bugs.getDefaultEditor( Boolean.class ) );
+        this.bugs.setCellEditor(this.bugs.getDefaultEditor(Boolean.class));
 
         centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -155,30 +164,30 @@ public class HorBugTable {
             }
         };
 
-    String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-    GETCalls getCalls = new GETCalls();
-    getCalls.getCall(PropertiesComponent.getInstance().getValue(Constants.BASE_URL) + Constants.PROJECT_URL
-            + "/" + projectId
-            + "/traceByException"
-            + "/" + sessionId
-            + "?exceptionClass="
-            + Constants.NPE
-            + "&pageNumber=" + String.valueOf(pageNum)
-            + "&pageSize=30", errorCallback);
+        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+        GETCalls getCalls = new GETCalls();
+        getCalls.getCall(PropertiesComponent.getInstance().getValue(Constants.BASE_URL) + Constants.PROJECT_URL
+                + "/" + projectId
+                + "/traceByException"
+                + "/" + sessionId
+                + "?exceptionClass="
+                + Constants.NPE
+                + "&pageNumber=" + pageNum
+                + "&pageSize=30", errorCallback);
 
     }
 
 
     private void parseTableItems() {
-        JSONArray jsonArray = (JSONArray)errorsJson.get("items");
-        JSONObject metadata = (JSONObject)errorsJson.get("metadata");
+        JSONArray jsonArray = (JSONArray) errorsJson.get("items");
+        JSONObject metadata = (JSONObject) errorsJson.get("metadata");
         JSONObject classInfo = (JSONObject) metadata.get("classInfo");
         JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
         JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
 
         bugList = new ArrayList<>();
 
-        for (int i=0; i<jsonArray.size(); i++) {
+        for (int i = 0; i < jsonArray.size(); i++) {
             JSONObject jsonObject = (JSONObject) jsonArray.get(i);
             long dataId = jsonObject.getAsNumber("dataId").longValue();
             long threadId = jsonObject.getAsNumber("threadId").longValue();
@@ -188,19 +197,31 @@ public class HorBugTable {
             long line;
             String sessionId;
             String filename, classname;
-            JSONObject dataInfoObject = (JSONObject)dataInfo.get(dataId + "_" + executionSessionId);
+            JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
             if (dataInfoObject != null) {
                 classId = dataInfoObject.getAsNumber("classId").longValue();
                 line = dataInfoObject.getAsNumber("line").longValue();
                 sessionId = dataInfoObject.getAsString("sessionId");
 
-                JSONObject attributesMap = (JSONObject)dataInfoObject.get("attributesMap");
+                JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
+<<<<<<< HEAD
                 JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
                 filename = tempClass.getAsString("filename");
                 classname = tempClass.getAsString("className");
                 Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
                 bugList.add(bug);
+=======
+                if (attributesMap.containsKey("ExceptionalExit") || attributesMap.containsKey("ExceptionalExit-Rethrow")) {
+                    continue;
+                } else {
+                    JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
+                    filename = tempClass.getAsString("filename");
+                    classname = tempClass.getAsString("className");
+                    Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
+                    bugList.add(bug);
+                }
+>>>>>>> 0f3ad422a1bfcc1c8d968e7fb1d5117190a4b84c
 
             }
 
@@ -209,8 +230,13 @@ public class HorBugTable {
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
 
+<<<<<<< HEAD
         for (int i=0; i < bugList.size(); i++) {
             sampleObject[i] = new String[]{"NullPointerException", bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
+=======
+        for (int i = 0; i < bugList.size(); i++) {
+            sampleObject[i] = new String[]{bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
+>>>>>>> 0f3ad422a1bfcc1c8d968e7fb1d5117190a4b84c
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
@@ -230,6 +256,8 @@ public class HorBugTable {
         dataJson.put("debugPoints", new JSONArray());
         dataJson.put("sortOrder", "DESC");
 
+        logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId,  bugs.getThreadId()));
+
         Callback datapointsCallback = new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -248,7 +276,7 @@ public class HorBugTable {
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                            highlightCrash(bugs.getFilename(), (int)bugs.getLinenum());
+                            highlightCrash(bugs.getFilename(), (int) bugs.getLinenum());
                         }
                     });
                 }
@@ -263,7 +291,7 @@ public class HorBugTable {
                 + "/filterDataEvents", dataJson.toJSONString(), datapointsCallback);
     }
 
-    private  void post(String url, String json, Callback callback) throws IOException {
+    private void post(String url, String json, Callback callback) throws IOException {
         client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
                 .readTimeout(600, TimeUnit.SECONDS)
@@ -275,7 +303,7 @@ public class HorBugTable {
 
         builder.url(url);
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
-        if ( token != null) {
+        if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
         builder.post(body);
@@ -286,28 +314,45 @@ public class HorBugTable {
     }
 
     private void parseDatapoints() throws IOException {
-        JSONArray datapointsArray = (JSONArray)dataPointsJson.get("items");
-        JSONObject metadata = (JSONObject)dataPointsJson.get("metadata");
+        JSONArray datapointsArray = (JSONArray) dataPointsJson.get("items");
+        JSONObject metadata = (JSONObject) dataPointsJson.get("metadata");
         JSONObject classInfo = (JSONObject) metadata.get("classInfo");
         JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
         JSONObject stringInfo = (JSONObject) metadata.get("stringInfo");
 
         dataList = new ArrayList<>();
+        Map<String, VarsValues> variableMap = new HashMap<>();
 
-        for (int i=0; i<datapointsArray.size(); i++) {
+        for (int i = 0; i < datapointsArray.size(); i++) {
             JSONObject jsonObject = (JSONObject) datapointsArray.get(i);
             long dataId = jsonObject.getAsNumber("dataId").longValue();
             long dataValue = jsonObject.getAsNumber("value").longValue();
-            JSONObject dataInfoTemp = (JSONObject)dataInfo.get(String.valueOf(dataId) + "_" + executionSessionId);
+            JSONObject dataInfoTemp = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
             JSONObject attributesMap = (JSONObject) dataInfoTemp.get("attributesMap");
 
             String variableName = attributesMap.getAsString("Name");
+
+            if (variableName == null) {
+                continue;
+            }
+
+            if (Arrays.asList("<init>", "makeConcatWithConstants").contains(variableName)) {
+                continue;
+            }
+
+            if (variableMap.containsKey(variableName)) {
+                continue;
+            }
+
             String variableType = attributesMap.getAsString("Type");
             long classId = dataInfoTemp.getAsNumber("classId").longValue();
             int lineNum = dataInfoTemp.getAsNumber("line").intValue();
-            JSONObject classInfoTemp = (JSONObject) classInfo.get(String.valueOf(classId) + "_" + executionSessionId);
+            JSONObject classInfoTemp = (JSONObject) classInfo.get(classId + "_" + executionSessionId);
             String filename = classInfoTemp.getAsString("filename");
+
+
             String dataIdstr = String.valueOf(dataValue);
+
             if (variableType != null) {
                 if (variableType.contains("java/lang/String")) {
                     JSONObject tempStringJson = (JSONObject) stringInfo.get(dataValue + "_" + executionSessionId);
@@ -317,19 +362,19 @@ public class HorBugTable {
                 }
             }
 
-            if (variableName != null) {
-                if (variableName.equals("<init>") || variableName.equals("makeConcatWithConstants")) {
+            Number time = jsonObject.getAsNumber("nanoTime");
+            long nanoTime = 0;
+                nanoTime = time.longValue();
 
-                }
-                else {
-                    VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr);
-                    dataList.add(varsValues);
-                }
 
-            }
+            VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr, nanoTime);
+
+
+
+            variableMap.put(variableName, varsValues);
         }
 
-        String content = JSONArray.toJSONString(dataList);
+        String content = JSONArray.toJSONString(Arrays.asList(variableMap.values().toArray()));
         String path = project.getBasePath() + "/variablevalues.json";
         File file = new File(path);
         FileWriter fileWriter = new FileWriter(file);
@@ -339,7 +384,6 @@ public class HorBugTable {
 
     private void highlightCrash(String filename, int linenumber) {
         String path = basepath + "/src/main/java/" + filename + ".java";
-
 
 
         VirtualFile file = LocalFileSystem
@@ -353,6 +397,8 @@ public class HorBugTable {
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
 
+        ProjectService.getInstance().setCurrentLineNumber(linenumber - 1);
+
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, 0, 0);
     }
 
@@ -361,8 +407,8 @@ public class HorBugTable {
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
 
-        Object[][] sampleObject = new Object[dataListTemp.size()][];
-        for (int i=0; i < dataListTemp.size(); i++) {
+        String[][] sampleObject = new String[dataListTemp.size()][];
+        for (int i = 0; i < dataListTemp.size(); i++) {
             sampleObject[i] = new String[]{dataListTemp.get(i).getVariableName(), dataListTemp.get(i).getVariableValue()};
         }
         if (centerRenderer == null) {
@@ -397,8 +443,8 @@ public class HorBugTable {
                         throw new IOException("Unexpected code " + response);
                     }
                     sessionJson = (JSONObject) JSONValue.parse(responseBody.string());
-                    JSONArray sessionArray = (JSONArray)sessionJson.get("items");
-                    JSONObject firstItem = (JSONObject)sessionArray.get(0);
+                    JSONArray sessionArray = (JSONArray) sessionJson.get("items");
+                    JSONObject firstItem = (JSONObject) sessionArray.get(0);
                     getErrors(0, firstItem.getAsString("id"));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -406,12 +452,12 @@ public class HorBugTable {
             }
         };
         String url = PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
-                     + Constants.PROJECT_URL
-                     + "/"
-                     + PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID)
-                     + "/executions?"
-                     + "&pageNumber=" + String.valueOf(pageNum)
-                     + "&pageSize=30";
+                + Constants.PROJECT_URL
+                + "/"
+                + PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID)
+                + "/executions?"
+                + "&pageNumber=" + pageNum
+                + "&pageSize=30";
 
         GETCalls getCalls = new GETCalls();
         getCalls.getCall(url, lastSessioncallback);

@@ -3,7 +3,7 @@
     <name>Video Bug</name>
     <vendor email="support@videobug.com" url="https://www.videobug.com">Video Bug</vendor>
 
-<!--    <description></description>-->
+    <!--    <description></description>-->
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
@@ -16,18 +16,22 @@
 
         <group id="Demo.FetchSession" text="Fetch Session" description="You need to first fetch a session">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action icon="/icons/videobug_Icon_16x16.svg" class="actions.PopupDialogAction" description="Test Description" id="fetchSession" text="Fetch Session"/>
+            <action icon="/icons/videobug_Icon_16x16.svg" class="actions.PopupDialogAction"
+                    description="Test Description" id="fetchSession" text="Fetch Session"/>
         </group>
 
 
         <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="actions.JumpBack" description="Test Description" id="jumpBack" text="Jump Back" icon="AllIcons.Actions.Back"/>
+            <action class="actions.JumpBack" description="Test Description" id="jumpBack" text="Jump Back"
+                    icon="AllIcons.Actions.Back"/>
         </group>
 
-        <group id="Demo.NextStatement" text="Go Forward in time using this" description="Jump forward using this button">
+        <group id="Demo.NextStatement" text="Go Forward in time using this"
+               description="Jump forward using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward" icon="AllIcons.Debugger.NextStatement"/>
+            <action class="actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward"
+                    icon="AllIcons.Debugger.NextStatement"/>
         </group>
 
     </actions>
@@ -36,8 +40,8 @@
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
                     factoryClass="factory.DebuggerFactory"/>
 
-        <projectService serviceInterface="factory.DebuggerFactory$ProjectService"
-                        serviceImplementation="factory.DebuggerFactory$ProjectService"/>
+        <projectService
+                serviceImplementation="factory.ProjectService"/>
     </extensions>
 
 </idea-plugin>

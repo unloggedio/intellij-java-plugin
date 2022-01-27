@@ -12,7 +12,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
-import factory.DebuggerFactory;
+import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONValue;
 import org.jetbrains.annotations.NotNull;
@@ -35,11 +35,11 @@ public class JumpForward extends AnAction {
     Editor editor;
     TextAttributes textattributes;
     ToolWindow toolWindow;
-    HorBugTable horBugTable;
     int readIndex;
     String[] linevalues;
     Map<Integer, List<VarsValues>> groupedData;
     List<Integer> sortedKey;
+
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
@@ -50,7 +50,7 @@ public class JumpForward extends AnAction {
         toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
 
         try {
-            highlight();;
+            highlight();
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -62,8 +62,7 @@ public class JumpForward extends AnAction {
 
         if (readIndex == 0) {
             return;
-        }
-        else {
+        } else {
             String path = project.getBasePath() + "/variablevalues.json";
 
             String content = Files.readString(Paths.get(path));
@@ -88,13 +87,12 @@ public class JumpForward extends AnAction {
 
     private void updateColorData() {
         readIndex--;
-        HorBugTable horBugTable = ServiceManager.getService(project, DebuggerFactory.ProjectService.class).getHoBugTable();
+        HorBugTable horBugTable = ServiceManager.getService(project, ProjectService.class).getHorBugTable();
         horBugTable.setVariables(groupedData.get(Integer.valueOf(linevalues[readIndex])));
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(Integer.valueOf(linevalues[readIndex]) - 1, HighlighterLayer.CARET_ROW, textattributes);
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, readIndex, 0);
     }
-
 
 
 }

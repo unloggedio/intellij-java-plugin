@@ -12,7 +12,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
-import factory.DebuggerFactory;
+import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONValue;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -37,7 +38,7 @@ public class JumpBack extends AnAction {
     ToolWindow toolWindow;
     HorBugTable horBugTable;
     int readIndex;
-    String[] linevalues;
+    List<VarsValues> linevalues;
     Map<Integer, List<VarsValues>> groupedData;
     List<Integer> sortedKey;
 
@@ -49,8 +50,9 @@ public class JumpBack extends AnAction {
         editor = editorManager.getSelectedTextEditor();
         toolWindow = ToolWindowManager.getInstance(project).getToolWindow("VideoBug");
 
+
         try {
-            highlight();;
+            highlight();
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -59,31 +61,41 @@ public class JumpBack extends AnAction {
     private void highlight() throws IOException {
         readIndex = PropertiesComponent.getInstance().getInt(Constants.TRACK_LINE, 0);
 
+        int currentLine = ProjectService.getInstance().getCurrentLineNumber();
+
+
         String path = project.getBasePath() + "/variablevalues.json";
 
         String content = Files.readString(Paths.get(path));
 
-        JSONArray jsonArray = (JSONArray)JSONValue.parse(content);
+        JSONArray jsonArray = (JSONArray) JSONValue.parse(content);
 
         List<VarsValues> dataList = Constants.convert(jsonArray);
 
         groupedData = dataList.stream().collect(Collectors.groupingBy(e -> e.getLineNum()));
         sortedKey = groupedData.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
-        linevalues = new String[sortedKey.size()];
+        linevalues = new LinkedList<>();
 
-        for (int i = 0; i < sortedKey.size(); i++) {
-            linevalues[i] = sortedKey.get(i).toString();
+
+        for (VarsValues varsValues : dataList) {
+            if (varsValues.getLineNum() <= currentLine) {
+                linevalues.add(varsValues);
+            }
         }
 
         updateColorData();
     }
 
     private void updateColorData() {
-        HorBugTable horBugTable = ServiceManager.getService(project, DebuggerFactory.ProjectService.class).getHoBugTable();
-        horBugTable.setVariables(groupedData.get(Integer.valueOf(linevalues[readIndex])));
+
+        VarsValues first = linevalues.get(0);
+        HorBugTable horBugTable = ServiceManager.getService(project, ProjectService.class).getHorBugTable();
+        horBugTable.setVariables(linevalues);
         editor.getMarkupModel().removeAllHighlighters();
-        editor.getMarkupModel().addLineHighlighter(Integer.valueOf(linevalues[readIndex]) - 1, HighlighterLayer.CARET_ROW, textattributes);
+        int nextLineNumber = first.getLineNum() - 1;
+        editor.getMarkupModel().addLineHighlighter(nextLineNumber, HighlighterLayer.CARET_ROW, textattributes);
+        ProjectService.getInstance().setCurrentLineNumber(nextLineNumber);
         readIndex++;
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, readIndex, 0);
     }

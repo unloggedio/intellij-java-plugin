@@ -81,17 +81,6 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
     }
 
-    public static class ProjectService {
-        private HorBugTable bugsTable;
-
-        public HorBugTable getHoBugTable() {
-            return bugsTable;
-        }
-
-        void setHorBugTable(HorBugTable bugsTable) {
-            this.bugsTable = bugsTable;
-        }
-    }
 
 }
 
