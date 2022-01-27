@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,9 +37,10 @@ public class JumpForward extends AnAction {
     TextAttributes textattributes;
     ToolWindow toolWindow;
     int readIndex;
-    String[] linevalues;
+    List<VarsValues> linevalues;
     Map<Integer, List<VarsValues>> groupedData;
     List<Integer> sortedKey;
+    private Integer currentLineNumber;
 
 
     @Override
@@ -73,12 +75,21 @@ public class JumpForward extends AnAction {
 
             groupedData = dataList.stream().collect(Collectors.groupingBy(e -> e.getLineNum()));
             sortedKey = groupedData.keySet().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+            readIndex--;
 
-            linevalues = new String[sortedKey.size()];
+            currentLineNumber = sortedKey.get(readIndex);
 
-            for (int i = 0; i < sortedKey.size(); i++) {
-                linevalues[i] = sortedKey.get(i).toString();
+
+            linevalues = new LinkedList<>();
+
+
+            for (VarsValues varsValues : dataList) {
+                if (varsValues.getLineNum() <= currentLineNumber) {
+                    linevalues.add(varsValues);
+                }
             }
+
+
             updateColorData();
 
         }
@@ -86,11 +97,10 @@ public class JumpForward extends AnAction {
     }
 
     private void updateColorData() {
-        readIndex--;
         HorBugTable horBugTable = ServiceManager.getService(project, ProjectService.class).getHorBugTable();
-        horBugTable.setVariables(groupedData.get(Integer.valueOf(linevalues[readIndex])));
+        horBugTable.setVariables(linevalues);
         editor.getMarkupModel().removeAllHighlighters();
-        editor.getMarkupModel().addLineHighlighter(Integer.valueOf(linevalues[readIndex]) - 1, HighlighterLayer.CARET_ROW, textattributes);
+        editor.getMarkupModel().addLineHighlighter(currentLineNumber - 1, HighlighterLayer.CARET_ROW, textattributes);
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, readIndex, 0);
     }
 

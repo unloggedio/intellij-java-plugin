@@ -317,6 +317,10 @@ public class HorBugTable {
             JSONObject dataInfoTemp = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
             JSONObject attributesMap = (JSONObject) dataInfoTemp.get("attributesMap");
 
+            if (attributesMap.containsKey("Instruction")) {
+                continue;
+            }
+
             String variableName = attributesMap.getAsString("Name");
 
             if (variableName == null) {
