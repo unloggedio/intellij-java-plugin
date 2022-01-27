@@ -205,23 +205,12 @@ public class HorBugTable {
 
                 JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
-<<<<<<< HEAD
                 JSONObject tempClass = (JSONObject)classInfo.get(String.valueOf(classId) + "_" + sessionId);
                 filename = tempClass.getAsString("filename");
                 classname = tempClass.getAsString("className");
                 Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
                 bugList.add(bug);
-=======
-                if (attributesMap.containsKey("ExceptionalExit") || attributesMap.containsKey("ExceptionalExit-Rethrow")) {
-                    continue;
-                } else {
-                    JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
-                    filename = tempClass.getAsString("filename");
-                    classname = tempClass.getAsString("className");
-                    Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
-                    bugList.add(bug);
-                }
->>>>>>> 0f3ad422a1bfcc1c8d968e7fb1d5117190a4b84c
+
 
             }
 
@@ -230,13 +219,8 @@ public class HorBugTable {
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
 
-<<<<<<< HEAD
         for (int i=0; i < bugList.size(); i++) {
             sampleObject[i] = new String[]{"NullPointerException", bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
-=======
-        for (int i = 0; i < bugList.size(); i++) {
-            sampleObject[i] = new String[]{bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
->>>>>>> 0f3ad422a1bfcc1c8d968e7fb1d5117190a4b84c
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
