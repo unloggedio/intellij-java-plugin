@@ -254,12 +254,15 @@ public class Credentials {
                     HorBugTable bugTable = projectService.getHorBugTable();
                     bugTable.setTableValues();
 
-                    Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "BugsTable", false);
+                    Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "Crashes", false);
 
                     ApplicationManager.getApplication().invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                            toolWindow.getContentManager().addContent(bugsContent);
+                            Content content = toolWindow.getContentManager().findContent("Crashes");
+                            if (content == null) {
+                                toolWindow.getContentManager().addContent(bugsContent);
+                            }
                         }
                     });
 

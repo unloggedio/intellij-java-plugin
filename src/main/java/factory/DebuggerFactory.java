@@ -61,7 +61,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
         bugsTable = new HorBugTable(currentProject, this.toolWindow);
 
-        bugsContent = contentFactory.createContent(bugsTable.getContent(), "BugsTable", false);
+        bugsContent = contentFactory.createContent(bugsTable.getContent(), "Crashes", false);
         toolWindow.getContentManager().addContent(bugsContent);
 
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
