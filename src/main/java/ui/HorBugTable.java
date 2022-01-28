@@ -108,10 +108,7 @@ public class HorBugTable {
         bugTypeTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                if (column == 1) {
-                    return true;
-                }
-                return false;
+                return column == 1;
             }
 
             @Override
@@ -330,11 +327,10 @@ public class HorBugTable {
             @Override
             public void tableChanged(TableModelEvent tableModelEvent) {
 
-                if ((Boolean)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
-                    addErrorValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
-                }
-                else {
-                    removeValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                if ((Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
+                    addErrorValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                } else {
+                    removeValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
                 }
 
             }
@@ -358,8 +354,7 @@ public class HorBugTable {
         }
         if (existingValue.equals("")) {
             existingValue = value;
-        }
-        else {
+        } else {
             existingValue = existingValue + "," + value;
         }
 
@@ -375,7 +370,7 @@ public class HorBugTable {
         if (existingValue.contains(value + ",")) {
             existingValue = existingValue.replaceAll(value + ",", "");
         }
-        if (existingValue.contains(","+ value)) {
+        if (existingValue.contains("," + value)) {
             existingValue = existingValue.replaceAll("," + value, "");
         }
         if (existingValue.contains(value)) {
