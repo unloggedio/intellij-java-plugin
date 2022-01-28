@@ -28,6 +28,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -68,6 +69,9 @@ public class HorBugTable {
     private JTable varsValue;
     private JScrollPane varsvaluePane;
     private JTable varsValuesTable;
+    private JTable bugTypes;
+    private JPanel customBugPanel;
+    private JButton custombugButton;
     private JLabel someLable;
 
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
@@ -131,6 +135,8 @@ public class HorBugTable {
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         this.bugs.setCellEditor(this.bugs.getDefaultEditor(Boolean.class));
+
+
 
         centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -220,7 +226,8 @@ public class HorBugTable {
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
 
         for (int i=0; i < bugList.size(); i++) {
-            sampleObject[i] = new String[]{"NullPointerException", bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
+            String className = bugList.get(i).getClassname().substring(bugList.get(i).getClassname().lastIndexOf('/') + 1);
+            sampleObject[i] = new String[]{"NullPointerException", className, String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
