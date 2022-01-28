@@ -1,18 +1,16 @@
 package ui;
 
-import callbacks.SignInCallback;
+import callbacks.*;
 import network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import factory.ProjectService;
-import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import okhttp3.*;
@@ -24,10 +22,9 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 
 public class Credentials {
-    OkHttpClient client;
+
     String usernameText;
     String videobugURL, passwordText;
-    Callback signinCallback, createProjectcallback, signupCallback, checkProjectcallback, projectTokenCallback;
     Project project;
     String projectName, project_id;
     ToolWindow toolWindow;
@@ -88,13 +85,18 @@ public class Credentials {
         project.getService(ProjectService.class).signin(usernameText, passwordText, new SignInCallback() {
             @Override
             public void error() {
+                try {
+                    signup();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
             public void success(String token) {
                 PropertiesComponent.getInstance().setValue(Constants.TOKEN, token);
                 try {
-                    getandCheckProject();
+                    getAndCheckProject();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -102,155 +104,112 @@ public class Credentials {
         });
     }
 
-    private void getandCheckProject() throws Exception {
-        GETCalls getCalls = new GETCalls();
-        projectName = ModuleManager.getInstance(project).getModules()[0].getName();
-
-        checkProjectcallback = new Callback() {
+    private void signup() throws IOException {
+        project.getService(ProjectService.class).signup(usernameText, passwordText, new SignUpCallback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void error() {
 
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    JSONObject jsonProjects = (JSONObject) JSONValue.parse(responseBody.string());
-                    JSONArray jsonArray = (JSONArray) jsonProjects.get("items");
-                    if (jsonArray.size() == 0) {
-                        createProject();
-                    } else {
-                        JSONObject projectIdJson = (JSONObject) jsonArray.get(0);
-                        project_id = projectIdJson.getAsString("id");
-                        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
-                        getProjectToken();
-                    }
-
+            public void success() {
+                try {
+                    signin();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-        };
-        getCalls.getCall(videobugURL
-                + Constants.PROJECT_URL
-                + "s?name=" + projectName, checkProjectcallback);
+        });
+
     }
 
-    private void signup(JSONObject jsonObject) throws IOException {
-        signupCallback = new Callback() {
+    private void getAndCheckProject() {
+        projectName = ModuleManager.getInstance(project).getModules()[0].getName();
+        project.getService(ProjectService.class).getProjectByName(projectName, new GetProjectCallback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void error() {
 
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                signin();
+            public void success(String projectId) {
+                PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, projectId);
+                try {
+                    getProjectToken();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        };
 
-        project.getService(ProjectService.class).signup(usernameText, passwordText, signupCallback);
-
-    }
-
-    private void post(String url, String json, Callback callback) throws IOException {
-        client = new OkHttpClient();
-        RequestBody body = RequestBody.create(json, Constants.JSON); // new
-
-        Request.Builder builder = new Request.Builder();
-
-        builder.url(url);
-        String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
-        if (token != null) {
-            builder.addHeader("Authorization", "Bearer " + token);
-        }
-        builder.post(body);
-
-        Request request = builder.build();
-
-        client.newCall(request).enqueue(callback);
+            @Override
+            public void noSuchProject() {
+                try {
+                    createProject();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void createProject() throws IOException {
-        createProjectcallback = new Callback() {
+        project.getService(ProjectService.class).createProject(projectName, new NewProjectCallback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void error() {
 
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-                    project_id = jsonObject.getAsString("id");
-                    System.out.print(project_id);
-                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
-                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
-                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL);
-
+            public void success(String projectId) {
+                PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, projectId);
+                PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
+                try {
                     getProjectToken();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
-        };
-
-        post(videobugURL + Constants.PROJECT_URL + "?name=" + projectName, "", createProjectcallback);
+        });
 
     }
 
     private void getProjectToken() throws IOException {
-        projectTokenCallback = new Callback() {
+
+        project.getService(ProjectService.class).getProjectToken(
+                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID), new ProjectTokenCallback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+            public void error() {
 
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+            public void success(String token) {
+                PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, token);
 
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-                    PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, jsonObject.getAsString(Constants.TOKEN));
-                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL);
-                    ProjectService projectService = project.getService(ProjectService.class);
-                    HorBugTable bugTable = projectService.getHorBugTable();
+                HorBugTable bugTable = project.getService(ProjectService.class).getHorBugTable();
+                try {
                     bugTable.setTableValues();
-
-                    Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "Crashes", false);
-
-                    ApplicationManager.getApplication().invokeLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            Content content = toolWindow.getContentManager().findContent("Crashes");
-                            if (content == null) {
-                                toolWindow.getContentManager().addContent(bugsContent);
-                            }
-                        }
-                    });
-
-                    errorLable.setText("All Set! Check BugsTable now");
-
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
-            }
-        };
+                Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "Crashes", false);
 
-        post(videobugURL + Constants.GENERATE_PROJ_AUTH + "?projectId=" + project_id, "", projectTokenCallback);
+                ApplicationManager.getApplication().invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Content content = toolWindow.getContentManager().findContent("Crashes");
+                        if (content == null) {
+                            toolWindow.getContentManager().addContent(bugsContent);
+                        }
+                    }
+                });
+
+                errorLable.setText("All Set! Check BugsTable now");
+
+
+            }
+        });
     }
 
 }
