@@ -1,6 +1,7 @@
 package ui;
 
-import Network.GETCalls;
+import callbacks.SignInCallback;
+import network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -23,6 +24,13 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 
 public class Credentials {
+    OkHttpClient client;
+    String usernameText;
+    String videobugURL, passwordText;
+    Callback signinCallback, createProjectcallback, signupCallback, checkProjectcallback, projectTokenCallback;
+    Project project;
+    String projectName, project_id;
+    ToolWindow toolWindow;
     private JPanel panel1;
     private JTextField username;
     private JLabel usernameLable;
@@ -31,13 +39,6 @@ public class Credentials {
     private JTextField videobugServerURLTextField;
     private JButton signupSigninButton;
     private JLabel errorLable;
-    OkHttpClient client;
-    String usernameText;
-    String videobugURL, passwordText;
-    Callback signinCallback, createProjectcallback, signupCallback, checkProjectcallback, projectTokenCallback;
-    Project project;
-    String projectName, project_id;
-    ToolWindow toolWindow;
 
     public Credentials(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -45,9 +46,11 @@ public class Credentials {
         signupSigninButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                 usernameText = username.getText();
-                 passwordText = new String(password.getPassword());
-                 videobugURL = videobugServerURLTextField.getText();
+                usernameText = username.getText();
+                passwordText = new String(password.getPassword());
+                videobugURL = videobugServerURLTextField.getText();
+
+                project.getService(ProjectService.class).setServerEndpoint(videobugURL);
 
                 if (!isValidEmailAddress(usernameText)) {
                     errorLable.setText("Enter a valid email address");
@@ -82,48 +85,21 @@ public class Credentials {
     }
 
     private void signin() throws IOException {
-
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("email", usernameText);
-        jsonObject.put("password", passwordText);
-
-        signinCallback = new Callback() {
+        project.getService(ProjectService.class).signin(usernameText, passwordText, new SignInCallback() {
             @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-
+            public void error() {
             }
 
             @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (ResponseBody responseBody = response.body()) {
-                    if (!response.isSuccessful()) {
-                        if (response.code() == 401) {
-                            signup(jsonObject);
-                        }
-                    }
-
-                    Headers responseHeaders = response.headers();
-                    for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                        System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
-                    }
-
-                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
-
-                    PropertiesComponent.getInstance().setValue(Constants.TOKEN, jsonObject.getAsString(Constants.TOKEN));
-
-                    errorLable.setText("You are now signed in!");
-
-                    try {
-                        getandCheckProject();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+            public void success(String token) {
+                PropertiesComponent.getInstance().setValue(Constants.TOKEN, token);
+                try {
+                    getandCheckProject();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-        };
-
-        post(videobugURL.toString() + Constants.SIGN_IN, jsonObject.toJSONString(), signinCallback);
-
+        });
     }
 
     private void getandCheckProject() throws Exception {
@@ -142,12 +118,11 @@ public class Credentials {
                     if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
                     JSONObject jsonProjects = (JSONObject) JSONValue.parse(responseBody.string());
-                    JSONArray jsonArray = (JSONArray)jsonProjects.get("items");
+                    JSONArray jsonArray = (JSONArray) jsonProjects.get("items");
                     if (jsonArray.size() == 0) {
                         createProject();
-                    }
-                    else {
-                        JSONObject projectIdJson = (JSONObject)jsonArray.get(0);
+                    } else {
+                        JSONObject projectIdJson = (JSONObject) jsonArray.get(0);
                         project_id = projectIdJson.getAsString("id");
                         PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
                         getProjectToken();
@@ -156,7 +131,7 @@ public class Credentials {
                 }
             }
         };
-        getCalls.getCall(videobugURL.toString()
+        getCalls.getCall(videobugURL
                 + Constants.PROJECT_URL
                 + "s?name=" + projectName, checkProjectcallback);
     }
@@ -170,15 +145,15 @@ public class Credentials {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                    signin();
+                signin();
             }
         };
 
-        post(videobugURL.toString() + Constants.SIGN_UP, jsonObject.toJSONString(), signupCallback);
+        project.getService(ProjectService.class).signup(usernameText, passwordText, signupCallback);
 
     }
 
-    private  void post(String url, String json, Callback callback) throws IOException {
+    private void post(String url, String json, Callback callback) throws IOException {
         client = new OkHttpClient();
         RequestBody body = RequestBody.create(json, Constants.JSON); // new
 
@@ -186,7 +161,7 @@ public class Credentials {
 
         builder.url(url);
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
-        if ( token != null) {
+        if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
         builder.post(body);
@@ -218,14 +193,14 @@ public class Credentials {
                     System.out.print(project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, project_id);
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
-                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
+                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL);
 
                     getProjectToken();
                 }
             }
         };
 
-        post(videobugURL.toString() + Constants.PROJECT_URL + "?name=" + projectName, "", createProjectcallback);
+        post(videobugURL + Constants.PROJECT_URL + "?name=" + projectName, "", createProjectcallback);
 
     }
 
@@ -249,8 +224,8 @@ public class Credentials {
 
                     JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody.string());
                     PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, jsonObject.getAsString(Constants.TOKEN));
-                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL.toString());
-                    ProjectService projectService =  ServiceManager.getService(project, ProjectService.class);
+                    PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL);
+                    ProjectService projectService = project.getService(ProjectService.class);
                     HorBugTable bugTable = projectService.getHorBugTable();
                     bugTable.setTableValues();
 
@@ -275,7 +250,7 @@ public class Credentials {
             }
         };
 
-        post(videobugURL.toString() + Constants.GENERATE_PROJ_AUTH + "?projectId=" + project_id, "", projectTokenCallback);
+        post(videobugURL + Constants.GENERATE_PROJ_AUTH + "?projectId=" + project_id, "", projectTokenCallback);
     }
 
 }

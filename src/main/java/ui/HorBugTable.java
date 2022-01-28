@@ -1,6 +1,6 @@
 package ui;
 
-import Network.GETCalls;
+import network.GETCalls;
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
@@ -76,7 +76,7 @@ public class HorBugTable {
         this.project = project;
         basepath = this.project.getBasePath();
 
-        this.projectService = ServiceManager.getService(project, ProjectService.class);
+        this.projectService = project.getService(ProjectService.class);
 
         this.projectService.setHorBugTable(this);
 
@@ -173,7 +173,7 @@ public class HorBugTable {
                 + "?exceptionClass="
                 + Constants.NPE
                 + "&pageNumber=" + pageNum
-                + "&pageSize=30", errorCallback);
+                + "&pageSize=100", errorCallback);
 
     }
 
@@ -385,7 +385,7 @@ public class HorBugTable {
         editor.getMarkupModel().removeAllHighlighters();
         editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
 
-        ProjectService.getInstance().setCurrentLineNumber(linenumber - 1);
+        project.getService(ProjectService.class).setCurrentLineNumber(linenumber - 1);
 
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, 0, 0);
     }

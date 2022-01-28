@@ -2,6 +2,7 @@ package factory;
 
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
@@ -62,21 +63,22 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
         bugsTable = new HorBugTable(currentProject, this.toolWindow);
 
         bugsContent = contentFactory.createContent(bugsTable.getContent(), "Crashes", false);
-        toolWindow.getContentManager().addContent(bugsContent);
 
         String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN, "");
 
         if (token.equals("")) {
-            toolWindow.getContentManager().removeContent(bugsContent, true);
-        }
-        else {
+//            toolWindow.getContentManager().removeContent(bugsContent, true);
+        } else {
+            toolWindow.getContentManager().addContent(bugsContent);
             try {
                 bugsTable.setTableValues();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        ProjectService projectService =  ServiceManager.getService(project, ProjectService.class);
+
+
+        ProjectService projectService = project.getService(ProjectService.class);
         projectService.setHorBugTable(bugsTable);
 
     }

@@ -1,6 +1,6 @@
 package actions;
 
-import Network.GETCalls;
+import network.GETCalls;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;

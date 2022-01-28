@@ -1,12 +1,9 @@
-package Network;
+package network;
 
 import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
-import net.minidev.json.JSONObject;
 import okhttp3.*;
 
-import java.io.IOException;
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 public class GETCalls {
