@@ -28,6 +28,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -43,7 +44,7 @@ public class HorBugTable {
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
-    DefaultTableModel defaultTableModel, varsDefaultTableModel;
+    DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
     Object[] headers;
     List<Bugs> bugList;
     List<VarsValues> dataList;
@@ -68,6 +69,9 @@ public class HorBugTable {
     private JTable varsValue;
     private JScrollPane varsvaluePane;
     private JTable varsValuesTable;
+    private JTable bugTypes;
+    private JPanel customBugPanel;
+    private JButton custombugButton;
     private JLabel someLable;
 
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
@@ -100,6 +104,13 @@ public class HorBugTable {
             }
         };
 
+        bugTypeTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -111,6 +122,14 @@ public class HorBugTable {
                 }
             }
         });
+        custombugButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                //showDialog();
+            }
+        });
+
+        initBugTypeTable();
     }
 
     public JPanel getContent() {
@@ -131,6 +150,8 @@ public class HorBugTable {
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         this.bugs.setCellEditor(this.bugs.getDefaultEditor(Boolean.class));
+
+
 
         centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -220,7 +241,8 @@ public class HorBugTable {
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
 
         for (int i=0; i < bugList.size(); i++) {
-            sampleObject[i] = new String[]{"NullPointerException", bugList.get(i).getClassname(), String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
+            String className = bugList.get(i).getClassname().substring(bugList.get(i).getClassname().lastIndexOf('/') + 1);
+            sampleObject[i] = new String[]{"NullPointerException", className, String.valueOf(bugList.get(i).getLinenum()), String.valueOf(bugList.get(i).getThreadId())};
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
@@ -449,6 +471,18 @@ public class HorBugTable {
 
         GETCalls getCalls = new GETCalls();
         getCalls.getCall(url, lastSessioncallback);
+    }
+
+    private void initBugTypeTable() {
+        JTableHeader header = this.bugTypes.getTableHeader();
+        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+        Object[] headers = {"Error Name", "Error Type"};
+        Object[][] errorTypes = {
+                {"NullPoiterException", "java.lang.NullPointerException"},
+                {"Out of Index", "java.lang.ArrayIndexOutOfBoundsException"}
+        };
+        bugTypeTableModel.setDataVector(errorTypes, headers);
+        bugTypes.setModel(bugTypeTableModel);
     }
 
 }

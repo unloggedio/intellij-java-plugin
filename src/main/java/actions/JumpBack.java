@@ -12,7 +12,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
-import factory.DebuggerFactory;
 import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONValue;
