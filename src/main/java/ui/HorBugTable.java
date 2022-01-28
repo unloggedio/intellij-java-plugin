@@ -1,5 +1,7 @@
 package ui;
 
+import com.intellij.openapi.ui.Messages;
+import network.GETCalls;
 import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
@@ -26,6 +28,8 @@ import pojo.Bugs;
 import pojo.VarsValues;
 
 import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -104,7 +108,18 @@ public class HorBugTable {
         bugTypeTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
+                if (column == 1) {
+                    return true;
+                }
                 return false;
+            }
+
+            @Override
+            public Class getColumnClass(int columnIndex) {
+                if (columnIndex == 1) {
+                    return Boolean.class;
+                }
+                return String.class;
             }
         };
 
@@ -122,7 +137,7 @@ public class HorBugTable {
         custombugButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                //showDialog();
+                showDialog();
             }
         });
 
@@ -303,13 +318,75 @@ public class HorBugTable {
     private void initBugTypeTable() {
         JTableHeader header = this.bugTypes.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        Object[] headers = {"Error Name", "Error Type"};
+        Object[] headers = {"Error Type", "Track it?"};
         Object[][] errorTypes = {
-                {"NullPoiterException", "java.lang.NullPointerException"},
-                {"Out of Index", "java.lang.ArrayIndexOutOfBoundsException"}
+                {"java.lang.NullPointerException", false},
+                {"java.lang.ArrayIndexOutOfBoundsException", false}
         };
         bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
+
+        bugTypes.getModel().addTableModelListener(new TableModelListener() {
+            @Override
+            public void tableChanged(TableModelEvent tableModelEvent) {
+
+                if ((Boolean)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
+                    addErrorValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                }
+                else {
+                    removeValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                }
+
+            }
+        });
     }
 
+    private void showDialog() {
+        String value = Messages.showInputDialog("Error Type", "What's the Error Name?", null);
+
+        if (value == null || value == "") {
+            return;
+        }
+
+        addErrorValue(value);
+    }
+
+    private void addErrorValue(String value) {
+        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.contains(value)) {
+            return;
+        }
+        if (existingValue.equals("")) {
+            existingValue = value;
+        }
+        else {
+            existingValue = existingValue + "," + value;
+        }
+
+        storeValue(existingValue);
+    }
+
+    private void removeValue(String value) {
+        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.equals("")) {
+            return;
+        }
+
+        if (existingValue.contains(value + ",")) {
+            existingValue = existingValue.replaceAll(value + ",", "");
+        }
+        if (existingValue.contains(","+ value)) {
+            existingValue = existingValue.replaceAll("," + value, "");
+        }
+        if (existingValue.contains(value)) {
+            existingValue = existingValue.replaceAll(value, "");
+        }
+
+        storeValue(existingValue);
+    }
+
+    private void storeValue(String value) {
+        System.out.print(value + "\n");
+        PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
+    }
 }

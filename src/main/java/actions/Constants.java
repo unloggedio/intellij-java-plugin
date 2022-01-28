@@ -30,6 +30,7 @@ public class Constants {
     public static final String CURRENT_LINE = "current_line";
     public static final String TRACK_LINE = "track_lines";
     public static final String PROJECT_TOKEN = "project_token";
+    public static final String ERROR_NAMES = "error_names";
 
     public static List<VarsValues> convert(JSONArray jArr) {
         List<VarsValues> list = new ArrayList<>();
