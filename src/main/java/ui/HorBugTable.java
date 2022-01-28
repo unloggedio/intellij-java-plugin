@@ -44,7 +44,7 @@ public class HorBugTable {
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
-    DefaultTableModel defaultTableModel, varsDefaultTableModel;
+    DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
     Object[] headers;
     List<Bugs> bugList;
     List<VarsValues> dataList;
@@ -104,6 +104,13 @@ public class HorBugTable {
             }
         };
 
+        bugTypeTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -115,6 +122,14 @@ public class HorBugTable {
                 }
             }
         });
+        custombugButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                //showDialog();
+            }
+        });
+
+        initBugTypeTable();
     }
 
     public JPanel getContent() {
@@ -456,6 +471,18 @@ public class HorBugTable {
 
         GETCalls getCalls = new GETCalls();
         getCalls.getCall(url, lastSessioncallback);
+    }
+
+    private void initBugTypeTable() {
+        JTableHeader header = this.bugTypes.getTableHeader();
+        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+        Object[] headers = {"Error Name", "Error Type"};
+        Object[][] errorTypes = {
+                {"NullPoiterException", "java.lang.NullPointerException"},
+                {"Out of Index", "java.lang.ArrayIndexOutOfBoundsException"}
+        };
+        bugTypeTableModel.setDataVector(errorTypes, headers);
+        bugTypes.setModel(bugTypeTableModel);
     }
 
 }
