@@ -26,6 +26,8 @@ import pojo.Bugs;
 import pojo.VarsValues;
 
 import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -495,6 +497,20 @@ public class HorBugTable {
         };
         bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
+
+        bugTypes.getModel().addTableModelListener(new TableModelListener() {
+            @Override
+            public void tableChanged(TableModelEvent tableModelEvent) {
+
+                if ((Boolean)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
+                    addErrorValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                }
+                else {
+                    removeValue((String)bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                }
+
+            }
+        });
     }
 
     private void showDialog() {
@@ -504,13 +520,45 @@ public class HorBugTable {
             return;
         }
 
+        addErrorValue(value);
+    }
+
+    private void addErrorValue(String value) {
         String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.contains(value)) {
+            return;
+        }
         if (existingValue.equals("")) {
             existingValue = value;
         }
         else {
             existingValue = existingValue + "," + value;
         }
-        PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, existingValue);
+
+        storeValue(existingValue);
+    }
+
+    private void removeValue(String value) {
+        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.equals("")) {
+            return;
+        }
+
+        if (existingValue.contains(value + ",")) {
+            existingValue = existingValue.replaceAll(value + ",", "");
+        }
+        if (existingValue.contains(","+ value)) {
+            existingValue = existingValue.replaceAll("," + value, "");
+        }
+        if (existingValue.contains(value)) {
+            existingValue = existingValue.replaceAll(value, "");
+        }
+
+        storeValue(existingValue);
+    }
+
+    private void storeValue(String value) {
+        System.out.print(value + "\n");
+        PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
     }
 }
