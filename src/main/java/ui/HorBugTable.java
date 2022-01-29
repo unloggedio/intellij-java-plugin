@@ -1,7 +1,6 @@
 package ui;
 
 import com.intellij.openapi.ui.Messages;
-import network.GETCalls;
 import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
@@ -19,6 +18,7 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import factory.ProjectService;
+import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
@@ -37,6 +37,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
@@ -210,17 +211,17 @@ public class HorBugTable {
     }
 
     private void loadBug(int rowNum) throws IOException {
-        Bugs bugs = bugList.get(rowNum);
+        Bugs selectedTrace = bugList.get(rowNum);
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
-        filteredDataEventsRequest.setSessionId(bugs.getExecutionSessionId());
-        filteredDataEventsRequest.setThreadId(bugs.getThreadId());
-        filteredDataEventsRequest.setValueId(Collections.singletonList(bugs.getValue()));
+        filteredDataEventsRequest.setSessionId(selectedTrace.getExecutionSessionId());
+        filteredDataEventsRequest.setThreadId(selectedTrace.getThreadId());
+        filteredDataEventsRequest.setValueId(Collections.singletonList(selectedTrace.getValue()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
         filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
         filteredDataEventsRequest.setSortOrder("DESC");
 
-        logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, bugs.getThreadId()));
+        logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
 
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
@@ -233,13 +234,32 @@ public class HorBugTable {
                     }
 
                     @Override
-                    public void success() {
-                        ApplicationManager.getApplication().invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                highlightCrash(bugs.getFilename(), (int) bugs.getLinenum());
-                            }
-                        });
+                    public void success(List<VarsValues> dataList) {
+
+                        String content = JSONArray.toJSONString(dataList);
+                        String path = project.getBasePath() + "/variablevalues.json";
+                        File file = new File(path);
+                        FileWriter fileWriter = null;
+                        try {
+                            fileWriter = new FileWriter(file);
+                            fileWriter.write(content);
+                            fileWriter.close();
+                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            ExceptionResponse exceptionResponse = new ExceptionResponse();
+                            exceptionResponse.setMessage(e.getMessage());
+                            error(exceptionResponse);
+                            return;
+                        }
+
+
+//                        ApplicationManager.getApplication().invokeLater(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                highlightCrash(selectedTrace.getFilename(), (int) selectedTrace.getLinenum());
+//                            }
+//                        });
                     }
                 }
         );
@@ -266,15 +286,19 @@ public class HorBugTable {
         PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, 0, 0);
     }
 
-    public void setVariables(List<VarsValues> dataListTemp) {
+    public void setVariables(Collection<VarsValues> dataListTemp) {
         JTableHeader header = this.varsValuesTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
 
         String[][] sampleObject = new String[dataListTemp.size()][];
-        for (int i = 0; i < dataListTemp.size(); i++) {
-            sampleObject[i] = new String[]{dataListTemp.get(i).getVariableName(), dataListTemp.get(i).getVariableValue()};
+
+        int i = 0;
+        for (VarsValues varsValues : dataListTemp) {
+            sampleObject[i] = new String[]{varsValues.getVariableName(), varsValues.getVariableValue()};
+            i++;
         }
+
         if (centerRenderer == null) {
             centerRenderer = new DefaultTableCellRenderer();
         }

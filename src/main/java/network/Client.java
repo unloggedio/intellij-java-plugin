@@ -302,11 +302,9 @@ public class Client {
                     Map<String, Object> dataInfo = (Map<String, Object>) metadata.get("dataInfo");
                     Map<String, Object> stringInfo = (Map<String, Object>) metadata.get("stringInfo");
 
-                    ArrayList<Object> dataList = new ArrayList<>();
-                    Map<String, VarsValues> variableMap = new HashMap<>();
+                    ArrayList<VarsValues> dataList = new ArrayList<>();
 
-                    for (int i = 0; i < datapointsArray.size(); i++) {
-                        DataEventWithSessionId dataEvent = datapointsArray.get(i);
+                    for (DataEventWithSessionId dataEvent : datapointsArray) {
                         long dataId = dataEvent.getDataId();
                         long dataValue = dataEvent.getValue();
                         Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(dataId + "_" + executionSessionId);
@@ -323,10 +321,6 @@ public class Client {
                         }
 
                         if (Arrays.asList("<init>", "makeConcatWithConstants").contains(variableName)) {
-                            continue;
-                        }
-
-                        if (variableMap.containsKey(variableName)) {
                             continue;
                         }
 
@@ -350,17 +344,12 @@ public class Client {
 
                         long nanoTime = dataEvent.getNanoTime();
                         VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr, nanoTime);
-                        variableMap.put(variableName, varsValues);
+                        dataList.add(varsValues);
                     }
 
-                    String content = JSONArray.toJSONString(Arrays.asList(variableMap.values().toArray()));
-                    String path = "./variablevalues.json";
-                    File file = new File(path);
-                    FileWriter fileWriter = new FileWriter(file);
-                    fileWriter.write(content);
-                    fileWriter.close();
 
-                    filteredDataEventsCallback.success();
+
+                    filteredDataEventsCallback.success(dataList);
                 }
             });
         } catch (JsonProcessingException e) {

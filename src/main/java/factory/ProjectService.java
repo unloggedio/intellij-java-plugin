@@ -4,8 +4,10 @@ import callbacks.*;
 import com.intellij.openapi.project.Project;
 import network.Client;
 import network.pojo.FilteredDataEventsRequest;
+import pojo.Bugs;
 import ui.HorBugTable;
 
+import java.io.IOException;
 import java.util.List;
 
 public class ProjectService {
@@ -13,6 +15,7 @@ public class ProjectService {
     private HorBugTable bugsTable;
     private int currentLineNumber;
     private Client client;
+    private CodeTracer tracer;
 
     public ProjectService(Project project) {
         this.project = project;
@@ -70,5 +73,21 @@ public class ProjectService {
 
     public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest, FilteredDataEventsCallback filteredDataEventsCallback) {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
+    }
+
+    public void startTracer(Bugs selectedTrace, String order) throws IOException {
+        tracer = new CodeTracer(project, selectedTrace, order);
+    }
+
+    public void back() {
+        if (tracer != null) {
+            tracer.back();
+        }
+    }
+
+    public void forward() {
+        if (tracer != null) {
+            tracer.forward();
+        }
     }
 }
