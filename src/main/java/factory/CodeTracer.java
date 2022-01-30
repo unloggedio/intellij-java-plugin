@@ -69,7 +69,7 @@ public class CodeTracer {
 
         variableMap.put(highlightedVariable.getVariableName(), highlightedVariable);
 
-        int collectedIndex = this.currentIndex;
+        int collectedIndex = this.currentIndex + 1;
 
         Map<String, Boolean> tracker = new HashMap<>();
 

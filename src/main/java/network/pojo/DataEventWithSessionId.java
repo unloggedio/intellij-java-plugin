@@ -64,4 +64,16 @@ public class DataEventWithSessionId {
     public void setExecutionSessionId(String executionSessionId) {
         this.executionSessionId = executionSessionId;
     }
+
+    @Override
+    public String toString() {
+        return "DataEventWithSessionId{" +
+                "threadId=" + threadId +
+                ", nanoTime=" + nanoTime +
+                ", recordedAt=" + recordedAt +
+                ", dataId=" + dataId +
+                ", value=" + value +
+                ", executionSessionId='" + executionSessionId + '\'' +
+                '}';
+    }
 }
