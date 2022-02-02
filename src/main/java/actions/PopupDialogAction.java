@@ -1,17 +1,23 @@
 package actions;
 
+import com.intellij.xdebugger.XDebuggerManager;
+import com.intellij.xdebugger.breakpoints.XBreakpoint;
+import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
 import network.GETCalls;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import network.pojo.DebugPoint;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class PopupDialogAction extends AnAction {
@@ -24,6 +30,19 @@ public class PopupDialogAction extends AnAction {
         project = e.getProject();
 
         System.out.print(e.getProject().getBasePath());
+
+        XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
+
+        List<DebugPoint> breakpointList = new ArrayList<>();
+
+        for (XBreakpoint breakpoint : breakpoints) {
+            if (breakpoint.getType() instanceof XLineBreakpointType) {
+                DebugPoint debugPoint = new DebugPoint();
+                debugPoint.setFile(breakpoint.getSourcePosition().getFile().toString().split("/src/main/java/")[1]);
+                debugPoint.setLineNumber(breakpoint.getSourcePosition().getLine());
+                breakpointList.add(debugPoint);
+            }
+        }
 
         String value = Messages.showInputDialog("Trace ID", "What's the trace Id?", null);
 

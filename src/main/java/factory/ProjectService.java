@@ -29,6 +29,7 @@ public class ProjectService {
         this.bugsTable = bugsTable;
     }
 
+
     public int getCurrentLineNumber() {
         return currentLineNumber;
     }

@@ -1,9 +1,17 @@
 <idea-plugin>
     <id>org.videobug.videobug</id>
-    <name>Video Bug</name>
-    <vendor email="support@videobug.com" url="https://www.videobug.com">Video Bug</vendor>
+    <name>Videobug</name>
+    <vendor email="support@bug.video" url="https://www.bug.video">Videobug</vendor>
 
-    <!--    <description></description>-->
+    <description>
+        <![CDATA[
+    Videobug records code execution in production so that developers can watch it line by line as frequently as they want, just like a video. <br/>
+    It takes away the pain of recreating exact conditions that led to a bug and saves ~3 hours of developer time every day. <br/>
+
+    Developers can deploy Videobug server on their premise, download our Java agent and run their java code on localhost, staging or production. <br/>
+    Whenever a bug happens, they can check this plugin, go back in time, see a line-by-line code execution & fix the bug in minutes.
+      ]]>
+    </description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->

@@ -1,12 +1,10 @@
 package ui;
 
-import com.intellij.openapi.ui.Messages;
+import actions.Constants;
 import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
-import actions.Constants;
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
@@ -14,6 +12,7 @@ import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -23,7 +22,8 @@ import net.minidev.json.JSONObject;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
-import okhttp3.*;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
 import pojo.Bugs;
 import pojo.VarsValues;
 
@@ -39,7 +39,9 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class HorBugTable {
@@ -85,6 +87,8 @@ public class HorBugTable {
         this.projectService = project.getService(ProjectService.class);
 
         this.projectService.setHorBugTable(this);
+
+        this.projectService.setServerEndpoint(PropertiesComponent.getInstance().getValue(Constants.BASE_URL));
 
         textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
 
@@ -183,7 +187,7 @@ public class HorBugTable {
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
-
+                        System.out.print(errorResponse);
                     }
 
                     @Override
@@ -230,7 +234,7 @@ public class HorBugTable {
                 new FilteredDataEventsCallback() {
                     @Override
                     public void error(ExceptionResponse errrorResponse) {
-
+                        System.out.print(errrorResponse);
                     }
 
                     @Override
@@ -253,13 +257,6 @@ public class HorBugTable {
                             return;
                         }
 
-
-//                        ApplicationManager.getApplication().invokeLater(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                highlightCrash(selectedTrace.getFilename(), (int) selectedTrace.getLinenum());
-//                            }
-//                        });
                     }
                 }
         );
@@ -307,13 +304,6 @@ public class HorBugTable {
         this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
         this.varsValuesTable.setAutoCreateRowSorter(true);
 
-    }
-
-    private void clearAll() {
-        PropertiesComponent.getInstance().setValue(Constants.BASE_URL, "");
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
-        PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, "");
-        PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, "");
     }
 
     private void getLastSessions() {

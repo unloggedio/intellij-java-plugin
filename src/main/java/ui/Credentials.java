@@ -1,8 +1,7 @@
 package ui;
 
-import callbacks.*;
-import network.GETCalls;
 import actions.Constants;
+import callbacks.*;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
@@ -11,10 +10,6 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import factory.ProjectService;
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
-import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -36,6 +31,9 @@ public class Credentials {
     private JTextField videobugServerURLTextField;
     private JButton signupSigninButton;
     private JLabel errorLable;
+    private JLabel commandLabel;
+    private JTextArea textArea1;
+    private JButton downloadAgent;
 
     public Credentials(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -67,6 +65,18 @@ public class Credentials {
 
             }
         });
+        textArea1.setLineWrap(true);
+        downloadAgent.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://drive.google.com/uc?id=1ZoNvBSSwMRIGwmit33WfVfkWh3-DyR56&export=download"));
+                }
+                catch (java.io.IOException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+        });
     }
 
     public JPanel getContent() {
@@ -95,6 +105,7 @@ public class Credentials {
             @Override
             public void success(String token) {
                 PropertiesComponent.getInstance().setValue(Constants.TOKEN, token);
+                PropertiesComponent.getInstance().setValue(Constants.BASE_URL, videobugURL);
                 try {
                     getAndCheckProject();
                 } catch (Exception e) {
@@ -186,26 +197,33 @@ public class Credentials {
             public void success(String token) {
                 PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, token);
 
-                HorBugTable bugTable = project.getService(ProjectService.class).getHorBugTable();
+                HorBugTable bugsTable = new HorBugTable(project, toolWindow);
+                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
                 try {
-                    bugTable.setTableValues();
+                    bugsTable.setTableValues();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
 
-                Content bugsContent = ContentFactory.SERVICE.getInstance().createContent(bugTable.getContent(), "Crashes", false);
+                Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
 
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        Content content = toolWindow.getContentManager().findContent("Crashes");
+                        Content content = toolWindow.getContentManager().findContent("Exceptions");
                         if (content == null) {
                             toolWindow.getContentManager().addContent(bugsContent);
                         }
                     }
                 });
 
-                errorLable.setText("All Set! Check BugsTable now");
+                textArea1.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+                        + "=i=<YOUR-PACKAGE-NAME>,"
+                        + "server="
+                        + videobugURL
+                        + ",token="
+                        + PropertiesComponent.getInstance().getValue(Constants.PROJECT_TOKEN) + "\""
+                        + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
 
 
             }

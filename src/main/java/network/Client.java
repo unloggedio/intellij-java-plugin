@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -20,6 +21,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Client {
     public static final String SIGN_IN_URL = "/api/auth/signin";
@@ -34,10 +36,16 @@ public class Client {
     private final Logger logger = Logger.getInstance(Client.class);
     private final String endpoint;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    OkHttpClient client = new OkHttpClient();
+    OkHttpClient client;
 
     public Client(String endpoint) {
         this.endpoint = endpoint;
+        client = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
+
     }
 
     public void signup(String username, String password, SignUpCallback callback) {
