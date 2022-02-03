@@ -5,12 +5,13 @@ import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.markup.EffectType;
-import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentFactory;
 import factory.ProjectService;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
@@ -66,11 +67,15 @@ public class HorBugTable {
     private JTable bugTypes;
     private JPanel customBugPanel;
     private JButton custombugButton;
+    private JButton applybutton;
+    private JTextField traceIdfield;
     private JLabel someLable;
     private List<Bugs> bugList;
+    private ToolWindow toolWindow;
 
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
+        this.toolWindow = toolWindow;
         basepath = this.project.getBasePath();
 
         this.projectService = project.getService(ProjectService.class);
@@ -131,6 +136,12 @@ public class HorBugTable {
         });
 
         initBugTypeTable();
+        applybutton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                getLastSessionsForTraces();
+            }
+        });
     }
 
     public JPanel getContent() {
@@ -181,6 +192,22 @@ public class HorBugTable {
 
     }
 
+    private void getTraces(int pageNum, String sessionId, String traceValue) {
+        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+        project.getService(ProjectService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId,
+                traceValue, new GetProjectSessionErrorsCallback() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+
+                    }
+
+                    @Override
+                    public void success(List<Bugs> bugsCollection) {
+                        parseTableItems(bugsCollection);
+                    }
+                });
+    }
+
 
     private void parseTableItems(List<Bugs> bugsCollection) {
         this.bugList = bugsCollection;
@@ -190,7 +217,7 @@ public class HorBugTable {
         int i = 0;
         for (Bugs bugs : bugList) {
             String className = bugs.getClassname().substring(bugs.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{bugs.getExceptionClass(), className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
+            sampleObject[i] = new String[]{bugs.getExceptionClass().substring(bugs.getExceptionClass().lastIndexOf('.') + 1), className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
             i++;
         }
 
@@ -274,8 +301,11 @@ public class HorBugTable {
                 PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
                 new GetProjectSessionsCallback() {
                     @Override
-                    public void error() {
-
+                    public void error(String message) {
+                        if (message.equals("401")) {
+                            clearAll();
+                            showCredentialsWindow();
+                        }
                     }
 
                     @Override
@@ -289,23 +319,46 @@ public class HorBugTable {
                 });
     }
 
+    private void getLastSessionsForTraces() {
+        project.getService(ProjectService.class).getProjectSessions(
+                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
+                new GetProjectSessionsCallback() {
+                    @Override
+                    public void error(String message) {
+                        if (message.equals("401")) {
+                            clearAll();
+                            showCredentialsWindow();
+                        }
+                    }
+
+                    @Override
+                    public void success(List<ExecutionSession> executionSessionList) {
+                        try {
+                            getTraces(0, executionSessionList.get(0).getId(), traceIdfield.getText());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+    }
+
     private void initBugTypeTable() {
         JTableHeader header = this.bugTypes.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Error Type", "Track it?"};
         Object[][] errorTypes = {
-                {"java.lang.NullPointerException", false},
-                {"java.lang.ArrayIndexOutOfBoundsException", false},
-                {"java.lang.StackOverflowError", false},
-                {"java.lang.IllegalArgumentException", false},
-                {"java.lang.IllegalThreadStateException", false},
-                {"java.lang.IllegalStateException", false},
-                {"java.lang.RuntimeException", false},
-                {"java.io.IOException", false},
-                {"java.io.FileNotFoundException", false},
-                {"java.net.SocketException", false},
-                {"java.net.UnknownHostException", false},
-                {"java.lang.ArithmeticException", false}
+                {"java.lang.NullPointerException", true},
+                {"java.lang.ArrayIndexOutOfBoundsException", true},
+                {"java.lang.StackOverflowError", true},
+                {"java.lang.IllegalArgumentException", true},
+                {"java.lang.IllegalThreadStateException", true},
+                {"java.lang.IllegalStateException", true},
+                {"java.lang.RuntimeException", true},
+                {"java.io.IOException", true},
+                {"java.io.FileNotFoundException", true},
+                {"java.net.SocketException", true},
+                {"java.net.UnknownHostException", true},
+                {"java.lang.ArithmeticException", true}
         };
 
         bugTypeTableModel.setDataVector(errorTypes, headers);
@@ -371,5 +424,27 @@ public class HorBugTable {
     private void storeValue(String value) {
         System.out.print(value + "\n");
         PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
+    }
+
+    private void clearAll() {
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
+    }
+
+    private void showCredentialsWindow() {
+
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                Content content = toolWindow.getContentManager().findContent("Exceptions");
+                if (content != null) {
+                    toolWindow.getContentManager().removeContent(content, true);
+                    ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+                    Credentials credentials = new Credentials(project, toolWindow);
+                    Content credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
+                    toolWindow.getContentManager().addContent(credentialContent);
+                }
+            }
+        });
+
     }
 }

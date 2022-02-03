@@ -184,16 +184,19 @@ public class Client {
         get(executionsUrl, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                getProjectSessionsCallback.error();
+                getProjectSessionsCallback.error("ioexception");
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 if (response.body() == null) {
-                    getProjectSessionsCallback.error();
+                    getProjectSessionsCallback.error("null");
                     return;
                 }
-
+                if (response.code() == 401) {
+                    getProjectSessionsCallback.error("401");
+                    return;
+                }
                 TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
                 };
                 DataResponse<ExecutionSession> sessionList = objectMapper.readValue(response.body().string(), typeReference);
@@ -269,6 +272,91 @@ public class Client {
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
                         JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
+                        Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
+                        bugList.add(bug);
+
+                    }
+
+                }
+
+                getProjectSessionErrorsCallback.success(bugList);
+
+            }
+        });
+
+    }
+
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
+                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+
+        String url = endpoint + PROJECT_URL
+                + "/" + projectId
+                + TRACE_BY_STRING
+                + "/" + sessionId
+                + "?traceValue="
+                + traceId
+                + "&pageNumber=" + 0
+                + "&pageSize=500";
+        get(url, new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                ExceptionResponse errorResponse = new ExceptionResponse();
+                errorResponse.setMessage(e.getMessage());
+                getProjectSessionErrorsCallback.error(errorResponse);
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+
+                if (response.code() != 200) {
+                    ExceptionResponse errorResponse = objectMapper.readValue(response.body().string(), ExceptionResponse.class);
+                    getProjectSessionErrorsCallback.error(errorResponse);
+                    return;
+                }
+
+                TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+                };
+
+                JSONObject errorsJson = (JSONObject) JSONValue.parse(response.body().string());
+                JSONArray jsonArray = (JSONArray) errorsJson.get("items");
+                JSONObject metadata = (JSONObject) errorsJson.get("metadata");
+                JSONObject classInfo = (JSONObject) metadata.get("classInfo");
+                JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
+                JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
+                JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
+
+                ArrayList<Bugs> bugList = new ArrayList<>();
+
+                for (int i = 0; i < jsonArray.size(); i++) {
+                    JSONObject jsonObject = (JSONObject) jsonArray.get(i);
+                    long dataId = jsonObject.getAsNumber("dataId").longValue();
+                    long threadId = jsonObject.getAsNumber("threadId").longValue();
+                    long valueId = jsonObject.getAsNumber("value").longValue();
+                    String executionSessionId = jsonObject.getAsString("executionSessionId");
+                    long classId;
+                    long line;
+                    String sessionId;
+                    String filename, classname;
+                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
+                    if (dataInfoObject != null) {
+                        classId = dataInfoObject.getAsNumber("classId").longValue();
+                        line = dataInfoObject.getAsNumber("line").longValue();
+                        sessionId = dataInfoObject.getAsString("sessionId");
+
+                        JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
+
+                        JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
+                        filename = tempClass.getAsString("filename");
+                        classname = tempClass.getAsString("className");
+
+                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
+                        long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
+                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
+                        String exceptionClass = "";
+                        if (exceptionClassJson != null) {
+                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
+                        }
+
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
 
@@ -370,4 +458,5 @@ public class Client {
             e.printStackTrace();
         }
     }
+
 }

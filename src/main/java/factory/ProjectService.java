@@ -72,6 +72,11 @@ public class ProjectService {
         this.client.getTracesByClassForProjectAndSessionId(projectId, sessionId, getProjectSessionErrorsCallback);
     }
 
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
+                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId, traceId, getProjectSessionErrorsCallback);
+    }
+
     public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest, FilteredDataEventsCallback filteredDataEventsCallback) {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
     }
