@@ -6,15 +6,10 @@ import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
-import com.intellij.openapi.editor.markup.HighlighterLayer;
 import com.intellij.openapi.editor.markup.TextAttributes;
-import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.LocalFileSystem;
-import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import factory.ProjectService;
 import net.minidev.json.JSONArray;
@@ -36,9 +31,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,10 +49,6 @@ public class HorBugTable {
     String executionSessionId;
     Project project;
     String basepath;
-    Editor editor;
-    FileEditorManager editorManager;
-    TextAttributes textattributes;
-    Color backgroundColor = new Color(240, 57, 45, 80);
     DefaultTableCellRenderer centerRenderer;
     private JPanel panel1;
     private JTable bugs;
@@ -89,8 +78,6 @@ public class HorBugTable {
         this.projectService.setHorBugTable(this);
 
         this.projectService.setServerEndpoint(PropertiesComponent.getInstance().getValue(Constants.BASE_URL));
-
-        textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
 
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
@@ -174,20 +161,16 @@ public class HorBugTable {
 
     }
 
-    public void hideAll() {
-        scrollpanel.setVisible(false);
-    }
-
     private void getErrors(int pageNum, String sessionId) throws Exception {
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        List<String> classList = Arrays.asList(Constants.NPE);
+        List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
         project.getService(ProjectService.class).getTracesByClassForProjectAndSessionId(
                 projectId, sessionId, classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
-                        System.out.print(errorResponse);
+
                     }
 
                     @Override
@@ -207,7 +190,7 @@ public class HorBugTable {
         int i = 0;
         for (Bugs bugs : bugList) {
             String className = bugs.getClassname().substring(bugs.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{"NullPointerException", className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
+            sampleObject[i] = new String[]{bugs.getExceptionClass(), className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
             i++;
         }
 
@@ -263,26 +246,6 @@ public class HorBugTable {
 
     }
 
-    private void highlightCrash(String filename, int linenumber) {
-        String path = basepath + "/src/main/java/" + filename + ".java";
-
-
-        VirtualFile file = LocalFileSystem
-                .getInstance().findFileByIoFile(new File(path));
-
-        FileEditorManager.getInstance(project).openFile(file, true);
-
-        editorManager = FileEditorManager.getInstance(project);
-        editor = editorManager.getSelectedTextEditor();
-
-        editor.getMarkupModel().removeAllHighlighters();
-        editor.getMarkupModel().addLineHighlighter(linenumber - 1, HighlighterLayer.CARET_ROW, textattributes);
-
-        project.getService(ProjectService.class).setCurrentLineNumber(linenumber - 1);
-
-        PropertiesComponent.getInstance().setValue(Constants.TRACK_LINE, 0, 0);
-    }
-
     public void setVariables(Collection<VarsValues> dataListTemp) {
         JTableHeader header = this.varsValuesTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
@@ -332,8 +295,19 @@ public class HorBugTable {
         Object[] headers = {"Error Type", "Track it?"};
         Object[][] errorTypes = {
                 {"java.lang.NullPointerException", false},
-                {"java.lang.ArrayIndexOutOfBoundsException", false}
+                {"java.lang.ArrayIndexOutOfBoundsException", false},
+                {"java.lang.StackOverflowError", false},
+                {"java.lang.IllegalArgumentException", false},
+                {"java.lang.IllegalThreadStateException", false},
+                {"java.lang.IllegalStateException", false},
+                {"java.lang.RuntimeException", false},
+                {"java.io.IOException", false},
+                {"java.io.FileNotFoundException", false},
+                {"java.net.SocketException", false},
+                {"java.net.UnknownHostException", false},
+                {"java.lang.ArithmeticException", false}
         };
+
         bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
 

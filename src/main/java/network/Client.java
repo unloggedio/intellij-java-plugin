@@ -210,9 +210,9 @@ public class Client {
                 + TRACE_BY_EXCEPTION
                 + "/" + sessionId
                 + "?exceptionClass="
-                + Constants.NPE
+                + PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES)
                 + "&pageNumber=" + 0
-                + "&pageSize=100";
+                + "&pageSize=500";
         get(url, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -239,6 +239,7 @@ public class Client {
                 JSONObject classInfo = (JSONObject) metadata.get("classInfo");
                 JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
                 JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
+                JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
 
                 ArrayList<Bugs> bugList = new ArrayList<>();
 
@@ -263,7 +264,12 @@ public class Client {
                         JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
-                        Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname);
+
+                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
+                        long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
+                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
+                        String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
+                        Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
 
                     }

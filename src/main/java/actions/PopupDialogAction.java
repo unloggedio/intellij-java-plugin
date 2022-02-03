@@ -13,6 +13,7 @@ import network.pojo.DebugPoint;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Console;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -29,8 +30,6 @@ public class PopupDialogAction extends AnAction {
     public void actionPerformed(@NotNull AnActionEvent e) {
         project = e.getProject();
 
-        System.out.print(e.getProject().getBasePath());
-
         XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
 
         List<DebugPoint> breakpointList = new ArrayList<>();
@@ -43,6 +42,8 @@ public class PopupDialogAction extends AnAction {
                 breakpointList.add(debugPoint);
             }
         }
+
+
 
         String value = Messages.showInputDialog("Trace ID", "What's the trace Id?", null);
 

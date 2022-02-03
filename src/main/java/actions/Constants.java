@@ -26,26 +26,9 @@ public class Constants {
     public static final String PROJECT_ID = "projectId";
     public static final String GENERATE_PROJ_AUTH = "/api/auth/generateAgentToken";
 
-    public static final String NPE = "java.lang.NullPointerException";
     public static final String CURRENT_LINE = "current_line";
     public static final String TRACK_LINE = "track_lines";
     public static final String PROJECT_TOKEN = "project_token";
     public static final String ERROR_NAMES = "error_names";
 
-//    public static List<VarsValues> convert(JSONArray jArr) {
-//        List<VarsValues> list = new ArrayList<>();
-//        for (int i = 0; i < jArr.size(); i++) {
-//            JSONObject jsonObject = (JSONObject) jArr.get(i);
-//            VarsValues varsValues = new VarsValues(jsonObject.getAsNumber("lineNum").intValue(),
-//                    jsonObject.getAsString("filename"),
-//                    jsonObject.getAsString("variableName"),
-//                    jsonObject.getAsString("variableValue"),
-//                    jsonObject.getAsNumber("nanoTime").longValue());
-//            list.add(varsValues);
-//        }
-//
-//
-//
-//        return list;
-//    }
 }

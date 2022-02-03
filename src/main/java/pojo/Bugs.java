@@ -2,7 +2,7 @@ package pojo;
 
 public class Bugs {
 
-    public Bugs(long classId, long linenum, long dataId, long threadId, long value, String executionSessionId, String filename, String classname) {
+    public Bugs(long classId, long linenum, long dataId, long threadId, long value, String executionSessionId, String filename, String classname, String exceptionClass) {
         this.classId = classId;
         this.linenum = linenum;
         this.dataId = dataId;
@@ -11,6 +11,7 @@ public class Bugs {
         this.executionSessionId = executionSessionId;
         this.filename = filename;
         this.classname = classname;
+        this.exceptionClass = exceptionClass;
     }
 
     public long getClassId() {
@@ -45,7 +46,18 @@ public class Bugs {
         return classname;
     }
 
+    public String getExceptionClass() {
+        return exceptionClass;
+    }
+
+    public void setExceptionClass(String exceptionClass) {
+        this.exceptionClass = exceptionClass;
+    }
+
     long classId, linenum, dataId, threadId, value;
-    String executionSessionId,filename,classname;
+    String executionSessionId;
+    String filename;
+    String classname;
+    String exceptionClass;
 
 }
