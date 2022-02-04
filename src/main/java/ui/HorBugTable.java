@@ -136,12 +136,6 @@ public class HorBugTable {
         });
 
         initBugTypeTable();
-        applybutton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                getLastSessionsForTraces();
-            }
-        });
     }
 
     public JPanel getContent() {
@@ -191,23 +185,6 @@ public class HorBugTable {
                 });
 
     }
-
-    private void getTraces(int pageNum, String sessionId, String traceValue) {
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(ProjectService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId,
-                traceValue, new GetProjectSessionErrorsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(List<Bugs> bugsCollection) {
-                        parseTableItems(bugsCollection);
-                    }
-                });
-    }
-
 
     private void parseTableItems(List<Bugs> bugsCollection) {
         this.bugList = bugsCollection;
@@ -312,29 +289,6 @@ public class HorBugTable {
                     public void success(List<ExecutionSession> executionSessionList) {
                         try {
                             getErrors(0, executionSessionList.get(0).getId());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-    }
-
-    private void getLastSessionsForTraces() {
-        project.getService(ProjectService.class).getProjectSessions(
-                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
-                new GetProjectSessionsCallback() {
-                    @Override
-                    public void error(String message) {
-                        if (message.equals("401")) {
-                            clearAll();
-                            showCredentialsWindow();
-                        }
-                    }
-
-                    @Override
-                    public void success(List<ExecutionSession> executionSessionList) {
-                        try {
-                            getTraces(0, executionSessionList.get(0).getId(), traceIdfield.getText());
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

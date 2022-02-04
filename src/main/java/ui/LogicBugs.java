@@ -196,7 +196,7 @@ public class LogicBugs {
         filteredDataEventsRequest.setValueId(Collections.singletonList(selectedTrace.getValue()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
-        filteredDataEventsRequest.setDebugPoints(breakpointList);
+        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
         filteredDataEventsRequest.setSortOrder("DESC");
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
