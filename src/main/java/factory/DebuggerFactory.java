@@ -11,13 +11,15 @@ import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
 import ui.Credentials;
 import ui.HorBugTable;
+import ui.LogicBugs;
 
 public class DebuggerFactory implements ToolWindowFactory, DumbAware {
     Project currentProject;
     Credentials credentials;
     ContentFactory contentFactory;
     HorBugTable bugsTable;
-    Content credentialContent, bugsContent;
+    LogicBugs logicBugs;
+    Content credentialContent, bugsContent, logicbugContent;
     ToolWindow toolWindow;
 
 
@@ -46,6 +48,12 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
             bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
             toolWindow.getContentManager().addContent(bugsContent);
             projectService.setHorBugTable(bugsTable);
+
+            logicBugs = new LogicBugs(currentProject, this.toolWindow);
+            logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
+            toolWindow.getContentManager().addContent(logicbugContent);
+            projectService.setLogicBugs(logicBugs);
+
             try {
                 bugsTable.setTableValues();
             } catch (Exception e) {

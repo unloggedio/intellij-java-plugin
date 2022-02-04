@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import pojo.Bugs;
 import pojo.VarsValues;
 import ui.HorBugTable;
+import ui.LogicBugs;
 
 import java.awt.*;
 import java.io.File;
@@ -36,27 +37,27 @@ public class CodeTracer {
     private final TextAttributes textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
     private int currentIndex;
     private VarsValues highlightedVariable;
+    private String source;
 
-
-    public CodeTracer(Project project, Bugs trace, String order) throws IOException {
+    public CodeTracer(Project project, Bugs trace, String order, String source) throws IOException {
         this.project = project;
         this.trace = trace;
         this.order = order;
         editorManager = FileEditorManager.getInstance(project);
-
+        this.source = source;
         String path = project.getBasePath() + "/variablevalues.json";
         String content = Files.readString(Paths.get(path));
 
         TypeReference<List<VarsValues>> typeReference = new TypeReference<>() {
         };
         varsValue = new ObjectMapper().readValue(content, typeReference);
-        setTraceIndex(0);
+        setTraceIndex(0, source);
     }
 
-    public void setTraceIndex(int i) {
+    public void setTraceIndex(int i, String source) {
         this.currentIndex = i;
         Collection<VarsValues> variableList = collectVariableData();
-        updateHighlight(variableList);
+        updateHighlight(variableList, source);
     }
 
 
@@ -101,9 +102,19 @@ public class CodeTracer {
     }
 
 
-    private void updateHighlight(Collection<VarsValues> variableList) {
-        HorBugTable horBugTable = project.getService(ProjectService.class).getHorBugTable();
-        horBugTable.setVariables(variableList);
+    private void updateHighlight(Collection<VarsValues> variableList, String source) {
+        if (source.equals("exceptions")){
+            HorBugTable horBugTable = project.getService(ProjectService.class).getHorBugTable();
+            horBugTable.setVariables(variableList);
+        }
+        else if (source.equals("traces")) {
+            LogicBugs logicBugs = project.getService(ProjectService.class).getLogicBugs();
+            logicBugs.setVariables(variableList);
+        }
+        else {
+            return;
+        }
+
 
         String path = project.getBasePath() + "/src/main/java/" + highlightedVariable.getFilename() + ".java";
 
@@ -139,7 +150,7 @@ public class CodeTracer {
             }
         }
         if (nextIndex > 0 && nextIndex < varsValue.size()) {
-            setTraceIndex(nextIndex);
+            setTraceIndex(nextIndex, this.source);
         }
     }
 
@@ -158,7 +169,7 @@ public class CodeTracer {
             }
         }
         if (nextIndex > 0 && nextIndex < varsValue.size()) {
-            setTraceIndex(nextIndex);
+            setTraceIndex(nextIndex, this.source);
         }
     }
 }

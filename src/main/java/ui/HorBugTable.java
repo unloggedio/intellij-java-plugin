@@ -258,7 +258,7 @@ public class HorBugTable {
                             fileWriter = new FileWriter(file);
                             fileWriter.write(content);
                             fileWriter.close();
-                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC");
+                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
                         } catch (Exception e) {
                             e.printStackTrace();
                             ExceptionResponse exceptionResponse = new ExceptionResponse();

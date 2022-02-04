@@ -6,6 +6,7 @@ import network.Client;
 import network.pojo.FilteredDataEventsRequest;
 import pojo.Bugs;
 import ui.HorBugTable;
+import ui.LogicBugs;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.List;
 public class ProjectService {
     private final Project project;
     private HorBugTable bugsTable;
+    private LogicBugs logicBugs;
     private int currentLineNumber;
     private Client client;
     private CodeTracer tracer;
@@ -29,6 +31,13 @@ public class ProjectService {
         this.bugsTable = bugsTable;
     }
 
+    public void setLogicBugs(LogicBugs logicBugs) {
+        this.logicBugs = logicBugs;
+    }
+
+    public LogicBugs getLogicBugs() {
+        return this.logicBugs;
+    }
 
     public int getCurrentLineNumber() {
         return currentLineNumber;
@@ -81,8 +90,8 @@ public class ProjectService {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
     }
 
-    public void startTracer(Bugs selectedTrace, String order) throws IOException {
-        tracer = new CodeTracer(project, selectedTrace, order);
+    public void startTracer(Bugs selectedTrace, String order, String source) throws IOException {
+        tracer = new CodeTracer(project, selectedTrace, order, source);
     }
 
     public void back() {
