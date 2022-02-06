@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="mainpanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="20" y="20" width="875" height="400"/>
+      <xy x="20" y="20" width="1361" height="400"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -73,26 +73,7 @@
           </grid>
         </children>
       </grid>
-      <scrollpane id="1ad0f" binding="varValuepane">
-        <constraints>
-          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
-        <border type="none"/>
-        <children>
-          <component id="e644a" class="javax.swing.JTable" binding="varsvalueTable">
-            <constraints/>
-            <properties>
-              <font name="Fira Code" size="16" style="0"/>
-              <intercellSpacing width="2" height="5"/>
-              <rowHeight value="24"/>
-              <rowMargin value="5"/>
-              <rowSelectionAllowed value="false"/>
-            </properties>
-          </component>
-        </children>
-      </scrollpane>
-      <grid id="cc9d9" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="cc9d9" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
           <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
@@ -104,7 +85,7 @@
         <properties/>
         <border type="none"/>
         <children>
-          <scrollpane id="82f7e">
+          <scrollpane id="82f7e" binding="scrollpanel">
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
@@ -120,6 +101,7 @@
                   <rowHeight value="24"/>
                   <rowMargin value="4"/>
                   <rowSelectionAllowed value="true"/>
+                  <selectionBackground color="-1033939"/>
                 </properties>
               </component>
             </children>
@@ -127,7 +109,7 @@
           <grid id="67187" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
             <margin top="0" left="0" bottom="0" right="0"/>
             <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
             <border type="none"/>
@@ -153,6 +135,83 @@
               </component>
             </children>
           </grid>
+          <component id="707b0" class="javax.swing.JProgressBar" binding="progressBarfield">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="2" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font name="Fira Code" size="14" style="0"/>
+              <string value="Loading..."/>
+              <stringPainted value="true"/>
+              <value value="20"/>
+              <visible value="false"/>
+            </properties>
+          </component>
+          <vspacer id="5bbf4">
+            <constraints>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+            </constraints>
+          </vspacer>
+          <component id="67760" class="javax.swing.JLabel" binding="errorLabel">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font name="Fira Code" size="16" style="0"/>
+              <text value=""/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="45a26" binding="varpanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <scrollpane id="1ad0f" binding="varsvaluePane">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="e644a" class="javax.swing.JTable" binding="varsvalueTable">
+                <constraints/>
+                <properties>
+                  <font name="Fira Code" size="16" style="0"/>
+                  <intercellSpacing width="2" height="5"/>
+                  <rowHeight value="24"/>
+                  <rowMargin value="5"/>
+                  <rowSelectionAllowed value="false"/>
+                  <selectionBackground color="-1033939"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+          <component id="bc41f" class="javax.swing.JProgressBar" binding="variableProgressbar">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font name="Fira Code" size="14" style="0"/>
+              <string value="Loading..."/>
+              <stringPainted value="true"/>
+              <value value="20"/>
+              <visible value="false"/>
+            </properties>
+          </component>
+          <component id="9f9fa" class="javax.swing.JLabel" binding="varvalueErrorLabel">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font name="Fira Code" size="14" style="0"/>
+              <text value=""/>
+            </properties>
+          </component>
         </children>
       </grid>
     </children>

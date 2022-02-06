@@ -198,6 +198,7 @@ public class Credentials {
                 PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, token);
 
                 HorBugTable bugsTable = new HorBugTable(project, toolWindow);
+                LogicBugs logicBugs = new LogicBugs(project, toolWindow);
                 ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
                 try {
                     bugsTable.setTableValues();
@@ -206,13 +207,17 @@ public class Credentials {
                 }
 
                 Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
-
+                Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
                 ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
                     public void run() {
                         Content content = toolWindow.getContentManager().findContent("Exceptions");
                         if (content == null) {
                             toolWindow.getContentManager().addContent(bugsContent);
+                        }
+                        Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
+                        if (traceContent2 == null) {
+                            toolWindow.getContentManager().addContent(traceContent);
                         }
                     }
                 });

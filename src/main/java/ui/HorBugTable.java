@@ -67,6 +67,10 @@ public class HorBugTable {
     private JTable bugTypes;
     private JPanel customBugPanel;
     private JButton custombugButton;
+    private JProgressBar progressBarfield;
+    private JLabel errorLabel;
+    private JProgressBar variableProgressbar;
+    private JLabel varvalueErrorLabel;
     private JButton applybutton;
     private JTextField traceIdfield;
     private JLabel someLable;
@@ -136,6 +140,8 @@ public class HorBugTable {
         });
 
         initBugTypeTable();
+
+        variableProgressbar.setVisible(false);
     }
 
     public JPanel getContent() {
@@ -180,7 +186,16 @@ public class HorBugTable {
 
                     @Override
                     public void success(List<Bugs> bugsCollection) {
-                        parseTableItems(bugsCollection);
+                        updateProgressbar("bugs", 100);
+                        if (bugsCollection.size() == 0) {
+                            updateErrorLabel("No data availalbe, or data may have been deleted!");
+                        }
+                        else {
+                            updateErrorLabel("");
+                            scrollpanel.setVisible(true);
+                            parseTableItems(bugsCollection);
+                        }
+
                     }
                 });
 
@@ -236,6 +251,8 @@ public class HorBugTable {
                             fileWriter.write(content);
                             fileWriter.close();
                             project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
+                            varsvaluePane.setVisible(true);
+                            updateProgressbar("varsvalues", 100);
                         } catch (Exception e) {
                             e.printStackTrace();
                             ExceptionResponse exceptionResponse = new ExceptionResponse();
@@ -246,8 +263,10 @@ public class HorBugTable {
 
                     }
                 }
+
         );
 
+        hideTable("varsvalues");
     }
 
     public void setVariables(Collection<VarsValues> dataListTemp) {
@@ -289,11 +308,13 @@ public class HorBugTable {
                     public void success(List<ExecutionSession> executionSessionList) {
                         try {
                             getErrors(0, executionSessionList.get(0).getId());
+                            updateProgressbar("bugs",50);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                 });
+        hideTable("bugs");
     }
 
     private void initBugTypeTable() {
@@ -389,16 +410,53 @@ public class HorBugTable {
         ApplicationManager.getApplication().invokeLater(new Runnable() {
             @Override
             public void run() {
-                Content content = toolWindow.getContentManager().findContent("Exceptions");
-                if (content != null) {
-                    toolWindow.getContentManager().removeContent(content, true);
-                    ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                    Credentials credentials = new Credentials(project, toolWindow);
-                    Content credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
-                    toolWindow.getContentManager().addContent(credentialContent);
+                Content exceptionContent = toolWindow.getContentManager().findContent("Exceptions");
+                Content traceContent = toolWindow.getContentManager().findContent("Traces");
+                if (exceptionContent != null) {
+                    toolWindow.getContentManager().removeContent(exceptionContent, true);
                 }
+                if (traceContent != null) {
+                    toolWindow.getContentManager().removeContent(traceContent, true);
+                }
+                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+                Credentials credentials = new Credentials(project, toolWindow);
+                Content credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
+                toolWindow.getContentManager().addContent(credentialContent);
             }
         });
 
+    }
+
+    private void hideTable(String table) {
+        if (table.equals("bugs")) {
+            progressBarfield.setVisible(true);
+            scrollpanel.setVisible(false);
+        }
+        else if (table.equals("varsvalues")) {
+            variableProgressbar.setVisible(true);
+            varsvaluePane.setVisible(false);
+        }
+
+    }
+
+    private void updateProgressbar(String table, int value) {
+
+        if (table.equals("bugs")) {
+            progressBarfield.setValue(value);
+            if (value == 100) {
+                progressBarfield.setVisible(false);
+            }
+        }
+        else if (table.equals("varsvalues")) {
+            variableProgressbar.setValue(value);
+            if (value == 100) {
+                variableProgressbar.setVisible(false);
+            }
+        }
+
+    }
+
+    private void updateErrorLabel (String text) {
+        errorLabel.setText(text);
     }
 }
