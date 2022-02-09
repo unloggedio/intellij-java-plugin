@@ -323,6 +323,7 @@ public class HorBugTable {
         Object[] headers = {"Error Type", "Track it?"};
         Object[][] errorTypes = {
                 {"java.lang.NullPointerException", true},
+                {"java.lang.IndexOutOfBoundsException", true},
                 {"java.lang.ArrayIndexOutOfBoundsException", true},
                 {"java.lang.StackOverflowError", true},
                 {"java.lang.IllegalArgumentException", true},
@@ -335,7 +336,9 @@ public class HorBugTable {
                 {"java.net.UnknownHostException", true},
                 {"java.lang.ArithmeticException", true}
         };
-
+        for (Object[] object : errorTypes) {
+            addErrorValue((String)object[0]);
+        }
         bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
 
