@@ -5,11 +5,14 @@
 
     <description>
         <![CDATA[
-    Videobug records code execution in production so that developers can watch it line by line as frequently as they want, just like a video. <br/>
-    It takes away the pain of recreating exact conditions that led to a bug and saves ~3 hours of developer time every day. <br/>
+        Videobug records code execution in production so that developers can watch it line by line as frequently as they want, just like a video.
+        <br/>
+        It takes away the pain of recreating exact conditions that led to a bug and saves ~3 hours of developer time every day.
+        <br/>
 
-    Developers can deploy Videobug server on their premise, download our Java agent and run their java code on localhost, staging or production. <br/>
-    Whenever a bug happens, they can check this plugin, go back in time, see a line-by-line code execution & fix the bug in minutes.
+        Developers can deploy Videobug server on their premise, download our Java agent and run their java code on localhost, staging or production.
+        <br/>
+        Whenever a bug happens, they can check this plugin, go back in time, see a line-by-line code execution & fix the bug in minutes.
       ]]>
     </description>
 
@@ -17,7 +20,7 @@
          on how to target different products -->
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xdebugger</depends>
-
+    <depends>com.intellij.modules.java</depends>
 
     <actions>
         <!-- Add your actions here -->
@@ -48,8 +51,10 @@
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
                     factoryClass="factory.DebuggerFactory"/>
 
-        <projectService
-                serviceImplementation="factory.ProjectService"/>
+        <projectService serviceImplementation="factory.ProjectService"/>
+        <programRunner implementation="extension.InsidiousProgramRunner"/>
+        <configurationType implementation="extension.InsidiousRunConfigType"/>
+        <executor implementation="extension.InsidiousExecutor"/>
     </extensions>
 
 </idea-plugin>

@@ -39,6 +39,9 @@ import java.util.Collections;
 import java.util.List;
 
 public class LogicBugs {
+    private final Project project;
+    private final ToolWindow toolWindow;
+    DefaultTableCellRenderer centerRenderer;
     private JPanel mainpanel;
     private JPanel searchPanel;
     private JScrollPane varsvaluePane;
@@ -55,11 +58,8 @@ public class LogicBugs {
     private JProgressBar variableProgressbar;
     private JLabel varvalueErrorLabel;
     private JScrollPane scrollpanel;
-    private Project project;
-    private ToolWindow toolWindow;
     private List<Bugs> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
-    DefaultTableCellRenderer centerRenderer;
 
     public LogicBugs(Project project, ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
@@ -161,8 +161,7 @@ public class LogicBugs {
                         updateProgressbar("bugs", 100);
                         if (bugsCollection.size() == 0) {
                             updateErrorLabel("No data availalbe, or data may have been deleted!");
-                        }
-                        else {
+                        } else {
                             updateErrorLabel("");
                             scrollpanel.setVisible(true);
                             parseTableItems(bugsCollection);
@@ -201,10 +200,10 @@ public class LogicBugs {
             }
         }
 
-        if (breakpointList.size() == 0) {
-            Messages.showInfoMessage("Set atleast 1 breakpoint", "Break Points");
-            return;
-        }
+//        if (breakpointList.size() == 0) {
+//            Messages.showInfoMessage("Set atleast 1 breakpoint", "Break Points");
+//            return;
+//        }
 
         Bugs selectedTrace = bugList.get(rowNum);
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
@@ -222,7 +221,7 @@ public class LogicBugs {
                 new FilteredDataEventsCallback() {
                     @Override
                     public void error(ExceptionResponse errrorResponse) {
-                        System.out.print(errrorResponse);
+                        System.out.print(errrorResponse.getMessage());
                     }
 
                     @Override
@@ -236,16 +235,24 @@ public class LogicBugs {
                             fileWriter = new FileWriter(file);
                             fileWriter.write(content);
                             fileWriter.close();
-                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "traces");
-                            varsvaluePane.setVisible(true);
-                            updateProgressbar("varsvalues", 100);
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             e.printStackTrace();
-                            ExceptionResponse exceptionResponse = new ExceptionResponse();
-                            exceptionResponse.setMessage(e.getMessage());
-                            error(exceptionResponse);
-                            return;
                         }
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            try {
+                                project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "traces");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                ExceptionResponse exceptionResponse = new ExceptionResponse();
+                                exceptionResponse.setMessage(e.getMessage());
+                                error(exceptionResponse);
+                                return;
+                            }
+                        });
+                        varsvaluePane.setVisible(true);
+                        updateProgressbar("varsvalues", 100);
+
 
                     }
                 }
@@ -306,8 +313,7 @@ public class LogicBugs {
         if (table.equals("bugs")) {
             progressBarfield.setVisible(true);
             scrollpanel.setVisible(false);
-        }
-        else if (table.equals("varsvalues")) {
+        } else if (table.equals("varsvalues")) {
             variableProgressbar.setVisible(true);
             varsvaluePane.setVisible(false);
         }
@@ -321,8 +327,7 @@ public class LogicBugs {
             if (value == 100) {
                 progressBarfield.setVisible(false);
             }
-        }
-        else if (table.equals("varsvalues")) {
+        } else if (table.equals("varsvalues")) {
             variableProgressbar.setValue(value);
             if (value == 100) {
                 variableProgressbar.setVisible(false);
@@ -331,7 +336,7 @@ public class LogicBugs {
 
     }
 
-    private void updateErrorLabel (String text) {
+    private void updateErrorLabel(String text) {
         errorLabel.setText(text);
     }
 }
