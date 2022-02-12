@@ -60,10 +60,14 @@ public class LogicBugs {
     private JScrollPane scrollpanel;
     private List<Bugs> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
+    DefaultTableCellRenderer centerRenderer;
+    private final ProjectService projectService;
 
     public LogicBugs(Project project, ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
         this.project = project;
+        this.projectService = project.getService(ProjectService.class);
+        this.projectService.setLogicBugs(this);
         searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
