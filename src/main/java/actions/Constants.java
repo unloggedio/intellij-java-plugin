@@ -6,7 +6,6 @@ import okhttp3.MediaType;
 import pojo.VarsValues;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Constants {
@@ -31,20 +30,5 @@ public class Constants {
     public static final String TRACK_LINE = "track_lines";
     public static final String PROJECT_TOKEN = "project_token";
     public static final String ERROR_NAMES = "error_names";
-
-    public static final List<String> BASIC_ERROR_TYPES = Arrays.asList(
-            "java.lang.NullPointerException",
-            "java.lang.ArrayIndexOutOfBoundsException",
-            "java.lang.StackOverflowError",
-            "java.lang.IllegalArgumentException",
-            "java.lang.IllegalThreadStateException",
-            "java.lang.IllegalStateException",
-            "java.lang.RuntimeException",
-            "java.io.IOException",
-            "java.io.FileNotFoundException",
-            "java.net.SocketException",
-            "java.net.UnknownHostException",
-            "java.lang.ArithmeticException"
-    );
 
 }

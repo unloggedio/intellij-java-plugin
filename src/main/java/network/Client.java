@@ -7,7 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.text.Strings;
+import com.intellij.openapi.project.Project;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -17,11 +17,10 @@ import org.jetbrains.annotations.NotNull;
 import pojo.Bugs;
 import pojo.VarsValues;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class Client {
@@ -30,7 +29,7 @@ public class Client {
     public static final String PROJECTS_URL = "/api/data/projects";
     public static final String PROJECT_URL = "/api/data/project";
     public static final String PROJECT_EXECUTIONS_URL = "/executions";
-    public static final String FILTER_DATA_EVENTS_URL = "/filterDataEvents2";
+    public static final String FILTER_DATA_EVENTS_URL = "/filterDataEvents";
     public static final String TRACE_BY_EXCEPTION = "/traceByException";
     public static final String TRACE_BY_STRING = "/traceByString";
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
@@ -207,14 +206,14 @@ public class Client {
     }
 
     public void getTracesByClassForProjectAndSessionId(String projectId, String sessionId,
-                                                       List<String> classList, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + projectId
                 + TRACE_BY_EXCEPTION
                 + "/" + sessionId
                 + "?exceptionClass="
-                + Strings.join(classList, ",")
+                + PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES)
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
         get(url, new Callback() {
@@ -257,7 +256,7 @@ public class Client {
                     long line;
                     String sessionId;
                     String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
+                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
                     if (dataInfoObject != null) {
                         classId = dataInfoObject.getAsNumber("classId").longValue();
                         line = dataInfoObject.getAsNumber("line").longValue();
@@ -265,13 +264,13 @@ public class Client {
 
                         JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
-                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
+                        JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
+                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
+                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
@@ -288,7 +287,7 @@ public class Client {
     }
 
     public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
-                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + projectId
@@ -338,7 +337,7 @@ public class Client {
                     long line;
                     String sessionId;
                     String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
+                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
                     if (dataInfoObject != null) {
                         classId = dataInfoObject.getAsNumber("classId").longValue();
                         line = dataInfoObject.getAsNumber("line").longValue();
@@ -346,16 +345,16 @@ public class Client {
 
                         JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
-                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
+                        JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
+                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
+                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
                         String exceptionClass = "";
                         if (exceptionClassJson != null) {
-                            exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
+                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         }
 
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
@@ -376,11 +375,9 @@ public class Client {
                                  FilteredDataEventsCallback filteredDataEventsCallback) {
         try {
             String url = endpoint + PROJECT_URL + "/" + projectId + FILTER_DATA_EVENTS_URL;
-//            String executionSessionId = filteredDataEventsRequest.getSessionId();
+            String executionSessionId = filteredDataEventsRequest.getSessionId();
 
-            String filterDataRequestString = objectMapper.writeValueAsString(filteredDataEventsRequest);
-            logger.info("Filter data request string: " + filterDataRequestString);
-            post(url, filterDataRequestString, new Callback() {
+            post(url, objectMapper.writeValueAsString(filteredDataEventsRequest), new Callback() {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     ExceptionResponse exceptionResponse = new ExceptionResponse();
@@ -412,7 +409,7 @@ public class Client {
                     for (DataEventWithSessionId dataEvent : datapointsArray) {
                         long dataId = dataEvent.getDataId();
                         long dataValue = dataEvent.getValue();
-                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(String.valueOf(dataId));
+                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(dataId + "_" + executionSessionId);
                         Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
 
                         if (attributesMap.containsKey("Instruction")) {
@@ -432,7 +429,7 @@ public class Client {
                         String variableType = (String) attributesMap.get("Type");
                         int classId = (int) dataInfoTemp.get("classId");
                         int lineNum = (int) dataInfoTemp.get("line");
-                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(String.valueOf(classId));
+                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(classId + "_" + executionSessionId);
                         String filename = (String) classInfoTemp.get("filename");
 
 
@@ -440,7 +437,7 @@ public class Client {
 
                         if (variableType != null) {
                             if (variableType.contains("java/lang/String")) {
-                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(String.valueOf(dataValue));
+                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataValue + "_" + executionSessionId);
                                 if (tempStringJson != null) {
                                     dataIdstr = (String) tempStringJson.get("content");
                                 }
@@ -451,6 +448,7 @@ public class Client {
                         VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr, nanoTime);
                         dataList.add(varsValues);
                     }
+
 
 
                     filteredDataEventsCallback.success(dataList);

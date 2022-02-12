@@ -1,7 +1,6 @@
 package factory;
 
 import callbacks.*;
-import com.intellij.execution.ExecutionException;
 import com.intellij.openapi.project.Project;
 import network.Client;
 import network.pojo.FilteredDataEventsRequest;
@@ -32,12 +31,12 @@ public class ProjectService {
         this.bugsTable = bugsTable;
     }
 
-    public LogicBugs getLogicBugs() {
-        return this.logicBugs;
-    }
-
     public void setLogicBugs(LogicBugs logicBugs) {
         this.logicBugs = logicBugs;
+    }
+
+    public LogicBugs getLogicBugs() {
+        return this.logicBugs;
     }
 
     public int getCurrentLineNumber() {
@@ -79,7 +78,7 @@ public class ProjectService {
     public void getTracesByClassForProjectAndSessionId(String projectId, String sessionId,
                                                        List<String> classList,
                                                        GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(projectId, sessionId, classList, getProjectSessionErrorsCallback);
+        this.client.getTracesByClassForProjectAndSessionId(projectId, sessionId, getProjectSessionErrorsCallback);
     }
 
     public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
@@ -91,8 +90,8 @@ public class ProjectService {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
     }
 
-    public void startTracer(Bugs selectedTrace, String order, String source) throws IOException, ExecutionException {
-        tracer = new CodeTracer(project, selectedTrace.getExecutionSessionId(), client, source);
+    public void startTracer(Bugs selectedTrace, String order, String source) throws IOException {
+        tracer = new CodeTracer(project, selectedTrace, order, source);
     }
 
     public void back() {

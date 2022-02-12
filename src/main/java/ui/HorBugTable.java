@@ -4,7 +4,6 @@ import actions.Constants;
 import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
-import com.intellij.execution.ExecutionException;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -33,23 +32,21 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class HorBugTable {
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
     private final ProjectService projectService;
-    private final ToolWindow toolWindow;
-    private final Map<String, Boolean> selectedTypes = new HashMap<>();
-
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
+    Object[] headers;
+    List<VarsValues> dataList;
     String executionSessionId;
     Project project;
     String basepath;
@@ -78,6 +75,7 @@ public class HorBugTable {
     private JTextField traceIdfield;
     private JLabel someLable;
     private List<Bugs> bugList;
+    private ToolWindow toolWindow;
 
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -89,11 +87,6 @@ public class HorBugTable {
         this.projectService.setHorBugTable(this);
 
         this.projectService.setServerEndpoint(PropertiesComponent.getInstance().getValue(Constants.BASE_URL));
-
-        for (String basicErrorType : Constants.BASIC_ERROR_TYPES) {
-            selectedTypes.put(basicErrorType, true);
-        }
-
 
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
@@ -182,10 +175,9 @@ public class HorBugTable {
     private void getErrors(int pageNum, String sessionId) throws Exception {
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        List<String> typesToFilter = selectedTypes.entrySet().stream().filter(e -> e.getValue()).map(e -> e.getKey()).collect(Collectors.toList());
-
+        List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
         project.getService(ProjectService.class).getTracesByClassForProjectAndSessionId(
-                projectId, sessionId, typesToFilter,
+                projectId, sessionId, classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -197,7 +189,8 @@ public class HorBugTable {
                         updateProgressbar("bugs", 100);
                         if (bugsCollection.size() == 0) {
                             updateErrorLabel("No data availalbe, or data may have been deleted!");
-                        } else {
+                        }
+                        else {
                             updateErrorLabel("");
                             scrollpanel.setVisible(true);
                             parseTableItems(bugsCollection);
@@ -257,6 +250,9 @@ public class HorBugTable {
                             fileWriter = new FileWriter(file);
                             fileWriter.write(content);
                             fileWriter.close();
+                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
+                            varsvaluePane.setVisible(true);
+                            updateProgressbar("varsvalues", 100);
                         } catch (Exception e) {
                             e.printStackTrace();
                             ExceptionResponse exceptionResponse = new ExceptionResponse();
@@ -264,21 +260,10 @@ public class HorBugTable {
                             error(exceptionResponse);
                             return;
                         }
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            try {
-                                project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            } catch (ExecutionException e) {
-                                e.printStackTrace();
-                            }
-                        });
-
-                        varsvaluePane.setVisible(true);
-                        updateProgressbar("varsvalues", 100);
 
                     }
                 }
+
         );
 
         hideTable("varsvalues");
@@ -322,14 +307,8 @@ public class HorBugTable {
                     @Override
                     public void success(List<ExecutionSession> executionSessionList) {
                         try {
-                            if (executionSessionList.size() == 0) {
-                                ApplicationManager.getApplication().invokeLater(() -> {
-                                    Messages.showInfoMessage("No recorded sessions found for project - " + project.getName(), "Error");
-                                });
-                                return;
-                            }
                             getErrors(0, executionSessionList.get(0).getId());
-                            updateProgressbar("bugs", 50);
+                            updateProgressbar("bugs",50);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -338,34 +317,37 @@ public class HorBugTable {
         hideTable("bugs");
     }
 
-    private void updateTypeTableModel() {
-        Object[] headers = {"Error Type", "Track it?"};
-        Object[][] errorTypes = new Object[selectedTypes.size()][];
-        int i = 0;
-        for (Map.Entry<String, Boolean> selectedTypeEntry : selectedTypes.entrySet()) {
-            errorTypes[i] = new Object[]{selectedTypeEntry.getKey(), selectedTypeEntry.getValue()};
-            i++;
-        }
-        bugTypeTableModel.setDataVector(errorTypes, headers);
-    }
-
     private void initBugTypeTable() {
         JTableHeader header = this.bugTypes.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        updateTypeTableModel();
+        Object[] headers = {"Error Type", "Track it?"};
+        Object[][] errorTypes = {
+                {"java.lang.NullPointerException", true},
+                {"java.lang.ArrayIndexOutOfBoundsException", true},
+                {"java.lang.StackOverflowError", true},
+                {"java.lang.IllegalArgumentException", true},
+                {"java.lang.IllegalThreadStateException", true},
+                {"java.lang.IllegalStateException", true},
+                {"java.lang.RuntimeException", true},
+                {"java.io.IOException", true},
+                {"java.io.FileNotFoundException", true},
+                {"java.net.SocketException", true},
+                {"java.net.UnknownHostException", true},
+                {"java.lang.ArithmeticException", true}
+        };
+
+        bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
 
         bugTypes.getModel().addTableModelListener(new TableModelListener() {
             @Override
             public void tableChanged(TableModelEvent tableModelEvent) {
-                if (tableModelEvent.getFirstRow() == -1) {
-                    return;
-                }
-                Boolean selected = (Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1);
-                String typeName = (String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0);
 
-                selectedTypes.put(typeName, selected);
-                updateTypeTableModel();
+                if ((Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
+                    addErrorValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                } else {
+                    removeValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
+                }
 
             }
         });
@@ -377,11 +359,47 @@ public class HorBugTable {
         if (value == null || value == "") {
             return;
         }
-        value = value.trim();
-        selectedTypes.put(value, true);
-        updateTypeTableModel();
+
+        addErrorValue(value);
     }
 
+    private void addErrorValue(String value) {
+        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.contains(value)) {
+            return;
+        }
+        if (existingValue.equals("")) {
+            existingValue = value;
+        } else {
+            existingValue = existingValue + "," + value;
+        }
+
+        storeValue(existingValue);
+    }
+
+    private void removeValue(String value) {
+        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
+        if (existingValue.equals("")) {
+            return;
+        }
+
+        if (existingValue.contains(value + ",")) {
+            existingValue = existingValue.replaceAll(value + ",", "");
+        }
+        if (existingValue.contains("," + value)) {
+            existingValue = existingValue.replaceAll("," + value, "");
+        }
+        if (existingValue.contains(value)) {
+            existingValue = existingValue.replaceAll(value, "");
+        }
+
+        storeValue(existingValue);
+    }
+
+    private void storeValue(String value) {
+        System.out.print(value + "\n");
+        PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
+    }
 
     private void clearAll() {
         PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
@@ -413,7 +431,8 @@ public class HorBugTable {
         if (table.equals("bugs")) {
             progressBarfield.setVisible(true);
             scrollpanel.setVisible(false);
-        } else if (table.equals("varsvalues")) {
+        }
+        else if (table.equals("varsvalues")) {
             variableProgressbar.setVisible(true);
             varsvaluePane.setVisible(false);
         }
@@ -427,7 +446,8 @@ public class HorBugTable {
             if (value == 100) {
                 progressBarfield.setVisible(false);
             }
-        } else if (table.equals("varsvalues")) {
+        }
+        else if (table.equals("varsvalues")) {
             variableProgressbar.setValue(value);
             if (value == 100) {
                 variableProgressbar.setVisible(false);
@@ -436,7 +456,7 @@ public class HorBugTable {
 
     }
 
-    private void updateErrorLabel(String text) {
+    private void updateErrorLabel (String text) {
         errorLabel.setText(text);
     }
 }

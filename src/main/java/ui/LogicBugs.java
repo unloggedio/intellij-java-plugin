@@ -60,7 +60,6 @@ public class LogicBugs {
     private JScrollPane scrollpanel;
     private List<Bugs> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
-    DefaultTableCellRenderer centerRenderer;
     private final ProjectService projectService;
 
     public LogicBugs(Project project, ToolWindow toolWindow) {

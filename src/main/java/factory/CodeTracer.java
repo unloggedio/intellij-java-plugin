@@ -2,13 +2,6 @@ package factory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.intellij.execution.ExecutionException;
-import com.intellij.execution.Executor;
-import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.execution.impl.RunManagerImpl;
-import com.intellij.execution.impl.RunnerAndConfigurationSettingsImpl;
-import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
@@ -18,14 +11,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.xdebugger.XDebugProcessStarter;
-import com.intellij.xdebugger.XDebugSession;
-import com.intellij.xdebugger.XDebuggerManager;
-import extension.InsidiousDebugProcessStarter;
-import extension.InsidiousExecutor;
-import extension.InsidiousProgramRunner;
-import network.Client;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pojo.Bugs;
 import pojo.VarsValues;
@@ -43,20 +28,18 @@ import java.util.List;
 import java.util.Map;
 
 public class CodeTracer {
+    private final Bugs trace;
     private final Project project;
+    private final String order;
+    private final FileEditorManager editorManager;
+    private final List<VarsValues> varsValue;
     Color backgroundColor = new Color(240, 57, 45, 80);
     private final TextAttributes textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
-    private Client client;
-    private Bugs trace;
-    private String order;
-    private FileEditorManager editorManager;
-    private final List<VarsValues> varsValue;
-    private final String source;
-    private String sessionId;
     private int currentIndex;
     private VarsValues highlightedVariable;
+    private String source;
 
-    public CodeTracer(Project project, Bugs trace, String order, String source) throws IOException, ExecutionException {
+    public CodeTracer(Project project, Bugs trace, String order, String source) throws IOException {
         this.project = project;
         this.trace = trace;
         this.order = order;
@@ -64,45 +47,17 @@ public class CodeTracer {
         this.source = source;
         String path = project.getBasePath() + "/variablevalues.json";
         String content = Files.readString(Paths.get(path));
+
         TypeReference<List<VarsValues>> typeReference = new TypeReference<>() {
         };
         varsValue = new ObjectMapper().readValue(content, typeReference);
-        setTraceIndex(0);
+        setTraceIndex(0, source);
     }
 
-    public CodeTracer(Project project, String sessionId, Client client, String source) throws IOException, ExecutionException {
-        this.project = project;
-        this.sessionId = sessionId;
-        this.client = client;
-        this.source = source;
-
-        String path = project.getBasePath() + "/variablevalues.json";
-        String content = Files.readString(Paths.get(path));
-        TypeReference<List<VarsValues>> typeReference = new TypeReference<>() {
-        };
-        varsValue = new ObjectMapper().readValue(content, typeReference);
-
-//
-//        Executor executor = new InsidiousExecutor();
-//        RunManagerImpl runManager = new RunManagerImpl(project, null);
-//
-//
-//        RunnerAndConfigurationSettings settings = new RunnerAndConfigurationSettingsImpl(runManager);
-//
-//        ProgramRunner runner = new InsidiousProgramRunner();
-//
-//        ExecutionEnvironment environment = new ExecutionEnvironment(executor, runner, settings, project);
-//        XDebugProcessStarter processStarter = new InsidiousDebugProcessStarter(sessionId, client, varsValue.get(0).getFilename());
-//
-//
-//        @NotNull XDebugSession session = XDebuggerManager.getInstance(project).startSession(environment, processStarter);
-//        session.resume();
-    }
-
-    public void setTraceIndex(int i) {
+    public void setTraceIndex(int i, String source) {
         this.currentIndex = i;
         Collection<VarsValues> variableList = collectVariableData();
-        updateHighlight(variableList);
+        updateHighlight(variableList, source);
     }
 
 
@@ -147,14 +102,16 @@ public class CodeTracer {
     }
 
 
-    private void updateHighlight(Collection<VarsValues> variableList) {
-        if (source.equals("exceptions")) {
+    private void updateHighlight(Collection<VarsValues> variableList, String source) {
+        if (source.equals("exceptions")){
             HorBugTable horBugTable = project.getService(ProjectService.class).getHorBugTable();
             horBugTable.setVariables(variableList);
-        } else if (source.equals("traces")) {
+        }
+        else if (source.equals("traces")) {
             LogicBugs logicBugs = project.getService(ProjectService.class).getLogicBugs();
             logicBugs.setVariables(variableList);
-        } else {
+        }
+        else {
             return;
         }
 
@@ -193,7 +150,7 @@ public class CodeTracer {
             }
         }
         if (nextIndex > 0 && nextIndex < varsValue.size()) {
-            setTraceIndex(nextIndex);
+            setTraceIndex(nextIndex, this.source);
         }
     }
 
@@ -202,17 +159,17 @@ public class CodeTracer {
         int nextIndex;
         if (order.equals("DESC")) {
             nextIndex = this.currentIndex - 1;
-            while (nextIndex > -1 && varsValue.get(nextIndex).getLineNum() == highlightedVariable.getLineNum()) {
+            while (nextIndex < varsValue.size() && varsValue.get(nextIndex).getLineNum() == highlightedVariable.getLineNum()) {
                 nextIndex--;
             }
         } else {
             nextIndex = this.currentIndex + 1;
-            while (nextIndex < varsValue.size() && varsValue.get(nextIndex).getLineNum() == highlightedVariable.getLineNum()) {
+            while (nextIndex > 0 && varsValue.get(nextIndex).getLineNum() == highlightedVariable.getLineNum()) {
                 nextIndex++;
             }
         }
-        if (nextIndex >= 0 && nextIndex < varsValue.size()) {
-            setTraceIndex(nextIndex);
+        if (nextIndex > 0 && nextIndex < varsValue.size()) {
+            setTraceIndex(nextIndex, this.source);
         }
     }
 }
