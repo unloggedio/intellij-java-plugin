@@ -1,6 +1,5 @@
 package extension;
 
-import com.intellij.debugger.impl.DebuggerSession;
 import com.intellij.execution.ExecutionResult;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.xdebugger.XDebugProcess;
@@ -13,6 +12,8 @@ import org.jetbrains.annotations.Nullable;
 public class InsidiousDebugProcess extends XDebugProcess {
 
     private ExecutionResult executionResult;
+    private InsidiousCompoundPositionManager myPositionManager;
+    private InsidiousConnector connector;
 
     /**
      * @param session pass {@code session} parameter of {@link XDebugProcessStarter#start} method to this constructor
@@ -30,6 +31,11 @@ public class InsidiousDebugProcess extends XDebugProcess {
         return new InsidiousDebuggerEditorsProvider();
     }
 
+    public InsidiousCompoundPositionManager getPositionManager() {
+        return this.myPositionManager;
+    }
+
+
     @Override
     public void sessionInitialized() {
         super.sessionInitialized();
@@ -43,9 +49,22 @@ public class InsidiousDebugProcess extends XDebugProcess {
     @Override
     public void startPausing() {
         super.startPausing();
+        notifySuspended();
+    }
+
+    private void notifySuspended() {
+        InsidiousApplicationState state = getProcessHandler().getUserData(InsidiousApplicationState.KEY);
     }
 
     public void setExecutionResult(ExecutionResult executionResult) {
         this.executionResult = executionResult;
+    }
+
+    public InsidiousConnector getConnector() {
+        return connector;
+    }
+
+    public void setConnector(InsidiousConnector connector) {
+        this.connector = connector;
     }
 }

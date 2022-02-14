@@ -7,16 +7,11 @@ import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.application.JavaApplicationSettingsEditor;
 import com.intellij.execution.application.JvmMainMethodRunConfigurationOptions;
 import com.intellij.execution.configurations.*;
-import com.intellij.execution.filters.TextConsoleBuilderFactory;
-import com.intellij.execution.process.OSProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.target.LanguageRuntimeType;
 import com.intellij.execution.util.ProgramParametersUtil;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.projectRoots.JavaSdk;
-import com.intellij.openapi.projectRoots.JavaSdkVersion;
-import com.intellij.openapi.projectRoots.Sdk;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -44,7 +39,7 @@ public class InsidiousRunConfigImpl extends ApplicationConfiguration {
     @Override
     public RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment env) throws ExecutionException {
 
-        return new InsidiousRunProfileState();
+        return new InsidiousApplicationState();
 
 //        final JavaCommandLineState state = new JavaApplicationCommandLineState<>(this, env) {
 //            @Override

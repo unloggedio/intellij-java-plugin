@@ -45,7 +45,7 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
                 @Nullable ExecutionResult executionResult = state.execute(env.getExecutor(), env.getRunner());
 
                 InsidiousDebugProcessStarter processStarter = new InsidiousDebugProcessStarter(
-                        this, connection, executionResult, env, (InsidiousRunProfileState) state, 1000);
+                        this, connection, executionResult, env, (InsidiousApplicationState) state, 1000);
                 result.set(XDebuggerManager.getInstance(env.getProject()).startSession(env, processStarter).getRunContentDescriptor());
             } catch (ExecutionException e) {
                 ex.set(e);

@@ -15,14 +15,14 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
     private final RemoteConnection connection;
     private final ExecutionResult executionResult;
     private final ExecutionEnvironment environment;
-    private final InsidiousRunProfileState state;
+    private final InsidiousApplicationState state;
     private final long pollTimeout;
 
     public InsidiousDebugProcessStarter(InsidiousProgramRunner insidiousProgramRunner,
                                         RemoteConnection connection,
                                         ExecutionResult executionResult,
                                         ExecutionEnvironment environment,
-                                        InsidiousRunProfileState state,
+                                        InsidiousApplicationState state,
                                         long pollTimeout) {
         this.insidiousProgramRunner = insidiousProgramRunner;
         this.connection = connection;
