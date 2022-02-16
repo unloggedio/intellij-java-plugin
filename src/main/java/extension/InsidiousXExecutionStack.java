@@ -9,57 +9,43 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XExecutionStack;
 import com.intellij.xdebugger.frame.XStackFrame;
+import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadGroupReference;
 import com.sun.jdi.ThreadReference;
+import extension.connector.InsidiousStackFrameProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.util.Collections;
+import java.util.Iterator;
 
 public class InsidiousXExecutionStack extends XExecutionStack {
     private static final Logger logger = Logger.getInstance(InsidiousXExecutionStack.class);
-    private final InsidiousXSuspendContext suspendContext;
-    private final InsidiousThreadReferenceProxy threadProxy;
-    private final InsidiousDebugProcess debugProcess;
-    private InsidiousStackFrameProxy myTopStackFrameProxy;
+
+    private final InsidiousThreadReferenceProxy myThreadProxy;
+
+    private final InsidiousDebugProcess myDebugProcess;
+    private final InsidiousXSuspendContext mySuspendContext;
     private XStackFrame topFrame;
+    private InsidiousStackFrameProxy myTopStackFrameProxy;
+    private boolean computedFrames = false;
 
-    protected InsidiousXExecutionStack(@NotNull InsidiousXSuspendContext suspendContext,
-                                       @NotNull InsidiousThreadReferenceProxy threadProxy,
-                                       @NotNull InsidiousDebugProcess debugProcess,
-                                       boolean current) {
-        super(calcRepresentation(threadProxy.getThreadReference()), calcIcon(threadProxy.getThreadReference(), current));
-
-
-        this.suspendContext = suspendContext;
-        this.threadProxy = threadProxy;
-        this.debugProcess = debugProcess;
+    public InsidiousXExecutionStack(@NotNull InsidiousXSuspendContext suspendContext, @NotNull InsidiousThreadReferenceProxy thread, @NotNull InsidiousDebugProcess debugProcess, boolean current) {
+        super(
+                calcRepresentation(thread.getThreadReference()),
+                calcIcon(thread.getThreadReference(), current));
+        this.mySuspendContext = suspendContext;
+        this.myThreadProxy = thread;
+        this.myDebugProcess = debugProcess;
         try {
-            if (this.threadProxy.frameCount() > 0) {
-                this.myTopStackFrameProxy = new InsidiousStackFrameProxyImpl(this.threadProxy, 0);
+            if (this.myThreadProxy.frameCount() > 0) {
+                this.myTopStackFrameProxy = new InsidiousStackFrameProxyImpl(this.myThreadProxy, 0);
                 this.topFrame = createXStackFrame(this.myTopStackFrameProxy.getStackFrame(), 0);
             }
         } catch (Exception e) {
             logger.info(e);
-        }
-
-    }
-
-    private static Icon calcIcon(ThreadReference thread, boolean current) {
-        try {
-            if (current)
-                return thread.isSuspended() ?
-                        AllIcons.Debugger.ThreadCurrent :
-                        AllIcons.Debugger.ThreadRunning;
-            if (thread.frameCount() > 0 && thread.isAtBreakpoint())
-                return AllIcons.Debugger.ThreadAtBreakpoint;
-            if (thread.isSuspended()) {
-                return AllIcons.Debugger.ThreadSuspended;
-            }
-            return AllIcons.Debugger.ThreadRunning;
-        } catch (Exception ex) {
-            return AllIcons.Debugger.Db_obsolete;
         }
     }
 
@@ -87,26 +73,87 @@ public class InsidiousXExecutionStack extends XExecutionStack {
         return name;
     }
 
+    private static Icon calcIcon(ThreadReference thread, boolean current) {
+        try {
+            if (current)
+                return thread.isSuspended() ?
+                        AllIcons.Debugger.ThreadCurrent :
+                        AllIcons.Debugger.ThreadRunning;
+            if (thread.frameCount() > 0 && thread.isAtBreakpoint())
+                return AllIcons.Debugger.ThreadAtBreakpoint;
+            if (thread.isSuspended()) {
+                return AllIcons.Debugger.ThreadSuspended;
+            }
+            return AllIcons.Debugger.ThreadRunning;
+        } catch (Exception ex) {
+            return AllIcons.Debugger.Db_obsolete;
+        }
+    }
+
     private XStackFrame createXStackFrame(StackFrame stackFrame, int index) throws NoDataException {
         XSourcePosition xSourcePosition = ReadAction.compute(() -> {
-            SourcePosition position = this.debugProcess.getPositionManager().getSourcePosition(stackFrame.location());
+            SourcePosition position = this.myDebugProcess.getPositionManager().getSourcePosition(stackFrame.location());
 
 
             return DebuggerUtilsEx.toXSourcePosition(position);
         });
 
 
-        InsidiousStackFrameProxyImpl insidiousStackFrameProxy = new InsidiousStackFrameProxyImpl(this.threadProxy, index);
-        return new InsidiousXStackFrame(this.debugProcess, this.suspendContext, insidiousStackFrameProxy, xSourcePosition);
+        InsidiousStackFrameProxyImpl InsidiousStackFrameProxyImpl = new InsidiousStackFrameProxyImpl(this.myThreadProxy, index);
+        return new InsidiousXStackFrame(this.myDebugProcess, this.mySuspendContext, InsidiousStackFrameProxyImpl, xSourcePosition);
     }
 
-    @Override
-    public @Nullable XStackFrame getTopFrame() {
-        return null;
+    @Nullable
+    public XStackFrame getTopFrame() {
+        return this.topFrame;
     }
 
-    @Override
-    public void computeStackFrames(int firstFrameIndex, XStackFrameContainer container) {
+    public void computeStackFrames(int firstFrameIndex, XExecutionStack.XStackFrameContainer container) {
+        if (container.isObsolete())
+            return;
+        try {
+            ThreadReference thread = this.myThreadProxy.getThreadReference();
+            int status = thread.status();
+            if (status == 0) {
+                container.errorOccurred(DebuggerBundle.message("frame.panel.thread.finished"));
+            } else if (!thread.isCollected() && thread.isSuspended()) {
+                if (status != -1 && status != 5) {
 
+                    try {
+                        if (!this.computedFrames) {
+                            Iterator<StackFrame> iterator = thread.frames().iterator();
+                            int counter = -1;
+                            while (iterator.hasNext()) {
+                                counter++;
+                                StackFrame stackFrame = iterator.next();
+                                if (counter >= firstFrameIndex) {
+                                    XStackFrame frame = createXStackFrame(stackFrame, counter);
+                                    container.addStackFrames(
+                                            Collections.singletonList(frame), false);
+                                }
+                            }
+                            this.computedFrames = true;
+                        }
+                        container.addStackFrames(Collections.emptyList(), true);
+                    } catch (IncompatibleThreadStateException | NoDataException e) {
+                        container.errorOccurred(e.getMessage());
+                    }
+                }
+            } else {
+                container.errorOccurred("Frames not available for unsuspended thread");
+            }
+        } catch (Exception ex) {
+            container.errorOccurred(ex.toString());
+        }
+    }
+
+    public InsidiousStackFrameProxy getTopStackFrameProxy() {
+        return this.myTopStackFrameProxy;
     }
 }
+
+
+/* Location:              D:\workspace\code\LR4J-IntelliJ-Plugin-6.6.1\lr4j-IntelliJ\li\\Insidious-intellij-6.6.1\!\i\\Insidious\intellij\debugger\InsidiousXExecutionStack.class
+ * Java compiler version: 8 (52.0)
+ * JD-Core Version:       1.1.3
+ */

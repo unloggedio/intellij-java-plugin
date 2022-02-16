@@ -1,0 +1,42 @@
+package extension.descriptor;
+
+import com.intellij.debugger.impl.descriptors.data.DescriptorData;
+import com.intellij.debugger.impl.descriptors.data.DisplayKey;
+import com.intellij.debugger.impl.descriptors.data.SimpleDisplayKey;
+import com.intellij.openapi.project.Project;
+import extension.InsidiousLocalVariableProxy;
+import org.jetbrains.annotations.NotNull;
+
+public class InsidiousLocalData extends DescriptorData<InsidiousLocalVariableDescriptorImpl> {
+    private final InsidiousLocalVariableProxy myLocalVariable;
+
+    public InsidiousLocalData(InsidiousLocalVariableProxy localVariable) {
+        this.myLocalVariable = localVariable;
+    }
+
+
+    protected InsidiousLocalVariableDescriptorImpl createDescriptorImpl(@NotNull Project project) {
+        return new InsidiousLocalVariableDescriptorImpl(project, this.myLocalVariable);
+    }
+
+    public boolean equals(Object object) {
+        if (!(object instanceof InsidiousLocalData)) return false;
+
+        return ((InsidiousLocalData) object).myLocalVariable.equals(this.myLocalVariable);
+    }
+
+    public int hashCode() {
+        return this.myLocalVariable.hashCode();
+    }
+
+
+    public DisplayKey<InsidiousLocalVariableDescriptorImpl> getDisplayKey() {
+        return (DisplayKey<InsidiousLocalVariableDescriptorImpl>) new SimpleDisplayKey(this.myLocalVariable.typeName() + "#" + this.myLocalVariable.name());
+    }
+}
+
+
+/* Location:              D:\workspace\code\LR4J-IntelliJ-Plugin-6.6.1\lr4j-IntelliJ\li\\Insidious-intellij-6.6.1\!\i\\Insidious\intellij\debugger\descriptor\InsidiousLocalData.class
+ * Java compiler version: 8 (52.0)
+ * JD-Core Version:       1.1.3
+ */
