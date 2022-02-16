@@ -8,7 +8,6 @@ import java.io.OutputStream;
 public class InsidiousProcessHandler extends ProcessHandler {
     @Override
     protected void destroyProcessImpl() {
-        new Exception().printStackTrace();
     }
 
     @Override
@@ -19,7 +18,6 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     public boolean detachIsDefault() {
-        new Exception().printStackTrace();
         return false;
     }
 
@@ -27,5 +25,15 @@ public class InsidiousProcessHandler extends ProcessHandler {
     public @Nullable OutputStream getProcessInput() {
         new Exception().printStackTrace();
         return null;
+    }
+
+    @Override
+    public void startNotify() {
+        super.startNotify();
+    }
+
+    @Override
+    public void destroyProcess() {
+        super.destroyProcess();
     }
 }

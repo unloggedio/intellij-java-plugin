@@ -6,6 +6,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.*;
 import com.sun.jdi.ObjectReference;
+import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;
 import org.jetbrains.annotations.NotNull;

@@ -3,6 +3,7 @@ package extension;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
 import com.sun.jdi.*;
+import extension.connector.InsidiousStackFrameProxy;
 
 import java.util.List;
 
@@ -21,22 +22,22 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
     }
 
     @Override
-    public String getVariableName(InsidiousLocalVariableProxy paramUndoLocalVariableProxy) throws EvaluateException {
+    public String getVariableName(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy) throws EvaluateException {
         return null;
     }
 
     @Override
-    public Value getValue(InsidiousLocalVariableProxy paramUndoLocalVariableProxy) throws EvaluateException {
+    public Value getValue(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy) throws EvaluateException {
         return null;
     }
 
     @Override
-    public void setValue(InsidiousLocalVariableProxy paramUndoLocalVariableProxy, Value paramValue) throws ClassNotLoadedException, InvalidTypeException, EvaluateException {
+    public void setValue(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy, Value paramValue) throws ClassNotLoadedException, InvalidTypeException, EvaluateException {
 
     }
 
     @Override
-    public Type getType(InsidiousLocalVariableProxy paramUndoLocalVariableProxy) throws EvaluateException, ClassNotLoadedException {
+    public Type getType(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy) throws EvaluateException, ClassNotLoadedException {
         return null;
     }
 

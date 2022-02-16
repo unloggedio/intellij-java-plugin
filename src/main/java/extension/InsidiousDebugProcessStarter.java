@@ -37,7 +37,7 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
         InsidiousDebugProcess debugProcess = InsidiousDebugProcess.create(session);
 
         debugProcess.setExecutionResult(this.executionResult);
-
+        debugProcess.attachVM();
 
         return debugProcess;
     }

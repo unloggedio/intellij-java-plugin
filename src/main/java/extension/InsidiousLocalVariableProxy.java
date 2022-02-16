@@ -3,6 +3,7 @@ package extension;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.LocalVariableProxy;
 import com.sun.jdi.Type;
+import extension.connector.InsidiousStackFrameProxy;
 
 public interface InsidiousLocalVariableProxy extends LocalVariableProxy {
     String name();
@@ -13,7 +14,7 @@ public interface InsidiousLocalVariableProxy extends LocalVariableProxy {
 
     InsidiousStackFrameProxy getFrame();
 
-    boolean isVisible(InsidiousStackFrameProxy paramUndoStackFrameProxy);
+    boolean isVisible(InsidiousStackFrameProxy paramInsidiousStackFrameProxy);
 
     boolean isArgument();
 }

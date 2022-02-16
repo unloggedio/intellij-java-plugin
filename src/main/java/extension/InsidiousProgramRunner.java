@@ -8,12 +8,14 @@ import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunProfile;
 import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.target.TargetEnvironmentAwareRunProfileState;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.concurrency.Promise;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,5 +55,25 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         });
         if (ex.get() != null) throw ex.get();
         return result.get();
+    }
+
+    @Override
+    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, RemoteConnection connection, boolean pollConnection) throws ExecutionException {
+        return super.attachVirtualMachine(state, env, connection, pollConnection);
+    }
+
+    @Override
+    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, RemoteConnection connection, long pollTimeout) throws ExecutionException {
+        return super.attachVirtualMachine(state, env, connection, pollTimeout);
+    }
+
+    @Override
+    protected @NotNull Promise<@Nullable RunContentDescriptor> doExecuteAsync(@NotNull TargetEnvironmentAwareRunProfileState state, @NotNull ExecutionEnvironment env) throws ExecutionException {
+        return super.doExecuteAsync(state, env);
+    }
+
+    @Override
+    public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
+        super.execute(environment);
     }
 }
