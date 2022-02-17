@@ -60,8 +60,9 @@ public class InsidiousDebuggerEventThread implements Runnable {
     InsidiousDebuggerEventThread(InsidiousJavaDebugProcess debugProcess) {
         this.myIsStopped = false;
         this.debugProcess = debugProcess;
-        EventRequestManager eventRequestManager = debugProcess.getConnector().getEventRequestManager();
-        this.myReturnValueWatcher = new MethodReturnValueWatcher(eventRequestManager);
+//        EventRequestManager eventRequestManager = debugProcess.getConnector().getEventRequestManager();
+        this.myReturnValueWatcher = new MethodReturnValueWatcher(null);
+//        this.myReturnValueWatcher = new MethodReturnValueWatcher(eventRequestManager);
         this.eventReadingThread = new Thread(this, "InsidiousDebuggerEventThread");
         this.eventReadingThread.setDaemon(true);
     }

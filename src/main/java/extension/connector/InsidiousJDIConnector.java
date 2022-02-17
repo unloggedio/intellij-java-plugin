@@ -24,7 +24,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     private final VirtualMachine virtualMachine = null;
 
     public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
-
+//        this.virtualMachine = new VirtualM
+//        new EventRequestManager();
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 
@@ -137,49 +138,60 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
+        new Exception().printStackTrace();
         return null;
     }
 
     public ReferenceType findClassesByName(String className) {
+        new Exception().printStackTrace();
         return null;
     }
 
     public void attachVirtualMachine(String hostName, String address, boolean useSockets, boolean serverMode, String timeout) {
+        new Exception().printStackTrace();
     }
 
     public void createThreadStartRequest() {
+        new Exception().printStackTrace();
 
     }
 
     public void deleteEventRequest(EventRequest request) {
+        new Exception().printStackTrace();
 
     }
 
     public void doStep(InsidiousXSuspendContext suspendContext, int i, int nextStepDepth, RequestHint hint) {
+        new Exception().printStackTrace();
 
     }
 
     public void disableAllBreakpoints() {
+        new Exception().printStackTrace();
 
     }
 
     public void createLocationBreakpoint(Location myRunToCursorLocation, int suspendPolicy, LocatableEventRequestor myRunToCursorBreakpoint) {
-
+        new Exception().printStackTrace();
     }
 
     public Iterable<? extends BreakpointRequest> getBreakpointsWithRequestor(Requestor runToCursorBreakpoint) {
+        new Exception().printStackTrace();
         return null;
     }
 
     public void enableAllBreakpoints() {
+        new Exception().printStackTrace();
 
     }
 
     public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
+        new Exception().printStackTrace();
 
     }
 
     public Iterable<? extends ModificationWatchpointRequest> getModificationWatchpointsWithRequestor(Requestor jumpToAssignmentBreakpoint) {
+        new Exception().printStackTrace();
         return null;
     }
 
@@ -188,34 +200,42 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void dispose() {
+        new Exception().printStackTrace();
 
     }
 
     public List<BreakpointRequest> getAllBreakpoints() {
+        new Exception().printStackTrace();
         return null;
     }
 
     public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught, boolean notifyUncaught, int i, Breakpoint breakpoint) {
+        new Exception().printStackTrace();
 
     }
 
     public List<ExceptionRequest> getAllExceptionBreakpoints() {
+        new Exception().printStackTrace();
         return null;
     }
 
     public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
+        new Exception().printStackTrace();
 
     }
 
     public List<EventRequest> getAllMethodRequests() {
+        new Exception().printStackTrace();
         return null;
     }
 
     public List<ModificationWatchpointRequest> getAllFieldWatchpoints() {
+        new Exception().printStackTrace();
         return null;
     }
 
     public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
+        new Exception().printStackTrace();
 
     }
 }

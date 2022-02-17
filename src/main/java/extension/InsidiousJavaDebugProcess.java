@@ -288,7 +288,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void startPausing() {
         super.startPausing();
-        getVirtualMachine().suspend();
+//        getVirtualMachine().suspend();
         notifySuspended();
     }
 

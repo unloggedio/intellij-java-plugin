@@ -1,6 +1,9 @@
 package extension;
 
-import com.intellij.execution.*;
+import com.intellij.execution.DefaultExecutionResult;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.ExecutionResult;
+import com.intellij.execution.Executor;
 import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.filters.TextConsoleBuilder;
 import com.intellij.execution.impl.ConsoleViewImpl;
@@ -32,13 +35,10 @@ public class InsidiousApplicationState implements RunProfileState {
     public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
         @NotNull ProcessHandler processHandler = new InsidiousProcessHandler();
         this.consoleView = new ConsoleViewImpl(configuration.getProject(), false);
-        DefaultExecutionResult executionResult = new DefaultExecutionResult(processHandler);
+        processHandler.putUserData(KEY, this);
+        this.consoleView.attachToProcess(processHandler);
+        DefaultExecutionResult executionResult = new DefaultExecutionResult(this.consoleView, processHandler);
         return executionResult;
-    }
-
-
-    public void setInitialThread(ThreadReference initialThread) {
-        this.initialThread = initialThread;
     }
 
     public String getRunProfileName() {
@@ -49,20 +49,24 @@ public class InsidiousApplicationState implements RunProfileState {
         return true;
     }
 
-    public CommandSender getCommandSender() {
-        return null;
+    public void setErrored(boolean b) {
+
     }
 
-    public ThreadReference getInitialThread() {
-        return this.initialThread;
+    public CommandSender getCommandSender() {
+        return null;
     }
 
     public void setCommandSender(CommandSender commandSender) {
 
     }
 
-    public void setErrored(boolean b) {
+    public ThreadReference getInitialThread() {
+        return this.initialThread;
+    }
 
+    public void setInitialThread(ThreadReference initialThread) {
+        this.initialThread = initialThread;
     }
 
     public ConsoleView getConsoleView() {
