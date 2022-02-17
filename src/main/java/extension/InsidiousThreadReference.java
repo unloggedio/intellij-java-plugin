@@ -1,5 +1,6 @@
 package extension;
 
+import com.jetbrains.jdi.ThreadGroupReferenceImpl;
 import com.sun.jdi.*;
 
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Map;
 public class InsidiousThreadReference implements ThreadReference {
     @Override
     public String name() {
-        return null;
+        return "Insidious thread reference";
     }
 
     @Override

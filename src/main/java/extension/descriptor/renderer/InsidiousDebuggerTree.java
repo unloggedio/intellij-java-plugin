@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
-import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -50,23 +49,24 @@ public abstract class InsidiousDebuggerTree extends InsidiousDebuggerTreeBase im
     protected static final Key<Rectangle> VISIBLE_RECT = Key.create("VISIBLE_RECT");
     private static final Logger LOG = Logger.getInstance(InsidiousDebuggerTree.class);
     protected final InsidiousNodeManagerImpl myNodeManager;
-    protected InsidiousDebugProcess myInsidiousDebugProcess;
+    protected InsidiousJavaDebugProcess myInsidiousJavaDebugProcess;
     private InsidiousDebuggerTreeNodeImpl myEditedNode;
 
-    public InsidiousDebuggerTree(Project project, InsidiousDebugProcess InsidiousDebugProcess) {
+    public InsidiousDebuggerTree(Project project, InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
         super(null, project);
         setScrollsOnExpand(false);
         this.myNodeManager = createNodeManager(project);
-        this.myInsidiousDebugProcess = InsidiousDebugProcess;
+        this.myInsidiousJavaDebugProcess = insidiousJavaDebugProcess;
 
         TreeBuilder model = new TreeBuilder(this) {
             public void buildChildren(TreeBuilderNode node) {
                 InsidiousDebuggerTreeNodeImpl debuggerTreeNode = (InsidiousDebuggerTreeNodeImpl) node;
+                debuggerTreeNode.add(new InsidiousMessageDescriptor("Message 1", 2));
 
                 if (debuggerTreeNode.getDescriptor() instanceof InsidiousDefaultNodeDescriptor) {
                     return;
                 }
-                InsidiousDebuggerTree.this.buildNode(debuggerTreeNode);
+                buildNode(debuggerTreeNode);
             }
 
 
@@ -78,22 +78,22 @@ public abstract class InsidiousDebuggerTree extends InsidiousDebuggerTreeBase im
         model.setRoot(getNodeFactory().getDefaultNode());
         model.addTreeModelListener(new TreeModelListener() {
             public void treeNodesChanged(TreeModelEvent event) {
-                InsidiousDebuggerTree.this.hideTooltip();
+                hideTooltip();
             }
 
 
             public void treeNodesInserted(TreeModelEvent event) {
-                InsidiousDebuggerTree.this.hideTooltip();
+                hideTooltip();
             }
 
 
             public void treeNodesRemoved(TreeModelEvent event) {
-                InsidiousDebuggerTree.this.hideTooltip();
+                hideTooltip();
             }
 
 
             public void treeStructureChanged(TreeModelEvent event) {
-                InsidiousDebuggerTree.this.hideTooltip();
+                hideTooltip();
             }
         });
 
@@ -104,7 +104,7 @@ public abstract class InsidiousDebuggerTree extends InsidiousDebuggerTreeBase im
     }
 
     protected InsidiousNodeManagerImpl createNodeManager(Project project) {
-        return new InsidiousNodeManagerImpl(project, this, this.myInsidiousDebugProcess);
+        return new InsidiousNodeManagerImpl(project, this, this.myInsidiousJavaDebugProcess);
     }
 
 
@@ -132,7 +132,7 @@ public abstract class InsidiousDebuggerTree extends InsidiousDebuggerTreeBase im
         }
 
 
-        if (this.myInsidiousDebugProcess != null) {
+        if (this.myInsidiousJavaDebugProcess != null) {
             DebuggerCommandImpl command = getBuildNodeCommand(node);
             if (command != null) {
                 node.add(this.myNodeManager.createMessageNode(InsidiousMessageDescriptor.EVALUATING));

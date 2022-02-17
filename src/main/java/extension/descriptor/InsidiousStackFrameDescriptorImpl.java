@@ -19,7 +19,7 @@ import com.intellij.xdebugger.impl.XDebugSessionImpl;
 import com.intellij.xdebugger.impl.frame.XValueMarkers;
 import com.intellij.xdebugger.impl.ui.tree.ValueMarkup;
 import com.sun.jdi.*;
-import extension.InsidiousDebugProcess;
+import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousStackFrameContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
@@ -60,8 +60,8 @@ public class InsidiousStackFrameDescriptorImpl extends InsidiousNodeDescriptorIm
             this.myIsSynthetic = DebuggerUtils.isSynthetic(this.myMethodOccurrence.getMethod());
             this.myProcess = frame.threadProxy().getVirtualMachine().getXDebugProcess();
             this.myProject = this.myProcess.getSession().getProject();
-            if (this.myProcess instanceof InsidiousDebugProcess) {
-                InsidiousDebugProcess InsidiousJavaDebugProcess = (InsidiousDebugProcess) this.myProcess;
+            if (this.myProcess instanceof InsidiousJavaDebugProcess) {
+                InsidiousJavaDebugProcess InsidiousJavaDebugProcess = (extension.InsidiousJavaDebugProcess) this.myProcess;
                 this.mySourcePosition = ReadAction.compute(() -> InsidiousJavaDebugProcess.getPositionManager().getSourcePosition(this.myLocation));
             }
 
@@ -76,9 +76,6 @@ public class InsidiousStackFrameDescriptorImpl extends InsidiousNodeDescriptorIm
             this.myMethodOccurrence = tracker.getMethodOccurrence(0, null);
             this.myIsSynthetic = false;
             this.myIsInLibraryContent = false;
-        } catch (NoDataException e) {
-            LOG.info(e);
-            e.printStackTrace();
         }
     }
 

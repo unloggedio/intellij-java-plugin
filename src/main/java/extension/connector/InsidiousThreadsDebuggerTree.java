@@ -12,7 +12,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.util.ui.tree.TreeModelAdapter;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebuggerBundle;
-import extension.InsidiousDebugProcess;
+import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousThreadGroupReferenceProxy;
 import extension.InsidiousThreadReferenceProxy;
 import extension.descriptor.InsidiousMessageDescriptor;
@@ -36,14 +36,14 @@ import java.util.List;
 public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
     private static final Logger LOG = Logger.getInstance(InsidiousThreadsDebuggerTree.class);
 
-    public InsidiousThreadsDebuggerTree(Project project, InsidiousDebugProcess InsidiousDebugProcess) {
-        super(project, InsidiousDebugProcess);
+    public InsidiousThreadsDebuggerTree(Project project, InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
+        super(project, InsidiousJavaDebugProcess);
         getEmptyText().setText(XDebuggerBundle.message("debugger.threads.not.available"));
     }
 
 
     protected InsidiousNodeManagerImpl createNodeManager(Project project) {
-        return new InsidiousNodeManagerImpl(project, this, this.myInsidiousDebugProcess) {
+        return new InsidiousNodeManagerImpl(project, this, this.myInsidiousJavaDebugProcess) {
             public String getContextKey(StackFrameProxy frame) {
                 return "ThreadsView";
             }
@@ -85,9 +85,9 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
             boolean showGroups = (ThreadsViewSettings.getInstance()).SHOW_THREAD_GROUPS;
 
             try {
-                InsidiousDebugProcess InsidiousDebugProcess = (InsidiousDebugProcess) this.myProcess.getSession().getDebugProcess();
+                InsidiousJavaDebugProcess InsidiousJavaDebugProcess = (InsidiousJavaDebugProcess) this.myProcess.getSession().getDebugProcess();
                 InsidiousThreadReferenceProxy currentThread = null;
-                InsidiousConnector insidiousJDIConnector = InsidiousDebugProcess.getConnector();
+                InsidiousJDIConnector insidiousJDIConnector = InsidiousJavaDebugProcess.getConnector();
                 EvaluationContext evaluationContext = null;
                 InsidiousNodeManagerImpl nodeManager = InsidiousThreadsDebuggerTree.this.getNodeFactory();
 

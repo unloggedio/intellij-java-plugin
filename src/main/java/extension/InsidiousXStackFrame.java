@@ -15,16 +15,16 @@ public class InsidiousXStackFrame extends XStackFrame {
 
     private static final Logger logger = Logger.getInstance(XStackFrame.class);
 
-    private final InsidiousDebugProcess insidiousDebugProcess;
+    private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousXSuspendContext insidiousXSuspendContext;
     private final InsidiousStackFrameProxy insidiousStackFrameProxy;
     private final XSourcePosition xSourcePosition;
     private DebugProcessImpl myDebugProcess;
 
-    public InsidiousXStackFrame(InsidiousDebugProcess insidiousDebugProcess,
+    public InsidiousXStackFrame(InsidiousJavaDebugProcess insidiousJavaDebugProcess,
                                 InsidiousXSuspendContext insidiousXSuspendContext,
                                 InsidiousStackFrameProxy insidiousStackFrameProxy, XSourcePosition xSourcePosition) {
-        this.insidiousDebugProcess = insidiousDebugProcess;
+        this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
         this.insidiousXSuspendContext = insidiousXSuspendContext;
         this.insidiousStackFrameProxy = insidiousStackFrameProxy;
         this.xSourcePosition = xSourcePosition;

@@ -6,7 +6,11 @@ import com.intellij.execution.JavaRunConfigurationExtensionManager;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.application.JavaApplicationSettingsEditor;
 import com.intellij.execution.application.JvmMainMethodRunConfigurationOptions;
-import com.intellij.execution.configurations.*;
+import com.intellij.execution.configurations.ConfigurationFactory;
+import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.execution.configurations.RunProfileState;
+import com.intellij.execution.configurations.RuntimeConfigurationException;
+import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.target.LanguageRuntimeType;
 import com.intellij.execution.util.ProgramParametersUtil;
@@ -15,8 +19,8 @@ import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class InsidiousRunConfigImpl extends ApplicationConfiguration {
-    protected InsidiousRunConfigImpl(String name, @NotNull Project project, @NotNull ConfigurationFactory factory) {
+public class InsidiousRunConfiguration extends ApplicationConfiguration {
+    protected InsidiousRunConfiguration(String name, @NotNull Project project, @NotNull ConfigurationFactory factory) {
         super(name, project, factory);
     }
 
@@ -39,7 +43,10 @@ public class InsidiousRunConfigImpl extends ApplicationConfiguration {
     @Override
     public RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment env) throws ExecutionException {
 
-        return new InsidiousApplicationState();
+        InsidiousApplicationState state = new InsidiousApplicationState(this, env);
+        state.setConsoleBuilder(TextConsoleBuilderFactory.getInstance().createBuilder(getProject(), getConfigurationModule().getSearchScope()));
+
+        return state;
 
 //        final JavaCommandLineState state = new JavaApplicationCommandLineState<>(this, env) {
 //            @Override

@@ -22,7 +22,7 @@ import com.sun.jdi.*;
 import com.sun.jdi.event.Event;
 import com.sun.jdi.event.EventSet;
 import com.sun.jdi.request.EventRequest;
-import extension.connector.InsidiousConnector;
+import extension.connector.InsidiousJDIConnector;
 import extension.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.evaluation.JVMNameUtil;
@@ -139,7 +139,7 @@ public class DebuggerUtil {
                     EventRequest request = event.request();
                     Requestor requestor = null;
                     if (request != null) {
-                        requestor = (Requestor) request.getProperty(InsidiousConnector.REQUESTOR);
+                        requestor = (Requestor) request.getProperty(InsidiousJDIConnector.REQUESTOR);
                     }
                     if (requestor instanceof Breakpoint) {
                         smartList.add(Pair.create(requestor, event));

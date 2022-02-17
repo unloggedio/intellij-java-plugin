@@ -17,6 +17,6 @@ public class InsidiousRunConfigType extends SimpleConfigurationType implements I
 
     @Override
     public @NotNull RunConfiguration createTemplateConfiguration(@NotNull Project project) {
-        return new InsidiousRunConfigImpl(_NAME, project, this);
+        return new InsidiousRunConfiguration(_NAME, project, this);
     }
 }

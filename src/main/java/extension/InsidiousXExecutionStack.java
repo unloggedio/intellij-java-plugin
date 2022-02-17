@@ -26,13 +26,13 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 
     private final InsidiousThreadReferenceProxy myThreadProxy;
 
-    private final InsidiousDebugProcess myDebugProcess;
+    private final InsidiousJavaDebugProcess myDebugProcess;
     private final InsidiousXSuspendContext mySuspendContext;
     private XStackFrame topFrame;
     private InsidiousStackFrameProxy myTopStackFrameProxy;
     private boolean computedFrames = false;
 
-    public InsidiousXExecutionStack(@NotNull InsidiousXSuspendContext suspendContext, @NotNull InsidiousThreadReferenceProxy thread, @NotNull InsidiousDebugProcess debugProcess, boolean current) {
+    public InsidiousXExecutionStack(@NotNull InsidiousXSuspendContext suspendContext, @NotNull InsidiousThreadReferenceProxy thread, @NotNull InsidiousJavaDebugProcess debugProcess, boolean current) {
         super(
                 calcRepresentation(thread.getThreadReference()),
                 calcIcon(thread.getThreadReference(), current));

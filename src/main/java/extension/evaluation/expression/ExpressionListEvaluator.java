@@ -4,7 +4,7 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
 import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jdi.Value;
-import extension.connector.InsidiousConnector;
+import extension.connector.InsidiousJDIConnector;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluatorUtil;
 
@@ -27,8 +27,8 @@ public class ExpressionListEvaluator
                     EvaluatorUtil.getValueAsString(context, (Value) evaluator.evaluate(context)));
         }
         VirtualMachineProxy proxy = context.getStackFrameProxy().getVirtualMachine();
-        if (proxy instanceof InsidiousConnector) {
-            InsidiousConnector connector = (InsidiousConnector) proxy;
+        if (proxy instanceof InsidiousJDIConnector) {
+            InsidiousJDIConnector connector = (InsidiousJDIConnector) proxy;
             return connector.createString(StringUtil.join(strings, ", "));
         }
         return null;

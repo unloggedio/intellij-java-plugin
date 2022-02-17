@@ -20,7 +20,7 @@ import java.util.List;
 public class InsidiousXSuspendContext
         extends XSuspendContext {
     private static final Logger LOG = Logger.getInstance(InsidiousXSuspendContext.class);
-    InsidiousDebugProcess debugProcess;
+    InsidiousJavaDebugProcess debugProcess;
     InsidiousXExecutionStack activeExecutionStack;
     List<InsidiousXExecutionStack> allExecutionStacks;
     private InsidiousThreadReferenceProxy thread;
@@ -29,22 +29,22 @@ public class InsidiousXSuspendContext
     private boolean isInternalEvent = false;
     private final boolean isBookmarkEvent;
 
-    public InsidiousXSuspendContext(InsidiousDebugProcess debugProcess, ThreadReference thread, int suspendPolicy) {
+    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, ThreadReference thread, int suspendPolicy) {
         this(debugProcess, thread, suspendPolicy, null, false);
     }
 
 
-    public InsidiousXSuspendContext(InsidiousDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, boolean isBookmarkEvent) {
+    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, boolean isBookmarkEvent) {
         this(debugProcess, thread, suspendPolicy, null, isBookmarkEvent);
     }
 
 
-    public InsidiousXSuspendContext(InsidiousDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, EventSet event) {
+    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, EventSet event) {
         this(debugProcess, thread, suspendPolicy, event, false);
     }
 
 
-    public InsidiousXSuspendContext(InsidiousDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, EventSet event, boolean isBookmarkEvent) {
+    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, EventSet event, boolean isBookmarkEvent) {
         this.debugProcess = debugProcess;
 
 
@@ -98,7 +98,7 @@ public class InsidiousXSuspendContext
         return this.allExecutionStacks.toArray((XExecutionStack[]) new InsidiousXExecutionStack[0]);
     }
 
-    public InsidiousDebugProcess getDebugProcess() {
+    public InsidiousJavaDebugProcess getDebugProcess() {
         return this.debugProcess;
     }
 

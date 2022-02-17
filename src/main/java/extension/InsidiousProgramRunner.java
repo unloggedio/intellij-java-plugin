@@ -3,7 +3,6 @@ package extension;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
-import com.intellij.execution.configurations.RemoteConnection;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunProfile;
 import com.intellij.execution.configurations.RunProfileState;
@@ -58,12 +57,12 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
     }
 
     @Override
-    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, RemoteConnection connection, boolean pollConnection) throws ExecutionException {
+    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, com.intellij.execution.configurations.RemoteConnection connection, boolean pollConnection) throws ExecutionException {
         return super.attachVirtualMachine(state, env, connection, pollConnection);
     }
 
     @Override
-    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, RemoteConnection connection, long pollTimeout) throws ExecutionException {
+    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, com.intellij.execution.configurations.RemoteConnection connection, long pollTimeout) throws ExecutionException {
         return super.attachVirtualMachine(state, env, connection, pollTimeout);
     }
 

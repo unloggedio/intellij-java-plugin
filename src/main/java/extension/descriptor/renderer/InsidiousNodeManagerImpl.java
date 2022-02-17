@@ -8,7 +8,6 @@ import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
-import extension.InsidiousDebugProcess;
 import extension.InsidiousDebuggerTreeNode;
 import extension.InsidiousLocalVariableProxy;
 import extension.descriptor.*;
@@ -26,11 +25,11 @@ public class InsidiousNodeManagerImpl extends InsidiousNodeDescriptorFactoryImpl
 
     private final InsidiousDebuggerTree myDebuggerTree;
     private final Map<String, DescriptorTree> myHistories = new HashMap<>();
-    private final InsidiousDebugProcess InsidiousJavaDebugProcess;
+    private final extension.InsidiousJavaDebugProcess InsidiousJavaDebugProcess;
     private String myHistoryKey = null;
 
 
-    public InsidiousNodeManagerImpl(Project project, InsidiousDebuggerTree tree, InsidiousDebugProcess InsidiousJavaDebugProcess) {
+    public InsidiousNodeManagerImpl(Project project, InsidiousDebuggerTree tree, extension.InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
         super(project);
         this.myDebuggerTree = tree;
         this.InsidiousJavaDebugProcess = InsidiousJavaDebugProcess;

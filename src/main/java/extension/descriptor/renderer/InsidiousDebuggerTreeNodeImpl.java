@@ -13,7 +13,7 @@ import com.intellij.ui.SimpleColoredText;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.impl.ui.DebuggerUIUtil;
 import com.intellij.xdebugger.impl.ui.tree.ValueMarkup;
-import extension.InsidiousDebugProcess;
+import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousDebuggerTreeNode;
 import extension.descriptor.InsidiousMessageDescriptor;
 import extension.descriptor.InsidiousNodeDescriptorProvider;
@@ -36,10 +36,10 @@ public class InsidiousDebuggerTreeNodeImpl extends TreeBuilderNode implements In
     private SimpleColoredText myText;
     private String myMarkupTooltipText;
 
-    public InsidiousDebuggerTreeNodeImpl(InsidiousDebuggerTree tree, NodeDescriptor descriptor, InsidiousDebugProcess InsidiousDebugProcess) {
+    public InsidiousDebuggerTreeNodeImpl(InsidiousDebuggerTree tree, NodeDescriptor descriptor, InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
         super(descriptor);
         this.myTree = tree;
-        this.myProcess = InsidiousDebugProcess;
+        this.myProcess = InsidiousJavaDebugProcess;
     }
 
     private static void invoke(Runnable r) {
@@ -51,16 +51,16 @@ public class InsidiousDebuggerTreeNodeImpl extends TreeBuilderNode implements In
     }
 
     @NotNull
-    public static InsidiousDebuggerTreeNodeImpl createNodeNoUpdate(InsidiousDebuggerTree tree, NodeDescriptor descriptor, InsidiousDebugProcess InsidiousDebugProcess) {
-        InsidiousDebuggerTreeNodeImpl node = new InsidiousDebuggerTreeNodeImpl(tree, descriptor, InsidiousDebugProcess);
+    public static InsidiousDebuggerTreeNodeImpl createNodeNoUpdate(InsidiousDebuggerTree tree, NodeDescriptor descriptor, InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
+        InsidiousDebuggerTreeNodeImpl node = new InsidiousDebuggerTreeNodeImpl(tree, descriptor, InsidiousJavaDebugProcess);
 
         node.updateCaches();
         return node;
     }
 
     @NotNull
-    protected static InsidiousDebuggerTreeNodeImpl createNode(InsidiousDebuggerTree tree, InsidiousNodeDescriptorImpl descriptor, InsidiousDebugProcess InsidiousDebugProcess) {
-        final InsidiousDebuggerTreeNodeImpl node = new InsidiousDebuggerTreeNodeImpl(tree, descriptor, InsidiousDebugProcess);
+    protected static InsidiousDebuggerTreeNodeImpl createNode(InsidiousDebuggerTree tree, InsidiousNodeDescriptorImpl descriptor, InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
+        final InsidiousDebuggerTreeNodeImpl node = new InsidiousDebuggerTreeNodeImpl(tree, descriptor, InsidiousJavaDebugProcess);
 
         descriptor.updateRepresentationNoNotify(node.myProcess, new DescriptorLabelListener() {
 
