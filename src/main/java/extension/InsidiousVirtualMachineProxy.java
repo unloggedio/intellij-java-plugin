@@ -5,6 +5,8 @@ import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.ObjectReference;
 import com.sun.jdi.VirtualMachine;
+import extension.thread.InsidiousThreadGroupReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

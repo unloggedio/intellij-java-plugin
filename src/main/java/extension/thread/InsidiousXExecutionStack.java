@@ -1,4 +1,4 @@
-package extension;
+package extension.thread;
 
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
@@ -13,6 +13,9 @@ import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadGroupReference;
 import com.sun.jdi.ThreadReference;
+import extension.DebuggerBundle;
+import extension.InsidiousJavaDebugProcess;
+import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

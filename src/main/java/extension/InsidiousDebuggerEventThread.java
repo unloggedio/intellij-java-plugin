@@ -24,7 +24,6 @@ import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.frame.XSuspendContext;
 import com.sun.jdi.*;
 import com.sun.jdi.event.*;
-import com.sun.jdi.request.EventRequestManager;
 import com.sun.jdi.request.StepRequest;
 import extension.connector.InsidiousJDIConnector;
 import extension.connector.InsidiousStackFrameProxy;
@@ -37,6 +36,7 @@ import extension.evaluation.expression.EvaluatorBuilder;
 import extension.evaluation.expression.EvaluatorBuilderImpl;
 import extension.evaluation.expression.ExpressionEvaluator;
 import extension.model.DirectionType;
+import extension.thread.InsidiousThreadReferenceProxy;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.breakpoints.properties.JavaBreakpointProperties;
 

@@ -4,7 +4,7 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.StackFrameProxy;
 import com.sun.jdi.*;
 import extension.InsidiousLocalVariableProxy;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 
 import java.util.List;
 

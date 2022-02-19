@@ -11,6 +11,8 @@ import com.sun.jdi.ThreadReference;
 import com.sun.jdi.event.EventSet;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.connector.InsidiousThreadReferenceProxyImpl;
+import extension.thread.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousXExecutionStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,7 +54,7 @@ public class InsidiousXSuspendContext
         if (newThread == null) {
             newThread = thread;
         }
-        this.thread = (InsidiousThreadReferenceProxy) new InsidiousThreadReferenceProxyImpl((InsidiousVirtualMachineProxy) debugProcess.getConnector(), newThread);
+        this.thread = (InsidiousThreadReferenceProxy) new InsidiousThreadReferenceProxyImpl(debugProcess.getConnector(), newThread);
         this.suspendPolicy = suspendPolicy;
         this.myEventSet = event;
         this.isBookmarkEvent = isBookmarkEvent;

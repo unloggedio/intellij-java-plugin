@@ -1,18 +1,37 @@
 package extension;
 
+import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.text.StringUtil;
+import network.Client;
+import org.jetbrains.annotations.NotNull;
+
+import java.io.IOException;
 
 public class RemoteConnection {
+    private final Client client;
+    private final String projectName;
     private boolean myUseSockets;
-    private boolean myServerMode;
     private String myHostName;
     private String myAddress;
 
-    public RemoteConnection(boolean useSockets, String hostName, String address, boolean serverMode) {
-        this.myUseSockets = useSockets;
-        this.myServerMode = serverMode;
-        this.myHostName = hostName;
+    public RemoteConnection(String address, @NotNull @NlsSafe String projectName) {
+        Client client = null;
+        try {
+            client = new Client(address, projectName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.myAddress = address;
+        this.client = client;
+        this.projectName = projectName;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public Client getClient() {
+        return client;
     }
 
     public boolean isUseSockets() {
@@ -21,14 +40,6 @@ public class RemoteConnection {
 
     public void setUseSockets(boolean useSockets) {
         this.myUseSockets = useSockets;
-    }
-
-    public boolean isServerMode() {
-        return this.myServerMode;
-    }
-
-    public void setServerMode(boolean serverMode) {
-        this.myServerMode = serverMode;
     }
 
     public String getHostName() {

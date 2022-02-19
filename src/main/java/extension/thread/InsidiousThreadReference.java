@@ -1,12 +1,27 @@
-package extension;
+package extension.thread;
 
-import com.jetbrains.jdi.ThreadGroupReferenceImpl;
 import com.sun.jdi.*;
 
 import java.util.List;
 import java.util.Map;
 
 public class InsidiousThreadReference implements ThreadReference {
+
+
+    private final ThreadGroupReference threadGroupReference;
+    private final VirtualMachine virtualMachine;
+
+    public InsidiousThreadReference(ThreadGroupReference threadGroupReference,
+                                    VirtualMachine virtualMachine) {
+        this.threadGroupReference = threadGroupReference;
+        this.virtualMachine = virtualMachine;
+    }
+
+    public InsidiousThreadReference(ThreadGroupReference threadGroupReference) {
+        this.threadGroupReference = threadGroupReference;
+        this.virtualMachine = threadGroupReference.virtualMachine();
+    }
+
     @Override
     public String name() {
         return "Insidious thread reference";
@@ -43,7 +58,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public int status() {
-        return 0;
+        return ThreadReference.THREAD_STATUS_RUNNING;
     }
 
     @Override
@@ -58,12 +73,12 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public ThreadGroupReference threadGroup() {
-        return null;
+        return this.threadGroupReference;
     }
 
     @Override
     public int frameCount() throws IncompatibleThreadStateException {
-        return 0;
+        return 1;
     }
 
     @Override

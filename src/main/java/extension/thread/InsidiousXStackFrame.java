@@ -1,4 +1,4 @@
-package extension;
+package extension.thread;
 
 import com.intellij.debugger.engine.DebugProcessImpl;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
@@ -6,6 +6,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.*;
 import com.sun.jdi.ObjectReference;
+import extension.InsidiousJavaDebugProcess;
+import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;

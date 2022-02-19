@@ -6,8 +6,8 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Comparing;
 import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.ThreadReference;
-import extension.InsidiousStackFrameProxyImpl;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousStackFrameProxyImpl;
+import extension.thread.InsidiousThreadReferenceProxy;
 import extension.InsidiousVirtualMachineProxy;
 
 import java.util.ArrayList;

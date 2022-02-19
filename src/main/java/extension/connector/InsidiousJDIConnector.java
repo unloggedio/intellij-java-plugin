@@ -12,30 +12,34 @@ import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
 import com.sun.jdi.request.*;
-import extension.*;
+import extension.InsidiousJavaDebugProcess;
+import extension.InsidiousVirtualMachineProxy;
+import extension.InsidiousXSuspendContext;
+import extension.thread.*;
+import network.Client;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     public static final Requestor REQUESTOR = null;
     public static final Key<Requestor> REQUEST_HINT = Key.create("RequestHint");
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
-    private final VirtualMachine virtualMachine = null;
+    private final VirtualMachine virtualMachine;
 
-    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
-//        this.virtualMachine = new VirtualM
-//        new EventRequestManager();
+    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) {
+        this.virtualMachine = new InsidiousVirtualMachine(this, client);
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 
     public ThreadReference getThreadReferenceWithUniqueId(int uniqueID) {
-        return new InsidiousThreadReference();
+        return this.virtualMachine.allThreads().get(0);
     }
 
     @Override
     public @NotNull VirtualMachine getVirtualMachine() {
-        return null;
+        return virtualMachine;
     }
 
     @Override
@@ -75,7 +79,9 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     @Override
     public List<InsidiousThreadReferenceProxy> allThreads() {
-        return null;
+        return this.virtualMachine.allThreads().stream().map(
+                        e -> new InsidiousThreadReferenceProxyImpl(this, e))
+                .collect(Collectors.toList());
     }
 
     @Override

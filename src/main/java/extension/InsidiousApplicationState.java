@@ -13,6 +13,7 @@ import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.openapi.util.Key;
 import com.sun.jdi.ThreadReference;
+import extension.thread.InsidiousThreadReference;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,6 +25,8 @@ public class InsidiousApplicationState implements RunProfileState {
     private ConsoleView consoleView;
     private ThreadReference initialThread;
     private TextConsoleBuilder consoleBuilder;
+    private CommandSender commandSender;
+    private boolean errored;
 
 
     public InsidiousApplicationState(@NotNull InsidiousRunConfiguration configuration, ExecutionEnvironment environment) {
@@ -46,19 +49,19 @@ public class InsidiousApplicationState implements RunProfileState {
     }
 
     public boolean isErrored() {
-        return true;
+        return this.errored;
     }
 
     public void setErrored(boolean b) {
-
+        this.errored = b;
     }
 
     public CommandSender getCommandSender() {
-        return null;
+        return this.commandSender;
     }
 
     public void setCommandSender(CommandSender commandSender) {
-
+        this.commandSender = commandSender;
     }
 
     public ThreadReference getInitialThread() {

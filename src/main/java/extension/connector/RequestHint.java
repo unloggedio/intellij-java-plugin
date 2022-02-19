@@ -1,6 +1,5 @@
 package extension.connector;
 
-import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.engine.BreakpointStepMethodFilter;
 import com.intellij.debugger.engine.ContextUtil;
@@ -16,7 +15,7 @@ import com.sun.jdi.Location;
 import com.sun.jdi.Method;
 import com.sun.jdi.VMDisconnectedException;
 import extension.BasicStepMethodFilter;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import extension.InsidiousXSuspendContext;
 import extension.smartstep.MethodFilter;
 import org.jetbrains.annotations.Nullable;

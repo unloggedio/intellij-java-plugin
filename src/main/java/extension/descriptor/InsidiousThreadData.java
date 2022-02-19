@@ -4,7 +4,7 @@ import com.intellij.debugger.impl.descriptors.data.DescriptorData;
 import com.intellij.debugger.impl.descriptors.data.DisplayKey;
 import com.intellij.debugger.impl.descriptors.data.SimpleDisplayKey;
 import com.intellij.openapi.project.Project;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import org.jetbrains.annotations.NotNull;
 
 public class InsidiousThreadData extends DescriptorData<InsidiousThreadDescriptorImpl> {

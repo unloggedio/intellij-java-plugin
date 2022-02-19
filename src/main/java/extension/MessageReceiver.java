@@ -29,8 +29,8 @@ public class MessageReceiver
 
             RemoteConnection remoteConnection = commandSender.getDebugProcess().getRemoteConnection();
             logger.info(
-                    String.format("Connect to %s:%s", remoteConnection.getHostName(), Integer.valueOf(remoteConnection.getPort())));
-            this.socket = new Socket(remoteConnection.getHostName(), remoteConnection.getPort());
+                    String.format("Connect to %s", remoteConnection.getHostName()));
+            this.socket = new Socket(remoteConnection.getHostName(), 8080);
             OutputStream out = this.socket.getOutputStream();
             this.in = new DataInputStream(new BufferedInputStream(this.socket.getInputStream()));
             out.write("BridgeReceiver".getBytes());

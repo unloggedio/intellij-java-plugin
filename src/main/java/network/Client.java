@@ -7,7 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.project.Project;
+import extension.connector.model.ProjectItem;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -17,10 +17,11 @@ import org.jetbrains.annotations.NotNull;
 import pojo.Bugs;
 import pojo.VarsValues;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class Client {
@@ -37,6 +38,8 @@ public class Client {
     private final String endpoint;
     private final ObjectMapper objectMapper = new ObjectMapper();
     OkHttpClient client;
+    private ProjectItem project;
+//    private String token;
 
     public Client(String endpoint) {
         this.endpoint = endpoint;
@@ -46,6 +49,21 @@ public class Client {
                 .writeTimeout(600, TimeUnit.SECONDS)
                 .build();
 
+    }
+
+    public Client(String endpoint, String projectName) throws IOException {
+        this.endpoint = endpoint;
+
+
+        client = new OkHttpClient().newBuilder()
+                .connectTimeout(600, TimeUnit.SECONDS)
+                .readTimeout(600, TimeUnit.SECONDS)
+                .writeTimeout(600, TimeUnit.SECONDS)
+                .build();
+
+        String token = this.generateToken("artpar@gmail.com", "parth123");
+        PropertiesComponent.getInstance().setValue(Constants.TOKEN, token);
+        this.project = fetchProjectByName(projectName);
     }
 
     public void signup(String username, String password, SignUpCallback callback) {
@@ -94,6 +112,20 @@ public class Client {
         });
     }
 
+    public String generateToken(String username, String password) throws IOException {
+        logger.info("Sign in for email => " + username);
+        JSONObject json = new JSONObject();
+        json.put("email", username);
+        json.put("password", password);
+        Response response = postSync(endpoint + SIGN_IN_URL, json.toJSONString());
+
+        JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+        String token = jsonObject.getAsString(Constants.TOKEN);
+
+        return token;
+
+    }
+
 
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
@@ -119,6 +151,15 @@ public class Client {
 
             }
         });
+    }
+
+    public ProjectItem fetchProjectByName(String projectName) throws IOException {
+        logger.info("Get project by name => " + projectName);
+        TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<>() {
+        };
+        DataResponse<ProjectItem> projectList = get(endpoint + Constants.PROJECT_URL + "?name=" + projectName, typeReference);
+        return projectList.getItems().get(0);
+
     }
 
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
@@ -170,6 +211,23 @@ public class Client {
         client.newCall(request).enqueue(callback);
     }
 
+    private Response postSync(String url, String json) throws IOException {
+        RequestBody body = RequestBody.create(json, Constants.JSON); // new
+
+        Request.Builder builder = new Request.Builder();
+
+        builder.url(url);
+        String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
+        if (token != null) {
+            builder.addHeader("Authorization", "Bearer " + token);
+        }
+        builder.post(body);
+
+        Request request = builder.build();
+
+        return client.newCall(request).execute();
+    }
+
     private void get(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
@@ -177,6 +235,17 @@ public class Client {
                 .build();
         client.newCall(request).enqueue(callback);
 
+    }
+
+    private <T> T get(String url, TypeReference<T> typeReference) throws IOException {
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Authorization", "Bearer " + PropertiesComponent.getInstance().getValue(Constants.TOKEN))
+                .build();
+        Response response;
+        response = client.newCall(request).execute();
+        T result = objectMapper.readValue(response.body().string(), typeReference);
+        return result;
     }
 
     public void getProjectSessions(String projectId, GetProjectSessionsCallback getProjectSessionsCallback) {
@@ -203,6 +272,14 @@ public class Client {
                 getProjectSessionsCallback.success(sessionList.getItems());
             }
         });
+    }
+
+    public DataResponse<ExecutionSession> fetchProjectSessions() throws IOException {
+        String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
+        TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
+        };
+
+        return get(executionsUrl, typeReference);
     }
 
     public void getTracesByClassForProjectAndSessionId(String projectId, String sessionId,
@@ -268,9 +345,9 @@ public class Client {
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
+                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(valueId + "_" + sessionId);
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
+                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(exceptionType + "_" + sessionId);
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
@@ -287,7 +364,7 @@ public class Client {
     }
 
     public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
-                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + projectId
@@ -349,12 +426,12 @@ public class Client {
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject)objectInfo.get(valueId + "_" + sessionId);
+                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(valueId + "_" + sessionId);
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject)typesInfo.get(exceptionType + "_" + sessionId);
+                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(exceptionType + "_" + sessionId);
                         String exceptionClass = "";
                         if (exceptionClassJson != null) {
-                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
+                            exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         }
 
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
@@ -448,7 +525,6 @@ public class Client {
                         VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr, nanoTime);
                         dataList.add(varsValues);
                     }
-
 
 
                     filteredDataEventsCallback.success(dataList);

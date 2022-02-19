@@ -1,8 +1,8 @@
 package extension.connector;
 
 import com.sun.jdi.ThreadGroupReference;
-import extension.InsidiousThreadGroupReferenceProxy;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadGroupReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import extension.InsidiousVirtualMachineProxy;
 
 import java.util.List;

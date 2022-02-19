@@ -6,36 +6,37 @@ import com.sun.jdi.StringReference;
 import extension.jwdp.RequestMessage;
 import extension.model.command.CommandRequest;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.util.Optional;
 
 public class CommandSender {
     private static final Logger logger = Logger.getInstance(CommandSender.class);
-
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private DataOutputStream out;
+    private DataInputStream in;
+    private Socket socket;
     private InsidiousJavaDebugProcess debugProcess;
     private MessageReceiver pollerThread;
     private int lastThreadId;
-    private final DataOutputStream out;
-    private final DataInputStream in;
-    private final Socket socket;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public CommandSender(RemoteConnection remoteConnection) throws IOException {
         logger.info("connect to " + remoteConnection
-                .getHostName() + ":" + remoteConnection.getPort());
-        this.socket = new Socket(remoteConnection.getHostName(), remoteConnection.getPort());
-        this.in = new DataInputStream(new BufferedInputStream(this.socket.getInputStream()));
-        OutputStream os = this.socket.getOutputStream();
-        os.write("BridgeSender".getBytes());
-        os.flush();
-        logger.info("handshake written");
-        this.out = new DataOutputStream(new BufferedOutputStream(os));
-        logger.debug("Sleep for 200ms to allow the bridge message thread to start");
-        try {
-            Thread.sleep(200L);
-        } catch (InterruptedException interruptedException) {
-        }
+                .getHostName());
+//        this.socket = new Socket(remoteConnection.getHostName(), remoteConnection.getPort());
+//        this.in = new DataInputStream(new BufferedInputStream(this.socket.getInputStream()));
+//        OutputStream os = this.socket.getOutputStream();
+//        os.write("BridgeSender".getBytes());
+//        os.flush();
+//        logger.info("handshake written");
+//        this.out = new DataOutputStream(new BufferedOutputStream(os));
+//        logger.debug("Sleep for 200ms to allow the bridge message thread to start");
+//        try {
+//            Thread.sleep(200L);
+//        } catch (InterruptedException interruptedException) {
+//        }
     }
 
     public void sendDirectMessage(CommandRequest request) throws IOException {

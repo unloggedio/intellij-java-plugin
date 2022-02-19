@@ -1,6 +1,5 @@
 package extension.descriptor;
 
-import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
@@ -20,7 +19,7 @@ import com.intellij.xdebugger.impl.frame.XValueMarkers;
 import com.intellij.xdebugger.impl.ui.tree.ValueMarkup;
 import com.sun.jdi.*;
 import extension.InsidiousJavaDebugProcess;
-import extension.InsidiousStackFrameContext;
+import extension.thread.InsidiousStackFrameContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.InsidiousNodeDescriptorImpl;

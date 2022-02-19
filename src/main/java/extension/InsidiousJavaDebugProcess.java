@@ -34,6 +34,7 @@ import extension.descriptor.renderer.InsidiousNodeManagerImpl;
 import extension.jwdp.RequestMessage;
 import extension.model.DirectionType;
 import extension.smartstep.MethodFilter;
+import extension.thread.InsidiousThreadReferenceProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
@@ -72,7 +73,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) {
         super(session);
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
-        this.connector = new InsidiousJDIConnector(this);
+
+        this.connector = new InsidiousJDIConnector(this, connection.getClient());
+
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
         this.InsidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
         this.myPositionManager = ReadAction.compute(() -> new InsidiousCompoundPositionManager(new InsidiousPositionManager(this)));
@@ -160,15 +163,12 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     public void attachVM(String timeout) throws IOException {
         try {
             logger.info(
-                    String.format("Attaching to VM on host [%s] port [%s] serverMode [%s] useSockets=[%s]", this.myConnection.getHostName(), this.myConnection
-                                    .getAddress(),
-                            Boolean.valueOf(this.myConnection.isServerMode()),
-                            Boolean.valueOf(this.myConnection.isUseSockets())));
+                    String.format("Attaching to VM on host [%s] port [%s]", this.myConnection.getHostName(), this.myConnection
+                            .getAddress()));
             this.connector.attachVirtualMachine(this.myConnection
                     .getHostName(), this.myConnection
                     .getAddress(), this.myConnection
-                    .isUseSockets(), this.myConnection
-                    .isServerMode(), timeout);
+                    .isUseSockets(), false, timeout);
 
             this.connector.createThreadStartRequest();
 
@@ -309,8 +309,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
             if (allThreads.size() > 0) {
                 InsidiousThreadReferenceProxy minThread = allThreads.get(0);
                 for (int i = 1; i < allThreads.size(); i++) {
-                    if (allThreads.get(i).getThreadReference().uniqueID() < minThread
-                            .getThreadReference().uniqueID()) {
+                    if (allThreads.get(i).getThreadReference().uniqueID() < minThread.getThreadReference().uniqueID()) {
                         minThread = allThreads.get(i);
                     }
                 }
@@ -516,7 +515,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
 
     public void addPerformanceAction(XSuspendContext context, String action) {
-        assert this.telemetryTracker != null;
         if (context instanceof InsidiousXSuspendContext &&
                 !((InsidiousXSuspendContext) context).isInternalEvent()) {
             addPerformanceAction(action);
@@ -526,19 +524,23 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void addPerformanceAction(String action) {
         logger.debug("Adding performance action: " + action);
-        this.telemetryTracker.actionStart(action);
+//        this.telemetryTracker.actionStart(action);
     }
 
     public void stopPerformanceTiming() {
-        this.telemetryTracker.actionComplete();
+        logger.debug("stop performance action: ");
+//        this.telemetryTracker.actionComplete();
     }
 
     public String getSessionId() {
-        return this.telemetryTracker.getSessionId();
+        logger.debug("get telemetry session id");
+        return "insidious-session-1";
+//        return this.telemetryTracker.getSessionId();
     }
 
     private void beginTelemetrySession() {
-        new Exception().printStackTrace();
+        logger.debug("begin telemetry session: ");
+//        new Exception().printStackTrace();
     }
 
     public RemoteConnection getRemoteConnection() {

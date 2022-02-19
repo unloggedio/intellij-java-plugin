@@ -1,9 +1,12 @@
-package extension;
+package extension.thread;
 
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
+import com.jetbrains.jdi.StackFrameImpl;
 import com.sun.jdi.*;
+import extension.InsidiousLocalVariableProxy;
 import extension.connector.InsidiousStackFrameProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 
 import java.util.List;
 

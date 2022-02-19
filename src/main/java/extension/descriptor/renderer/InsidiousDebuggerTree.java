@@ -30,6 +30,8 @@ import extension.descriptor.*;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;
 import extension.evaluation.InsidiousNodeDescriptorImpl;
+import extension.thread.InsidiousThreadGroupReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

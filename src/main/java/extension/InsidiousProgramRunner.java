@@ -10,12 +10,15 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.target.TargetEnvironmentAwareRunProfileState;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.util.NlsSafe;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.concurrency.Promise;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class InsidiousProgramRunner extends GenericDebuggerRunner {
@@ -36,7 +39,16 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
     @Nullable
     @Override
     protected RunContentDescriptor doExecute(@NotNull RunProfileState state, @NotNull ExecutionEnvironment env) throws ExecutionException {
-        RemoteConnection connection = new RemoteConnection(false, "InsidiousTimeTravelServer", "InsidiousTimeTravelServer", true);
+
+        @NotNull String moduleName = ModuleManager.getInstance(env.getProject()).getModules()[0].getName();
+
+        RemoteConnection connection = new RemoteConnection("http://localhost:8080", moduleName);
+
+        try {
+            ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         boolean pollTimeout = false;
 
         AtomicReference<ExecutionException> ex = new AtomicReference<>();
@@ -56,15 +68,6 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         return result.get();
     }
 
-    @Override
-    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, com.intellij.execution.configurations.RemoteConnection connection, boolean pollConnection) throws ExecutionException {
-        return super.attachVirtualMachine(state, env, connection, pollConnection);
-    }
-
-    @Override
-    protected @Nullable RunContentDescriptor attachVirtualMachine(RunProfileState state, @NotNull ExecutionEnvironment env, com.intellij.execution.configurations.RemoteConnection connection, long pollTimeout) throws ExecutionException {
-        return super.attachVirtualMachine(state, env, connection, pollTimeout);
-    }
 
     @Override
     protected @NotNull Promise<@Nullable RunContentDescriptor> doExecuteAsync(@NotNull TargetEnvironmentAwareRunProfileState state, @NotNull ExecutionEnvironment env) throws ExecutionException {

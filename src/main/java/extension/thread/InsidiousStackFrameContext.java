@@ -1,4 +1,4 @@
-package extension;
+package extension.thread;
 
 import com.intellij.xdebugger.XDebugProcess;
 import extension.connector.InsidiousStackFrameProxy;

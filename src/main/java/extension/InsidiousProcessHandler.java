@@ -6,6 +6,11 @@ import org.jetbrains.annotations.Nullable;
 import java.io.OutputStream;
 
 public class InsidiousProcessHandler extends ProcessHandler {
+
+    public InsidiousProcessHandler() {
+
+    }
+
     @Override
     protected void destroyProcessImpl() {
     }
@@ -29,6 +34,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     public void startNotify() {
+        // show toolbar here
         super.startNotify();
     }
 

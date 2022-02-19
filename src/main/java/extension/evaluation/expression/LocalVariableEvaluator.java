@@ -22,7 +22,7 @@ import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 import extension.DebuggerBundle;
 import extension.InsidiousLocalVariableProxy;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import extension.InsidiousVirtualMachineProxy;
 import extension.connector.DecompiledLocalVariable;
 import extension.connector.InsidiousStackFrameProxy;

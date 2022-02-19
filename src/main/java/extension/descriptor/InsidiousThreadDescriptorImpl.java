@@ -10,7 +10,7 @@ import com.sun.jdi.ObjectCollectedException;
 import com.sun.jdi.ThreadGroupReference;
 import com.sun.jdi.ThreadReference;
 import extension.DebuggerBundle;
-import extension.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.InsidiousNodeDescriptorImpl;
 
