@@ -34,7 +34,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     public void startNotify() {
-        // show toolbar here
+        // show insidious toolbar here
         super.startNotify();
     }
 

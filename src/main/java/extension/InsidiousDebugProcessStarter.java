@@ -43,7 +43,7 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        debugProcess.startPausing();
+//        debugProcess.startPausing();
         return debugProcess;
     }
 }

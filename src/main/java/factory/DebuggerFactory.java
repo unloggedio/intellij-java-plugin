@@ -1,6 +1,12 @@
 package factory;
 
 import actions.Constants;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.ProgramRunnerUtil;
+import com.intellij.execution.configurations.ConfigurationTypeUtil;
+import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -8,6 +14,9 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import extension.InsidiousExecutor;
+import extension.InsidiousRunConfigType;
+import extension.InsidiousRunConfiguration;
 import org.jetbrains.annotations.NotNull;
 import ui.Credentials;
 import ui.HorBugTable;
@@ -60,6 +69,21 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
                 e.printStackTrace();
             }
         }
+
+//        ExecutionManager.getInstance(project).executePreparationTasks()
+//        ProgramRunner.findRunnerById("insidious-runner")
+        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
+
+        @NotNull ExecutionEnvironment env = null;
+        try {
+            env = ExecutionEnvironmentBuilder.create(project,
+                    new InsidiousExecutor(),
+                    runConfiguration).build();
+            ProgramRunnerUtil.executeConfiguration(env, false, true);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
 
     }
 

@@ -12,6 +12,7 @@ import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public class InsidiousXStackFrame extends XStackFrame {
 
@@ -30,6 +31,11 @@ public class InsidiousXStackFrame extends XStackFrame {
         this.insidiousXSuspendContext = insidiousXSuspendContext;
         this.insidiousStackFrameProxy = insidiousStackFrameProxy;
         this.xSourcePosition = xSourcePosition;
+    }
+
+    @Override
+    public @Nullable XSourcePosition getSourcePosition() {
+        return xSourcePosition;
     }
 
     @Override

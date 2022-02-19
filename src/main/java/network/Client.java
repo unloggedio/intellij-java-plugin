@@ -333,7 +333,7 @@ public class Client {
                     long line;
                     String sessionId;
                     String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
+                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
                     if (dataInfoObject != null) {
                         classId = dataInfoObject.getAsNumber("classId").longValue();
                         line = dataInfoObject.getAsNumber("line").longValue();
@@ -341,13 +341,13 @@ public class Client {
 
                         JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
-                        JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
+                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(valueId + "_" + sessionId);
+                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(exceptionType + "_" + sessionId);
+                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
@@ -414,7 +414,7 @@ public class Client {
                     long line;
                     String sessionId;
                     String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(dataId + "_" + executionSessionId);
+                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
                     if (dataInfoObject != null) {
                         classId = dataInfoObject.getAsNumber("classId").longValue();
                         line = dataInfoObject.getAsNumber("line").longValue();
@@ -422,13 +422,13 @@ public class Client {
 
                         JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
 
-                        JSONObject tempClass = (JSONObject) classInfo.get(classId + "_" + sessionId);
+                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
                         filename = tempClass.getAsString("filename");
                         classname = tempClass.getAsString("className");
 
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(valueId + "_" + sessionId);
+                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(exceptionType + "_" + sessionId);
+                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
                         String exceptionClass = "";
                         if (exceptionClassJson != null) {
                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
@@ -486,7 +486,7 @@ public class Client {
                     for (DataEventWithSessionId dataEvent : datapointsArray) {
                         long dataId = dataEvent.getDataId();
                         long dataValue = dataEvent.getValue();
-                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(dataId + "_" + executionSessionId);
+                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(dataId);
                         Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
 
                         if (attributesMap.containsKey("Instruction")) {
@@ -506,7 +506,7 @@ public class Client {
                         String variableType = (String) attributesMap.get("Type");
                         int classId = (int) dataInfoTemp.get("classId");
                         int lineNum = (int) dataInfoTemp.get("line");
-                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(classId + "_" + executionSessionId);
+                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(classId);
                         String filename = (String) classInfoTemp.get("filename");
 
 
@@ -514,7 +514,7 @@ public class Client {
 
                         if (variableType != null) {
                             if (variableType.contains("java/lang/String")) {
-                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataValue + "_" + executionSessionId);
+                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataValue);
                                 if (tempStringJson != null) {
                                     dataIdstr = (String) tempStringJson.get("content");
                                 }

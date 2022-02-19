@@ -25,7 +25,7 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
     @Override
     public @NotNull @NonNls String getRunnerId() {
-        return "runner-id";
+        return "insidious-runner";
     }
 
     @Override

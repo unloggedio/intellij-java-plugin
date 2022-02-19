@@ -6,20 +6,19 @@ import com.intellij.execution.JavaRunConfigurationExtensionManager;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.application.JavaApplicationSettingsEditor;
 import com.intellij.execution.application.JvmMainMethodRunConfigurationOptions;
-import com.intellij.execution.configurations.ConfigurationFactory;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.configurations.RunProfileState;
-import com.intellij.execution.configurations.RuntimeConfigurationException;
+import com.intellij.execution.configurations.*;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.target.LanguageRuntimeType;
 import com.intellij.execution.util.ProgramParametersUtil;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.Nls;
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class InsidiousRunConfiguration extends ApplicationConfiguration {
+public class InsidiousRunConfiguration extends ApplicationConfiguration implements ConfigurationType {
     protected InsidiousRunConfiguration(String name, @NotNull Project project, @NotNull ConfigurationFactory factory) {
         super(name, project, factory);
     }
@@ -93,6 +92,11 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration {
         return new JavaApplicationSettingsEditor(this);
     }
 
+    @Override
+    public @Nullable @NonNls String getId() {
+        return "indisious-run-config";
+    }
+
     @NotNull
     @Override
     protected JvmMainMethodRunConfigurationOptions getOptions() {
@@ -109,5 +113,20 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration {
     @Override
     public String getDefaultTargetName() {
         return null;
+    }
+
+    @Override
+    public @NotNull @Nls(capitalization = Nls.Capitalization.Title) String getDisplayName() {
+        return "Insidious Time Travel";
+    }
+
+    @Override
+    public @Nls(capitalization = Nls.Capitalization.Sentence) String getConfigurationTypeDescription() {
+        return "Insidious Time travel debugger";
+    }
+
+    @Override
+    public ConfigurationFactory[] getConfigurationFactories() {
+        return new ConfigurationFactory[0];
     }
 }
