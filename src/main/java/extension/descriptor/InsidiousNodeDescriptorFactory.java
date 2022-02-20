@@ -7,7 +7,7 @@ import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.sun.jdi.ArrayReference;
 import com.sun.jdi.Field;
 import com.sun.jdi.ObjectReference;
-import extension.InsidiousLocalVariableProxy;
+import extension.thread.InsidiousLocalVariableProxy;
 import org.jetbrains.annotations.NotNull;
 
 public interface InsidiousNodeDescriptorFactory {

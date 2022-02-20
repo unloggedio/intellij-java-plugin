@@ -73,7 +73,7 @@ public class DataEventWithSessionId {
                 ", recordedAt=" + recordedAt +
                 ", dataId=" + dataId +
                 ", value=" + value +
-                ", executionSessionId='" + executionSessionId + '\'' +
+                ", sessionId='" + executionSessionId + '\'' +
                 '}';
     }
 }

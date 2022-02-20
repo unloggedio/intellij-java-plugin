@@ -14,7 +14,7 @@ import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.util.Range;
 import com.sun.jdi.*;
 import extension.InsidiousJavaDebugProcess;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.connector.RequestHint;

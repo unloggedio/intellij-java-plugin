@@ -34,7 +34,9 @@ import extension.descriptor.renderer.InsidiousNodeManagerImpl;
 import extension.jwdp.RequestMessage;
 import extension.model.DirectionType;
 import extension.smartstep.MethodFilter;
+import extension.thread.InsidiousThreadReference;
 import extension.thread.InsidiousThreadReferenceProxy;
+import factory.ProjectService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
@@ -75,6 +77,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
         this.connector = new InsidiousJDIConnector(this, connection.getClient());
+        session.getProject().getService(ProjectService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
         this.InsidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
@@ -117,6 +120,8 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session, @NotNull RemoteConnection connection) {
         logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getAddress());
         InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
+        session.getProject().getService(ProjectService.class).setDebugSession(session);
+        session.getProject().getService(ProjectService.class).setDebugProcess(debugProcess);
         return debugProcess;
     }
 
@@ -298,12 +303,12 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         InsidiousXSuspendContext suspendContext = null;
         if (commandSender.getLastThreadId() > 0) {
 
-            ThreadReference thread = getConnector().getThreadReferenceWithUniqueId(commandSender.getLastThreadId());
+            InsidiousThreadReference thread = getConnector().getThreadReferenceWithUniqueId(commandSender.getLastThreadId());
             suspendContext = new InsidiousXSuspendContext(this, thread, 2);
         } else if (state.getInitialThread() != null) {
 
 
-            suspendContext = new InsidiousXSuspendContext(this, state.getInitialThread(), 2);
+            suspendContext = new InsidiousXSuspendContext(this, (InsidiousThreadReference) state.getInitialThread(), 2);
         } else {
             List<InsidiousThreadReferenceProxy> allThreads = getConnector().allThreads();
             if (allThreads.size() > 0) {
@@ -315,7 +320,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 }
 
 
-                suspendContext = new InsidiousXSuspendContext(this, minThread.getThreadReference(), 2);
+                suspendContext = new InsidiousXSuspendContext(this, (InsidiousThreadReference) minThread.getThreadReference(), 2);
             } else {
                 logger.debug(
                         "Cannot pause now since the threads are not created yet.");

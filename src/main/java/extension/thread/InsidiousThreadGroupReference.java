@@ -1,19 +1,25 @@
 package extension.thread;
 
 import com.sun.jdi.*;
+import extension.model.ReplayData;
+import pojo.TracePoint;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class InsidiousThreadGroupReference implements ThreadGroupReference {
 
-    private VirtualMachine virtualMachine;
+    private final VirtualMachine virtualMachine;
+    private final ReplayData replayData;
+    private final List<ThreadReference> threads;
 
-    public InsidiousThreadGroupReference(VirtualMachine virtualMachine) {
+    public InsidiousThreadGroupReference(VirtualMachine virtualMachine, ReplayData replayData, TracePoint tracePoint) {
         this.virtualMachine = virtualMachine;
-    }
-
-    public InsidiousThreadGroupReference() {
+        this.replayData = replayData;
+        this.threads = Arrays.asList(
+                new InsidiousThreadReference(this, replayData, tracePoint)
+        );
     }
 
 
@@ -40,12 +46,12 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
 
     @Override
     public List<ThreadReference> threads() {
-        return null;
+        return threads;
     }
 
     @Override
     public List<ThreadGroupReference> threadGroups() {
-        return null;
+        return List.of(this);
     }
 
     @Override
@@ -123,6 +129,6 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return null;
+        return virtualMachine;
     }
 }

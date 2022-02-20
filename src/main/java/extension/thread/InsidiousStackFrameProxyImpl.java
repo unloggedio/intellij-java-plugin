@@ -3,26 +3,27 @@ package extension.thread;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;
 import com.sun.jdi.*;
-import extension.InsidiousLocalVariableProxy;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.thread.types.IntegerTypeImpl;
 
 import java.util.List;
+import java.util.Stack;
 
 public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
     private final InsidiousThreadReferenceProxy threadProxy;
     private final int frameIndex;
-    private final InsidiousLocation location;
-    private final InsidiousStackFrame stackFrame;
+    private StackFrame stackFrame;
+    private Location location;
 
-    public InsidiousStackFrameProxyImpl(InsidiousThreadReferenceProxy threadProxy, int frameIndex) {
+    public InsidiousStackFrameProxyImpl(InsidiousThreadReferenceProxy threadProxy, InsidiousStackFrame stackFrame, int frameIndex) {
         this.threadProxy = threadProxy;
         this.frameIndex = frameIndex;
-        location = new InsidiousLocation(new InsidiousReferenceType(),
-                "gcdOfTwoNumbers", 5,
-                "org/zerhusen/service/GCDService",
-                "org/zerhusen/service/GCDService.java", 20);
-        stackFrame = new InsidiousStackFrame(location, threadProxy.getThreadReference(), null, threadProxy.getVirtualMachine().getVirtualMachine());
+        this.stackFrame = stackFrame;
+//        location = new InsidiousLocation(new InsidiousClassTypeReference(threadProxy.getVirtualMachine().getVirtualMachine()),
+//                "gcdOfTwoNumbers", 5,
+//                "org/zerhusen/service/GCDService",
+//                "org/zerhusen/service/GCDService.java", 20);
+//        stackFrame = new InsidiousStackFrame(location, threadProxy.getThreadReference(), null, threadProxy.getVirtualMachine().getVirtualMachine());
     }
 
     @Override
@@ -32,8 +33,10 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
 
     @Override
     public String getVariableName(InsidiousLocalVariableProxy insidiousLocalVariableProxy) throws EvaluateException {
-        return "variable-1";
+        return insidiousLocalVariableProxy.name();
     }
+
+
 
     @Override
     public Value getValue(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy) throws EvaluateException {
@@ -54,13 +57,28 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
 
     @Override
     public StackFrame getStackFrame() throws EvaluateException {
-        return stackFrame;
-//        return null;
+
+        try {
+            if (this.stackFrame == null) {
+                this.stackFrame = this.threadProxy.getThreadReference().frame(getFrameIndex());
+            } else {
+
+                try {
+                    this.stackFrame.thread();
+                } catch (InvalidStackFrameException ex) {
+                    this.stackFrame = this.threadProxy.getThreadReference().frame(getFrameIndex());
+                }
+            }
+        } catch (Exception e) {
+            this.stackFrame = null;
+            throw new EvaluateException(e.getMessage(), e);
+        }
+        return this.stackFrame;
     }
 
     @Override
     public int getFrameIndex() throws EvaluateException {
-        return 0;
+        return frameIndex;
     }
 
     @Override
@@ -70,7 +88,19 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
 
     @Override
     public Location location() throws EvaluateException {
-        return location;
+        if (this.location == null) {
+            for (int attempt = 0; attempt < 2; attempt++) {
+                try {
+                    this.location = getStackFrame().location();
+                    break;
+                } catch (InvalidStackFrameException ex) {
+                    if (attempt != 0) {
+                        throw new EvaluateException(ex.getMessage(), ex);
+                    }
+                }
+            }
+        }
+        return this.location;
     }
 
     @Override

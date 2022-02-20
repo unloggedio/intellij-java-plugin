@@ -136,51 +136,51 @@ public class InsidiousDebuggerEventThread implements Runnable {
                     for (Event event : eventSet) {
                         logger.debug("EVENT : " + event);
                         try {
-                            if (event instanceof VMStartEvent) {
-
-
-                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((VMStartEvent) event).thread(), 2, eventSet);
-
-
-                                processVMStartEvent(suspendContext, (VMStartEvent) event);
-                                continue;
-                            }
-                            if (event instanceof com.sun.jdi.event.VMDeathEvent || event instanceof com.sun.jdi.event.VMDisconnectEvent) {
-
-                                close(false);
-                                continue;
-                            }
-                            if (event instanceof ClassPrepareEvent) {
-
-
-                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((ClassPrepareEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
-
-                                processClassPrepareEvent(suspendContext, (ClassPrepareEvent) event);
-                                continue;
-                            }
-                            if (event instanceof LocatableEvent) {
-
-
-                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((LocatableEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
-
-                                processLocatableEvent(suspendContext, (LocatableEvent) event);
-                                continue;
-                            }
-                            if (event instanceof ThreadStartEvent) {
-
-
-                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((ThreadStartEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
-
-                                this.debugProcess.threadStarted(suspendContext);
-                                continue;
-                            }
-                            if (event instanceof ThreadDeathEvent) {
-                                this.debugProcess.threadStopped(((ThreadDeathEvent) event).thread());
-                                continue;
-                            }
-                            if (event instanceof com.sun.jdi.event.ClassUnloadEvent) {
-                                this.debugProcess.resume(null);
-                            }
+//                            if (event instanceof VMStartEvent) {
+//
+//
+//                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((VMStartEvent) event).thread(), 2, eventSet);
+//
+//
+//                                processVMStartEvent(suspendContext, (VMStartEvent) event);
+//                                continue;
+//                            }
+//                            if (event instanceof com.sun.jdi.event.VMDeathEvent || event instanceof com.sun.jdi.event.VMDisconnectEvent) {
+//
+//                                close(false);
+//                                continue;
+//                            }
+//                            if (event instanceof ClassPrepareEvent) {
+//
+//
+//                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((ClassPrepareEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
+//
+//                                processClassPrepareEvent(suspendContext, (ClassPrepareEvent) event);
+//                                continue;
+//                            }
+//                            if (event instanceof LocatableEvent) {
+//
+//
+//                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((LocatableEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
+//
+//                                processLocatableEvent(suspendContext, (LocatableEvent) event);
+//                                continue;
+//                            }
+//                            if (event instanceof ThreadStartEvent) {
+//
+//
+//                                InsidiousXSuspendContext suspendContext = new InsidiousXSuspendContext(this.debugProcess, ((ThreadStartEvent) event).thread(), eventSet.suspendPolicy(), eventSet);
+//
+//                                this.debugProcess.threadStarted(suspendContext);
+//                                continue;
+//                            }
+//                            if (event instanceof ThreadDeathEvent) {
+//                                this.debugProcess.threadStopped(((ThreadDeathEvent) event).thread());
+//                                continue;
+//                            }
+//                            if (event instanceof com.sun.jdi.event.ClassUnloadEvent) {
+//                                this.debugProcess.resume(null);
+//                            }
                         } catch (VMDisconnectedException e) {
                             logger.debug(e);
                         } catch (InternalException e) {
@@ -208,10 +208,10 @@ public class InsidiousDebuggerEventThread implements Runnable {
     }
 
     private void processVMStartEvent(InsidiousXSuspendContext suspendContext, VMStartEvent event) {
-        InsidiousThreadReferenceProxyImpl InsidiousThreadReferenceProxyImpl = new InsidiousThreadReferenceProxyImpl(this.debugProcess.getConnector(), event.thread());
-        suspendContext.setThread(InsidiousThreadReferenceProxyImpl);
-        this.debugProcess.resumeAutomatic(suspendContext);
-        logger.debug("processedVMStartEvent()");
+//        InsidiousThreadReferenceProxyImpl InsidiousThreadReferenceProxyImpl = new InsidiousThreadReferenceProxyImpl(this.debugProcess.getConnector(), event.thread());
+//        suspendContext.setThread(InsidiousThreadReferenceProxyImpl);
+//        this.debugProcess.resumeAutomatic(suspendContext);
+//        logger.debug("processedVMStartEvent()");
     }
 
     private void processClassPrepareEvent(InsidiousXSuspendContext suspendContext, ClassPrepareEvent event) {

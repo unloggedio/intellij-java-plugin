@@ -1,23 +1,21 @@
 package network.pojo;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class DataResponse<T> {
     private int totalPages;
     private long totalElements;
     private List<T> items;
-    private Map<String, Object> metadata;
+    private ResponseMetadata metadata;
 
     public DataResponse(List<T> collect, long totalElements, int totalPages) {
         this.items = collect;
         this.totalPages = totalPages;
         this.totalElements = totalElements;
-        this.metadata = new HashMap<>();
+        this.metadata = new ResponseMetadata();
     }
 
-    public DataResponse(List<T> collect, long totalElements, int totalPages, Map<String, Object> metadata) {
+    public DataResponse(List<T> collect, long totalElements, int totalPages, ResponseMetadata metadata) {
         this.items = collect;
         this.totalPages = totalPages;
         this.totalElements = totalElements;
@@ -51,11 +49,11 @@ public class DataResponse<T> {
         this.items = items;
     }
 
-    public Map<String, Object> getMetadata() {
+    public ResponseMetadata getMetadata() {
         return metadata;
     }
 
-    public void setMetadata(Map<String, Object> metadata) {
+    public void setMetadata(ResponseMetadata metadata) {
         this.metadata = metadata;
     }
 }

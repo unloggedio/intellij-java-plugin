@@ -20,8 +20,8 @@ import network.pojo.DebugPoint;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
-import pojo.Bugs;
-import pojo.VarsValues;
+import pojo.TracePoint;
+import pojo.DataEvent;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -58,7 +58,7 @@ public class LogicBugs {
     private JProgressBar variableProgressbar;
     private JLabel varvalueErrorLabel;
     private JScrollPane scrollpanel;
-    private List<Bugs> bugList;
+    private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
     private final ProjectService projectService;
 
@@ -160,28 +160,28 @@ public class LogicBugs {
                     }
 
                     @Override
-                    public void success(List<Bugs> bugsCollection) {
+                    public void success(List<TracePoint> tracePointCollection) {
                         updateProgressbar("bugs", 100);
-                        if (bugsCollection.size() == 0) {
+                        if (tracePointCollection.size() == 0) {
                             updateErrorLabel("No data availalbe, or data may have been deleted!");
                         } else {
                             updateErrorLabel("");
                             scrollpanel.setVisible(true);
-                            parseTableItems(bugsCollection);
+                            parseTableItems(tracePointCollection);
                         }
                     }
                 });
     }
 
-    private void parseTableItems(List<Bugs> bugsCollection) {
-        this.bugList = bugsCollection;
+    private void parseTableItems(List<TracePoint> tracePointCollection) {
+        this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"ClassName", "LineNum", "ThreadId"};
 
         int i = 0;
-        for (Bugs bugs : bugList) {
-            String className = bugs.getClassname().substring(bugs.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
+        for (TracePoint tracePoint : bugList) {
+            String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+            sampleObject[i] = new String[]{className, String.valueOf(tracePoint.getLinenum()), String.valueOf(tracePoint.getThreadId())};
             i++;
         }
 
@@ -208,7 +208,7 @@ public class LogicBugs {
 //            return;
 //        }
 
-        Bugs selectedTrace = bugList.get(rowNum);
+        TracePoint selectedTrace = bugList.get(rowNum);
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(selectedTrace.getExecutionSessionId());
         filteredDataEventsRequest.setThreadId(selectedTrace.getThreadId());
@@ -228,7 +228,7 @@ public class LogicBugs {
                     }
 
                     @Override
-                    public void success(List<VarsValues> dataList) {
+                    public void success(List<DataEvent> dataList) {
 
                         String content = JSONArray.toJSONString(dataList);
                         String path = project.getBasePath() + "/variablevalues.json";
@@ -263,7 +263,7 @@ public class LogicBugs {
         hideTable("varsvalues");
     }
 
-    public void setVariables(Collection<VarsValues> dataListTemp) {
+    public void setVariables(Collection<DataEvent> dataListTemp) {
         JTableHeader header = this.varsvalueTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
@@ -271,8 +271,8 @@ public class LogicBugs {
         String[][] sampleObject = new String[dataListTemp.size()][];
 
         int i = 0;
-        for (VarsValues varsValues : dataListTemp) {
-            sampleObject[i] = new String[]{varsValues.getVariableName(), varsValues.getVariableValue()};
+        for (DataEvent dataEvent : dataListTemp) {
+            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
             i++;
         }
 

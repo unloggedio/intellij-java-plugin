@@ -2,17 +2,18 @@ package extension.thread;
 
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
+import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XExecutionStack;
 import com.intellij.xdebugger.frame.XStackFrame;
-import com.sun.jdi.IncompatibleThreadStateException;
-import com.sun.jdi.StackFrame;
-import com.sun.jdi.ThreadGroupReference;
-import com.sun.jdi.ThreadReference;
+import com.sun.jdi.*;
 import extension.DebuggerBundle;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousXSuspendContext;
@@ -21,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
+import java.io.File;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -44,7 +46,7 @@ public class InsidiousXExecutionStack extends XExecutionStack {
         this.myDebugProcess = debugProcess;
         try {
             if (this.myThreadProxy.frameCount() > 0) {
-                this.myTopStackFrameProxy = new InsidiousStackFrameProxyImpl(this.myThreadProxy, 0);
+                this.myTopStackFrameProxy = myThreadProxy.frame(0);
                 this.topFrame = createXStackFrame(this.myTopStackFrameProxy.getStackFrame(), 0);
             }
         } catch (Exception e) {
@@ -93,17 +95,24 @@ public class InsidiousXExecutionStack extends XExecutionStack {
         }
     }
 
-    private XStackFrame createXStackFrame(StackFrame stackFrame, int index) throws NoDataException {
-        XSourcePosition xSourcePosition = ReadAction.compute(() -> {
-            SourcePosition position = this.myDebugProcess.getPositionManager().getSourcePosition(stackFrame.location());
+    private XStackFrame createXStackFrame(StackFrame stackFrame, int index) throws NoDataException, EvaluateException, AbsentInformationException {
+//        XSourcePosition xSourcePosition = ReadAction.compute(() -> {
+//            SourcePosition position = this.myDebugProcess.getPositionManager().getSourcePosition(stackFrame.location());
+//
+//            SourcePosition.createFromLine()
+//
+//            return DebuggerUtilsEx.toXSourcePosition(position);
+//        });
+
+        Location location = stackFrame.location();
+        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath() + ".java";
+        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(new File(path));
 
 
-            return DebuggerUtilsEx.toXSourcePosition(position);
-        });
+        XSourcePosition xSourcePosition = XDebuggerUtil.getInstance().createPosition(file, location.lineNumber());
 
-
-        InsidiousStackFrameProxyImpl InsidiousStackFrameProxyImpl = new InsidiousStackFrameProxyImpl(this.myThreadProxy, index);
-        return new InsidiousXStackFrame(this.myDebugProcess, this.mySuspendContext, InsidiousStackFrameProxyImpl, xSourcePosition);
+        return new InsidiousXStackFrame(this.myDebugProcess, this.mySuspendContext,
+                this.myThreadProxy.frame(index), xSourcePosition);
     }
 
     @Nullable

@@ -6,9 +6,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Comparing;
 import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.ThreadReference;
-import extension.thread.InsidiousStackFrameProxyImpl;
-import extension.thread.InsidiousThreadReferenceProxy;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.*;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,13 +23,13 @@ public class InsidiousThreadReferenceProxyImpl implements InsidiousThreadReferen
         });
     }
 
-    ThreadReference threadReference;
+    InsidiousThreadReference threadReference;
     InsidiousVirtualMachineProxy virtualMachineProxy;
     ThreadGroupReferenceProxy threadGroupReferenceProxy;
     private Integer myFrameCount;
 
 
-    public InsidiousThreadReferenceProxyImpl(InsidiousVirtualMachineProxy virtualMachineProxy, ThreadReference threadReference) {
+    public InsidiousThreadReferenceProxyImpl(InsidiousVirtualMachineProxy virtualMachineProxy, InsidiousThreadReference threadReference) {
         this.virtualMachineProxy = virtualMachineProxy;
         this.threadReference = threadReference;
         this.threadGroupReferenceProxy = new InsidiousThreadGroupReferenceProxyImpl(virtualMachineProxy, threadReference.threadGroup());
@@ -47,9 +45,9 @@ public class InsidiousThreadReferenceProxyImpl implements InsidiousThreadReferen
 
     public InsidiousStackFrameProxy frame(int i) throws EvaluateException {
         try {
-            InsidiousStackFrameProxy frameProxy = new InsidiousStackFrameProxyImpl(this, i);
+            InsidiousStackFrameProxy frameProxy = new InsidiousStackFrameProxyImpl(this, (InsidiousStackFrame) threadReference.frame(i), i);
             return frameProxy;
-        } catch (IndexOutOfBoundsException e) {
+        } catch (IndexOutOfBoundsException | IncompatibleThreadStateException e) {
             throw new EvaluateException(e.getMessage(), e);
         }
     }
@@ -57,7 +55,12 @@ public class InsidiousThreadReferenceProxyImpl implements InsidiousThreadReferen
     public List<InsidiousStackFrameProxy> frames() throws EvaluateException {
         List<InsidiousStackFrameProxy> frames = new ArrayList<>();
         for (int index = 0; index < frameCount(); index++) {
-            InsidiousStackFrameProxy proxy = new InsidiousStackFrameProxyImpl(this, index);
+            InsidiousStackFrameProxy proxy = null;
+            try {
+                proxy = new InsidiousStackFrameProxyImpl(this, (InsidiousStackFrame) threadReference.frame(index), index);
+            } catch (IncompatibleThreadStateException e) {
+                e.printStackTrace();
+            }
             frames.add(proxy);
         }
         return frames;

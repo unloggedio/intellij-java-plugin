@@ -9,7 +9,7 @@ import com.sun.jdi.StringReference;
 import com.sun.jdi.ThreadReference;
 import com.sun.jdi.VirtualMachine;
 import extension.DebuggerBundle;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluatorUtil;
 

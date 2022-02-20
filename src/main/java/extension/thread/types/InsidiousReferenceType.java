@@ -1,4 +1,4 @@
-package extension.thread;
+package extension.thread.types;
 
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
@@ -6,7 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 
-public class InsidiousReferenceType implements ReferenceType {
+public abstract class InsidiousReferenceType implements ReferenceType {
     @Override
     public String signature() {
         return null;
@@ -225,11 +225,6 @@ public class InsidiousReferenceType implements ReferenceType {
     @Override
     public boolean isPublic() {
         return false;
-    }
-
-    @Override
-    public VirtualMachine virtualMachine() {
-        return null;
     }
 
     @Override

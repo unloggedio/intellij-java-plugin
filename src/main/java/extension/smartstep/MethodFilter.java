@@ -3,7 +3,7 @@ package extension.smartstep;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.util.Range;
 import com.sun.jdi.Location;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.connector.RequestHint;

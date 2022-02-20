@@ -15,7 +15,7 @@ import com.sun.jdi.InvalidTypeException;
 import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 import extension.DebuggerBundle;
-import extension.InsidiousLocalVariableProxy;
+import extension.thread.InsidiousLocalVariableProxy;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluatorUtil;

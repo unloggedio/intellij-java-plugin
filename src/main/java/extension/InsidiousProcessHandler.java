@@ -28,7 +28,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     public @Nullable OutputStream getProcessInput() {
-        new Exception().printStackTrace();
+//        new Exception().printStackTrace();
         return null;
     }
 

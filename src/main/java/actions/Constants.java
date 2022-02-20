@@ -1,12 +1,6 @@
 package actions;
 
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
 import okhttp3.MediaType;
-import pojo.VarsValues;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class Constants {
     public static final String CLASSINFO = "classinfo";

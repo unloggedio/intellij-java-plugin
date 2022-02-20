@@ -6,13 +6,13 @@ import org.jetbrains.annotations.NotNull;
 
 public class InsidiousLocation implements Location {
 
-    private final String methodName;
-    private final ReferenceType declaringType;
-    private final Method method;
-    private final long codeIndex;
-    private final String sourceName;
-    private final String sourcePath;
-    private final int lineNumber;
+    private String methodName;
+    private ReferenceType declaringType;
+    private Method method;
+    private long codeIndex;
+    private String sourceName;
+    private String sourcePath;
+    private int lineNumber;
 
     public InsidiousLocation(ReferenceType declaringType, String methodName, long codeIndex,
                              String sourceName, String sourcePath,
@@ -24,6 +24,11 @@ public class InsidiousLocation implements Location {
         this.sourcePath = sourcePath;
         this.lineNumber = lineNumber;
         this.method = DebuggerUtils.findMethod(declaringType, methodName, null);
+    }
+
+    public InsidiousLocation(String sourcePath, int lineNumber) {
+        this.sourcePath = sourcePath;
+        this.lineNumber = lineNumber;
     }
 
     @Override

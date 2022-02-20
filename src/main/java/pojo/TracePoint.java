@@ -1,8 +1,21 @@
 package pojo;
 
-public class Bugs {
+public class TracePoint {
 
-    public Bugs(long classId, long linenum, long dataId, long threadId, long value, String executionSessionId, String filename, String classname, String exceptionClass) {
+    long classId, linenum, dataId, threadId, value;
+    String executionSessionId;
+    String filename;
+    String classname;
+    String exceptionClass;
+
+    public TracePoint(long classId, long linenum,
+                      long dataId,
+                      long threadId,
+                      long value,
+                      String executionSessionId,
+                      String filename,
+                      String classname,
+                      String exceptionClass) {
         this.classId = classId;
         this.linenum = linenum;
         this.dataId = dataId;
@@ -53,11 +66,5 @@ public class Bugs {
     public void setExceptionClass(String exceptionClass) {
         this.exceptionClass = exceptionClass;
     }
-
-    long classId, linenum, dataId, threadId, value;
-    String executionSessionId;
-    String filename;
-    String classname;
-    String exceptionClass;
 
 }

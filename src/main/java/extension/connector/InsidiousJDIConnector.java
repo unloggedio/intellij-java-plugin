@@ -13,11 +13,11 @@ import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
 import com.sun.jdi.request.*;
 import extension.InsidiousJavaDebugProcess;
-import extension.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.thread.*;
 import network.Client;
 import org.jetbrains.annotations.NotNull;
+import pojo.TracePoint;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,15 +26,15 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     public static final Requestor REQUESTOR = null;
     public static final Key<Requestor> REQUEST_HINT = Key.create("RequestHint");
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
-    private final VirtualMachine virtualMachine;
+    private final InsidiousVirtualMachine virtualMachine;
 
     public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) {
-        this.virtualMachine = new InsidiousVirtualMachine(this, client);
+        this.virtualMachine = new InsidiousVirtualMachine(client);
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 
-    public ThreadReference getThreadReferenceWithUniqueId(int uniqueID) {
-        return this.virtualMachine.allThreads().get(0);
+    public InsidiousThreadReference getThreadReferenceWithUniqueId(int uniqueID) {
+        return (InsidiousThreadReference) this.virtualMachine.allThreads().get(0);
     }
 
     @Override
@@ -80,7 +80,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     @Override
     public List<InsidiousThreadReferenceProxy> allThreads() {
         return this.virtualMachine.allThreads().stream().map(
-                        e -> new InsidiousThreadReferenceProxyImpl(this, e))
+                        e -> new InsidiousThreadReferenceProxyImpl(this, (InsidiousThreadReference) e))
                 .collect(Collectors.toList());
     }
 
@@ -144,7 +144,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
-        new Exception().printStackTrace();
+//        new Exception().printStackTrace();
         return null;
     }
 
@@ -154,11 +154,11 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void attachVirtualMachine(String hostName, String address, boolean useSockets, boolean serverMode, String timeout) {
-        new Exception().printStackTrace();
+//        new Exception().printStackTrace();
     }
 
     public void createThreadStartRequest() {
-        new Exception().printStackTrace();
+//        new Exception().printStackTrace();
 
     }
 
@@ -242,6 +242,11 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
         new Exception().printStackTrace();
+
+    }
+
+    public void setTracePoint(TracePoint tracePoint) throws Exception {
+        this.virtualMachine.setTracePoint(tracePoint);
 
     }
 }

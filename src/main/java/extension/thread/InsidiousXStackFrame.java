@@ -5,7 +5,10 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.*;
+import com.sun.jdi.AbsentInformationException;
+import com.sun.jdi.LocalVariable;
 import com.sun.jdi.ObjectReference;
+import com.sun.jdi.StackFrame;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
@@ -13,6 +16,8 @@ import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class InsidiousXStackFrame extends XStackFrame {
 
@@ -56,12 +61,23 @@ public class InsidiousXStackFrame extends XStackFrame {
     }
 
     private void buildVariables(EvaluationContext evaluationContextImpl, XValueChildrenList children) {
-        children.add("variable-1", new XValue() {
-            @Override
-            public void computePresentation(@NotNull XValueNode node, @NotNull XValuePlace place) {
-                node.setPresentation(null, "String", "Value 1", false);
+
+        StackFrame stackFrame;
+        try {
+            stackFrame = this.insidiousStackFrameProxy.getStackFrame();
+            List<LocalVariable> variables = stackFrame.visibleVariables();
+
+            for (LocalVariable variable : variables) {
+
+                children.add(variable.name(), new InsidiousXValue((InsidiousLocalVariable) variable));
+
             }
-        });
+
+        } catch (EvaluateException | AbsentInformationException e) {
+            e.printStackTrace();
+            return;
+        }
+
     }
 
 

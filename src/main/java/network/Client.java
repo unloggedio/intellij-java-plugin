@@ -8,14 +8,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import extension.connector.model.ProjectItem;
+import extension.model.DataInfo;
+import extension.model.ReplayData;
+import extension.model.StringInfo;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import network.pojo.*;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
-import pojo.Bugs;
-import pojo.VarsValues;
+import pojo.DataEvent;
+import pojo.TracePoint;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -321,7 +324,7 @@ public class Client {
                 JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
                 JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
 
-                ArrayList<Bugs> bugList = new ArrayList<>();
+                ArrayList<TracePoint> bugList = new ArrayList<>();
 
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JSONObject jsonObject = (JSONObject) jsonArray.get(i);
@@ -349,7 +352,7 @@ public class Client {
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
                         JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
-                        Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
+                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
 
                     }
@@ -402,7 +405,7 @@ public class Client {
                 JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
                 JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
 
-                ArrayList<Bugs> bugList = new ArrayList<>();
+                ArrayList<TracePoint> bugList = new ArrayList<>();
 
                 for (int i = 0; i < jsonArray.size(); i++) {
                     JSONObject jsonObject = (JSONObject) jsonArray.get(i);
@@ -434,7 +437,7 @@ public class Client {
                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         }
 
-                        Bugs bug = new Bugs(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
+                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
                         bugList.add(bug);
 
                     }
@@ -476,17 +479,17 @@ public class Client {
 
                     DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(response.body().string(), typeReference);
                     List<DataEventWithSessionId> datapointsArray = dataResponse.getItems();
-                    Map<String, Object> metadata = dataResponse.getMetadata();
-                    Map<String, Object> classInfo = (Map<String, Object>) metadata.get("classInfo");
-                    Map<String, Object> dataInfo = (Map<String, Object>) metadata.get("dataInfo");
-                    Map<String, Object> stringInfo = (Map<String, Object>) metadata.get("stringInfo");
+                    ResponseMetadata metadata = dataResponse.getMetadata();
+                    Map<String, ClassInfo> classInfo = metadata.getClassInfo();
+                    Map<String, DataInfo> dataInfo = metadata.getDataInfo();
+                    Map<String, StringInfo> stringInfo = metadata.getStringInfo();
 
-                    ArrayList<VarsValues> dataList = new ArrayList<>();
+                    ArrayList<DataEvent> dataList = new ArrayList<>();
 
                     for (DataEventWithSessionId dataEvent : datapointsArray) {
                         long dataId = dataEvent.getDataId();
                         long dataValue = dataEvent.getValue();
-                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(dataId);
+                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(String.valueOf(dataId));
                         Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
 
                         if (attributesMap.containsKey("Instruction")) {
@@ -505,8 +508,8 @@ public class Client {
 
                         String variableType = (String) attributesMap.get("Type");
                         int classId = (int) dataInfoTemp.get("classId");
-                        int lineNum = (int) dataInfoTemp.get("line");
-                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(classId);
+                        int lineNumber = (int) dataInfoTemp.get("line");
+                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(String.valueOf(classId));
                         String filename = (String) classInfoTemp.get("filename");
 
 
@@ -514,7 +517,7 @@ public class Client {
 
                         if (variableType != null) {
                             if (variableType.contains("java/lang/String")) {
-                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataValue);
+                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataIdstr);
                                 if (tempStringJson != null) {
                                     dataIdstr = (String) tempStringJson.get("content");
                                 }
@@ -522,7 +525,7 @@ public class Client {
                         }
 
                         long nanoTime = dataEvent.getNanoTime();
-                        VarsValues varsValues = new VarsValues(lineNum, filename, variableName, dataIdstr, nanoTime);
+                        DataEvent varsValues = new DataEvent(lineNumber, filename, variableName, dataIdstr, nanoTime);
                         dataList.add(varsValues);
                     }
 
@@ -533,6 +536,74 @@ public class Client {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
+    }
+
+
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
+        String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
+        Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
+
+        if (response.code() != 200) {
+            ExceptionResponse errorResponse = JSONValue.parse(response.body().string(), ExceptionResponse.class);
+            throw new Exception(errorResponse.getMessage());
+        }
+
+        TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+        };
+
+        DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(response.body().string(), typeReference);
+        List<DataEventWithSessionId> dataEventsList = dataResponse.getItems();
+        ResponseMetadata metadata = dataResponse.getMetadata();
+        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
+        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
+        Map<String, StringInfo> stringInfo = metadata.getStringInfo();
+
+//        ArrayList<DataEvent> dataList = new ArrayList<>();
+
+//        for (DataEventWithSessionId dataEvent : dataEventsList) {
+//            long dataId = dataEvent.getDataId();
+//            long dataValue = dataEvent.getValue();
+//            Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(String.valueOf(dataId));
+//            Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
+//
+//            if (attributesMap.containsKey("Instruction")) {
+//                continue;
+//            }
+//
+//            String variableName = (String) attributesMap.get("Name");
+//
+//            if (variableName == null) {
+//                continue;
+//            }
+//
+//            if (Arrays.asList("<init>", "makeConcatWithConstants").contains(variableName)) {
+//                continue;
+//            }
+//
+//            String variableType = (String) attributesMap.get("Type");
+//            int classId = (int) dataInfoTemp.get("classId");
+//            int lineNum = (int) dataInfoTemp.get("line");
+//            Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(String.valueOf(classId));
+//            String filename = (String) classInfoTemp.get("filename");
+//
+//
+//            String dataIdstr = String.valueOf(dataValue);
+//
+//            if (variableType != null) {
+//                if (variableType.contains("java/lang/String")) {
+//                    Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataIdstr);
+//                    if (tempStringJson != null) {
+//                        dataIdstr = (String) tempStringJson.get("content");
+//                    }
+//                }
+//            }
+//
+//            long nanoTime = dataEvent.getNanoTime();
+//            DataEvent varsValues = new DataEvent(lineNum, filename, variableName, dataIdstr, nanoTime);
+//            dataList.add(varsValues);
+//        }
+        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo);
+
     }
 
 }

@@ -1,6 +1,6 @@
 package pojo;
 
-public class VarsValues {
+public class DataEvent {
 
     long nanoTime;
     String filename;
@@ -9,10 +9,10 @@ public class VarsValues {
     int lineNum;
 
 
-    public VarsValues() {
+    public DataEvent() {
     }
 
-    public VarsValues(int lineNum, String filename, String variableName, String variableValue, long nanoTime) {
+    public DataEvent(int lineNum, String filename, String variableName, String variableValue, long nanoTime) {
 
         this.lineNum = lineNum;
         this.filename = filename;

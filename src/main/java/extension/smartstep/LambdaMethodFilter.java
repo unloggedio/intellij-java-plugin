@@ -11,7 +11,7 @@ import com.intellij.psi.PsiStatement;
 import com.intellij.util.Range;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import org.jetbrains.annotations.Nullable;
 
 public class LambdaMethodFilter

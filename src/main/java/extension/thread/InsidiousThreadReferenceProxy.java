@@ -3,7 +3,6 @@ package extension.thread;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.ThreadGroupReferenceProxy;
 import com.intellij.debugger.engine.jdi.ThreadReferenceProxy;
-import extension.InsidiousVirtualMachineProxy;
 import extension.connector.InsidiousStackFrameProxy;
 
 import java.util.List;

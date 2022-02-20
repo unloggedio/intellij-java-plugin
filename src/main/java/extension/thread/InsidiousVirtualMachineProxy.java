@@ -1,4 +1,4 @@
-package extension;
+package extension.thread;
 
 import com.intellij.debugger.PositionManager;
 import com.intellij.debugger.engine.jdi.VirtualMachineProxy;

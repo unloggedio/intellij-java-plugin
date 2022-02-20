@@ -1,25 +1,101 @@
 package extension.thread;
 
+import com.sun.istack.logging.Logger;
 import com.sun.jdi.*;
+import extension.model.DataInfo;
+import extension.model.ReplayData;
+import extension.model.StringInfo;
+import network.pojo.ClassInfo;
+import network.pojo.DataEventWithSessionId;
+import pojo.TracePoint;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class InsidiousThreadReference implements ThreadReference {
 
 
+    private static final Logger logger = Logger.getLogger(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
-    private final VirtualMachine virtualMachine;
+    private final ReplayData replayData;
+    private LinkedList<InsidiousStackFrame> stackFrames;
 
     public InsidiousThreadReference(ThreadGroupReference threadGroupReference,
-                                    VirtualMachine virtualMachine) {
+                                    ReplayData replayData, TracePoint tracePoint) {
         this.threadGroupReference = threadGroupReference;
-        this.virtualMachine = virtualMachine;
+        this.replayData = replayData;
+        calculateFrames();
     }
 
-    public InsidiousThreadReference(ThreadGroupReference threadGroupReference) {
-        this.threadGroupReference = threadGroupReference;
-        this.virtualMachine = threadGroupReference.virtualMachine();
+    private void calculateFrames() {
+        LinkedList<InsidiousStackFrame> stackFrames = new LinkedList<>();
+
+        Map<String, DataInfo> dataInfoMap = this.replayData.getDataInfoMap();
+        Map<String, ClassInfo> classInfoMap = this.replayData.getClassInfoMap();
+        Map<String, StringInfo> stringInfoMap = this.replayData.getStringInfoMap();
+
+
+        InsidiousStackFrame currentFrame = new InsidiousStackFrame(null, this, this.virtualMachine());
+
+        Map<String, InsidiousLocalVariable> variableMap = new HashMap<>();
+
+        InsidiousLocation currentLocation = null;
+
+        for (DataEventWithSessionId dataEvent : this.replayData.getDataEvents()) {
+            DataInfo probeInfo = dataInfoMap.get(String.valueOf(dataEvent.getDataId()));
+            logger.info("Build frame from event type [" + probeInfo.getEventType() + "]");
+
+            switch (probeInfo.getEventType()) {
+                case LINE_NUMBER:
+                    ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+                    currentLocation = new InsidiousLocation(classInfo.getFilename(), probeInfo.getLine());
+                    if (currentFrame.location() == null) {
+                        currentFrame.setLocation(currentLocation);
+                    }
+                    currentLocation = null;
+                    break;
+
+                case METHOD_ENTRY:
+                    stackFrames.add(currentFrame);
+                    currentFrame = new InsidiousStackFrame(currentLocation, this, this.virtualMachine());
+                    break;
+                case LOCAL_STORE:
+                    String variableName = probeInfo.getAttribute("Name", null);
+                    String variableType = probeInfo.getAttribute("Type", null);
+
+                    if (variableMap.containsKey(variableName)) {
+                        continue;
+                    }
+
+                    Object value = dataEvent.getValue();
+
+                    if (variableType.contains("java/lang/String")) {
+                        StringInfo stringInfo = stringInfoMap.get(String.valueOf(value));
+                        if (stringInfo != null) {
+                            value = stringInfo.getContent();
+                        }
+                    }
+
+                    InsidiousLocalVariable newVariable = new InsidiousLocalVariable(
+                            variableName,
+                            variableType,
+                            variableType,
+                            value,
+                            this.virtualMachine());
+
+                    currentFrame.getLocalVariables().add(newVariable);
+                    variableMap.put(variableName, newVariable);
+                    break;
+
+
+            }
+
+        }
+        this.stackFrames = stackFrames;
+
     }
 
     @Override
@@ -58,17 +134,17 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public int status() {
-        return ThreadReference.THREAD_STATUS_RUNNING;
+        return ThreadReference.THREAD_STATUS_MONITOR;
     }
 
     @Override
     public boolean isSuspended() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isAtBreakpoint() {
-        return false;
+        return true;
     }
 
     @Override
@@ -78,22 +154,22 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public int frameCount() throws IncompatibleThreadStateException {
-        return 1;
+        return stackFrames.size();
     }
 
     @Override
     public List<StackFrame> frames() throws IncompatibleThreadStateException {
-        return null;
+        return stackFrames.stream().collect(Collectors.toList());
     }
 
     @Override
     public StackFrame frame(int i) throws IncompatibleThreadStateException {
-        return null;
+        return stackFrames.get(i);
     }
 
     @Override
     public List<StackFrame> frames(int i, int i1) throws IncompatibleThreadStateException {
-        return null;
+        return stackFrames.subList(i, i1).stream().collect(Collectors.toList());
     }
 
     @Override
@@ -198,6 +274,6 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return null;
+        return threadGroupReference.virtualMachine();
     }
 }

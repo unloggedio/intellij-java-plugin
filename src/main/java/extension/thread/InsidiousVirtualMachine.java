@@ -3,10 +3,13 @@ package extension.thread;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.EventRequestManager;
-import extension.connector.InsidiousJDIConnector;
+import extension.model.DirectionType;
+import extension.model.ReplayData;
 import network.Client;
 import network.pojo.DataResponse;
 import network.pojo.ExecutionSession;
+import network.pojo.FilteredDataEventsRequest;
+import pojo.TracePoint;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -14,15 +17,13 @@ import java.util.List;
 import java.util.Map;
 
 public class InsidiousVirtualMachine implements VirtualMachine {
-    private final InsidiousJDIConnector insidiousJDIConnector;
+
     private final Client client;
     private final ExecutionSession session;
-    private final ThreadGroupReference threadReferenceGroup;
-    private final InsidiousThreadReference insidiousThreadReference;
+    private ThreadGroupReference threadReferenceGroup;
+    private ReplayData replayData;
 
-    public InsidiousVirtualMachine(InsidiousJDIConnector insidiousJDIConnector, Client client) {
-
-        this.insidiousJDIConnector = insidiousJDIConnector;
+    public InsidiousVirtualMachine(Client client) {
         this.client = client;
         DataResponse<ExecutionSession> sessions = null;
         try {
@@ -31,9 +32,6 @@ public class InsidiousVirtualMachine implements VirtualMachine {
             e.printStackTrace();
         }
         this.session = sessions.getItems().get(0);
-        threadReferenceGroup = new InsidiousThreadGroupReference(this);
-        insidiousThreadReference = new InsidiousThreadReference(threadReferenceGroup, this);
-
     }
 
     @Override
@@ -53,7 +51,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public List<ThreadReference> allThreads() {
-        return Arrays.asList(insidiousThreadReference);
+        return threadReferenceGroup.threads();
     }
 
     @Override
@@ -70,7 +68,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public List<ThreadGroupReference> topLevelThreadGroups() {
-        return null;
+        return Arrays.asList(threadReferenceGroup);
     }
 
     @Override
@@ -283,17 +281,17 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public String description() {
-        return null;
+        return "Insidious Time Travel VM";
     }
 
     @Override
     public String version() {
-        return null;
+        return "1.0.0";
     }
 
     @Override
     public String name() {
-        return null;
+        return "InsidiousVM";
     }
 
     @Override
@@ -304,6 +302,12 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return null;
+        return this;
+    }
+
+    public void setTracePoint(TracePoint tracePoint) throws Exception {
+        FilteredDataEventsRequest filterDataEventRequest = FilteredDataEventsRequest.fromTracePoint(tracePoint, DirectionType.BACKWARDS);
+        this.replayData = this.client.fetchDataEvents(filterDataEventRequest);
+        threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
     }
 }

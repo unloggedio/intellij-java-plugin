@@ -14,7 +14,7 @@ import com.intellij.xdebugger.frame.presentation.XValuePresentation;
 import com.intellij.xdebugger.impl.ui.tree.nodes.XValueNodeImpl;
 import com.sun.jdi.Value;
 import extension.DebuggerBundle;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.descriptor.InsidiousJavaValuePresentation;
 import extension.descriptor.InsidiousValueDescriptor;
 import extension.descriptor.InsidiousValueDescriptorImpl;

@@ -2,8 +2,9 @@ package extension.connector;
 
 import com.sun.jdi.ThreadGroupReference;
 import extension.thread.InsidiousThreadGroupReferenceProxy;
+import extension.thread.InsidiousThreadReference;
 import extension.thread.InsidiousThreadReferenceProxy;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ public class InsidiousThreadGroupReferenceProxyImpl implements InsidiousThreadGr
 
     public List<InsidiousThreadReferenceProxy> threads() {
         return this.myThreadGroupReference.threads().stream()
-                .map(t -> new InsidiousThreadReferenceProxyImpl(this.myVmProxy, t))
+                .map(t -> new InsidiousThreadReferenceProxyImpl(this.myVmProxy, (InsidiousThreadReference) t))
                 .collect(Collectors.toList());
     }
 

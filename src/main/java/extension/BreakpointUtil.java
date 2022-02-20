@@ -11,6 +11,7 @@ import com.intellij.util.PatternUtil;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.sun.jdi.Method;
 import extension.evaluation.JVMNameUtil;
+import extension.thread.InsidiousVirtualMachineProxy;
 
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;

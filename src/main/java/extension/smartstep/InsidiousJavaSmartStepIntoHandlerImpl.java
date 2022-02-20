@@ -28,7 +28,7 @@ import com.sun.jdi.Location;
 import com.sun.jdi.ObjectReference;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousJavaSmartStepIntoHandler;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.evaluation.EvaluationContext;
@@ -186,14 +186,16 @@ public class InsidiousJavaSmartStepIntoHandlerImpl extends InsidiousJavaSmartSte
         throw new IllegalStateException("Should not be used");
     }
 
-    protected List<SmartStepTarget> findStepTargets(final SourcePosition position, InsidiousJavaDebugProcess debugProcess, final XSuspendContext suspendContext, final InsidiousStackFrameProxy stackFrameProxy, boolean smart) {
+    protected List<SmartStepTarget> findStepTargets(final SourcePosition position, InsidiousJavaDebugProcess debugProcess,
+                                                    final XSuspendContext suspendContext,
+                                                    final InsidiousStackFrameProxy stackFrameProxy, boolean smart) {
         SourcePosition targetPosition = position;
         if (debugProcess.getLastDirectionType() == DirectionType.BACKWARDS) {
             boolean isStartOfLine = true;
             if (stackFrameProxy != null) {
 
                 try {
-                    isStartOfLine = LocationUtil.isLocationStartOfLine(stackFrameProxy.location());
+//                    isStartOfLine = LocationUtil.isLocationStartOfLine(stackFrameProxy.location());
                 } catch (Exception ex) {
                     LOG.debug(ex);
                     return Collections.emptyList();

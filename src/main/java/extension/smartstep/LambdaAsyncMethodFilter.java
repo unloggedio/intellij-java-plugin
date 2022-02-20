@@ -17,7 +17,7 @@ package extension.smartstep;
  import com.sun.jdi.event.LocatableEvent;
  import java.util.Objects;
 
- import extension.InsidiousVirtualMachineProxy;
+ import extension.thread.InsidiousVirtualMachineProxy;
  import extension.InsidiousXSuspendContext;
  import extension.breakpoints.StepIntoBreakpoint;
  import extension.connector.InsidiousStackFrameProxy;

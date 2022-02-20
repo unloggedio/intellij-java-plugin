@@ -11,7 +11,7 @@ import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
 import com.sun.jdi.Value;
 import extension.DebuggerBundle;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.descriptor.InsidiousValueDescriptor;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluatorUtil;

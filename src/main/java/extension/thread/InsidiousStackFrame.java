@@ -5,29 +5,24 @@ import extension.thread.types.IntegerTypeImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class InsidiousStackFrame implements StackFrame {
 
-    private final Location location;
     private final ThreadReference threadReference;
     private final VirtualMachine virtualMachine;
     private final Value value;
+    private InsidiousLocation location;
     private List<LocalVariable> localVariables;
 
-    public InsidiousStackFrame(Location location,
+    public InsidiousStackFrame(InsidiousLocation location,
                                ThreadReference threadReference,
-                               List<LocalVariable> localVariables,
                                VirtualMachine virtualMachine) {
         this.location = location;
         this.threadReference = threadReference;
-        this.localVariables = localVariables;
         this.virtualMachine = virtualMachine;
+        this.localVariables = new LinkedList<>();
 
-        this.localVariables = Arrays.asList(new InsidiousLocalVariable("variable 1", "Integer", "Signature", virtualMachine));
         value = new InsidiousValue(new IntegerTypeImpl(virtualMachine), virtualMachine);
 
     }
@@ -52,6 +47,18 @@ public class InsidiousStackFrame implements StackFrame {
     @Override
     public List<LocalVariable> visibleVariables() throws AbsentInformationException {
         return localVariables;
+    }
+
+    public List<LocalVariable> getLocalVariables() {
+        return localVariables;
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(InsidiousLocation currentLocation) {
+        this.location = currentLocation;
     }
 
     @Nullable

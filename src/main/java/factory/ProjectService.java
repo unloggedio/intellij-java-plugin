@@ -1,10 +1,23 @@
 package factory;
 
 import callbacks.*;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.ProgramRunnerUtil;
+import com.intellij.execution.configurations.ConfigurationTypeUtil;
+import com.intellij.execution.configurations.RunConfiguration;
+import com.intellij.execution.process.ProcessHandler;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.openapi.project.Project;
+import com.intellij.xdebugger.XDebugSession;
+import extension.InsidiousExecutor;
+import extension.InsidiousJavaDebugProcess;
+import extension.InsidiousRunConfigType;
+import extension.connector.InsidiousJDIConnector;
 import network.Client;
 import network.pojo.FilteredDataEventsRequest;
-import pojo.Bugs;
+import org.jetbrains.annotations.NotNull;
+import pojo.TracePoint;
 import ui.HorBugTable;
 import ui.LogicBugs;
 
@@ -18,6 +31,10 @@ public class ProjectService {
     private int currentLineNumber;
     private Client client;
     private CodeTracer tracer;
+    private ProcessHandler processHandler;
+    private XDebugSession debugSession;
+    private InsidiousJavaDebugProcess debugProcess;
+    private InsidiousJDIConnector connector;
 
     public ProjectService(Project project) {
         this.project = project;
@@ -31,12 +48,12 @@ public class ProjectService {
         this.bugsTable = bugsTable;
     }
 
-    public void setLogicBugs(LogicBugs logicBugs) {
-        this.logicBugs = logicBugs;
-    }
-
     public LogicBugs getLogicBugs() {
         return this.logicBugs;
+    }
+
+    public void setLogicBugs(LogicBugs logicBugs) {
+        this.logicBugs = logicBugs;
     }
 
     public int getCurrentLineNumber() {
@@ -90,7 +107,23 @@ public class ProjectService {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
     }
 
-    public void startTracer(Bugs selectedTrace, String order, String source) throws IOException {
+    public void startDebugSession() {
+
+        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
+
+
+        @NotNull ExecutionEnvironment env = null;
+        try {
+            env = ExecutionEnvironmentBuilder.create(project,
+                    new InsidiousExecutor(),
+                    runConfiguration).build();
+            ProgramRunnerUtil.executeConfiguration(env, false, true);
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startTracer(TracePoint selectedTrace, String order, String source) throws IOException {
         tracer = new CodeTracer(project, selectedTrace, order, source);
     }
 
@@ -104,5 +137,41 @@ public class ProjectService {
         if (tracer != null) {
             tracer.forward();
         }
+    }
+
+    public ProcessHandler getProcessHandler() {
+        return processHandler;
+    }
+
+    public void setProcessHandler(ProcessHandler processHandler) {
+        this.processHandler = processHandler;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public InsidiousJavaDebugProcess getDebugProcess() {
+        return debugProcess;
+    }
+
+    public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
+        this.debugProcess = debugProcess;
+    }
+
+    public XDebugSession getDebugSession() {
+        return debugSession;
+    }
+
+    public void setDebugSession(XDebugSession session) {
+        this.debugSession = session;
+    }
+
+    public InsidiousJDIConnector getConnector() {
+        return connector;
+    }
+
+    public void setConnector(InsidiousJDIConnector connector) {
+        this.connector = connector;
     }
 }

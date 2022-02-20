@@ -12,8 +12,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.Nullable;
-import pojo.Bugs;
-import pojo.VarsValues;
+import pojo.TracePoint;
+import pojo.DataEvent;
 import ui.HorBugTable;
 import ui.LogicBugs;
 
@@ -28,18 +28,18 @@ import java.util.List;
 import java.util.Map;
 
 public class CodeTracer {
-    private final Bugs trace;
+    private final TracePoint trace;
     private final Project project;
     private final String order;
     private final FileEditorManager editorManager;
-    private final List<VarsValues> varsValue;
+    private final List<DataEvent> varsValue;
     Color backgroundColor = new Color(240, 57, 45, 80);
     private final TextAttributes textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
     private int currentIndex;
-    private VarsValues highlightedVariable;
+    private DataEvent highlightedVariable;
     private String source;
 
-    public CodeTracer(Project project, Bugs trace, String order, String source) throws IOException {
+    public CodeTracer(Project project, TracePoint trace, String order, String source) throws IOException {
         this.project = project;
         this.trace = trace;
         this.order = order;
@@ -48,7 +48,7 @@ public class CodeTracer {
         String path = project.getBasePath() + "/variablevalues.json";
         String content = Files.readString(Paths.get(path));
 
-        TypeReference<List<VarsValues>> typeReference = new TypeReference<>() {
+        TypeReference<List<DataEvent>> typeReference = new TypeReference<>() {
         };
         varsValue = new ObjectMapper().readValue(content, typeReference);
         setTraceIndex(0, source);
@@ -56,17 +56,17 @@ public class CodeTracer {
 
     public void setTraceIndex(int i, String source) {
         this.currentIndex = i;
-        Collection<VarsValues> variableList = collectVariableData();
+        Collection<DataEvent> variableList = collectVariableData();
         updateHighlight(variableList, source);
     }
 
 
-    private Collection<VarsValues> collectVariableData() {
+    private Collection<DataEvent> collectVariableData() {
         highlightedVariable = varsValue.get(this.currentIndex);
         int highlightedLineNumber = highlightedVariable.getLineNum();
         int currentLineNumber = highlightedLineNumber;
 
-        Map<String, VarsValues> variableMap = new HashMap<>();
+        Map<String, DataEvent> variableMap = new HashMap<>();
 
         variableMap.put(highlightedVariable.getVariableName(), highlightedVariable);
 
@@ -75,7 +75,7 @@ public class CodeTracer {
         Map<String, Boolean> tracker = new HashMap<>();
 
         while (collectedIndex < this.varsValue.size()) {
-            VarsValues variable = varsValue.get(collectedIndex);
+            DataEvent variable = varsValue.get(collectedIndex);
 
             if (variable.getLineNum() > currentLineNumber) {
                 break;
@@ -102,7 +102,7 @@ public class CodeTracer {
     }
 
 
-    private void updateHighlight(Collection<VarsValues> variableList, String source) {
+    private void updateHighlight(Collection<DataEvent> variableList, String source) {
         if (source.equals("exceptions")){
             HorBugTable horBugTable = project.getService(ProjectService.class).getHorBugTable();
             horBugTable.setVariables(variableList);

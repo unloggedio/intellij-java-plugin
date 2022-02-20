@@ -1,6 +1,10 @@
 package network.pojo;
 
 
+import extension.model.DirectionType;
+import pojo.TracePoint;
+
+import java.util.Collections;
 import java.util.List;
 
 public class FilteredDataEventsRequest {
@@ -15,6 +19,18 @@ public class FilteredDataEventsRequest {
 
     private List<DebugPoint> debugPoints;
     private String sortOrder;
+
+    public static FilteredDataEventsRequest fromTracePoint(TracePoint tracePoint, DirectionType directionType) {
+        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
+        filteredDataEventsRequest.setSessionId(tracePoint.getExecutionSessionId());
+        filteredDataEventsRequest.setThreadId(tracePoint.getThreadId());
+        filteredDataEventsRequest.setValueId(Collections.singletonList(tracePoint.getValue()));
+        filteredDataEventsRequest.setPageSize(200);
+        filteredDataEventsRequest.setPageNumber(0);
+        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
+        filteredDataEventsRequest.setSortOrder(directionType.equals(DirectionType.FORWARDS) ? "ASC" : "DESC");
+        return filteredDataEventsRequest;
+    }
 
     public String getSessionId() {
         return sessionId;
@@ -44,8 +60,16 @@ public class FilteredDataEventsRequest {
         return pageSize;
     }
 
+    public void setPageSize(Integer pageSize) {
+        this.pageSize = pageSize;
+    }
+
     public Integer getPageNumber() {
         return pageNumber;
+    }
+
+    public void setPageNumber(Integer pageNumber) {
+        this.pageNumber = pageNumber;
     }
 
     public List<DebugPoint> getDebugPoints() {
@@ -62,13 +86,5 @@ public class FilteredDataEventsRequest {
 
     public void setSortOrder(String sortOrder) {
         this.sortOrder = sortOrder;
-    }
-
-    public void setPageSize(Integer pageSize) {
-        this.pageSize = pageSize;
-    }
-
-    public void setPageNumber(Integer pageNumber) {
-        this.pageNumber = pageNumber;
     }
 }

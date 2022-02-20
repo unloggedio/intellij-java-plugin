@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
 import extension.InsidiousDebuggerTreeNode;
-import extension.InsidiousLocalVariableProxy;
+import extension.thread.InsidiousLocalVariableProxy;
 import extension.descriptor.*;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.InsidiousNodeDescriptorImpl;

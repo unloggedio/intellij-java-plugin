@@ -1,7 +1,6 @@
 package ui;
 
 import actions.Constants;
-import callbacks.FilteredDataEventsCallback;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
@@ -12,16 +11,15 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import com.intellij.xdebugger.XDebugSession;
 import factory.ProjectService;
-import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
-import network.pojo.FilteredDataEventsRequest;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
-import pojo.Bugs;
-import pojo.VarsValues;
+import pojo.DataEvent;
+import pojo.TracePoint;
 
 import javax.swing.*;
 import javax.swing.event.TableModelEvent;
@@ -32,21 +30,20 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.*;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class HorBugTable {
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
     private final ProjectService projectService;
+    private final ToolWindow toolWindow;
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
     Object[] headers;
-    List<VarsValues> dataList;
+    List<DataEvent> dataList;
     String executionSessionId;
     Project project;
     String basepath;
@@ -74,8 +71,7 @@ public class HorBugTable {
     private JButton applybutton;
     private JTextField traceIdfield;
     private JLabel someLable;
-    private List<Bugs> bugList;
-    private ToolWindow toolWindow;
+    private List<TracePoint> bugList;
 
     public HorBugTable(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -83,6 +79,7 @@ public class HorBugTable {
         basepath = this.project.getBasePath();
 
         this.projectService = project.getService(ProjectService.class);
+        projectService.startDebugSession();
 
         this.projectService.setHorBugTable(this);
 
@@ -91,11 +88,7 @@ public class HorBugTable {
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    loadBug(bugs.getSelectedRow());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                loadBug(bugs.getSelectedRow());
             }
         });
 
@@ -142,6 +135,7 @@ public class HorBugTable {
         initBugTypeTable();
 
         variableProgressbar.setVisible(false);
+
     }
 
     public JPanel getContent() {
@@ -185,15 +179,14 @@ public class HorBugTable {
                     }
 
                     @Override
-                    public void success(List<Bugs> bugsCollection) {
+                    public void success(List<TracePoint> tracePointCollection) {
                         updateProgressbar("bugs", 100);
-                        if (bugsCollection.size() == 0) {
-                            updateErrorLabel("No data availalbe, or data may have been deleted!");
-                        }
-                        else {
+                        if (tracePointCollection.size() == 0) {
+                            updateErrorLabel("No data available, or data may have been deleted!");
+                        } else {
                             updateErrorLabel("");
                             scrollpanel.setVisible(true);
-                            parseTableItems(bugsCollection);
+                            parseTableItems(tracePointCollection);
                         }
 
                     }
@@ -201,75 +194,76 @@ public class HorBugTable {
 
     }
 
-    private void parseTableItems(List<Bugs> bugsCollection) {
-        this.bugList = bugsCollection;
+    private void parseTableItems(List<TracePoint> tracePointCollection) {
+        this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
 
         int i = 0;
-        for (Bugs bugs : bugList) {
-            String className = bugs.getClassname().substring(bugs.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{bugs.getExceptionClass().substring(bugs.getExceptionClass().lastIndexOf('.') + 1), className, String.valueOf(bugs.getLinenum()), String.valueOf(bugs.getThreadId())};
+        for (TracePoint tracePoint : bugList) {
+            String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+            sampleObject[i] = new String[]{tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1), className, String.valueOf(tracePoint.getLinenum()), String.valueOf(tracePoint.getThreadId())};
             i++;
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
     }
 
-    private void loadBug(int rowNum) throws IOException {
-        Bugs selectedTrace = bugList.get(rowNum);
-        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
-        filteredDataEventsRequest.setSessionId(selectedTrace.getExecutionSessionId());
-        filteredDataEventsRequest.setThreadId(selectedTrace.getThreadId());
-        filteredDataEventsRequest.setValueId(Collections.singletonList(selectedTrace.getValue()));
-        filteredDataEventsRequest.setPageSize(200);
-        filteredDataEventsRequest.setPageNumber(0);
-        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
-        filteredDataEventsRequest.setSortOrder("DESC");
+    private void loadBug(int rowNum) {
+        TracePoint selectedTrace = bugList.get(rowNum);
+        try {
+            logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
+            XDebugSession debugSession = projectService.getDebugSession();
+            projectService.getConnector().setTracePoint(selectedTrace);
+            if (debugSession.isPaused()) {
+                debugSession.resume();
+            }
+            projectService.getDebugSession().pause();
+        } catch (Exception e) {
+            e.printStackTrace();
+            Messages.showErrorDialog(project, e.getMessage(), "Failed to load trace point");
+        }
 
-        logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
 
+//        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+//        projectService.filterDataEvents(
+//                projectId, filteredDataEventsRequest,
+//                new FilteredDataEventsCallback() {
+//                    @Override
+//                    public void error(ExceptionResponse errrorResponse) {
+//                        System.out.print(errrorResponse);
+//                    }
+//
+//                    @Override
+//                    public void success(List<VarsValues> dataList) {
+//
+//                        String content = JSONArray.toJSONString(dataList);
+//                        String path = project.getBasePath() + "/variablevalues.json";
+//                        File file = new File(path);
+//                        FileWriter fileWriter = null;
+//                        try {
+//                            fileWriter = new FileWriter(file);
+//                            fileWriter.write(content);
+//                            fileWriter.close();
+//                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
+//                            varsvaluePane.setVisible(true);
+//                            updateProgressbar("varsvalues", 100);
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                            ExceptionResponse exceptionResponse = new ExceptionResponse();
+//                            exceptionResponse.setMessage(e.getMessage());
+//                            error(exceptionResponse);
+//                            return;
+//                        }
+//
+//                    }
+//                }
+//        );
 
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(ProjectService.class).filterDataEvents(
-                projectId, filteredDataEventsRequest,
-                new FilteredDataEventsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errrorResponse) {
-                        System.out.print(errrorResponse);
-                    }
-
-                    @Override
-                    public void success(List<VarsValues> dataList) {
-
-                        String content = JSONArray.toJSONString(dataList);
-                        String path = project.getBasePath() + "/variablevalues.json";
-                        File file = new File(path);
-                        FileWriter fileWriter = null;
-                        try {
-                            fileWriter = new FileWriter(file);
-                            fileWriter.write(content);
-                            fileWriter.close();
-                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
-                            varsvaluePane.setVisible(true);
-                            updateProgressbar("varsvalues", 100);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            ExceptionResponse exceptionResponse = new ExceptionResponse();
-                            exceptionResponse.setMessage(e.getMessage());
-                            error(exceptionResponse);
-                            return;
-                        }
-
-                    }
-                }
-
-        );
-
-        hideTable("varsvalues");
+//        hideTable("varsvalues");
     }
 
-    public void setVariables(Collection<VarsValues> dataListTemp) {
+    public void setVariables(Collection<DataEvent> dataListTemp) {
         JTableHeader header = this.varsValuesTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
@@ -277,8 +271,8 @@ public class HorBugTable {
         String[][] sampleObject = new String[dataListTemp.size()][];
 
         int i = 0;
-        for (VarsValues varsValues : dataListTemp) {
-            sampleObject[i] = new String[]{varsValues.getVariableName(), varsValues.getVariableValue()};
+        for (DataEvent dataEvent : dataListTemp) {
+            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
             i++;
         }
 
@@ -308,7 +302,7 @@ public class HorBugTable {
                     public void success(List<ExecutionSession> executionSessionList) {
                         try {
                             getErrors(0, executionSessionList.get(0).getId());
-                            updateProgressbar("bugs",50);
+                            updateProgressbar("bugs", 50);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -431,8 +425,7 @@ public class HorBugTable {
         if (table.equals("bugs")) {
             progressBarfield.setVisible(true);
             scrollpanel.setVisible(false);
-        }
-        else if (table.equals("varsvalues")) {
+        } else if (table.equals("varsvalues")) {
             variableProgressbar.setVisible(true);
             varsvaluePane.setVisible(false);
         }
@@ -446,8 +439,7 @@ public class HorBugTable {
             if (value == 100) {
                 progressBarfield.setVisible(false);
             }
-        }
-        else if (table.equals("varsvalues")) {
+        } else if (table.equals("varsvalues")) {
             variableProgressbar.setValue(value);
             if (value == 100) {
                 variableProgressbar.setVisible(false);
@@ -456,7 +448,7 @@ public class HorBugTable {
 
     }
 
-    private void updateErrorLabel (String text) {
+    private void updateErrorLabel(String text) {
         errorLabel.setText(text);
     }
 }

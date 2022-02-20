@@ -23,7 +23,7 @@ import com.sun.jdi.event.Event;
 import com.sun.jdi.event.EventSet;
 import com.sun.jdi.request.EventRequest;
 import extension.connector.InsidiousJDIConnector;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.InsidiousXSuspendContext;
 import extension.evaluation.JVMNameUtil;
 import one.util.streamex.StreamEx;

@@ -10,11 +10,12 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
 import com.sun.jdi.AbsentInformationException;
-import com.sun.jdi.Location;
+//import com.sun.jdi.Location;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadReference;
 import extension.CommandSender;
 import extension.connector.InsidiousJDIConnector;
+import extension.model.Location;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -65,19 +66,16 @@ public class LocationUtil {
     }
 
     public static XSourcePosition createSourcePosition(Project project, Location location) {
-        return null;
-//        XSourcePosition position = null;
-//        try {
-//            PsiFile psiFile = findPsiFile(project, location.getClassName());
-//            VirtualFile sourceFile = psiFile.getVirtualFile();
-//
-//
-//            position = XDebuggerUtil.getInstance().createPosition(sourceFile, location.getLineNumber() - 1);
-//        } catch (Exception ex) {
-//            logger.debug(
-//                    String.format("The action will be disabled, couldn't evaluate position for location %s:", location.toString()), ex);
-//        }
-//        return position;
+        XSourcePosition position = null;
+        try {
+            PsiFile psiFile = findPsiFile(project, location.getClassName());
+            VirtualFile sourceFile = psiFile.getVirtualFile();
+            position = XDebuggerUtil.getInstance().createPosition(sourceFile, location.getLineNumber() - 1);
+        } catch (Exception ex) {
+            logger.debug(
+                    String.format("The action will be disabled, couldn't evaluate position for location %s:", location.toString()), ex);
+        }
+        return position;
     }
 
 

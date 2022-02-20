@@ -14,7 +14,7 @@ import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.sun.jdi.*;
-import extension.InsidiousLocalVariableProxy;
+import extension.thread.InsidiousLocalVariableProxy;
 import extension.thread.InsidiousThreadGroupReferenceProxy;
 import extension.thread.InsidiousThreadReferenceProxy;
 import extension.connector.DecompiledLocalVariable;

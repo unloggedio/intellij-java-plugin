@@ -18,6 +18,7 @@ import extension.connector.RequestHint;
 import extension.evaluation.JVMName;
 import extension.evaluation.JVMNameUtil;
 import extension.smartstep.NamedMethodFilter;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.util.DebuggerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

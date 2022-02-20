@@ -7,7 +7,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.Value;
 import com.sun.jdi.VirtualMachine;
 import extension.DebuggerBundle;
-import extension.InsidiousVirtualMachineProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 
 import java.util.HashMap;
 import java.util.Map;

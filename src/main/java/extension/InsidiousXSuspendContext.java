@@ -11,7 +11,9 @@ import com.sun.jdi.ThreadReference;
 import com.sun.jdi.event.EventSet;
 import extension.connector.InsidiousStackFrameProxy;
 import extension.connector.InsidiousThreadReferenceProxyImpl;
+import extension.thread.InsidiousThreadReference;
 import extension.thread.InsidiousThreadReferenceProxy;
+import extension.thread.InsidiousVirtualMachineProxy;
 import extension.thread.InsidiousXExecutionStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +43,7 @@ public class InsidiousXSuspendContext
     }
 
 
-    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, ThreadReference thread, int suspendPolicy, EventSet event) {
+    public InsidiousXSuspendContext(InsidiousJavaDebugProcess debugProcess, InsidiousThreadReference thread, int suspendPolicy, EventSet event) {
         this(debugProcess, thread, suspendPolicy, event, false);
     }
 
@@ -50,9 +52,9 @@ public class InsidiousXSuspendContext
         this.debugProcess = debugProcess;
 
 
-        ThreadReference newThread = debugProcess.getConnector().getThreadReferenceWithUniqueId((int) thread.uniqueID());
+        InsidiousThreadReference newThread = debugProcess.getConnector().getThreadReferenceWithUniqueId((int) thread.uniqueID());
         if (newThread == null) {
-            newThread = thread;
+            newThread = (InsidiousThreadReference) thread;
         }
         this.thread = (InsidiousThreadReferenceProxy) new InsidiousThreadReferenceProxyImpl(debugProcess.getConnector(), newThread);
         this.suspendPolicy = suspendPolicy;
