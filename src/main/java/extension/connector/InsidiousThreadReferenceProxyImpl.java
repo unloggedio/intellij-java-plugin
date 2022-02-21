@@ -39,7 +39,7 @@ public class InsidiousThreadReferenceProxyImpl implements InsidiousThreadReferen
         return this.virtualMachineProxy;
     }
 
-    public ThreadReference getThreadReference() {
+    public InsidiousThreadReference getThreadReference() {
         return this.threadReference;
     }
 

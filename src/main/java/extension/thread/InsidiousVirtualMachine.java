@@ -3,6 +3,7 @@ package extension.thread;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.EventRequestManager;
+import extension.connector.RequestHint;
 import extension.model.DirectionType;
 import extension.model.ReplayData;
 import network.Client;
@@ -307,7 +308,13 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     public void setTracePoint(TracePoint tracePoint) throws Exception {
         FilteredDataEventsRequest filterDataEventRequest = FilteredDataEventsRequest.fromTracePoint(tracePoint, DirectionType.BACKWARDS);
+        filterDataEventRequest.setPageSize(1000);
         this.replayData = this.client.fetchDataEvents(filterDataEventRequest);
         threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
+    }
+
+    public void doStep(InsidiousThreadReferenceProxy threadReferenceProxy, int size, int depth, RequestHint requestHint) {
+        InsidiousThreadReference threadReference = threadReferenceProxy.getThreadReference();
+        threadReference.doStep(size, depth, requestHint);
     }
 }

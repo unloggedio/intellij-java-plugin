@@ -20,5 +20,7 @@ public interface InsidiousThreadReferenceProxy extends ThreadReferenceProxy {
 
     boolean isSuspended();
 
+    InsidiousThreadReference getThreadReference();
+
     int status();
 }

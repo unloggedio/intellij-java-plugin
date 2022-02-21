@@ -16,7 +16,7 @@ public interface InsidiousDebugProcessListener extends EventListener {
     }
 
     default void paused(@NotNull XSuspendContext suspendContext) {
-        new Exception().printStackTrace();
+//        new Exception().printStackTrace();
     }
 
     default void resumed(XSuspendContext suspendContext) {

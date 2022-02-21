@@ -10,7 +10,8 @@ public class JumpForward extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        e.getProject().getService(ProjectService.class).forward();
+        e.getProject().getService(ProjectService.class).getDebugProcess().startStepOver(null);
+
     }
 
 

@@ -125,6 +125,6 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
 
     @Override
     public ObjectReference thisObject() throws EvaluateException {
-        return null;
+        return stackFrame.thisObject();
     }
 }

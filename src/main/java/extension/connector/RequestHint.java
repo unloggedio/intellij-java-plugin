@@ -54,17 +54,17 @@ public class RequestHint {
     }
 
 
-    public RequestHint(InsidiousXSuspendContext InsidiousXSuspendContext, int stepSize, int depth, @Nullable MethodFilter methodFilter) {
+    public RequestHint(InsidiousXSuspendContext insidiousXSuspendContext, int stepSize, int depth, @Nullable MethodFilter methodFilter) {
         this.mySize = stepSize;
         this.myDepth = depth;
         this.myMethodFilter = methodFilter;
 
         try {
-            this.myFrameCount = InsidiousXSuspendContext.getThreadReferenceProxy().frameCount();
+            this.myFrameCount = insidiousXSuspendContext.getThreadReferenceProxy().frameCount();
         } catch (EvaluateException e) {
             this.myFrameCount = 0;
         }
-        this.myPosition = InsidiousXSuspendContext.getSourcePosition();
+        this.myPosition = insidiousXSuspendContext.getSourcePosition();
     }
 
     public static boolean isProxyMethod(Method method) {

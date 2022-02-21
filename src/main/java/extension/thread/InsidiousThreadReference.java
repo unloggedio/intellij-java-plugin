@@ -1,7 +1,8 @@
 package extension.thread;
 
-import com.sun.istack.logging.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.*;
+import extension.connector.RequestHint;
 import extension.model.DataInfo;
 import extension.model.ReplayData;
 import extension.model.StringInfo;
@@ -18,15 +19,17 @@ import java.util.stream.Collectors;
 public class InsidiousThreadReference implements ThreadReference {
 
 
-    private static final Logger logger = Logger.getLogger(InsidiousThreadReference.class);
+    private static final Logger logger = Logger.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
+    private Integer position;
     private LinkedList<InsidiousStackFrame> stackFrames;
 
     public InsidiousThreadReference(ThreadGroupReference threadGroupReference,
                                     ReplayData replayData, TracePoint tracePoint) {
         this.threadGroupReference = threadGroupReference;
         this.replayData = replayData;
+        position = 0;
         calculateFrames();
     }
 
@@ -42,27 +45,55 @@ public class InsidiousThreadReference implements ThreadReference {
 
         Map<String, InsidiousLocalVariable> variableMap = new HashMap<>();
 
-        InsidiousLocation currentLocation = null;
+//        InsidiousLocation currentLocation = null;
 
-        for (DataEventWithSessionId dataEvent : this.replayData.getDataEvents()) {
+        int methodsToSkip = 0;
+        List<DataEventWithSessionId> dataEventsList = this.replayData.getDataEvents();
+        List<DataEventWithSessionId> subList = dataEventsList.subList(position, dataEventsList.size());
+        int currentClassId = -1; // dataInfoMap.get(String.valueOf(subList.get(0).getDataId())).getClassId();
+
+        for (int index = 0; index < subList.size(); index++) {
+            DataEventWithSessionId dataEvent = subList.get(index);
             DataInfo probeInfo = dataInfoMap.get(String.valueOf(dataEvent.getDataId()));
-            logger.info("Build frame from event type [" + probeInfo.getEventType() + "]");
+            int classId = probeInfo.getClassId();
+            ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
+            if (currentClassId != -1 && currentClassId != classId) {
+                continue;
+            }
+
+
+            System.out.println("[" + (index + position) + "] Build frame from event type [" + dataEvent.getNanoTime() + "] line [" + probeInfo.getLine() + "][" + probeInfo.getEventType() + "]  of class [" + classInfo.getFilename() + "]");
 
             switch (probeInfo.getEventType()) {
                 case LINE_NUMBER:
-                    ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
-                    currentLocation = new InsidiousLocation(classInfo.getFilename(), probeInfo.getLine());
-                    if (currentFrame.location() == null) {
-                        currentFrame.setLocation(currentLocation);
+
+                    if (methodsToSkip == 0) {
+                        currentClassId = classId;
+                        if (currentFrame.location() == null) {
+                            InsidiousLocation currentLocation = new InsidiousLocation(classInfo.getFilename(), probeInfo.getLine() - 1);
+                            currentFrame.setLocation(currentLocation);
+                        }
+//                        currentLocation = null;
                     }
-                    currentLocation = null;
                     break;
 
+                case METHOD_NORMAL_EXIT:
+                    methodsToSkip++;
+                    break;
+//                    currentFrame = stackFrames.pop();
+
                 case METHOD_ENTRY:
-                    stackFrames.add(currentFrame);
-                    currentFrame = new InsidiousStackFrame(currentLocation, this, this.virtualMachine());
+                    if (methodsToSkip == 0) {
+                        stackFrames.add(currentFrame);
+                        currentFrame = new InsidiousStackFrame(null, this, this.virtualMachine());
+                    } else {
+                        methodsToSkip--;
+                    }
                     break;
                 case LOCAL_STORE:
+                case LOCAL_LOAD:
+
+
                     String variableName = probeInfo.getAttribute("Name", null);
                     String variableType = probeInfo.getAttribute("Type", null);
 
@@ -94,6 +125,11 @@ public class InsidiousThreadReference implements ThreadReference {
             }
 
         }
+
+        if (currentFrame.location() != null) {
+            stackFrames.add(currentFrame);
+        }
+
         this.stackFrames = stackFrames;
 
     }
@@ -275,5 +311,34 @@ public class InsidiousThreadReference implements ThreadReference {
     @Override
     public VirtualMachine virtualMachine() {
         return threadGroupReference.virtualMachine();
+    }
+
+    public void doStep(int size, int depth, RequestHint requestHint) {
+
+        List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
+        int currentLineNumber = replayData.getDataInfoMap().get(String.valueOf(dataEvents.get(position).getDataId())).getLine();
+        List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
+        if (size < 0) {
+            for (int i = position; i < dataEvents.size(); i++) {
+                DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
+                DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                if (dataInfo.getLine() != currentLineNumber) {
+                    position = i;
+                    break;
+                }
+            }
+        } else {
+            for (int i = position; i > 0; i--) {
+                DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
+                DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                if (dataInfo.getLine() != currentLineNumber) {
+                    position = i;
+                    break;
+                }
+            }
+        }
+
+
+        calculateFrames();
     }
 }

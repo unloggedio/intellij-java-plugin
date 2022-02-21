@@ -70,6 +70,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     private Location myRunToCursorLocation;
     private TelemetryTracker telemetryTracker;
     private SyntheticFieldBreakpoint myJumpToAssignmentBreakpoint;
+    private XSuspendContext suspendedContext;
 
 
     protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) {
@@ -308,7 +309,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         } else if (state.getInitialThread() != null) {
 
 
-            suspendContext = new InsidiousXSuspendContext(this, (InsidiousThreadReference) state.getInitialThread(), 2);
+            suspendContext = new InsidiousXSuspendContext(this, state.getInitialThread(), 2);
         } else {
             List<InsidiousThreadReferenceProxy> allThreads = getConnector().allThreads();
             if (allThreads.size() > 0) {
@@ -320,7 +321,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 }
 
 
-                suspendContext = new InsidiousXSuspendContext(this, (InsidiousThreadReference) minThread.getThreadReference(), 2);
+                suspendContext = new InsidiousXSuspendContext(this, minThread.getThreadReference(), 2);
             } else {
                 logger.debug(
                         "Cannot pause now since the threads are not created yet.");
@@ -388,8 +389,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void createJumpToAssignmentBreakpoint(ObjectReference objectReference, Field field, XSuspendContext context) {
-        this
-                .myJumpToAssignmentBreakpoint = new SyntheticFieldBreakpoint(getProject(), objectReference, field);
+        this.myJumpToAssignmentBreakpoint = new SyntheticFieldBreakpoint(getProject(), objectReference, field);
 
 
         getConnector().disableAllBreakpoints();
@@ -433,6 +433,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void startStepInto(@Nullable XSuspendContext context) {
+        this.suspendedContext = context;
         stepInto(null, context);
         if (getLastDirectionType() == DirectionType.BACKWARDS) {
             addPerformanceAction(context, "reverse_step_into");
@@ -442,6 +443,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void startStepOut(@Nullable XSuspendContext context) {
+        this.suspendedContext = context;
         this.insidiousEventReaderthread.startWatchingMethodReturn(((InsidiousXSuspendContext) context)
                 .getThreadReferenceProxy().getThreadReference());
         this.connector.doStep((InsidiousXSuspendContext) context, -2, 3);
@@ -454,9 +456,10 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void startStepOver(@Nullable XSuspendContext context) {
+        this.suspendedContext = context;
         this.insidiousEventReaderthread.startWatchingMethodReturn(((InsidiousXSuspendContext) context)
                 .getThreadReferenceProxy().getThreadReference());
-        this.connector.doStep((InsidiousXSuspendContext) context, -2, 2);
+        this.connector.doStep((InsidiousXSuspendContext) context, 2, 2);
 
         if (getLastDirectionType() == DirectionType.BACKWARDS) {
             addPerformanceAction(context, "reverse_step_over");
@@ -508,8 +511,11 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void stepInto(@Nullable MethodFilter smartStepFilter, XSuspendContext suspendContext) {
         RequestHint hint = new RequestHint((InsidiousXSuspendContext) suspendContext, -2, 1, smartStepFilter);
+        this.connector.doStep((InsidiousXSuspendContext) suspendContext, -2, 1, hint);
+    }
 
-
+    public void stepBack(@Nullable MethodFilter smartStepFilter, XSuspendContext suspendContext) {
+        RequestHint hint = new RequestHint((InsidiousXSuspendContext) suspendContext, -2, 1, smartStepFilter);
         this.connector.doStep((InsidiousXSuspendContext) suspendContext, -2, 1, hint);
     }
 

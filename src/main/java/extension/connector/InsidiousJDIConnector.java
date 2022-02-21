@@ -19,6 +19,7 @@ import network.Client;
 import org.jetbrains.annotations.NotNull;
 import pojo.TracePoint;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     @Override
     public @NotNull PositionManager getPositionManager() {
-        return null;
+        return insidiousJavaDebugProcess.getPositionManager();
     }
 
     @Override
@@ -116,7 +117,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     @Override
     public DebugProcess getDebugProcess() {
-        return insidiousJavaDebugProcess.getConnector().getDebugProcess();
+        throw new RuntimeException("use getXDebugProcess() instead");
     }
 
     @Override
@@ -167,8 +168,35 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     }
 
-    public void doStep(InsidiousXSuspendContext suspendContext, int i, int nextStepDepth, RequestHint hint) {
-        new Exception().printStackTrace();
+    public void doStep(InsidiousXSuspendContext suspendContext, int size, int depth, RequestHint requestHint) {
+
+        virtualMachine.doStep(suspendContext.getThreadReferenceProxy(), size, depth, requestHint);
+        insidiousJavaDebugProcess.notifySuspended();
+
+
+//        ThreadReference stepThread = suspendContext.getThreadReferenceProxy().getThreadReference();
+//        if (stepThread == null) {
+//            return;
+//        }
+//        try {
+////            deleteStepRequests(stepThread);
+//            EventRequestManager requestManager = this.virtualMachine.eventRequestManager();
+//            StepRequest stepRequest = requestManager.createStepRequest(stepThread, size, depth);
+//            stepRequest.setSuspendPolicy((suspendContext.getSuspendPolicy() == 1) ? 1 : 2);
+//
+//            if (requestHint != null) {
+//                stepRequest.putProperty(REQUEST_HINT, requestHint);
+//            }
+//            try {
+//                stepRequest.enable();
+//            } catch (IllegalThreadStateException e) {
+//                requestManager.deleteEventRequest(stepRequest);
+//            }
+//        } catch (ObjectCollectedException objectCollectedException) {
+//        }
+//
+//        resume();
+
 
     }
 
@@ -201,8 +229,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
         return null;
     }
 
-    public void doStep(InsidiousXSuspendContext context, int i, int i1) {
-        new Exception().printStackTrace();
+    public void doStep(InsidiousXSuspendContext context, int size, int depth) {
+        doStep(context, size, depth, null);
     }
 
     public void dispose() {
@@ -212,7 +240,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public List<BreakpointRequest> getAllBreakpoints() {
         new Exception().printStackTrace();
-        return null;
+        return Collections.emptyList();
     }
 
     public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught, boolean notifyUncaught, int i, Breakpoint breakpoint) {
