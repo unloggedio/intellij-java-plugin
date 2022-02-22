@@ -6,6 +6,9 @@ import extension.connector.RequestHint;
 import extension.model.DataInfo;
 import extension.model.ReplayData;
 import extension.model.StringInfo;
+import extension.thread.types.InsidiousClassTypeReference;
+import extension.thread.types.InsidiousObjectReference;
+import extension.thread.types.InsidiousTypeFactory;
 import network.pojo.ClassInfo;
 import network.pojo.DataEventWithSessionId;
 import pojo.TracePoint;
@@ -40,12 +43,16 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, ClassInfo> classInfoMap = this.replayData.getClassInfoMap();
         Map<String, StringInfo> stringInfoMap = this.replayData.getStringInfoMap();
 
+        InsidiousObjectReference thisObject = new InsidiousObjectReference(this);
 
-        InsidiousStackFrame currentFrame = new InsidiousStackFrame(null, this, this.virtualMachine());
+        InsidiousStackFrame currentFrame = new InsidiousStackFrame(
+                null,
+                this,
+                thisObject,
+                this.virtualMachine());
 
         Map<String, InsidiousLocalVariable> variableMap = new HashMap<>();
 
-//        InsidiousLocation currentLocation = null;
 
         int methodsToSkip = 0;
         List<DataEventWithSessionId> dataEventsList = this.replayData.getDataEvents();
@@ -54,15 +61,20 @@ public class InsidiousThreadReference implements ThreadReference {
 
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
-            DataInfo probeInfo = dataInfoMap.get(String.valueOf(dataEvent.getDataId()));
+            String dataId = String.valueOf(dataEvent.getDataId());
+            DataInfo probeInfo = dataInfoMap.get(dataId);
             int classId = probeInfo.getClassId();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
             if (currentClassId != -1 && currentClassId != classId) {
                 continue;
             }
+            if (thisObject.referenceType() == null) {
+                thisObject.setReferenceType(new InsidiousClassTypeReference(classInfo.getClassName(), classInfo.getFilename(),
+                        "L" + classInfo.getClassName().replaceAll("/", "."), this.virtualMachine()));
+            }
 
 
-            System.out.println("[" + (index + position) + "] Build frame from event type [" + dataEvent.getNanoTime() + "] line [" + probeInfo.getLine() + "][" + probeInfo.getEventType() + "]  of class [" + classInfo.getFilename() + "]");
+            System.out.println("[" + (index + position) + "] Build [" + dataEvent.getNanoTime() + "] line [" + probeInfo.getLine() + "][" + probeInfo.getEventType() + "]  of class [" + classInfo.getFilename() + "]");
 
             switch (probeInfo.getEventType()) {
                 case LINE_NUMBER:
@@ -85,7 +97,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 case METHOD_ENTRY:
                     if (methodsToSkip == 0) {
                         stackFrames.add(currentFrame);
-                        currentFrame = new InsidiousStackFrame(null, this, this.virtualMachine());
+                        currentFrame = new InsidiousStackFrame(null, this, thisObject, this.virtualMachine());
                     } else {
                         methodsToSkip--;
                     }
@@ -95,15 +107,80 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
                     String variableName = probeInfo.getAttribute("Name", null);
-                    String variableType = probeInfo.getAttribute("Type", null);
 
-                    if (variableMap.containsKey(variableName)) {
+
+                    if (variableMap.containsKey(variableName) || variableName == null) {
                         continue;
+                    }
+
+                    String variableSignature = probeInfo.getAttribute("Type", null);
+                    long objectId = 0;
+
+                    char typeFirstCharacter = variableSignature.charAt(0);
+                    String typeName = variableSignature.substring(1);
+
+                    boolean isArrayType = false;
+                    if (typeFirstCharacter == '[') {
+                        isArrayType = true;
+                        typeName = variableSignature.substring(2);
+                        typeFirstCharacter = variableSignature.charAt(1);
                     }
 
                     Object value = dataEvent.getValue();
 
-                    if (variableType.contains("java/lang/String")) {
+                    switch (typeFirstCharacter) {
+                        case 'L':
+                            // class
+                            objectId = dataEvent.getValue();
+                            String packageName = variableSignature.substring(1);
+                            String[] signatureParts = packageName.split("/");
+                            String qualifiedClassName = typeName.replaceAll("/", ".");
+                            typeName = signatureParts[signatureParts.length - 1];
+                            InsidiousObjectReference objectValue = new InsidiousObjectReference(this);
+                            objectValue.setObjectId(objectId);
+                            objectValue.setReferenceType(new InsidiousClassTypeReference(qualifiedClassName, packageName, variableSignature, this.virtualMachine()));
+
+                            value = objectValue;
+                            break;
+                        case 'Z':
+                            typeName = "boolean";
+                            // boolean
+                            break;
+                        case 'B':
+                            // byte
+                            typeName = "byte";
+                            break;
+                        case 'C':
+                            // char
+                            typeName = "char";
+                            break;
+                        case 'S':
+                            // short
+                            typeName = "short";
+                            break;
+                        case 'I':
+                            // int
+                            typeName = "int";
+                            break;
+                        case 'J':
+                            // long
+                            typeName = "long";
+                            break;
+                        case 'F':
+                            // float
+                            typeName = "float";
+                            break;
+                        case 'D':
+                            // double
+                            typeName = "double";
+                            break;
+                        default:
+                            System.out.println("Invalid type defining character: " + typeFirstCharacter);
+                            break;
+                    }
+
+
+                    if (variableSignature.contains("java/lang/String")) {
                         StringInfo stringInfo = stringInfoMap.get(String.valueOf(value));
                         if (stringInfo != null) {
                             value = stringInfo.getContent();
@@ -112,9 +189,10 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     InsidiousLocalVariable newVariable = new InsidiousLocalVariable(
                             variableName,
-                            variableType,
-                            variableType,
-                            value,
+                            typeName,
+                            variableSignature,
+                            objectId,
+                            new InsidiousValue(InsidiousTypeFactory.typeFrom(typeName, variableSignature, this.virtualMachine()), value, this.virtualMachine()),
                             this.virtualMachine());
 
                     currentFrame.getLocalVariables().add(newVariable);

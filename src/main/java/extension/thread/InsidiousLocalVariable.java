@@ -9,17 +9,19 @@ public class InsidiousLocalVariable implements LocalVariable {
     private final String typeName;
     private final String signature;
     private final VirtualMachine virtualMachine;
-    private final Object value;
+    private final InsidiousValue value;
+    private final long id;
 
-    public InsidiousLocalVariable(String name, String typeName, String signature, Object value, VirtualMachine virtualMachine) {
+    public InsidiousLocalVariable(String name, String typeName, String signature, long objectId, InsidiousValue value, VirtualMachine virtualMachine) {
         this.name = name;
         this.typeName = typeName;
+        this.id = objectId;
         this.signature = signature;
         this.virtualMachine = virtualMachine;
         this.value = value;
     }
 
-    public Object getValue() {
+    public InsidiousValue getValue() {
         return value;
     }
 

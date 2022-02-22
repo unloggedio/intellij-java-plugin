@@ -67,8 +67,7 @@ public class InsidiousFieldReferringObject implements InsidiousReferringObject {
                     }
                 }, hasChildren);
             }
-        }
-                ;
+        };
     }
 }
 

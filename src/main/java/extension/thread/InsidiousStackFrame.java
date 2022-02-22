@@ -1,7 +1,7 @@
 package extension.thread;
 
 import com.sun.jdi.*;
-import extension.thread.types.IntegerTypeImpl;
+import extension.thread.types.InsidiousObjectReference;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,19 +11,19 @@ public class InsidiousStackFrame implements StackFrame {
 
     private final ThreadReference threadReference;
     private final VirtualMachine virtualMachine;
-    private final Value value;
+    private final InsidiousObjectReference thisObject;
+    private final List<LocalVariable> localVariables;
     private InsidiousLocation location;
-    private List<LocalVariable> localVariables;
 
     public InsidiousStackFrame(InsidiousLocation location,
                                ThreadReference threadReference,
+                               InsidiousObjectReference thisObject,
                                VirtualMachine virtualMachine) {
         this.location = location;
         this.threadReference = threadReference;
         this.virtualMachine = virtualMachine;
         this.localVariables = new LinkedList<>();
-
-        value = new InsidiousValue(new IntegerTypeImpl(virtualMachine), virtualMachine);
+        this.thisObject = thisObject;
 
     }
 
@@ -40,7 +40,7 @@ public class InsidiousStackFrame implements StackFrame {
     @Nullable
     @Override
     public ObjectReference thisObject() {
-        return null;
+        return thisObject;
     }
 
     @NotNull
@@ -64,20 +64,26 @@ public class InsidiousStackFrame implements StackFrame {
     @Nullable
     @Override
     public LocalVariable visibleVariableByName(String s) throws AbsentInformationException {
-        return localVariables.get(0);
+        return localVariables.stream().filter(e -> e.name().equals(s)).findFirst().get();
     }
 
     @Override
     public Value getValue(LocalVariable localVariable) {
-        return value;
+        InsidiousLocalVariable variable = (InsidiousLocalVariable) localVariable;
+        return variable.getValue();
     }
 
     @NotNull
     @Override
     public Map<LocalVariable, Value> getValues(List<? extends LocalVariable> list) {
-        return new HashMap<>() {{
-            put(localVariables.get(0), value);
-        }};
+        HashMap<LocalVariable, Value> valueMap = new HashMap<>();
+
+        for (LocalVariable localVariable : list) {
+            InsidiousLocalVariable insidiousVariable = (InsidiousLocalVariable) localVariable;
+            valueMap.put(localVariables.get(0), insidiousVariable.getValue());
+        }
+
+        return valueMap;
     }
 
     @Override

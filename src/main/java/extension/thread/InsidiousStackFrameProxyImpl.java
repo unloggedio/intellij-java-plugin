@@ -7,7 +7,6 @@ import extension.connector.InsidiousStackFrameProxy;
 import extension.thread.types.IntegerTypeImpl;
 
 import java.util.List;
-import java.util.Stack;
 
 public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
     private final InsidiousThreadReferenceProxy threadProxy;
@@ -40,9 +39,7 @@ public class InsidiousStackFrameProxyImpl implements InsidiousStackFrameProxy {
 
     @Override
     public Value getValue(InsidiousLocalVariableProxy paramInsidiousLocalVariableProxy) throws EvaluateException {
-        return new InsidiousValue(new IntegerTypeImpl(
-                threadProxy.getVirtualMachine().getVirtualMachine()),
-                threadProxy.getVirtualMachine().getVirtualMachine());
+        return paramInsidiousLocalVariableProxy.getLocalVariable().getValue();
     }
 
     @Override

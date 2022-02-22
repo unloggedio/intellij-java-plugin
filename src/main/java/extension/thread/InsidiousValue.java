@@ -6,12 +6,18 @@ import com.sun.jdi.VirtualMachine;
 
 public class InsidiousValue implements Value {
 
-    private Type type;
-    private VirtualMachine virtualMachine;
+    private final Type type;
+    private final VirtualMachine virtualMachine;
+    private final Object actualValue;
 
-    public InsidiousValue(Type type, VirtualMachine virtualMachine) {
+    public InsidiousValue(Type type, Object value, VirtualMachine virtualMachine) {
         this.type = type;
+        this.actualValue = value;
         this.virtualMachine = virtualMachine;
+    }
+
+    public Object getActualValue() {
+        return actualValue;
     }
 
     @Override

@@ -115,7 +115,7 @@ public class ClassInfo {
         buf.append(SEPARATOR);
         buf.append(className);
         buf.append(SEPARATOR);
-        buf.append(loglevel.name());
+        buf.append(loglevel != null ? loglevel.name() : "");
         buf.append(SEPARATOR);
         buf.append(hash);
         buf.append(SEPARATOR);

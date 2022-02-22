@@ -68,9 +68,7 @@ public class InsidiousXStackFrame extends XStackFrame {
             List<LocalVariable> variables = stackFrame.visibleVariables();
 
             for (LocalVariable variable : variables) {
-
-                children.add(variable.name(), new InsidiousXValue((InsidiousLocalVariable) variable));
-
+                children.add(variable.name(), new InsidiousXValue(((InsidiousLocalVariable) variable).getValue()));
             }
 
         } catch (EvaluateException | AbsentInformationException e) {

@@ -14,6 +14,8 @@ public interface InsidiousLocalVariableProxy extends LocalVariableProxy {
 
     InsidiousStackFrameProxy getFrame();
 
+    InsidiousLocalVariable getLocalVariable();
+
     boolean isVisible(InsidiousStackFrameProxy paramInsidiousStackFrameProxy);
 
     boolean isArgument();

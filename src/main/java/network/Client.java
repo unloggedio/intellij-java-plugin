@@ -11,6 +11,7 @@ import extension.connector.model.ProjectItem;
 import extension.model.DataInfo;
 import extension.model.ReplayData;
 import extension.model.StringInfo;
+import extension.model.TypeInfo;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
@@ -557,52 +558,10 @@ public class Client {
         Map<String, ClassInfo> classInfo = metadata.getClassInfo();
         Map<String, DataInfo> dataInfo = metadata.getDataInfo();
         Map<String, StringInfo> stringInfo = metadata.getStringInfo();
+        Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
+        Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
 
-//        ArrayList<DataEvent> dataList = new ArrayList<>();
-
-//        for (DataEventWithSessionId dataEvent : dataEventsList) {
-//            long dataId = dataEvent.getDataId();
-//            long dataValue = dataEvent.getValue();
-//            Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(String.valueOf(dataId));
-//            Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
-//
-//            if (attributesMap.containsKey("Instruction")) {
-//                continue;
-//            }
-//
-//            String variableName = (String) attributesMap.get("Name");
-//
-//            if (variableName == null) {
-//                continue;
-//            }
-//
-//            if (Arrays.asList("<init>", "makeConcatWithConstants").contains(variableName)) {
-//                continue;
-//            }
-//
-//            String variableType = (String) attributesMap.get("Type");
-//            int classId = (int) dataInfoTemp.get("classId");
-//            int lineNum = (int) dataInfoTemp.get("line");
-//            Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(String.valueOf(classId));
-//            String filename = (String) classInfoTemp.get("filename");
-//
-//
-//            String dataIdstr = String.valueOf(dataValue);
-//
-//            if (variableType != null) {
-//                if (variableType.contains("java/lang/String")) {
-//                    Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataIdstr);
-//                    if (tempStringJson != null) {
-//                        dataIdstr = (String) tempStringJson.get("content");
-//                    }
-//                }
-//            }
-//
-//            long nanoTime = dataEvent.getNanoTime();
-//            DataEvent varsValues = new DataEvent(lineNum, filename, variableName, dataIdstr, nanoTime);
-//            dataList.add(varsValues);
-//        }
-        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo);
+        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo);
 
     }
 

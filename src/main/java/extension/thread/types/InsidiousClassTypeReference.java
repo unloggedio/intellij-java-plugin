@@ -7,10 +7,9 @@ import java.util.Map;
 
 public class InsidiousClassTypeReference extends InsidiousReferenceType {
 
-    private VirtualMachine virtualMachine;
 
-    public InsidiousClassTypeReference(VirtualMachine virtualMachine) {
-        this.virtualMachine = virtualMachine;
+    public InsidiousClassTypeReference(String name, String sourceName, String signature, VirtualMachine virtualMachine) {
+        super(name, signature, sourceName, virtualMachine);
     }
 
     @Override
@@ -135,6 +134,6 @@ public class InsidiousClassTypeReference extends InsidiousReferenceType {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return this.virtualMachine;
+        return super.virtualMachine();
     }
 }

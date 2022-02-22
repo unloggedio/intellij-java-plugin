@@ -6,15 +6,24 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.Map;
 
-public abstract class InsidiousReferenceType implements ReferenceType {
+public abstract class InsidiousReferenceType extends InsidiousType implements ReferenceType {
+
+    private final String sourceName;
+
+    public InsidiousReferenceType(String name, String signature, String sourceName, VirtualMachine virtualMachine) {
+        super(name, signature, virtualMachine);
+        this.sourceName = sourceName;
+
+    }
+
     @Override
     public String signature() {
-        return null;
+        return super.signature();
     }
 
     @Override
     public String name() {
-        return null;
+        return super.name();
     }
 
     @Override
@@ -29,7 +38,7 @@ public abstract class InsidiousReferenceType implements ReferenceType {
 
     @Override
     public String sourceName() throws AbsentInformationException {
-        return null;
+        return sourceName;
     }
 
     @Override
