@@ -1,6 +1,7 @@
 package extension.thread.types;
 
 import com.sun.jdi.*;
+import extension.thread.InsidiousLocalVariable;
 import extension.thread.InsidiousValue;
 
 import java.util.HashMap;
@@ -10,7 +11,7 @@ import java.util.Map;
 public class InsidiousObjectReference implements ObjectReference {
 
     private ReferenceType referenceType;
-    private final Map<String, InsidiousValue> valueMap;
+    private final Map<String, InsidiousLocalVariable> valueMap;
     private long objectId;
     private final ThreadReference parentThread;
 
@@ -34,19 +35,19 @@ public class InsidiousObjectReference implements ObjectReference {
 
     @Override
     public Value getValue(Field field) {
-        return valueMap.get(field.name());
+        return valueMap.get(field.name()).getValue();
     }
 
     @Override
     public Map<Field, Value> getValues(List<? extends Field> list) {
         Map<Field, Value> values = new HashMap<>();
         for (Field field : list) {
-            values.put(field, valueMap.get(field.name()));
+            values.put(field, valueMap.get(field.name()).getValue());
         }
         return values;
     }
 
-    public Map<String, InsidiousValue> getValues() {
+    public Map<String, InsidiousLocalVariable> getValues() {
         return valueMap;
     }
 

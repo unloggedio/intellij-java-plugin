@@ -30,11 +30,11 @@ public class InsidiousXValue extends XValue {
     public void computeChildren(@NotNull XCompositeNode node) {
         InsidiousObjectReference valueObjectReference = (InsidiousObjectReference) variable.getActualValue();
 
-        Map<String, InsidiousValue> childValues = valueObjectReference.getValues();
+        Map<String, InsidiousLocalVariable> childValues = valueObjectReference.getValues();
 
         @NotNull XValueChildrenList children = new XValueChildrenList();
-        for (Map.Entry<String, InsidiousValue> entry : childValues.entrySet()) {
-            children.add(entry.getKey(), new InsidiousXValue(entry.getValue()));
+        for (Map.Entry<String, InsidiousLocalVariable> entry : childValues.entrySet()) {
+            children.add(entry.getKey(), new InsidiousXValue(entry.getValue().getValue()));
         }
         node.addChildren(children, true);
 
