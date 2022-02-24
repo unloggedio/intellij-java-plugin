@@ -484,8 +484,7 @@ public class InsidiousThreadReference implements ThreadReference {
             for (int i = position; i < dataEvents.size(); i++) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
-                if (dataInfo.getEventType().equals(EventType.METHOD_NORMAL_EXIT) || dataInfo.getEventType().equals(EventType.METHOD_ENTRY)
-                 || dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)) {
+                if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
                     continue;
                 }
                 if (dataInfo.getLine() != currentLineNumber) {
@@ -497,8 +496,7 @@ public class InsidiousThreadReference implements ThreadReference {
             for (int i = position; i > 0; i--) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
-                if (dataInfo.getEventType().equals(EventType.METHOD_NORMAL_EXIT) || dataInfo.getEventType().equals(EventType.METHOD_ENTRY)
-                        || dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)) {
+                if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
                     continue;
                 }
                 if (dataInfo.getLine() != currentLineNumber) {

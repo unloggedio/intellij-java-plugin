@@ -11,6 +11,15 @@ public class ExecutionSession {
     private Date createdAt;
     private String name;
     private String id;
+    private String hostname;
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
 
     public void setLastUpdateAt(long lastUpdateAt) {
         this.lastUpdateAt = lastUpdateAt;

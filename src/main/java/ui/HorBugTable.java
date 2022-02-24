@@ -32,6 +32,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 public class HorBugTable {
@@ -197,12 +198,18 @@ public class HorBugTable {
     private void parseTableItems(List<TracePoint> tracePointCollection) {
         this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
-        Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId"};
+        Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"};
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
             String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1), className, String.valueOf(tracePoint.getLinenum()), String.valueOf(tracePoint.getThreadId())};
+            sampleObject[i] = new String[]{
+                    tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
+                    className,
+                    String.valueOf(tracePoint.getLinenum()),
+                    String.valueOf(tracePoint.getThreadId()),
+                    new Date(tracePoint.getRecordedAt()).toString()
+            };
             i++;
         }
 

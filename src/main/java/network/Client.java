@@ -353,7 +353,16 @@ public class Client {
                         long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
                         JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
                         String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
-                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
+                        TracePoint bug = new TracePoint(classId,
+                                line,
+                                dataId,
+                                threadId,
+                                valueId,
+                                executionSessionId,
+                                filename,
+                                classname,
+                                exceptionClass,
+                                (Long) jsonObject.get("recordedAt"));
                         bugList.add(bug);
 
                     }
@@ -438,7 +447,8 @@ public class Client {
                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         }
 
-                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname, exceptionClass);
+                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname,
+                                exceptionClass, (Long) jsonObject.get("recordedAt"));
                         bugList.add(bug);
 
                     }

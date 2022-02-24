@@ -2,6 +2,7 @@ package pojo;
 
 public class TracePoint {
 
+    private final long recordedAt;
     long classId, linenum, dataId, threadId, value;
     String executionSessionId;
     String filename;
@@ -15,7 +16,8 @@ public class TracePoint {
                       String executionSessionId,
                       String filename,
                       String classname,
-                      String exceptionClass) {
+                      String exceptionClass,
+                      long recordedAt) {
         this.classId = classId;
         this.linenum = linenum;
         this.dataId = dataId;
@@ -25,6 +27,7 @@ public class TracePoint {
         this.filename = filename;
         this.classname = classname;
         this.exceptionClass = exceptionClass;
+        this.recordedAt = recordedAt;
     }
 
     public long getClassId() {
@@ -67,4 +70,7 @@ public class TracePoint {
         this.exceptionClass = exceptionClass;
     }
 
+    public long getRecordedAt() {
+        return 0;
+    }
 }
