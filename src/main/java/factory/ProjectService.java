@@ -66,6 +66,7 @@ public class ProjectService {
         this.project = project;
         currentModule = ModuleManager.getInstance(project).getModules()[0];
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+        this.client = new Client(this.insidiousConfiguration.getServerUrl());
         if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             if (insidiousCredentials != null) {
