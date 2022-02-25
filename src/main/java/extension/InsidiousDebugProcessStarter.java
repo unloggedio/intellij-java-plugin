@@ -6,6 +6,7 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
+import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -35,7 +36,12 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
 
     @Override
     public @NotNull XDebugProcess start(@NotNull XDebugSession session) throws ExecutionException {
-        InsidiousJavaDebugProcess debugProcess = InsidiousJavaDebugProcess.create(session, connection);
+        InsidiousJavaDebugProcess debugProcess = null;
+        try {
+            debugProcess = InsidiousJavaDebugProcess.create(session, connection);
+        } catch (UnauthorizedException e) {
+            throw new ExecutionException(e);
+        }
 
         debugProcess.setExecutionResult(this.executionResult);
         try {

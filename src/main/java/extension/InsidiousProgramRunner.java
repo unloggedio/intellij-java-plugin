@@ -11,8 +11,9 @@ import com.intellij.execution.target.TargetEnvironmentAwareRunProfileState;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.util.NlsSafe;
 import com.intellij.xdebugger.XDebuggerManager;
+import factory.ProjectService;
+import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -42,12 +43,17 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
         @NotNull String moduleName = ModuleManager.getInstance(env.getProject()).getModules()[0].getName();
 
-        RemoteConnection connection = new RemoteConnection("http://localhost:8080", moduleName);
+        RemoteConnection connection;
 
         try {
+            connection = new RemoteConnection("http://localhost:8080", env.getProject().getService(ProjectService.class).getClient());
             ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
+        } catch (UnauthorizedException e) {
+            env.getProject().getService(ProjectService.class).showCredentialsWindow();
+            return null;
         }
         boolean pollTimeout = false;
 

@@ -59,6 +59,8 @@
                     factoryClass="factory.DebuggerFactory"/>
 
         <projectService serviceImplementation="factory.ProjectService"/>
+        <projectService
+                serviceImplementation="factory.InsidiousConfigurationState"/>
         <programRunner implementation="extension.InsidiousProgramRunner"/>
         <configurationType implementation="extension.InsidiousRunConfigType"/>
         <executor implementation="extension.InsidiousExecutor"/>

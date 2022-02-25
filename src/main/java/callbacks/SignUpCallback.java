@@ -2,7 +2,7 @@ package callbacks;
 
 public interface SignUpCallback {
 
-    void error();
+    void error(String string);
 
     void success();
 }

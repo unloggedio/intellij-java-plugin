@@ -4,14 +4,10 @@ import actions.Constants;
 import callbacks.GetProjectSessionErrorsCallback;
 import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
-import com.intellij.xdebugger.XDebugSession;
 import factory.ProjectService;
 import net.minidev.json.JSONObject;
 import network.pojo.ExceptionResponse;
@@ -80,11 +76,8 @@ public class HorBugTable {
         basepath = this.project.getBasePath();
 
         this.projectService = project.getService(ProjectService.class);
-        projectService.startDebugSession();
 
         this.projectService.setHorBugTable(this);
-
-        this.projectService.setServerEndpoint(PropertiesComponent.getInstance().getValue(Constants.BASE_URL));
 
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
@@ -220,54 +213,11 @@ public class HorBugTable {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
-            XDebugSession debugSession = projectService.getDebugSession();
-            projectService.getConnector().setTracePoint(selectedTrace);
-            if (debugSession.isPaused()) {
-                debugSession.resume();
-            }
-            projectService.getDebugSession().pause();
+            projectService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             e.printStackTrace();
-            Messages.showErrorDialog(project, e.getMessage(), "Failed to load trace point");
+            Messages.showErrorDialog(project, e.getMessage(), "Failed");
         }
-
-
-//        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-//        projectService.filterDataEvents(
-//                projectId, filteredDataEventsRequest,
-//                new FilteredDataEventsCallback() {
-//                    @Override
-//                    public void error(ExceptionResponse errrorResponse) {
-//                        System.out.print(errrorResponse);
-//                    }
-//
-//                    @Override
-//                    public void success(List<VarsValues> dataList) {
-//
-//                        String content = JSONArray.toJSONString(dataList);
-//                        String path = project.getBasePath() + "/variablevalues.json";
-//                        File file = new File(path);
-//                        FileWriter fileWriter = null;
-//                        try {
-//                            fileWriter = new FileWriter(file);
-//                            fileWriter.write(content);
-//                            fileWriter.close();
-//                            project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "exceptions");
-//                            varsvaluePane.setVisible(true);
-//                            updateProgressbar("varsvalues", 100);
-//                        } catch (Exception e) {
-//                            e.printStackTrace();
-//                            ExceptionResponse exceptionResponse = new ExceptionResponse();
-//                            exceptionResponse.setMessage(e.getMessage());
-//                            error(exceptionResponse);
-//                            return;
-//                        }
-//
-//                    }
-//                }
-//        );
-
-//        hideTable("varsvalues");
     }
 
     public void setVariables(Collection<DataEvent> dataListTemp) {
@@ -406,25 +356,8 @@ public class HorBugTable {
         PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
     }
 
-    private void showCredentialsWindow() {
+    public void showCredentialsWindow() {
 
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Content exceptionContent = toolWindow.getContentManager().findContent("Exceptions");
-                Content traceContent = toolWindow.getContentManager().findContent("Traces");
-                if (exceptionContent != null) {
-                    toolWindow.getContentManager().removeContent(exceptionContent, true);
-                }
-                if (traceContent != null) {
-                    toolWindow.getContentManager().removeContent(traceContent, true);
-                }
-                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                Credentials credentials = new Credentials(project, toolWindow);
-                Content credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
-                toolWindow.getContentManager().addContent(credentialContent);
-            }
-        });
 
     }
 

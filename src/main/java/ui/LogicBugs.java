@@ -304,8 +304,8 @@ public class LogicBugs {
                     toolWindow.getContentManager().removeContent(traceContent, true);
                 }
                 ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                Credentials credentials = new Credentials(project, toolWindow);
-                Content credentialContent = contentFactory.createContent(credentials.getContent(), "Credentials", false);
+                CredentialsToolbar credentialsToolbar = new CredentialsToolbar(project, toolWindow);
+                Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(), "Credentials", false);
                 toolWindow.getContentManager().addContent(credentialContent);
             }
         });

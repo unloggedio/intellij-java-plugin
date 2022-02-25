@@ -16,6 +16,7 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import network.pojo.*;
+import network.pojo.exceptions.UnauthorizedException;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import pojo.DataEvent;
@@ -30,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Client {
     public static final String SIGN_IN_URL = "/api/auth/signin";
-    public static final String SIGN_UP_URL = "/api/auth/signin";
+    public static final String SIGN_UP_URL = "/api/auth/signup";
     public static final String PROJECTS_URL = "/api/data/projects";
     public static final String PROJECT_URL = "/api/data/project";
     public static final String PROJECT_EXECUTIONS_URL = "/executions";
@@ -43,7 +44,8 @@ public class Client {
     private final ObjectMapper objectMapper = new ObjectMapper();
     OkHttpClient client;
     private ProjectItem project;
-//    private String token;
+    private String token;
+    //    private String token;
 
     public Client(String endpoint) {
         this.endpoint = endpoint;
@@ -55,35 +57,37 @@ public class Client {
 
     }
 
-    public Client(String endpoint, String projectName) throws IOException {
+    public Client(String endpoint, String projectName, String username, String password) throws IOException, UnauthorizedException {
         this.endpoint = endpoint;
-
-
         client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
                 .readTimeout(600, TimeUnit.SECONDS)
                 .writeTimeout(600, TimeUnit.SECONDS)
                 .build();
 
-        String token = this.generateToken("artpar@gmail.com", "parth123");
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, token);
+        token = this.generateToken(username, password);
         this.project = fetchProjectByName(projectName);
     }
 
-    public void signup(String username, String password, SignUpCallback callback) {
+    public void signup(String serverUrl, String username, String password, SignUpCallback callback) {
         logger.info("Sign up for email => " + username);
         JSONObject json = new JSONObject();
         json.put("email", username);
         json.put("password", password);
-        post(endpoint + SIGN_UP_URL, json.toJSONString(), new Callback() {
+        post(serverUrl + SIGN_UP_URL, json.toJSONString(), new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                callback.error();
+                callback.error(e.getMessage());
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                callback.success();
+
+                if (response.code() == 200) {
+                    callback.success();
+                } else {
+                    callback.error(response.body().string());
+                }
             }
         });
     }
@@ -96,7 +100,7 @@ public class Client {
         post(endpoint + SIGN_IN_URL, json.toJSONString(), new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                signInCallback.error();
+                signInCallback.error(e.getMessage());
             }
 
             @Override
@@ -104,7 +108,7 @@ public class Client {
                 logger.info("Sign in successful");
 
                 if (response.code() == 401) {
-                    signInCallback.error();
+                    signInCallback.error(response.message());
                     return;
                 }
 
@@ -137,7 +141,7 @@ public class Client {
         get(endpoint + Constants.PROJECT_URL + "?name=" + projectName, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                getProjectCallback.error();
+                getProjectCallback.error(e.getMessage());
             }
 
             @Override
@@ -157,7 +161,7 @@ public class Client {
         });
     }
 
-    public ProjectItem fetchProjectByName(String projectName) throws IOException {
+    public ProjectItem fetchProjectByName(String projectName) throws IOException, UnauthorizedException {
         logger.info("Get project by name => " + projectName);
         TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<>() {
         };
@@ -186,7 +190,7 @@ public class Client {
         post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + projectId, "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                projectTokenCallback.error();
+                projectTokenCallback.error(e.getMessage());
             }
 
             @Override
@@ -204,7 +208,6 @@ public class Client {
         Request.Builder builder = new Request.Builder();
 
         builder.url(url);
-        String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
         if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
@@ -221,7 +224,6 @@ public class Client {
         Request.Builder builder = new Request.Builder();
 
         builder.url(url);
-        String token = PropertiesComponent.getInstance().getValue(Constants.TOKEN);
         if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
@@ -235,20 +237,26 @@ public class Client {
     private void get(String url, Callback callback) {
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + PropertiesComponent.getInstance().getValue(Constants.TOKEN))
+                .addHeader("Authorization", "Bearer " + token)
                 .build();
         client.newCall(request).enqueue(callback);
 
     }
 
-    private <T> T get(String url, TypeReference<T> typeReference) throws IOException {
+    private <T> T get(String url, TypeReference<T> typeReference) throws IOException, UnauthorizedException {
         Request request = new Request.Builder()
                 .url(url)
-                .addHeader("Authorization", "Bearer " + PropertiesComponent.getInstance().getValue(Constants.TOKEN))
+                .addHeader("Authorization", "Bearer " + token)
                 .build();
         Response response;
         response = client.newCall(request).execute();
+
+        if (response.code() == 401) {
+            throw new UnauthorizedException();
+        }
+
         T result = objectMapper.readValue(response.body().string(), typeReference);
+
         return result;
     }
 
@@ -278,7 +286,7 @@ public class Client {
         });
     }
 
-    public DataResponse<ExecutionSession> fetchProjectSessions() throws IOException {
+    public DataResponse<ExecutionSession> fetchProjectSessions() throws IOException, UnauthorizedException {
         String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
         };
@@ -575,4 +583,7 @@ public class Client {
 
     }
 
+    public String getToken() {
+        return token;
+    }
 }

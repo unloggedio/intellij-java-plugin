@@ -10,6 +10,7 @@ import network.Client;
 import network.pojo.DataResponse;
 import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
+import network.pojo.exceptions.UnauthorizedException;
 import pojo.TracePoint;
 
 import java.io.IOException;
@@ -24,7 +25,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
     private ThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
 
-    public InsidiousVirtualMachine(Client client) {
+    public InsidiousVirtualMachine(Client client) throws UnauthorizedException {
         this.client = client;
         DataResponse<ExecutionSession> sessions = null;
         try {

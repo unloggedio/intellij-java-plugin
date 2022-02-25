@@ -2,7 +2,7 @@ package callbacks;
 
 public interface SignInCallback {
 
-    void error();
+    void error(String errorMessage);
 
     void success(String token);
 }

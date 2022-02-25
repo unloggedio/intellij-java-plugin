@@ -1,34 +1,22 @@
 package extension;
 
-import com.intellij.openapi.util.NlsSafe;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import network.Client;
-import org.jetbrains.annotations.NotNull;
-
-import java.io.IOException;
+import network.pojo.exceptions.UnauthorizedException;
 
 public class RemoteConnection {
+    private final static Logger logger = Logger.getInstance(RemoteConnection.class);
     private final Client client;
-    private final String projectName;
     private boolean myUseSockets;
     private String myHostName;
     private String myAddress;
 
-    public RemoteConnection(String address, @NotNull @NlsSafe String projectName) {
-        Client client = null;
-        try {
-            client = new Client(address, projectName);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        this.myAddress = address;
+    public RemoteConnection(String address, Client client) throws UnauthorizedException {
         this.client = client;
-        this.projectName = projectName;
+        this.myAddress = address;
     }
 
-    public String getProjectName() {
-        return projectName;
-    }
 
     public Client getClient() {
         return client;

@@ -37,6 +37,7 @@ import extension.smartstep.MethodFilter;
 import extension.thread.InsidiousThreadReference;
 import extension.thread.InsidiousThreadReferenceProxy;
 import factory.ProjectService;
+import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
@@ -73,7 +74,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     private XSuspendContext suspendedContext;
 
 
-    protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) {
+    protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) throws UnauthorizedException {
         super(session);
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
@@ -118,7 +119,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         session.setPauseActionSupported(true);
     }
 
-    public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session, @NotNull RemoteConnection connection) {
+    public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session, @NotNull RemoteConnection connection) throws UnauthorizedException {
         logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getAddress());
         InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
         session.getProject().getService(ProjectService.class).setDebugSession(session);
