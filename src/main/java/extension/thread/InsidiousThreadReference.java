@@ -66,10 +66,21 @@ public class InsidiousThreadReference implements ThreadReference {
         List<DataEventWithSessionId> subList = dataEventsList.subList(position, dataEventsList.size());
         int currentClassId = -1; // dataInfoMap.get(String.valueOf(subList.get(0).getDataId())).getClassId();
 
-        InsidiousLocalVariable fieldVariable = null;
+        List<InsidiousLocalVariable> fieldVariableList = new LinkedList<>();
         fieldVariableMap = new HashMap<>();
         variableMap = new HashMap<>();
         objectReferenceMap = new HashMap<>();
+
+        ClassInfo firstClassInfo = classInfoMap.get(
+                String.valueOf(
+                        dataInfoMap.get(
+                                String.valueOf(subList.get(0).getDataId())
+                        ).getClassId())
+        );
+        if (thisObject.referenceType() == null) {
+            thisObject.setReferenceType(new InsidiousClassTypeReference(firstClassInfo.getClassName(), firstClassInfo.getFilename(),
+                    "L" + firstClassInfo.getClassName().replaceAll("/", "."), this.virtualMachine()));
+        }
 
 
         for (int index = 0; index < subList.size(); index++) {
@@ -81,10 +92,6 @@ public class InsidiousThreadReference implements ThreadReference {
 //            if (currentClassId != -1 && currentClassId != classId) {
 //                continue;
 //            }
-            if (thisObject.referenceType() == null) {
-                thisObject.setReferenceType(new InsidiousClassTypeReference(classInfo.getClassName(), classInfo.getFilename(),
-                        "L" + classInfo.getClassName().replaceAll("/", "."), this.virtualMachine()));
-            }
 
 
             System.out.println("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
@@ -92,36 +99,51 @@ public class InsidiousThreadReference implements ThreadReference {
                     + "]  of class [" + classInfo.getFilename() + "] => [" + dataEvent.getValue() + "]");
 
             switch (probeInfo.getEventType()) {
+                case PUT_INSTANCE_FIELD:
                 case GET_INSTANCE_FIELD:
                     long objectId = dataEvent.getValue();
 
+                    if (methodsToSkip == 0 && thisObject.uniqueID() == 0) {
+                        thisObject.setObjectId(objectId);
+                        objectReferenceMap.put(objectId, thisObject);
+                    }
+
                     if (objectReferenceMap.containsKey(objectId)) {
                         InsidiousObjectReference variable = objectReferenceMap.get(objectId);
-                        assert fieldVariable != null;
-                        if (!variable.getValues().containsKey(fieldVariable.name())) {
-                            variable.getValues().put(fieldVariable.name(), fieldVariable);
+                        assert fieldVariableList != null;
+
+                        List<InsidiousLocalVariable> variablesToRemove = new LinkedList<>();
+                        for (InsidiousLocalVariable insidiousLocalVariable : fieldVariableList) {
+                            if (!variable.getValues().containsKey(insidiousLocalVariable.name())) {
+                                variable.getValues().put(insidiousLocalVariable.name(), insidiousLocalVariable);
+                                variablesToRemove.add(insidiousLocalVariable);
+                            }
                         }
+                        fieldVariableList.removeAll(variablesToRemove);
+
+
                     } else {
                         ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(objectId));
                         TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
                         if (!fieldVariableMap.containsKey(objectId)) {
                             fieldVariableMap.put(objectId, new LinkedList<>());
                         }
-                        if (fieldVariable != null) {
-                            fieldVariableMap.get(objectId).add(fieldVariable);
+                        if (fieldVariableList != null && fieldVariableList.size() > 0) {
+                            fieldVariableMap.get(objectId).addAll(fieldVariableList);
+                            fieldVariableList = new LinkedList<>();
                         }
                     }
 
 
                     break;
 
+                case PUT_INSTANCE_FIELD_VALUE:
                 case GET_INSTANCE_FIELD_RESULT:
 
 
                     String fieldName = probeInfo.getAttribute("FieldName", null);
-
-                    String fieldTypeName;
-                    fieldVariable = buildLocalVariable(fieldName, dataEvent, probeInfo);
+                    InsidiousLocalVariable fieldVariableInstance = buildLocalVariable(fieldName, dataEvent, probeInfo);
+                    fieldVariableList.add(fieldVariableInstance);
 
                     break;
 
@@ -507,6 +529,13 @@ public class InsidiousThreadReference implements ThreadReference {
         }
 
 
-        calculateFrames();
+        try {
+
+            calculateFrames();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+
     }
 }

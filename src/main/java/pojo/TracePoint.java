@@ -71,6 +71,6 @@ public class TracePoint {
     }
 
     public long getRecordedAt() {
-        return 0;
+        return recordedAt;
     }
 }

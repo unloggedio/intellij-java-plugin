@@ -334,18 +334,6 @@ public class ProjectService {
         tracer = new CodeTracer(project, selectedTrace, order, source);
     }
 
-    public void back() {
-        if (tracer != null) {
-            tracer.back();
-        }
-    }
-
-    public void forward() {
-        if (tracer != null) {
-            tracer.forward();
-        }
-    }
-
     public ProcessHandler getProcessHandler() {
         return processHandler;
     }

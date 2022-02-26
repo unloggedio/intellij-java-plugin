@@ -1,10 +1,13 @@
 package extension.thread;
 
-import com.intellij.debugger.engine.DebugProcessImpl;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
+import com.intellij.debugger.ui.impl.watch.MethodsTracker;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
-import com.intellij.xdebugger.frame.*;
+import com.intellij.xdebugger.frame.XCompositeNode;
+import com.intellij.xdebugger.frame.XNamedValue;
+import com.intellij.xdebugger.frame.XStackFrame;
+import com.intellij.xdebugger.frame.XValueChildrenList;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.LocalVariable;
 import com.sun.jdi.ObjectReference;
@@ -12,6 +15,9 @@ import com.sun.jdi.StackFrame;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousXSuspendContext;
 import extension.connector.InsidiousStackFrameProxy;
+import extension.descriptor.InsidiousJavaValue;
+import extension.descriptor.InsidiousStackFrameDescriptorImpl;
+import extension.descriptor.renderer.InsidiousNodeManagerImpl;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluationContextImpl;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +33,7 @@ public class InsidiousXStackFrame extends XStackFrame {
     private final InsidiousXSuspendContext insidiousXSuspendContext;
     private final InsidiousStackFrameProxy insidiousStackFrameProxy;
     private final XSourcePosition xSourcePosition;
-    private DebugProcessImpl myDebugProcess;
+    private final InsidiousStackFrameDescriptorImpl myDescriptor;
 
     public InsidiousXStackFrame(InsidiousJavaDebugProcess insidiousJavaDebugProcess,
                                 InsidiousXSuspendContext insidiousXSuspendContext,
@@ -36,12 +42,14 @@ public class InsidiousXStackFrame extends XStackFrame {
         this.insidiousXSuspendContext = insidiousXSuspendContext;
         this.insidiousStackFrameProxy = insidiousStackFrameProxy;
         this.xSourcePosition = xSourcePosition;
+        this.myDescriptor = new InsidiousStackFrameDescriptorImpl(insidiousStackFrameProxy, new MethodsTracker());
     }
 
     @Override
     public @Nullable XSourcePosition getSourcePosition() {
         return xSourcePosition;
     }
+
 
     @Override
     public void computeChildren(@NotNull XCompositeNode node) {
@@ -60,10 +68,28 @@ public class InsidiousXStackFrame extends XStackFrame {
         node.addChildren(children, true);
     }
 
+
+    protected XNamedValue createThisNode(EvaluationContext context) {
+        InsidiousNodeManagerImpl nodeManager = this.insidiousJavaDebugProcess.getInsidiousNodeManager();
+        ObjectReference thisObjectReference = this.myDescriptor.getThisObject();
+        if (thisObjectReference != null) {
+            return InsidiousJavaValue.create(nodeManager
+                    .getThisDescriptor(null, thisObjectReference), context, nodeManager);
+        }
+        return null;
+    }
+
     private void buildVariables(EvaluationContext evaluationContextImpl, XValueChildrenList children) {
 
         StackFrame stackFrame;
         try {
+
+            XNamedValue thisNode = createThisNode(evaluationContextImpl);
+            if (thisNode != null) {
+                children.add(thisNode);
+            }
+
+
             stackFrame = this.insidiousStackFrameProxy.getStackFrame();
             List<LocalVariable> variables = stackFrame.visibleVariables();
 

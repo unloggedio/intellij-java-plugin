@@ -108,6 +108,6 @@ public class InsidiousObjectReference implements ObjectReference {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return null;
+        return referenceType.virtualMachine();
     }
 }

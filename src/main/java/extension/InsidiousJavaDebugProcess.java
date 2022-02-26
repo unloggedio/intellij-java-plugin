@@ -56,7 +56,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     private final Alarm myStatusUpdateAlarm = new Alarm();
     private final InsidiousJavaSmartStepIntoActionHandler mySmartStepIntoActionHandler;
     private final InsidiousJDIConnector connector;
-    private final InsidiousNodeManagerImpl InsidiousNodeManager;
+    private final InsidiousNodeManagerImpl insidiousNodeManager;
     private final InsidiousCompoundPositionManager myPositionManager;
     private final InsidiousBreakpointHandler[] myBreakpointHandlers;
     private final RemoteConnection myConnection;
@@ -82,7 +82,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         session.getProject().getService(ProjectService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
-        this.InsidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
+        this.insidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
         this.myPositionManager = ReadAction.compute(() -> new InsidiousCompoundPositionManager(new InsidiousPositionManager(this)));
 
         InsidiousBreakpointHandler[] handlers = {
@@ -230,7 +230,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public InsidiousNodeManagerImpl getInsidiousNodeManager() {
-        return this.InsidiousNodeManager;
+        return this.insidiousNodeManager;
     }
 
     public Sdk getAlternativeJre() {
