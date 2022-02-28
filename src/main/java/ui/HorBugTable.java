@@ -1,8 +1,6 @@
 package ui;
 
 import actions.Constants;
-import callbacks.GetProjectSessionErrorsCallback;
-import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -10,8 +8,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
 import factory.InsidiousService;
 import net.minidev.json.JSONObject;
-import network.pojo.ExceptionResponse;
-import network.pojo.ExecutionSession;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import pojo.DataEvent;
@@ -26,7 +22,6 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -63,8 +58,7 @@ public class HorBugTable {
     private JButton custombugButton;
     private JProgressBar progressBarfield;
     private JLabel errorLabel;
-    private JProgressBar variableProgressbar;
-    private JLabel varvalueErrorLabel;
+    private JTextArea commandTextArea;
     private JButton applybutton;
     private JTextField traceIdfield;
     private JLabel someLable;
@@ -128,8 +122,11 @@ public class HorBugTable {
 
         initBugTypeTable();
 
-        variableProgressbar.setVisible(false);
 
+    }
+
+    public void setCommandText(String text) {
+        commandTextArea.setText(text);
     }
 
     public JPanel getContent() {
@@ -145,7 +142,8 @@ public class HorBugTable {
                 return false;
             }
         };
-        getLastSessions();
+
+        insidiousService.getErrors(0);
 
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
@@ -160,33 +158,6 @@ public class HorBugTable {
 
     }
 
-    private void getErrors(int pageNum, String sessionId) throws Exception {
-
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(
-                projectId, sessionId, classList,
-                new GetProjectSessionErrorsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        updateProgressbar("bugs", 100);
-                        if (tracePointCollection.size() == 0) {
-                            updateErrorLabel("No data available, or data may have been deleted!");
-                        } else {
-                            updateErrorLabel("");
-                            scrollpanel.setVisible(true);
-                            parseTableItems(tracePointCollection);
-                        }
-
-                    }
-                });
-
-    }
 
     private void parseTableItems(List<TracePoint> tracePointCollection) {
         this.bugList = tracePointCollection;
@@ -241,31 +212,6 @@ public class HorBugTable {
         this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
         this.varsValuesTable.setAutoCreateRowSorter(true);
 
-    }
-
-    private void getLastSessions() {
-        project.getService(InsidiousService.class).getProjectSessions(
-                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
-                new GetProjectSessionsCallback() {
-                    @Override
-                    public void error(String message) {
-                        if (message.equals("401")) {
-                            clearAll();
-                            showCredentialsWindow();
-                        }
-                    }
-
-                    @Override
-                    public void success(List<ExecutionSession> executionSessionList) {
-                        try {
-                            getErrors(0, executionSessionList.get(0).getId());
-                            updateProgressbar("bugs", 50);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-        hideTable("bugs");
     }
 
     private void initBugTypeTable() {
@@ -352,43 +298,24 @@ public class HorBugTable {
         PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
     }
 
-    private void clearAll() {
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
-    }
-
-    public void showCredentialsWindow() {
-
-
-    }
 
     private void hideTable(String table) {
         if (table.equals("bugs")) {
             progressBarfield.setVisible(true);
             scrollpanel.setVisible(false);
         } else if (table.equals("varsvalues")) {
-            variableProgressbar.setVisible(true);
             varsvaluePane.setVisible(false);
         }
 
     }
 
-    private void updateProgressbar(String table, int value) {
-
-        if (table.equals("bugs")) {
-            progressBarfield.setValue(value);
-            if (value == 100) {
-                progressBarfield.setVisible(false);
-            }
-        } else if (table.equals("varsvalues")) {
-            variableProgressbar.setValue(value);
-            if (value == 100) {
-                variableProgressbar.setVisible(false);
-            }
-        }
-
-    }
 
     private void updateErrorLabel(String text) {
         errorLabel.setText(text);
+    }
+
+    public void setTracePoints(List<TracePoint> tracePointCollection) {
+        scrollpanel.setVisible(true);
+        parseTableItems(tracePointCollection);
     }
 }

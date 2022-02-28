@@ -7,6 +7,8 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
+import network.pojo.DataResponse;
+import network.pojo.ExecutionSession;
 import network.pojo.exceptions.APICallException;
 import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
@@ -40,7 +42,12 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
     public @NotNull XDebugProcess start(@NotNull XDebugSession session) throws ExecutionException {
         InsidiousJavaDebugProcess debugProcess = null;
         try {
-            debugProcess = InsidiousJavaDebugProcess.create(session, connection);
+            DataResponse<ExecutionSession> sessionsList = connection.getClient().fetchProjectSessions();
+            if (sessionsList.getItems().size() == 0) {
+                throw new ExecutionException("Couldn't find any session for [" + connection.getClient().getProject().getName() + "]. Start recording data with the java agent");
+            }
+
+            debugProcess = InsidiousJavaDebugProcess.create(session, connection, sessionsList.getItems().get(0));
         } catch (UnauthorizedException e) {
             e.printStackTrace();
             throw new ExecutionException(e);

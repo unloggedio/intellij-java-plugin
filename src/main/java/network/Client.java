@@ -44,7 +44,7 @@ public class Client {
     OkHttpClient client;
     private ProjectItem project;
     private String token;
-    //    private String token;
+    private ExecutionSession session;
 
     public Client(String endpoint) {
         this.endpoint = endpoint;
@@ -68,6 +68,14 @@ public class Client {
         if (token == null) {
             throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "]");
         }
+    }
+
+    public ExecutionSession getSession() {
+        return session;
+    }
+
+    public void setSession(ExecutionSession session) {
+        this.session = session;
     }
 
     public void signup(String serverUrl, String username, String password, SignUpCallback callback) {
@@ -297,6 +305,10 @@ public class Client {
                     getProjectSessionsCallback.error("401");
                     return;
                 }
+                if (response.code() == 400) {
+                    getProjectSessionsCallback.error("400");
+                    return;
+                }
                 TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
                 };
                 DataResponse<ExecutionSession> sessionList = objectMapper.readValue(response.body().string(), typeReference);
@@ -313,13 +325,13 @@ public class Client {
         return get(executionsUrl, typeReference);
     }
 
-    public void getTracesByClassForProjectAndSessionId(String projectId, String sessionId,
+    public void getTracesByClassForProjectAndSessionId(String projectId,
                                                        GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + projectId
                 + TRACE_BY_EXCEPTION
-                + "/" + sessionId
+                + "/" + this.session.getId()
                 + "?exceptionClass="
                 + PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES)
                 + "&pageNumber=" + 0
@@ -403,13 +415,13 @@ public class Client {
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + projectId
                 + TRACE_BY_STRING
-                + "/" + sessionId
+                + "/" + this.session.getId()
                 + "?traceValue="
                 + traceId
                 + "&pageNumber=" + 0

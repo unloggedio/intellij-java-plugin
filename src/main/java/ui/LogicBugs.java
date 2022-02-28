@@ -2,8 +2,6 @@ package ui;
 
 import actions.Constants;
 import callbacks.FilteredDataEventsCallback;
-import callbacks.GetProjectSessionErrorsCallback;
-import callbacks.GetProjectSessionsCallback;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
@@ -18,10 +16,9 @@ import factory.InsidiousService;
 import net.minidev.json.JSONArray;
 import network.pojo.DebugPoint;
 import network.pojo.ExceptionResponse;
-import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
-import pojo.TracePoint;
 import pojo.DataEvent;
+import pojo.TracePoint;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -41,6 +38,7 @@ import java.util.List;
 public class LogicBugs {
     private final Project project;
     private final ToolWindow toolWindow;
+    private final InsidiousService insidiousService;
     DefaultTableCellRenderer centerRenderer;
     private JPanel mainpanel;
     private JPanel searchPanel;
@@ -60,7 +58,6 @@ public class LogicBugs {
     private JScrollPane scrollpanel;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
-    private final InsidiousService insidiousService;
 
     public LogicBugs(Project project, ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
@@ -74,8 +71,7 @@ public class LogicBugs {
                     Messages.showInfoMessage("Empty String reference is not allowed", "Empty String");
                     return;
                 }
-                getLastSessionsForTraces();
-                hideTable("bugs");
+                insidiousService.getTraces(0, traceIdfield.getText());
             }
         });
 
@@ -124,53 +120,6 @@ public class LogicBugs {
 
     public JPanel getContent() {
         return mainpanel;
-    }
-
-    private void getLastSessionsForTraces() {
-        project.getService(InsidiousService.class).getProjectSessions(
-                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
-                new GetProjectSessionsCallback() {
-                    @Override
-                    public void error(String message) {
-                        if (message.equals("401")) {
-                            clearAll();
-                            showCredentialsWindow();
-                        }
-                    }
-
-                    @Override
-                    public void success(List<ExecutionSession> executionSessionList) {
-                        try {
-                            getTraces(0, executionSessionList.get(0).getId(), traceIdfield.getText());
-                            updateProgressbar("bugs", 50);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
-    }
-
-    private void getTraces(int pageNum, String sessionId, String traceValue) {
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId,
-                traceValue, new GetProjectSessionErrorsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        updateProgressbar("bugs", 100);
-                        if (tracePointCollection.size() == 0) {
-                            updateErrorLabel("No data availalbe, or data may have been deleted!");
-                        } else {
-                            updateErrorLabel("");
-                            scrollpanel.setVisible(true);
-                            parseTableItems(tracePointCollection);
-                        }
-                    }
-                });
     }
 
     private void parseTableItems(List<TracePoint> tracePointCollection) {
@@ -254,13 +203,10 @@ public class LogicBugs {
                             }
                         });
                         varsvaluePane.setVisible(true);
-                        updateProgressbar("varsvalues", 100);
-
 
                     }
                 }
         );
-        hideTable("varsvalues");
     }
 
     public void setVariables(Collection<DataEvent> dataListTemp) {
@@ -312,34 +258,9 @@ public class LogicBugs {
 
     }
 
-    private void hideTable(String table) {
-        if (table.equals("bugs")) {
-            progressBarfield.setVisible(true);
-            scrollpanel.setVisible(false);
-        } else if (table.equals("varsvalues")) {
-            variableProgressbar.setVisible(true);
-            varsvaluePane.setVisible(false);
-        }
 
-    }
-
-    private void updateProgressbar(String table, int value) {
-
-        if (table.equals("bugs")) {
-            progressBarfield.setValue(value);
-            if (value == 100) {
-                progressBarfield.setVisible(false);
-            }
-        } else if (table.equals("varsvalues")) {
-            variableProgressbar.setValue(value);
-            if (value == 100) {
-                variableProgressbar.setVisible(false);
-            }
-        }
-
-    }
-
-    private void updateErrorLabel(String text) {
-        errorLabel.setText(text);
+    public void setTracePoints(List<TracePoint> tracePointCollection) {
+        scrollpanel.setVisible(true);
+        parseTableItems(tracePointCollection);
     }
 }

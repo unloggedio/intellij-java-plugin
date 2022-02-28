@@ -30,6 +30,7 @@ import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousRunConfigType;
 import extension.connector.InsidiousJDIConnector;
 import network.Client;
+import network.pojo.ExceptionResponse;
 import network.pojo.FilteredDataEventsRequest;
 import network.pojo.exceptions.ProjectDoesNotExistException;
 import network.pojo.exceptions.UnauthorizedException;
@@ -40,6 +41,7 @@ import ui.HorBugTable;
 import ui.LogicBugs;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
@@ -241,12 +243,12 @@ public class InsidiousService {
                     }
                 });
 
-                credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+                getHorBugTable().setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
                         + "=i=<YOUR-PACKAGE-NAME>,"
                         + "server="
-                        + PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
+                        + insidiousConfiguration.serverUrl
                         + ",token="
-                        + PropertiesComponent.getInstance().getValue(Constants.PROJECT_TOKEN) + "\""
+                        + token + "\""
                         + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
 
             }
@@ -270,15 +272,59 @@ public class InsidiousService {
         this.client.getProjectSessions(projectId, getProjectSessionsCallback);
     }
 
-    public void getTracesByClassForProjectAndSessionId(String projectId, String sessionId,
+    public void getTracesByClassForProjectAndSessionId(String projectId,
                                                        List<String> classList,
                                                        GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(projectId, sessionId, getProjectSessionErrorsCallback);
+        this.client.getTracesByClassForProjectAndSessionId(projectId, getProjectSessionErrorsCallback);
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String sessionId, String traceId,
+    public void getTraces(int pageNum, String traceValue) {
+        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId,
+                traceValue, new GetProjectSessionErrorsCallback() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to get traces");
+                    }
+
+                    @Override
+                    public void success(List<TracePoint> tracePointCollection) {
+                        if (tracePointCollection.size() == 0) {
+                            Messages.showErrorDialog(project, "No data availalbe, or data may have been deleted!", "No Data");
+                        } else {
+                            logicBugs.setTracePoints(tracePointCollection);
+                        }
+                    }
+                });
+    }
+
+    public void getErrors(int pageNum) {
+
+        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+        List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(
+                projectId, classList,
+                new GetProjectSessionErrorsCallback() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to load sessions");
+                    }
+
+                    @Override
+                    public void success(List<TracePoint> tracePointCollection) {
+                        if (tracePointCollection.size() == 0) {
+                            Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+                        } else {
+                            bugsTable.setTracePoints(tracePointCollection);
+                        }
+                    }
+                });
+
+    }
+
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId, traceId, getProjectSessionErrorsCallback);
+        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, traceId, getProjectSessionErrorsCallback);
     }
 
     public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest, FilteredDataEventsCallback filteredDataEventsCallback) {
