@@ -51,6 +51,7 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
         } catch (IOException e) {
             e.printStackTrace();
             Messages.showErrorDialog(session.getProject(), "Failed to connect with server - " + e.getMessage(), "Failed");
+            throw new ExecutionException(e);
         }
 
         debugProcess.setExecutionResult(this.executionResult);
