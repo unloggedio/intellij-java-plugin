@@ -3,16 +3,23 @@ package extension.thread.types;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public abstract class InsidiousReferenceType extends InsidiousType implements ReferenceType {
 
     private final String sourceName;
+    private final Map<String, Field> fields;
 
-    public InsidiousReferenceType(String name, String signature, String sourceName, VirtualMachine virtualMachine) {
+    public InsidiousReferenceType(String name,
+                                  String signature,
+                                  String sourceName,
+                                  Map<String, Field> fields, VirtualMachine virtualMachine
+    ) {
         super(name, signature, virtualMachine);
         this.sourceName = sourceName;
+        this.fields = fields;
 
     }
 
@@ -103,7 +110,7 @@ public abstract class InsidiousReferenceType extends InsidiousType implements Re
 
     @Override
     public List<Field> allFields() {
-        return null;
+        return new ArrayList<>(fields.values());
     }
 
     @Override

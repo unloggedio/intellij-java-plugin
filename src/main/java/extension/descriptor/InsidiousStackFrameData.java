@@ -18,9 +18,8 @@ public class InsidiousStackFrameData
     private final MethodsTracker myMethodsTracker;
     public InsidiousStackFrameData(@NotNull InsidiousStackFrameProxy frame) {
         this.myFrame = frame;
-        this
-
-                .myDisplayKey = new FrameDisplayKey(InsidiousNodeManagerImpl.getContextKeyForFrame((StackFrameProxy) frame));
+        this.myDisplayKey =
+                new FrameDisplayKey(InsidiousNodeManagerImpl.getContextKeyForFrame((StackFrameProxy) frame));
         this.myMethodsTracker = new MethodsTracker();
     }
 

@@ -2,7 +2,9 @@ package network.pojo;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import extension.model.DataInfo;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class ClassInfo {
@@ -13,13 +15,13 @@ public class ClassInfo {
     private String container;
     private String filename;
     private String className;
+    private List<DataInfo> dataInfoList;
     @JsonIgnore
     private LogLevel loglevel;
     @JsonIgnore
     private String hash;
     @JsonIgnore
     private String classLoaderIdentifier;
-
 
     public ClassInfo() {
     }
@@ -64,6 +66,14 @@ public class ClassInfo {
         String id = sc.next();
         sc.close();
         return new ClassInfo(classId, container, filename, className, level, hash, id);
+    }
+
+    public List<DataInfo> getDataInfoList() {
+        return dataInfoList;
+    }
+
+    public void setDataInfoList(List<DataInfo> dataInfoList) {
+        this.dataInfoList = dataInfoList;
     }
 
     public int getClassId() {

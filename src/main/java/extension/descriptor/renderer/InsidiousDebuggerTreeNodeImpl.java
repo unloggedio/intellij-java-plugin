@@ -13,8 +13,8 @@ import com.intellij.ui.SimpleColoredText;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.impl.ui.DebuggerUIUtil;
 import com.intellij.xdebugger.impl.ui.tree.ValueMarkup;
-import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousDebuggerTreeNode;
+import extension.InsidiousJavaDebugProcess;
 import extension.descriptor.InsidiousMessageDescriptor;
 import extension.descriptor.InsidiousNodeDescriptorProvider;
 import extension.descriptor.InsidiousValueDescriptor;
@@ -62,12 +62,9 @@ public class InsidiousDebuggerTreeNodeImpl extends TreeBuilderNode implements In
     protected static InsidiousDebuggerTreeNodeImpl createNode(InsidiousDebuggerTree tree, InsidiousNodeDescriptorImpl descriptor, InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
         final InsidiousDebuggerTreeNodeImpl node = new InsidiousDebuggerTreeNodeImpl(tree, descriptor, InsidiousJavaDebugProcess);
 
-        descriptor.updateRepresentationNoNotify(node.myProcess, new DescriptorLabelListener() {
-
-            public void labelChanged() {
-                node.updateCaches();
-                node.labelChanged();
-            }
+        descriptor.updateRepresentationNoNotify(node.myProcess, () -> {
+            node.updateCaches();
+            node.labelChanged();
         });
         node.updateCaches();
         return node;
@@ -105,9 +102,8 @@ public class InsidiousDebuggerTreeNodeImpl extends TreeBuilderNode implements In
     private void updateCaches() {
         InsidiousNodeDescriptorImpl descriptor = getDescriptor();
         this.myIcon = DebuggerTreeRenderer.getDescriptorIcon(descriptor);
-        this
-                .myText = InsidiousDebuggerTreeRenderer.getDescriptorText(this.myProcess, descriptor,
-                DebuggerUIUtil.getColorScheme(this.myTree), false);
+        this.myText = InsidiousDebuggerTreeRenderer.getDescriptorText(
+                this.myProcess, descriptor, DebuggerUIUtil.getColorScheme(this.myTree), false);
         if (descriptor instanceof InsidiousValueDescriptor) {
             ValueMarkup markup = ((InsidiousValueDescriptor) descriptor).getMarkup(this.myProcess);
             this.myMarkupTooltipText = (markup != null) ? markup.getToolTipText() : null;

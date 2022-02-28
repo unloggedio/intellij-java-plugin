@@ -179,9 +179,8 @@ public class FieldEvaluator
                 public InsidiousNodeDescriptorImpl getInspectItem(Project project) {
                     if (FieldEvaluator.this.myEvaluatedQualifier instanceof ObjectReference)
                         return new InsidiousFieldDescriptorImpl(project,
-
-                                (ObjectReference) FieldEvaluator.this.myEvaluatedQualifier, FieldEvaluator.this
-                                .myEvaluatedField);
+                                (ObjectReference) FieldEvaluator.this.myEvaluatedQualifier,
+                                FieldEvaluator.this.myEvaluatedField);
                     return null;
                 }
             };

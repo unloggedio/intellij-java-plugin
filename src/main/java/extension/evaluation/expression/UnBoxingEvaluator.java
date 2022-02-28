@@ -75,9 +75,9 @@ public class UnBoxingEvaluator implements Evaluator {
         Method method = DebuggerUtils.findMethod(value
                 .referenceType(), conversionMethodName, conversionMethodSignature);
         if (method == null) {
-            throw new EvaluateException("Cannot convert to primitive value of type " + value
-
-                    .type() + ": Unable to find method " + conversionMethodName + conversionMethodSignature);
+            throw new EvaluateException("Cannot convert to primitive value of type "
+                    + value.type()
+                    + ": Unable to find method " + conversionMethodName + conversionMethodSignature);
         }
 
 

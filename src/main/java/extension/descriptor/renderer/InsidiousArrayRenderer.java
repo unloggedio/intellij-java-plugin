@@ -296,8 +296,10 @@ public class InsidiousArrayRenderer extends InsidiousNodeRendererImpl {
                         for (int idx = this.START_INDEX; idx < arrayLength; idx++) {
 
 
-                            InsidiousArrayElementDescriptorImpl descriptor = (InsidiousArrayElementDescriptorImpl) descriptorFactory.getArrayItemDescriptor(builder
-                                    .getParentDescriptor(), array, idx);
+                            InsidiousArrayElementDescriptorImpl descriptor =
+                                    (InsidiousArrayElementDescriptorImpl)
+                                            descriptorFactory.getArrayItemDescriptor(
+                                                    builder.getParentDescriptor(), array, idx);
                             Value val = arrayValuesCache.getValue(idx);
                             descriptor.setValue(val);
 

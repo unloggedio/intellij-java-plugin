@@ -5,7 +5,7 @@ import com.sun.jdi.VirtualMachine;
 
 public class InsidiousArrayTypeReference extends InsidiousReferenceType {
     public InsidiousArrayTypeReference(String name, String signature, VirtualMachine virtualMachine) {
-        super(name, signature, null, virtualMachine);
+        super(name, signature, null, null, virtualMachine);
     }
 
     @Override

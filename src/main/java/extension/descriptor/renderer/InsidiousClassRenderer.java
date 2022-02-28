@@ -28,16 +28,15 @@ import extension.descriptor.InsidiousValueDescriptor;
 import extension.descriptor.InsidiousValueDescriptorImpl;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.EvaluatorUtil;
+import extension.thread.InsidiousLocalVariable;
+import extension.thread.types.InsidiousObjectReference;
 import extension.util.DebuggerUtilsAsync;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
@@ -182,6 +181,13 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
             ObjectReference objRef = (ObjectReference) value;
             ReferenceType refType = objRef.referenceType();
 
+//            for (Map.Entry<String, InsidiousLocalVariable> entry :
+//                    ((InsidiousObjectReference) objRef).getValues().entrySet()) {
+//                createFieldDescriptor(parentDescriptor, nodeDescriptorFactory, objRef,  field /* */, evaluationContext);
+//                children.add(nodeManager.createNode(entry.getValue(), evaluationContext));
+//            }
+//
+
             List<Field> fields = refType.allFields();
             if (!fields.isEmpty()) {
                 Set<String> names = new HashSet<>();
@@ -203,18 +209,12 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
                 }
 
                 if (children.isEmpty()) {
-                    children.add(nodeManager
-                            .createMessageNode(
-                                    DebuggerBundle.message("message.node.class.no.fields.to.display")));
-                } else if (XDebuggerSettingsManager.getInstance()
-                        .getDataViewSettings()
-                        .isSortValues()) {
+                    children.add(nodeManager.createMessageNode(DebuggerBundle.message("message.node.class.no.fields.to.display")));
+                } else if (XDebuggerSettingsManager.getInstance().getDataViewSettings().isSortValues()) {
                     children.sort(InsidiousNodeManagerImpl.getNodeComparator());
                 }
             } else {
-                children.add(nodeManager
-                        .createMessageNode(MessageDescriptor.CLASS_HAS_NO_FIELDS
-                                .getLabel()));
+                children.add(nodeManager.createMessageNode(MessageDescriptor.CLASS_HAS_NO_FIELDS.getLabel()));
             }
         }
         builder.setChildren(children);
@@ -223,8 +223,10 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
     @NotNull
     protected FieldDescriptor createFieldDescriptor(InsidiousValueDescriptor parentDescriptor,
                                                     InsidiousNodeDescriptorFactory nodeDescriptorFactory,
-                                                    ObjectReference objRef, Field field,
-                                                    EvaluationContext evaluationContext) {
+                                                    ObjectReference objRef,
+                                                    Field field,
+                                                    EvaluationContext evaluationContext
+    ) {
         return nodeDescriptorFactory.getFieldDescriptor(parentDescriptor, objRef, field);
     }
 
@@ -287,15 +289,15 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
     public CompletableFuture<Boolean> isExpandableAsync(Value value, EvaluationContext evaluationContext, NodeDescriptor parentDescriptor) {
         if (value instanceof ArrayReference)
             return DebuggerUtilsAsync.length((ArrayReference) value)
-                    .thenApply(r -> Boolean.valueOf((r.intValue() > 0)))
-                    .exceptionally(throwable -> Boolean.valueOf(true));
+                    .thenApply(r -> (r > 0))
+                    .exceptionally(throwable -> Boolean.TRUE);
         if (value instanceof ObjectReference) {
             return CompletableFuture.completedFuture(
-                    Boolean.valueOf(true));
+                    Boolean.TRUE);
         }
 
 
-        return CompletableFuture.completedFuture(Boolean.valueOf(false));
+        return CompletableFuture.completedFuture(Boolean.FALSE);
     }
 
     public boolean isApplicable(Type type) {

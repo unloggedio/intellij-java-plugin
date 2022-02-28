@@ -2,6 +2,7 @@ package extension.thread;
 
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.ui.impl.watch.MethodsTracker;
+import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XCompositeNode;
@@ -37,12 +38,14 @@ public class InsidiousXStackFrame extends XStackFrame {
 
     public InsidiousXStackFrame(InsidiousJavaDebugProcess insidiousJavaDebugProcess,
                                 InsidiousXSuspendContext insidiousXSuspendContext,
-                                InsidiousStackFrameProxy insidiousStackFrameProxy, XSourcePosition xSourcePosition) {
+                                InsidiousStackFrameProxy insidiousStackFrameProxy,
+                                XSourcePosition xSourcePosition) {
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
         this.insidiousXSuspendContext = insidiousXSuspendContext;
         this.insidiousStackFrameProxy = insidiousStackFrameProxy;
         this.xSourcePosition = xSourcePosition;
         this.myDescriptor = new InsidiousStackFrameDescriptorImpl(insidiousStackFrameProxy, new MethodsTracker());
+        this.myDescriptor.updateRepresentation(null, DescriptorLabelListener.DUMMY_LISTENER);
     }
 
     @Override
@@ -73,8 +76,7 @@ public class InsidiousXStackFrame extends XStackFrame {
         InsidiousNodeManagerImpl nodeManager = this.insidiousJavaDebugProcess.getInsidiousNodeManager();
         ObjectReference thisObjectReference = this.myDescriptor.getThisObject();
         if (thisObjectReference != null) {
-            return InsidiousJavaValue.create(nodeManager
-                    .getThisDescriptor(null, thisObjectReference), context, nodeManager);
+            return InsidiousJavaValue.create(nodeManager.getThisDescriptor(null, thisObjectReference), context, nodeManager);
         }
         return null;
     }

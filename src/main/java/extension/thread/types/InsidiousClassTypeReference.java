@@ -8,8 +8,12 @@ import java.util.Map;
 public class InsidiousClassTypeReference extends InsidiousReferenceType {
 
 
-    public InsidiousClassTypeReference(String name, String sourceName, String signature, VirtualMachine virtualMachine) {
-        super(name, signature, sourceName, virtualMachine);
+    public InsidiousClassTypeReference(String name,
+                                       String sourceName,
+                                       String signature,
+                                       Map<String, Field> fields,
+                                       VirtualMachine virtualMachine) {
+        super(name, signature, sourceName, fields, virtualMachine);
     }
 
     @Override

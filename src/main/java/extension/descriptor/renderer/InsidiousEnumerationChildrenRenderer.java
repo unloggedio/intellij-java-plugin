@@ -127,12 +127,12 @@ public final class InsidiousEnumerationChildrenRenderer
 
             data.setEnumerationIndex(idx++);
 
-            InsidiousUserExpressionDescriptor descriptor = descriptorFactory.getUserExpressionDescriptor((NodeDescriptor) builder
-                    .getParentDescriptor(), (DescriptorData) data);
+            InsidiousUserExpressionDescriptor descriptor = descriptorFactory.
+                    getUserExpressionDescriptor(builder.getParentDescriptor(), data);
             if (childInfo.myOnDemand) {
-                descriptor.putUserData(InsidiousOnDemandRenderer.ON_DEMAND_CALCULATED, Boolean.valueOf(false));
+                descriptor.putUserData(InsidiousOnDemandRenderer.ON_DEMAND_CALCULATED, Boolean.FALSE);
             }
-            children.add(nodeManager.createNode((NodeDescriptor) descriptor, evaluationContext));
+            children.add(nodeManager.createNode(descriptor, evaluationContext));
         }
         builder.addChildren(children, !this.myAppendDefaultChildren);
 

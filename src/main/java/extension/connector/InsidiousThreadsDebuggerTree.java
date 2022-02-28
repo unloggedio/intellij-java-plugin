@@ -13,8 +13,6 @@ import com.intellij.util.ui.tree.TreeModelAdapter;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebuggerBundle;
 import extension.InsidiousJavaDebugProcess;
-import extension.thread.InsidiousThreadGroupReferenceProxy;
-import extension.thread.InsidiousThreadReferenceProxy;
 import extension.descriptor.InsidiousMessageDescriptor;
 import extension.descriptor.InsidiousStackFrameDescriptorImpl;
 import extension.descriptor.InsidiousThreadDescriptorImpl;
@@ -24,6 +22,8 @@ import extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import extension.descriptor.renderer.InsidiousNodeManagerImpl;
 import extension.evaluation.EvaluationContext;
 import extension.evaluation.InsidiousNodeDescriptorImpl;
+import extension.thread.InsidiousThreadGroupReferenceProxy;
+import extension.thread.InsidiousThreadReferenceProxy;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
@@ -97,8 +97,8 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
                     for (InsidiousThreadGroupReferenceProxy group : insidiousJDIConnector.topLevelThreadGroups()) {
                         if (group != topCurrentGroup) {
 
-                            InsidiousDebuggerTreeNodeImpl threadGroup = nodeManager.createNode(nodeManager
-                                    .getThreadGroupDescriptor(null, group), evaluationContext);
+                            InsidiousDebuggerTreeNodeImpl threadGroup = nodeManager.createNode(
+                                    nodeManager.getThreadGroupDescriptor(null, group), evaluationContext);
 
                             root.add(threadGroup);
                         }

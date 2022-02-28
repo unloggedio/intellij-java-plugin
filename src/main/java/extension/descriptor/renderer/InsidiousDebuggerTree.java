@@ -58,13 +58,13 @@ public abstract class InsidiousDebuggerTree extends InsidiousDebuggerTreeBase im
     public InsidiousDebuggerTree(Project project, InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
         super(null, project);
         setScrollsOnExpand(false);
-        this.myNodeManager = createNodeManager(project);
         this.myInsidiousJavaDebugProcess = insidiousJavaDebugProcess;
+        this.myNodeManager = createNodeManager(project);
 
         TreeBuilder model = new TreeBuilder(this) {
             public void buildChildren(TreeBuilderNode node) {
                 InsidiousDebuggerTreeNodeImpl debuggerTreeNode = (InsidiousDebuggerTreeNodeImpl) node;
-                debuggerTreeNode.add(new InsidiousMessageDescriptor("Message 1", 2));
+                debuggerTreeNode.add(new InsidiousMessageDescriptor("Message 1 from insidious", 2));
 
                 if (debuggerTreeNode.getDescriptor() instanceof InsidiousDefaultNodeDescriptor) {
                     return;

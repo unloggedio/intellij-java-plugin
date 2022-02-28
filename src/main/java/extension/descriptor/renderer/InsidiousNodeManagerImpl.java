@@ -25,14 +25,14 @@ public class InsidiousNodeManagerImpl extends InsidiousNodeDescriptorFactoryImpl
 
     private final InsidiousDebuggerTree myDebuggerTree;
     private final Map<String, DescriptorTree> myHistories = new HashMap<>();
-    private final extension.InsidiousJavaDebugProcess InsidiousJavaDebugProcess;
+    private final extension.InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private String myHistoryKey = null;
 
 
-    public InsidiousNodeManagerImpl(Project project, InsidiousDebuggerTree tree, extension.InsidiousJavaDebugProcess InsidiousJavaDebugProcess) {
+    public InsidiousNodeManagerImpl(Project project, InsidiousDebuggerTree tree, extension.InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
         super(project);
         this.myDebuggerTree = tree;
-        this.InsidiousJavaDebugProcess = InsidiousJavaDebugProcess;
+        this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 
     public static Comparator<InsidiousDebuggerTreeNode> getNodeComparator() {
@@ -65,22 +65,22 @@ public class InsidiousNodeManagerImpl extends InsidiousNodeDescriptorFactoryImpl
     @NotNull
     public InsidiousDebuggerTreeNodeImpl createNode(NodeDescriptor descriptor, EvaluationContext evaluationContext) {
         ((InsidiousNodeDescriptorImpl) descriptor).setContext(evaluationContext);
-        return InsidiousDebuggerTreeNodeImpl.createNode(getTree(), (InsidiousNodeDescriptorImpl) descriptor, this.InsidiousJavaDebugProcess);
+        return InsidiousDebuggerTreeNodeImpl.createNode(getTree(), (InsidiousNodeDescriptorImpl) descriptor, this.insidiousJavaDebugProcess);
     }
 
     public InsidiousDebuggerTreeNodeImpl getDefaultNode() {
         return InsidiousDebuggerTreeNodeImpl.createNodeNoUpdate(
-                getTree(), new InsidiousDefaultNodeDescriptor(), this.InsidiousJavaDebugProcess);
+                getTree(), new InsidiousDefaultNodeDescriptor(), this.insidiousJavaDebugProcess);
     }
 
     public InsidiousDebuggerTreeNodeImpl createMessageNode(InsidiousMessageDescriptor descriptor) {
         return InsidiousDebuggerTreeNodeImpl.createNodeNoUpdate(
-                getTree(), descriptor, this.InsidiousJavaDebugProcess);
+                getTree(), descriptor, this.insidiousJavaDebugProcess);
     }
 
     @NotNull
     public InsidiousDebuggerTreeNodeImpl createMessageNode(String message) {
-        return InsidiousDebuggerTreeNodeImpl.createNodeNoUpdate(getTree(), new InsidiousMessageDescriptor(message), this.InsidiousJavaDebugProcess);
+        return InsidiousDebuggerTreeNodeImpl.createNodeNoUpdate(getTree(), new InsidiousMessageDescriptor(message), this.insidiousJavaDebugProcess);
     }
 
     public void setHistoryByContext(XDebugProcess context) {

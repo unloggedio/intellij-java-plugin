@@ -111,8 +111,9 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 
         XSourcePosition xSourcePosition = XDebuggerUtil.getInstance().createPosition(file, location.lineNumber());
 
-        return new InsidiousXStackFrame(this.myDebugProcess, this.mySuspendContext,
-                this.myThreadProxy.frame(index), xSourcePosition);
+        return new InsidiousXStackFrame(
+                this.myDebugProcess, this.mySuspendContext, this.myThreadProxy.frame(index), xSourcePosition
+        );
     }
 
     @Nullable

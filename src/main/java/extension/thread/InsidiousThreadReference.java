@@ -78,8 +78,14 @@ public class InsidiousThreadReference implements ThreadReference {
                         ).getClassId())
         );
         if (thisObject.referenceType() == null) {
-            thisObject.setReferenceType(new InsidiousClassTypeReference(firstClassInfo.getClassName(), firstClassInfo.getFilename(),
-                    "L" + firstClassInfo.getClassName().replaceAll("/", "."), this.virtualMachine()));
+            String typeName = firstClassInfo.getClassName().replaceAll("/", ".");
+            thisObject.setReferenceType(
+                    new InsidiousClassTypeReference(
+                            typeName,
+                            firstClassInfo.getFilename(),
+                            "L" + typeName,
+                            InsidiousField.Factory.mapToFields(firstClassInfo.getDataInfoList()),
+                            this.virtualMachine()));
         }
 
 
@@ -211,6 +217,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
         String variableSignature = probeInfo.getAttribute("Type", null);
+        ClassInfo classInfo = this.replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
         long objectId = 0;
 
         char typeFirstCharacter = variableSignature.charAt(0);
@@ -245,7 +252,7 @@ public class InsidiousThreadReference implements ThreadReference {
                             qualifiedClassName,
                             packageName,
                             variableSignature,
-                            this.virtualMachine()));
+                            InsidiousField.Factory.mapToFields(classInfo.getDataInfoList()), this.virtualMachine()));
 
                     if (fieldVariableMap.containsKey(objectId)) {
                         List<InsidiousLocalVariable> fieldVariables = fieldVariableMap.get(objectId);

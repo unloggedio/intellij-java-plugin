@@ -19,7 +19,6 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.tree.TreeCellRenderer;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
 import java.awt.*;
@@ -37,12 +36,9 @@ public class InsidiousDebuggerTreeBase extends DnDAwareTree implements Disposabl
         this.myProject = project;
 
         this.myTipManager = new TipManager(this, new TipManager.TipFactory() {
-
-
             public JComponent createToolTip(MouseEvent e) {
                 return InsidiousDebuggerTreeBase.this.createToolTip(e);
             }
-
 
             public MouseEvent createTooltipEvent(MouseEvent candidateEvent) {
                 return InsidiousDebuggerTreeBase.this.createTooltipEvent(candidateEvent);

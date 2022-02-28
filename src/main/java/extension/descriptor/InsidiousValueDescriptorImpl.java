@@ -115,7 +115,12 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
         StringBuilder buf = new StringBuilder();
 
 
-        boolean showConcreteType = (!classRenderer.SHOW_DECLARED_TYPE || (!(objRef instanceof com.sun.jdi.StringReference) && !(objRef instanceof com.sun.jdi.ClassObjectReference) && !isEnumConstant(objRef)));
+        boolean showConcreteType = (!classRenderer.SHOW_DECLARED_TYPE
+                || (!
+                        (objRef instanceof com.sun.jdi.StringReference) &&
+                        !(objRef instanceof com.sun.jdi.ClassObjectReference) &&
+                        !isEnumConstant(objRef)
+        ));
         if (showConcreteType || classRenderer.SHOW_OBJECT_ID) {
 
             if (showConcreteType) {
@@ -331,13 +336,11 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
         EvaluateException valueException = this.myValueException;
 
         if (valueException == null || valueException.getExceptionFromTargetVM() != null) {
-
-
-            expandableFuture = getChildrenRenderer().thenCompose(r -> r.isExpandableAsync(getValue(), this.myStoredEvaluationContext, this));
-
+            expandableFuture = getChildrenRenderer().thenCompose(
+                    r -> r.isExpandableAsync(getValue(), this.myStoredEvaluationContext, this)
+            );
         } else {
-
-            expandableFuture = CompletableFuture.completedFuture(Boolean.valueOf(false));
+            expandableFuture = CompletableFuture.completedFuture(Boolean.FALSE);
         }
 
 
@@ -347,7 +350,8 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
 
         if (valueException == null) {
             try {
-                setValueLabel(renderer.calcLabel(this, this.myStoredEvaluationContext, labelListener));
+                setValueLabel(renderer.calcLabel(
+                        this, this.myStoredEvaluationContext, labelListener));
             } catch (EvaluateException e) {
                 setValueLabelFailed(e);
             }
@@ -358,7 +362,7 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
 
         expandableFuture.whenComplete((res, ex) -> {
             if (ex == null) {
-                this.myIsExpandable = res.booleanValue();
+                this.myIsExpandable = res;
             } else {
                 ex = DebuggerUtilsAsync.unwrap(ex);
 
