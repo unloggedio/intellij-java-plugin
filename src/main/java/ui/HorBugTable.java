@@ -8,7 +8,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import factory.ProjectService;
+import factory.InsidiousService;
 import net.minidev.json.JSONObject;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
@@ -33,7 +33,7 @@ import java.util.List;
 
 public class HorBugTable {
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
-    private final ProjectService projectService;
+    private final InsidiousService insidiousService;
     private final ToolWindow toolWindow;
     OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
@@ -75,9 +75,9 @@ public class HorBugTable {
         this.toolWindow = toolWindow;
         basepath = this.project.getBasePath();
 
-        this.projectService = project.getService(ProjectService.class);
+        this.insidiousService = project.getService(InsidiousService.class);
 
-        this.projectService.setHorBugTable(this);
+        this.insidiousService.setHorBugTable(this);
 
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
@@ -164,7 +164,7 @@ public class HorBugTable {
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
         List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
-        project.getService(ProjectService.class).getTracesByClassForProjectAndSessionId(
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(
                 projectId, sessionId, classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
@@ -213,7 +213,7 @@ public class HorBugTable {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
-            projectService.setTracePoint(selectedTrace);
+            insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             e.printStackTrace();
             Messages.showErrorDialog(project, e.getMessage(), "Failed");
@@ -244,7 +244,7 @@ public class HorBugTable {
     }
 
     private void getLastSessions() {
-        project.getService(ProjectService.class).getProjectSessions(
+        project.getService(InsidiousService.class).getProjectSessions(
                 PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
                 new GetProjectSessionsCallback() {
                     @Override

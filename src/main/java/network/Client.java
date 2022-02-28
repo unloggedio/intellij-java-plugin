@@ -16,6 +16,8 @@ import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
 import net.minidev.json.JSONValue;
 import network.pojo.*;
+import network.pojo.exceptions.APICallException;
+import network.pojo.exceptions.ProjectDoesNotExistException;
 import network.pojo.exceptions.UnauthorizedException;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
@@ -23,10 +25,7 @@ import pojo.DataEvent;
 import pojo.TracePoint;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class Client {
@@ -57,7 +56,7 @@ public class Client {
 
     }
 
-    public Client(String endpoint, String projectName, String username, String password) throws IOException, UnauthorizedException {
+    public Client(String endpoint, String username, String password) throws IOException, UnauthorizedException {
         this.endpoint = endpoint;
         client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
@@ -66,7 +65,9 @@ public class Client {
                 .build();
 
         token = this.generateToken(username, password);
-        this.project = fetchProjectByName(projectName);
+        if (token == null) {
+            throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "]");
+        }
     }
 
     public void signup(String serverUrl, String username, String password, SignUpCallback callback) {
@@ -127,13 +128,12 @@ public class Client {
         json.put("password", password);
         Response response = postSync(endpoint + SIGN_IN_URL, json.toJSONString());
 
-        JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
-        String token = jsonObject.getAsString(Constants.TOKEN);
+        JSONObject jsonObject = null;
+        jsonObject = (JSONObject) JSONValue.parse(response.body().string());
 
-        return token;
+        return jsonObject.getAsString(Constants.TOKEN);
 
     }
-
 
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
@@ -161,11 +161,16 @@ public class Client {
         });
     }
 
-    public ProjectItem fetchProjectByName(String projectName) throws IOException, UnauthorizedException {
+    public ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
         logger.info("Get project by name => " + projectName);
         TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<>() {
         };
         DataResponse<ProjectItem> projectList = get(endpoint + Constants.PROJECT_URL + "?name=" + projectName, typeReference);
+
+        if (projectList.getItems().size() == 0) {
+            throw new ProjectDoesNotExistException(projectName);
+        }
+
         return projectList.getItems().get(0);
 
     }
@@ -174,7 +179,7 @@ public class Client {
         post(endpoint + PROJECT_URL + "?name=" + projectName, "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                newProjectCallback.error();
+                newProjectCallback.error(e.getMessage());
             }
 
             @Override
@@ -186,8 +191,22 @@ public class Client {
         });
     }
 
-    public void getProjectToken(String projectId, ProjectTokenCallback projectTokenCallback) {
-        post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + projectId, "", new Callback() {
+    public String createProject(String projectName) throws APICallException, IOException {
+        Response response = postSync(endpoint + PROJECT_URL + "?name=" + projectName, "");
+        JSONObject jsonObject = null;
+
+        jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+
+        String projectId = jsonObject.getAsString("id");
+        this.project = new ProjectItem();
+        this.project.setName(projectName);
+        this.project.setId(projectId);
+        this.project.setCreatedAt(new Date().toString());
+        return projectId;
+    }
+
+    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
+        post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 projectTokenCallback.error(e.getMessage());
@@ -200,7 +219,6 @@ public class Client {
             }
         });
     }
-
 
     private void post(String url, String json, Callback callback) {
         RequestBody body = RequestBody.create(json, Constants.JSON); // new
@@ -255,7 +273,8 @@ public class Client {
             throw new UnauthorizedException();
         }
 
-        T result = objectMapper.readValue(response.body().string(), typeReference);
+        T result = null;
+        result = objectMapper.readValue(response.body().string(), typeReference);
 
         return result;
     }
@@ -286,7 +305,7 @@ public class Client {
         });
     }
 
-    public DataResponse<ExecutionSession> fetchProjectSessions() throws IOException, UnauthorizedException {
+    public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
         String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
         };
@@ -557,7 +576,6 @@ public class Client {
         }
     }
 
-
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
         String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
@@ -585,5 +603,13 @@ public class Client {
 
     public String getToken() {
         return token;
+    }
+
+    public ProjectItem getProject() {
+        return this.project;
+    }
+
+    public void setProject(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
+        this.project = fetchProjectByName(projectName);
     }
 }

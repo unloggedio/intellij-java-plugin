@@ -10,7 +10,8 @@ import network.Client;
 import network.pojo.DataResponse;
 import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
-import network.pojo.exceptions.UnauthorizedException;
+import network.pojo.exceptions.APICallException;
+import network.pojo.exceptions.NoSessionFoundForProjectException;
 import pojo.TracePoint;
 
 import java.io.IOException;
@@ -25,13 +26,12 @@ public class InsidiousVirtualMachine implements VirtualMachine {
     private ThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
 
-    public InsidiousVirtualMachine(Client client) throws UnauthorizedException {
+    public InsidiousVirtualMachine(Client client) throws APICallException, IOException {
         this.client = client;
         DataResponse<ExecutionSession> sessions = null;
-        try {
-            sessions = client.fetchProjectSessions();
-        } catch (IOException e) {
-            e.printStackTrace();
+        sessions = client.fetchProjectSessions();
+        if (sessions.getItems().size() == 0) {
+            throw new NoSessionFoundForProjectException(client.getProject().getName());
         }
         this.session = sessions.getItems().get(0);
     }

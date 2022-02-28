@@ -7,14 +7,14 @@ import com.intellij.xdebugger.impl.DebuggerSupport;
 import com.intellij.xdebugger.impl.actions.DebuggerActionHandler;
 import com.intellij.xdebugger.impl.actions.XDebuggerActionBase;
 import com.intellij.xdebugger.impl.ui.DebuggerUIUtil;
-import factory.ProjectService;
+import factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 
 public class JumpBack extends XDebuggerActionBase implements DumbAware {
     DebuggerActionHandler actionHandler = new DebuggerActionHandler() {
         @Override
         public void perform(@NotNull Project project, AnActionEvent event) {
-            project.getService(ProjectService.class).getDebugProcess().stepBack(null, DebuggerUIUtil.getSession(event).getSuspendContext());
+            project.getService(InsidiousService.class).getDebugProcess().stepBack(null, DebuggerUIUtil.getSession(event).getSuspendContext());
         }
 
         @Override

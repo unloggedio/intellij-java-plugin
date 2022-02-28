@@ -16,10 +16,12 @@ import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousXSuspendContext;
 import extension.thread.*;
 import network.Client;
+import network.pojo.exceptions.APICallException;
 import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import pojo.TracePoint;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,7 +32,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousVirtualMachine virtualMachine;
 
-    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) throws UnauthorizedException {
+    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) throws APICallException, IOException {
         this.virtualMachine = new InsidiousVirtualMachine(client);
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }

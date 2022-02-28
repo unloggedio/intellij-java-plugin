@@ -58,7 +58,7 @@
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
                     factoryClass="factory.DebuggerFactory"/>
 
-        <projectService serviceImplementation="factory.ProjectService"/>
+        <projectService serviceImplementation="factory.InsidiousService"/>
         <projectService
                 serviceImplementation="factory.InsidiousConfigurationState"/>
         <programRunner implementation="extension.InsidiousProgramRunner"/>

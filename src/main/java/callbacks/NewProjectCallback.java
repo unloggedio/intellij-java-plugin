@@ -1,6 +1,6 @@
 package callbacks;
 
 public interface NewProjectCallback {
-    void error();
+    void error(String errorMessage);
     void success(String projectId);
 }

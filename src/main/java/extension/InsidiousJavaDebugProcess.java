@@ -36,8 +36,8 @@ import extension.model.DirectionType;
 import extension.smartstep.MethodFilter;
 import extension.thread.InsidiousThreadReference;
 import extension.thread.InsidiousThreadReferenceProxy;
-import factory.ProjectService;
-import network.pojo.exceptions.UnauthorizedException;
+import factory.InsidiousService;
+import network.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
@@ -74,12 +74,12 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     private XSuspendContext suspendedContext;
 
 
-    protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) throws UnauthorizedException {
+    protected InsidiousJavaDebugProcess(@NotNull XDebugSession session, @NotNull final RemoteConnection connection) throws APICallException, IOException {
         super(session);
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
         this.connector = new InsidiousJDIConnector(this, connection.getClient());
-        session.getProject().getService(ProjectService.class).setConnector(this.connector);
+        session.getProject().getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
         this.insidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
@@ -119,11 +119,11 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         session.setPauseActionSupported(true);
     }
 
-    public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session, @NotNull RemoteConnection connection) throws UnauthorizedException {
+    public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session, @NotNull RemoteConnection connection) throws APICallException, IOException {
         logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getAddress());
         InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
-        session.getProject().getService(ProjectService.class).setDebugSession(session);
-        session.getProject().getService(ProjectService.class).setDebugProcess(debugProcess);
+        session.getProject().getService(InsidiousService.class).setDebugSession(session);
+        session.getProject().getService(InsidiousService.class).setDebugProcess(debugProcess);
         return debugProcess;
     }
 

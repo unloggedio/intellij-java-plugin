@@ -2,8 +2,9 @@ package ui;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import factory.ProjectService;
+import factory.InsidiousService;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -13,7 +14,7 @@ import java.io.IOException;
 public class CredentialsToolbar {
 
     private static final Logger logger = Logger.getInstance(CredentialsToolbar.class);
-    private final ProjectService projectService;
+    private final InsidiousService insidiousService;
     String usernameText;
     String videobugURL, passwordText;
     Project project;
@@ -33,7 +34,7 @@ public class CredentialsToolbar {
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
-        this.projectService = project.getService(ProjectService.class);
+        this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
         signupSigninButton.addActionListener(new ActionListener() {
             @Override
@@ -41,7 +42,12 @@ public class CredentialsToolbar {
                 usernameText = username.getText();
                 passwordText = new String(password.getPassword());
                 videobugURL = videobugServerURLTextField.getText();
-                projectService.signin(videobugURL, usernameText, passwordText);
+                try {
+                    insidiousService.signin(videobugURL, usernameText, passwordText);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
+                }
             }
         });
         textArea1.setLineWrap(true);
@@ -63,11 +69,6 @@ public class CredentialsToolbar {
 
     public JPanel getContent() {
         return panel1;
-    }
-
-
-    private void signin() throws IOException {
-        project.getService(ProjectService.class).signin(videobugURL, usernameText, passwordText);
     }
 
     public void setText(String s) {

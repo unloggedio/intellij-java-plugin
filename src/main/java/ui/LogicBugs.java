@@ -14,7 +14,7 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
-import factory.ProjectService;
+import factory.InsidiousService;
 import net.minidev.json.JSONArray;
 import network.pojo.DebugPoint;
 import network.pojo.ExceptionResponse;
@@ -60,13 +60,13 @@ public class LogicBugs {
     private JScrollPane scrollpanel;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
-    private final ProjectService projectService;
+    private final InsidiousService insidiousService;
 
     public LogicBugs(Project project, ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
         this.project = project;
-        this.projectService = project.getService(ProjectService.class);
-        this.projectService.setLogicBugs(this);
+        this.insidiousService = project.getService(InsidiousService.class);
+        this.insidiousService.setLogicBugs(this);
         searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -127,7 +127,7 @@ public class LogicBugs {
     }
 
     private void getLastSessionsForTraces() {
-        project.getService(ProjectService.class).getProjectSessions(
+        project.getService(InsidiousService.class).getProjectSessions(
                 PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID),
                 new GetProjectSessionsCallback() {
                     @Override
@@ -152,7 +152,7 @@ public class LogicBugs {
 
     private void getTraces(int pageNum, String sessionId, String traceValue) {
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(ProjectService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId,
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, sessionId,
                 traceValue, new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -219,7 +219,7 @@ public class LogicBugs {
         filteredDataEventsRequest.setSortOrder("DESC");
 
         String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(ProjectService.class).filterDataEvents(
+        project.getService(InsidiousService.class).filterDataEvents(
                 projectId, filteredDataEventsRequest,
                 new FilteredDataEventsCallback() {
                     @Override
@@ -244,7 +244,7 @@ public class LogicBugs {
 
                         ApplicationManager.getApplication().invokeLater(() -> {
                             try {
-                                project.getService(ProjectService.class).startTracer(selectedTrace, "DESC", "traces");
+                                project.getService(InsidiousService.class).startTracer(selectedTrace, "DESC", "traces");
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 ExceptionResponse exceptionResponse = new ExceptionResponse();

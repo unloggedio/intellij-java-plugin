@@ -2,7 +2,7 @@ package actions;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import factory.ProjectService;
+import factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 
 public class JumpForward extends AnAction {
@@ -10,7 +10,7 @@ public class JumpForward extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        e.getProject().getService(ProjectService.class).getDebugProcess().startStepOver(null);
+        e.getProject().getService(InsidiousService.class).getDebugProcess().startStepOver(null);
 
     }
 

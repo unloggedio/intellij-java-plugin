@@ -31,6 +31,7 @@ import extension.InsidiousRunConfigType;
 import extension.connector.InsidiousJDIConnector;
 import network.Client;
 import network.pojo.FilteredDataEventsRequest;
+import network.pojo.exceptions.ProjectDoesNotExistException;
 import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import pojo.TracePoint;
@@ -44,8 +45,8 @@ import java.util.List;
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
 @Storage("insidious.xml")
-public class ProjectService {
-    private final static Logger logger = Logger.getInstance(ProjectService.class);
+public class InsidiousService {
+    private final static Logger logger = Logger.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Module currentModule;
@@ -59,10 +60,9 @@ public class ProjectService {
     private InsidiousJDIConnector connector;
     private CredentialsToolbar credentialsToolbarWindow;
     private ToolWindow toolWindow;
-    private String projectName;
     private CredentialAttributes insidiousCredentials;
 
-    public ProjectService(Project project) {
+    public InsidiousService(Project project) {
         this.project = project;
         currentModule = ModuleManager.getInstance(project).getModules()[0];
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
@@ -74,10 +74,9 @@ public class ProjectService {
                 if (credentials != null) {
                     String password = credentials.getPasswordAsString();
                     try {
-                        this.client = new Client(insidiousConfiguration.getServerUrl(), currentModule.getName(), insidiousConfiguration.getUsername(), password);
-                    } catch (IOException | UnauthorizedException e) {
-                        Messages.showErrorDialog(project, e.getMessage(), "Failed to login VideoBug");
-                        e.printStackTrace();
+                        signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+                    } catch (IOException e) {
+                        Messages.showErrorDialog(project, e.getMessage(), "Failed to signin VideoBug");
                     }
                 }
             }
@@ -116,9 +115,7 @@ public class ProjectService {
         return m.matches();
     }
 
-    public void signin(String serverUrl, String usernameText, String passwordText) {
-
-        client = new Client(serverUrl);
+    public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
 
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
@@ -130,151 +127,128 @@ public class ProjectService {
             return;
         }
 
-        this.client.signin(usernameText, passwordText, new SignInCallback() {
-            @Override
-            public void error(String errorString) {
-                logger.error("Failed to login - " + errorString);
-                credentialsToolbarWindow.setErrorLabel(errorString);
-                signup(serverUrl, usernameText, passwordText, new SignUpCallback() {
+        insidiousConfiguration.setServerUrl(serverUrl);
+        insidiousConfiguration.setUsername(usernameText);
+
+        try {
+            client = new Client(serverUrl, usernameText, passwordText);
+
+            Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
+            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
+            PasswordSafe.getInstance().set(insidiousCredentials, credentials);
+
+
+        } catch (UnauthorizedException e) {
+
+            e.printStackTrace();
+
+            int choice = Messages.showDialog(project, "Do you want to try to create account with these credentials ? Signup might fail if account already exists",
+                    "Failed to sign in", new String[]{"Yes", "No"}, 0, null);
+            if (choice == 0) {
+                signup(insidiousConfiguration.serverUrl, insidiousConfiguration.username, passwordText, new SignUpCallback() {
                     @Override
-                    public void error(String message) {
-                        credentialsToolbarWindow.setErrorLabel(message);
+                    public void error(String string) {
+                        Messages.showErrorDialog(project, string, "Failed to signup");
                     }
 
                     @Override
                     public void success() {
-
+                        try {
+                            signin(serverUrl, usernameText, passwordText);
+                        } catch (IOException ex) {
+                            Messages.showErrorDialog(project, ex.getMessage(), "Failed to connect with server");
+                        }
                     }
                 });
+            }
+            e.printStackTrace();
+
+
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+            Messages.showErrorDialog(project, "Failed to connect with server - " + e.getMessage(), "Failed");
+            return;
+        }
+        setupProject();
+
+
+    }
+
+    private void setupProject() throws IOException {
+
+
+        try {
+            client.setProject(currentModule.getName());
+        } catch (ProjectDoesNotExistException e1) {
+            int choice = Messages.showDialog(project, "No project by name [" + currentModule.getName() + "]. Do you want to create a new project ?",
+                    "Failed to get project", new String[]{"Yes", "No"}, 0, null);
+            if (choice == 0) {
+                createProject(currentModule.getName(), new NewProjectCallback() {
+                    @Override
+                    public void error(String errorMessage) {
+                        Messages.showErrorDialog(project, errorMessage, "Failed to create new project for [" + currentModule.getName() + "]");
+                    }
+
+                    @Override
+                    public void success(String projectId) {
+                        try {
+                            setupProject();
+                        } catch (IOException e) {
+                            Messages.showErrorDialog(project, e.getMessage(), "Failed to setup project");
+                        }
+                    }
+                });
+            }
+            return;
+        } catch (UnauthorizedException e) {
+            e.printStackTrace();
+            Messages.showErrorDialog(project, e.getMessage(), "Failed to query existing project");
+        }
+
+        getProjectToken(new ProjectTokenCallback() {
+            @Override
+            public void error(String message) {
+                Messages.showErrorDialog(project, message, "Failed to generate app token");
+                credentialsToolbarWindow.setErrorLabel(message);
             }
 
             @Override
             public void success(String token) {
-                insidiousConfiguration.setServerUrl(serverUrl);
-                insidiousConfiguration.setUsername(usernameText);
 
-                Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
-                insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-                PasswordSafe.getInstance().set(insidiousCredentials, credentials);
-
+                HorBugTable bugsTable = new HorBugTable(project, toolWindow);
+                LogicBugs logicBugs = new LogicBugs(project, toolWindow);
+                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
                 try {
-                    getAndCheckProject();
+                    bugsTable.setTableValues();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
-        });
 
-
-    }
-
-
-    private void createProject() throws IOException {
-        project.getService(ProjectService.class).createProject(projectName, new NewProjectCallback() {
-            @Override
-            public void error() {
-
-            }
-
-            @Override
-            public void success(String projectId) {
-                PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, projectId);
-                PropertiesComponent.getInstance().setValue(Constants.PROJECT_NAME, projectName);
-                try {
-                    getProjectToken();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-    }
-
-    private void getProjectToken() throws IOException {
-
-        getProjectToken(
-                PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID), new ProjectTokenCallback() {
+                Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
+                Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
+                ApplicationManager.getApplication().invokeLater(new Runnable() {
                     @Override
-                    public void error(String message) {
-                        credentialsToolbarWindow.setErrorLabel(message);
-                    }
-
-                    @Override
-                    public void success(String token) {
-                        PropertiesComponent.getInstance().setValue(Constants.PROJECT_TOKEN, token);
-
-                        HorBugTable bugsTable = new HorBugTable(project, toolWindow);
-                        LogicBugs logicBugs = new LogicBugs(project, toolWindow);
-                        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                        try {
-                            bugsTable.setTableValues();
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    public void run() {
+                        Content content = toolWindow.getContentManager().findContent("Exceptions");
+                        if (content == null) {
+                            toolWindow.getContentManager().addContent(bugsContent);
                         }
-
-                        Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
-                        Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-                        ApplicationManager.getApplication().invokeLater(new Runnable() {
-                            @Override
-                            public void run() {
-                                Content content = toolWindow.getContentManager().findContent("Exceptions");
-                                if (content == null) {
-                                    toolWindow.getContentManager().addContent(bugsContent);
-                                }
-                                Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
-                                if (traceContent2 == null) {
-                                    toolWindow.getContentManager().addContent(traceContent);
-                                }
-                            }
-                        });
-
-                        credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
-                                + "=i=<YOUR-PACKAGE-NAME>,"
-                                + "server="
-                                + PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
-                                + ",token="
-                                + PropertiesComponent.getInstance().getValue(Constants.PROJECT_TOKEN) + "\""
-                                + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
-                    }
-                });
-    }
-
-
-    private void getAndCheckProject() {
-        projectName = ModuleManager.getInstance(project).getModules()[0].getName();
-        getProjectByName(projectName, new GetProjectCallback() {
-            @Override
-            public void error(String message) {
-                Messages.showErrorDialog(message, "Failed to get project");
-            }
-
-            @Override
-            public void success(String projectId) {
-                PropertiesComponent.getInstance().setValue(Constants.PROJECT_ID, projectId);
-                getProjectToken(projectId, new ProjectTokenCallback() {
-                    @Override
-                    public void error(String message) {
-                        credentialsToolbarWindow.setErrorLabel(message);
-                    }
-
-                    @Override
-                    public void success(String token) {
-                        try {
-                            getProjectToken();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
+                        if (traceContent2 == null) {
+                            toolWindow.getContentManager().addContent(traceContent);
                         }
                     }
                 });
-            }
 
-            @Override
-            public void noSuchProject() {
-                try {
-                    createProject();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+                        + "=i=<YOUR-PACKAGE-NAME>,"
+                        + "server="
+                        + PropertiesComponent.getInstance().getValue(Constants.BASE_URL)
+                        + ",token="
+                        + PropertiesComponent.getInstance().getValue(Constants.PROJECT_TOKEN) + "\""
+                        + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
+
             }
         });
     }
@@ -288,8 +262,8 @@ public class ProjectService {
         this.client.createProject(projectName, newProjectCallback);
     }
 
-    public void getProjectToken(String projectId, ProjectTokenCallback projectTokenCallback) {
-        this.client.getProjectToken(projectId, projectTokenCallback);
+    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
+        this.client.getProjectToken(projectTokenCallback);
     }
 
     public void getProjectSessions(String projectId, GetProjectSessionsCallback getProjectSessionsCallback) {

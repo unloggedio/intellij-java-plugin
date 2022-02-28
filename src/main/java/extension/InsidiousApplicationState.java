@@ -13,8 +13,7 @@ import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.openapi.util.Key;
 import com.sun.jdi.ThreadReference;
-import extension.thread.InsidiousThreadReference;
-import factory.ProjectService;
+import factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,8 +37,8 @@ public class InsidiousApplicationState implements RunProfileState {
     @Override
     public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
         @NotNull ProcessHandler processHandler = new InsidiousProcessHandler();
-        ProjectService projectService = configuration.getProject().getService(ProjectService.class);
-        projectService.setProcessHandler(processHandler);
+        InsidiousService insidiousService = configuration.getProject().getService(InsidiousService.class);
+        insidiousService.setProcessHandler(processHandler);
 
         this.consoleView = new ConsoleViewImpl(configuration.getProject(), false);
         processHandler.putUserData(KEY, this);

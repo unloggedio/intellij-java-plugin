@@ -12,7 +12,7 @@ import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.xdebugger.XDebuggerManager;
-import factory.ProjectService;
+import factory.InsidiousService;
 import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -46,13 +46,13 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         RemoteConnection connection;
 
         try {
-            connection = new RemoteConnection("http://localhost:8080", env.getProject().getService(ProjectService.class).getClient());
+            connection = new RemoteConnection("http://localhost:8080", env.getProject().getService(InsidiousService.class).getClient());
             ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         } catch (UnauthorizedException e) {
-            env.getProject().getService(ProjectService.class).showCredentialsWindow();
+            env.getProject().getService(InsidiousService.class).showCredentialsWindow();
             return null;
         }
         boolean pollTimeout = false;

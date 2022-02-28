@@ -104,11 +104,11 @@ public class CodeTracer {
 
     private void updateHighlight(Collection<DataEvent> variableList, String source) {
         if (source.equals("exceptions")){
-            HorBugTable horBugTable = project.getService(ProjectService.class).getHorBugTable();
+            HorBugTable horBugTable = project.getService(InsidiousService.class).getHorBugTable();
             horBugTable.setVariables(variableList);
         }
         else if (source.equals("traces")) {
-            LogicBugs logicBugs = project.getService(ProjectService.class).getLogicBugs();
+            LogicBugs logicBugs = project.getService(InsidiousService.class).getLogicBugs();
             logicBugs.setVariables(variableList);
         }
         else {
