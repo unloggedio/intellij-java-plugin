@@ -5,7 +5,7 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
+import extension.model.DirectionType;
 import factory.InsidiousService;
 import net.minidev.json.JSONObject;
 import okhttp3.Callback;
@@ -173,7 +173,7 @@ public class HorBugTable {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
-            insidiousService.setTracePoint(selectedTrace);
+            insidiousService.setTracePoint(selectedTrace, DirectionType.BACKWARDS);
         } catch (Exception e) {
             e.printStackTrace();
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
@@ -182,6 +182,7 @@ public class HorBugTable {
 
     public void setVariables(Collection<DataEvent> dataListTemp) {
         JTableHeader header = this.varsValuesTable.getTableHeader();
+
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         Object[] headers = {"Variable Name", "Variable Value"};
 

@@ -14,11 +14,11 @@ import com.sun.jdi.*;
 import com.sun.jdi.request.*;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousXSuspendContext;
+import extension.model.DirectionType;
 import extension.thread.*;
 import network.Client;
 import network.pojo.ExecutionSession;
 import network.pojo.exceptions.APICallException;
-import network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import pojo.TracePoint;
 
@@ -279,8 +279,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     }
 
-    public void setTracePoint(TracePoint tracePoint) throws Exception {
-        this.virtualMachine.setTracePoint(tracePoint);
+    public void setTracePoint(TracePoint tracePoint, DirectionType direction) throws Exception {
+        this.virtualMachine.setTracePoint(tracePoint, direction);
 
     }
 }

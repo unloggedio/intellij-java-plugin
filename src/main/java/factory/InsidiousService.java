@@ -29,6 +29,7 @@ import extension.InsidiousExecutor;
 import extension.InsidiousJavaDebugProcess;
 import extension.InsidiousRunConfigType;
 import extension.connector.InsidiousJDIConnector;
+import extension.model.DirectionType;
 import network.Client;
 import network.pojo.ExceptionResponse;
 import network.pojo.ExecutionSession;
@@ -461,8 +462,8 @@ public class InsidiousService {
         });
     }
 
-    public void setTracePoint(TracePoint selectedTrace) throws Exception {
-        connector.setTracePoint(selectedTrace);
+    public void setTracePoint(TracePoint selectedTrace, DirectionType directionType) throws Exception {
+        connector.setTracePoint(selectedTrace, directionType);
         if (debugSession.isPaused()) {
             debugSession.resume();
         }

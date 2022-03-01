@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
+import extension.model.DirectionType;
 import factory.InsidiousService;
 import network.pojo.DebugPoint;
 import pojo.DataEvent;
@@ -18,7 +19,6 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -37,13 +37,14 @@ public class LogicBugs {
     private JLabel searchLabel;
     private JButton searchButton;
     private JButton refreshButton;
-    private JButton fetchButton;
+    private JButton fetchBackwardButton;
     private JProgressBar progressBarfield;
     private JLabel errorLabel;
     private JPanel varpanel;
     private JProgressBar variableProgressbar;
     private JLabel varvalueErrorLabel;
     private JScrollPane scrollpanel;
+    private JButton fetchForwardButton;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
 
@@ -62,16 +63,8 @@ public class LogicBugs {
         });
 
 
-        fetchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    loadBug(bugsTable.getSelectedRow());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.BACKWARDS));
+        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
 
         initTables();
         variableProgressbar.setVisible(false);
@@ -123,7 +116,7 @@ public class LogicBugs {
         defaultTableModelTraces.setDataVector(sampleObject, headers);
     }
 
-    private void loadBug(int rowNum) throws IOException {
+    private void loadBug(int rowNum, DirectionType directionType) {
 
         XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
 
@@ -141,7 +134,7 @@ public class LogicBugs {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch by trace string for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
-            insidiousService.setTracePoint(selectedTrace);
+            insidiousService.setTracePoint(selectedTrace, directionType);
         } catch (Exception e) {
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
         }
