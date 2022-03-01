@@ -12,6 +12,8 @@ import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
 import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.parser.GradleFileVisitor;
+import com.insidious.plugin.parser.PomFileVisitor;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.CredentialsToolbar;
 import com.insidious.plugin.ui.HorBugTable;
@@ -34,6 +36,10 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
+import com.intellij.psi.*;
+import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.xml.XmlFile;
 import org.slf4j.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -46,7 +52,12 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
 
+import java.beans.XMLDecoder;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.util.Arrays;
 import java.util.List;
 
@@ -58,6 +69,7 @@ public class InsidiousService {
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Module currentModule;
+    private final String packageName;
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
     private Client client;
@@ -82,9 +94,54 @@ public class InsidiousService {
 
         logger.info("started insidious service - project name [{}]", project.getName());
         currentModule = ModuleManager.getInstance(project).getModules()[0];
+
+        packageName = getProjectPackageName();
+
         logger.info("current module [{}]", currentModule.getName());
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
+    }
+
+    private String getProjectPackageName() {
+//        try {
+        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml", GlobalSearchScope.projectScope(project));
+        if (pomFileSearchResult.length > 0) {
+            @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[0];
+
+            PomFileVisitor visitor = new PomFileVisitor();
+            pomPsiFile.accept(visitor);
+            if (visitor.getPackageName() != null) {
+                return visitor.getPackageName();
+            }
+        }
+
+        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle", GlobalSearchScope.projectScope(project));
+        if (gradleFileSearchResult.length > 0) {
+            @NotNull PsiFile gradlePsiFile = gradleFileSearchResult[0];
+            GradleFileVisitor visitor = new GradleFileVisitor();
+            gradlePsiFile.accept(visitor);
+            if (visitor.getPackageName() != null) {
+                return visitor.getPackageName();
+            }
+        }
+
+//        try {
+//            String projectBase = project.getBasePath() + FileSystems.getDefault().getSeparator();
+//            File file = new File(projectBase + "pom.xml");
+//            if (file.exists()) {
+//                String pomFileContents = new String(new FileInputStream(file).readAllBytes());
+//                String groupName = pomFileContents.split("<groupId>")[1].split("</groupId>")[0];
+//                logger.info("group name from pom.xml => [{}]", groupName);
+//            }
+//        } catch (FileNotFoundException e) {
+//            logger.error("failed to open pom.xml", e);
+//            e.printStackTrace();
+//        }
+        return "YOUR.PACKAGE.NAME";
+    }
+
+    public String getJarPath() {
+
     }
 
     public void init() {
@@ -145,6 +202,7 @@ public class InsidiousService {
 
     public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
 
+        getProjectPackageName();
         logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
@@ -424,9 +482,11 @@ public class InsidiousService {
     }
 
     public void setAppTokenOnUi() {
-        logger.info("set app token - " + appToken);
+        logger.info("set app token - {} with package name [{}]" + appToken, packageName);
         credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
-                + "=i=<YOUR-PACKAGE-NAME>,"
+                + "=i="
+                + packageName.replaceAll("\\.", "/")
+                + ","
                 + "server="
                 + insidiousConfiguration.serverUrl
                 + ",token="
