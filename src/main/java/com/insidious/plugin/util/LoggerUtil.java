@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 
 public class LoggerUtil {
 
@@ -21,16 +22,16 @@ public class LoggerUtil {
 
         try {
             String strTmp = System.getProperty("java.io.tmpdir");
-            String logFilePath = strTmp + "/insidious.log";
+            String logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious.log";
             System.out.println("Logging to file - " + logFilePath);
-            RollingFileAppender insidiousAppender = new RollingFileAppender((Layout)layout, logFilePath, true);
+            RollingFileAppender insidiousAppender = new RollingFileAppender((Layout) layout, logFilePath, true);
             insidiousAppender.setEncoding(StandardCharsets.UTF_8.name());
             insidiousAppender.setMaxBackupIndex(12);
             insidiousAppender.setMaximumFileSize(10000000L);
             LevelRangeFilter filter = new LevelRangeFilter();
             filter.setLevelMin(Level.DEBUG);
-            insidiousAppender.addFilter((Filter)filter);
-            insidiousLogger.addAppender((Appender)insidiousAppender);
+            insidiousAppender.addFilter((Filter) filter);
+            insidiousLogger.addAppender((Appender) insidiousAppender);
         } catch (IOException e) {
             e.printStackTrace();
         }
