@@ -69,7 +69,9 @@ public class InsidiousService {
 
     public InsidiousService(Project project) {
         this.project = project;
+        logger.info("started insidious service - project name [{}]", project.getName());
         currentModule = ModuleManager.getInstance(project).getModules()[0];
+        logger.info("current module [{}]", currentModule.getName());
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
     }
@@ -77,6 +79,9 @@ public class InsidiousService {
     public void init() {
 
         if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
+            logger.info("username is not empty in configuration - [{}] with server url [{}]",
+                    insidiousConfiguration.getUsername(),
+                    insidiousConfiguration.getServerUrl());
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             if (insidiousCredentials != null) {
                 Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
@@ -86,6 +91,7 @@ public class InsidiousService {
                         signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
                         return;
                     } catch (IOException e) {
+                        logger.error("failed to signin", e);
                         Messages.showErrorDialog(project, e.getMessage(), "Failed to signin VideoBug");
                     }
                 }
@@ -128,6 +134,7 @@ public class InsidiousService {
 
     public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
 
+        logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
             return;
@@ -149,6 +156,8 @@ public class InsidiousService {
             PasswordSafe.getInstance().set(insidiousCredentials, credentials);
 
         } catch (UnauthorizedException e) {
+
+            logger.error("Failed to signin for user [{}]", usernameText, e);
             e.printStackTrace();
             if (credentialsToolbarWindow != null) {
                 credentialsToolbarWindow.setErrorLable("Sign in failed!");
@@ -163,6 +172,7 @@ public class InsidiousService {
     private void setupProject() {
 
         try {
+            logger.info("try to set project to - [{}]", currentModule.getName());
             client.setProject(currentModule.getName());
             getErrors(0);
             generateAppToken();
@@ -173,11 +183,13 @@ public class InsidiousService {
                 createProject(currentModule.getName(), new NewProjectCallback() {
                     @Override
                     public void error(String errorMessage) {
+                        logger.error("failed to create project - {}", errorMessage);
                         Messages.showErrorDialog(project, errorMessage, "Failed to create new project for [" + currentModule.getName() + "]");
                     }
 
                     @Override
                     public void success(String projectId) {
+                        logger.info("create new project for [{}] -> [{}]", currentModule.getName(), projectId);
                         ApplicationManager.getApplication().invokeLater(() -> {
                             setupProject();
                         });
@@ -233,7 +245,7 @@ public class InsidiousService {
         }
 
 
-        getTracesByClassForProjectAndSessionIdAndTracevalue(traceValue,
+        getTracesByClassForProjectAndSessionIdAndTraceValue(traceValue,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -258,17 +270,20 @@ public class InsidiousService {
             loadSession();
             return;
         }
+        logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
 
         List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
         getTracesByClassForProjectAndSessionId(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
+                        logger.error("failed to get trace points from server - {}", errorResponse);
                         Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to load sessions");
                     }
 
                     @Override
                     public void success(List<TracePoint> tracePointCollection) {
+                        logger.info("got [{}] trace points from server", tracePointCollection.size());
                         if (tracePointCollection.size() == 0) {
                             Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
                         } else {
@@ -279,13 +294,14 @@ public class InsidiousService {
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String traceId,
+    public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
         this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(traceId, getProjectSessionErrorsCallback);
     }
 
 
     public synchronized void startDebugSession() {
+        logger.info("start debug session");
         if (debugSession != null) {
             return;
         }
@@ -301,10 +317,6 @@ public class InsidiousService {
             e.printStackTrace();
         }
 
-    }
-
-    public void startTracer(TracePoint selectedTrace, String order, String source) throws IOException {
-        tracer = new CodeTracer(project, selectedTrace, order, source);
     }
 
     public ProcessHandler getProcessHandler() {
@@ -361,6 +373,7 @@ public class InsidiousService {
 
 
     public void initiateUI() {
+        logger.info("initiate ui");
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
 
         if (credentialsToolbarWindow == null) {
@@ -394,11 +407,13 @@ public class InsidiousService {
             }
         }
         if (isLoggedIn() && client.getProject() == null) {
+            logger.info("user is logged in by project is null, setting up project");
             setupProject();
         }
     }
 
     public void setAppTokenOnUi() {
+        logger.info("set app token - " + appToken);
         credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
                 + "=i=<YOUR-PACKAGE-NAME>,"
                 + "server="
@@ -413,6 +428,7 @@ public class InsidiousService {
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
             public void error(String message) {
+                logger.error("failed to load project sessions - {}", message);
                 ApplicationManager.getApplication().invokeLater(() -> {
                     Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName(), "Failed to get sessions");
                 });
@@ -420,6 +436,7 @@ public class InsidiousService {
 
             @Override
             public void success(List<ExecutionSession> executionSessionList) {
+                logger.info("got [{}] sessions for project", executionSessionList.size());
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
                         Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent", "Failed to get sessions");

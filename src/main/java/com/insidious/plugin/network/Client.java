@@ -184,15 +184,19 @@ public class Client {
     }
 
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
+        logger.info("create project on server - [{}]", projectName);
         post(endpoint + PROJECT_URL + "?name=" + projectName, "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                logger.error("failed to create project", e);
                 newProjectCallback.error(e.getMessage());
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+                String responseBody = response.body().string();
+                logger.info("create project successful response - {}", responseBody);
+                JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
                 String projectId = jsonObject.getAsString("id");
                 newProjectCallback.success(projectId);
             }
@@ -214,15 +218,19 @@ public class Client {
     }
 
     public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
+        logger.info("get project token - " + project.getId());
         post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                logger.error("failed to generate project token", e);
                 projectTokenCallback.error(e.getMessage());
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+                String responseBody = response.body().string();
+                logger.info("project token response - {}", responseBody);
+                JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
                 projectTokenCallback.success(jsonObject.getAsString(Constants.TOKEN));
             }
         });
@@ -238,9 +246,7 @@ public class Client {
             builder.addHeader("Authorization", "Bearer " + token);
         }
         builder.post(body);
-
         Request request = builder.build();
-
         client.newCall(request).enqueue(callback);
     }
 
@@ -288,30 +294,37 @@ public class Client {
     }
 
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
+        logger.info("get project sessions - " + this.project.getId());
         String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         get(executionsUrl, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                logger.error("failed to get project sessions", e);
                 getProjectSessionsCallback.error("ioexception");
             }
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 if (response.body() == null) {
+                    logger.error("get project session response is empty");
                     getProjectSessionsCallback.error("Failed to read response from server");
                     return;
                 }
                 if (response.code() == 401) {
+                    logger.error("get project session call unauthorized project id [{}] with token [{}]", project.getId(), token);
                     getProjectSessionsCallback.error("Unauthorized to get sessions for this project");
                     return;
                 }
                 if (response.code() == 400) {
+                    logger.error("get project session call response code 400 [{}] with token [{}]", project.getId(), token);
                     getProjectSessionsCallback.error("Failed to connect with server to list sessions");
                     return;
                 }
                 TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
                 };
-                DataResponse<ExecutionSession> sessionList = objectMapper.readValue(response.body().string(), typeReference);
+                String responseBody = response.body().string();
+                DataResponse<ExecutionSession> sessionList = objectMapper.readValue(responseBody, typeReference);
+                logger.info("got [{}] sessions for project [{}] - {}", sessionList.getItems().size(), project.getId(), responseBody);
                 getProjectSessionsCallback.success(sessionList.getItems());
             }
         });

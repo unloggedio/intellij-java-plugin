@@ -194,7 +194,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
             logger.info("Process Attached");
             beginTelemetrySession();
         } catch (Exception ex) {
-            logger.debug("Couldn't attach to target VM:", ex);
+            logger.error("Couldn't attach to target VM:", ex);
             if (!getState().isErrored()) {
                 throw new IOException(ex);
             }
