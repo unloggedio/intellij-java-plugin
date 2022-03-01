@@ -64,6 +64,7 @@ public class InsidiousService {
     private CredentialsToolbar credentialsToolbarWindow;
     private ToolWindow toolWindow;
     private CredentialAttributes insidiousCredentials;
+    private String appToken;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -165,8 +166,6 @@ public class InsidiousService {
                 });
             }
             e.printStackTrace();
-
-
             return;
         } catch (IOException e) {
             e.printStackTrace();
@@ -179,7 +178,6 @@ public class InsidiousService {
     }
 
     private void setupProject() throws IOException {
-
 
         try {
             client.setProject(currentModule.getName());
@@ -218,40 +216,8 @@ public class InsidiousService {
 
             @Override
             public void success(String token) {
-
-                HorBugTable bugsTable = new HorBugTable(project, toolWindow);
-                LogicBugs logicBugs = new LogicBugs(project, toolWindow);
-                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                try {
-                    bugsTable.setTableValues();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
-                Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-                ApplicationManager.getApplication().invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        Content content = toolWindow.getContentManager().findContent("Exceptions");
-                        if (content == null) {
-                            toolWindow.getContentManager().addContent(bugsContent);
-                        }
-                        Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
-                        if (traceContent2 == null) {
-                            toolWindow.getContentManager().addContent(traceContent);
-                        }
-                    }
-                });
-
-                getHorBugTable().setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
-                        + "=i=<YOUR-PACKAGE-NAME>,"
-                        + "server="
-                        + insidiousConfiguration.serverUrl
-                        + ",token="
-                        + token + "\""
-                        + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
-
+                InsidiousService.this.appToken = token;
+                setAppTokenOnUi();
             }
         });
     }
@@ -269,10 +235,10 @@ public class InsidiousService {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void getTracesByClassForProjectAndSessionId(String projectId,
-                                                       List<String> classList,
-                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(projectId, getProjectSessionErrorsCallback);
+    public void getTracesByClassForProjectAndSessionId(
+            List<String> classList,
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+        this.client.getTracesByClassForProjectAndSessionId(getProjectSessionErrorsCallback);
     }
 
     public void getTraces(int pageNum, String traceValue) {
@@ -297,10 +263,14 @@ public class InsidiousService {
 
     public void getErrors(int pageNum) {
 
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
+
+        if (this.client.getCurrentSession() == null) {
+            loadSession();
+            return;
+        }
+
         List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(
-                projectId, classList,
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -407,13 +377,19 @@ public class InsidiousService {
     public void initiateUI(@NotNull ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        LogicBugs logicBugs = new LogicBugs(project, toolWindow);
+
 
         if (!isLoggedIn()) {
             credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
             @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
             toolWindow.getContentManager().addContent(credentialContent);
         } else {
+
+            Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
+
             bugsTable = new HorBugTable(project, this.toolWindow);
+
             @NotNull Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
             toolWindow.getContentManager().addContent(bugsContent);
 
@@ -421,24 +397,51 @@ public class InsidiousService {
             @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             toolWindow.getContentManager().addContent(logicbugContent);
 
-            this.client.getProjectSessions(new GetProjectSessionsCallback() {
-                @Override
-                public void error(String message) {
-                    Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName(), "Failed to get sessions");
-                }
-
-                @Override
-                public void success(List<ExecutionSession> executionSessionList) {
-                    if (executionSessionList.size() == 0) {
-                        Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent", "Failed to get sessions");
-                        return;
-                    }
-                    client.setSession(executionSessionList.get(0));
-                    bugsTable.setTableValues();
-                }
-            });
-
+            getErrors(0);
+            Content content = toolWindow.getContentManager().findContent("Exceptions");
+            if (content == null) {
+                toolWindow.getContentManager().addContent(bugsContent);
+            }
+            Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
+            if (traceContent2 == null) {
+                toolWindow.getContentManager().addContent(traceContent);
+            }
         }
+    }
+
+    public void setAppTokenOnUi() {
+        getHorBugTable().setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+                + "=i=<YOUR-PACKAGE-NAME>,"
+                + "server="
+                + insidiousConfiguration.serverUrl
+                + ",token="
+                + appToken + "\""
+                + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
+    }
+
+    public void loadSession() {
+        this.client.getProjectSessions(new GetProjectSessionsCallback() {
+            @Override
+            public void error(String message) {
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName(), "Failed to get sessions");
+                });
+            }
+
+            @Override
+            public void success(List<ExecutionSession> executionSessionList) {
+                if (executionSessionList.size() == 0) {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent", "Failed to get sessions");
+                    });
+                    return;
+                }
+
+                client.setSession(executionSessionList.get(0));
+                getErrors(0);
+
+            }
+        });
     }
 
     public void setTracePoint(TracePoint selectedTrace) throws Exception {

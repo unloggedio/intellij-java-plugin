@@ -325,11 +325,11 @@ public class Client {
         return get(executionsUrl, typeReference);
     }
 
-    public void getTracesByClassForProjectAndSessionId(String projectId,
-                                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+    public void getTracesByClassForProjectAndSessionId(
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
-                + "/" + projectId
+                + "/" + this.project.getId()
                 + TRACE_BY_EXCEPTION
                 + "/" + this.session.getId()
                 + "?exceptionClass="

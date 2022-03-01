@@ -107,7 +107,7 @@ public class HorBugTable {
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
                     scrollpanel.setVisible(true);
-                    setTableValues();
+                    insidiousService.getErrors(0);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -121,8 +121,7 @@ public class HorBugTable {
         });
 
         initBugTypeTable();
-
-
+        setTableValues();
     }
 
     public void setCommandText(String text) {
@@ -142,8 +141,6 @@ public class HorBugTable {
                 return false;
             }
         };
-
-        insidiousService.getErrors(0);
 
         JTableHeader header = this.bugs.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
