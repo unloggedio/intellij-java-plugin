@@ -33,7 +33,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
         if (insidiousService.isLoggedIn()) {
             insidiousService.startDebugSession();
         }
-        insidiousService.initiateUI(toolWindow);
+        insidiousService.setToolWindow(toolWindow);
     }
 
 }

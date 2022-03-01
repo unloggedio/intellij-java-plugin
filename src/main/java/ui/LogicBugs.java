@@ -7,8 +7,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.content.Content;
-import com.intellij.ui.content.ContentFactory;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
@@ -37,7 +35,6 @@ import java.util.List;
 
 public class LogicBugs {
     private final Project project;
-    private final ToolWindow toolWindow;
     private final InsidiousService insidiousService;
     DefaultTableCellRenderer centerRenderer;
     private JPanel mainpanel;
@@ -59,11 +56,9 @@ public class LogicBugs {
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
 
-    public LogicBugs(Project project, ToolWindow toolWindow) {
-        this.toolWindow = toolWindow;
+    public LogicBugs(Project project, InsidiousService insidiousService) {
         this.project = project;
-        this.insidiousService = project.getService(InsidiousService.class);
-        this.insidiousService.setLogicBugs(this);
+        this.insidiousService = insidiousService;
         searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -231,33 +226,6 @@ public class LogicBugs {
         this.varsvalueTable.setAutoCreateRowSorter(true);
 
     }
-
-    private void clearAll() {
-        PropertiesComponent.getInstance().setValue(Constants.TOKEN, "");
-    }
-
-    private void showCredentialsWindow() {
-
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Content exceptionContent = toolWindow.getContentManager().findContent("Exceptions");
-                Content traceContent = toolWindow.getContentManager().findContent("Traces");
-                if (exceptionContent != null) {
-                    toolWindow.getContentManager().removeContent(exceptionContent, true);
-                }
-                if (traceContent != null) {
-                    toolWindow.getContentManager().removeContent(traceContent, true);
-                }
-                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-                CredentialsToolbar credentialsToolbar = new CredentialsToolbar(project, toolWindow);
-                Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(), "Credentials", false);
-                toolWindow.getContentManager().addContent(credentialContent);
-            }
-        });
-
-    }
-
 
     public void setTracePoints(List<TracePoint> tracePointCollection) {
         scrollpanel.setVisible(true);

@@ -71,6 +71,9 @@ public class InsidiousService {
         currentModule = ModuleManager.getInstance(project).getModules()[0];
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
+    }
+
+    public void init() {
         if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             if (insidiousCredentials != null) {
@@ -79,12 +82,14 @@ public class InsidiousService {
                     String password = credentials.getPasswordAsString();
                     try {
                         signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+                        return;
                     } catch (IOException e) {
                         Messages.showErrorDialog(project, e.getMessage(), "Failed to signin VideoBug");
                     }
                 }
             }
         }
+        ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }
 
     public boolean isLoggedIn() {
@@ -164,6 +169,8 @@ public class InsidiousService {
                         }
                     }
                 });
+            } else {
+                ApplicationManager.getApplication().invokeLater(this::initiateUI);
             }
             e.printStackTrace();
             return;
@@ -172,15 +179,15 @@ public class InsidiousService {
             Messages.showErrorDialog(project, "Failed to connect with server - " + e.getMessage(), "Failed");
             return;
         }
-        setupProject();
-        initiateUI(null);
-
+        ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }
 
     private void setupProject() throws IOException {
 
         try {
             client.setProject(currentModule.getName());
+            getErrors(0);
+            generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
             int choice = Messages.showDialog(project, "No project by name [" + currentModule.getName() + "]. Do you want to create a new project ?",
                     "Failed to get project", new String[]{"Yes", "No"}, 0, null);
@@ -201,12 +208,13 @@ public class InsidiousService {
                     }
                 });
             }
-            return;
         } catch (UnauthorizedException e) {
             e.printStackTrace();
             Messages.showErrorDialog(project, e.getMessage(), "Failed to query existing project");
         }
+    }
 
+    public void generateAppToken() {
         getProjectToken(new ProjectTokenCallback() {
             @Override
             public void error(String message) {
@@ -374,32 +382,28 @@ public class InsidiousService {
     }
 
 
-    public void initiateUI(ToolWindow toolWindow) {
-        if (toolWindow != null) {
-            this.toolWindow = toolWindow;
-        }
+    public void initiateUI() {
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-        LogicBugs logicBugs = new LogicBugs(project, this.toolWindow);
-
 
         if (!isLoggedIn()) {
             credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
             @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
             this.toolWindow.getContentManager().addContent(credentialContent);
         } else {
+            if (bugsTable != null) {
+                return;
+            }
 
-            Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-
-            bugsTable = new HorBugTable(project, this.toolWindow);
+            bugsTable = new HorBugTable(project, this);
+            logicBugs = new LogicBugs(project, this);
 
             @NotNull Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
             this.toolWindow.getContentManager().addContent(bugsContent);
 
-            logicBugs = new LogicBugs(project, this.toolWindow);
+            Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             this.toolWindow.getContentManager().addContent(logicbugContent);
 
-            getErrors(0);
             Content content = this.toolWindow.getContentManager().findContent("Exceptions");
             if (content == null) {
                 this.toolWindow.getContentManager().addContent(bugsContent);
@@ -408,11 +412,16 @@ public class InsidiousService {
             if (traceContent2 == null) {
                 this.toolWindow.getContentManager().addContent(traceContent);
             }
+            try {
+                setupProject();
+            } catch (IOException e) {
+                Messages.showErrorDialog(project, e.getMessage(), "Failed to load project");
+            }
         }
     }
 
     public void setAppTokenOnUi() {
-        getHorBugTable().setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+        bugsTable.setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
                 + "=i=<YOUR-PACKAGE-NAME>,"
                 + "server="
                 + insidiousConfiguration.serverUrl
@@ -457,5 +466,10 @@ public class InsidiousService {
 
     public Client getClient() {
         return client;
+    }
+
+    public void setToolWindow(ToolWindow toolWindow) {
+        this.toolWindow = toolWindow;
+        init();
     }
 }

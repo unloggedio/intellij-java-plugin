@@ -9,7 +9,6 @@ import com.intellij.openapi.wm.ToolWindow;
 import factory.InsidiousService;
 import net.minidev.json.JSONObject;
 import okhttp3.Callback;
-import okhttp3.OkHttpClient;
 import pojo.DataEvent;
 import pojo.TracePoint;
 
@@ -29,8 +28,6 @@ import java.util.List;
 public class HorBugTable {
     private static final Logger logger = Logger.getInstance(HorBugTable.class);
     private final InsidiousService insidiousService;
-    private final ToolWindow toolWindow;
-    OkHttpClient client;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
@@ -64,15 +61,11 @@ public class HorBugTable {
     private JLabel someLable;
     private List<TracePoint> bugList;
 
-    public HorBugTable(Project project, ToolWindow toolWindow) {
+    public HorBugTable(Project project, InsidiousService insidiousService) {
         this.project = project;
-        this.toolWindow = toolWindow;
         basepath = this.project.getBasePath();
 
-        this.insidiousService = project.getService(InsidiousService.class);
-
-        this.insidiousService.setHorBugTable(this);
-
+        this.insidiousService = insidiousService;
         fetchSessionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
