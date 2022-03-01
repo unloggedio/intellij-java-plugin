@@ -75,6 +75,7 @@ public class InsidiousService {
     }
 
     public void init() {
+
         if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             if (insidiousCredentials != null) {
@@ -147,38 +148,14 @@ public class InsidiousService {
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             PasswordSafe.getInstance().set(insidiousCredentials, credentials);
 
-
         } catch (UnauthorizedException e) {
-
             e.printStackTrace();
-
-            int choice = Messages.showDialog(project, "Do you want to try to create account with these credentials ? Signup might fail if account already exists",
-                    "Failed to sign in", new String[]{"Yes", "No"}, 0, null);
-            if (choice == 0) {
-                signup(insidiousConfiguration.serverUrl, insidiousConfiguration.username, passwordText, new SignUpCallback() {
-                    @Override
-                    public void error(String string) {
-                        Messages.showErrorDialog(project, string, "Failed to signup");
-                    }
-
-                    @Override
-                    public void success() {
-                        try {
-                            signin(serverUrl, usernameText, passwordText);
-                        } catch (IOException ex) {
-                            Messages.showErrorDialog(project, ex.getMessage(), "Failed to connect with server");
-                        }
-                    }
-                });
-            } else {
-                ApplicationManager.getApplication().invokeLater(this::initiateUI);
+            if (credentialsToolbarWindow != null) {
+                credentialsToolbarWindow.setErrorLable("Sign in failed!");
             }
-            e.printStackTrace();
-            return;
         } catch (Throwable e) {
             e.printStackTrace();
             Messages.showErrorDialog(project, "Failed to connect with server - " + e.getMessage(), "Failed");
-            return;
         }
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }
@@ -422,7 +399,7 @@ public class InsidiousService {
     }
 
     public void setAppTokenOnUi() {
-        bugsTable.setCommandText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
+        credentialsToolbarWindow.setText("java -javaagent:\"" + "<PATH-TO-THE-VIDEOBUG-JAVA-AGENT>"
                 + "=i=<YOUR-PACKAGE-NAME>,"
                 + "server="
                 + insidiousConfiguration.serverUrl

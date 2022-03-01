@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.callbacks.SignUpCallback;
 import com.insidious.plugin.util.LoggerUtil;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
@@ -27,17 +28,19 @@ public class CredentialsToolbar {
     private JLabel passwordLable;
     private JPasswordField password;
     private JTextField videobugServerURLTextField;
-    private JButton signupSigninButton;
+    private JButton Signin;
     private JLabel errorLable;
     private JLabel commandLabel;
     private JTextArea textArea1;
     private JButton downloadAgent;
+    private JButton Signup;
+    private JLabel infoError;
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
         this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
-        signupSigninButton.addActionListener(new ActionListener() {
+        Signin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 usernameText = username.getText();
@@ -62,6 +65,30 @@ public class CredentialsToolbar {
                 }
             }
         });
+        Signup.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                usernameText = username.getText();
+                passwordText = new String(password.getPassword());
+                videobugURL = videobugServerURLTextField.getText();
+                insidiousService.signup(videobugURL, usernameText, passwordText, new SignUpCallback() {
+                    @Override
+                    public void error(String string) {
+
+                    }
+
+                    @Override
+                    public void success() {
+                        try {
+                            insidiousService.signin(videobugURL, usernameText, passwordText);
+                            infoError.setText("Signup was successful!");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
     }
 
     public void setErrorLabel(String message) {
@@ -74,5 +101,9 @@ public class CredentialsToolbar {
 
     public void setText(String s) {
         textArea1.setText(s);
+    }
+
+    public void setErrorLable(String s) {
+        infoError.setText(s);
     }
 }
