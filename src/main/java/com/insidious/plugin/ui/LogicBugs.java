@@ -31,7 +31,6 @@ public class LogicBugs {
     DefaultTableCellRenderer centerRenderer;
     private JPanel mainpanel;
     private JPanel searchPanel;
-    private JScrollPane varsvaluePane;
     private JTable bugsTable;
     private JTable varsvalueTable;
     private JTextField traceIdfield;
@@ -41,9 +40,7 @@ public class LogicBugs {
     private JButton fetchBackwardButton;
     private JProgressBar progressBarfield;
     private JLabel errorLabel;
-    private JPanel varpanel;
     private JProgressBar variableProgressbar;
-    private JLabel varvalueErrorLabel;
     private JScrollPane scrollpanel;
     private JButton fetchForwardButton;
     private List<TracePoint> bugList;
@@ -68,7 +65,7 @@ public class LogicBugs {
 //        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
 
         initTables();
-        variableProgressbar.setVisible(false);
+        //variableProgressbar.setVisible(false);
     }
 
     private void initTables() {
