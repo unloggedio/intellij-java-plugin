@@ -42,7 +42,6 @@ public class HorBugTable {
     private JPanel panel11;
     private JPanel panel12;
     private JScrollPane scrollpanel;
-    private JPanel varpanel;
     private JLabel variables;
     private JLabel values;
     private JButton fetchSessionButton;
