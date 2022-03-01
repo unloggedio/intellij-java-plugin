@@ -28,6 +28,10 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import org.slf4j.Logger;
@@ -69,6 +73,13 @@ public class InsidiousService {
 
     public InsidiousService(Project project) {
         this.project = project;
+        String logFileNotificationContent = "Insidious log file location - " +
+                LoggerUtil.getLogFilePath();
+
+        NotificationGroupManager.getInstance().getNotificationGroup("com.insidious")
+                .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
+                .notify(project);
+
         logger.info("started insidious service - project name [{}]", project.getName());
         currentModule = ModuleManager.getInstance(project).getModules()[0];
         logger.info("current module [{}]", currentModule.getName());

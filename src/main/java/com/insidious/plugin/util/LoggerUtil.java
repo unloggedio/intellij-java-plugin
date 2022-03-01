@@ -1,5 +1,8 @@
 package com.insidious.plugin.util;
 
+import com.intellij.internal.statistic.eventLog.EventLogConfiguration;
+import com.intellij.notification.EventLog;
+import com.intellij.notification.EventLogToolWindowFactory;
 import com.intellij.openapi.application.PathManager;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.Filter;
@@ -12,8 +15,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.util.Collections;
 
 public class LoggerUtil {
+
+    private static String logFilePath;
 
     static {
         LoggerRepository repository = LogManager.getLoggerRepository();
@@ -22,23 +28,23 @@ public class LoggerUtil {
 
         try {
             String strTmp = System.getProperty("java.io.tmpdir");
-            String logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious.log";
-            System.out.println("Logging to file - " + logFilePath);
-            RollingFileAppender insidiousAppender = new RollingFileAppender((Layout) layout, logFilePath, true);
+            logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious.log";
+
+            RollingFileAppender insidiousAppender = new RollingFileAppender(layout, logFilePath, true);
             insidiousAppender.setEncoding(StandardCharsets.UTF_8.name());
             insidiousAppender.setMaxBackupIndex(12);
             insidiousAppender.setMaximumFileSize(10000000L);
             LevelRangeFilter filter = new LevelRangeFilter();
             filter.setLevelMin(Level.DEBUG);
-            insidiousAppender.addFilter((Filter) filter);
-            insidiousLogger.addAppender((Appender) insidiousAppender);
+            insidiousAppender.addFilter(filter);
+            insidiousLogger.addAppender(insidiousAppender);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    static {
-//        @NotNull Logger baseLogger = LoggerFactory.getLoggerInstance("#com.insidious");
+    public static String getLogFilePath() {
+        return logFilePath;
     }
 
     public static Logger getInstance(@NotNull Class<?> cl) {
