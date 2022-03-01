@@ -186,7 +186,7 @@ public class InsidiousService {
 
         try {
             client.setProject(currentModule.getName());
-            startDebugSession();
+            ApplicationManager.getApplication().invokeLater(this::startDebugSession);
             getErrors(0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
