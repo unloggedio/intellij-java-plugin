@@ -415,11 +415,11 @@ public class Client {
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String traceId,
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
-                + "/" + projectId
+                + "/" + this.project.getId()
                 + TRACE_BY_STRING
                 + "/" + this.session.getId()
                 + "?traceValue="

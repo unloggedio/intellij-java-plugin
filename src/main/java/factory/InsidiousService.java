@@ -186,6 +186,7 @@ public class InsidiousService {
 
         try {
             client.setProject(currentModule.getName());
+            startDebugSession();
             getErrors(0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
@@ -250,9 +251,8 @@ public class InsidiousService {
     }
 
     public void getTraces(int pageNum, String traceValue) {
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(projectId,
-                traceValue, new GetProjectSessionErrorsCallback() {
+        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(traceValue,
+                new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to get traces");
@@ -297,17 +297,16 @@ public class InsidiousService {
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String projectId, String traceId,
+    public void getTracesByClassForProjectAndSessionIdAndTracevalue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(projectId, traceId, getProjectSessionErrorsCallback);
+        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(traceId, getProjectSessionErrorsCallback);
     }
 
     public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest, FilteredDataEventsCallback filteredDataEventsCallback) {
         this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
     }
 
-    public void startDebugSession() {
-
+    public synchronized void startDebugSession() {
         if (debugSession != null) {
             return;
         }
