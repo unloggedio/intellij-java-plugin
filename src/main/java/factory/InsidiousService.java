@@ -186,7 +186,6 @@ public class InsidiousService {
 
         try {
             client.setProject(currentModule.getName());
-            ApplicationManager.getApplication().invokeLater(this::startDebugSession);
             getErrors(0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
@@ -251,7 +250,14 @@ public class InsidiousService {
     }
 
     public void getTraces(int pageNum, String traceValue) {
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionIdAndTracevalue(traceValue,
+
+        if (this.client.getCurrentSession() == null) {
+            loadSession();
+            return;
+        }
+
+
+        getTracesByClassForProjectAndSessionIdAndTracevalue(traceValue,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -278,7 +284,7 @@ public class InsidiousService {
         }
 
         List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
-        project.getService(InsidiousService.class).getTracesByClassForProjectAndSessionId(classList,
+        getTracesByClassForProjectAndSessionId(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -430,6 +436,7 @@ public class InsidiousService {
     }
 
     public void loadSession() {
+        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
             public void error(String message) {
