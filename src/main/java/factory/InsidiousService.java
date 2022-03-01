@@ -309,9 +309,6 @@ public class InsidiousService {
         this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(traceId, getProjectSessionErrorsCallback);
     }
 
-    public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest, FilteredDataEventsCallback filteredDataEventsCallback) {
-        this.client.filterDataEvents(projectId, filteredDataEventsRequest, filteredDataEventsCallback);
-    }
 
     public synchronized void startDebugSession() {
         if (debugSession != null) {

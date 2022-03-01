@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ReplayData {
+    private final String sortOrder;
     List<DataEventWithSessionId> dataEvents;
     Map<String, ClassInfo> classInfoMap;
     Map<String, DataInfo> dataInfoMap;
@@ -20,14 +21,15 @@ public class ReplayData {
                       Map<String, DataInfo> dataInfo,
                       Map<String, StringInfo> stringInfo,
                       Map<String, ObjectInfo> objectInfo,
-                      Map<String, TypeInfo> typeInfo
-    ) {
+                      Map<String, TypeInfo> typeInfo,
+                      String sortOrder) {
         dataEvents = dataList;
         classInfoMap = classInfo;
         dataInfoMap = dataInfo;
         stringInfoMap = stringInfo;
         this.objectInfo = objectInfo;
         this.typeInfo = typeInfo;
+        this.sortOrder = sortOrder;
     }
 
     public Map<String, ObjectInfo> getObjectInfo() {

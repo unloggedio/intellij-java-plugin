@@ -501,93 +501,6 @@ public class Client {
 
     }
 
-    public void filterDataEvents(String projectId, FilteredDataEventsRequest filteredDataEventsRequest,
-                                 FilteredDataEventsCallback filteredDataEventsCallback) {
-        try {
-            String url = endpoint + PROJECT_URL + "/" + projectId + FILTER_DATA_EVENTS_URL;
-            String executionSessionId = filteredDataEventsRequest.getSessionId();
-
-            post(url, objectMapper.writeValueAsString(filteredDataEventsRequest), new Callback() {
-                @Override
-                public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                    ExceptionResponse exceptionResponse = new ExceptionResponse();
-                    exceptionResponse.setMessage(e.getMessage());
-                    filteredDataEventsCallback.error(exceptionResponse);
-                }
-
-                @Override
-                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-
-                    if (response.code() != 200) {
-                        ExceptionResponse errrorResponse = JSONValue.parse(response.body().string(), ExceptionResponse.class);
-                        filteredDataEventsCallback.error(errrorResponse);
-                        return;
-                    }
-
-                    TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
-                    };
-
-                    DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(response.body().string(), typeReference);
-                    List<DataEventWithSessionId> datapointsArray = dataResponse.getItems();
-                    ResponseMetadata metadata = dataResponse.getMetadata();
-                    Map<String, ClassInfo> classInfo = metadata.getClassInfo();
-                    Map<String, DataInfo> dataInfo = metadata.getDataInfo();
-                    Map<String, StringInfo> stringInfo = metadata.getStringInfo();
-
-                    ArrayList<DataEvent> dataList = new ArrayList<>();
-
-                    for (DataEventWithSessionId dataEvent : datapointsArray) {
-                        long dataId = dataEvent.getDataId();
-                        long dataValue = dataEvent.getValue();
-                        Map<String, Object> dataInfoTemp = (Map<String, Object>) dataInfo.get(String.valueOf(dataId));
-                        Map<String, Object> attributesMap = (Map<String, Object>) dataInfoTemp.get("attributesMap");
-
-                        if (attributesMap.containsKey("Instruction")) {
-                            continue;
-                        }
-
-                        String variableName = (String) attributesMap.get("Name");
-
-                        if (variableName == null) {
-                            continue;
-                        }
-
-                        if (Arrays.asList("<init>", "makeConcatWithConstants").contains(variableName)) {
-                            continue;
-                        }
-
-                        String variableType = (String) attributesMap.get("Type");
-                        int classId = (int) dataInfoTemp.get("classId");
-                        int lineNumber = (int) dataInfoTemp.get("line");
-                        Map<String, Object> classInfoTemp = (Map<String, Object>) classInfo.get(String.valueOf(classId));
-                        String filename = (String) classInfoTemp.get("filename");
-
-
-                        String dataIdstr = String.valueOf(dataValue);
-
-                        if (variableType != null) {
-                            if (variableType.contains("java/lang/String")) {
-                                Map<String, Object> tempStringJson = (Map<String, Object>) stringInfo.get(dataIdstr);
-                                if (tempStringJson != null) {
-                                    dataIdstr = (String) tempStringJson.get("content");
-                                }
-                            }
-                        }
-
-                        long nanoTime = dataEvent.getNanoTime();
-                        DataEvent varsValues = new DataEvent(lineNumber, filename, variableName, dataIdstr, nanoTime);
-                        dataList.add(varsValues);
-                    }
-
-
-                    filteredDataEventsCallback.success(dataList);
-                }
-            });
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-    }
-
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
         String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
@@ -609,7 +522,7 @@ public class Client {
         Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
         Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
 
-        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo);
+        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
 
     }
 

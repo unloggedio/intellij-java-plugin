@@ -76,7 +76,8 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
     }
 
     @Override
-    public Value invokeMethod(ThreadReference threadReference, Method method, List<? extends Value> list, int i) throws InvalidTypeException, ClassNotLoadedException, IncompatibleThreadStateException, InvocationException {
+    public Value invokeMethod(ThreadReference threadReference, Method method, List<? extends Value> list, int i)
+            throws InvalidTypeException, ClassNotLoadedException, IncompatibleThreadStateException, InvocationException {
         return null;
     }
 

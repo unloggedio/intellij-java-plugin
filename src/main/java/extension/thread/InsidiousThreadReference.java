@@ -95,12 +95,8 @@ public class InsidiousThreadReference implements ThreadReference {
             DataInfo probeInfo = dataInfoMap.get(dataId);
             int classId = probeInfo.getClassId();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
-//            if (currentClassId != -1 && currentClassId != classId) {
-//                continue;
-//            }
 
-
-            System.out.println("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
+            logger.info("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
                     + "] line [" + probeInfo.getLine() + "][" + probeInfo.getEventType()
                     + "]  of class [" + classInfo.getFilename() + "] => [" + dataEvent.getValue() + "]");
 
@@ -508,6 +504,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
         int currentLineNumber = replayData.getDataInfoMap().get(String.valueOf(dataEvents.get(position).getDataId())).getLine();
+
         List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
         if (size < 0) {
             for (int i = position; i < dataEvents.size(); i++) {
