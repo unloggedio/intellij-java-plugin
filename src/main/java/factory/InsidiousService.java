@@ -173,7 +173,7 @@ public class InsidiousService {
             return;
         }
         setupProject();
-
+        initiateUI(null);
 
     }
 
@@ -374,16 +374,18 @@ public class InsidiousService {
     }
 
 
-    public void initiateUI(@NotNull ToolWindow toolWindow) {
-        this.toolWindow = toolWindow;
+    public void initiateUI(ToolWindow toolWindow) {
+        if (toolWindow != null) {
+            this.toolWindow = toolWindow;
+        }
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
-        LogicBugs logicBugs = new LogicBugs(project, toolWindow);
+        LogicBugs logicBugs = new LogicBugs(project, this.toolWindow);
 
 
         if (!isLoggedIn()) {
             credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
             @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            toolWindow.getContentManager().addContent(credentialContent);
+            this.toolWindow.getContentManager().addContent(credentialContent);
         } else {
 
             Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
@@ -391,20 +393,20 @@ public class InsidiousService {
             bugsTable = new HorBugTable(project, this.toolWindow);
 
             @NotNull Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
-            toolWindow.getContentManager().addContent(bugsContent);
+            this.toolWindow.getContentManager().addContent(bugsContent);
 
             logicBugs = new LogicBugs(project, this.toolWindow);
             @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-            toolWindow.getContentManager().addContent(logicbugContent);
+            this.toolWindow.getContentManager().addContent(logicbugContent);
 
             getErrors(0);
-            Content content = toolWindow.getContentManager().findContent("Exceptions");
+            Content content = this.toolWindow.getContentManager().findContent("Exceptions");
             if (content == null) {
-                toolWindow.getContentManager().addContent(bugsContent);
+                this.toolWindow.getContentManager().addContent(bugsContent);
             }
-            Content traceContent2 = toolWindow.getContentManager().findContent("Traces");
+            Content traceContent2 = this.toolWindow.getContentManager().findContent("Traces");
             if (traceContent2 == null) {
-                toolWindow.getContentManager().addContent(traceContent);
+                this.toolWindow.getContentManager().addContent(traceContent);
             }
         }
     }
