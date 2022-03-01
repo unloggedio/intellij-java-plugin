@@ -31,6 +31,7 @@ import extension.InsidiousRunConfigType;
 import extension.connector.InsidiousJDIConnector;
 import network.Client;
 import network.pojo.ExceptionResponse;
+import network.pojo.ExecutionSession;
 import network.pojo.FilteredDataEventsRequest;
 import network.pojo.exceptions.ProjectDoesNotExistException;
 import network.pojo.exceptions.UnauthorizedException;
@@ -268,10 +269,6 @@ public class InsidiousService {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void getProjectSessions(String projectId, GetProjectSessionsCallback getProjectSessionsCallback) {
-        this.client.getProjectSessions(projectId, getProjectSessionsCallback);
-    }
-
     public void getTracesByClassForProjectAndSessionId(String projectId,
                                                        List<String> classList,
                                                        GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
@@ -424,11 +421,23 @@ public class InsidiousService {
             @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             toolWindow.getContentManager().addContent(logicbugContent);
 
-            try {
-                bugsTable.setTableValues();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            this.client.getProjectSessions(new GetProjectSessionsCallback() {
+                @Override
+                public void error(String message) {
+                    Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName(), "Failed to get sessions");
+                }
+
+                @Override
+                public void success(List<ExecutionSession> executionSessionList) {
+                    if (executionSessionList.size() == 0) {
+                        Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent", "Failed to get sessions");
+                        return;
+                    }
+                    client.setSession(executionSessionList.get(0));
+                    bugsTable.setTableValues();
+                }
+            });
+
         }
     }
 

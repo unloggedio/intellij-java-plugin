@@ -70,7 +70,7 @@ public class Client {
         }
     }
 
-    public ExecutionSession getSession() {
+    public ExecutionSession getCurrentSession() {
         return session;
     }
 
@@ -287,8 +287,8 @@ public class Client {
         return result;
     }
 
-    public void getProjectSessions(String projectId, GetProjectSessionsCallback getProjectSessionsCallback) {
-        String executionsUrl = endpoint + PROJECT_URL + "/" + projectId + PROJECT_EXECUTIONS_URL;
+    public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
+        String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         get(executionsUrl, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -298,15 +298,15 @@ public class Client {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 if (response.body() == null) {
-                    getProjectSessionsCallback.error("null");
+                    getProjectSessionsCallback.error("Failed to read response from server");
                     return;
                 }
                 if (response.code() == 401) {
-                    getProjectSessionsCallback.error("401");
+                    getProjectSessionsCallback.error("Unauthorized to get sessions for this project");
                     return;
                 }
                 if (response.code() == 400) {
-                    getProjectSessionsCallback.error("400");
+                    getProjectSessionsCallback.error("Failed to connect with server to list sessions");
                     return;
                 }
                 TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
