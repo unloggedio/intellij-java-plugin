@@ -27,28 +27,23 @@
 
 
         <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"
-                class="actions.JumpBack">
+                class="com.insidious.plugin.actions.JumpBack">
             <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>
             <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>
         </action>
 
-        <group id="Demo.FetchSession" text="Fetch Session" description="You need to first fetch a session">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action icon="/icons/videobug_Icon_16x16.svg" class="actions.PopupDialogAction"
-                    description="Test Description" id="fetchSession" text="Fetch Session"/>
-        </group>
 
 
         <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="actions.JumpBack" description="Test Description" id="jumpBack" text="Jump Back"
+            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack" text="Jump Back"
                     icon="AllIcons.Actions.Back"/>
         </group>
 
         <group id="Demo.NextStatement" text="Go Forward in time using this"
                description="Jump forward using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward"
+            <action class="com.insidious.plugin.actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward"
                     icon="AllIcons.Debugger.NextStatement"/>
         </group>
 
@@ -56,14 +51,14 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
-                    factoryClass="factory.DebuggerFactory"/>
+                    factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 
-        <projectService serviceImplementation="factory.InsidiousService"/>
+        <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService
-                serviceImplementation="factory.InsidiousConfigurationState"/>
-        <programRunner implementation="extension.InsidiousProgramRunner"/>
-        <configurationType implementation="extension.InsidiousRunConfigType"/>
-        <executor implementation="extension.InsidiousExecutor"/>
+                serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
+        <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>
+        <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>
+        <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>
     </extensions>
 
 </idea-plugin>
