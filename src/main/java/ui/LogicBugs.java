@@ -1,20 +1,13 @@
 package ui;
 
-import actions.Constants;
-import callbacks.FilteredDataEventsCallback;
-import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
 import factory.InsidiousService;
-import net.minidev.json.JSONArray;
 import network.pojo.DebugPoint;
-import network.pojo.ExceptionResponse;
-import network.pojo.FilteredDataEventsRequest;
 import pojo.DataEvent;
 import pojo.TracePoint;
 
@@ -25,15 +18,13 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class LogicBugs {
+    private static final Logger logger = Logger.getInstance(LogicBugs.class);
     private final Project project;
     private final InsidiousService insidiousService;
     DefaultTableCellRenderer centerRenderer;
@@ -147,61 +138,14 @@ public class LogicBugs {
             }
         }
 
-//        if (breakpointList.size() == 0) {
-//            Messages.showInfoMessage("Set atleast 1 breakpoint", "Break Points");
-//            return;
-//        }
-
         TracePoint selectedTrace = bugList.get(rowNum);
-        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
-        filteredDataEventsRequest.setSessionId(selectedTrace.getExecutionSessionId());
-        filteredDataEventsRequest.setThreadId(selectedTrace.getThreadId());
-        filteredDataEventsRequest.setValueId(Collections.singletonList(selectedTrace.getValue()));
-        filteredDataEventsRequest.setPageSize(200);
-        filteredDataEventsRequest.setPageNumber(0);
-        filteredDataEventsRequest.setDebugPoints(breakpointList);
-        filteredDataEventsRequest.setSortOrder("DESC");
+        try {
+            logger.info(String.format("Fetch by trace string for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+            insidiousService.setTracePoint(selectedTrace);
+        } catch (Exception e) {
+            Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
+        }
 
-        String projectId = PropertiesComponent.getInstance().getValue(Constants.PROJECT_ID);
-        project.getService(InsidiousService.class).filterDataEvents(
-                projectId, filteredDataEventsRequest,
-                new FilteredDataEventsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errrorResponse) {
-                        System.out.print(errrorResponse.getMessage());
-                    }
-
-                    @Override
-                    public void success(List<DataEvent> dataList) {
-
-                        String content = JSONArray.toJSONString(dataList);
-                        String path = project.getBasePath() + "/variablevalues.json";
-                        File file = new File(path);
-                        FileWriter fileWriter = null;
-                        try {
-                            fileWriter = new FileWriter(file);
-                            fileWriter.write(content);
-                            fileWriter.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            try {
-                                project.getService(InsidiousService.class).startTracer(selectedTrace, "DESC", "traces");
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                ExceptionResponse exceptionResponse = new ExceptionResponse();
-                                exceptionResponse.setMessage(e.getMessage());
-                                error(exceptionResponse);
-                                return;
-                            }
-                        });
-                        varsvaluePane.setVisible(true);
-
-                    }
-                }
-        );
     }
 
     public void setVariables(Collection<DataEvent> dataListTemp) {

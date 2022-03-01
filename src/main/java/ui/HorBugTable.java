@@ -33,7 +33,6 @@ public class HorBugTable {
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
     Object[] headers;
     List<DataEvent> dataList;
-    String executionSessionId;
     Project project;
     String basepath;
     DefaultTableCellRenderer centerRenderer;
@@ -173,11 +172,11 @@ public class HorBugTable {
     private void loadBug(int rowNum) {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
-            logger.info(String.format("Fetch for sessions [%s] on thread [%s]", executionSessionId, selectedTrace.getThreadId()));
+            logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
             insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             e.printStackTrace();
-            Messages.showErrorDialog(project, e.getMessage(), "Failed");
+            Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
         }
     }
 
