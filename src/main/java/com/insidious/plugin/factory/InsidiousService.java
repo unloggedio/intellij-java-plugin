@@ -35,6 +35,7 @@ import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
 import com.intellij.psi.*;
 import com.intellij.psi.search.FilenameIndex;
@@ -69,7 +70,7 @@ public class InsidiousService {
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Module currentModule;
-    private final String packageName;
+    private String packageName = "YOUR.PACKAGE.NAME";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
     private Client client;
@@ -95,14 +96,16 @@ public class InsidiousService {
         logger.info("started insidious service - project name [{}]", project.getName());
         currentModule = ModuleManager.getInstance(project).getModules()[0];
 
-        packageName = getProjectPackageName();
+        ReadAction.nonBlocking(() -> {
+            getProjectPackageName();
+        });
 
         logger.info("current module [{}]", currentModule.getName());
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
     }
 
-    private String getProjectPackageName() {
+    private void getProjectPackageName() {
 //        try {
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml", GlobalSearchScope.projectScope(project));
         if (pomFileSearchResult.length > 0) {
@@ -111,7 +114,9 @@ public class InsidiousService {
             PomFileVisitor visitor = new PomFileVisitor();
             pomPsiFile.accept(visitor);
             if (visitor.getPackageName() != null) {
-                return visitor.getPackageName();
+                packageName = visitor.getPackageName();
+                setAppTokenOnUi();
+                return;
             }
         }
 
@@ -121,7 +126,9 @@ public class InsidiousService {
             GradleFileVisitor visitor = new GradleFileVisitor();
             gradlePsiFile.accept(visitor);
             if (visitor.getPackageName() != null) {
-                return visitor.getPackageName();
+                packageName = visitor.getPackageName();
+                setAppTokenOnUi();
+                return;
             }
         }
 
@@ -137,7 +144,7 @@ public class InsidiousService {
 //            logger.error("failed to open pom.xml", e);
 //            e.printStackTrace();
 //        }
-        return "YOUR.PACKAGE.NAME";
+//        packageName = "YOUR.PACKAGE.NAME";
     }
 
     public String getJarPath() {
@@ -202,7 +209,6 @@ public class InsidiousService {
 
     public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
 
-        getProjectPackageName();
         logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
@@ -451,10 +457,7 @@ public class InsidiousService {
             this.toolWindow.getContentManager().addContent(credentialContent);
         }
 
-        if (isLoggedIn()) {
-            if (bugsTable != null) {
-                return;
-            }
+        if (isLoggedIn() && bugsTable == null) {
 
             bugsTable = new HorBugTable(project, this);
             logicBugs = new LogicBugs(project, this);
@@ -483,15 +486,19 @@ public class InsidiousService {
 
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
-        credentialsToolbarWindow.setText("java -javaagent:\"" + getJarPath()
-                + "=i="
-                + packageName.replaceAll("\\.", "/")
-                + ","
-                + "server="
-                + insidiousConfiguration.serverUrl
-                + ",token="
-                + appToken + "\""
-                + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
+        if (credentialsToolbarWindow != null) {
+
+
+            credentialsToolbarWindow.setText("java -javaagent:\"" + getJarPath()
+                    + "=i="
+                    + packageName.replaceAll("\\.", "/")
+                    + ","
+                    + "server="
+                    + insidiousConfiguration.serverUrl
+                    + ",token="
+                    + appToken + "\""
+                    + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
+        }
     }
 
     public void loadSession() {
