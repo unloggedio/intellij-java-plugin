@@ -214,6 +214,9 @@ public class HorBugTable {
 
 
         bugTypes.getModel().addTableModelListener(tableModelEvent -> {
+            if (tableModelEvent.getFirstRow() == -1) {
+                return;
+            }
             String exceptionClassName = (String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0);
             Boolean isSelected = (Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1);
             exceptionMap.put(exceptionClassName, isSelected);
@@ -248,6 +251,8 @@ public class HorBugTable {
         }
 
         exceptionMap.put(value.trim(), true);
+        insidiousService.setExceptionClassList(exceptionMap);
+        updateBugsTable();
     }
 
 
