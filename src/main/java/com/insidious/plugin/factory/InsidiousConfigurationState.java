@@ -8,6 +8,9 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Supports storing the application settings in a persistent way.
  * The {@link State} and {@link Storage} annotations define the name of the data and the file name where
@@ -21,25 +24,42 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
 
     public String username = "";
     public String serverUrl = "http://localhost:8080";
+    public Map<String, Boolean> exceptionClassMap;
 
-    public void setUsername(String username) {
-        this.username = username;
+    public InsidiousConfigurationState() {
+        exceptionClassMap = new HashMap<>();
+        exceptionClassMap.put("java.lang.NullPointerException", true);
+        exceptionClassMap.put("java.lang.ArrayIndexOutOfBoundsException", true);
+        exceptionClassMap.put("java.lang.StackOverflowError", true);
+        exceptionClassMap.put("java.lang.IllegalArgumentException", true);
+        exceptionClassMap.put("java.lang.IllegalThreadStateException", true);
+        exceptionClassMap.put("java.lang.IllegalStateException", true);
+        exceptionClassMap.put("java.lang.RuntimeException", true);
+        exceptionClassMap.put("java.io.IOException", true);
+        exceptionClassMap.put("java.io.FileNotFoundException", true);
+        exceptionClassMap.put("java.net.SocketException", true);
+        exceptionClassMap.put("java.net.UnknownHostException", true);
+        exceptionClassMap.put("java.lang.ArithmeticException", true);
     }
 
-    public void setServerUrl(String serverUrl) {
-        this.serverUrl = serverUrl;
+    public static InsidiousConfigurationState getInstance(Project project) {
+        return project.getService(InsidiousConfigurationState.class);
     }
 
     public String getUsername() {
         return username;
     }
 
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
     public String getServerUrl() {
         return serverUrl;
     }
 
-    public static InsidiousConfigurationState getInstance(Project project) {
-        return project.getService(InsidiousConfigurationState.class);
+    public void setServerUrl(String serverUrl) {
+        this.serverUrl = serverUrl;
     }
 
     @Nullable

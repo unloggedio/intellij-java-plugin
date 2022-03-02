@@ -5,6 +5,7 @@ import com.insidious.plugin.callbacks.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.util.text.Strings;
 import org.slf4j.Logger;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.DataInfo;
@@ -20,7 +21,6 @@ import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
-import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 
@@ -338,15 +338,14 @@ public class Client {
         return get(executionsUrl, typeReference);
     }
 
-    public void getTracesByClassForProjectAndSessionId(
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+    public void getTracesByClassForProjectAndSessionId(List<String> classList, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = endpoint + PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_EXCEPTION
                 + "/" + this.session.getId()
                 + "?exceptionClass="
-                + PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES)
+                + Strings.join(classList, ",")
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
         get(url, new Callback() {

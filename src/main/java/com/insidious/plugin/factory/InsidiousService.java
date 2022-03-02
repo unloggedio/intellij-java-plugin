@@ -1,6 +1,5 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.actions.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
@@ -29,11 +28,8 @@ import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
@@ -53,14 +49,10 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
 
-import java.beans.XMLDecoder;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
@@ -69,7 +61,7 @@ public class InsidiousService {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
-    private final Module currentModule;
+    private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
@@ -94,13 +86,18 @@ public class InsidiousService {
                 .notify(project);
 
         logger.info("started insidious service - project name [{}]", project.getName());
-        currentModule = ModuleManager.getInstance(project).getModules()[0];
+        if (ModuleManager.getInstance(project).getModules().length == 0) {
+            logger.warn("no module found in the project");
+        } else {
+            currentModule = ModuleManager.getInstance(project).getModules()[0];
+            logger.info("current module [{}]", currentModule.getName());
+        }
+
 
         ReadAction.nonBlocking(() -> {
             getProjectPackageName();
         });
 
-        logger.info("current module [{}]", currentModule.getName());
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
     }
@@ -244,12 +241,24 @@ public class InsidiousService {
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }
 
+    public List<String> getSelectedExceptionClassList() {
+        return insidiousConfiguration.exceptionClassMap.entrySet()
+                .stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
+
     private void setupProject() {
+
+        if (currentModule == null) {
+            currentModule = ModuleManager.getInstance(project).getModules()[0];
+        }
 
         try {
             logger.info("try to set project to - [{}]", currentModule.getName());
             client.setProject(currentModule.getName());
-            getErrors(0);
+            getErrors(getSelectedExceptionClassList(), 0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
             int choice = Messages.showDialog(project, "No project by name [" + currentModule.getName() + "]. Do you want to create a new project ?",
@@ -309,7 +318,7 @@ public class InsidiousService {
     public void getTracesByClassForProjectAndSessionId(
             List<String> classList,
             GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(getProjectSessionErrorsCallback);
+        this.client.getTracesByClassForProjectAndSessionId(classList, getProjectSessionErrorsCallback);
     }
 
     public void getTraces(int pageNum, String traceValue) {
@@ -338,7 +347,7 @@ public class InsidiousService {
                 });
     }
 
-    public void getErrors(int pageNum) {
+    public void getErrors(List<String> classList, int pageNum) {
 
 
         if (this.client.getCurrentSession() == null) {
@@ -347,7 +356,6 @@ public class InsidiousService {
         }
         logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
 
-        List<String> classList = Arrays.asList(PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES));
         getTracesByClassForProjectAndSessionId(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
@@ -360,7 +368,9 @@ public class InsidiousService {
                     public void success(List<TracePoint> tracePointCollection) {
                         logger.info("got [{}] trace points from server", tracePointCollection.size());
                         if (tracePointCollection.size() == 0) {
-                            Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+                            ApplicationManager.getApplication().invokeAndWait(() -> {
+                                Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+                            });
                         } else {
                             bugsTable.setTracePoints(tracePointCollection);
                         }
@@ -381,7 +391,8 @@ public class InsidiousService {
             return;
         }
 
-        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
+        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
+                findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
         @NotNull ExecutionEnvironment env = null;
         try {
             env = ExecutionEnvironmentBuilder.create(project,
@@ -502,6 +513,11 @@ public class InsidiousService {
     }
 
     public void loadSession() {
+
+        if (currentModule == null) {
+            currentModule = ModuleManager.getInstance(project).getModules()[0];
+        }
+
         ApplicationManager.getApplication().invokeLater(this::startDebugSession);
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
@@ -523,7 +539,7 @@ public class InsidiousService {
                 }
 
                 client.setSession(executionSessionList.get(0));
-                getErrors(0);
+                getErrors(getSelectedExceptionClassList(), 0);
 
             }
         });
@@ -537,6 +553,10 @@ public class InsidiousService {
         debugSession.pause();
     }
 
+    public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
+        insidiousConfiguration.exceptionClassMap = exceptionClassList;
+    }
+
 
     public Client getClient() {
         return client;
@@ -545,5 +565,9 @@ public class InsidiousService {
     public void setToolWindow(ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
         init();
+    }
+
+    public Map<String, Boolean> getDefaultExceptionClassList() {
+        return insidiousConfiguration.exceptionClassMap;
     }
 }

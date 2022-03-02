@@ -22,9 +22,9 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.Collection;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class HorBugTable {
     private static final Logger logger = LoggerUtil.getInstance(HorBugTable.class);
@@ -32,11 +32,11 @@ public class HorBugTable {
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
-    Object[] headers;
     List<DataEvent> dataList;
     Project project;
     String basepath;
     DefaultTableCellRenderer centerRenderer;
+    private Map<String, Boolean> exceptionMap = new HashMap<>();
     private JPanel panel1;
     private JTable bugs;
     private JPanel panel11;
@@ -65,12 +65,7 @@ public class HorBugTable {
         basepath = this.project.getBasePath();
 
         this.insidiousService = insidiousService;
-        fetchSessionButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                loadBug(bugs.getSelectedRow());
-            }
-        });
+        fetchSessionButton.addActionListener(actionEvent -> loadBug(bugs.getSelectedRow()));
 
         varsDefaultTableModel = new DefaultTableModel() {
             @Override
@@ -99,7 +94,12 @@ public class HorBugTable {
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
                     scrollpanel.setVisible(true);
-                    insidiousService.getErrors(0);
+                    List<String> exceptionClassnameList = exceptionMap.entrySet()
+                            .stream()
+                            .filter(Map.Entry::getValue)
+                            .map(Map.Entry::getKey)
+                            .collect(Collectors.toList());
+                    insidiousService.getErrors(exceptionClassnameList, 0);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -207,85 +207,47 @@ public class HorBugTable {
     private void initBugTypeTable() {
         JTableHeader header = this.bugTypes.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+
+
+        exceptionMap = insidiousService.getDefaultExceptionClassList();
+        updateBugsTable();
+
+
+        bugTypes.getModel().addTableModelListener(tableModelEvent -> {
+            String exceptionClassName = (String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0);
+            Boolean isSelected = (Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1);
+            exceptionMap.put(exceptionClassName, isSelected);
+        });
+    }
+
+    private void updateBugsTable() {
         Object[] headers = {"Error Type", "Track it?"};
-        Object[][] errorTypes = {
-                {"java.lang.NullPointerException", true},
-                {"java.lang.ArrayIndexOutOfBoundsException", true},
-                {"java.lang.StackOverflowError", true},
-                {"java.lang.IllegalArgumentException", true},
-                {"java.lang.IllegalThreadStateException", true},
-                {"java.lang.IllegalStateException", true},
-                {"java.lang.RuntimeException", true},
-                {"java.io.IOException", true},
-                {"java.io.FileNotFoundException", true},
-                {"java.net.SocketException", true},
-                {"java.net.UnknownHostException", true},
-                {"java.lang.ArithmeticException", true}
-        };
+
+        Set<Map.Entry<String, Boolean>> entries = exceptionMap.entrySet();
+        Object[][] errorTypes = new Object[entries.size()][];
+
+        int i = 0;
+        for (Map.Entry<String, Boolean> stringBooleanEntry : entries) {
+            Object[] errorType = new Object[]{stringBooleanEntry.getKey(), stringBooleanEntry.getValue()};
+            errorTypes[i] = errorType;
+            i++;
+        }
+
 
         bugTypeTableModel.setDataVector(errorTypes, headers);
         bugTypes.setModel(bugTypeTableModel);
 
-        bugTypes.getModel().addTableModelListener(new TableModelListener() {
-            @Override
-            public void tableChanged(TableModelEvent tableModelEvent) {
 
-                if ((Boolean) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 1)) {
-                    addErrorValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
-                } else {
-                    removeValue((String) bugTypes.getModel().getValueAt(tableModelEvent.getFirstRow(), 0));
-                }
-
-            }
-        });
     }
 
     private void showDialog() {
-        String value = Messages.showInputDialog("Error Type", "What's the Error Name?", null);
+        String value = Messages.showInputDialog("Error Class Name (fully qualified)", "What's the Error Name?", null);
 
-        if (value == null || value == "") {
+        if (value == null || value.equals("")) {
             return;
         }
 
-        addErrorValue(value);
-    }
-
-    private void addErrorValue(String value) {
-        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
-        if (existingValue.contains(value)) {
-            return;
-        }
-        if (existingValue.equals("")) {
-            existingValue = value;
-        } else {
-            existingValue = existingValue + "," + value;
-        }
-
-        storeValue(existingValue);
-    }
-
-    private void removeValue(String value) {
-        String existingValue = PropertiesComponent.getInstance().getValue(Constants.ERROR_NAMES, "");
-        if (existingValue.equals("")) {
-            return;
-        }
-
-        if (existingValue.contains(value + ",")) {
-            existingValue = existingValue.replaceAll(value + ",", "");
-        }
-        if (existingValue.contains("," + value)) {
-            existingValue = existingValue.replaceAll("," + value, "");
-        }
-        if (existingValue.contains(value)) {
-            existingValue = existingValue.replaceAll(value, "");
-        }
-
-        storeValue(existingValue);
-    }
-
-    private void storeValue(String value) {
-        System.out.print(value + "\n");
-        PropertiesComponent.getInstance().setValue(Constants.ERROR_NAMES, value);
+        exceptionMap.put(value.trim(), true);
     }
 
 
@@ -296,7 +258,6 @@ public class HorBugTable {
         } else if (table.equals("varsvalues")) {
             varsvaluePane.setVisible(false);
         }
-
     }
 
 
