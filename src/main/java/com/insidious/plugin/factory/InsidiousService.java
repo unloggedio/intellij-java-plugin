@@ -547,12 +547,20 @@ public class InsidiousService {
         });
     }
 
-    public void setTracePoint(TracePoint selectedTrace, DirectionType directionType) throws Exception {
-        connector.setTracePoint(selectedTrace, directionType);
-        if (debugSession.isPaused()) {
-            debugSession.resume();
-        }
-        debugSession.pause();
+    public void setTracePoint(TracePoint selectedTrace, DirectionType directionType) {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            try {
+                connector.setTracePoint(selectedTrace, directionType);
+            } catch (Exception e) {
+                Messages.showErrorDialog(project, e.getMessage(), "Failed to start session");
+                return;
+            }
+
+            if (debugSession.isPaused()) {
+                debugSession.resume();
+            }
+            debugSession.pause();
+        });
     }
 
     public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {

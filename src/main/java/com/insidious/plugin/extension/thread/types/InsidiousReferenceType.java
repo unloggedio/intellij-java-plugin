@@ -10,7 +10,7 @@ import java.util.Map;
 public abstract class InsidiousReferenceType extends InsidiousType implements ReferenceType {
 
     private final String sourceName;
-    private final Map<String, Field> fields;
+    private Map<String, Field> fields;
 
     public InsidiousReferenceType(String name,
                                   String signature,
@@ -246,5 +246,9 @@ public abstract class InsidiousReferenceType extends InsidiousType implements Re
     @Override
     public int compareTo(@NotNull ReferenceType referenceType) {
         return 0;
+    }
+
+    protected void setFields(Map<String, Field> fieldMap) {
+        this.fields = fieldMap;
     }
 }

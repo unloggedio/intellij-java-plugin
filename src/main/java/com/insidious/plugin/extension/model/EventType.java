@@ -296,7 +296,7 @@ public enum EventType {
 	
 	/** CALL event. 
 	 * This event is recorded before INVOKEDYNAMIC instruction 
-	 * creates a function object.  
+	 * creates a function object.  cal
 	 * The example of event sequence related to INVOKEDYNAMIC 
 	 * is found in selogger.weaver.WeaverTest#testInvokeDynamic().
 	 */

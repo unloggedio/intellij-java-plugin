@@ -140,4 +140,8 @@ public class InsidiousClassTypeReference extends InsidiousReferenceType {
     public VirtualMachine virtualMachine() {
         return super.virtualMachine();
     }
+
+    public void setFields(Map<String, Field> fieldMap) {
+        super.setFields(fieldMap);
+    }
 }

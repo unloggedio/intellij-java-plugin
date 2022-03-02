@@ -1,29 +1,35 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.extension.thread.types.InsidiousType;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.model.DataInfo;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class InsidiousField implements Field {
 
-    private final DataInfo dataInfo;
+    private final VirtualMachine virtualMachine;
+    private final Type type;
 
-    private InsidiousField(DataInfo dataInfo) {
-        this.dataInfo = dataInfo;
+    private InsidiousField(String typeName, VirtualMachine virtualMachine) {
+        this.virtualMachine = virtualMachine;
+        this.type = new InsidiousType(typeName, "L" + typeName, this.virtualMachine());
+    }
+
+    public static InsidiousField from(String typeName, VirtualMachine virtualMachine) {
+        return new InsidiousField(typeName, virtualMachine);
+    }
+
+    public static InsidiousField from(java.lang.reflect.Field field, VirtualMachine virtualMachine) {
+        return new InsidiousField(field.getType().getTypeName(), virtualMachine);
     }
 
     @Override
     public String typeName() {
-        return dataInfo.getAttribute("FieldName", "n/a");
+        return type.name();
     }
 
     @Override
     public Type type() throws ClassNotLoadedException {
-        return null;
+        return type;
     }
 
     @Override
@@ -48,12 +54,12 @@ public class InsidiousField implements Field {
 
     @Override
     public String signature() {
-        return null;
+        return type.signature();
     }
 
     @Override
     public String genericSignature() {
-        return null;
+        return type.signature();
     }
 
     @Override
@@ -68,7 +74,7 @@ public class InsidiousField implements Field {
 
     @Override
     public boolean isFinal() {
-        return false;
+        return true;
     }
 
     @Override
@@ -103,7 +109,7 @@ public class InsidiousField implements Field {
 
     @Override
     public VirtualMachine virtualMachine() {
-        return null;
+        return this.virtualMachine;
     }
 
     @Override
@@ -111,14 +117,4 @@ public class InsidiousField implements Field {
         return 0;
     }
 
-    public static class Factory {
-        public static Map<String, Field> mapToFields(List<DataInfo> dataInfoList) {
-            Map<String, Field> fieldMap = new HashMap<>();
-            return fieldMap;
-        }
-
-        public InsidiousField createField(DataInfo dataInfo) {
-            return new InsidiousField(dataInfo);
-        }
-    }
 }
