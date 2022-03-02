@@ -32,7 +32,7 @@ public class InsidiousThreadReference implements ThreadReference {
     private Map<Long, InsidiousObjectReference> objectReferenceMap;
     private Integer position;
     private LinkedList<InsidiousStackFrame> stackFrames;
-    private Map<Long, List<InsidiousLocalVariable>> fieldVariableMap;
+    private Map<Long, List<InsidiousLocalVariable>> classFieldMap;
 
     public InsidiousThreadReference(ThreadGroupReference threadGroupReference,
                                     ReplayData replayData, TracePoint tracePoint) {
@@ -67,8 +67,8 @@ public class InsidiousThreadReference implements ThreadReference {
         List<DataEventWithSessionId> subList = dataEventsList.subList(position, dataEventsList.size());
         int currentClassId = -1; // dataInfoMap.get(String.valueOf(subList.get(0).getDataId())).getClassId();
 
-        List<InsidiousLocalVariable> fieldVariableList = new LinkedList<>();
-        fieldVariableMap = new HashMap<>();
+        List<InsidiousLocalVariable> danglingFieldList = new LinkedList<>();
+        classFieldMap = new HashMap<>();
         variableMap = new HashMap<>();
         objectReferenceMap = new HashMap<>();
 
@@ -113,27 +113,23 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     if (objectReferenceMap.containsKey(objectId)) {
                         InsidiousObjectReference variable = objectReferenceMap.get(objectId);
-                        assert fieldVariableList != null;
-
-                        List<InsidiousLocalVariable> variablesToRemove = new LinkedList<>();
-                        for (InsidiousLocalVariable insidiousLocalVariable : fieldVariableList) {
+                        for (InsidiousLocalVariable insidiousLocalVariable : danglingFieldList) {
                             if (!variable.getValues().containsKey(insidiousLocalVariable.name())) {
                                 variable.getValues().put(insidiousLocalVariable.name(), insidiousLocalVariable);
-                                variablesToRemove.add(insidiousLocalVariable);
                             }
                         }
-                        fieldVariableList.removeAll(variablesToRemove);
+                        danglingFieldList = new LinkedList<>();
 
 
                     } else {
                         ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(objectId));
                         TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
-                        if (!fieldVariableMap.containsKey(objectId)) {
-                            fieldVariableMap.put(objectId, new LinkedList<>());
+                        if (!classFieldMap.containsKey(objectId)) {
+                            classFieldMap.put(objectId, new LinkedList<>());
                         }
-                        if (fieldVariableList != null && fieldVariableList.size() > 0) {
-                            fieldVariableMap.get(objectId).addAll(fieldVariableList);
-                            fieldVariableList = new LinkedList<>();
+                        if (danglingFieldList != null && danglingFieldList.size() > 0) {
+                            classFieldMap.get(objectId).addAll(danglingFieldList);
+                            danglingFieldList = new LinkedList<>();
                         }
                     }
 
@@ -146,7 +142,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     String fieldName = probeInfo.getAttribute("FieldName", null);
                     InsidiousLocalVariable fieldVariableInstance = buildLocalVariable(fieldName, dataEvent, probeInfo);
-                    fieldVariableList.add(fieldVariableInstance);
+                    danglingFieldList.add(fieldVariableInstance);
 
                     break;
 
@@ -251,8 +247,8 @@ public class InsidiousThreadReference implements ThreadReference {
                             variableSignature,
                             InsidiousField.Factory.mapToFields(classInfo.getDataInfoList()), this.virtualMachine()));
 
-                    if (fieldVariableMap.containsKey(objectId)) {
-                        List<InsidiousLocalVariable> fieldVariables = fieldVariableMap.get(objectId);
+                    if (classFieldMap.containsKey(objectId)) {
+                        List<InsidiousLocalVariable> fieldVariables = classFieldMap.get(objectId);
                         Map<String, InsidiousLocalVariable> fieldMap = objectValue.getValues();
                         for (InsidiousLocalVariable fieldVariable : fieldVariables) {
                             fieldMap.put(fieldVariable.name(), fieldVariable);

@@ -339,7 +339,9 @@ public class InsidiousService {
                     @Override
                     public void success(List<TracePoint> tracePointCollection) {
                         if (tracePointCollection.size() == 0) {
-                            Messages.showErrorDialog(project, "No data availalbe, or data may have been deleted!", "No Data");
+                            ApplicationManager.getApplication().invokeAndWait(() -> {
+                                Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+                            });
                         } else {
                             logicBugs.setTracePoints(tracePointCollection);
                         }

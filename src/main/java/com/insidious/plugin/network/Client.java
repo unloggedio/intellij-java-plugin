@@ -498,8 +498,13 @@ public class Client {
                             exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
                         }
 
-                        TracePoint bug = new TracePoint(classId, line, dataId, threadId, valueId, executionSessionId, filename, classname,
-                                exceptionClass, (Long) jsonObject.get("recordedAt"));
+                        TracePoint bug = new TracePoint(classId, line, dataId, threadId,
+                                valueId,
+                                executionSessionId,
+                                filename,
+                                classname,
+                                exceptionClass,
+                                (Long) jsonObject.get("recordedAt"));
                         bugList.add(bug);
 
                     }
