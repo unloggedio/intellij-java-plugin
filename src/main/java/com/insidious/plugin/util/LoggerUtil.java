@@ -4,6 +4,7 @@ import com.intellij.internal.statistic.eventLog.EventLogConfiguration;
 import com.intellij.notification.EventLog;
 import com.intellij.notification.EventLogToolWindowFactory;
 import com.intellij.openapi.application.PathManager;
+import com.intellij.openapi.project.ProjectManager;
 import org.apache.log4j.*;
 import org.apache.log4j.spi.Filter;
 import org.apache.log4j.spi.LoggerRepository;
@@ -28,7 +29,8 @@ public class LoggerUtil {
 
         try {
             String strTmp = System.getProperty("java.io.tmpdir");
-            logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious.log";
+            String projectName = ProjectManager.getInstance().getDefaultProject().getName();
+            logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious-" + projectName + ".log";
 
             RollingFileAppender insidiousAppender = new RollingFileAppender(layout, logFilePath, true);
             insidiousAppender.setEncoding(StandardCharsets.UTF_8.name());
