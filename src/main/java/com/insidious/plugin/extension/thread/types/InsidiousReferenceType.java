@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class InsidiousReferenceType extends InsidiousType implements ReferenceType {
 
@@ -100,12 +101,12 @@ public abstract class InsidiousReferenceType extends InsidiousType implements Re
 
     @Override
     public List<Field> fields() {
-        return null;
+        return new ArrayList<>(fields.values());
     }
 
     @Override
     public List<Field> visibleFields() {
-        return null;
+        return new ArrayList<>(fields.values());
     }
 
     @Override
@@ -115,7 +116,7 @@ public abstract class InsidiousReferenceType extends InsidiousType implements Re
 
     @Override
     public Field fieldByName(String s) {
-        return null;
+        return fields.get(s);
     }
 
     @Override

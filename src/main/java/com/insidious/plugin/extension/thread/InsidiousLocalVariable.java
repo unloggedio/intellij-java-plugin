@@ -32,22 +32,22 @@ public class InsidiousLocalVariable implements LocalVariable {
 
     @Override
     public String typeName() {
-        return typeName;
+        return value.type().name();
     }
 
     @Override
     public Type type() throws ClassNotLoadedException {
-        return null;
+        return value.type();
     }
 
     @Override
     public String signature() {
-        return signature;
+        return value.type().signature();
     }
 
     @Override
     public String genericSignature() {
-        return signature;
+        return value.type().signature();
     }
 
     @Override

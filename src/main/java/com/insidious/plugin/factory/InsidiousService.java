@@ -552,6 +552,7 @@ public class InsidiousService {
             try {
                 connector.setTracePoint(selectedTrace, directionType);
             } catch (Exception e) {
+                e.printStackTrace();
                 Messages.showErrorDialog(project, e.getMessage(), "Failed to start session");
                 return;
             }

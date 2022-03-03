@@ -1,6 +1,8 @@
 package com.insidious.plugin.extension.thread;
 
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.util.text.Strings;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.sun.jdi.*;
 import com.insidious.plugin.extension.connector.RequestHint;
@@ -46,10 +48,15 @@ public class InsidiousThreadReference implements ThreadReference {
 
         this.classTypeMap = buildClassTypeReferences();
 
-        calculateFrames();
+        try {
+            calculateFrames();
+        } catch (ClassNotLoadedException e) {
+            // should never happen
+            e.printStackTrace();
+        }
     }
 
-    private void calculateFrames() {
+    private void calculateFrames() throws ClassNotLoadedException {
         LinkedList<InsidiousStackFrame> stackFrames = new LinkedList<>();
 
         InsidiousObjectReference thisObject = new InsidiousObjectReference(this);
@@ -101,7 +108,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         objectReferenceMap.put(objectId, thisObject);
                     }
 
-                    if (objectReferenceMap.containsKey(objectId)) {
+                    if (objectReferenceMap.containsKey(objectId)) { // object has been created and we want to add identified variables back to it
                         InsidiousObjectReference variable = objectReferenceMap.get(objectId);
                         for (InsidiousLocalVariable insidiousLocalVariable : danglingFieldList) {
                             if (!variable.getValues().containsKey(insidiousLocalVariable.name())) {
@@ -129,6 +136,12 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     String fieldName = probeInfo.getAttribute("FieldName", null);
                     InsidiousLocalVariable fieldVariableInstance = buildLocalVariable(fieldName, dataEvent, probeInfo);
+
+                    if (!isNativeType(fieldVariableInstance.typeName()) && !objectReferenceMap.containsKey(dataEvent.getValue())) {
+                        objectReferenceMap.put(dataEvent.getValue(), (InsidiousObjectReference) fieldVariableInstance.getValue().getActualValue());
+                    }
+
+
                     String parentId = probeInfo.getAttribute("Parent", "");
                     if (!Objects.equals(parentId, "")) {
                         if (!childrenObjectMap.containsKey(parentId)) {
@@ -184,6 +197,9 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
 
                     InsidiousLocalVariable newVariable = buildLocalVariable(variableName, dataEvent, probeInfo);
+                    if (!isNativeType(newVariable.typeName())) {
+                        objectReferenceMap.put(dataEvent.getValue(), (InsidiousObjectReference) newVariable.getValue().getActualValue());
+                    }
 
 
                     currentFrame.getLocalVariables().add(newVariable);
@@ -229,19 +245,11 @@ public class InsidiousThreadReference implements ThreadReference {
                 }
             }
 
-            classFieldsMap.put(classInfo.getClassName(), classFields);
+            String className = classInfo.getClassName();
+            classFieldsMap.put(className, classFields);
 
-            String packageName = classInfo.getClassName();
-            String[] signatureParts = packageName.split("/");
-//            String qualifiedClassName = packageName.replaceAll("/", ".");
-
-            String nonQualifiedclassName = signatureParts[signatureParts.length - 1];
-
-
-            InsidiousClassTypeReference classTypeReference = new InsidiousClassTypeReference(
-                    nonQualifiedclassName, classInfo.getFilename(), "L" + packageName, null, this.virtualMachine()
-            );
-            classMap.put(classInfo.getClassName(), classTypeReference);
+            InsidiousClassTypeReference classTypeReference = buildClassTypeReferenceFromName(className);
+            classMap.put(className, classTypeReference);
         }
 
         for (Map.Entry<String, InsidiousClassTypeReference> classTypeEntry : classMap.entrySet()) {
@@ -261,6 +269,23 @@ public class InsidiousThreadReference implements ThreadReference {
 
         return classMap;
 
+    }
+
+    @NotNull
+    private InsidiousClassTypeReference buildClassTypeReferenceFromName(String className) {
+
+        List<String> signatureParts = Arrays.asList(className.split("/"));
+        String qualifiedClassName = className.replaceAll("/", ".");
+//            signatureParts.remove(signatureParts.size() - 1);
+        String packageName = Strings.join(signatureParts.subList(0, signatureParts.size() - 1), ".");
+
+//            String nonQualifiedClassName = signatureParts.get(signatureParts.size() - 1);
+
+
+        InsidiousClassTypeReference classTypeReference = new InsidiousClassTypeReference(
+                qualifiedClassName, className, "L" + className, null, this.virtualMachine()
+        );
+        return classTypeReference;
     }
 
     private Map<String, Field> buildFieldMap(Map<String, String> fieldToTypeMap) {
@@ -287,7 +312,7 @@ public class InsidiousThreadReference implements ThreadReference {
     }
 
     private boolean isNativeType(String className) {
-        return className.startsWith("java.lang");
+        return className.startsWith("java.lang") || className.indexOf('.') == -1;
     }
 
     private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, DataInfo probeInfo) {
@@ -320,23 +345,25 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 if (!qualifiedClassName.startsWith("java/lang")) {
 
-                    InsidiousObjectReference objectValue = new InsidiousObjectReference(this);
+                    if (objectReferenceMap.containsKey(objectId)) {
+                        value = objectReferenceMap.get(objectId);
+                    } else {
+                        InsidiousObjectReference objectValue = new InsidiousObjectReference(this);
 
-                    objectValue.setObjectId(objectId);
-                    objectValue.setReferenceType(classTypeMap.get(classInfo.getClassName()));
+                        objectValue.setObjectId(objectId);
+                        objectValue.setReferenceType(classTypeMap.get(classInfo.getClassName()));
 
-                    if (objectFieldMap.containsKey(objectId)) {
-                        List<InsidiousLocalVariable> fieldVariables = objectFieldMap.get(objectId);
-                        Map<String, InsidiousLocalVariable> fieldMap = objectValue.getValues();
-                        for (InsidiousLocalVariable fieldVariable : fieldVariables) {
-                            fieldMap.put(fieldVariable.name(), fieldVariable);
+                        if (objectFieldMap.containsKey(objectId)) {
+                            List<InsidiousLocalVariable> fieldVariables = objectFieldMap.get(objectId);
+                            Map<String, InsidiousLocalVariable> fieldMap = objectValue.getValues();
+                            for (InsidiousLocalVariable fieldVariable : fieldVariables) {
+                                fieldMap.put(fieldVariable.name(), fieldVariable);
+                            }
                         }
+
+
+                        value = objectValue;
                     }
-
-                    objectReferenceMap.put(objectId, objectValue);
-
-
-                    value = objectValue;
                 }
                 break;
             case 'Z':
@@ -389,7 +416,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 typeName,
                 variableSignature,
                 objectId,
-                new InsidiousValue(classTypeMap.get(typeName),
+                new InsidiousValue(typeReferenceFromName(typeName),
                         value,
                         this.virtualMachine()
                 ),
@@ -397,6 +424,16 @@ public class InsidiousThreadReference implements ThreadReference {
 
         return newVariable;
 
+    }
+
+    private Type typeReferenceFromName(String typeName) {
+        if (classTypeMap.containsKey(typeName)) {
+            return classTypeMap.get(typeName);
+        }
+
+        @NotNull InsidiousClassTypeReference reference = buildClassTypeReferenceFromName(typeName);
+        classTypeMap.put(typeName, reference);
+        return reference;
     }
 
     @Override
@@ -613,11 +650,10 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
         try {
-
             calculateFrames();
         } catch (Exception e) {
+            // should never happen
             e.printStackTrace();
-            throw e;
         }
 
     }
