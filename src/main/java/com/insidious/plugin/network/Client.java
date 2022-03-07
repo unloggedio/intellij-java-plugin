@@ -522,15 +522,17 @@ public class Client {
         String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
 
+        String responseBodyString = response.body().string();
         if (response.code() != 200) {
-            ExceptionResponse errorResponse = JSONValue.parse(response.body().string(), ExceptionResponse.class);
+            logger.error("error response from filterDataEvents  [{}] - [{}]", response.code(), responseBodyString);
+            ExceptionResponse errorResponse = JSONValue.parse(responseBodyString, ExceptionResponse.class);
             throw new Exception(errorResponse.getMessage());
         }
 
         TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
         };
 
-        DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(response.body().string(), typeReference);
+        DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(responseBodyString, typeReference);
         List<DataEventWithSessionId> dataEventsList = dataResponse.getItems();
         ResponseMetadata metadata = dataResponse.getMetadata();
         Map<String, ClassInfo> classInfo = metadata.getClassInfo();

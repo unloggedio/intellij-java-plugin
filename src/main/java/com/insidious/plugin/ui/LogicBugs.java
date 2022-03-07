@@ -131,7 +131,9 @@ public class LogicBugs {
 
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
-            logger.info(String.format("Fetch by trace string for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+            logger.info(String.format("Fetch by trace string [{}] for session [%s] on thread [%s]",
+                    selectedTrace.getDataId(),
+                    selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
             insidiousService.setTracePoint(selectedTrace, directionType);
         } catch (Exception e) {
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
