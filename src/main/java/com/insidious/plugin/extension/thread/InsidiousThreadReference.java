@@ -206,6 +206,28 @@ public class InsidiousThreadReference implements ThreadReference {
                     variableMap.put(variableName, newVariable);
                     break;
 
+                case METHOD_PARAM:
+
+
+                    String paramIndex = probeInfo.getAttribute("FieldName", "0");
+                    Object dataValue = dataEvent.getValue();
+
+                    if (stringInfoMap.containsKey(String.valueOf(dataValue))) {
+                        dataValue = stringInfoMap.get(String.valueOf(dataValue));
+                    }
+
+                    newVariable = new InsidiousLocalVariable(
+                            "parameter[" + paramIndex + "]",
+                            "String", "Ljava.lang.String", Long.valueOf(paramIndex),
+                            new InsidiousValue(InsidiousTypeFactory.typeFrom(
+                                    "java.lang.String", "Ljava.lang.String", virtualMachine()),
+                                    dataValue, virtualMachine()),
+                            virtualMachine()
+                    );
+                    currentFrame.getLocalVariables().add(newVariable);
+
+                    break;
+
 
             }
 

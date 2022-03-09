@@ -4,7 +4,6 @@ import com.insidious.plugin.actions.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.util.text.Strings;
 import org.slf4j.Logger;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
@@ -24,7 +23,11 @@ import org.jetbrains.annotations.NotNull;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -317,6 +320,7 @@ public class Client {
     }
 
     public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
+
         String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
         };
@@ -546,5 +550,46 @@ public class Client {
 
     public String getEndpoint() {
         return endpoint;
+    }
+
+    public void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback) {
+        get(endpoint + "/api/data/java-agent-jar-link", new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                agentDownloadUrlCallback.error(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                agentDownloadUrlCallback.success(response.body().string());
+            }
+        });
+    }
+
+    public void downloadAgentFromUrl(String url, String insidiousLocalPath) {
+        Path fileURiString = Path.of(insidiousLocalPath);
+
+        String absolutePath = fileURiString.toAbsolutePath().toString();
+        logger.info("Downloading agent to path - " + absolutePath);
+
+        File agentFile = new File(absolutePath);
+        if (agentFile.exists()) {
+            logger.info("java agent already exsits at the path");
+            return;
+        }
+
+        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
+             FileOutputStream fileOS = new FileOutputStream(absolutePath)) {
+            byte[] data = new byte[1024];
+            int byteContent;
+            while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
+                fileOS.write(data, 0, byteContent);
+            }
+        } catch (Exception e) {
+            logger.error("failed to download java agent", e);
+            // handles IO exceptions
+        }
+
+
     }
 }

@@ -2,6 +2,9 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ReadAction;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -12,6 +15,7 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.concurrent.Executors;
 
 public class CredentialsToolbar {
 
@@ -80,6 +84,10 @@ public class CredentialsToolbar {
                 insidiousService.signup(videobugURL, usernameText, passwordText, new SignUpCallback() {
                     @Override
                     public void error(String string) {
+                        Notifications.Bus.notify(insidiousService.getNotificationGroup()
+                                        .createNotification("Failed to signup - " + string,
+                                                NotificationType.ERROR),
+                                project);
 
                     }
 
@@ -88,6 +96,8 @@ public class CredentialsToolbar {
                         try {
                             insidiousService.signin(videobugURL, usernameText, passwordText);
                             infoError.setText("Signup was successful!");
+                            ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgent).submit(Executors.newSingleThreadExecutor());
+                            ReadAction.nonBlocking(insidiousService::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
                         } catch (IOException e) {
                             e.printStackTrace();
                         }

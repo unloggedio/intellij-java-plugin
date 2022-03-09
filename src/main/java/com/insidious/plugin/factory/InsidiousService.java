@@ -7,8 +7,10 @@ import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.network.Client;
+import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
+import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.parser.GradleFileVisitor;
@@ -35,15 +37,20 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.ui.popup.JBPopup;
+import com.intellij.openapi.ui.popup.JBPopupFactory;
+import com.intellij.openapi.ui.popup.JBPopupListener;
+import com.intellij.openapi.ui.popup.LightweightWindowEvent;
 import com.intellij.psi.*;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
+import com.intellij.ui.awt.RelativePoint;
+import com.intellij.util.Consumer;
 import org.slf4j.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
@@ -51,9 +58,13 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
@@ -64,6 +75,10 @@ public class InsidiousService {
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final NotificationGroup notificationGroup;
+    private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
+    private final String agentJarName = "insidious-java-agent.jar";
+    private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
+    private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
     private Module currentModule;
     private String packageName = "com.insidious.plugin";
     private HorBugTable bugsTable;
@@ -79,10 +94,6 @@ public class InsidiousService {
     private CredentialAttributes insidiousCredentials;
     private String appToken;
 
-
-    public NotificationGroup getNotificationGroup() {
-        return notificationGroup;
-    }
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -105,19 +116,49 @@ public class InsidiousService {
         }
 
 
-        ReadAction.nonBlocking(() -> {
-            getProjectPackageName();
-        });
+        ReadAction.nonBlocking(this::getProjectPackageName).submit(Executors.newSingleThreadExecutor());
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
     }
 
+    public NotificationGroup getNotificationGroup() {
+        return notificationGroup;
+    }
+
+    public void checkAndEnsureJavaAgent() {
+
+        File insidiousFolder = new File(videoBugHomePath.toString());
+        if (!insidiousFolder.exists()) {
+            insidiousFolder.mkdir();
+        }
+
+        client.getAgentDownloadUrl(new AgentDownloadUrlCallback() {
+            @Override
+            public void error(String error) {
+                logger.error("failed to get url from server to download the java agent - " + error);
+            }
+
+            @Override
+            public void success(String url) {
+                try {
+                    client.downloadAgentFromUrl(url, videoBugAgentPath.toString());
+                    setAppTokenOnUi();
+                } catch (Exception e) {
+                    logger.info("failed to download agent - ", e);
+                }
+            }
+        });
+
+    }
+
     private void getProjectPackageName() {
 //        try {
+        logger.info("looking up package name for the module [" + currentModule.getName() + "]");
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml", GlobalSearchScope.projectScope(project));
         if (pomFileSearchResult.length > 0) {
             @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[0];
+            logger.info("found pom.xml file at");
 
             PomFileVisitor visitor = new PomFileVisitor();
             pomPsiFile.accept(visitor);
@@ -130,33 +171,21 @@ public class InsidiousService {
 
         @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle", GlobalSearchScope.projectScope(project));
         if (gradleFileSearchResult.length > 0) {
+            logger.info("found build.gradle file at");
             @NotNull PsiFile gradlePsiFile = gradleFileSearchResult[0];
             GradleFileVisitor visitor = new GradleFileVisitor();
             gradlePsiFile.accept(visitor);
             if (visitor.getPackageName() != null) {
                 packageName = visitor.getPackageName();
                 setAppTokenOnUi();
-                return;
             }
         }
-
-//        try {
-//            String projectBase = project.getBasePath() + FileSystems.getDefault().getSeparator();
-//            File file = new File(projectBase + "pom.xml");
-//            if (file.exists()) {
-//                String pomFileContents = new String(new FileInputStream(file).readAllBytes());
-//                String groupName = pomFileContents.split("<groupId>")[1].split("</groupId>")[0];
-//                logger.info("group name from pom.xml => [{}]", groupName);
-//            }
-//        } catch (FileNotFoundException e) {
-//            logger.error("failed to open pom.xml", e);
-//            e.printStackTrace();
-//        }
-//        packageName = "YOUR.PACKAGE.NAME";
+        packageName = "org/company/package";
+        setAppTokenOnUi();
     }
 
     public String getJarPath() {
-        return "<PATH_TO_THE_VIDEOBUG_AGENT_JAR>";
+        return videoBugAgentPath.toAbsolutePath().toString();
     }
 
     public void init() {
@@ -242,6 +271,10 @@ public class InsidiousService {
         try {
             client = new Client(serverUrl, usernameText, passwordText);
 
+            ReadAction.nonBlocking(this::checkAndEnsureJavaAgent).submit(Executors.newSingleThreadExecutor());
+            ReadAction.nonBlocking(this::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
+
+
             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             PasswordSafe.getInstance().set(insidiousCredentials, credentials);
@@ -252,8 +285,6 @@ public class InsidiousService {
                                     .createNotification("VideoBug logged in at [" + serverUrl
                                                     + "] for module [" + currentModule.getName() + "]",
                                             NotificationType.INFORMATION),
-
-
                             project);
                 }
 
@@ -278,6 +309,45 @@ public class InsidiousService {
 
         }
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
+    }
+
+    private void selectExecutionSession() {
+        try {
+            DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+
+            @NotNull List<String> sessionIds = sessions.getItems().stream().map(e -> {
+                return "Session [" + e.getId() + "] @" + e.getHostname() + " at " + e.getCreatedAt();
+            }).collect(Collectors.toList());
+            @NotNull JBPopup sessionPopup = JBPopupFactory.getInstance().createPopupChooserBuilder(
+                    sessionIds
+            ).setItemChosenCallback(new Consumer<String>() {
+                @Override
+                public void consume(String selectedExecutionSession) {
+                    String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
+                    ExecutionSession executionSession = new ExecutionSession();
+                    executionSession.setId(sessionId);
+                    client.setSession(executionSession);
+                }
+            }).addListener(new JBPopupListener() {
+
+
+                @Override
+                public void onClosed(@NotNull LightweightWindowEvent event) {
+                    getErrors(getSelectedExceptionClassList(), 0);
+                }
+            }).createPopup();
+
+            ApplicationManager.getApplication().invokeLater(() -> {
+                sessionPopup.show(RelativePoint.getSouthEastOf(toolWindow.getComponent()));
+            });
+
+
+        } catch (APICallException | IOException e) {
+            logger.error("failed to fetch sessions", e);
+            e.printStackTrace();
+        }
+
+
     }
 
     public List<String> getSelectedExceptionClassList() {
@@ -349,6 +419,9 @@ public class InsidiousService {
             @Override
             public void success(String token) {
                 InsidiousService.this.appToken = token;
+                ReadAction.nonBlocking(() -> {
+                    selectExecutionSession();
+                }).submit(Executors.newSingleThreadExecutor());
                 setAppTokenOnUi();
             }
         });
@@ -569,12 +642,25 @@ public class InsidiousService {
         }
     }
 
+    public void identifyTargetJar() {
+        File targetFolder = new File(Path.of(project.getBasePath(), "target").toAbsolutePath().toString());
+        if (targetFolder.exists()) {
+            for (File targetFile : Objects.requireNonNull(targetFolder.listFiles())) {
+                if (targetFile.getAbsolutePath().endsWith(".jar")) {
+                    projectTargetJarLocation = targetFile.getAbsolutePath();
+                    setAppTokenOnUi();
+                    break;
+                }
+            }
+        }
+    }
+
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
         if (credentialsToolbarWindow != null) {
 
 
-            credentialsToolbarWindow.setText("java -javaagent:\"" + getJarPath()
+            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath.toString()
                     + "=i="
                     + packageName.replaceAll("\\.", "/")
                     + ","
@@ -582,7 +668,7 @@ public class InsidiousService {
                     + insidiousConfiguration.serverUrl
                     + ",token="
                     + appToken + "\""
-                    + " -jar" + " <PATH-TO-YOUR-PROJECT-JAR>");
+                    + " -jar " + projectTargetJarLocation);
         }
     }
 
