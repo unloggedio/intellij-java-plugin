@@ -203,20 +203,6 @@ public class Client {
         });
     }
 
-    public String createProject(String projectName) throws APICallException, IOException {
-        Response response = postSync(endpoint + PROJECT_URL + "?name=" + projectName, "");
-        JSONObject jsonObject = null;
-
-        jsonObject = (JSONObject) JSONValue.parse(response.body().string());
-
-        String projectId = jsonObject.getAsString("id");
-        this.project = new ProjectItem();
-        this.project.setName(projectName);
-        this.project.setId(projectId);
-        this.project.setCreatedAt(new Date().toString());
-        return projectId;
-    }
-
     public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
         logger.info("get project token - " + project.getId());
         post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {

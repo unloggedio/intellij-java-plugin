@@ -3,6 +3,8 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.actions.Constants;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -176,7 +178,13 @@ public class HorBugTable {
             insidiousService.setTracePoint(selectedTrace, DirectionType.BACKWARDS);
         } catch (Exception e) {
             e.printStackTrace();
-            Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
+
+            Notifications.Bus.notify(insidiousService.getNotificationGroup()
+                            .createNotification("Failed to fetch session events - " + e.getMessage(),
+                                    NotificationType.ERROR),
+                    project);
+
+
         }
     }
 

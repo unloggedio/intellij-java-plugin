@@ -1,6 +1,8 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.xdebugger.XSourcePosition;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
@@ -54,9 +56,17 @@ public class LogicBugs {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 if (traceIdfield.getText().equals("")) {
-                    Messages.showInfoMessage("Empty String reference is not allowed", "Empty String");
+                    Notifications.Bus.notify(insidiousService.getNotificationGroup()
+                                    .createNotification("Cannot search with empty string",
+                                            NotificationType.ERROR),
+                            project);
+
+
                     return;
                 }
+
+                setTracePoints(List.of());
+
                 insidiousService.getTraces(0, traceIdfield.getText());
             }
         });

@@ -31,6 +31,7 @@ import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
@@ -62,8 +63,9 @@ public class InsidiousService {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
+    private final NotificationGroup notificationGroup;
     private Module currentModule;
-    private String packageName = "YOUR.PACKAGE.NAME";
+    private String packageName = "com.insidious.plugin";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
     private Client client;
@@ -77,12 +79,17 @@ public class InsidiousService {
     private CredentialAttributes insidiousCredentials;
     private String appToken;
 
+
+    public NotificationGroup getNotificationGroup() {
+        return notificationGroup;
+    }
+
     public InsidiousService(Project project) {
         this.project = project;
         String logFileNotificationContent = "Insidious log file location - " +
                 LoggerUtil.getLogFilePath();
 
-        NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
+        notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
         if (notificationGroup != null) {
             notificationGroup
                     .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
@@ -168,7 +175,11 @@ public class InsidiousService {
                         return;
                     } catch (IOException e) {
                         logger.error("failed to signin", e);
-                        Messages.showErrorDialog(project, e.getMessage(), "Failed to signin VideoBug");
+
+                        Notifications.Bus.notify(notificationGroup
+                                        .createNotification("Failed to sign in -" + e.getMessage(),
+                                                NotificationType.ERROR),
+                                project);
                     }
                 }
             }
@@ -234,6 +245,19 @@ public class InsidiousService {
             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             PasswordSafe.getInstance().set(insidiousCredentials, credentials);
+            ApplicationManager.getApplication().invokeLater(() -> {
+
+                if (notificationGroup != null) {
+                    Notifications.Bus.notify(notificationGroup
+                                    .createNotification("VideoBug logged in at [" + serverUrl
+                                                    + "] for module [" + currentModule.getName() + "]",
+                                            NotificationType.INFORMATION),
+
+
+                            project);
+                }
+
+            });
 
         } catch (UnauthorizedException e) {
 
@@ -244,7 +268,14 @@ public class InsidiousService {
             }
         } catch (Throwable e) {
             e.printStackTrace();
-            Messages.showErrorDialog(project, "Failed to connect with server - " + e.getMessage(), "Failed");
+
+
+            Notifications.Bus.notify(notificationGroup
+                            .createNotification("Failed to connect with server - " + e.getMessage(),
+                                    NotificationType.ERROR),
+                    project);
+
+
         }
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }
@@ -269,28 +300,37 @@ public class InsidiousService {
             getErrors(getSelectedExceptionClassList(), 0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
-            int choice = Messages.showDialog(project, "No project by name [" + currentModule.getName() + "]. Do you want to create a new project ?",
-                    "Failed to get project", new String[]{"Yes", "No"}, 0, null);
-            if (choice == 0) {
-                createProject(currentModule.getName(), new NewProjectCallback() {
-                    @Override
-                    public void error(String errorMessage) {
-                        logger.error("failed to create project - {}", errorMessage);
-                        Messages.showErrorDialog(project, errorMessage, "Failed to create new project for [" + currentModule.getName() + "]");
-                    }
+            createProject(currentModule.getName(), new NewProjectCallback() {
+                @Override
+                public void error(String errorMessage) {
 
-                    @Override
-                    public void success(String projectId) {
-                        logger.info("create new project for [{}] -> [{}]", currentModule.getName(), projectId);
-                        ApplicationManager.getApplication().invokeLater(() -> {
-                            setupProject();
-                        });
-                    }
-                });
-            }
+                    logger.error("failed to create project - {}", errorMessage);
+
+                    Notifications.Bus.notify(notificationGroup
+                                    .createNotification("Failed to create new project for ["
+                                                    + currentModule.getName() + "] on server [" + insidiousConfiguration.serverUrl,
+                                            NotificationType.ERROR),
+                            project);
+
+
+                }
+
+                @Override
+                public void success(String projectId) {
+                    logger.info("created new project for [{}] -> [{}]", currentModule.getName(), projectId);
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        setupProject();
+                    });
+                }
+            });
+
         } catch (UnauthorizedException | IOException e) {
             e.printStackTrace();
-            Messages.showErrorDialog(project, e.getMessage(), "Failed to query existing project");
+            Notifications.Bus.notify(notificationGroup
+                            .createNotification(e.getMessage(),
+                                    NotificationType.ERROR),
+                    project);
+
         }
     }
 
@@ -298,7 +338,11 @@ public class InsidiousService {
         getProjectToken(new ProjectTokenCallback() {
             @Override
             public void error(String message) {
-                Messages.showErrorDialog(project, message, "Failed to generate app token");
+                Notifications.Bus.notify(notificationGroup
+                                .createNotification("Failed to generate app token for module [" + currentModule.getName() + "]",
+                                        NotificationType.ERROR),
+                        project);
+
                 credentialsToolbarWindow.setErrorLabel(message);
             }
 
@@ -341,14 +385,24 @@ public class InsidiousService {
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
-                        Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to get traces");
+                        Notifications.Bus.notify(notificationGroup
+                                        .createNotification("Failed to get traces: " + errorResponse.getMessage(),
+                                                NotificationType.ERROR),
+                                project);
+
                     }
 
                     @Override
                     public void success(List<TracePoint> tracePointCollection) {
                         if (tracePointCollection.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
-                                Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+
+                                Notifications.Bus.notify(notificationGroup
+                                                .createNotification("No data available, or data may have been deleted!",
+                                                        NotificationType.ERROR),
+                                        project);
+
+
                             });
                         } else {
                             logicBugs.setTracePoints(tracePointCollection);
@@ -371,7 +425,12 @@ public class InsidiousService {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         logger.error("failed to get trace points from server - {}", errorResponse);
-                        Messages.showErrorDialog(project, errorResponse.getMessage(), "Failed to load sessions");
+
+                        Notifications.Bus.notify(notificationGroup
+                                        .createNotification("Failed to get trace points from server: " + errorResponse.getMessage(),
+                                                NotificationType.ERROR),
+                                project);
+
                     }
 
                     @Override
@@ -379,7 +438,12 @@ public class InsidiousService {
                         logger.info("got [{}] trace points from server", tracePointCollection.size());
                         if (tracePointCollection.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
-                                Messages.showErrorDialog(project, "No data available, or data may have been deleted!", "No Data");
+
+                                Notifications.Bus.notify(notificationGroup
+                                                .createNotification("No data available for module [" + currentModule.getName() + "]",
+                                                        NotificationType.ERROR),
+                                        project);
+
                             });
                         } else {
                             bugsTable.setTracePoints(tracePointCollection);
@@ -534,7 +598,10 @@ public class InsidiousService {
             public void error(String message) {
                 logger.error("failed to load project sessions - {}", message);
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName(), "Failed to get sessions");
+                    Notifications.Bus.notify(notificationGroup
+                                    .createNotification("No sessions found for module [" + currentModule.getName() + "]",
+                                            NotificationType.INFORMATION),
+                            project);
                 });
             }
 
@@ -543,7 +610,12 @@ public class InsidiousService {
                 logger.info("got [{}] sessions for project", executionSessionList.size());
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
-                        Messages.showErrorDialog(project, "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent", "Failed to get sessions");
+
+                        Notifications.Bus.notify(notificationGroup
+                                        .createNotification("No sessions found for project " + currentModule.getName() +
+                                                        ". Start recording new sessions with the java agent",
+                                                NotificationType.INFORMATION),
+                                project);
                     });
                     return;
                 }
@@ -562,7 +634,10 @@ public class InsidiousService {
                 connector.setTracePoint(selectedTrace, directionType);
             } catch (Exception e) {
                 e.printStackTrace();
-                Messages.showErrorDialog(project, e.getMessage(), "Failed to start session");
+                Notifications.Bus.notify(notificationGroup
+                                .createNotification("Failed to set select tace point " + e.getMessage(),
+                                        NotificationType.ERROR),
+                        project);
                 return;
             }
 
