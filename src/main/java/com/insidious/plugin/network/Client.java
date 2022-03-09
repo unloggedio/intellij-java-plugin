@@ -520,6 +520,7 @@ public class Client {
 
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
         String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
+        logger.info("url to fetch data events => [{}]", endpoint);
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
 
         String responseBodyString = response.body().string();
@@ -555,5 +556,9 @@ public class Client {
 
     public void setProject(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
         this.project = fetchProjectByName(projectName);
+    }
+
+    public String getEndpoint() {
+        return endpoint;
     }
 }

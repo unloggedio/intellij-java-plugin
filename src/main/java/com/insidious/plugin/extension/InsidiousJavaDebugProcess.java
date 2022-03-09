@@ -128,7 +128,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                                                    @NotNull RemoteConnection connection,
                                                    ExecutionSession executionSession)
             throws APICallException, IOException {
-        logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getAddress());
+        logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getClient().getEndpoint());
 
         InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection, executionSession);
 
@@ -179,13 +179,10 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void attachVM(String timeout) throws IOException {
         try {
-            logger.info(
-                    String.format("Attaching to VM on host [%s] port [%s]", this.myConnection.getHostName(), this.myConnection
-                            .getAddress()));
+            logger.info(String.format("Attaching to VM on endpoint [%s]", this.myConnection.getClient().getEndpoint()));
             this.connector.attachVirtualMachine(this.myConnection
-                    .getHostName(), this.myConnection
-                    .getAddress(), this.myConnection
-                    .isUseSockets(), false, timeout);
+                            .getHostName(), this.myConnection.getClient().getEndpoint(),
+                    this.myConnection.isUseSockets(), false, timeout);
 
             this.connector.createThreadStartRequest();
 

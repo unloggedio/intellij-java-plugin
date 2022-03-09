@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.xdebugger.XSourcePosition;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -123,9 +124,15 @@ public class LogicBugs {
         for (XBreakpoint breakpoint : breakpoints) {
             if (breakpoint.getType() instanceof XLineBreakpointType) {
                 DebugPoint debugPoint = new DebugPoint();
-                debugPoint.setFile(breakpoint.getSourcePosition().getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
-                debugPoint.setLineNumber(breakpoint.getSourcePosition().getLine());
-                breakpointList.add(debugPoint);
+                XSourcePosition sourcePosition = breakpoint.getSourcePosition();
+                logger.info("note break point position in file [{}] at line [{}]", sourcePosition.getFile(), sourcePosition.getLine());
+                try {
+                    debugPoint.setFile(sourcePosition.getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
+                    debugPoint.setLineNumber(sourcePosition.getLine());
+                    breakpointList.add(debugPoint);
+                } catch (Exception e) {
+                    logger.error("debug break point not added in query", e);
+                }
             }
         }
 

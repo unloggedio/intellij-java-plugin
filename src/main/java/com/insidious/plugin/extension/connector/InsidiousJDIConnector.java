@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension.connector;
 
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.PositionManager;
 import com.intellij.debugger.engine.DebugProcess;
 import com.intellij.debugger.engine.requests.LocatableEventRequestor;
@@ -21,6 +22,7 @@ import com.insidious.plugin.network.pojo.ExecutionSession;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
 import com.insidious.plugin.pojo.TracePoint;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     public static final Requestor REQUESTOR = null;
     public static final Key<Requestor> REQUEST_HINT = Key.create("RequestHint");
+    private final static Logger logger = LoggerUtil.getInstance(InsidiousJDIConnector.class);
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousVirtualMachine virtualMachine;
 
@@ -137,7 +140,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public StringReference createString(String join) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
@@ -147,30 +150,30 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
 
     public void resume() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
     }
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
-//        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public ReferenceType findClassesByName(String className) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public void attachVirtualMachine(String hostName, String address, boolean useSockets, boolean serverMode, String timeout) {
-//        new Exception().printStackTrace();
+//        logger.error("method not implemented", new Exception());
     }
 
     public void createThreadStartRequest() {
-//        new Exception().printStackTrace();
+//        logger.error("method not implemented", new Exception());
 
     }
 
     public void deleteEventRequest(EventRequest request) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
@@ -180,58 +183,34 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
         insidiousJavaDebugProcess.notifySuspended();
 
 
-//        ThreadReference stepThread = suspendContext.getThreadReferenceProxy().getThreadReference();
-//        if (stepThread == null) {
-//            return;
-//        }
-//        try {
-////            deleteStepRequests(stepThread);
-//            EventRequestManager requestManager = this.virtualMachine.eventRequestManager();
-//            StepRequest stepRequest = requestManager.createStepRequest(stepThread, size, depth);
-//            stepRequest.setSuspendPolicy((suspendContext.getSuspendPolicy() == 1) ? 1 : 2);
-//
-//            if (requestHint != null) {
-//                stepRequest.putProperty(REQUEST_HINT, requestHint);
-//            }
-//            try {
-//                stepRequest.enable();
-//            } catch (IllegalThreadStateException e) {
-//                requestManager.deleteEventRequest(stepRequest);
-//            }
-//        } catch (ObjectCollectedException objectCollectedException) {
-//        }
-//
-//        resume();
-
-
     }
 
     public void disableAllBreakpoints() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public void createLocationBreakpoint(Location myRunToCursorLocation, int suspendPolicy, LocatableEventRequestor myRunToCursorBreakpoint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
     }
 
     public Iterable<? extends BreakpointRequest> getBreakpointsWithRequestor(Requestor runToCursorBreakpoint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public void enableAllBreakpoints() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public Iterable<? extends ModificationWatchpointRequest> getModificationWatchpointsWithRequestor(Requestor jumpToAssignmentBreakpoint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
@@ -240,42 +219,42 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void dispose() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public List<BreakpointRequest> getAllBreakpoints() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return Collections.emptyList();
     }
 
     public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught, boolean notifyUncaught, int i, Breakpoint breakpoint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public List<ExceptionRequest> getAllExceptionBreakpoints() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 
     public List<EventRequest> getAllMethodRequests() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public List<ModificationWatchpointRequest> getAllFieldWatchpoints() {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
         return null;
     }
 
     public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
-        new Exception().printStackTrace();
+        logger.error("method not implemented", new Exception());
 
     }
 

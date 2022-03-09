@@ -28,6 +28,7 @@ import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -81,9 +82,12 @@ public class InsidiousService {
         String logFileNotificationContent = "Insidious log file location - " +
                 LoggerUtil.getLogFilePath();
 
-        NotificationGroupManager.getInstance().getNotificationGroup("com.insidious")
-                .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
-                .notify(project);
+        NotificationGroup notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
+        if (notificationGroup != null) {
+            notificationGroup
+                    .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
+                    .notify(project);
+        }
 
         logger.info("started insidious service - project name [{}]", project.getName());
         if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -209,11 +213,15 @@ public class InsidiousService {
         logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
+            ApplicationManager.getApplication().invokeLater(this::initiateUI);
             return;
         }
 
         if (passwordText == null) {
-            credentialsToolbarWindow.setErrorLabel("Enter a valid Password");
+            ApplicationManager.getApplication().invokeLater(this::initiateUI);
+            if (credentialsToolbarWindow != null) {
+                credentialsToolbarWindow.setErrorLabel("Enter a valid Password");
+            }
             return;
         }
 
@@ -232,7 +240,7 @@ public class InsidiousService {
             logger.error("Failed to signin for user [{}]", usernameText, e);
             e.printStackTrace();
             if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLable("Sign in failed!");
+                credentialsToolbarWindow.setErrorLabel("Sign in failed!");
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -550,6 +558,7 @@ public class InsidiousService {
     public void setTracePoint(TracePoint selectedTrace, DirectionType directionType) {
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
+                logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
                 connector.setTracePoint(selectedTrace, directionType);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -580,5 +589,9 @@ public class InsidiousService {
 
     public Map<String, Boolean> getDefaultExceptionClassList() {
         return insidiousConfiguration.exceptionClassMap;
+    }
+
+    public InsidiousConfigurationState getConfiguration() {
+        return insidiousConfiguration;
     }
 }

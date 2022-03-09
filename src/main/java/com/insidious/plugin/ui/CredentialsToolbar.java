@@ -20,27 +20,33 @@ public class CredentialsToolbar {
     String usernameText;
     String videobugURL, passwordText;
     Project project;
-    String projectName, project_id;
     ToolWindow toolWindow;
     private JPanel panel1;
     private JTextField username;
-    private JLabel usernameLable;
-    private JLabel passwordLable;
+    private JLabel usernameLabel;
+    private JLabel passwordLabel;
     private JPasswordField password;
     private JTextField videobugServerURLTextField;
-    private JButton Signin;
-    private JLabel errorLable;
+    private JButton signinButton;
+    private JLabel errorLabel;
     private JLabel commandLabel;
     private JTextArea textArea1;
     private JButton downloadAgent;
-    private JButton Signup;
+    private JButton signupButton;
     private JLabel infoError;
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
         this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
-        Signin.addActionListener(new ActionListener() {
+
+        username.setText(this.insidiousService.getConfiguration().username);
+        if (!"test@example.com".equals(this.insidiousService.getConfiguration().username)) {
+            password.setText("");
+        }
+        videobugServerURLTextField.setText(this.insidiousService.getConfiguration().serverUrl);
+
+        signinButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 usernameText = username.getText();
@@ -65,7 +71,7 @@ public class CredentialsToolbar {
                 }
             }
         });
-        Signup.addActionListener(new ActionListener() {
+        signupButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 usernameText = username.getText();
@@ -92,7 +98,7 @@ public class CredentialsToolbar {
     }
 
     public void setErrorLabel(String message) {
-        errorLable.setText(message);
+        errorLabel.setText(message);
     }
 
     public JPanel getContent() {
@@ -103,7 +109,7 @@ public class CredentialsToolbar {
         textArea1.setText(s);
     }
 
-    public void setErrorLable(String s) {
+    public void setInfoLabel(String s) {
         infoError.setText(s);
     }
 }

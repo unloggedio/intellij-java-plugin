@@ -3,6 +3,8 @@
     <name>Videobug</name>
     <vendor email="support@bug.video" url="https://www.bug.video">Videobug</vendor>
 
+    <idea-version since-build="183"/>
+
     <description>
         <![CDATA[
         Videobug records code execution in production so that developers can watch it line by line as frequently as they want, just like a video.
@@ -33,24 +35,25 @@
         </action>
 
 
-
         <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack" text="Jump Back"
+            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"
+                    text="Jump Back"
                     icon="AllIcons.Actions.Back"/>
         </group>
 
         <group id="Demo.NextStatement" text="Go Forward in time using this"
                description="Jump forward using this button">
             <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="com.insidious.plugin.actions.JumpForward" description="Test Description" id="jumpForward" text="Jump Forward"
+            <action class="com.insidious.plugin.actions.JumpForward" description="Test Description" id="jumpForward"
+                    text="Jump Forward"
                     icon="AllIcons.Debugger.NextStatement"/>
         </group>
 
     </actions>
 
     <extensions defaultExtensionNs="com.intellij">
-        <notificationGroup id="com.insidious" displayType="NONE" />
+        <notificationGroup id="com.insidious" displayType="NONE"/>
         <toolWindow id="VideoBug" secondary="false" icon="/icons/videobug_Icon_16x16.svg" anchor="bottom"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
 

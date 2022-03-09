@@ -11,11 +11,9 @@ public class RemoteConnection {
     private final Client client;
     private boolean myUseSockets;
     private String myHostName;
-    private String myAddress;
 
     public RemoteConnection(String address, Client client) throws UnauthorizedException {
         this.client = client;
-        this.myAddress = address;
     }
 
 
@@ -39,27 +37,9 @@ public class RemoteConnection {
         this.myHostName = hostName;
     }
 
-    public String getAddress() {
-        return this.myAddress;
-    }
-
-    public void setAddress(String address) {
-        this.myAddress = address;
-    }
-
-    public int getPort() {
-        try {
-            return Integer.parseInt(this.myAddress);
-        } catch (NumberFormatException e) {
-            throw new Error("should never happen: " + e);
-        }
-    }
-
     public String toString() {
-        String transportName = isUseSockets() ? "socket" : "shared memory";
-
-
-        String address = isUseSockets() ? (StringUtil.notNullize(getHostName()) + ":" + getAddress()) : getAddress();
+        String transportName = "InsidiousVM";
+        String address = client.getEndpoint();
         return "'" + address + "', transport: '" + transportName + "'";
     }
 }
