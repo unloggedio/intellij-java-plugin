@@ -103,7 +103,7 @@ public class HorBugTable {
                             .collect(Collectors.toList());
                     insidiousService.getErrors(exceptionClassnameList, 0);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error("failed to load sessions for module", e);
                 }
             }
         });
@@ -177,12 +177,14 @@ public class HorBugTable {
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
             insidiousService.setTracePoint(selectedTrace, DirectionType.BACKWARDS);
         } catch (Exception e) {
-            e.printStackTrace();
 
-            Notifications.Bus.notify(insidiousService.getNotificationGroup()
-                            .createNotification("Failed to fetch session events - " + e.getMessage(),
-                                    NotificationType.ERROR),
-                    project);
+            logger.error("failed to fetch session events", e);
+            if (insidiousService.getNotificationGroup() != null) {
+                Notifications.Bus.notify(insidiousService.getNotificationGroup()
+                                .createNotification("Failed to fetch session events - " + e.getMessage(),
+                                        NotificationType.ERROR),
+                        project);
+            }
 
 
         }
