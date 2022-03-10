@@ -142,6 +142,8 @@ public class InsidiousService {
             @Override
             public void success(String url) {
                 try {
+                    logger.info("agent download link: {}, downloading to path [{}]",
+                            url, videoBugAgentPath.toAbsolutePath());
                     client.downloadAgentFromUrl(url, videoBugAgentPath.toString());
                     setAppTokenOnUi();
                 } catch (Exception e) {
@@ -323,9 +325,15 @@ public class InsidiousService {
             ).setItemChosenCallback(new Consumer<String>() {
                 @Override
                 public void consume(String selectedExecutionSession) {
-                    String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
+                    logger.info("session selected for module [" + currentModule.getName() + "] => ", selectedExecutionSession);
                     ExecutionSession executionSession = new ExecutionSession();
-                    executionSession.setId(sessionId);
+                    try {
+                        String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
+                        executionSession.setId(sessionId);
+                    } catch (Exception e) {
+                        logger.error("failed to extract session id", e);
+                        executionSession.setId(sessions.getItems().get(0).getId());
+                    }
                     client.setSession(executionSession);
                 }
             }).addListener(new JBPopupListener() {
@@ -500,7 +508,8 @@ public class InsidiousService {
                         logger.error("failed to get trace points from server - {}", errorResponse);
 
                         Notifications.Bus.notify(notificationGroup
-                                        .createNotification("Failed to get trace points from server: " + errorResponse.getMessage(),
+                                        .createNotification("Failed to get trace points from server: "
+                                                        + errorResponse.getMessage(),
                                                 NotificationType.ERROR),
                                 project);
 
@@ -513,7 +522,8 @@ public class InsidiousService {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
                                 Notifications.Bus.notify(notificationGroup
-                                                .createNotification("No data available for module [" + currentModule.getName() + "]",
+                                                .createNotification("No sessions available for module ["
+                                                                + currentModule.getName() + "]",
                                                         NotificationType.ERROR),
                                         project);
 
@@ -660,7 +670,7 @@ public class InsidiousService {
         if (credentialsToolbarWindow != null) {
 
 
-            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath.toString()
+            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath
                     + "=i="
                     + packageName.replaceAll("\\.", "/")
                     + ","
