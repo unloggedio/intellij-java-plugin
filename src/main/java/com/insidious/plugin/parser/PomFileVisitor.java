@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class PomFileVisitor extends PsiRecursiveElementVisitor {
     private String packageName;
+    private Boolean insideParent = false;
 
     @Override
     public void visitElement(@NotNull PsiElement element) {
@@ -13,8 +14,13 @@ public class PomFileVisitor extends PsiRecursiveElementVisitor {
         if (packageName != null) {
             return;
         }
-        if (element.textMatches("groupId")) {
-            packageName = element.getNextSibling().getNextSibling().getFirstChild().getText();
+        if (!insideParent) {
+            if (element.textMatches("groupId")) {
+                packageName = element.getNextSibling().getNextSibling().getFirstChild().getText();
+            }
+        }
+        if (element.textMatches("parent")) {
+            insideParent = !insideParent;
         }
     }
 

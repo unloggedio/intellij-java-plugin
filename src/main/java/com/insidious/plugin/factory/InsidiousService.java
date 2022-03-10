@@ -74,10 +74,10 @@ public class InsidiousService {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
-    private final NotificationGroup notificationGroup;
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private final String agentJarName = "insidious-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
+    private NotificationGroup notificationGroup;
     private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
     private Module currentModule;
     private String packageName = "com.insidious.plugin";
@@ -100,13 +100,6 @@ public class InsidiousService {
         String logFileNotificationContent = "Insidious log file location - " +
                 LoggerUtil.getLogFilePath();
 
-        notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
-        if (notificationGroup != null) {
-            notificationGroup
-                    .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
-                    .notify(project);
-        }
-
         logger.info("started insidious service - project name [{}]", project.getName());
         if (ModuleManager.getInstance(project).getModules().length == 0) {
             logger.warn("no module found in the project");
@@ -117,6 +110,7 @@ public class InsidiousService {
 
 
         ReadAction.nonBlocking(this::getProjectPackageName).submit(Executors.newSingleThreadExecutor());
+        ReadAction.nonBlocking(this::logLogFileLocation).submit(Executors.newSingleThreadExecutor());
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
         this.client = new Client(this.insidiousConfiguration.getServerUrl());
@@ -152,6 +146,19 @@ public class InsidiousService {
             }
         });
 
+    }
+
+    private void logLogFileLocation() {
+        String logFileNotificationContent = "Insidious log file location - " +
+                LoggerUtil.getLogFilePath();
+
+
+        notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
+        if (notificationGroup != null) {
+            notificationGroup
+                    .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
+                    .notify(project);
+        }
     }
 
     private void getProjectPackageName() {
@@ -314,8 +321,15 @@ public class InsidiousService {
     }
 
     private void selectExecutionSession() {
+        ExecutionSession executionSession = new ExecutionSession();
+
         try {
             DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+
+            if (1 < 2) {
+                client.setSession(sessions.getItems().get(0));
+                return;
+            }
 
             @NotNull List<String> sessionIds = sessions.getItems().stream().map(e -> {
                 return "Session [" + e.getId() + "] @" + e.getHostname() + " at " + e.getCreatedAt();
@@ -326,7 +340,6 @@ public class InsidiousService {
                 @Override
                 public void consume(String selectedExecutionSession) {
                     logger.info("session selected for module [" + currentModule.getName() + "] => ", selectedExecutionSession);
-                    ExecutionSession executionSession = new ExecutionSession();
                     try {
                         String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
                         executionSession.setId(sessionId);
