@@ -31,6 +31,7 @@ build:
       - .gradle
   artifacts:
     untracked: false
+    name: videobug-intellij-plugin.zip
     paths:
       - build/distributions/*.zip
     expire_in: 30 days
