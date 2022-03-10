@@ -209,7 +209,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 case METHOD_PARAM:
 
 
-                    String paramIndex = probeInfo.getAttribute("FieldName", "0");
+                    String paramIndex = probeInfo.getAttribute("Index", "0");
                     Object dataValue = dataEvent.getValue();
 
                     if (stringInfoMap.containsKey(String.valueOf(dataValue))) {
@@ -218,9 +218,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     newVariable = new InsidiousLocalVariable(
                             "parameter[" + paramIndex + "]",
-                            "String", "Ljava.lang.String", Long.valueOf(paramIndex),
+                            "String", "String", Long.valueOf(paramIndex),
                             new InsidiousValue(InsidiousTypeFactory.typeFrom(
-                                    "java.lang.String", "Ljava.lang.String", virtualMachine()),
+                                    "String", "Ljava.lang.String", virtualMachine()),
                                     dataValue, virtualMachine()),
                             virtualMachine()
                     );
