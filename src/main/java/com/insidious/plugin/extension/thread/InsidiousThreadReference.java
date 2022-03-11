@@ -134,11 +134,16 @@ public class InsidiousThreadReference implements ThreadReference {
                 case GET_INSTANCE_FIELD_RESULT:
 
 
+
                     String fieldName = probeInfo.getAttribute("FieldName", null);
                     InsidiousLocalVariable fieldVariableInstance = buildLocalVariable(fieldName, dataEvent, probeInfo);
 
                     if (!isNativeType(fieldVariableInstance.typeName()) && !objectReferenceMap.containsKey(dataEvent.getValue())) {
                         objectReferenceMap.put(dataEvent.getValue(), (InsidiousObjectReference) fieldVariableInstance.getValue().getActualValue());
+                    }
+
+                    if (methodsToSkip == 0) {
+                        thisObject.getValues().put(fieldName, fieldVariableInstance);
                     }
 
 
@@ -207,6 +212,10 @@ public class InsidiousThreadReference implements ThreadReference {
                     break;
 
                 case METHOD_PARAM:
+
+                    if (methodsToSkip != 0) {
+                        continue;
+                    }
 
 
                     String paramIndex = probeInfo.getAttribute("Index", "0");

@@ -67,9 +67,15 @@ public class Client {
                 .writeTimeout(600, TimeUnit.SECONDS)
                 .build();
 
-        token = this.generateToken(username, password);
-        if (token == null) {
-            throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "]");
+        try {
+
+
+            token = this.generateToken(username, password);
+            if (token == null) {
+                throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "]");
+            }
+        } catch (Exception e) {
+            throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "] - ", e);
         }
     }
 
