@@ -75,7 +75,7 @@ public class InsidiousService {
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
-    private final String agentJarName = "insidious-java-agent.jar";
+    private final String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
     private NotificationGroup notificationGroup;
     private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
