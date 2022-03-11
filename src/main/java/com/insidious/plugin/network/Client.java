@@ -24,8 +24,6 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
@@ -572,15 +570,16 @@ public class Client {
         });
     }
 
-    public void downloadAgentFromUrl(String url, String insidiousLocalPath) {
+    public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
         Path fileURiString = Path.of(insidiousLocalPath);
 
         String absolutePath = fileURiString.toAbsolutePath().toString();
         logger.info("Downloading agent to path - " + absolutePath);
 
         File agentFile = new File(absolutePath);
-        if (agentFile.exists()) {
-            logger.info("java agent already exsits at the path");
+
+        if (agentFile.exists() && !overwrite) {
+            logger.info("java agent already exists at the path");
             return;
         }
 

@@ -69,7 +69,7 @@ public class CredentialsToolbar {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
-                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://drive.google.com/uc?id=1ZoNvBSSwMRIGwmit33WfVfkWh3-DyR56&export=download"));
+                    insidiousService.downloadAgent();
                 } catch (java.io.IOException e) {
                     System.out.println(e.getMessage());
                 }
@@ -96,7 +96,7 @@ public class CredentialsToolbar {
                         try {
                             insidiousService.signin(videobugURL, usernameText, passwordText);
                             infoError.setText("Signup was successful!");
-                            ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgent).submit(Executors.newSingleThreadExecutor());
+                            ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
                             ReadAction.nonBlocking(insidiousService::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
                         } catch (IOException e) {
                             e.printStackTrace();

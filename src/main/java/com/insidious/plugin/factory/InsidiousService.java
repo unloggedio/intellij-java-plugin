@@ -120,7 +120,21 @@ public class InsidiousService {
         return notificationGroup;
     }
 
-    public void checkAndEnsureJavaAgent() {
+    public void checkAndEnsureJavaAgentCache() {
+        checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
+            @Override
+            public void error(String message) {
+
+            }
+
+            @Override
+            public void success(String url, String path) {
+
+            }
+        });
+    }
+
+    public void checkAndEnsureJavaAgent(boolean overwrite, AgentJarDownloadCompleteCallback agentJarDownloadCompleteCallback) {
 
         File insidiousFolder = new File(videoBugHomePath.toString());
         if (!insidiousFolder.exists()) {
@@ -131,6 +145,7 @@ public class InsidiousService {
             @Override
             public void error(String error) {
                 logger.error("failed to get url from server to download the java agent - " + error);
+                agentJarDownloadCompleteCallback.error("failed to get url from server to download the java agent - " + error);
             }
 
             @Override
@@ -138,8 +153,9 @@ public class InsidiousService {
                 try {
                     logger.info("agent download link: {}, downloading to path [{}]",
                             url, videoBugAgentPath.toAbsolutePath());
-                    client.downloadAgentFromUrl(url, videoBugAgentPath.toString());
+                    client.downloadAgentFromUrl(url, videoBugAgentPath.toString(), overwrite);
                     setAppTokenOnUi();
+                    agentJarDownloadCompleteCallback.success(url, videoBugAgentPath.toString());
                 } catch (Exception e) {
                     logger.info("failed to download agent - ", e);
                 }
@@ -280,7 +296,7 @@ public class InsidiousService {
         try {
             client = new Client(serverUrl, usernameText, passwordText);
 
-            ReadAction.nonBlocking(this::checkAndEnsureJavaAgent).submit(Executors.newSingleThreadExecutor());
+            ReadAction.nonBlocking(this::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
             ReadAction.nonBlocking(this::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
 
 
@@ -777,5 +793,27 @@ public class InsidiousService {
 
     public InsidiousConfigurationState getConfiguration() {
         return insidiousConfiguration;
+    }
+
+    public void downloadAgent() throws IOException {
+
+
+        checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
+            @Override
+            public void error(String message) {
+
+            }
+
+            @Override
+            public void success(String url, String path) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
     }
 }
