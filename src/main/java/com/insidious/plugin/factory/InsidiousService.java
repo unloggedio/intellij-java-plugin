@@ -343,7 +343,9 @@ public class InsidiousService {
             DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
 
             if (1 < 2) {
-                client.setSession(sessions.getItems().get(0));
+                if (sessions.getItems().size() > 0) {
+                    client.setSession(sessions.getItems().get(0));
+                }
                 return;
             }
 
