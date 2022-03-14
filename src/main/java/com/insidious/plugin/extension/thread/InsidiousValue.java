@@ -26,6 +26,11 @@ public class InsidiousValue implements Value {
     }
 
     @Override
+    public String toString() {
+        return String.valueOf(actualValue);
+    }
+
+    @Override
     public VirtualMachine virtualMachine() {
         return virtualMachine;
     }

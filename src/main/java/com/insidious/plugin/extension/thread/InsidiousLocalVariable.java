@@ -12,6 +12,11 @@ public class InsidiousLocalVariable implements LocalVariable {
     private final InsidiousValue value;
     private final long id;
 
+    @Override
+    public String toString() {
+        return value.toString();
+    }
+
     public InsidiousLocalVariable(String name, String typeName, String signature, long objectId, InsidiousValue value, VirtualMachine virtualMachine) {
         this.name = name;
         this.typeName = typeName;

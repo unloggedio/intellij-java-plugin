@@ -9,9 +9,12 @@ public class InsidiousType implements Type {
     private final String name;
     private final String signature;
     private final VirtualMachine virtualMachine;
+    private final String nameUnqualified;
 
     public InsidiousType(String name, String signature, VirtualMachine virtualMachine) {
         this.name = name;
+        String[] parts = name.split("\\.");
+        this.nameUnqualified = parts[parts.length - 1];
         this.signature = signature;
         this.virtualMachine = virtualMachine;
     }
@@ -23,7 +26,7 @@ public class InsidiousType implements Type {
 
     @Override
     public String name() {
-        return name;
+        return nameUnqualified;
     }
 
     @Override

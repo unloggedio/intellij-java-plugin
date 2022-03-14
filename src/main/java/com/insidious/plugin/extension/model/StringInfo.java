@@ -41,4 +41,9 @@ public class StringInfo {
     public void setStringId(Long stringId) {
         this.stringId = stringId;
     }
+
+    @Override
+    public String toString() {
+        return content;
+    }
 }

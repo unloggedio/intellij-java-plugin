@@ -1,11 +1,15 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.io.OutputStream;
 
 public class InsidiousProcessHandler extends ProcessHandler {
+
+    private final static Logger logger = LoggerUtil.getInstance(InsidiousProcessHandler.class);
 
     public InsidiousProcessHandler() {
 
@@ -17,7 +21,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void detachProcessImpl() {
-        new Exception().printStackTrace();
+        logger.info("end of debug session - ", new Exception());
 
     }
 

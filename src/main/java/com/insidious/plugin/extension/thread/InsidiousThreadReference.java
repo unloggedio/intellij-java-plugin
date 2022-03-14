@@ -80,6 +80,7 @@ public class InsidiousThreadReference implements ThreadReference {
         objectReferenceMap = new HashMap<>();
         Map<String, List<InsidiousLocalVariable>> childrenObjectMap = new HashMap<>();
 
+        boolean isMethodParam = false;
 
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
@@ -132,7 +133,6 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 case PUT_INSTANCE_FIELD_VALUE:
                 case GET_INSTANCE_FIELD_RESULT:
-
 
 
                     String fieldName = probeInfo.getAttribute("FieldName", null);
@@ -211,7 +211,11 @@ public class InsidiousThreadReference implements ThreadReference {
                     variableMap.put(variableName, newVariable);
                     break;
 
+
                 case METHOD_PARAM:
+                    isMethodParam = true;
+                case CALL_PARAM:
+
 
                     if (methodsToSkip != 0) {
                         continue;
@@ -229,11 +233,153 @@ public class InsidiousThreadReference implements ThreadReference {
                             "parameter[" + paramIndex + "]",
                             "String", "String", Long.valueOf(paramIndex),
                             new InsidiousValue(InsidiousTypeFactory.typeFrom(
-                                    "String", "Ljava.lang.String", virtualMachine()),
+                                    "", "", virtualMachine()),
                                     dataValue, virtualMachine()),
                             virtualMachine()
                     );
-                    currentFrame.getLocalVariables().add(newVariable);
+                    if (isMethodParam) {
+//                        currentFrame.getLocalVariables().add(newVariable);
+                        isMethodParam = false;
+                    }
+
+                    parentId = probeInfo.getAttribute("CallParent", "0");
+                    if (!"0".equals(parentId)) {
+                        List<InsidiousLocalVariable> list = childrenObjectMap.get(parentId);
+                        if (!childrenObjectMap.containsKey(parentId)) {
+                            childrenObjectMap.put(parentId, new LinkedList<>());
+                        }
+                        childrenObjectMap.get(parentId).add(newVariable);
+                    }
+
+
+                    break;
+
+                case CALL:
+
+                    String interfaceOwner = probeInfo.getAttribute("Owner", "");
+                    String methodName = probeInfo.getAttribute("Name", "");
+                    switch (interfaceOwner) {
+
+                        case "java/util/List":
+                            long receiverObjectId = dataEvent.getValue();
+                            InsidiousObjectReference receiverObject;
+                            if (!objectReferenceMap.containsKey(receiverObjectId)) {
+                                receiverObject = new InsidiousObjectReference(this);
+                                receiverObject.setObjectId(receiverObjectId);
+                                objectReferenceMap.put(receiverObjectId, receiverObject);
+                            } else {
+                                receiverObject = objectReferenceMap.get(receiverObjectId);
+                            }
+
+                            switch (methodName) {
+                                case "add":
+
+                                    String paramName = childrenObjectMap.get(dataId).get(0).name();
+                                    String paramNameIndex = paramName.split("\\[")[1].split("\\]")[0];
+                                    receiverObject.getValues().put(paramNameIndex, buildLocalVariable(
+                                            paramName, dataEvent, probeInfo
+                                    ));
+
+                                    break;
+                                default:
+                                    logger.info("not implemented [{}][{}]", interfaceOwner, methodName);
+                            }
+
+                            break;
+
+                        default:
+                            logger.warn("type [{}]", interfaceOwner);
+
+                        case "java/util/Map":
+
+                            objectId = dataEvent.getValue();
+                            InsidiousObjectReference objectInstance = null;
+
+                            if (objectReferenceMap.containsKey(objectId)) {
+                                objectInstance = objectReferenceMap.get(objectId);
+                            } else {
+                                objectInstance = new InsidiousObjectReference(this);
+                                InsidiousClassTypeReference objectType = buildClassTypeReferenceFromName(interfaceOwner);
+                                objectInstance.setReferenceType(objectType);
+                                objectInstance.setObjectId(objectId);
+                                objectReferenceMap.put(objectId, objectInstance);
+                            }
+
+                            if (childrenObjectMap.containsKey(dataId)) {
+                                if (childrenObjectMap.get(dataId).size() == 2) { // put call
+
+                                    InsidiousValue key = childrenObjectMap.get(dataId).get(1).getValue();
+                                    String fieldKey;
+                                    if (key.getActualValue() instanceof StringInfo) {
+
+                                        fieldKey = ((StringInfo) key.getActualValue()).getContent();
+                                    } else {
+                                        fieldKey = key.getActualValue().toString();
+                                    }
+
+                                    if (objectInstance.getValues().containsKey(fieldKey)) {
+                                        continue;
+                                    }
+
+
+                                    InsidiousLocalVariable insidiousLocalVariable = childrenObjectMap.get(dataId).get(1);
+
+                                    objectInstance.getValues().put(fieldKey, insidiousLocalVariable);
+
+                                    childrenObjectMap.remove(dataId);
+
+                                } else if (childrenObjectMap.get(dataId).size() == 1) { // get call
+
+                                    String signature = probeInfo.getAttribute("Desc", ")Object").split("\\)")[1];
+
+                                    objectReferenceMap.put(objectId, objectInstance);
+//
+                                    InsidiousLocalVariable keyVariable = childrenObjectMap.get(dataId).get(0);
+                                    InsidiousValue key = keyVariable.getValue();
+                                    String keyString;
+                                    if (key.getActualValue() instanceof StringInfo) {
+                                        keyString = ((StringInfo) key.getActualValue()).getContent();
+                                    } else {
+                                        keyString = key.getActualValue().toString();
+                                    }
+
+                                    InsidiousLocalVariable insidiousLocalVariable = new InsidiousLocalVariable(
+                                            keyString,
+                                            signature,
+                                            signature, objectId,
+                                            new InsidiousValue(
+                                                    typeReferenceFromName(signature), objectInstance, this.virtualMachine()
+                                            ),
+                                            this.virtualMachine()
+                                    );
+
+
+                                    objectInstance.getValues().put(keyString, insidiousLocalVariable);
+                                    childrenObjectMap.remove(dataId);
+                                }
+
+
+                            }
+
+//                            objectReferenceMap.put(objectId, objectInstance);
+
+
+//                            String typeSignature = probeInfo.getAttribute("Owner", "String");
+//                            String[] typeString = typeSignature.split("\\/");
+//                            String newVariableTypeName = typeString[typeString.length - 1];
+//                            newVariable = new InsidiousLocalVariable(
+//                                    newVariableTypeName,
+//                                    newVariableTypeName, typeSignature, objectId,
+//                                    new InsidiousValue(InsidiousTypeFactory.typeFrom(
+//                                            "", "", virtualMachine()),
+//                                            objectInstance, virtualMachine()),
+//                                    virtualMachine()
+//                            );
+//
+//                            currentFrame.getLocalVariables().add(newVariable);
+                            break;
+
+                    }
 
                     break;
 
