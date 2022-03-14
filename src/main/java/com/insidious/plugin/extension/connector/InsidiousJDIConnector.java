@@ -154,7 +154,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
-        logger.error("method not implemented", new Exception());
+        logger.warn("method not implemented", new Exception());
         return null;
     }
 
