@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.actions.Constants;
+import com.insidious.plugin.network.pojo.SessionUpdatedCallback;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationType;
@@ -101,6 +102,7 @@ public class HorBugTable {
                             .filter(Map.Entry::getValue)
                             .map(Map.Entry::getKey)
                             .collect(Collectors.toList());
+                    insidiousService.refreshSession();
                     insidiousService.getErrors(exceptionClassnameList, 0);
                 } catch (Exception e) {
                     logger.error("failed to load sessions for module", e);

@@ -10,6 +10,7 @@ import com.insidious.plugin.network.Client;
 import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
+import com.insidious.plugin.network.pojo.SessionUpdatedCallback;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
@@ -552,9 +553,8 @@ public class InsidiousService {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
                                 Notifications.Bus.notify(notificationGroup
-                                                .createNotification("No sessions available for module ["
-                                                                + currentModule.getName() + "]",
-                                                        NotificationType.ERROR),
+                                                .createNotification("No Exception data events matched in the last session",
+                                                        NotificationType.INFORMATION),
                                         project);
 
                             });
@@ -828,5 +828,24 @@ public class InsidiousService {
         });
 
 
+    }
+
+    public void refreshSession() throws APICallException, IOException {
+        logger.info("fetch latest session for module: {}", currentModule.getName());
+        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        if (sessions.getItems().size() == 0) {
+            Notifications.Bus.notify(notificationGroup
+                            .createNotification("No sessions available for module ["
+                                            + currentModule.getName() + "]",
+                                    NotificationType.ERROR),
+                    project);
+        }
+        client.setSession(sessions.getItems().get(0));
+    }
+
+    public void setExecutionSessionId(String sessionId) {
+        ExecutionSession session = new ExecutionSession();
+        session.setId(sessionId);
+        this.client.setSession(session);
     }
 }

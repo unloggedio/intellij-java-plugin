@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -23,6 +24,7 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -52,24 +54,9 @@ public class LogicBugs {
     public LogicBugs(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
-        searchButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                if (traceIdfield.getText().equals("")) {
-                    Notifications.Bus.notify(insidiousService.getNotificationGroup()
-                                    .createNotification("Cannot search with empty string",
-                                            NotificationType.ERROR),
-                            project);
 
-
-                    return;
-                }
-
-                setTracePoints(List.of());
-
-                insidiousService.getTraces(0, traceIdfield.getText());
-            }
-        });
+        refreshButton.addActionListener(e -> doSearch());
+        searchButton.addActionListener(actionEvent -> doSearch());
 
 
         fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.BACKWARDS));
@@ -77,6 +64,24 @@ public class LogicBugs {
 
         initTables();
         //variableProgressbar.setVisible(false);
+    }
+
+    private void doSearch() {
+        if (traceIdfield.getText().equals("")) {
+            Notifications.Bus.notify(insidiousService.getNotificationGroup()
+                            .createNotification("Cannot search with empty string",
+                                    NotificationType.ERROR),
+                    project);
+            return;
+        }
+
+        setTracePoints(List.of());
+        try {
+            insidiousService.refreshSession();
+        } catch (APICallException | IOException e) {
+            logger.error("Failed to refresh sessions", e);
+        }
+        insidiousService.getTraces(0, traceIdfield.getText());
     }
 
     private void initTables() {
