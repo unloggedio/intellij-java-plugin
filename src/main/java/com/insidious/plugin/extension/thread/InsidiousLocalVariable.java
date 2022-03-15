@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class InsidiousLocalVariable implements LocalVariable {
 
-    private final String name;
+    private String name;
     private final String typeName;
     private final String signature;
     private final VirtualMachine virtualMachine;
@@ -33,6 +33,10 @@ public class InsidiousLocalVariable implements LocalVariable {
     @Override
     public String name() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     @Override
