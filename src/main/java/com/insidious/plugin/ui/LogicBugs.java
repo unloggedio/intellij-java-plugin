@@ -126,33 +126,38 @@ public class LogicBugs {
     }
 
     private void loadBug(int rowNum, DirectionType directionType) {
-
+        logger.info("load trace point [{}] -> [{}]", rowNum, directionType);
         XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
 
         List<DebugPoint> breakpointList = new ArrayList<>();
 
-        for (XBreakpoint breakpoint : breakpoints) {
-            if (breakpoint.getType() instanceof XLineBreakpointType) {
-                DebugPoint debugPoint = new DebugPoint();
-                XSourcePosition sourcePosition = breakpoint.getSourcePosition();
-                logger.info("note break point position in file [{}] at line [{}]", sourcePosition.getFile(), sourcePosition.getLine());
-                try {
-                    debugPoint.setFile(sourcePosition.getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
-                    debugPoint.setLineNumber(sourcePosition.getLine());
-                    breakpointList.add(debugPoint);
-                } catch (Exception e) {
-                    logger.error("debug break point not added in query", e);
+        try {
+            for (XBreakpoint breakpoint : breakpoints) {
+                if (breakpoint.getType() instanceof XLineBreakpointType) {
+                    DebugPoint debugPoint = new DebugPoint();
+                    XSourcePosition sourcePosition = breakpoint.getSourcePosition();
+                    logger.info("note break point position in file [{}] at line [{}]", sourcePosition.getFile(), sourcePosition.getLine());
+                    try {
+                        debugPoint.setFile(sourcePosition.getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
+                        debugPoint.setLineNumber(sourcePosition.getLine());
+                        breakpointList.add(debugPoint);
+                    } catch (Exception e) {
+                        logger.error("debug break point not added in query", e);
+                    }
                 }
             }
+        } catch (Exception e) {
+            logger.error("failed to load break points", e);
         }
 
+        logger.info("load trace by row number: [{}]", rowNum);
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
-            logger.info(String.format("Fetch by trace string [{}] for session [%s] on thread [%s]",
-                    selectedTrace.getDataId(),
-                    selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+            logger.info("Fetch by trace string [{}] for session [{}] on thread [{}]",
+                    selectedTrace.getDataId(), selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId());
             insidiousService.setTracePoint(selectedTrace, directionType);
         } catch (Exception e) {
+            logger.error("failed to load trace point", e);
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
         }
 
