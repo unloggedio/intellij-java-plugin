@@ -265,6 +265,7 @@ public class InsidiousThreadReference implements ThreadReference {
                             InsidiousObjectReference receiverObject;
                             if (!objectReferenceMap.containsKey(receiverObjectId)) {
                                 receiverObject = new InsidiousObjectReference(this);
+                                receiverObject.setReferenceType(buildClassTypeReferenceFromName(interfaceOwner));
                                 receiverObject.setObjectId(receiverObjectId);
                                 objectReferenceMap.put(receiverObjectId, receiverObject);
                             } else {
@@ -276,6 +277,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
                                     String paramName = childrenObjectMap.get(dataId).get(0).name();
                                     String paramNameIndex = paramName.split("\\[")[1].split("\\]")[0];
+
+                                    probeInfo.getAttributesMap().put("Type", probeInfo.getAttribute("Desc", "String").substring(1));
+
                                     receiverObject.getValues().put(paramNameIndex, buildLocalVariable(
                                             paramName, dataEvent, probeInfo
                                     ));
