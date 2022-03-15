@@ -275,14 +275,14 @@ public class InsidiousThreadReference implements ThreadReference {
                             switch (methodName) {
                                 case "add":
 
-                                    String paramName = childrenObjectMap.get(dataId).get(0).name();
+                                    InsidiousLocalVariable param = childrenObjectMap.get(dataId).get(0);
+                                    String paramName = param.name();
                                     String paramNameIndex = paramName.split("\\[")[1].split("\\]")[0];
+                                    paramNameIndex = "-" + (receiverObject.getValues().size() + 1);
 
                                     probeInfo.getAttributesMap().put("Type", probeInfo.getAttribute("Desc", "String").substring(1));
 
-                                    receiverObject.getValues().put(paramNameIndex, buildLocalVariable(
-                                            paramName, dataEvent, probeInfo
-                                    ));
+                                    receiverObject.getValues().put(paramNameIndex, param);
 
                                     break;
                                 default:

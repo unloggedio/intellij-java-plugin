@@ -172,6 +172,10 @@ public class HorBugTable {
     }
 
     private void loadBug(int rowNum) {
+        logger.info("load trace point by index: {}", rowNum);
+        if (rowNum >= bugList.size()) {
+            logger.info("selected by index out of size {} -> {}", rowNum, bugList.size());
+        }
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
@@ -185,8 +189,6 @@ public class HorBugTable {
                                         NotificationType.ERROR),
                         project);
             }
-
-
         }
     }
 

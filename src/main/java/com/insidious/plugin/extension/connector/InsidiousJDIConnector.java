@@ -159,7 +159,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public ReferenceType findClassesByName(String className) {
-        logger.error("method not implemented", new Exception());
+        logger.warn("method not implemented", new Exception());
         return null;
     }
 
