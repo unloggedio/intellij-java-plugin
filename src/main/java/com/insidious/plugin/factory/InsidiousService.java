@@ -701,15 +701,27 @@ public class InsidiousService {
         if (credentialsToolbarWindow != null) {
 
 
-            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath
+            credentialsToolbarWindow.setText("-javaagent:\"" + videoBugAgentPath
                     + "=i="
                     + packageName.replaceAll("\\.", "/")
                     + ","
                     + "server="
                     + insidiousConfiguration.serverUrl
-                    + ",token="
-                    + appToken + "\""
-                    + " -jar " + projectTargetJarLocation);
+                    + ",format=single,token="
+                    + appToken + "\"");
+
+
+//            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath
+//                    + "=i="
+//                    + packageName.replaceAll("\\.", "/")
+//                    + ","
+//                    + "server="
+//                    + insidiousConfiguration.serverUrl
+//                    + ",token="
+//                    + appToken + "\""
+//                    + " -jar " + projectTargetJarLocation);
+//
+//
         }
     }
 

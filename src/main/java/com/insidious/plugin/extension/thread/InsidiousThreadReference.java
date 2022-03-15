@@ -3,6 +3,7 @@ package com.insidious.plugin.extension.thread;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.util.text.Strings;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import com.sun.jdi.*;
 import com.insidious.plugin.extension.connector.RequestHint;
@@ -213,6 +214,24 @@ public class InsidiousThreadReference implements ThreadReference {
                     variableMap.put(variableName, newVariable);
                     break;
 
+                case CALL_RETURN:
+                    long returnValueObjectId = dataEvent.getValue();
+                    if (returnValueObjectId == 0) {
+                        continue;
+                    }
+                    buildDataObjectFromIdAndTypeValue(probeInfo.getAttribute("Type", "Ljava.lang.Object"), dataEvent.getValue());
+
+                    break;
+
+                case NEW_OBJECT_CREATED:
+                    long objectObjectCreatedId = dataEvent.getValue();
+                    if (objectObjectCreatedId == 0) {
+                        continue;
+                    }
+                    DataInfo parentDataInfo = replayData.getDataInfoMap().get(probeInfo.getAttribute("NewParent", "0"));
+                    buildDataObjectFromIdAndTypeValue("L" + parentDataInfo.getAttribute("Type", "java.lang.Object"), dataEvent.getValue());
+
+                    break;
 
                 case METHOD_PARAM:
                     isMethodParam = true;
@@ -224,32 +243,26 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
 
 
-                    String paramIndex = probeInfo.getAttribute("Index", "0");
                     String paramType = probeInfo.getAttribute("Type", "LObject");
                     Object dataValue = dataEvent.getValue();
+                    long newParamObjectId = 0L;
+                    newParamObjectId = Long.parseLong(dataValue.toString());
 
-                    String dataValueString = String.valueOf(dataValue);
-                    if (stringInfoMap.containsKey(dataValueString)) {
-                        dataValue = stringInfoMap.get(dataValueString);
-                    } else if (replayData.getTypeInfo().containsKey(dataValueString)
-                            || objectReferenceMap.containsKey(Long.valueOf(dataValueString))) {
-                        Long paramObjectId = Long.valueOf(dataValueString);
-                        if (objectReferenceMap.containsKey(paramObjectId)) {
-                            dataValue = objectReferenceMap.get(paramObjectId);
-                        } else {
-                            InsidiousObjectReference newInsidiousDataValue = new InsidiousObjectReference(this);
-                            newInsidiousDataValue.setObjectId(paramObjectId);
-                            newInsidiousDataValue.setReferenceType(buildClassTypeReferenceFromName(paramType));
-                            objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
+                    try {
+                        dataValue = buildDataObjectFromIdAndTypeValue(paramType, dataValue);
+                        if (dataValue instanceof StringInfo) {
+                            newParamObjectId = ((StringInfo) dataValue).getStringId();
+                        } else if (dataValue instanceof InsidiousObjectReference) {
+                            newParamObjectId = ((InsidiousObjectReference) dataValue).uniqueID();
                         }
-
+                    } catch (Exception e) {
+                        // ignore
                     }
 
-//                    if (typeFieldMap.containsKey())
 
                     newVariable = new InsidiousLocalVariable(
-                            "parameter[" + paramIndex + "]",
-                            "String", "String", Long.valueOf("9999" + paramIndex),
+                            "",
+                            "String", "String", newParamObjectId,
                             new InsidiousValue(InsidiousTypeFactory.typeFrom(
                                     "", "", virtualMachine()),
                                     dataValue, virtualMachine()),
@@ -276,19 +289,20 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     String interfaceOwner = probeInfo.getAttribute("Owner", "");
                     String methodName = probeInfo.getAttribute("Name", "");
+
+                    Object value = buildDataObjectFromIdAndTypeValue(interfaceOwner, dataEvent.getValue());
+                    if (value instanceof InsidiousObjectReference) {
+                        receiverObject = (InsidiousObjectReference) value;
+                    } else {
+                        receiverObject = new InsidiousObjectReference(this);
+                        receiverObject.setReferenceType(buildClassTypeReferenceFromName(interfaceOwner));
+                    }
+
+
                     switch (interfaceOwner) {
 
                         default:
                         case "java/util/List":
-                            receiverObjectId = dataEvent.getValue();
-                            if (!objectReferenceMap.containsKey(receiverObjectId)) {
-                                receiverObject = new InsidiousObjectReference(this);
-                                receiverObject.setReferenceType(buildClassTypeReferenceFromName(interfaceOwner));
-                                receiverObject.setObjectId(receiverObjectId);
-                                objectReferenceMap.put(receiverObjectId, receiverObject);
-                            } else {
-                                receiverObject = objectReferenceMap.get(receiverObjectId);
-                            }
 
 
                             List<InsidiousLocalVariable> paramsList = childrenObjectMap.get(dataId);
@@ -309,6 +323,21 @@ public class InsidiousThreadReference implements ThreadReference {
                                         name = name + "[" + receiverObject.getValues().size() + "]";
                                     }
 
+                                    long longLocalValue = 0l;
+                                    try {
+                                        longLocalValue = Long.parseLong(insidiousLocalVariable.toString());
+                                    }catch (Exception e) {
+                                     //
+                                    }
+
+                                    if (objectReferenceMap.containsKey(longLocalValue)) {
+                                        InsidiousObjectReference existingObject = objectReferenceMap.get(longLocalValue);
+                                        insidiousLocalVariable = new InsidiousLocalVariable(name, existingObject.referenceType().name(),
+                                                existingObject.referenceType().genericSignature(), longLocalValue,
+                                                new InsidiousValue(existingObject.type(), existingObject, this.virtualMachine()), this.virtualMachine());
+                                    }
+
+
                                     receiverObject.getValues().put(name, insidiousLocalVariable);
                                 }
 
@@ -316,24 +345,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
                             break;
 
-//                        default:
-//                            logger.warn("type [{}]", interfaceOwner);
-//                            break;
 
                         case "java/util/Map":
 
-                            receiverObjectId = dataEvent.getValue();
-                            receiverObject = null;
-
-                            if (objectReferenceMap.containsKey(receiverObjectId)) {
-                                receiverObject = objectReferenceMap.get(receiverObjectId);
-                            } else {
-                                receiverObject = new InsidiousObjectReference(this);
-                                InsidiousClassTypeReference objectType = buildClassTypeReferenceFromName(interfaceOwner);
-                                receiverObject.setReferenceType(objectType);
-                                receiverObject.setObjectId(receiverObjectId);
-                                objectReferenceMap.put(receiverObjectId, receiverObject);
-                            }
 
                             if (childrenObjectMap.containsKey(dataId)) {
                                 if ("put".equals(methodName)) { // put call
@@ -424,6 +438,35 @@ public class InsidiousThreadReference implements ThreadReference {
 
         this.stackFrames = stackFrames;
 
+    }
+
+    @Nullable
+    private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
+        String dataValueString = String.valueOf(dataValue);
+        if (stringInfoMap.containsKey(dataValueString)) {
+            dataValue = stringInfoMap.get(dataValueString);
+        } else if (paramType.startsWith("L") || replayData.getObjectInfo().containsKey(dataValueString)
+                || objectReferenceMap.containsKey(Long.valueOf(dataValueString))) {
+            Long paramObjectId = Long.valueOf(dataValueString);
+            if (objectReferenceMap.containsKey(paramObjectId)) {
+                dataValue = objectReferenceMap.get(paramObjectId);
+            } else {
+                if (replayData.getObjectInfo().containsKey(dataValueString)) {
+                    try {
+                        ObjectInfo objectInfo = replayData.getObjectInfo().get(dataValueString);
+                        TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                        paramType = typeInfo.getTypeNameFromClass();
+                    } catch (Exception e) {
+                        logger.warn("failed to identify type for value", e);
+                    }
+                }
+                InsidiousObjectReference newInsidiousDataValue = new InsidiousObjectReference(this);
+                newInsidiousDataValue.setObjectId(paramObjectId);
+                newInsidiousDataValue.setReferenceType(buildClassTypeReferenceFromName(paramType));
+                objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
+            }
+        }
+        return dataValue;
     }
 
     private Map<String, InsidiousClassTypeReference> buildClassTypeReferences() {
