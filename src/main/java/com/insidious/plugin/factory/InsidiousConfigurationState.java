@@ -23,7 +23,7 @@ import java.util.Map;
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
     public String username = "";
-    public String serverUrl = "http://13.235.91.182";
+    public String serverUrl = "http://cloud.bug.video";
     public Map<String, Boolean> exceptionClassMap;
 
     public InsidiousConfigurationState() {
