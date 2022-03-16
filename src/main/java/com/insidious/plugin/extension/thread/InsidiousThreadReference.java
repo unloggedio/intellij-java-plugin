@@ -141,9 +141,6 @@ public class InsidiousThreadReference implements ThreadReference {
                     String fieldName = probeInfo.getAttribute("FieldName", null);
                     InsidiousLocalVariable fieldVariableInstance = buildLocalVariable(fieldName, dataEvent, probeInfo);
 
-                    if (!isNativeType(fieldVariableInstance.typeName()) && !objectReferenceMap.containsKey(dataEvent.getValue())) {
-                        objectReferenceMap.put(dataEvent.getValue(), (InsidiousObjectReference) fieldVariableInstance.getValue().getActualValue());
-                    }
 
                     if (methodsToSkip == 0) {
                         thisObject.getValues().put(fieldName, fieldVariableInstance);
@@ -170,7 +167,7 @@ public class InsidiousThreadReference implements ThreadReference {
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
-                            thisObject.setReferenceType(classTypeMap.get(classInfo.getClassName()));
+                            thisObject.setReferenceType(buildClassTypeReferenceFromName(classInfo.getClassName()));
                         }
 
                     }
@@ -183,7 +180,10 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 case METHOD_ENTRY:
                     if (methodsToSkip == 0) {
+                        thisObject.setObjectId(dataEvent.getValue());
+                        objectReferenceMap.put(dataEvent.getValue(), thisObject);
                         stackFrames.add(currentFrame);
+                        thisObject = new InsidiousObjectReference(this);
                         currentFrame = new InsidiousStackFrame(null, this, thisObject, this.virtualMachine());
                     } else {
                         methodsToSkip--;
@@ -205,10 +205,6 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
 
                     InsidiousLocalVariable newVariable = buildLocalVariable(variableName, dataEvent, probeInfo);
-                    if (!isNativeType(newVariable.typeName())) {
-                        objectReferenceMap.put(dataEvent.getValue(), (InsidiousObjectReference) newVariable.getValue().getActualValue());
-                    }
-
 
                     currentFrame.getLocalVariables().add(newVariable);
                     variableMap.put(variableName, newVariable);
@@ -328,11 +324,11 @@ public class InsidiousThreadReference implements ThreadReference {
                                     long longLocalValue = 0l;
                                     try {
                                         longLocalValue = Long.parseLong(insidiousLocalVariable.toString());
-                                    }catch (Exception e) {
-                                     //
+                                    } catch (Exception e) {
+                                        //
                                     }
 
-                                    if (objectReferenceMap.containsKey(longLocalValue)) {
+                                    if (longLocalValue > 100 && objectReferenceMap.containsKey(longLocalValue)) {
                                         InsidiousObjectReference existingObject = objectReferenceMap.get(longLocalValue);
                                         insidiousLocalVariable = new InsidiousLocalVariable(name, existingObject.referenceType().name(),
                                                 existingObject.referenceType().genericSignature(), longLocalValue,
@@ -615,6 +611,8 @@ public class InsidiousThreadReference implements ThreadReference {
                                 fieldMap.put(fieldVariable.name(), fieldVariable);
                             }
                         }
+
+                        objectReferenceMap.put(objectId, objectValue);
 
 
                         value = objectValue;

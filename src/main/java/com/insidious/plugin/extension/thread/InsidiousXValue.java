@@ -19,9 +19,11 @@ public class InsidiousXValue extends XValue {
 
         if (actualValue instanceof InsidiousObjectReference) {
             InsidiousObjectReference valueObjectReference = (InsidiousObjectReference) actualValue;
-            node.setPresentation(null, variable.type().name(), "{" + valueObjectReference.type().name() + "}", true);
+            node.setPresentation(null, valueObjectReference.type().name() + "@" + valueObjectReference.uniqueID(),
+                    "",
+                    true);
         } else {
-            node.setPresentation(null, variable.type().name(), String.valueOf(actualValue), false);
+            node.setPresentation(null, "", String.valueOf(actualValue), false);
         }
 
     }

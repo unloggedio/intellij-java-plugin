@@ -224,7 +224,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public List<BreakpointRequest> getAllBreakpoints() {
-        logger.error("method not implemented", new Exception());
+        logger.warn("method not implemented", new Exception());
         return Collections.emptyList();
     }
 
