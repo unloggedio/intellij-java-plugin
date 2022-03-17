@@ -55,7 +55,6 @@ public class LogicBugs {
     private JButton fetchForwardButton;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
-    private List<SearchRecord> searchResults;
     private ReentrantLock lock;
 
     public LogicBugs(Project project, InsidiousService insidiousService) {
@@ -148,6 +147,7 @@ public class LogicBugs {
                 if (!lock.tryLock()) {
                     return;
                 }
+                List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchHistory();
                 try {
                     int firstItemSelected = e.getFirstIndex();
                     if (firstItemSelected < 0 || firstItemSelected >= searchResults.size()) {
@@ -254,6 +254,7 @@ public class LogicBugs {
 //        this.searchResults = insidiousService.getConfiguration().getSearchHistory().stream().sorted();
 
 
+        List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchHistory();
         Object[][] searchResultRows = new Object[searchResults.size()][];
         Object[] headers = {"Query", "on", "#results"};
 

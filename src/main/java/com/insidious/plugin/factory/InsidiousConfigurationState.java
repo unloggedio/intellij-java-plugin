@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 )
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
-    private final List<SearchRecord> searchRecords;
+    private List<SearchRecord> searchRecords;
     public String username = "";
     public String serverUrl = "http://cloud.bug.video";
     public Map<String, Boolean> exceptionClassMap;
@@ -81,6 +81,9 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     }
 
     public void addSearchQuery(String traceValue, int resultCount) {
+        if (searchRecords == null) {
+            searchRecords = new LinkedList<>();
+        }
         SearchRecord newSearchRecord = new SearchRecord(traceValue, resultCount);
         List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue)).collect(Collectors.toList());
         searchRecords.removeAll(matched);
