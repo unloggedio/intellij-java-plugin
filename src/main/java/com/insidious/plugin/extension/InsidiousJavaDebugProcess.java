@@ -83,7 +83,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         super(session);
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
-        this.connector = new InsidiousJDIConnector(this, connection.getClient(), executionSession);
+        this.connector = new InsidiousJDIConnector(this,
+                connection.getClient(),
+                executionSession);
         session.getProject().getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);

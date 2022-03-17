@@ -38,6 +38,7 @@ public class CredentialsToolbar {
     private JButton downloadAgent;
     private JButton signupButton;
     private JLabel infoError;
+    private JButton logoutButton;
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -65,6 +66,14 @@ public class CredentialsToolbar {
             }
         });
         textArea1.setLineWrap(true);
+
+        logoutButton.addActionListener(e -> {
+            insidiousService.logout();
+            username.setText("");
+            password.setText("");
+            textArea1.setText("");
+        });
+
         downloadAgent.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {

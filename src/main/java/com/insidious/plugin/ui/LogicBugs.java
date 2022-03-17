@@ -68,9 +68,9 @@ public class LogicBugs {
 
     private void doSearch() {
         if (traceIdfield.getText().equals("")) {
-            Notifications.Bus.notify(insidiousService.getNotificationGroup()
-                            .createNotification("Cannot search with empty string",
-                                    NotificationType.ERROR),
+            Notifications.Bus.notify(
+                    insidiousService.getNotificationGroup()
+                            .createNotification("Cannot search with empty string", NotificationType.ERROR),
                     project);
             return;
         }

@@ -277,17 +277,17 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public String description() {
-        return "Insidious Time Travel VM";
+        return "VideoBug Time Travel VM";
     }
 
     @Override
     public String version() {
-        return "1.0.0";
+        return "1.3.3";
     }
 
     @Override
     public String name() {
-        return "InsidiousVM";
+        return "VideoBugVM";
     }
 
     @Override

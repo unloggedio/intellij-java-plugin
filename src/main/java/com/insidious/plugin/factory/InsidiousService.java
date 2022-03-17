@@ -298,6 +298,7 @@ public class InsidiousService {
 
             ReadAction.nonBlocking(this::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
             ReadAction.nonBlocking(this::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
+            ReadAction.nonBlocking(this::startDebugSession).submit(Executors.newSingleThreadExecutor());
 
 
             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
@@ -806,6 +807,20 @@ public class InsidiousService {
 
     public InsidiousConfigurationState getConfiguration() {
         return insidiousConfiguration;
+    }
+
+    public void logout() {
+        InsidiousConfigurationState newConfig = new InsidiousConfigurationState();
+        insidiousConfiguration.exceptionClassMap = newConfig.exceptionClassMap;
+        insidiousConfiguration.setServerUrl(newConfig.serverUrl);
+        insidiousConfiguration.setUsername(newConfig.username);
+
+        Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
+        if (credentials != null) {
+            PasswordSafe.getInstance().set(insidiousCredentials, null);
+        }
+
+
     }
 
     public void downloadAgent() throws IOException {
