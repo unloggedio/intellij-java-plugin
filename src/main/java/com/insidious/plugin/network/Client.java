@@ -40,7 +40,7 @@ public class Client {
     public static final String TRACE_BY_STRING = "/traceByString";
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     private final Logger logger = LoggerUtil.getInstance(Client.class);
-    private final String endpoint;
+    private String endpoint;
     private final ObjectMapper objectMapper = new ObjectMapper();
     OkHttpClient client;
     private ProjectItem project;
@@ -107,6 +107,24 @@ public class Client {
             }
         });
     }
+
+    public void signin(String serverUrl, String username, String password) throws UnauthorizedException, IOException {
+        logger.info("Sign in for email => " + username);
+        JSONObject json = new JSONObject();
+        json.put("email", username);
+        json.put("password", password);
+        Response response = postSync(endpoint + SIGN_IN_URL, json.toJSONString());
+        if (response.code() == 401) {
+            throw new UnauthorizedException(response.message());
+        }
+        if (response.code() == 200) {
+            JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+            String token = jsonObject.getAsString(Constants.TOKEN);
+            this.token = token;
+            this.endpoint = serverUrl;
+        }
+    }
+
 
     public void signin(String username, String password, SignInCallback signInCallback) {
         logger.info("Sign in for email => " + username);

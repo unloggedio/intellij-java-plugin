@@ -154,7 +154,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
-        logger.warn("method not implemented", new Exception());
+//        insidiousJavaDebugProcess.stop();
+        logger.warn("method not implemented - {}", new Exception().getStackTrace());
         return null;
     }
 
@@ -219,8 +220,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void dispose() {
-        logger.error("method not implemented", new Exception());
-
+        virtualMachine.dispose();
+        logger.warn("method not implemented", new Exception());
     }
 
     public List<BreakpointRequest> getAllBreakpoints() {

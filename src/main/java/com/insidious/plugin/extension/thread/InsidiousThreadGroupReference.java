@@ -12,7 +12,7 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
 
     private final VirtualMachine virtualMachine;
     private final ReplayData replayData;
-    private final List<ThreadReference> threads;
+    private List<ThreadReference> threads;
 
     public InsidiousThreadGroupReference(VirtualMachine virtualMachine, ReplayData replayData, TracePoint tracePoint) {
         this.virtualMachine = virtualMachine;
@@ -21,6 +21,11 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
                 new InsidiousThreadReference(this, replayData, tracePoint)
         );
     }
+
+    public void setThreadReferenceGroup(List<ThreadReference> threads) {
+        this.threads = threads;
+    }
+
 
 
     @Override

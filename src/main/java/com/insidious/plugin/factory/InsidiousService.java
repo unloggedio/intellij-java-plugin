@@ -82,7 +82,7 @@ public class InsidiousService {
     private String packageName = "com.insidious.plugin";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
-    private Client client;
+    private final Client client;
     private CodeTracer tracer;
     private ProcessHandler processHandler;
     private XDebugSession debugSession;
@@ -293,7 +293,7 @@ public class InsidiousService {
         insidiousConfiguration.setUsername(usernameText);
 
         try {
-            client = new Client(serverUrl, usernameText, passwordText);
+            client.signin(serverUrl, usernameText, passwordText);
 
             ReadAction.nonBlocking(this::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
             ReadAction.nonBlocking(this::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
@@ -585,15 +585,18 @@ public class InsidiousService {
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
-        @NotNull ExecutionEnvironment env = null;
-        try {
-            env = ExecutionEnvironmentBuilder.create(project,
-                    new InsidiousExecutor(),
-                    runConfiguration).build();
-            ProgramRunnerUtil.executeConfiguration(env, false, true);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            try {
+                ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project,
+                        new InsidiousExecutor(),
+                        runConfiguration).build();
+                ProgramRunnerUtil.executeConfiguration(env, false, true);
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+        });
+
 
     }
 

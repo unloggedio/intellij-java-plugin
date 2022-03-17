@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.util.LoggerUtil;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.EventRequestManager;
@@ -12,6 +13,8 @@ import com.insidious.plugin.network.pojo.FilteredDataEventsRequest;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
 import com.insidious.plugin.pojo.TracePoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -20,9 +23,10 @@ import java.util.Map;
 
 public class InsidiousVirtualMachine implements VirtualMachine {
 
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousVirtualMachine.class);
     private final Client client;
     private final ExecutionSession session;
-    private ThreadGroupReference threadReferenceGroup;
+    private InsidiousThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
 
     public InsidiousVirtualMachine(Client client, @NotNull ExecutionSession executionSession) throws APICallException, IOException {
@@ -134,13 +138,12 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public void dispose() {
-        new Exception().printStackTrace();
-
+        logger.info("videobug dispose called");
     }
 
     @Override
     public void exit(int i) {
-        new Exception().printStackTrace();
+        logger.info("videobug exit called");
 
     }
 
@@ -306,6 +309,9 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         filterDataEventRequest.setPageSize(1000);
         this.replayData = this.client.fetchDataEvents(filterDataEventRequest);
         threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
+
+        threadReferenceGroup.setThreadReferenceGroup(List.of(new InsidiousThreadReference(threadReferenceGroup, replayData, tracePoint)));
+
     }
 
     public void doStep(InsidiousThreadReferenceProxy threadReferenceProxy, int size, int depth, RequestHint requestHint) {
