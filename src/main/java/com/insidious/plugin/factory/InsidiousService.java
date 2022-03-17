@@ -10,7 +10,6 @@ import com.insidious.plugin.network.Client;
 import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.SessionUpdatedCallback;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
@@ -493,6 +492,9 @@ public class InsidiousService {
             return;
         }
 
+        insidiousConfiguration.addSearchQuery(traceValue, 0);
+        logicBugs.updateSearchResultsList();
+
 
         getTracesByClassForProjectAndSessionIdAndTraceValue(traceValue,
                 new GetProjectSessionErrorsCallback() {
@@ -518,7 +520,9 @@ public class InsidiousService {
 
                             });
                         } else {
+                            insidiousConfiguration.addSearchQuery(traceValue, tracePointCollection.size());
                             logicBugs.setTracePoints(tracePointCollection);
+                            logicBugs.updateSearchResultsList();
                         }
                     }
                 });
@@ -611,6 +615,8 @@ public class InsidiousService {
 
     public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
         this.debugProcess = debugProcess;
+
+        this.logicBugs.bringToFocus(toolWindow);
     }
 
     public XDebugSession getDebugSession() {

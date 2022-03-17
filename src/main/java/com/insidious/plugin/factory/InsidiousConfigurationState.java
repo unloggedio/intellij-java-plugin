@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.pojo.SearchRecord;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
@@ -8,8 +9,8 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Supports storing the application settings in a persistent way.
@@ -22,6 +23,7 @@ import java.util.Map;
 )
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
+    private final List<SearchRecord> searchRecords;
     public String username = "";
     public String serverUrl = "http://cloud.bug.video";
     public Map<String, Boolean> exceptionClassMap;
@@ -40,6 +42,7 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         exceptionClassMap.put("java.net.SocketException", true);
         exceptionClassMap.put("java.net.UnknownHostException", true);
         exceptionClassMap.put("java.lang.ArithmeticException", true);
+        searchRecords = new LinkedList<>();
     }
 
     public static InsidiousConfigurationState getInstance(Project project) {
@@ -73,4 +76,18 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         XmlSerializerUtil.copyBean(state, this);
     }
 
+    public List<SearchRecord> getSearchHistory() {
+        return searchRecords;
+    }
+
+    public void addSearchQuery(String traceValue, int resultCount) {
+        SearchRecord newSearchRecord = new SearchRecord(traceValue, resultCount);
+        List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue)).collect(Collectors.toList());
+        searchRecords.removeAll(matched);
+        searchRecords.add(newSearchRecord);
+        if (searchRecords.size() > 50) {
+            List<SearchRecord> recordsToRemove = searchRecords.stream().sorted(Comparator.comparing(SearchRecord::getLastQueryDate)).limit(searchRecords.size() - 10).collect(Collectors.toList());
+            searchRecords.removeAll(recordsToRemove);
+        }
+    }
 }

@@ -34,7 +34,7 @@ public class HorBugTable {
     private final InsidiousService insidiousService;
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
-    DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel;
+    DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
     List<DataEvent> dataList;
     Project project;
     String basepath;
@@ -71,6 +71,13 @@ public class HorBugTable {
         fetchSessionButton.addActionListener(actionEvent -> loadBug(bugs.getSelectedRow()));
 
         varsDefaultTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        searchHistoryTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;

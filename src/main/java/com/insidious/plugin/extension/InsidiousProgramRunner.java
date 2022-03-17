@@ -84,6 +84,6 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
     @Override
     public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
-
+        super.execute(environment);
     }
 }

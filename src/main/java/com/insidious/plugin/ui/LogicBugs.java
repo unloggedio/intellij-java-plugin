@@ -1,9 +1,12 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
+import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.xdebugger.XSourcePosition;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
@@ -18,16 +21,17 @@ import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.TracePoint;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class LogicBugs {
     private static final Logger logger = LoggerUtil.getInstance(LogicBugs.class);
@@ -47,9 +51,12 @@ public class LogicBugs {
     private JLabel errorLabel;
     private JProgressBar variableProgressbar;
     private JScrollPane scrollpanel;
+    private JTable searchHistoryTable;
     private JButton fetchForwardButton;
     private List<TracePoint> bugList;
-    private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues;
+    private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
+    private List<SearchRecord> searchResults;
+    private ReentrantLock lock;
 
     public LogicBugs(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -63,7 +70,12 @@ public class LogicBugs {
 //        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
 
         initTables();
+        ApplicationManager.getApplication().invokeLater(this::refreshSearchHistory);
         //variableProgressbar.setVisible(false);
+    }
+
+    private void refreshSearchHistory() {
+        List<SearchRecord> items = insidiousService.getConfiguration().getSearchHistory();
     }
 
     private void doSearch() {
@@ -99,16 +111,58 @@ public class LogicBugs {
             }
         };
 
+        searchHistoryTableModel = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+
+
+        };
+
         JTableHeader header = this.bugsTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        this.bugsTable.setCellEditor(this.bugsTable.getDefaultEditor(Boolean.class));
-
-
         centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+
+        this.bugsTable.setCellEditor(this.bugsTable.getDefaultEditor(Boolean.class));
         this.bugsTable.setModel(defaultTableModelTraces);
         this.bugsTable.setDefaultRenderer(Object.class, centerRenderer);
         this.bugsTable.setAutoCreateRowSorter(true);
+
+
+        this.searchHistoryTable.setCellEditor(this.searchHistoryTable.getDefaultEditor(String.class));
+        this.searchHistoryTable.setModel(searchHistoryTableModel);
+        this.searchHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
+        this.searchHistoryTable.setAutoCreateRowSorter(true);
+
+        lock = new ReentrantLock();
+
+        this.searchHistoryTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public synchronized void valueChanged(ListSelectionEvent e) {
+                if (lock.isLocked()) {
+                    return;
+                }
+                if (!lock.tryLock()) {
+                    return;
+                }
+                try {
+                    int firstItemSelected = e.getFirstIndex();
+                    if (firstItemSelected < 0 || firstItemSelected >= searchResults.size()) {
+                        return;
+                    }
+                    SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
+                    traceIdfield.setText(selectedSearchResult.getQuery());
+                    doSearch();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+
+
     }
 
     public JPanel getContent() {
@@ -194,5 +248,36 @@ public class LogicBugs {
     public void setTracePoints(List<TracePoint> tracePointCollection) {
         scrollpanel.setVisible(true);
         parseTableItems(tracePointCollection);
+    }
+
+    public void updateSearchResultsList() {
+//        this.searchResults = insidiousService.getConfiguration().getSearchHistory().stream().sorted();
+
+
+        Object[][] searchResultRows = new Object[searchResults.size()][];
+        Object[] headers = {"Query", "on", "#results"};
+
+        int i = 0;
+        for (SearchRecord searchRecord : searchResults) {
+
+            searchResultRows[i] = new String[]{
+                    searchRecord.getQuery(),
+                    searchRecord.getLastQueryDate().toString(),
+                    String.valueOf(searchRecord.getLastSearchResultCount())
+            };
+            i++;
+        }
+
+        searchHistoryTableModel.setDataVector(searchResultRows, headers);
+
+        this.searchHistoryTable.setModel(searchHistoryTableModel);
+        this.searchHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
+        this.searchHistoryTable.setAutoCreateRowSorter(true);
+
+
+    }
+
+    public void bringToFocus(ToolWindow toolWindow) {
+//        toolWindow.getContentManager().setSelectedContent(this.searchHistoryTable, true);
     }
 }
