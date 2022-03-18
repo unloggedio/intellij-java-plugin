@@ -52,6 +52,8 @@ public class LogicBugs {
     private JProgressBar variableProgressbar;
     private JScrollPane scrollpanel;
     private JTable searchHistoryTable;
+    private JPanel searchtablepanel;
+    private JScrollPane searchtablescrollpane;
     private JButton fetchForwardButton;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
@@ -118,6 +120,7 @@ public class LogicBugs {
 
 
         };
+
 
         JTableHeader header = this.bugsTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
@@ -253,10 +256,11 @@ public class LogicBugs {
     public void updateSearchResultsList() {
 //        this.searchResults = insidiousService.getConfiguration().getSearchHistory().stream().sorted();
 
-
+        JTableHeader header = this.searchHistoryTable.getTableHeader();
+        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchHistory();
         Object[][] searchResultRows = new Object[searchResults.size()][];
-        Object[] headers = {"Query", "on", "#results"};
+        Object[] headers = {"Search String", "TimeStamp", "Occurances"};
 
         int i = 0;
         for (SearchRecord searchRecord : searchResults) {
