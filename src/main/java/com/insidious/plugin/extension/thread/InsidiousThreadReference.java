@@ -294,16 +294,74 @@ public class InsidiousThreadReference implements ThreadReference {
                         receiverObject.setReferenceType(buildClassTypeReferenceFromName(interfaceOwner));
                     }
 
+                    List<InsidiousLocalVariable> paramsList = childrenObjectMap.get(dataId);
 
                     switch (interfaceOwner) {
 
                         default:
+
+                            if (methodName.startsWith("get")) {
+
+                            }
+
+                            if (methodName.startsWith("put")) {
+
+
+                                List<InsidiousLocalVariable> paramsArgsList = childrenObjectMap.get(dataId);
+                                InsidiousValue key = paramsArgsList.get(paramsArgsList.size() - 1).getValue();
+                                String fieldKey;
+                                if (key.getActualValue() instanceof StringInfo) {
+
+                                    fieldKey = ((StringInfo) key.getActualValue()).getContent();
+                                } else {
+                                    fieldKey = key.getActualValue().toString();
+                                }
+
+                                if (receiverObject.getValues().containsKey(fieldKey)) {
+                                    continue;
+                                }
+
+
+                                InsidiousLocalVariable insidiousLocalVariable = childrenObjectMap.get(dataId).get(0);
+
+                                receiverObject.getValues().put(fieldKey, insidiousLocalVariable);
+
+                                childrenObjectMap.remove(dataId);
+
+                            }
+
+                            if (methodName.startsWith("set")) {
+
+
+                                List<InsidiousLocalVariable> paramsArgsList = childrenObjectMap.get(dataId);
+                                InsidiousValue key = paramsArgsList.get(paramsArgsList.size() - 1).getValue();
+                                String fieldKey;
+                                if (key.getActualValue() instanceof StringInfo) {
+
+                                    fieldKey = ((StringInfo) key.getActualValue()).getContent();
+                                } else {
+                                    fieldKey = key.getActualValue().toString();
+                                }
+
+                                if (receiverObject.getValues().containsKey(fieldKey)) {
+                                    continue;
+                                }
+
+
+                                InsidiousLocalVariable insidiousLocalVariable = childrenObjectMap.get(dataId).get(0);
+
+                                receiverObject.getValues().put(fieldKey, insidiousLocalVariable);
+
+                                childrenObjectMap.remove(dataId);
+
+                            }
+
+
                             break;
 
                         case "java/util/List":
 
 
-                            List<InsidiousLocalVariable> paramsList = childrenObjectMap.get(dataId);
                             if (paramsList == null || paramsList.size() == 0) {
                                 continue;
                             } else {
