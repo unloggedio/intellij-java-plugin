@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 )
 public class InsidiousConfigurationState implements PersistentStateComponent<InsidiousConfigurationState> {
 
-    private List<SearchRecord> searchRecords;
+    private final List<SearchRecord> searchRecords = new LinkedList<>();
     public String username = "";
     public String serverUrl = "http://cloud.bug.video";
     public Map<String, Boolean> exceptionClassMap;
@@ -42,7 +42,6 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         exceptionClassMap.put("java.net.SocketException", true);
         exceptionClassMap.put("java.net.UnknownHostException", true);
         exceptionClassMap.put("java.lang.ArithmeticException", true);
-        searchRecords = new LinkedList<>();
     }
 
     public static InsidiousConfigurationState getInstance(Project project) {
@@ -76,14 +75,16 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         XmlSerializerUtil.copyBean(state, this);
     }
 
-    public List<SearchRecord> getSearchHistory() {
+    public List<SearchRecord> getSearchRecords() {
         return searchRecords;
     }
 
+    public void setSearchRecords(List<SearchRecord> newRecords) {
+        searchRecords.clear();
+        searchRecords.addAll(newRecords);
+    }
+
     public void addSearchQuery(String traceValue, int resultCount) {
-        if (searchRecords == null) {
-            searchRecords = new LinkedList<>();
-        }
         SearchRecord newSearchRecord = new SearchRecord(traceValue, resultCount);
         List<SearchRecord> matched = searchRecords.stream().filter(sr -> sr.getQuery().equals(traceValue)).collect(Collectors.toList());
         searchRecords.removeAll(matched);

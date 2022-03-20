@@ -77,7 +77,7 @@ public class LogicBugs {
     }
 
     private void refreshSearchHistory() {
-        List<SearchRecord> items = insidiousService.getConfiguration().getSearchHistory();
+        List<SearchRecord> items = insidiousService.getConfiguration().getSearchRecords();
     }
 
     private void doSearch() {
@@ -151,7 +151,7 @@ public class LogicBugs {
                 if (!lock.tryLock()) {
                     return;
                 }
-                List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchHistory();
+                List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
                 try {
                     int firstItemSelected = e.getFirstIndex();
                     if (firstItemSelected < 0 || firstItemSelected >= searchResults.size()) {
@@ -258,11 +258,11 @@ public class LogicBugs {
     }
 
     public void updateSearchResultsList() {
-//        this.searchResults = insidiousService.getConfiguration().getSearchHistory().stream().sorted();
+//        this.searchResults = insidiousService.getConfiguration().getSearchRecords().stream().sorted();
 
         JTableHeader header = this.searchHistoryTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchHistory();
+        List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
         Object[][] searchResultRows = new Object[searchResults.size()][];
         Object[] headers = {"Search String", "TimeStamp", "Occurances"};
 
