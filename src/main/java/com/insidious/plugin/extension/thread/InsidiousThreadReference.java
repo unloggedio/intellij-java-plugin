@@ -333,57 +333,57 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     switch (interfaceOwner) {
 
-//                        default:
-//
-//                            if (paramsArgsList == null || paramsArgsList.size() == 0) {
-//                                logger.debug("call with no params or return values, skipping [{}]", methodName);
-//                                continue;
-//                            }
-//                            if (!(methodName.startsWith("get")
-//                                    || methodName.startsWith("set")
-//                                    || methodName.startsWith("put")
-//                            )) {
-//                                continue;
-//                            }
-//
-//                            // yikes
-//                            // get fieldName from methodName if it looks like putXXX/getXXX/setXXX
-//                            if (methodName.length() > 3 && methodName.charAt(2) == 't') {
-//                                fieldName = methodName.substring(3);
-//                                fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
-//                            }
-//
-//                            // if fieldName is empty, it can potentially be the first item of the call params
-//                            // getInt("fieldName") set("FieldName", value)
-//                            if (StringUtil.isEmpty(fieldName)) {
-//                                InsidiousLocalVariable key = paramsArgsList.get(0);
-//                                fieldName = String.valueOf(key.getValue().getActualValue());
-//                                paramsArgsList.remove(0);
-//                            }
-//
-//
-//                            if (methodName.startsWith("get")) {
-//                                InsidiousLocalVariable returnValue = paramsArgsList.get(0);
-//                                receiverObject.getValues().put(fieldName, returnValue);
-//
-//                            } else if (methodName.startsWith("put") || methodName.startsWith("set")) {
-//
-//
-//                                InsidiousValue key = paramsArgsList.get(0).getValue();
-//
-//                                if (receiverObject.getValues().containsKey(fieldName)) {
-//                                    continue;
-//                                }
-//
-//
-//                                InsidiousLocalVariable insidiousLocalVariable =
-//                                        paramsArgsList.get(paramsArgsList.size() - 1);
-//                                receiverObject.getValues().put(fieldName, insidiousLocalVariable);
-//
-//                            }
-//
-//
-//                            break;
+                        default:
+
+                            if (paramsArgsList == null || paramsArgsList.size() == 0) {
+                                logger.debug("call with no params or return values, skipping [{}]", methodName);
+                                continue;
+                            }
+                            if (!(methodName.startsWith("get")
+                                    || methodName.startsWith("set")
+                                    || methodName.startsWith("put")
+                            )) {
+                                continue;
+                            }
+
+                            // yikes
+                            // get fieldName from methodName if it looks like putXXX/getXXX/setXXX
+                            if (methodName.length() > 3 && methodName.charAt(2) == 't') {
+                                fieldName = methodName.substring(3);
+                                fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
+                            }
+
+                            // if fieldName is empty, it can potentially be the first item of the call params
+                            // getInt("fieldName") set("FieldName", value)
+                            if (StringUtil.isEmpty(fieldName)) {
+                                InsidiousLocalVariable key = paramsArgsList.get(0);
+                                fieldName = String.valueOf(key.getValue().getActualValue());
+                                paramsArgsList.remove(0);
+                            }
+
+
+                            if (methodName.startsWith("get")) {
+                                InsidiousLocalVariable returnValue = paramsArgsList.get(0);
+                                receiverObject.getValues().put(fieldName, returnValue);
+
+                            } else if (methodName.startsWith("put") || methodName.startsWith("set")) {
+
+
+                                InsidiousValue key = paramsArgsList.get(0).getValue();
+
+                                if (receiverObject.getValues().containsKey(fieldName)) {
+                                    continue;
+                                }
+
+
+                                InsidiousLocalVariable insidiousLocalVariable =
+                                        paramsArgsList.get(paramsArgsList.size() - 1);
+                                receiverObject.getValues().put(fieldName, insidiousLocalVariable);
+
+                            }
+
+
+                            break;
 
                         case "java/util/List":
 
