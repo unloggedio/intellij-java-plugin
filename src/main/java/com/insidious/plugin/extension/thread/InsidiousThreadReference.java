@@ -244,7 +244,16 @@ public class InsidiousThreadReference implements ThreadReference {
                         continue;
                     }
                     DataInfo parentDataInfo = replayData.getDataInfoMap().get(probeInfo.getAttribute("NewParent", "0"));
-                    buildDataObjectFromIdAndTypeValue("L" + parentDataInfo.getAttribute("Type", "java.lang.Object"), dataEvent.getValue());
+                    String classTypeOfNewObject = "java/lang/Object";
+                    if (parentDataInfo == null) {
+                        logger.warn("no data info for parent of new object created [%s]", probeInfo);
+                    } else {
+                        classTypeOfNewObject = parentDataInfo.getAttribute("Type", classTypeOfNewObject);
+                    }
+
+                    buildDataObjectFromIdAndTypeValue(
+                            "L" + classTypeOfNewObject,
+                            dataEvent.getValue());
 
                     break;
 
@@ -261,6 +270,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
                     String paramType = probeInfo.getAttribute("Type", "Ljava/lang/Object;");
+                    if ("V".equals(paramType)) { // void return type
+                        continue;
+                    }
                     Object dataValue = dataEvent.getValue();
                     long newParamObjectId = 0L;
                     newParamObjectId = Long.parseLong(dataValue.toString());
@@ -304,6 +316,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 case CALL:
 
+
                     String interfaceOwner = probeInfo.getAttribute("Owner", "");
                     String methodName = probeInfo.getAttribute("Name", "");
 
@@ -320,57 +333,57 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     switch (interfaceOwner) {
 
-                        default:
-
-                            if (paramsArgsList == null || paramsArgsList.size() == 0) {
-                                logger.debug("call with no params or return values, skipping [{}]", methodName);
-                                continue;
-                            }
-                            if (!(methodName.startsWith("get")
-                                    || methodName.startsWith("set")
-                                    || methodName.startsWith("put")
-                            )) {
-                                continue;
-                            }
-
-                            // yikes
-                            // get fieldName from methodName if it looks like putXXX/getXXX/setXXX
-                            if (methodName.length() > 3 && methodName.charAt(2) == 't') {
-                                fieldName = methodName.substring(3);
-                                fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
-                            }
-
-                            // if fieldName is empty, it can potentially be the first item of the call params
-                            // getInt("fieldName") set("FieldName", value)
-                            if (StringUtil.isEmpty(fieldName)) {
-                                InsidiousLocalVariable key = paramsArgsList.get(0);
-                                fieldName = String.valueOf(key.getValue().getActualValue());
-                                paramsArgsList.remove(0);
-                            }
-
-
-                            if (methodName.startsWith("get")) {
-                                InsidiousLocalVariable returnValue = paramsArgsList.get(0);
-                                receiverObject.getValues().put(fieldName, returnValue);
-
-                            } else if (methodName.startsWith("put") || methodName.startsWith("set")) {
-
-
-                                InsidiousValue key = paramsArgsList.get(0).getValue();
-
-                                if (receiverObject.getValues().containsKey(fieldName)) {
-                                    continue;
-                                }
-
-
-                                InsidiousLocalVariable insidiousLocalVariable =
-                                        paramsArgsList.get(paramsArgsList.size() - 1);
-                                receiverObject.getValues().put(fieldName, insidiousLocalVariable);
-
-                            }
-
-
-                            break;
+//                        default:
+//
+//                            if (paramsArgsList == null || paramsArgsList.size() == 0) {
+//                                logger.debug("call with no params or return values, skipping [{}]", methodName);
+//                                continue;
+//                            }
+//                            if (!(methodName.startsWith("get")
+//                                    || methodName.startsWith("set")
+//                                    || methodName.startsWith("put")
+//                            )) {
+//                                continue;
+//                            }
+//
+//                            // yikes
+//                            // get fieldName from methodName if it looks like putXXX/getXXX/setXXX
+//                            if (methodName.length() > 3 && methodName.charAt(2) == 't') {
+//                                fieldName = methodName.substring(3);
+//                                fieldName = fieldName.substring(0, 1).toLowerCase() + fieldName.substring(1);
+//                            }
+//
+//                            // if fieldName is empty, it can potentially be the first item of the call params
+//                            // getInt("fieldName") set("FieldName", value)
+//                            if (StringUtil.isEmpty(fieldName)) {
+//                                InsidiousLocalVariable key = paramsArgsList.get(0);
+//                                fieldName = String.valueOf(key.getValue().getActualValue());
+//                                paramsArgsList.remove(0);
+//                            }
+//
+//
+//                            if (methodName.startsWith("get")) {
+//                                InsidiousLocalVariable returnValue = paramsArgsList.get(0);
+//                                receiverObject.getValues().put(fieldName, returnValue);
+//
+//                            } else if (methodName.startsWith("put") || methodName.startsWith("set")) {
+//
+//
+//                                InsidiousValue key = paramsArgsList.get(0).getValue();
+//
+//                                if (receiverObject.getValues().containsKey(fieldName)) {
+//                                    continue;
+//                                }
+//
+//
+//                                InsidiousLocalVariable insidiousLocalVariable =
+//                                        paramsArgsList.get(paramsArgsList.size() - 1);
+//                                receiverObject.getValues().put(fieldName, insidiousLocalVariable);
+//
+//                            }
+//
+//
+//                            break;
 
                         case "java/util/List":
 
@@ -418,7 +431,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         case "java/util/Map":
 
 
-                            if (childrenObjectMap.containsKey(dataId)) {
+                            if (paramsArgsList != null) {
                                 if ("put".equals(methodName)) { // put call
 
                                     InsidiousValue key = paramsArgsList.get(paramsArgsList.size() - 1).getValue();
@@ -435,11 +448,10 @@ public class InsidiousThreadReference implements ThreadReference {
                                     }
 
 
-                                    InsidiousLocalVariable insidiousLocalVariable = childrenObjectMap.get(dataId).get(0);
+                                    InsidiousLocalVariable insidiousLocalVariable = paramsArgsList.get(0);
 
                                     receiverObject.getValues().put(fieldKey, insidiousLocalVariable);
 
-                                    childrenObjectMap.remove(dataId);
 
                                 } else if ("get".equals(methodName)) { // get call
 
@@ -447,7 +459,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
 //                                    objectReferenceMap.put(receiverObjectId, receiverObject);
 //
-                                    InsidiousLocalVariable keyVariable = childrenObjectMap.get(dataId).get(0);
+                                    InsidiousLocalVariable keyVariable = paramsArgsList.get(0);
                                     InsidiousValue key = keyVariable.getValue();
                                     String keyString;
                                     if (key.getActualValue() instanceof StringInfo) {
@@ -468,7 +480,7 @@ public class InsidiousThreadReference implements ThreadReference {
 //
 //
 //                                    receiverObject.getValues().put(keyString, insidiousLocalVariable);
-                                    childrenObjectMap.remove(dataId);
+
                                 }
 
 
@@ -513,7 +525,7 @@ public class InsidiousThreadReference implements ThreadReference {
     private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
 
         String dataValueString = String.valueOf(dataValue);
-        if (stringInfoMap.containsKey(dataValueString) && paramType.equals("Ljava/lang/String")) {
+        if (stringInfoMap.containsKey(dataValueString) && paramType.startsWith("Ljava/lang/String")) {
             dataValue = stringInfoMap.get(dataValueString);
         } else if (
                 (paramType.startsWith("L")
@@ -538,7 +550,9 @@ public class InsidiousThreadReference implements ThreadReference {
                 InsidiousObjectReference newInsidiousDataValue = new InsidiousObjectReference(this);
                 newInsidiousDataValue.setObjectId(paramObjectId);
                 newInsidiousDataValue.setReferenceType(buildClassTypeReferenceFromName(paramType));
-                objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
+                if (Long.valueOf(String.valueOf(dataValue)) != 0) {
+                    objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
+                }
                 return newInsidiousDataValue;
             }
         }

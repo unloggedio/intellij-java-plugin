@@ -13,6 +13,9 @@ public class SearchRecord {
         this.lastQueryDate = new Date();
     }
 
+    public SearchRecord() {
+    }
+
     public String getQuery() {
         return query;
     }

@@ -9,14 +9,19 @@ import java.util.Map;
 
 public class InsidiousObjectReference implements ObjectReference {
 
-    private ReferenceType referenceType;
     private final Map<String, InsidiousLocalVariable> valueMap;
-    private long objectId;
     private final ThreadReference parentThread;
+    private ReferenceType referenceType;
+    private long objectId;
 
     public InsidiousObjectReference(ThreadReference parentThread) {
         this.valueMap = new HashMap<>();
         this.parentThread = parentThread;
+    }
+
+    @Override
+    public String toString() {
+        return "InsidiousObjectReference{type=" + referenceType.name() + ",value=" + valueMap + "}";
     }
 
     public void setReferenceType(ReferenceType referenceType) {
