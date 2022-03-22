@@ -10,9 +10,11 @@ import java.io.OutputStream;
 public class InsidiousProcessHandler extends ProcessHandler {
 
     private final static Logger logger = LoggerUtil.getInstance(InsidiousProcessHandler.class);
+    private final String runProfileName;
+    private InsidiousJavaDebugProcess insidiousJavaDebugProcess;
 
-    public InsidiousProcessHandler() {
-
+    public InsidiousProcessHandler(String runProfileName) {
+        this.runProfileName = runProfileName;
     }
 
     @Override
@@ -21,9 +23,21 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void detachProcessImpl() {
-        logger.info("end of debug session - ", new Exception());
+        logger.info("end of debug session - {}", new Exception().getStackTrace()[0]);
+        if (getInsidiousJavaDebugProcess() != null) {
+            getInsidiousJavaDebugProcess().closeProcess(true);
+        }
 
     }
+
+
+    private InsidiousJavaDebugProcess getInsidiousJavaDebugProcess() {
+        if (this.insidiousJavaDebugProcess == null) {
+            this.insidiousJavaDebugProcess = InsidiousJavaDebugProcess.getInstance(this.runProfileName);
+        }
+        return this.insidiousJavaDebugProcess;
+    }
+
 
     @Override
     public boolean detachIsDefault() {

@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.intellij.execution.DefaultExecutionResult;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -13,7 +14,6 @@ import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.openapi.util.Key;
 import com.sun.jdi.ThreadReference;
-import com.insidious.plugin.factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,7 +36,7 @@ public class InsidiousApplicationState implements RunProfileState {
 
     @Override
     public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
-        @NotNull ProcessHandler processHandler = new InsidiousProcessHandler();
+        @NotNull ProcessHandler processHandler = new InsidiousProcessHandler(getRunProfileName());
         InsidiousService insidiousService = configuration.getProject().getService(InsidiousService.class);
         insidiousService.setProcessHandler(processHandler);
 
@@ -47,8 +47,9 @@ public class InsidiousApplicationState implements RunProfileState {
         return executionResult;
     }
 
+
     public String getRunProfileName() {
-        return "insidious run profile";
+        return environment.getRunProfile().getName();
     }
 
     public boolean isErrored() {

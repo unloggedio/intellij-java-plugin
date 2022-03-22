@@ -221,15 +221,16 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public void dispose() {
         virtualMachine.dispose();
-        logger.warn("method not implemented", new Exception());
+        logger.warn("method not implemented - connector.dispose");
     }
 
     public List<BreakpointRequest> getAllBreakpoints() {
-        logger.warn("method not implemented", new Exception());
+        logger.warn("method not implemented - connector.getAllBreakpoints");
         return Collections.emptyList();
     }
 
-    public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught, boolean notifyUncaught, int i, Breakpoint breakpoint) {
+    public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught,
+                                          boolean notifyUncaught, int i, Breakpoint breakpoint) {
         logger.error("method not implemented", new Exception());
 
     }
