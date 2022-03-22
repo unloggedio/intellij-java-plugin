@@ -24,10 +24,15 @@ import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ProgramRunnerUtil;
-import com.intellij.execution.configurations.*;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.configurations.ConfigurationTypeUtil;
+import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
+import com.intellij.execution.ui.FragmentedSettings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.notification.NotificationGroup;
 import com.intellij.notification.NotificationGroupManager;
@@ -36,33 +41,31 @@ import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
 import com.intellij.openapi.ui.popup.LightweightWindowEvent;
-import com.intellij.psi.*;
+import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.awt.RelativePoint;
-import com.intellij.util.Consumer;
-import org.slf4j.Logger;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import com.intellij.util.Consumer;
 import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
@@ -76,13 +79,13 @@ public class InsidiousService {
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private final String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
+    private final Client client;
     private NotificationGroup notificationGroup;
     private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
     private Module currentModule;
-    private String packageName = "com.insidious.plugin";
+    private String packageName = "YOUR.PACKAGE.NAME";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
-    private final Client client;
     private CodeTracer tracer;
     private ProcessHandler processHandler;
     private XDebugSession debugSession;
@@ -92,6 +95,7 @@ public class InsidiousService {
     private ToolWindow toolWindow;
     private CredentialAttributes insidiousCredentials;
     private String appToken;
+    private String javaAgentString;
 
 
     public InsidiousService(Project project) {
@@ -654,6 +658,48 @@ public class InsidiousService {
         });
     }
 
+    public void addAgentToRunConfig() {
+
+
+        List<RunnerAndConfigurationSettings> allSettings
+                = project.getService(RunManager.class).getAllSettings();
+
+        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+//            logger.info("runner config - {}", runSetting.getName());
+
+            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+                @NotNull List<FragmentedSettings.Option> applicationOptions = applicationConfiguration.getSelectedOptions();
+                String currentVMParams = applicationConfiguration.getVMParameters();
+
+                String newVmOptions = currentVMParams;
+                if (StringUtil.isNotEmpty(currentVMParams) && currentVMParams.contains("videobug")) {
+//                    String[] vmParamParts = currentVMParams.split(" ");
+                    List<String> vmParamList = new LinkedList<>(Arrays.asList(currentVMParams.split(" ")));
+                    int foundAtIndex = -1;
+                    for (int i = 0; i < vmParamList.size(); i++) {
+                        String vmParamPart = vmParamList.get(i);
+                        if (vmParamPart.contains("videobug") && vmParamPart.contains("javaagent")) {
+                            vmParamList.set(i, "");
+                        }
+                    }
+
+                    vmParamList.add(javaAgentString);
+                    newVmOptions = String.join(" ", vmParamList);
+                    applicationConfiguration.setVMParameters(newVmOptions);
+                } else {
+                    newVmOptions = javaAgentString;
+                    applicationConfiguration.setVMParameters(newVmOptions);
+                }
+
+
+            }
+
+        }
+
+
+    }
+
 
     public void initiateUI() {
         logger.info("initiate ui");
@@ -708,30 +754,21 @@ public class InsidiousService {
 
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
+
+        javaAgentString = "-javaagent:\"" + videoBugAgentPath
+                + "=i="
+                + packageName.replaceAll("\\.", "/")
+                + ","
+                + "server="
+                + insidiousConfiguration.serverUrl
+                + ",format=single,token="
+                + appToken + "\"";
+
         if (credentialsToolbarWindow != null) {
-
-
-            credentialsToolbarWindow.setText("-javaagent:\"" + videoBugAgentPath
-                    + "=i="
-                    + packageName.replaceAll("\\.", "/")
-                    + ","
-                    + "server="
-                    + insidiousConfiguration.serverUrl
-                    + ",format=single,token="
-                    + appToken + "\"");
-
-
-//            credentialsToolbarWindow.setText("java -javaagent:\"" + videoBugAgentPath
-//                    + "=i="
-//                    + packageName.replaceAll("\\.", "/")
-//                    + ","
-//                    + "server="
-//                    + insidiousConfiguration.serverUrl
-//                    + ",token="
-//                    + appToken + "\""
-//                    + " -jar " + projectTargetJarLocation);
-//
-//
+            credentialsToolbarWindow.setText(javaAgentString);
+        }
+        if (appToken != null && !Objects.equals(packageName, "YOUR.PACKAGE.NAME")) {
+            addAgentToRunConfig();
         }
     }
 
