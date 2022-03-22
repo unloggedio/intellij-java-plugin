@@ -21,7 +21,7 @@ public class InsidiousObjectReference implements ObjectReference {
 
     @Override
     public String toString() {
-        return "InsidiousObjectReference{type=" + referenceType.name() + ",value=" + valueMap + "}";
+        return "InsidiousObjectReference{type=" + referenceType + ",value=" + valueMap + "}";
     }
 
     public void setReferenceType(ReferenceType referenceType) {

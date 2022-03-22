@@ -13,6 +13,12 @@ public class SearchRecord {
         this.lastQueryDate = new Date();
     }
 
+    public SearchRecord(String query, int resultCount, Date lastQueryDate) {
+        this.query = query;
+        this.lastSearchResultCount = resultCount;
+        this.lastQueryDate = lastQueryDate;
+    }
+
     public SearchRecord() {
     }
 

@@ -1,12 +1,5 @@
 package com.insidious.plugin.extension.thread;
 
-import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import com.sun.jdi.*;
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.model.*;
 import com.insidious.plugin.extension.thread.types.InsidiousClassTypeReference;
@@ -16,6 +9,13 @@ import com.insidious.plugin.network.pojo.ClassInfo;
 import com.insidious.plugin.network.pojo.DataEventWithSessionId;
 import com.insidious.plugin.network.pojo.ObjectInfo;
 import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.util.text.Strings;
+import com.sun.jdi.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -71,7 +71,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
         int methodsToSkip = 0;
-        List<DataEventWithSessionId> dataEventsList = this.replayData.getDataEvents();
+        ReplayData replayDataLocal = this.replayData;
+        List<DataEventWithSessionId> dataEventsList = replayDataLocal.getDataEvents();
 
         List<DataEventWithSessionId> subList = dataEventsList.subList(position, dataEventsList.size());
         int currentClassId = -1; // dataInfoMap.get(String.valueOf(subList.get(0).getDataId())).getClassId();
@@ -83,6 +84,7 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, List<InsidiousLocalVariable>> childrenObjectMap = new HashMap<>();
 
         boolean isMethodParam = false;
+        boolean isReturnParam = false;
 
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
@@ -90,10 +92,10 @@ public class InsidiousThreadReference implements ThreadReference {
             DataInfo probeInfo = dataInfoMap.get(dataId);
             int classId = probeInfo.getClassId();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
-            ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo objectInfo = this.replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
             TypeInfo typeInfo = null;
             if (objectInfo != null) {
-                typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                typeInfo = this.replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
             }
             long receiverObjectId = 0;
             InsidiousObjectReference receiverObject;
@@ -181,10 +183,12 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 case METHOD_ENTRY:
                     if (methodsToSkip == 0) {
-                        thisObject.setObjectId(dataEvent.getValue());
-                        objectReferenceMap.put(dataEvent.getValue(), thisObject);
+//                        thisObject.setObjectId(dataEvent.getValue());
+//                        objectReferenceMap.put(dataEvent.getValue(), thisObject);
                         stackFrames.add(currentFrame);
                         thisObject = new InsidiousObjectReference(this);
+                        thisObject.setObjectId(dataEvent.getValue());
+                        objectReferenceMap.put(dataEvent.getValue(), thisObject);
                         currentFrame = new InsidiousStackFrame(null, this, thisObject, this.virtualMachine());
                     } else {
                         methodsToSkip--;
@@ -243,7 +247,7 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (objectObjectCreatedId == 0) {
                         continue;
                     }
-                    DataInfo parentDataInfo = replayData.getDataInfoMap().get(probeInfo.getAttribute("NewParent", "0"));
+                    DataInfo parentDataInfo = this.replayData.getDataInfoMap().get(probeInfo.getAttribute("NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
                         logger.warn("no data info for parent of new object created [%s]", probeInfo);
@@ -261,6 +265,7 @@ public class InsidiousThreadReference implements ThreadReference {
                     isMethodParam = true;
 
                 case CALL_RETURN:
+                    isReturnParam = true;
                 case CALL_PARAM:
 
 
@@ -378,6 +383,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                                 InsidiousLocalVariable insidiousLocalVariable =
                                         paramsArgsList.get(paramsArgsList.size() - 1);
+                                insidiousLocalVariable.setName(fieldName);
                                 receiverObject.getValues().put(fieldName, insidiousLocalVariable);
 
                             }
@@ -392,6 +398,16 @@ public class InsidiousThreadReference implements ThreadReference {
                                 continue;
                             } else {
 
+                                // only handle add/get method for list,
+                                // TODO: need to support other methods in the list interface like clear()
+                                if (!methodName.equals("add") && !methodName.equals("get")) {
+                                    continue;
+                                }
+
+                                if (paramsArgsList.size() > 1) {
+                                    // calls to list methods return a value which we need to ignore
+                                    paramsArgsList.remove(0);
+                                }
 
                                 for (int i = 0; i < paramsArgsList.size(); i++) {
                                     InsidiousLocalVariable insidiousLocalVariable = paramsArgsList.get(paramsArgsList.size() - i - 1);
@@ -404,22 +420,6 @@ public class InsidiousThreadReference implements ThreadReference {
                                     if (receiverObject.getValues().containsKey(name)) {
                                         name = name + "[" + receiverObject.getValues().size() + "]";
                                     }
-
-                                    long longLocalValue = 0l;
-                                    try {
-                                        longLocalValue = Long.parseLong(insidiousLocalVariable.toString());
-                                    } catch (Exception e) {
-                                        //
-                                    }
-
-                                    if (longLocalValue > 100 && objectReferenceMap.containsKey(longLocalValue)) {
-                                        InsidiousObjectReference existingObject = objectReferenceMap.get(longLocalValue);
-                                        insidiousLocalVariable = new InsidiousLocalVariable(name, existingObject.referenceType().name(),
-                                                existingObject.referenceType().genericSignature(), longLocalValue,
-                                                new InsidiousValue(existingObject.type(), existingObject, this.virtualMachine()), this.virtualMachine());
-                                    }
-
-
                                     receiverObject.getValues().put(name, insidiousLocalVariable);
                                 }
 
@@ -433,6 +433,11 @@ public class InsidiousThreadReference implements ThreadReference {
 
                             if (paramsArgsList != null) {
                                 if ("put".equals(methodName)) { // put call
+
+                                    if (paramsArgsList.size() > 1) {
+                                        // remove the return value of the put call
+                                        paramsArgsList.remove(0);
+                                    }
 
                                     InsidiousValue key = paramsArgsList.get(paramsArgsList.size() - 1).getValue();
                                     String fieldKey;
@@ -524,8 +529,13 @@ public class InsidiousThreadReference implements ThreadReference {
     @Nullable
     private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
 
+
+        if (paramType.length() == 1 && !paramType.equals("L")) {
+            return dataValue;
+        }
+
         String dataValueString = String.valueOf(dataValue);
-        if (stringInfoMap.containsKey(dataValueString) && paramType.startsWith("Ljava/lang/String")) {
+        if (stringInfoMap.containsKey(dataValueString) && Integer.valueOf(String.valueOf(dataValue)) > 10) {
             dataValue = stringInfoMap.get(dataValueString);
         } else if (
                 (paramType.startsWith("L")

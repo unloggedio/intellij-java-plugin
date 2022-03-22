@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension.descriptor;
 
+import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.StackFrameContext;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
@@ -157,7 +158,7 @@ public class InsidiousNodeDescriptorFactoryImpl implements InsidiousNodeDescript
     }
 
     public InsidiousValueDescriptorImpl getThisDescriptor(InsidiousNodeDescriptorImpl parent, Value value) {
-        return getDescriptor(parent, new InsidiousThisData());
+        return getDescriptor(parent, new InsidiousThisData((InsidiousObjectReference)value));
     }
 
 

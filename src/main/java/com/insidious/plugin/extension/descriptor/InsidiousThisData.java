@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension.descriptor;
 
+import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
 import com.intellij.debugger.impl.descriptors.data.DescriptorData;
 import com.intellij.debugger.impl.descriptors.data.DisplayKey;
 import com.intellij.debugger.impl.descriptors.data.SimpleDisplayKey;
@@ -9,6 +10,14 @@ import org.jetbrains.annotations.NotNull;
 
 public final class InsidiousThisData extends DescriptorData<InsidiousThisDescriptorImpl> {
     private static final Key THIS = new Key("THIS");
+    private InsidiousObjectReference objectReference;
+
+    public InsidiousThisData(InsidiousObjectReference objectReference) {
+
+        this.objectReference = objectReference;
+    }
+
+
 
 
     protected InsidiousThisDescriptorImpl createDescriptorImpl(@NotNull Project project) {

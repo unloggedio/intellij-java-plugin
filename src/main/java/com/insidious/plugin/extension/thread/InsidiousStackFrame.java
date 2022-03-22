@@ -11,7 +11,7 @@ public class InsidiousStackFrame implements StackFrame {
 
     private final ThreadReference threadReference;
     private final VirtualMachine virtualMachine;
-    private final InsidiousObjectReference thisObject;
+    private InsidiousObjectReference thisObject;
     private final List<LocalVariable> localVariables;
     private InsidiousLocation location;
 
@@ -100,5 +100,9 @@ public class InsidiousStackFrame implements StackFrame {
     @Override
     public VirtualMachine virtualMachine() {
         return virtualMachine;
+    }
+
+    public void setThisObject(InsidiousObjectReference thisObject) {
+        this.thisObject = thisObject;
     }
 }

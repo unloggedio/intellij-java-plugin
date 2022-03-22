@@ -72,6 +72,7 @@ public class LogicBugs {
 //        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
 
         initTables();
+        updateSearchResultsList();
         ApplicationManager.getApplication().invokeLater(this::refreshSearchHistory);
         //variableProgressbar.setVisible(false);
     }
