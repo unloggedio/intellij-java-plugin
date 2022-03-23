@@ -870,9 +870,7 @@ public class InsidiousService {
 
     }
 
-    public void downloadAgent() throws IOException {
-
-
+    public void downloadAgent() {
         checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {

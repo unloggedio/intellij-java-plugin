@@ -106,7 +106,7 @@ public class InsidiousThreadReference implements ThreadReference {
             String fieldName = probeInfo.getAttribute("FieldName", null);
 
 
-             switch (probeInfo.getEventType()) {
+            switch (probeInfo.getEventType()) {
                 case PUT_INSTANCE_FIELD:
                 case GET_INSTANCE_FIELD:
                     receiverObjectId = dataEvent.getValue();
@@ -216,33 +216,6 @@ public class InsidiousThreadReference implements ThreadReference {
                     variableMap.put(variableName, newVariable);
                     break;
 
-//                case CALL_RETURN:
-//                    long returnValueObjectId = dataEvent.getValue();
-//                    if (returnValueObjectId == 0) {
-//                        continue;
-//                    }
-//                    @Nullable Object callReturnValue = buildDataObjectFromIdAndTypeValue(
-//                            probeInfo.getAttribute("Type", "Ljava.lang.Object"),
-//                            dataEvent.getValue()
-//                    );
-////                    if (callReturnValue instanceof InsidiousObjectReference) {
-////                        long newParamObjectId = ((InsidiousObjectReference) callReturnValue).uniqueID();
-////                    }
-//                    parentId = probeInfo.getAttribute("ParentId", "0");
-//                    if (!"0".equals(parentId)) {
-//                        List<InsidiousLocalVariable> list = childrenObjectMap.get(parentId);
-//                        if (!childrenObjectMap.containsKey(parentId)) {
-//                            childrenObjectMap.put(parentId, new LinkedList<>());
-//                        }
-//
-//
-////                        childrenObjectMap.get(parentId).add();
-//
-//                    }
-//
-//
-//                    break;
-
                 case NEW_OBJECT_CREATED:
                     long objectObjectCreatedId = dataEvent.getValue();
                     if (objectObjectCreatedId == 0) {
@@ -297,9 +270,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     newVariable = new InsidiousLocalVariable(
                             "",
-                            "String", "String", newParamObjectId,
+                            paramType, paramType, newParamObjectId,
                             new InsidiousValue(InsidiousTypeFactory.typeFrom(
-                                    "", "", virtualMachine()),
+                                    paramType, paramType, virtualMachine()),
                                     dataValue, virtualMachine()),
                             virtualMachine()
                     );
@@ -530,6 +503,9 @@ public class InsidiousThreadReference implements ThreadReference {
     @Nullable
     private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
 
+        if (Long.valueOf(String.valueOf(dataValue)) == 0L) {
+            return dataValue;
+        }
 
         if (paramType.length() == 1 && !paramType.equals("L")) {
             return dataValue;

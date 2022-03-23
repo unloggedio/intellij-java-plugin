@@ -1,26 +1,28 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import com.insidious.plugin.factory.InsidiousService;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CredentialsToolbar {
 
     private static final Logger logger = LoggerUtil.getInstance(CredentialsToolbar.class);
     private final InsidiousService insidiousService;
+    private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
     String usernameText;
     String videobugURL, passwordText;
     Project project;
@@ -71,47 +73,46 @@ public class CredentialsToolbar {
             insidiousService.logout();
             username.setText("");
             password.setText("");
+            videobugServerURLTextField.setText(
+                    insidiousService.getConfiguration().getDefaultCloudServerUrl());
             textArea1.setText("");
         });
 
-        downloadAgent.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    insidiousService.downloadAgent();
-                } catch (java.io.IOException e) {
-                    System.out.println(e.getMessage());
-                }
-            }
-        });
+        downloadAgent.addActionListener(ae -> insidiousService.downloadAgent());
+
         signupButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 usernameText = username.getText();
                 passwordText = new String(password.getPassword());
                 videobugURL = videobugServerURLTextField.getText();
-                insidiousService.signup(videobugURL, usernameText, passwordText, new SignUpCallback() {
-                    @Override
-                    public void error(String string) {
-                        Notifications.Bus.notify(insidiousService.getNotificationGroup()
-                                        .createNotification("Failed to signup - " + string,
-                                                NotificationType.ERROR),
-                                project);
+                insidiousService.signup(videobugURL, usernameText, passwordText,
+                        new SignUpCallback() {
+                            @Override
+                            public void error(String string) {
+                                Notifications.Bus.notify(
+                                        insidiousService.getNotificationGroup()
+                                                .createNotification(
+                                                        "Failed to signup - " + string,
+                                                        NotificationType.ERROR),
+                                        project);
 
-                    }
+                            }
 
-                    @Override
-                    public void success() {
-                        try {
-                            insidiousService.signin(videobugURL, usernameText, passwordText);
-                            infoError.setText("Signup was successful!");
-                            ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
-                            ReadAction.nonBlocking(insidiousService::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                });
+                            @Override
+                            public void success() {
+                                try {
+                                    insidiousService.signin(videobugURL, usernameText, passwordText);
+                                    infoError.setText("Signup was successful!");
+                                    ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
+                                            .submit(backgroundThreadExecutor);
+                                    ReadAction.nonBlocking(insidiousService::identifyTargetJar)
+                                            .submit(backgroundThreadExecutor);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        });
             }
         });
     }
