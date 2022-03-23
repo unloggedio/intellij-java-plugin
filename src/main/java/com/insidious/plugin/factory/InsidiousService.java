@@ -821,7 +821,7 @@ public class InsidiousService {
             } catch (Exception e) {
                 e.printStackTrace();
                 Notifications.Bus.notify(notificationGroup
-                                .createNotification("Failed to set select tace point " + e.getMessage(),
+                                .createNotification("Failed to set select trace point " + e.getMessage(),
                                         NotificationType.ERROR),
                         project);
                 return;

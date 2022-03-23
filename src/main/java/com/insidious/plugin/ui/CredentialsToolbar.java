@@ -117,7 +117,7 @@ public class CredentialsToolbar {
     }
 
     public void setErrorLabel(String message) {
-        errorLabel.setText(message);
+        Messages.showInfoMessage(project, message, "Error");
     }
 
     public JPanel getContent() {

@@ -106,7 +106,7 @@ public class InsidiousThreadReference implements ThreadReference {
             String fieldName = probeInfo.getAttribute("FieldName", null);
 
 
-            switch (probeInfo.getEventType()) {
+             switch (probeInfo.getEventType()) {
                 case PUT_INSTANCE_FIELD:
                 case GET_INSTANCE_FIELD:
                     receiverObjectId = dataEvent.getValue();
@@ -166,7 +166,8 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (methodsToSkip == 0) {
                         currentClassId = classId;
                         if (currentFrame.location() == null) {
-                            InsidiousLocation currentLocation = new InsidiousLocation(classInfo.getFilename(), probeInfo.getLine() - 1);
+                            InsidiousLocation currentLocation = new InsidiousLocation(
+                                    classInfo.getFilename(), probeInfo.getLine() - 1);
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {

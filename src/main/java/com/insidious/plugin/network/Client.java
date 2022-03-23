@@ -57,25 +57,6 @@ public class Client {
 
     }
 
-    public Client(String endpoint, String username, String password) throws IOException, UnauthorizedException {
-        this.endpoint = endpoint;
-        client = new OkHttpClient().newBuilder()
-                .connectTimeout(600, TimeUnit.SECONDS)
-                .readTimeout(600, TimeUnit.SECONDS)
-                .writeTimeout(600, TimeUnit.SECONDS)
-                .build();
-
-        try {
-
-
-            token = this.generateToken(username, password);
-            if (token == null) {
-                throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "]");
-            }
-        } catch (Exception e) {
-            throw new UnauthorizedException("failed to sign in with provided credentials [" + username + "] - ", e);
-        }
-    }
 
     public ExecutionSession getCurrentSession() {
         return session;
@@ -98,7 +79,6 @@ public class Client {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-
                 if (response.code() == 200) {
                     callback.success();
                 } else {
@@ -119,54 +99,12 @@ public class Client {
         }
         if (response.code() == 200) {
             JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
-            String token = jsonObject.getAsString(Constants.TOKEN);
-            this.token = token;
+            this.token = jsonObject.getAsString(Constants.TOKEN);
             this.endpoint = serverUrl;
         }
     }
 
 
-    public void signin(String username, String password, SignInCallback signInCallback) {
-        logger.info("Sign in for email => " + username);
-        JSONObject json = new JSONObject();
-        json.put("email", username);
-        json.put("password", password);
-        post(endpoint + SIGN_IN_URL, json.toJSONString(), new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                signInCallback.error(e.getMessage());
-            }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                logger.info("Sign in successful");
-
-                if (response.code() == 401) {
-                    signInCallback.error(response.message());
-                    return;
-                }
-
-                JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
-                String token = jsonObject.getAsString(Constants.TOKEN);
-
-                signInCallback.success(token);
-            }
-        });
-    }
-
-    public String generateToken(String username, String password) throws IOException {
-        logger.info("Sign in for email => " + username);
-        JSONObject json = new JSONObject();
-        json.put("email", username);
-        json.put("password", password);
-        Response response = postSync(endpoint + SIGN_IN_URL, json.toJSONString());
-
-        JSONObject jsonObject = null;
-        jsonObject = (JSONObject) JSONValue.parse(response.body().string());
-
-        return jsonObject.getAsString(Constants.TOKEN);
-
-    }
 
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
