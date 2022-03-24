@@ -85,6 +85,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
         boolean isMethodParam = false;
         boolean isReturnParam = false;
+//        int instructionCount = 0;
 
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
@@ -110,6 +111,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 case PUT_INSTANCE_FIELD:
                 case GET_INSTANCE_FIELD:
                     receiverObjectId = dataEvent.getValue();
+                    // instructionCount++;
 
                     if (methodsToSkip == 0 && thisObject.uniqueID() == 0) {
                         thisObject.setObjectId(receiverObjectId);
@@ -148,6 +150,7 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (methodsToSkip == 0) {
                         thisObject.getValues().put(fieldName, fieldVariableInstance);
                     }
+                    // instructionCount++;
 
 
                     String parentId = probeInfo.getAttribute("Parent", "");
@@ -204,7 +207,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
                     String variableName = probeInfo.getAttribute("Name", null);
-
+//                    instructionCount++;
 
                     if (variableMap.containsKey(variableName) || variableName == null) {
                         continue;
@@ -218,6 +221,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                 case NEW_OBJECT_CREATED:
                     long objectObjectCreatedId = dataEvent.getValue();
+//                    instructionCount++;
                     if (objectObjectCreatedId == 0) {
                         continue;
                     }
@@ -296,6 +300,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 case CALL:
 
 
+                    // instructionCount++;
                     String interfaceOwner = probeInfo.getAttribute("Owner", "");
                     String methodName = probeInfo.getAttribute("Name", "");
 

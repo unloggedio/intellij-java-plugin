@@ -525,7 +525,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void stepBack(@Nullable MethodFilter smartStepFilter, XSuspendContext suspendContext) {
-        RequestHint hint = new RequestHint((InsidiousXSuspendContext) suspendContext, -2, 1, smartStepFilter);
+        RequestHint hint = new RequestHint((InsidiousXSuspendContext) this.suspendedContext, -2, 1, smartStepFilter);
         this.connector.doStep((InsidiousXSuspendContext) suspendContext, -2, 1, hint);
     }
 

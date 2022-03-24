@@ -470,7 +470,8 @@ public class Client {
 
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
         String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
-        logger.info("url to fetch data events => [{}]", endpoint);
+        logger.info("url to fetch data events => [{}] with [{}]", endpoint,
+                objectMapper.writeValueAsString(filteredDataEventsRequest));
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
 
         String responseBodyString = response.body().string();
