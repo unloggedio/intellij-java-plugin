@@ -899,6 +899,7 @@ public class InsidiousService {
                                             + currentModule.getName() + "]",
                                     NotificationType.ERROR),
                     project);
+            return;
         }
         client.setSession(sessions.getItems().get(0));
     }
