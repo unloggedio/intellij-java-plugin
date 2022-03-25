@@ -307,6 +307,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
     public void setTracePoint(TracePoint tracePoint, DirectionType direction) throws Exception {
         FilteredDataEventsRequest filterDataEventRequest = FilteredDataEventsRequest.fromTracePoint(tracePoint, direction);
         filterDataEventRequest.setPageSize(1000);
+
         this.replayData = this.client.fetchDataEvents(filterDataEventRequest);
         threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
 

@@ -8,6 +8,7 @@ public class TracePoint {
     String filename;
     String classname;
     String exceptionClass;
+    private long nanoTime;
 
     public TracePoint(long classId, long linenum,
                       long dataId,
@@ -28,6 +29,7 @@ public class TracePoint {
         this.classname = classname;
         this.exceptionClass = exceptionClass;
         this.recordedAt = recordedAt;
+        this.nanoTime = recordedAt;
     }
 
     public long getClassId() {
@@ -54,6 +56,10 @@ public class TracePoint {
         return executionSessionId;
     }
 
+    public void setExecutionSessionId(String executionSessionId) {
+        this.executionSessionId = executionSessionId;
+    }
+
     public String getFilename() {
         return filename;
     }
@@ -72,5 +78,13 @@ public class TracePoint {
 
     public long getRecordedAt() {
         return recordedAt;
+    }
+
+    public long getNanoTime() {
+        return nanoTime;
+    }
+
+    public void setNanoTime(long nanoTime) {
+        this.nanoTime = nanoTime;
     }
 }

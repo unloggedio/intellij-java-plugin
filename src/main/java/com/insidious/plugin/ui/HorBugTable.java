@@ -103,6 +103,7 @@ public class HorBugTable {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
+                    setTracePoints(List.of());
                     scrollpanel.setVisible(true);
                     List<String> exceptionClassnameList = exceptionMap.entrySet()
                             .stream()
@@ -110,6 +111,8 @@ public class HorBugTable {
                             .map(Map.Entry::getKey)
                             .collect(Collectors.toList());
                     insidiousService.refreshSession();
+
+
                     insidiousService.getErrors(exceptionClassnameList, 0);
                 } catch (Exception e) {
                     logger.error("failed to load sessions for module", e);

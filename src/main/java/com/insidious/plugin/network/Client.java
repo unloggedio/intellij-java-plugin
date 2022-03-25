@@ -25,6 +25,7 @@ import com.insidious.plugin.util.LoggerUtil;
 
 import java.io.*;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -40,9 +41,9 @@ public class Client {
     public static final String TRACE_BY_STRING = "/traceByString";
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     private final Logger logger = LoggerUtil.getInstance(Client.class);
-    private String endpoint;
     private final ObjectMapper objectMapper = new ObjectMapper();
     OkHttpClient client;
+    private String endpoint;
     private ProjectItem project;
     private String token;
     private ExecutionSession session;
@@ -93,7 +94,7 @@ public class Client {
         JSONObject json = new JSONObject();
         json.put("email", username);
         json.put("password", password);
-        Response response = postSync(endpoint + SIGN_IN_URL, json.toJSONString());
+        Response response = postSync(serverUrl + SIGN_IN_URL, json.toJSONString());
         if (response.code() == 401) {
             throw new UnauthorizedException(response.message());
         }
@@ -105,11 +106,10 @@ public class Client {
     }
 
 
-
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
 
-        get(endpoint + Constants.PROJECT_URL + "?name=" + projectName, new Callback() {
+        get(Constants.PROJECT_URL + "?name=" + projectName, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 getProjectCallback.error(e.getMessage());
@@ -136,7 +136,7 @@ public class Client {
         logger.info("Get project by name => " + projectName);
         TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<>() {
         };
-        DataResponse<ProjectItem> projectList = get(endpoint + Constants.PROJECT_URL + "?name=" + projectName, typeReference);
+        DataResponse<ProjectItem> projectList = get(Constants.PROJECT_URL + "?name=" + projectName, typeReference);
 
         if (projectList.getItems().size() == 0) {
             throw new ProjectDoesNotExistException(projectName);
@@ -148,7 +148,7 @@ public class Client {
 
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
         logger.info("create project on server - [{}]", projectName);
-        post(endpoint + PROJECT_URL + "?name=" + projectName, "", new Callback() {
+        post(PROJECT_URL + "?name=" + projectName, "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 logger.error("failed to create project", e);
@@ -168,7 +168,7 @@ public class Client {
 
     public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
         logger.info("get project token - " + project.getId());
-        post(endpoint + GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {
+        post(GENERATE_PROJECT_TOKEN_URL + "?projectId=" + project.getId(), "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 logger.error("failed to generate project token", e);
@@ -190,7 +190,7 @@ public class Client {
 
         Request.Builder builder = new Request.Builder();
 
-        builder.url(url);
+        builder.url(url.startsWith("http") ? url : endpoint + url);
         if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
@@ -204,7 +204,7 @@ public class Client {
 
         Request.Builder builder = new Request.Builder();
 
-        builder.url(url);
+        builder.url(url.startsWith("http") ? url : endpoint + url);
         if (token != null) {
             builder.addHeader("Authorization", "Bearer " + token);
         }
@@ -217,7 +217,7 @@ public class Client {
 
     private void get(String url, Callback callback) {
         Request request = new Request.Builder()
-                .url(url)
+                .url(url.startsWith("http") ? url : endpoint + url)
                 .addHeader("Authorization", "Bearer " + token)
                 .build();
         client.newCall(request).enqueue(callback);
@@ -226,7 +226,7 @@ public class Client {
 
     private <T> T get(String url, TypeReference<T> typeReference) throws IOException, UnauthorizedException {
         Request request = new Request.Builder()
-                .url(url)
+                .url(url.startsWith("http") ? url : endpoint + url)
                 .addHeader("Authorization", "Bearer " + token)
                 .build();
         Response response;
@@ -244,7 +244,7 @@ public class Client {
 
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
         logger.info("get project sessions - " + this.project.getId());
-        String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
+        String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         get(executionsUrl, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -281,7 +281,7 @@ public class Client {
 
     public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
 
-        String executionsUrl = endpoint + PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
+        String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
         };
 
@@ -290,7 +290,7 @@ public class Client {
 
     public void getTracesByClassForProjectAndSessionId(List<String> classList, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
-        String url = endpoint + PROJECT_URL
+        String url = PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_EXCEPTION
                 + "/" + this.session.getId()
@@ -363,7 +363,8 @@ public class Client {
                                 filename,
                                 classname,
                                 exceptionClass,
-                                (Long) jsonObject.get("recordedAt"));
+                                (Long) jsonObject.get("nanoTime")
+                        );
                         bugList.add(bug);
 
                     }
@@ -380,7 +381,7 @@ public class Client {
     public void getTracesByClassForProjectAndSessionIdAndTracevalue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
-        String url = endpoint + PROJECT_URL
+        String url = PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_STRING
                 + "/" + this.session.getId()
@@ -454,7 +455,7 @@ public class Client {
                                 filename,
                                 classname,
                                 exceptionClass,
-                                (Long) jsonObject.get("recordedAt"));
+                                (Long) jsonObject.get("nanoTime"));
                         bugList.add(bug);
 
                     }
@@ -469,7 +470,7 @@ public class Client {
     }
 
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
-        String url = endpoint + PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
+        String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
         logger.info("url to fetch data events => [{}] with [{}]", endpoint,
                 objectMapper.writeValueAsString(filteredDataEventsRequest));
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
@@ -481,11 +482,37 @@ public class Client {
             throw new Exception(errorResponse.getMessage());
         }
 
-        TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+        TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
         };
+//
+        DataResponse<DataEventStream> dataResponse = objectMapper.readValue(responseBodyString, typeReference);
 
-        DataResponse<DataEventWithSessionId> dataResponse = objectMapper.readValue(responseBodyString, typeReference);
-        List<DataEventWithSessionId> dataEventsList = dataResponse.getItems();
+        DataEventStream responseStream = dataResponse.getItems().get(0);
+
+        int eventCount = responseStream.getStream().length / (8 + 4 + 8);
+
+        List<DataEventWithSessionId> dataEventsList = new ArrayList<>(eventCount);
+
+        ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
+
+        while(streamReader.hasRemaining()) {
+            long timestamp = streamReader.getLong();
+            int dataId = streamReader.getInt();
+            long valueId = streamReader.getLong();
+            DataEventWithSessionId event = new DataEventWithSessionId();
+            event.setNanoTime(timestamp);
+            event.setDataId(dataId);
+            event.setValue(valueId);
+            event.setExecutionSessionId(session.getId());
+            event.setThreadId(filteredDataEventsRequest.getThreadId());
+
+
+            dataEventsList.add(event);
+
+
+        }
+
+
         ResponseMetadata metadata = dataResponse.getMetadata();
         Map<String, ClassInfo> classInfo = metadata.getClassInfo();
         Map<String, DataInfo> dataInfo = metadata.getDataInfo();

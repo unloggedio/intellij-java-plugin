@@ -525,6 +525,9 @@ public class InsidiousService {
                             });
                         } else {
                             insidiousConfiguration.addSearchQuery(traceValue, tracePointCollection.size());
+                            tracePointCollection.forEach(e -> {
+                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                            });
                             logicBugs.setTracePoints(tracePointCollection);
                             logicBugs.updateSearchResultsList();
                         }
@@ -568,6 +571,12 @@ public class InsidiousService {
 
                             });
                         } else {
+
+                            tracePointCollection.forEach(e -> {
+                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                            });
+
+
                             bugsTable.setTracePoints(tracePointCollection);
                         }
                     }

@@ -26,6 +26,7 @@ public class InsidiousThreadReference implements ThreadReference {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
+    private TracePoint tracePoint;
     private final Map<String, DataInfo> dataInfoMap;
     private final Map<String, ClassInfo> classInfoMap;
     private final Map<String, StringInfo> stringInfoMap;
@@ -41,6 +42,7 @@ public class InsidiousThreadReference implements ThreadReference {
                                     ReplayData replayData, TracePoint tracePoint) {
         this.threadGroupReference = threadGroupReference;
         this.replayData = replayData;
+        this.tracePoint = tracePoint;
         position = 0;
 
 
@@ -49,6 +51,9 @@ public class InsidiousThreadReference implements ThreadReference {
         stringInfoMap = this.replayData.getStringInfoMap();
 
         this.classTypeMap = buildClassTypeReferences();
+
+
+        this.tracePoint.getNanoTime();
 
         try {
             calculateFrames();

@@ -8,7 +8,7 @@ import java.util.Date;
  */
 public class DataEventWithSessionId {
 
-    private int threadId;
+    private long threadId;
     private long nanoTime;
     private Date recordedAt;
 
@@ -18,10 +18,10 @@ public class DataEventWithSessionId {
     private String executionSessionId;
 
     public int getThreadId() {
-        return threadId;
+        return (int) threadId;
     }
 
-    public void setThreadId(int threadId) {
+    public void setThreadId(long threadId) {
         this.threadId = threadId;
     }
 
