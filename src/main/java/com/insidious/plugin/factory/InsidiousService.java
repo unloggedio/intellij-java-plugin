@@ -761,7 +761,7 @@ public class InsidiousService {
                 + ","
                 + "server="
                 + insidiousConfiguration.serverUrl
-                + ",format=single,token="
+                + ",format=perthread,token="
                 + appToken + "\"";
 
         if (credentialsToolbarWindow != null) {
