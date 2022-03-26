@@ -400,8 +400,10 @@ public class Client {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
+                String responseBodyString = response.body().string();
                 if (response.code() != 200) {
-                    ExceptionResponse errorResponse = objectMapper.readValue(response.body().string(), ExceptionResponse.class);
+                    ExceptionResponse errorResponse =
+                            objectMapper.readValue(responseBodyString, ExceptionResponse.class);
                     getProjectSessionErrorsCallback.error(errorResponse);
                     return;
                 }
@@ -409,7 +411,10 @@ public class Client {
                 TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
                 };
 
-                JSONObject errorsJson = (JSONObject) JSONValue.parse(response.body().string());
+                DataResponse<DataEventWithSessionId> responseObject = objectMapper.readValue(
+                        responseBodyString, typeReference);
+
+                JSONObject errorsJson = (JSONObject) JSONValue.parse(responseBodyString);
                 JSONArray jsonArray = (JSONArray) errorsJson.get("items");
                 JSONObject metadata = (JSONObject) errorsJson.get("metadata");
                 JSONObject classInfo = (JSONObject) metadata.get("classInfo");
@@ -495,7 +500,7 @@ public class Client {
 
         ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
 
-        while(streamReader.hasRemaining()) {
+        while (streamReader.hasRemaining()) {
             long timestamp = streamReader.getLong();
             int dataId = streamReader.getInt();
             long valueId = streamReader.getLong();
