@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Client {
     public static final String SIGN_IN_URL = "/api/auth/signin";
@@ -83,7 +84,7 @@ public class Client {
                 if (response.code() == 200) {
                     callback.success();
                 } else {
-                    callback.error(response.body().string());
+                    callback.error(Objects.requireNonNull(response.body()).string());
                 }
             }
         });
@@ -99,7 +100,7 @@ public class Client {
             throw new UnauthorizedException(response.message());
         }
         if (response.code() == 200) {
-            JSONObject jsonObject = (JSONObject) JSONValue.parse(response.body().string());
+            JSONObject jsonObject = (JSONObject) JSONValue.parse(Objects.requireNonNull(response.body()).string());
             this.token = jsonObject.getAsString(Constants.TOKEN);
             this.endpoint = serverUrl;
         }
@@ -118,7 +119,7 @@ public class Client {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
-                JSONObject jsonProjects = (JSONObject) JSONValue.parse(response.body().string());
+                JSONObject jsonProjects = (JSONObject) JSONValue.parse(Objects.requireNonNull(response.body()).string());
                 JSONArray jsonArray = (JSONArray) jsonProjects.get("items");
                 if (jsonArray.size() == 0) {
                     getProjectCallback.noSuchProject();
@@ -157,7 +158,7 @@ public class Client {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                String responseBody = response.body().string();
+                String responseBody = Objects.requireNonNull(response.body()).string();
                 logger.info("create project successful response - {}", responseBody);
                 JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
                 String projectId = jsonObject.getAsString("id");
@@ -177,7 +178,7 @@ public class Client {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                String responseBody = response.body().string();
+                String responseBody = Objects.requireNonNull(response.body()).string();
                 logger.info("project token response - {}", responseBody);
                 JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
                 projectTokenCallback.success(jsonObject.getAsString(Constants.TOKEN));
@@ -237,7 +238,7 @@ public class Client {
         }
 
         T result = null;
-        result = objectMapper.readValue(response.body().string(), typeReference);
+        result = objectMapper.readValue(Objects.requireNonNull(response.body()).string(), typeReference);
 
         return result;
     }
@@ -271,7 +272,7 @@ public class Client {
                 }
                 TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
                 };
-                String responseBody = response.body().string();
+                String responseBody = Objects.requireNonNull(response.body()).string();
                 DataResponse<ExecutionSession> sessionList = objectMapper.readValue(responseBody, typeReference);
                 logger.info("got [{}] sessions for project [{}] - {}", sessionList.getItems().size(), project.getId(), responseBody);
                 getProjectSessionsCallback.success(sessionList.getItems());
@@ -310,72 +311,34 @@ public class Client {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
                 if (response.code() != 200) {
-                    ExceptionResponse errorResponse = objectMapper.readValue(response.body().string(), ExceptionResponse.class);
+                    ExceptionResponse errorResponse = objectMapper.readValue(
+                            Objects.requireNonNull(response.body()).string(), ExceptionResponse.class);
                     getProjectSessionErrorsCallback.error(errorResponse);
                     return;
                 }
 
+                String responseBodyString = Objects.requireNonNull(response.body()).string();
+
                 TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
                 };
 
-                JSONObject errorsJson = (JSONObject) JSONValue.parse(response.body().string());
-                JSONArray jsonArray = (JSONArray) errorsJson.get("items");
-                JSONObject metadata = (JSONObject) errorsJson.get("metadata");
-                JSONObject classInfo = (JSONObject) metadata.get("classInfo");
-                JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
-                JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
-                JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
+                DataResponse<DataEventWithSessionId> traceResponse = objectMapper
+                        .readValue(responseBodyString, typeReference);
 
-                ArrayList<TracePoint> bugList = new ArrayList<>();
+                List<TracePoint> tracePoints = getTracePoints(traceResponse);
 
-                for (int i = 0; i < jsonArray.size(); i++) {
-                    JSONObject jsonObject = (JSONObject) jsonArray.get(i);
-                    long dataId = jsonObject.getAsNumber("dataId").longValue();
-                    long threadId = jsonObject.getAsNumber("threadId").longValue();
-                    long valueId = jsonObject.getAsNumber("value").longValue();
-                    String executionSessionId = jsonObject.getAsString("executionSessionId");
-                    long classId;
-                    long line;
-                    String sessionId;
-                    String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
-                    if (dataInfoObject != null) {
-                        classId = dataInfoObject.getAsNumber("classId").longValue();
-                        line = dataInfoObject.getAsNumber("line").longValue();
-                        sessionId = dataInfoObject.getAsString("sessionId");
-
-                        JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
-
-                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
-                        filename = tempClass.getAsString("filename");
-                        classname = tempClass.getAsString("className");
-
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
-                        long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
-                        String exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
-                        TracePoint bug = new TracePoint(classId,
-                                line,
-                                dataId,
-                                threadId,
-                                valueId,
-                                executionSessionId,
-                                filename,
-                                classname,
-                                exceptionClass,
-                                (Long) jsonObject.get("nanoTime")
-                        );
-                        bugList.add(bug);
-
-                    }
-
-                }
-
-                getProjectSessionErrorsCallback.success(bugList);
-
+                getProjectSessionErrorsCallback.success(tracePoints);
             }
         });
 
+    }
+
+    @NotNull
+    private List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
+        return traceResponse.getItems().stream()
+                .map(e -> TracePoint.fromDataEvent(e, traceResponse))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     public void getTracesByClassForProjectAndSessionIdAndTracevalue(String traceId,
@@ -400,7 +363,7 @@ public class Client {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
-                String responseBodyString = response.body().string();
+                String responseBodyString = Objects.requireNonNull(response.body()).string();
                 if (response.code() != 200) {
                     ExceptionResponse errorResponse =
                             objectMapper.readValue(responseBodyString, ExceptionResponse.class);
@@ -411,63 +374,11 @@ public class Client {
                 TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
                 };
 
-                DataResponse<DataEventWithSessionId> responseObject = objectMapper.readValue(
+                DataResponse<DataEventWithSessionId> traceResponse = objectMapper.readValue(
                         responseBodyString, typeReference);
 
-                JSONObject errorsJson = (JSONObject) JSONValue.parse(responseBodyString);
-                JSONArray jsonArray = (JSONArray) errorsJson.get("items");
-                JSONObject metadata = (JSONObject) errorsJson.get("metadata");
-                JSONObject classInfo = (JSONObject) metadata.get("classInfo");
-                JSONObject dataInfo = (JSONObject) metadata.get("dataInfo");
-                JSONObject typesInfo = (JSONObject) metadata.get("typeInfo");
-                JSONObject objectInfo = (JSONObject) metadata.get("objectInfo");
-
-                ArrayList<TracePoint> bugList = new ArrayList<>();
-
-                for (int i = 0; i < jsonArray.size(); i++) {
-                    JSONObject jsonObject = (JSONObject) jsonArray.get(i);
-                    long dataId = jsonObject.getAsNumber("dataId").longValue();
-                    long threadId = jsonObject.getAsNumber("threadId").longValue();
-                    long valueId = jsonObject.getAsNumber("value").longValue();
-                    String executionSessionId = jsonObject.getAsString("executionSessionId");
-                    long classId;
-                    long line;
-                    String sessionId;
-                    String filename, classname;
-                    JSONObject dataInfoObject = (JSONObject) dataInfo.get(String.valueOf(dataId));
-                    if (dataInfoObject != null) {
-                        classId = dataInfoObject.getAsNumber("classId").longValue();
-                        line = dataInfoObject.getAsNumber("line").longValue();
-                        sessionId = dataInfoObject.getAsString("sessionId");
-
-                        JSONObject attributesMap = (JSONObject) dataInfoObject.get("attributesMap");
-
-                        JSONObject tempClass = (JSONObject) classInfo.get(String.valueOf(classId));
-                        filename = tempClass.getAsString("filename");
-                        classname = tempClass.getAsString("className");
-
-                        JSONObject errorKeyValueJson = (JSONObject) objectInfo.get(String.valueOf(valueId));
-                        long exceptionType = errorKeyValueJson.getAsNumber("typeId").longValue();
-                        JSONObject exceptionClassJson = (JSONObject) typesInfo.get(String.valueOf(exceptionType));
-                        String exceptionClass = "";
-                        if (exceptionClassJson != null) {
-                            exceptionClass = exceptionClassJson.getAsString("typeNameFromClass");
-                        }
-
-                        TracePoint bug = new TracePoint(classId, line, dataId, threadId,
-                                valueId,
-                                executionSessionId,
-                                filename,
-                                classname,
-                                exceptionClass,
-                                (Long) jsonObject.get("nanoTime"));
-                        bugList.add(bug);
-
-                    }
-
-                }
-
-                getProjectSessionErrorsCallback.success(bugList);
+                List<TracePoint> tracePoints = getTracePoints(traceResponse);
+                getProjectSessionErrorsCallback.success(tracePoints);
 
             }
         });
@@ -480,7 +391,7 @@ public class Client {
                 objectMapper.writeValueAsString(filteredDataEventsRequest));
         Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
 
-        String responseBodyString = response.body().string();
+        String responseBodyString = Objects.requireNonNull(response.body()).string();
         if (response.code() != 200) {
             logger.error("error response from filterDataEvents  [{}] - [{}]", response.code(), responseBodyString);
             ExceptionResponse errorResponse = JSONValue.parse(responseBodyString, ExceptionResponse.class);
@@ -554,7 +465,7 @@ public class Client {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                agentDownloadUrlCallback.success(response.body().string());
+                agentDownloadUrlCallback.success(Objects.requireNonNull(response.body()).string());
             }
         });
     }

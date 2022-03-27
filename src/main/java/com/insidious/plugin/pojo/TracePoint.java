@@ -1,5 +1,12 @@
 package com.insidious.plugin.pojo;
 
+import com.insidious.plugin.extension.model.DataInfo;
+import com.insidious.plugin.extension.model.TypeInfo;
+import com.insidious.plugin.network.pojo.ClassInfo;
+import com.insidious.plugin.network.pojo.DataEventWithSessionId;
+import com.insidious.plugin.network.pojo.DataResponse;
+import com.insidious.plugin.network.pojo.ObjectInfo;
+
 public class TracePoint {
 
     private final long recordedAt;
@@ -30,6 +37,40 @@ public class TracePoint {
         this.exceptionClass = exceptionClass;
         this.recordedAt = recordedAt;
         this.nanoTime = recordedAt;
+    }
+
+    public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
+
+        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
+        if (dataInfoObject != null) {
+
+            ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.getClassId()));
+
+            ObjectInfo errorKeyValueJson = traceResponse.getObjectInfo(String.valueOf(dataEvent.getValue()));
+            long exceptionType = errorKeyValueJson.getTypeId();
+            TypeInfo exceptionClassJson = traceResponse.getTypeInfo(String.valueOf(exceptionType));
+            String exceptionClass = "";
+            if (exceptionClassJson != null) {
+                exceptionClass = exceptionClassJson.getTypeNameFromClass();
+            }
+
+
+            return new TracePoint(dataInfoObject.getClassId(),
+                    dataInfoObject.getLine(),
+                    dataEvent.getDataId(),
+                    dataEvent.getThreadId(),
+                    dataEvent.getValue(),
+                    dataEvent.getExecutionSessionId(),
+                    classInfo.getFilename(),
+                    classInfo.getClassName(),
+                    exceptionClass,
+                    dataEvent.getNanoTime());
+
+        }
+
+        return null;
+
+
     }
 
     public long getClassId() {

@@ -1,5 +1,8 @@
 package com.insidious.plugin.network.pojo;
 
+import com.insidious.plugin.extension.model.DataInfo;
+import com.insidious.plugin.extension.model.TypeInfo;
+
 import java.util.List;
 
 public class DataResponse<T> {
@@ -55,5 +58,24 @@ public class DataResponse<T> {
 
     public void setMetadata(ResponseMetadata metadata) {
         this.metadata = metadata;
+    }
+
+    public DataInfo getDataInfo(String probeId) {
+        return metadata.dataInfo.get(probeId);
+    }
+
+    public ClassInfo getClassInfo(String probeId) {
+        return metadata.classInfo.get(probeId);
+
+    }
+
+    public ObjectInfo getObjectInfo(String probeId) {
+        return metadata.objectInfo.get(probeId);
+
+    }
+
+    public TypeInfo getTypeInfo(String probeId) {
+        return metadata.typeInfo.get(probeId);
+
     }
 }
