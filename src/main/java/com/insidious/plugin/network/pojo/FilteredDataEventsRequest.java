@@ -19,11 +19,13 @@ public class FilteredDataEventsRequest {
 
     private List<DebugPoint> debugPoints;
     private String sortOrder;
+    private long nanotime;
 
     public static FilteredDataEventsRequest fromTracePoint(TracePoint tracePoint, DirectionType directionType) {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(tracePoint.getExecutionSessionId());
         filteredDataEventsRequest.setThreadId(tracePoint.getThreadId());
+        filteredDataEventsRequest.setNanotime(tracePoint.getNanoTime());
         filteredDataEventsRequest.setValueId(Collections.singletonList(tracePoint.getValue()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
@@ -86,5 +88,13 @@ public class FilteredDataEventsRequest {
 
     public void setSortOrder(String sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    public void setNanotime(long nanotime) {
+        this.nanotime = nanotime;
+    }
+
+    public long getNanotime() {
+        return nanotime;
     }
 }

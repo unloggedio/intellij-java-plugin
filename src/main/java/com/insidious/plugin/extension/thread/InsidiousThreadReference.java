@@ -23,15 +23,16 @@ import java.util.stream.Collectors;
 public class InsidiousThreadReference implements ThreadReference {
 
 
+    public static final int MAX_HISTORY_LENGTH = 1000;
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
-    private TracePoint tracePoint;
     private final Map<String, DataInfo> dataInfoMap;
     private final Map<String, ClassInfo> classInfoMap;
     private final Map<String, StringInfo> stringInfoMap;
     private final Map<String, InsidiousField> typeFieldMap = new HashMap<>();
     private final Map<String, InsidiousClassTypeReference> classTypeMap;
+    private final TracePoint tracePoint;
     private Map<String, InsidiousLocalVariable> variableMap;
     private Map<Long, InsidiousObjectReference> objectReferenceMap;
     private Integer position;
@@ -43,7 +44,16 @@ public class InsidiousThreadReference implements ThreadReference {
         this.threadGroupReference = threadGroupReference;
         this.replayData = replayData;
         this.tracePoint = tracePoint;
-        position = 0;
+
+        int i = 0;
+        long lowestTimestamp = 99999999999999L;
+        long highestTimestamp = 0;
+
+        position = replayData.getDataEvents().indexOf(
+                replayData.getDataEvents().stream()
+                        .filter(e -> e.getValue() == tracePoint.getValue())
+                        .collect(Collectors.toList()).get(0)
+        );
 
 
         dataInfoMap = this.replayData.getDataInfoMap();
@@ -51,9 +61,6 @@ public class InsidiousThreadReference implements ThreadReference {
         stringInfoMap = this.replayData.getStringInfoMap();
 
         this.classTypeMap = buildClassTypeReferences();
-
-
-        this.tracePoint.getNanoTime();
 
         try {
             calculateFrames();
@@ -79,7 +86,8 @@ public class InsidiousThreadReference implements ThreadReference {
         ReplayData replayDataLocal = this.replayData;
         List<DataEventWithSessionId> dataEventsList = replayDataLocal.getDataEvents();
 
-        List<DataEventWithSessionId> subList = dataEventsList.subList(position, dataEventsList.size());
+        List<DataEventWithSessionId> subList =
+                dataEventsList.subList(position, position + Math.min(MAX_HISTORY_LENGTH, dataEventsList.size() - position));
         int currentClassId = -1; // dataInfoMap.get(String.valueOf(subList.get(0).getDataId())).getClassId();
 
         List<InsidiousLocalVariable> danglingFieldList = new LinkedList<>();
@@ -90,7 +98,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
         boolean isMethodParam = false;
         boolean isReturnParam = false;
-//        int instructionCount = 0;
+
+        //        int instructionCount = 0;
 
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
@@ -955,7 +964,7 @@ public class InsidiousThreadReference implements ThreadReference {
     }
 
     public void doStep(int size, int depth, RequestHint requestHint) {
-        buildClassTypeReferences();
+//        buildClassTypeReferences();
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
         int currentLineNumber = replayData.getDataInfoMap().get(String.valueOf(dataEvents.get(position).getDataId())).getLine();
