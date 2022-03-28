@@ -484,7 +484,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 this.insidiousEventReaderthread.stopListening();
                 this.insidiousEventReaderthread = null;
                 this.myDebugProcessDispatcher.getMulticaster().processDetached(this, closedByUser);
-                this.telemetryTracker.endSession();
+                if (this.telemetryTracker != null) {
+                    this.telemetryTracker.endSession();
+                }
             }
         } finally {
             this.connector.dispose();
