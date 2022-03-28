@@ -78,14 +78,12 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     protected InsidiousJavaDebugProcess(
             @NotNull XDebugSession session,
-            @NotNull final RemoteConnection connection,
-            ExecutionSession executionSession) throws APICallException, IOException {
+            @NotNull final RemoteConnection connection) throws APICallException, IOException {
         super(session);
         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
         this.connector = new InsidiousJDIConnector(this,
-                connection.getClient(),
-                executionSession);
+                connection.getClient());
         session.getProject().getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
@@ -127,12 +125,11 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session,
-                                                   @NotNull RemoteConnection connection,
-                                                   ExecutionSession executionSession)
+                                                   @NotNull RemoteConnection connection)
             throws APICallException, IOException {
         logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getClient().getEndpoint());
 
-        InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection, executionSession);
+        InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
 
         session.getProject().getService(InsidiousService.class).setDebugSession(session);
         session.getProject().getService(InsidiousService.class).setDebugProcess(debugProcess);

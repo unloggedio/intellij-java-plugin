@@ -68,7 +68,7 @@ public class LogicBugs {
         searchButton.addActionListener(actionEvent -> doSearch());
 
 
-        fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.BACKWARDS));
+        fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow()));
 //        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
 
         initTables();
@@ -192,8 +192,8 @@ public class LogicBugs {
         defaultTableModelTraces.setDataVector(sampleObject, headers);
     }
 
-    private void loadBug(int rowNum, DirectionType directionType) {
-        logger.info("load trace point [{}] -> [{}]", rowNum, directionType);
+    private void loadBug(int rowNum) {
+        logger.info("load trace point [{}] -> [{}]", rowNum);
         XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
 
         List<DebugPoint> breakpointList = new ArrayList<>();
@@ -222,7 +222,7 @@ public class LogicBugs {
         try {
             logger.info("Fetch by trace string [{}] for session [{}] on thread [{}]",
                     selectedTrace.getDataId(), selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId());
-            insidiousService.setTracePoint(selectedTrace, directionType);
+            insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             logger.error("failed to load trace point", e);
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");

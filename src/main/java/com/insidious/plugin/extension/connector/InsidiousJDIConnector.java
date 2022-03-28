@@ -1,5 +1,10 @@
 package com.insidious.plugin.extension.connector;
 
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.thread.*;
+import com.insidious.plugin.network.Client;
+import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.PositionManager;
 import com.intellij.debugger.engine.DebugProcess;
@@ -13,18 +18,9 @@ import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
 import com.sun.jdi.request.*;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.extension.thread.*;
-import com.insidious.plugin.network.Client;
-import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
-import com.insidious.plugin.pojo.TracePoint;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,10 +32,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousVirtualMachine virtualMachine;
 
-    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess,
-                                 Client client,
-                                 ExecutionSession executionSession) throws APICallException, IOException {
-        this.virtualMachine = new InsidiousVirtualMachine(client, executionSession);
+    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) {
+        this.virtualMachine = new InsidiousVirtualMachine(client);
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 
@@ -260,8 +254,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     }
 
-    public void setTracePoint(TracePoint tracePoint, DirectionType direction) throws Exception {
-        this.virtualMachine.setTracePoint(tracePoint, direction);
+    public void setTracePoint(TracePoint tracePoint) throws Exception {
+        this.virtualMachine.setTracePoint(tracePoint);
 
     }
 }

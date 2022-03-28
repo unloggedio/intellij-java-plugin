@@ -5,7 +5,6 @@ import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.network.Client;
 import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
@@ -59,6 +58,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.Consumer;
 import com.intellij.xdebugger.XDebugSession;
+import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -96,6 +96,7 @@ public class InsidiousService {
     private CredentialAttributes insidiousCredentials;
     private String appToken;
     private String javaAgentString;
+    private TracePoint pendingTrace;
 
 
     public InsidiousService(Project project) {
@@ -592,7 +593,18 @@ public class InsidiousService {
 
     public synchronized void startDebugSession() {
         logger.info("start debug session");
-        if (debugSession != null) {
+
+        boolean hasInsidiousDebugSession = false;
+        for (XDebugSession session : project.getService(XDebuggerManager.class).getDebugSessions()) {
+            if (session instanceof InsidiousJavaDebugProcess) {
+                hasInsidiousDebugSession = true;
+                break;
+            }
+
+        }
+
+
+        if (debugSession != null && !hasInsidiousDebugSession) {
             return;
         }
 
@@ -602,9 +614,8 @@ public class InsidiousService {
         ApplicationManager.getApplication().invokeLater(() -> {
             try {
                 ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project,
-                        new InsidiousExecutor(),
-                        runConfiguration).build();
-                ProgramRunnerUtil.executeConfiguration(env, false, true);
+                        new InsidiousExecutor(), runConfiguration).build();
+                ProgramRunnerUtil.executeConfiguration(env, false, false);
             } catch (ExecutionException e) {
                 e.printStackTrace();
             }
@@ -632,7 +643,9 @@ public class InsidiousService {
     public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
         this.debugProcess = debugProcess;
 
-        this.logicBugs.bringToFocus(toolWindow);
+        if (this.logicBugs != null) {
+            this.logicBugs.bringToFocus(toolWindow);
+        }
     }
 
     public XDebugSession getDebugSession() {
@@ -645,6 +658,15 @@ public class InsidiousService {
 
     public void setConnector(InsidiousJDIConnector connector) {
         this.connector = connector;
+        if (pendingTrace != null) {
+            try {
+                connector.setTracePoint(pendingTrace);
+                debugProcess.startPausing();
+            } catch (Exception e) {
+                logger.error("failed to set trace point", e);
+            }
+            pendingTrace = null;
+        }
     }
 
     public void showCredentialsWindow() {
@@ -822,11 +844,20 @@ public class InsidiousService {
         });
     }
 
-    public void setTracePoint(TracePoint selectedTrace, DirectionType directionType) {
+    public void setTracePoint(TracePoint selectedTrace) {
+
+        startDebugSession();
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
-                connector.setTracePoint(selectedTrace, directionType);
+
+                if (connector != null) {
+                    connector.setTracePoint(selectedTrace);
+                } else {
+                    pendingTrace = selectedTrace;
+                }
+
+
             } catch (Exception e) {
                 e.printStackTrace();
                 Notifications.Bus.notify(notificationGroup

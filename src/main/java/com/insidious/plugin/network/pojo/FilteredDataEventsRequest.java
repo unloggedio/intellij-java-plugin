@@ -21,7 +21,7 @@ public class FilteredDataEventsRequest {
     private String sortOrder;
     private long nanotime;
 
-    public static FilteredDataEventsRequest fromTracePoint(TracePoint tracePoint, DirectionType directionType) {
+    public static FilteredDataEventsRequest fromTracePoint(TracePoint tracePoint) {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(tracePoint.getExecutionSessionId());
         filteredDataEventsRequest.setThreadId(tracePoint.getThreadId());
@@ -30,7 +30,7 @@ public class FilteredDataEventsRequest {
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
         filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
-        filteredDataEventsRequest.setSortOrder(directionType.equals(DirectionType.FORWARDS) ? "ASC" : "DESC");
+        filteredDataEventsRequest.setSortOrder("DESC");
         return filteredDataEventsRequest;
     }
 

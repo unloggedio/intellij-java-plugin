@@ -25,13 +25,11 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousVirtualMachine.class);
     private final Client client;
-    private final ExecutionSession session;
     private InsidiousThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
 
-    public InsidiousVirtualMachine(Client client, @NotNull ExecutionSession executionSession) throws APICallException, IOException {
+    public InsidiousVirtualMachine(Client client) {
         this.client = client;
-        this.session = executionSession;
     }
 
     @Override
@@ -304,8 +302,8 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         return this;
     }
 
-    public void setTracePoint(TracePoint tracePoint, DirectionType direction) throws Exception {
-        FilteredDataEventsRequest filterDataEventRequest = FilteredDataEventsRequest.fromTracePoint(tracePoint, direction);
+    public void setTracePoint(TracePoint tracePoint) throws Exception {
+        FilteredDataEventsRequest filterDataEventRequest = FilteredDataEventsRequest.fromTracePoint(tracePoint);
         filterDataEventRequest.setPageSize(1000);
 
         this.replayData = this.client.fetchDataEvents(filterDataEventRequest);

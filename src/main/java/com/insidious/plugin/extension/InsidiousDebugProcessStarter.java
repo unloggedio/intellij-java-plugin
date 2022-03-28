@@ -1,6 +1,7 @@
 package com.insidious.plugin.extension;
 
-import com.ibm.icu.text.PluralRules;
+import com.insidious.plugin.network.pojo.exceptions.APICallException;
+import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -9,10 +10,6 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
-import com.insidious.plugin.network.pojo.DataResponse;
-import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -46,12 +43,7 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
     public @NotNull XDebugProcess start(@NotNull XDebugSession session) throws ExecutionException {
         InsidiousJavaDebugProcess debugProcess = null;
         try {
-            DataResponse<ExecutionSession> sessionsList = connection.getClient().fetchProjectSessions();
-            if (sessionsList.getItems().size() == 0) {
-                throw new ExecutionException("Couldn't find any session for [" + connection.getClient().getProject().getName() + "]. Start recording data with the java agent");
-            }
-
-            debugProcess = InsidiousJavaDebugProcess.create(session, connection, sessionsList.getItems().get(0));
+            debugProcess = InsidiousJavaDebugProcess.create(session, connection);
         } catch (UnauthorizedException e) {
             logger.error("failed to fetch project sessions", e);
             e.printStackTrace();
@@ -62,6 +54,11 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
             Messages.showErrorDialog(session.getProject(), e.getMessage(), "Failed to start VideoBug Session");
             throw new ExecutionException(e);
         } catch (IOException e) {
+            logger.error("failed to fetch project sessions", e);
+            e.printStackTrace();
+            Messages.showErrorDialog(session.getProject(), "Failed to connect with server - " + e.getMessage(), "Failed");
+            throw new ExecutionException(e);
+        } catch (Exception e) {
             logger.error("failed to fetch project sessions", e);
             e.printStackTrace();
             Messages.showErrorDialog(session.getProject(), "Failed to connect with server - " + e.getMessage(), "Failed");

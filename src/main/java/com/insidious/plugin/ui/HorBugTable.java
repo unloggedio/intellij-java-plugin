@@ -191,7 +191,7 @@ public class HorBugTable {
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
-            insidiousService.setTracePoint(selectedTrace, DirectionType.BACKWARDS);
+            insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
 
             logger.error("failed to fetch session events", e);
