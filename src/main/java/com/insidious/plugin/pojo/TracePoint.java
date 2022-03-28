@@ -64,7 +64,7 @@ public class TracePoint {
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
-                    dataEvent.getNanoTime());
+                    dataEvent.getRecordedAt().getTime());
 
         }
 
