@@ -563,14 +563,12 @@ public class InsidiousService {
                     public void success(List<TracePoint> tracePointCollection) {
                         logger.info("got [{}] trace points from server", tracePointCollection.size());
                         if (tracePointCollection.size() == 0) {
-                            ApplicationManager.getApplication().invokeAndWait(() -> {
-
-                                Notifications.Bus.notify(notificationGroup
-                                                .createNotification("No Exception data events matched in the last session",
-                                                        NotificationType.INFORMATION),
-                                        project);
-
-                            });
+                            ApplicationManager.getApplication()
+                                    .invokeAndWait(
+                                            () -> Notifications.Bus.notify(notificationGroup
+                                                    .createNotification(
+                                                            "No Exception data events matched in the last session",
+                                                            NotificationType.INFORMATION), project));
                         } else {
 
                             tracePointCollection.forEach(e -> {
@@ -696,7 +694,7 @@ public class InsidiousService {
                 = project.getService(RunManager.class).getAllSettings();
 
         for (RunnerAndConfigurationSettings runSetting : allSettings) {
-//            logger.info("runner config - {}", runSetting.getName());
+            logger.info("runner config - {}", runSetting.getName());
 
             if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
                 ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
@@ -717,10 +715,10 @@ public class InsidiousService {
 
                     vmParamList.add(javaAgentString);
                     newVmOptions = String.join(" ", vmParamList);
-                    applicationConfiguration.setVMParameters(newVmOptions);
+                    applicationConfiguration.setVMParameters(newVmOptions.trim());
                 } else {
                     newVmOptions = javaAgentString;
-                    applicationConfiguration.setVMParameters(newVmOptions);
+                    applicationConfiguration.setVMParameters(newVmOptions.trim());
                 }
 
 
