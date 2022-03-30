@@ -92,6 +92,7 @@ public class InsidiousService {
     private String appToken;
     private String javaAgentString;
     private TracePoint pendingTrace;
+    private TracePoint pendingSelectTrace;
 
 
     public InsidiousService(Project project) {
@@ -617,10 +618,6 @@ public class InsidiousService {
 
     }
 
-    public ProcessHandler getProcessHandler() {
-        return processHandler;
-    }
-
     public void setProcessHandler(ProcessHandler processHandler) {
         this.processHandler = processHandler;
     }
@@ -641,12 +638,14 @@ public class InsidiousService {
         }
     }
 
-    public XDebugSession getDebugSession() {
-        return debugSession;
-    }
 
     public void setDebugSession(XDebugSession session) {
         this.debugSession = session;
+        if (session != null && pendingSelectTrace != null) {
+            TracePoint selectNow = pendingSelectTrace;
+            pendingSelectTrace = null;
+            setTracePoint(selectNow);
+        }
     }
 
     public void setConnector(InsidiousJDIConnector connector) {
@@ -839,7 +838,13 @@ public class InsidiousService {
 
     public void setTracePoint(TracePoint selectedTrace) {
 
-        startDebugSession();
+        if (debugSession == null) {
+            startDebugSession();
+            pendingSelectTrace = selectedTrace;
+            return;
+        }
+
+
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());

@@ -436,7 +436,8 @@ public class Client {
         Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
         Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
 
-        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
+        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo,
+                objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
 
     }
 

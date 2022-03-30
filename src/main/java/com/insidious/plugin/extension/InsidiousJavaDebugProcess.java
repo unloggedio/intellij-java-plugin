@@ -131,8 +131,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                         "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
                         "                                       |___/ ", ProcessOutputTypes.SYSTEM);
 
-
-                getProject().getService(InsidiousService.class).focusExceptionWindow();
             }
         });
         this.mySmartStepIntoActionHandler = new InsidiousJavaSmartStepIntoActionHandler(this);
@@ -146,8 +144,8 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
         InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
 
-        session.getProject().getService(InsidiousService.class).setDebugSession(session);
-        session.getProject().getService(InsidiousService.class).setDebugProcess(debugProcess);
+//        session.getProject().getService(InsidiousService.class).setDebugSession(session);
+//        session.getProject().getService(InsidiousService.class).setDebugProcess(debugProcess);
         return debugProcess;
     }
 
@@ -158,6 +156,13 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
             }
         }
         return null;
+    }
+
+    @Override
+    public void sessionInitialized() {
+        getProject().getService(InsidiousService.class).setDebugSession(getSession());
+        getProject().getService(InsidiousService.class).setDebugProcess(this);
+        getProject().getService(InsidiousService.class).focusExceptionWindow();
     }
 
     public static Optional<InsidiousJavaDebugProcess> getInstanceWithTelemetrySessionId(String sessionId) {
