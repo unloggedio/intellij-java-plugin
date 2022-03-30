@@ -25,7 +25,9 @@ public class TracePoint {
                       String filename,
                       String classname,
                       String exceptionClass,
-                      long recordedAt) {
+                      long recordedAt,
+                      long nanoTime
+    ) {
         this.classId = classId;
         this.linenum = linenum;
         this.dataId = dataId;
@@ -36,7 +38,7 @@ public class TracePoint {
         this.classname = classname;
         this.exceptionClass = exceptionClass;
         this.recordedAt = recordedAt;
-        this.nanoTime = recordedAt;
+        this.nanoTime = nanoTime;
     }
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
@@ -64,7 +66,8 @@ public class TracePoint {
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
-                    dataEvent.getRecordedAt().getTime());
+                    dataEvent.getRecordedAt().getTime(),
+                    dataEvent.getNanoTime());
 
         }
 

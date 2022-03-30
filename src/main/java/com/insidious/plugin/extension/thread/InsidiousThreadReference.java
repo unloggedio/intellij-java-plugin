@@ -51,7 +51,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
         position = replayData.getDataEvents().indexOf(
                 replayData.getDataEvents().stream()
-                        .filter(e -> e.getValue() == tracePoint.getValue())
+                        .filter(e -> e.getNanoTime() == tracePoint.getNanoTime())
                         .collect(Collectors.toList()).get(0)
         );
 
