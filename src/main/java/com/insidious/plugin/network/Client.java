@@ -322,8 +322,8 @@ public class Client {
                 TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
                 };
 
-                DataResponse<DataEventWithSessionId> traceResponse = objectMapper
-                        .readValue(responseBodyString, typeReference);
+                DataResponse<DataEventWithSessionId> traceResponse =
+                        objectMapper.readValue(responseBodyString, typeReference);
 
                 List<TracePoint> tracePoints = getTracePoints(traceResponse);
 

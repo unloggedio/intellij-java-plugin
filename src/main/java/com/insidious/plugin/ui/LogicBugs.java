@@ -7,6 +7,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.ui.content.Content;
 import com.intellij.xdebugger.XSourcePosition;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
@@ -288,6 +289,10 @@ public class LogicBugs {
     }
 
     public void bringToFocus(ToolWindow toolWindow) {
-//        toolWindow.getContentManager().setSelectedContent(this.searchHistoryTable, true);
+
+        toolWindow.getContentManager().setSelectedContent(
+                toolWindow.getContentManager().getContents()[0],
+                true);
+
     }
 }

@@ -55,6 +55,12 @@ public class TracePoint {
             if (exceptionClassJson != null) {
                 exceptionClass = exceptionClassJson.getTypeNameFromClass();
             }
+            switch (dataInfoObject.getEventType()) {
+                case LABEL: return null;
+            }
+            if (dataInfoObject.getAttribute("Type", "").length() == 1) {
+                return null;
+            }
 
 
             return new TracePoint(dataInfoObject.getClassId(),

@@ -20,10 +20,12 @@ public class FilteredDataEventsRequest {
     private List<DebugPoint> debugPoints;
     private String sortOrder;
     private long nanotime;
+    private long probeId;
 
     public static FilteredDataEventsRequest fromTracePoint(TracePoint tracePoint) {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(tracePoint.getExecutionSessionId());
+        filteredDataEventsRequest.setProbeId(tracePoint.getDataId());
         filteredDataEventsRequest.setThreadId(tracePoint.getThreadId());
         filteredDataEventsRequest.setNanotime(tracePoint.getNanoTime());
         filteredDataEventsRequest.setValueId(Collections.singletonList(tracePoint.getValue()));
@@ -42,7 +44,7 @@ public class FilteredDataEventsRequest {
         this.sessionId = sessionId;
     }
 
-    public Long getThreadId() {
+    public long getThreadId() {
         return threadId;
     }
 
@@ -96,5 +98,13 @@ public class FilteredDataEventsRequest {
 
     public long getNanotime() {
         return nanotime;
+    }
+
+    public void setProbeId(long probeId) {
+        this.probeId = probeId;
+    }
+
+    public long getProbeId() {
+        return probeId;
     }
 }

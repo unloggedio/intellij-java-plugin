@@ -18,25 +18,15 @@ import java.io.IOException;
 public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousDebugProcessStarter.class);
-    private final InsidiousProgramRunner insidiousProgramRunner;
     private final RemoteConnection connection;
     private final ExecutionResult executionResult;
-    private final ExecutionEnvironment environment;
-    private final InsidiousApplicationState state;
-    private final long pollTimeout;
 
-    public InsidiousDebugProcessStarter(InsidiousProgramRunner insidiousProgramRunner,
-                                        RemoteConnection connection,
-                                        ExecutionResult executionResult,
-                                        ExecutionEnvironment environment,
-                                        InsidiousApplicationState state,
-                                        long pollTimeout) {
-        this.insidiousProgramRunner = insidiousProgramRunner;
+    public InsidiousDebugProcessStarter(
+            RemoteConnection connection,
+            ExecutionResult executionResult
+    ) {
         this.connection = connection;
         this.executionResult = executionResult;
-        this.environment = environment;
-        this.state = state;
-        this.pollTimeout = pollTimeout;
     }
 
     @Override

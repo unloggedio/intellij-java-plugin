@@ -49,10 +49,11 @@ public class InsidiousThreadReference implements ThreadReference {
         long lowestTimestamp = 99999999999999L;
         long highestTimestamp = 0;
 
+        List<DataEventWithSessionId> matches = replayData.getDataEvents().stream()
+                .filter(e -> e.getNanoTime() == tracePoint.getNanoTime())
+                .collect(Collectors.toList());
         position = replayData.getDataEvents().indexOf(
-                replayData.getDataEvents().stream()
-                        .filter(e -> e.getNanoTime() == tracePoint.getNanoTime())
-                        .collect(Collectors.toList()).get(0)
+                matches.get(0)
         );
 
 

@@ -118,6 +118,21 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
                 String message = DebuggerBundle.message("status.connected", myConnection + "\n");
                 processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\nFind trace points to start debugging in the VideoBug tool window", ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\nAfter fetching a session from trace point, you can step back and forward using the <- and -> arrow buttons above", ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\nYou can also assign it a keyboard shortcut, just like F8", ProcessOutputTypes.SYSTEM);
+
+
+                processHandler.notifyTextAvailable("\n\n", ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("        _     _              ___             \n" +
+                        " /\\   /(_) __| | ___  ___   / __\\_   _  __ _ \n" +
+                        " \\ \\ / | |/ _` |/ _ \\/ _ \\ /__\\/| | | |/ _` |\n" +
+                        "  \\ V /| | (_| |  __| (_) / \\/  | |_| | (_| |\n" +
+                        "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
+                        "                                       |___/ ", ProcessOutputTypes.SYSTEM);
+
+
+                getProject().getService(InsidiousService.class).focusExceptionWindow();
             }
         });
         this.mySmartStepIntoActionHandler = new InsidiousJavaSmartStepIntoActionHandler(this);
@@ -484,6 +499,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 if (this.telemetryTracker != null) {
                     this.telemetryTracker.endSession();
                 }
+                getProject().getService(InsidiousService.class).setDebugProcess(null);
             }
         } finally {
             this.connector.dispose();

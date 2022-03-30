@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
 import org.jetbrains.annotations.Nullable;
@@ -19,14 +20,18 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void destroyProcessImpl() {
+        getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class).setDebugProcess(null);
+        notifyProcessTerminated(0);
     }
 
     @Override
     protected void detachProcessImpl() {
         logger.info("end of debug session - {}", new Exception().getStackTrace()[0]);
         if (getInsidiousJavaDebugProcess() != null) {
+            getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class).setDebugProcess(null);
             getInsidiousJavaDebugProcess().closeProcess(true);
         }
+        notifyProcessDetached();
 
     }
 
@@ -41,7 +46,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     public boolean detachIsDefault() {
-        return false;
+        return true;
     }
 
     @Override
@@ -59,5 +64,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
     @Override
     public void destroyProcess() {
         super.destroyProcess();
+        notifyProcessTerminated(0);
+        insidiousJavaDebugProcess.getProject().getService(InsidiousService.class).setDebugProcess(null);
     }
 }

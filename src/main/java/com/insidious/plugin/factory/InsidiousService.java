@@ -1,9 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.extension.InsidiousExecutor;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousRunConfigType;
+import com.insidious.plugin.extension.*;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.network.Client;
 import com.insidious.plugin.network.pojo.DataResponse;
@@ -21,10 +19,7 @@ import com.insidious.plugin.ui.LogicBugs;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.ExecutionException;
-import com.intellij.execution.ProgramRunnerUtil;
-import com.intellij.execution.RunManager;
-import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.*;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
@@ -519,7 +514,7 @@ public class InsidiousService {
 
                                 Notifications.Bus.notify(notificationGroup
                                                 .createNotification("No data available, or data may have been deleted!",
-                                                        NotificationType.ERROR),
+                                                        NotificationType.INFORMATION),
                                         project);
 
 
@@ -602,7 +597,7 @@ public class InsidiousService {
         }
 
 
-        if (debugSession != null && !hasInsidiousDebugSession) {
+        if (debugSession != null) {
             return;
         }
 
@@ -641,7 +636,7 @@ public class InsidiousService {
     public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
         this.debugProcess = debugProcess;
 
-        if (this.logicBugs != null) {
+        if (this.logicBugs != null && debugProcess != null) {
             this.logicBugs.bringToFocus(toolWindow);
         }
     }
@@ -946,5 +941,9 @@ public class InsidiousService {
         ExecutionSession session = new ExecutionSession();
         session.setId(sessionId);
         this.client.setSession(session);
+    }
+
+    public void focusExceptionWindow() {
+        this.logicBugs.bringToFocus(toolWindow);
     }
 }
