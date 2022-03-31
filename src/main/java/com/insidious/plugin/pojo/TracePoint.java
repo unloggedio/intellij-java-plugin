@@ -58,9 +58,9 @@ public class TracePoint {
             switch (dataInfoObject.getEventType()) {
                 case LABEL:
                 case CATCH:
-                case METHOD_EXCEPTIONAL_EXIT:
-                case METHOD_THROW:
                     return null;
+//                case METHOD_EXCEPTIONAL_EXIT:
+//                case METHOD_THROW:
             }
             if (dataInfoObject.getAttribute("Type", "").length() == 1) {
                 return null;
