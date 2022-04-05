@@ -20,7 +20,12 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void destroyProcessImpl() {
-        getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class).setDebugSession(null);
+        try {
+            InsidiousService service = getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class);
+            service.setDebugSession(null);
+        } catch (Exception e) {
+
+        }
         notifyProcessTerminated(0);
     }
 
