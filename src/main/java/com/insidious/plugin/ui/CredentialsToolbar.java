@@ -41,6 +41,7 @@ public class CredentialsToolbar {
     private JButton signupButton;
     private JLabel infoError;
     private JButton logoutButton;
+    private JButton payment;
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -113,6 +114,16 @@ public class CredentialsToolbar {
                                 }
                             }
                         });
+            }
+        });
+        payment.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
