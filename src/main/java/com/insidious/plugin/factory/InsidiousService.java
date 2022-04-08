@@ -7,6 +7,7 @@ import com.insidious.plugin.network.Client;
 import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
+import com.insidious.plugin.network.pojo.SigninRequest;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
 import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
@@ -52,8 +53,10 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.Consumer;
+import com.intellij.util.Function;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import okhttp3.OkHttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -62,6 +65,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
@@ -294,27 +298,53 @@ public class InsidiousService {
         insidiousConfiguration.setUsername(usernameText);
 
         try {
-            client.signin(serverUrl, usernameText, passwordText);
+            client.signin(SigninRequest.from(serverUrl, usernameText, passwordText),
+                    new SignInCallback() {
+                        @Override
+                        public void error(String errorMessage) {
+                            if (credentialsToolbarWindow != null) {
+                                credentialsToolbarWindow.setErrorLabel("Sign in failed: " + errorMessage);
+                            }
 
-            ReadAction.nonBlocking(this::checkAndEnsureJavaAgentCache).submit(Executors.newSingleThreadExecutor());
-            ReadAction.nonBlocking(this::identifyTargetJar).submit(Executors.newSingleThreadExecutor());
-            ReadAction.nonBlocking(this::startDebugSession).submit(Executors.newSingleThreadExecutor());
+                            if (notificationGroup != null) {
+                                Notifications.Bus.notify(notificationGroup
+                                                .createNotification("Failed to login VideoBug at [" + serverUrl
+                                                                + "] for module [" + currentModule.getName() + "]",
+                                                        NotificationType.ERROR),
+                                        project);
+                            }
+
+                        }
+
+                        @Override
+                        public void success(String token) {
+                            ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
+                                    .submit(Executors.newSingleThreadExecutor());
+                            ReadAction.nonBlocking(InsidiousService.this::identifyTargetJar)
+                                    .submit(Executors.newSingleThreadExecutor());
+                            ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
+                                    .submit(Executors.newSingleThreadExecutor());
 
 
-            Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
-            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-            PasswordSafe.getInstance().set(insidiousCredentials, credentials);
-            ApplicationManager.getApplication().invokeLater(() -> {
+                            Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
+                            insidiousCredentials = createCredentialAttributes(
+                                    "VideoBug", insidiousConfiguration.getUsername());
+                            PasswordSafe.getInstance().set(insidiousCredentials, credentials);
 
-                if (notificationGroup != null) {
-                    Notifications.Bus.notify(notificationGroup
-                                    .createNotification("VideoBug logged in at [" + serverUrl
-                                                    + "] for module [" + currentModule.getName() + "]",
-                                            NotificationType.INFORMATION),
-                            project);
-                }
+                            ApplicationManager.getApplication().invokeLater(() -> {
 
-            });
+                                if (notificationGroup != null) {
+                                    Notifications.Bus.notify(notificationGroup
+                                                    .createNotification("VideoBug logged in at [" + serverUrl
+                                                                    + "] for module [" + currentModule.getName() + "]",
+                                                            NotificationType.INFORMATION),
+                                            project);
+                                }
+
+                            });
+                        }
+                    });
+
 
         } catch (UnauthorizedException e) {
 
@@ -325,14 +355,10 @@ public class InsidiousService {
             }
         } catch (Throwable e) {
             e.printStackTrace();
-
-
             Notifications.Bus.notify(notificationGroup
                             .createNotification("Failed to connect with server - " + e.getMessage(),
                                     NotificationType.ERROR),
                     project);
-
-
         }
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
     }

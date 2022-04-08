@@ -106,6 +106,38 @@ public class Client {
         }
     }
 
+    public void signin(SigninRequest signinRequest, SignInCallback signInCallback) throws UnauthorizedException, IOException {
+        logger.info("Sign in for email => " + signinRequest.getEmail());
+        JSONObject json = new JSONObject();
+        json.put("email", signinRequest.getEmail());
+        json.put("password", signinRequest.getPassword());
+
+        post(signinRequest.getEndpoint() + SIGN_IN_URL, json.toJSONString(), new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                signInCallback.error(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                if (response.code() == 401) {
+                    signInCallback.error("invalid credentials");
+                    response.close();
+                    return;
+                }
+                if (response.code() == 200) {
+                    JSONObject jsonObject = (JSONObject) JSONValue.parse(Objects.requireNonNull(response.body()).string());
+                    Client.this.token = jsonObject.getAsString(Constants.TOKEN);
+                    Client.this.endpoint = signinRequest.getEndpoint();
+                    signInCallback.success(token);
+                }
+                response.close();
+            }
+        });
+
+
+    }
+
 
     public void getProjectByName(String projectName, GetProjectCallback getProjectCallback) {
         logger.info("Get project by name => " + projectName);
