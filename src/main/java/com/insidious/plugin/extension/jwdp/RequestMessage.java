@@ -1,9 +1,9 @@
 package com.insidious.plugin.extension.jwdp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.util.LoggerUtil;
 import org.slf4j.Logger;
-import com.insidious.plugin.extension.CommandSender;
 
 import java.io.IOException;
 

@@ -1,14 +1,14 @@
 package com.insidious.plugin.extension.smartstep;
 
-import com.intellij.debugger.engine.evaluation.EvaluateException;
-import com.intellij.psi.PsiMethod;
-import com.intellij.util.Range;
-import com.sun.jdi.ObjectReference;
 import com.insidious.plugin.extension.ConstructorStepMethodFilter;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
 import com.insidious.plugin.extension.breakpoints.StepIntoBreakpoint;
 import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import com.insidious.plugin.extension.connector.RequestHint;
+import com.intellij.debugger.engine.evaluation.EvaluateException;
+import com.intellij.psi.PsiMethod;
+import com.intellij.util.Range;
+import com.sun.jdi.ObjectReference;
 
 public class ClassInstanceMethodFilter
         extends ConstructorStepMethodFilter {

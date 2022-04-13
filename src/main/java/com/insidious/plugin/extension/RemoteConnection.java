@@ -1,23 +1,23 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.network.VideobugClientInterface;
 import com.insidious.plugin.util.LoggerUtil;
 import org.slf4j.Logger;
-import com.intellij.openapi.util.text.StringUtil;
-import com.insidious.plugin.network.Client;
+import com.insidious.plugin.network.VideobugNetworkClient;
 import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
 
 public class RemoteConnection {
     private final static Logger logger = LoggerUtil.getInstance(RemoteConnection.class);
-    private final Client client;
+    private final VideobugClientInterface client;
     private boolean myUseSockets;
     private String myHostName;
 
-    public RemoteConnection(String address, Client client) throws UnauthorizedException {
+    public RemoteConnection(String address, VideobugClientInterface client) throws UnauthorizedException {
         this.client = client;
     }
 
 
-    public Client getClient() {
+    public VideobugClientInterface getClient() {
         return client;
     }
 

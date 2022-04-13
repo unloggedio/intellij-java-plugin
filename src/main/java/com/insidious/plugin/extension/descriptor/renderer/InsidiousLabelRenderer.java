@@ -1,5 +1,11 @@
 package com.insidious.plugin.extension.descriptor.renderer;
 
+import com.insidious.plugin.extension.DebuggerBundle;
+import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
+import com.insidious.plugin.extension.evaluation.EvaluationContext;
+import com.insidious.plugin.extension.evaluation.EvaluatorUtil;
+import com.insidious.plugin.extension.evaluation.expression.ExpressionEvaluator;
+import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
@@ -10,12 +16,6 @@ import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
 import com.sun.jdi.Value;
-import com.insidious.plugin.extension.DebuggerBundle;
-import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
-import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
-import com.insidious.plugin.extension.evaluation.EvaluationContext;
-import com.insidious.plugin.extension.evaluation.EvaluatorUtil;
-import com.insidious.plugin.extension.evaluation.expression.ExpressionEvaluator;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;

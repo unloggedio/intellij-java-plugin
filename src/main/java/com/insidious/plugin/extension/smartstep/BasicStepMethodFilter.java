@@ -1,5 +1,13 @@
 package com.insidious.plugin.extension.smartstep;
 
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
+import com.insidious.plugin.extension.connector.RequestHint;
+import com.insidious.plugin.extension.evaluation.JVMName;
+import com.insidious.plugin.extension.evaluation.JVMNameUtil;
+import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
+import com.insidious.plugin.extension.util.DebuggerUtil;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
@@ -8,22 +16,14 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
 import com.intellij.util.Range;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
-import com.insidious.plugin.extension.connector.RequestHint;
-import com.insidious.plugin.extension.evaluation.JVMName;
-import com.insidious.plugin.extension.evaluation.JVMNameUtil;
-import com.insidious.plugin.extension.util.DebuggerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.List;
 
@@ -182,7 +182,7 @@ public class BasicStepMethodFilter implements NamedMethodFilter {
 
             try {
                 StepIntoMethodBreakpoint breakpoint = new StepIntoMethodBreakpoint(this.myDeclaringClassName.getName(virtualMachineProxy), this.myTargetMethodName, (this.myTargetMethodSignature != null) ? this.myTargetMethodSignature.getName(virtualMachineProxy) : null, debugProcess.getProject());
-                debugProcess.getConnector().createSteppingBreakpoint(context, (SteppingBreakpoint) breakpoint, hint);
+                debugProcess.getConnector().createSteppingBreakpoint(context, breakpoint, hint);
             } catch (EvaluateException e) {
                 logger.error("failed", e);
             }

@@ -12,6 +12,7 @@ import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.requests.ClassPrepareRequestor;
 import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.debugger.ui.breakpoints.WildcardMethodBreakpoint;
+import com.intellij.xdebugger.XDebugSession;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
@@ -120,6 +121,7 @@ public class InsidiousDebuggerEventThread implements Runnable {
 
     public synchronized void stopListening() {
         this.myIsStopped = true;
+        this.eventReadingThread.stop();
     }
 
     private synchronized boolean isStopped() {
@@ -363,7 +365,8 @@ public class InsidiousDebuggerEventThread implements Runnable {
 
     private void close(boolean closedByUser) {
         stopListening();
-        this.debugProcess.closeProcess(closedByUser);
+        this.debugProcess.getProject().getService(XDebugSession.class).stop();
+//        this.debugProcess.closeProcess(closedByUser);
     }
 
     public boolean evaluateBreakpointCondition(InsidiousXSuspendContext suspendContext, Breakpoint breakpoint, LocatableEvent event) throws EvaluateException {

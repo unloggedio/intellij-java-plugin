@@ -1,32 +1,26 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.actions.Constants;
-import com.insidious.plugin.network.pojo.SessionUpdatedCallback;
-import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.ide.util.PropertiesComponent;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import org.slf4j.Logger;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
-import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.factory.InsidiousService;
-import net.minidev.json.JSONObject;
-import okhttp3.Callback;
 import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
+import net.minidev.json.JSONObject;
+import okhttp3.Callback;
+import org.slf4j.Logger;
 
 import javax.swing.*;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class HorBugTable {

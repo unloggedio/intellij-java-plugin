@@ -42,6 +42,7 @@ public class CredentialsToolbar {
     private JLabel infoError;
     private JButton logoutButton;
     private JButton payment;
+    private JButton useLocallyButton;
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
@@ -53,6 +54,14 @@ public class CredentialsToolbar {
             password.setText("");
         }
         videobugServerURLTextField.setText(this.insidiousService.getConfiguration().serverUrl);
+
+
+        useLocallyButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                insidiousService.initiateUseLocal();
+            }
+        });
 
         signinButton.addActionListener(new ActionListener() {
             @Override

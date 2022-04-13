@@ -1,8 +1,6 @@
 package com.insidious.plugin.network.pojo;
 
 
-
-
 public class SigninRequest {
     String endpoint;
     String email;

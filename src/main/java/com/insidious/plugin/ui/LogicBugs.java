@@ -1,25 +1,23 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.network.pojo.DebugPoint;
 import com.insidious.plugin.network.pojo.exceptions.APICallException;
+import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.SearchRecord;
+import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.content.Content;
-import com.intellij.xdebugger.XSourcePosition;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.xdebugger.XDebuggerManager;
+import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.network.pojo.DebugPoint;
-import com.insidious.plugin.pojo.DataEvent;
-import com.insidious.plugin.pojo.TracePoint;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -65,8 +63,20 @@ public class LogicBugs {
         this.project = project;
         this.insidiousService = insidiousService;
 
-        refreshButton.addActionListener(e -> doSearch());
-        searchButton.addActionListener(actionEvent -> doSearch());
+        refreshButton.addActionListener(e -> {
+            try {
+                doSearch();
+            } catch (IOException ex) {
+                logger.error("failed to do search", ex);
+            }
+        });
+        searchButton.addActionListener(actionEvent -> {
+            try {
+                doSearch();
+            } catch (IOException e) {
+                logger.error("failed to do search", e);
+            }
+        });
 
 
         fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow()));
@@ -82,7 +92,7 @@ public class LogicBugs {
         List<SearchRecord> items = insidiousService.getConfiguration().getSearchRecords();
     }
 
-    private void doSearch() {
+    private void doSearch() throws IOException {
         if (traceIdfield.getText().equals("")) {
             Notifications.Bus.notify(
                     insidiousService.getNotificationGroup()
@@ -162,6 +172,8 @@ public class LogicBugs {
                     SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
                     traceIdfield.setText(selectedSearchResult.getQuery());
                     doSearch();
+                } catch (IOException ex) {
+                    logger.error("failed to do search", ex);
                 } finally {
                     lock.unlock();
                 }

@@ -13,9 +13,9 @@ import java.util.Scanner;
  */
 public class DataInfo {
 
-    private static String SEPARATOR = ",";
-    private static char ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
-    private static char ATTRIBUTE_SEPARATOR = ',';
+    private static final String SEPARATOR = ",";
+    private static final char ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
+    private static final char ATTRIBUTE_SEPARATOR = ',';
 
     private int classId;
     private int methodId;
@@ -33,7 +33,6 @@ public class DataInfo {
     private Map<String, String> attributesMap = new HashMap<>();
 
     private String sessionId;
-
 
 
     public String getSessionId() {
@@ -167,7 +166,7 @@ public class DataInfo {
     public Map<String, String> getAttributesMap() {
         return attributesMap;
     }
-    
+
     /**
      * Access a particular attribute of the instruction, assuming the "KEY=VALUE" format.
      *

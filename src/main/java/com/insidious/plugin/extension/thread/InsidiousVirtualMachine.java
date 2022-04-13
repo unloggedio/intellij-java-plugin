@@ -1,22 +1,16 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.extension.connector.RequestHint;
+import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.network.VideobugClientInterface;
+import com.insidious.plugin.network.pojo.FilteredDataEventsRequest;
+import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.EventRequestManager;
-import com.insidious.plugin.extension.connector.RequestHint;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.network.Client;
-import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.FilteredDataEventsRequest;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
-import org.jetbrains.annotations.NotNull;
-import com.insidious.plugin.pojo.TracePoint;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -24,11 +18,11 @@ import java.util.Map;
 public class InsidiousVirtualMachine implements VirtualMachine {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousVirtualMachine.class);
-    private final Client client;
+    private final VideobugClientInterface client;
     private InsidiousThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
 
-    public InsidiousVirtualMachine(Client client) {
+    public InsidiousVirtualMachine(VideobugClientInterface client) {
         this.client = client;
     }
 

@@ -1,12 +1,12 @@
 package com.insidious.plugin.extension.smartstep;
 
-import com.intellij.debugger.engine.evaluation.EvaluateException;
-import com.intellij.util.Range;
-import com.sun.jdi.Location;
-import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
 import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import com.insidious.plugin.extension.connector.RequestHint;
+import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
+import com.intellij.debugger.engine.evaluation.EvaluateException;
+import com.intellij.util.Range;
+import com.sun.jdi.Location;
 import org.jetbrains.annotations.Nullable;
 
 

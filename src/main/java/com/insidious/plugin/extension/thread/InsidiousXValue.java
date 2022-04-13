@@ -1,7 +1,7 @@
 package com.insidious.plugin.extension.thread;
 
-import com.intellij.xdebugger.frame.*;
 import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
+import com.intellij.xdebugger.frame.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;

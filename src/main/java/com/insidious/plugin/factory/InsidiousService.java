@@ -1,9 +1,13 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.extension.*;
+import com.insidious.plugin.extension.InsidiousExecutor;
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.network.Client;
+import com.insidious.plugin.network.VideobugClientInterface;
+import com.insidious.plugin.network.VideobugLocalClient;
+import com.insidious.plugin.network.VideobugNetworkClient;
 import com.insidious.plugin.network.pojo.DataResponse;
 import com.insidious.plugin.network.pojo.ExceptionResponse;
 import com.insidious.plugin.network.pojo.ExecutionSession;
@@ -20,7 +24,10 @@ import com.insidious.plugin.ui.LogicBugs;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.*;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.ProgramRunnerUtil;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
@@ -53,10 +60,8 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.Consumer;
-import com.intellij.util.Function;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import okhttp3.OkHttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -64,8 +69,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
@@ -78,7 +83,8 @@ public class InsidiousService {
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private final String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
-    private final Client client;
+    private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
+    private VideobugClientInterface client;
     private NotificationGroup notificationGroup;
     private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
     private Module currentModule;
@@ -112,12 +118,17 @@ public class InsidiousService {
             logger.info("current module [{}]", currentModule.getName());
         }
 
+        XDebugSession[] sessions = project.getService(XDebuggerManager.class).getDebugSessions();
+        for (XDebugSession session : sessions) {
+            session.getDebugProcess();
+        }
+
 
         ReadAction.nonBlocking(this::getProjectPackageName).submit(Executors.newSingleThreadExecutor());
         ReadAction.nonBlocking(this::logLogFileLocation).submit(Executors.newSingleThreadExecutor());
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-        this.client = new Client(this.insidiousConfiguration.getServerUrl());
+        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
     }
 
     public NotificationGroup getNotificationGroup() {
@@ -399,7 +410,12 @@ public class InsidiousService {
 
                 @Override
                 public void onClosed(@NotNull LightweightWindowEvent event) {
-                    getErrors(getSelectedExceptionClassList(), 0);
+                    try {
+                        getErrors(getSelectedExceptionClassList(), 0);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        logger.error("failed to get errors", e);
+                    }
                 }
             }).createPopup();
 
@@ -508,11 +524,11 @@ public class InsidiousService {
 
     public void getTracesByClassForProjectAndSessionId(
             List<String> classList,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(classList, getProjectSessionErrorsCallback);
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
+        this.client.getTracesByObjectType(classList, getProjectSessionErrorsCallback);
     }
 
-    public void getTraces(int pageNum, String traceValue) {
+    public void getTraces(int pageNum, String traceValue) throws IOException {
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -558,7 +574,7 @@ public class InsidiousService {
                 });
     }
 
-    public void getErrors(List<String> classList, int pageNum) {
+    public void getErrors(List<String> classList, int pageNum) throws IOException {
 
 
         if (this.client.getCurrentSession() == null) {
@@ -607,7 +623,7 @@ public class InsidiousService {
 
     public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(traceId, getProjectSessionErrorsCallback);
+        this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
     }
 
 
@@ -615,9 +631,15 @@ public class InsidiousService {
         logger.info("start debug session");
 
         boolean hasInsidiousDebugSession = false;
+
+        if (debugSession != null) {
+            return;
+        }
+
         for (XDebugSession session : project.getService(XDebuggerManager.class).getDebugSessions()) {
-            if (session instanceof InsidiousJavaDebugProcess) {
+            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
                 hasInsidiousDebugSession = true;
+                debugSession = session;
                 break;
             }
 
@@ -806,7 +828,7 @@ public class InsidiousService {
 
         javaAgentString = "-javaagent:\"" + videoBugAgentPath
                 + "=i="
-                + packageName.replaceAll("\\.", "/")
+                + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
                 + ","
                 + "server="
                 + insidiousConfiguration.serverUrl
@@ -821,7 +843,7 @@ public class InsidiousService {
         }
     }
 
-    public void loadSession() {
+    public void loadSession() throws IOException {
 
         if (currentModule == null) {
             currentModule = ModuleManager.getInstance(project).getModules()[0];
@@ -841,7 +863,7 @@ public class InsidiousService {
             }
 
             @Override
-            public void success(List<ExecutionSession> executionSessionList) {
+            public void success(List<ExecutionSession> executionSessionList) throws IOException {
                 logger.info("got [{}] sessions for project", executionSessionList.size());
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
@@ -903,7 +925,7 @@ public class InsidiousService {
     }
 
 
-    public Client getClient() {
+    public VideobugClientInterface getClient() {
         return client;
     }
 
@@ -976,5 +998,29 @@ public class InsidiousService {
 
     public void focusExceptionWindow() {
         this.logicBugs.bringToFocus(toolWindow);
+    }
+
+    public void initiateUseLocal() {
+        client = new VideobugLocalClient(project.getBasePath());
+
+        ExecutorService backgroundThreadExecutor = Executors.newSingleThreadExecutor();
+
+        ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
+                .submit(backgroundThreadExecutor);
+        ReadAction.nonBlocking(InsidiousService.this::identifyTargetJar)
+                .submit(backgroundThreadExecutor);
+        ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
+                .submit(backgroundThreadExecutor);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            InsidiousService.this.initiateUI();
+            if (notificationGroup != null) {
+                Notifications.Bus.notify(notificationGroup
+                                .createNotification("VideoBug logged in at [" + "disk://localhost"
+                                                + "] for module [" + currentModule.getName() + "]",
+                                        NotificationType.INFORMATION),
+                        project);
+            }
+        });
     }
 }

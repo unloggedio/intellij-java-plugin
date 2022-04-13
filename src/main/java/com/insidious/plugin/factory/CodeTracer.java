@@ -2,6 +2,10 @@ package com.insidious.plugin.factory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.plugin.pojo.DataEvent;
+import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.ui.HorBugTable;
+import com.insidious.plugin.ui.LogicBugs;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.markup.EffectType;
@@ -12,10 +16,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.Nullable;
-import com.insidious.plugin.pojo.TracePoint;
-import com.insidious.plugin.pojo.DataEvent;
-import com.insidious.plugin.ui.HorBugTable;
-import com.insidious.plugin.ui.LogicBugs;
 
 import java.awt.*;
 import java.io.File;
@@ -37,7 +37,7 @@ public class CodeTracer {
     private final TextAttributes textattributes = new TextAttributes(null, backgroundColor, null, EffectType.LINE_UNDERSCORE, Font.PLAIN);
     private int currentIndex;
     private DataEvent highlightedVariable;
-    private String source;
+    private final String source;
 
     public CodeTracer(Project project, TracePoint trace, String order, String source) throws IOException {
         this.project = project;
@@ -103,15 +103,13 @@ public class CodeTracer {
 
 
     private void updateHighlight(Collection<DataEvent> variableList, String source) {
-        if (source.equals("exceptions")){
+        if (source.equals("exceptions")) {
             HorBugTable horBugTable = project.getService(InsidiousService.class).getHorBugTable();
             horBugTable.setVariables(variableList);
-        }
-        else if (source.equals("traces")) {
+        } else if (source.equals("traces")) {
             LogicBugs logicBugs = project.getService(InsidiousService.class).getLogicBugs();
             logicBugs.setVariables(variableList);
-        }
-        else {
+        } else {
             return;
         }
 

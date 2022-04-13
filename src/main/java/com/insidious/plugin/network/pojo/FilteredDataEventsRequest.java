@@ -1,7 +1,6 @@
 package com.insidious.plugin.network.pojo;
 
 
-import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.pojo.TracePoint;
 
 import java.util.Collections;
