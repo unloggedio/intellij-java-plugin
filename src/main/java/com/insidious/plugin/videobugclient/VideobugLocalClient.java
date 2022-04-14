@@ -34,10 +34,11 @@ import static com.googlecode.cqengine.query.QueryFactory.in;
 
 public class VideobugLocalClient implements VideobugClientInterface {
 
+    public static final String WEAVE_DAT_FILE = "class.weave.dat";
     public static final String INDEX_TYPE_DAT_FILE = "index.type.dat";
-    public static final String INDEX_STRING_DAT_FILE = "index.string.dat";
     public static final String INDEX_OBJECT_DAT_FILE = "index.object.dat";
     public static final String INDEX_EVENTS_DAT_FILE = "index.events.dat";
+    public static final String INDEX_STRING_DAT_FILE = "index.string.dat";
 
 
     private static final Logger logger = java.util.logging.Logger.getLogger(VideobugLocalClient.class.getName());
@@ -227,7 +228,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         }
         logger.info("initialize index for archive: " + outDirFile.getAbsolutePath());
-        return initialiseIndexes(outDirFile.getAbsolutePath() + "/", indexType);
+        return readArchiveIndex(outDirFile.getAbsolutePath() + "/", indexType);
 
     }
 
@@ -292,7 +293,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 //            logger.info("initialize index for archive: " + outDirFile.getAbsolutePath());
 //
 //            try {
-//                ArchiveIndex index1 = initialiseIndexes(outDirFile.getAbsolutePath() + "/");
+//                ArchiveIndex index1 = readArchiveIndex(outDirFile.getAbsolutePath() + "/");
 //                if (index == null) {
 //                    index = index1;
 //                    sessionCache.put(sessionFile.getName(), index);
@@ -352,7 +353,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return new FileOutputStream(indexFile);
     }
 
-    private ArchiveIndex initialiseIndexes(String outDirFile, String indexFilterType) {
+    private ArchiveIndex readArchiveIndex(String outDirFile, String indexFilterType) {
 
         ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = null;
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
@@ -381,6 +382,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
             objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
             objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+        }
+
+        if (indexFilterType.equals(WEAVE_DAT_FILE)) {
+            File objectIndexFile = new File(outDirFile + WEAVE_DAT_FILE);
+
         }
 
         return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
