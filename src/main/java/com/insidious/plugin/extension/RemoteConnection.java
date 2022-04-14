@@ -1,10 +1,9 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.network.VideobugClientInterface;
+import com.insidious.plugin.videobugclient.VideobugClientInterface;
 import com.insidious.plugin.util.LoggerUtil;
 import org.slf4j.Logger;
-import com.insidious.plugin.network.VideobugNetworkClient;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.videobugclient.pojo.exceptions.UnauthorizedException;
 
 public class RemoteConnection {
     private final static Logger logger = LoggerUtil.getInstance(RemoteConnection.class);

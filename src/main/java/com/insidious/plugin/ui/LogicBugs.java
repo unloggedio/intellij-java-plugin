@@ -1,8 +1,8 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.network.pojo.DebugPoint;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
+import com.insidious.plugin.videobugclient.pojo.DebugPoint;
+import com.insidious.plugin.videobugclient.pojo.exceptions.APICallException;
 import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;

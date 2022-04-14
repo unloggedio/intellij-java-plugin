@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.connector;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
 import com.insidious.plugin.extension.thread.*;
-import com.insidious.plugin.network.VideobugClientInterface;
+import com.insidious.plugin.videobugclient.VideobugClientInterface;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.PositionManager;

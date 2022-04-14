@@ -5,16 +5,16 @@ import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.network.VideobugClientInterface;
-import com.insidious.plugin.network.VideobugLocalClient;
-import com.insidious.plugin.network.VideobugNetworkClient;
-import com.insidious.plugin.network.pojo.DataResponse;
-import com.insidious.plugin.network.pojo.ExceptionResponse;
-import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.SigninRequest;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
-import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.videobugclient.VideobugClientInterface;
+import com.insidious.plugin.videobugclient.VideobugLocalClient;
+import com.insidious.plugin.videobugclient.VideobugNetworkClient;
+import com.insidious.plugin.videobugclient.pojo.DataResponse;
+import com.insidious.plugin.videobugclient.pojo.ExceptionResponse;
+import com.insidious.plugin.videobugclient.pojo.ExecutionSession;
+import com.insidious.plugin.videobugclient.pojo.SigninRequest;
+import com.insidious.plugin.videobugclient.pojo.exceptions.APICallException;
+import com.insidious.plugin.videobugclient.pojo.exceptions.ProjectDoesNotExistException;
+import com.insidious.plugin.videobugclient.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.parser.GradleFileVisitor;
 import com.insidious.plugin.parser.PomFileVisitor;
 import com.insidious.plugin.pojo.TracePoint;
@@ -403,7 +403,11 @@ public class InsidiousService {
                         logger.error("failed to extract session id", e);
                         executionSession.setId(sessions.getItems().get(0).getId());
                     }
-                    client.setSession(executionSession);
+                    try {
+                        client.setSession(executionSession);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }).addListener(new JBPopupListener() {
 
@@ -551,8 +555,8 @@ public class InsidiousService {
                     }
 
                     @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        if (tracePointCollection.size() == 0) {
+                    public void success(List<TracePoint> tracePoints) {
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
                                 Notifications.Bus.notify(notificationGroup
@@ -563,11 +567,11 @@ public class InsidiousService {
 
                             });
                         } else {
-                            insidiousConfiguration.addSearchQuery(traceValue, tracePointCollection.size());
-                            tracePointCollection.forEach(e -> {
+                            insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
+                            tracePoints.forEach(e -> {
                                 e.setExecutionSessionId(client.getCurrentSession().getId());
                             });
-                            logicBugs.setTracePoints(tracePointCollection);
+                            logicBugs.setTracePoints(tracePoints);
                             logicBugs.updateSearchResultsList();
                         }
                     }
@@ -598,9 +602,9 @@ public class InsidiousService {
                     }
 
                     @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        logger.info("got [{}] trace points from server", tracePointCollection.size());
-                        if (tracePointCollection.size() == 0) {
+                    public void success(List<TracePoint> tracePoints) {
+                        logger.info("got [{}] trace points from server", tracePoints.size());
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication()
                                     .invokeAndWait(
                                             () -> Notifications.Bus.notify(notificationGroup
@@ -609,12 +613,12 @@ public class InsidiousService {
                                                             NotificationType.INFORMATION), project));
                         } else {
 
-                            tracePointCollection.forEach(e -> {
+                            tracePoints.forEach(e -> {
                                 e.setExecutionSessionId(client.getCurrentSession().getId());
                             });
 
 
-                            bugsTable.setTracePoints(tracePointCollection);
+                            bugsTable.setTracePoints(tracePoints);
                         }
                     }
                 });
@@ -622,7 +626,7 @@ public class InsidiousService {
     }
 
     public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
-                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
     }
 
@@ -849,7 +853,7 @@ public class InsidiousService {
             currentModule = ModuleManager.getInstance(project).getModules()[0];
         }
 
-        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
+//        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
             public void error(String message) {
@@ -988,12 +992,6 @@ public class InsidiousService {
             return;
         }
         client.setSession(sessions.getItems().get(0));
-    }
-
-    public void setExecutionSessionId(String sessionId) {
-        ExecutionSession session = new ExecutionSession();
-        session.setId(sessionId);
-        this.client.setSession(session);
     }
 
     public void focusExceptionWindow() {

@@ -2,8 +2,8 @@ package com.insidious.plugin.extension.thread;
 
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.network.VideobugClientInterface;
-import com.insidious.plugin.network.pojo.FilteredDataEventsRequest;
+import com.insidious.plugin.videobugclient.VideobugClientInterface;
+import com.insidious.plugin.videobugclient.pojo.FilteredDataEventsRequest;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.sun.jdi.*;

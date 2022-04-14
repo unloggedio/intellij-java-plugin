@@ -1,8 +1,8 @@
 package com.insidious.plugin.extension.model;
 
-import com.insidious.plugin.network.pojo.ClassInfo;
-import com.insidious.plugin.network.pojo.DataEventWithSessionId;
-import com.insidious.plugin.network.pojo.ObjectInfo;
+import com.insidious.plugin.videobugclient.pojo.ClassInfo;
+import com.insidious.plugin.videobugclient.pojo.DataEventWithSessionId;
+import com.insidious.plugin.videobugclient.pojo.ObjectInfo;
 
 import java.util.List;
 import java.util.Map;

@@ -2,10 +2,10 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.plugin.extension.model.DataInfo;
 import com.insidious.plugin.extension.model.TypeInfo;
-import com.insidious.plugin.network.pojo.ClassInfo;
-import com.insidious.plugin.network.pojo.DataEventWithSessionId;
-import com.insidious.plugin.network.pojo.DataResponse;
-import com.insidious.plugin.network.pojo.ObjectInfo;
+import com.insidious.plugin.videobugclient.pojo.ClassInfo;
+import com.insidious.plugin.videobugclient.pojo.DataEventWithSessionId;
+import com.insidious.plugin.videobugclient.pojo.DataResponse;
+import com.insidious.plugin.videobugclient.pojo.ObjectInfo;
 
 public class TracePoint {
 
