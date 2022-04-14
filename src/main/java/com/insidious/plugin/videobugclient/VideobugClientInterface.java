@@ -1,5 +1,6 @@
 package com.insidious.plugin.videobugclient;
 
+import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;

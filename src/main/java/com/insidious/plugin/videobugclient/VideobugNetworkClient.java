@@ -2,6 +2,7 @@ package com.insidious.plugin.videobugclient;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.plugin.actions.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
@@ -408,6 +409,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             }
         });
 
+    }
+
+    @Override
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
+        return null;
     }
 
     @Override

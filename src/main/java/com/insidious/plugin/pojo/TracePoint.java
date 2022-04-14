@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.plugin.extension.model.DataInfo;
 import com.insidious.plugin.extension.model.TypeInfo;
 import com.insidious.plugin.videobugclient.pojo.ClassInfo;
@@ -7,10 +8,13 @@ import com.insidious.plugin.videobugclient.pojo.DataEventWithSessionId;
 import com.insidious.plugin.videobugclient.pojo.DataResponse;
 import com.insidious.plugin.videobugclient.pojo.ObjectInfo;
 
+import java.util.Collections;
+
 public class TracePoint {
 
     private final long recordedAt;
-    long classId, linenum, dataId, threadId, value;
+    long classId, linenum, threadId, value;
+    int dataId;
     String executionSessionId;
     String filename;
     String classname;
@@ -18,7 +22,7 @@ public class TracePoint {
     private long nanoTime;
 
     public TracePoint(long classId, long linenum,
-                      long dataId,
+                      int dataId,
                       long threadId,
                       long value,
                       String executionSessionId,
@@ -40,6 +44,22 @@ public class TracePoint {
         this.recordedAt = recordedAt;
         this.nanoTime = nanoTime;
     }
+
+
+    public FilteredDataEventsRequest toFilterDataEventRequest() {
+        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
+        filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
+        filteredDataEventsRequest.setProbeId(this.getDataId());
+        filteredDataEventsRequest.setThreadId(this.getThreadId());
+        filteredDataEventsRequest.setNanotime(this.getNanoTime());
+        filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
+        filteredDataEventsRequest.setPageSize(200);
+        filteredDataEventsRequest.setPageNumber(0);
+        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
+        filteredDataEventsRequest.setSortOrder("DESC");
+        return filteredDataEventsRequest;
+    }
+
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
 
@@ -94,7 +114,7 @@ public class TracePoint {
         return linenum;
     }
 
-    public long getDataId() {
+    public int getDataId() {
         return dataId;
     }
 
