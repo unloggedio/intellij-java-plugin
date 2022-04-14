@@ -5,6 +5,7 @@ import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.query.Query;
+import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -77,16 +78,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void setSession(ExecutionSession session) {
         this.session = session;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    loadSessionIndexes(0);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    loadSessionIndexes(0);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }).start();
     }
 
     @Override
@@ -157,28 +158,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void getTracesByObjectType(
             List<String> classList,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         logger.info("trace by typeName");
 
-
-        Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, classList);
-        List<TypeInfoDocument> searchResult = sessionCache.retriveByType(query);
-
-        List<TracePoint> tracePoints = searchResult.stream()
-                .map(e ->
-                        new TracePoint(1, 1, 1, 1,
-                                e.getTypeId(), "1", "1", "1"
-                                , e.getTypeName(), 1, 1))
-                .collect(Collectors.toList());
-
-
-        getProjectSessionErrorsCallback.success(tracePoints);
-
-
-    }
-
-    public void loadSessionIndexes(int max) throws IOException {
-
+        logger.info("trace by class: " + classList);
+        long start;
         File sessionDirectory = new File(this.pathToSessions + session.getName());
         assert sessionDirectory.isDirectory();
         List<File> sessionFiles = Arrays
@@ -186,95 +170,179 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
                 .collect(Collectors.toList());
 
-        if (this.sessionCache == null) {
-            this.sessionCache = new SessionCache(session.getId());
-        } else {
-            if (!this.sessionCache.getSessionId().equals(session.getId())) {
-                this.sessionCache = new SessionCache(session.getId());
-            }
-        }
 
-
-        ArchiveIndex index = null;
-
+        List<TracePoint> tracePointList = new LinkedList<>();
         for (File sessionFile : sessionFiles) {
-            if (sessionCache.containsFile(sessionFile.getName())) {
-                continue;
+
+            ArchiveIndex index = buildIndexFromSessionFile(sessionFile, INDEX_TYPE_DAT_FILE);
+
+            Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, classList);
+            ResultSet<TypeInfoDocument> searchResult = index.Types().retrieve(query);
+
+            if (searchResult.size() > 0) {
+                List<TracePoint> tracePoints = searchResult.stream()
+                        .map(e ->
+                                new TracePoint(1, 1, 1, 1,
+                                        e.getTypeId(), "1", "1", "1",
+                                        e.getTypeName(), 1, 1))
+                        .collect(Collectors.toList());
+
+                tracePointList.addAll(tracePoints);
             }
-
-            ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-            String outDirName = sessionFile.getName().split(".zip")[0];
-            File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
-            outDirFile.mkdirs();
-
-            ZipEntry entry = null;
-            while ((entry = indexArchive.getNextEntry()) != null) {
-
-                if (entry.getName().equals(INDEX_EVENTS_DAT_FILE)) {
-                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE);
-                    StreamUtil.copy(indexArchive, getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE));
-                    fos.close();
-                }
-                if (entry.getName().equals(INDEX_OBJECT_DAT_FILE)) {
-                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_OBJECT_DAT_FILE);
-                    StreamUtil.copy(indexArchive, fos);
-                    fos.close();
-                }
-
-
-                if (entry.getName().equals(INDEX_STRING_DAT_FILE)) {
-                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_STRING_DAT_FILE);
-                    StreamUtil.copy(indexArchive, fos);
-                    fos.close();
-                }
-
-                if (entry.getName().equals(INDEX_TYPE_DAT_FILE)) {
-                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_TYPE_DAT_FILE);
-                    StreamUtil.copy(indexArchive, fos);
-                    fos.close();
-                }
-            }
-            indexArchive.close();
-            logger.info("initialize index for archive: " + outDirFile.getAbsolutePath());
-
-            try {
-                ArchiveIndex index1 = initialiseIndexes(outDirFile.getAbsolutePath() + "/");
-                if (index == null) {
-                    index = index1;
-                    sessionCache.put(sessionFile.getName(), index);
-                } else {
-                    index.Strings().addAll(index1.Strings());
-                    index.Types().addAll(index1.Types());
-                    index.Objects().addAll(index1.Objects());
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
         }
+        getProjectSessionErrorsCallback.success(tracePointList);
+    }
+
+    private ArchiveIndex buildIndexFromSessionFile(File sessionFile, String indexType) throws IOException {
+        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+        String outDirName = sessionFile.getName().split(".zip")[0];
+        File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
+        outDirFile.mkdirs();
+
+        ZipEntry entry = null;
+        while ((entry = indexArchive.getNextEntry()) != null) {
+
+            if (entry.getName().equals(INDEX_EVENTS_DAT_FILE) && INDEX_EVENTS_DAT_FILE.equals(indexType)) {
+                FileOutputStream fos = getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE);
+                StreamUtil.copy(indexArchive, getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE));
+                fos.close();
+            }
+            if (entry.getName().equals(INDEX_OBJECT_DAT_FILE) && INDEX_OBJECT_DAT_FILE.equals(indexType)) {
+                FileOutputStream fos = getOutputStream(outDirFile, INDEX_OBJECT_DAT_FILE);
+                StreamUtil.copy(indexArchive, fos);
+                fos.close();
+            }
+
+
+            if (entry.getName().equals(INDEX_STRING_DAT_FILE) && INDEX_STRING_DAT_FILE.equals(indexType)) {
+                FileOutputStream fos = getOutputStream(outDirFile, INDEX_STRING_DAT_FILE);
+                StreamUtil.copy(indexArchive, fos);
+                fos.close();
+            }
+
+            if (entry.getName().equals(INDEX_TYPE_DAT_FILE) && INDEX_TYPE_DAT_FILE.equals(indexType)) {
+                FileOutputStream fos = getOutputStream(outDirFile, INDEX_TYPE_DAT_FILE);
+                StreamUtil.copy(indexArchive, fos);
+                fos.close();
+            }
+        }
+        logger.info("initialize index for archive: " + outDirFile.getAbsolutePath());
+        return initialiseIndexes(outDirFile.getAbsolutePath() + "/", indexType);
 
     }
+
+//    public void loadSessionIndexes(int max) throws IOException {
+//
+//        File sessionDirectory = new File(this.pathToSessions + session.getName());
+//        assert sessionDirectory.isDirectory();
+//        List<File> sessionFiles = Arrays
+//                .stream(Objects.requireNonNull(sessionDirectory.listFiles()))
+//                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
+//                .collect(Collectors.toList());
+//
+//        if (this.sessionCache == null) {
+//            this.sessionCache = new SessionCache(session.getId());
+//        } else {
+//            if (!this.sessionCache.getSessionId().equals(session.getId())) {
+//                this.sessionCache = new SessionCache(session.getId());
+//            }
+//        }
+//
+//
+//        ArchiveIndex index = null;
+//
+//        for (File sessionFile : sessionFiles) {
+//            if (sessionCache.containsFile(sessionFile.getName())) {
+//                continue;
+//            }
+//
+//            ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+//            String outDirName = sessionFile.getName().split(".zip")[0];
+//            File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
+//            outDirFile.mkdirs();
+//
+//            ZipEntry entry = null;
+//            while ((entry = indexArchive.getNextEntry()) != null) {
+//
+//                if (entry.getName().equals(INDEX_EVENTS_DAT_FILE)) {
+//                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE);
+//                    StreamUtil.copy(indexArchive, getOutputStream(outDirFile, INDEX_EVENTS_DAT_FILE));
+//                    fos.close();
+//                }
+//                if (entry.getName().equals(INDEX_OBJECT_DAT_FILE)) {
+//                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_OBJECT_DAT_FILE);
+//                    StreamUtil.copy(indexArchive, fos);
+//                    fos.close();
+//                }
+//
+//
+//                if (entry.getName().equals(INDEX_STRING_DAT_FILE)) {
+//                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_STRING_DAT_FILE);
+//                    StreamUtil.copy(indexArchive, fos);
+//                    fos.close();
+//                }
+//
+//                if (entry.getName().equals(INDEX_TYPE_DAT_FILE)) {
+//                    FileOutputStream fos = getOutputStream(outDirFile, INDEX_TYPE_DAT_FILE);
+//                    StreamUtil.copy(indexArchive, fos);
+//                    fos.close();
+//                }
+//            }
+//            indexArchive.close();
+//            logger.info("initialize index for archive: " + outDirFile.getAbsolutePath());
+//
+//            try {
+//                ArchiveIndex index1 = initialiseIndexes(outDirFile.getAbsolutePath() + "/");
+//                if (index == null) {
+//                    index = index1;
+//                    sessionCache.put(sessionFile.getName(), index);
+//                } else {
+//                    index.Strings().addAll(index1.Strings());
+//                    index.Types().addAll(index1.Types());
+//                    index.Objects().addAll(index1.Objects());
+//                }
+//
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//
+//        }
+//
+//    }
 
     @Override
     public void getTracesByObjectValue(
             String value, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback
-    ) {
+    ) throws IOException {
         logger.info("trace by string value: " + value);
-
-        Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
-        List<StringInfoDocument> searchResult = sessionCache.retrieveByString(query);
-
-        List<TracePoint> tracePoints = searchResult.stream()
-                .map(e ->
-                        new TracePoint(1, 1, 1, 1,
-                                e.getStringId(), "1", "1", "1"
-                                , "1", 1, 1))
+        long start;
+        File sessionDirectory = new File(this.pathToSessions + session.getName());
+        assert sessionDirectory.isDirectory();
+        List<File> sessionFiles = Arrays
+                .stream(Objects.requireNonNull(sessionDirectory.listFiles()))
+                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
                 .collect(Collectors.toList());
 
 
-        getProjectSessionErrorsCallback.success(tracePoints);
+        List<TracePoint> tracePointList = new LinkedList<>();
+        for (File sessionFile : sessionFiles) {
+
+            ArchiveIndex index = buildIndexFromSessionFile(sessionFile, INDEX_STRING_DAT_FILE);
+            Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
+            ResultSet<StringInfoDocument> searchResult = index.Strings().retrieve(query);
+
+            if (searchResult.size() > 0) {
+                List<TracePoint> tracePoints = searchResult.stream()
+                        .map(e ->
+                                new TracePoint(1, 1, 1, 1,
+                                        e.getStringId(), "1", "1", "1"
+                                        , "1", 1, 1))
+                        .collect(Collectors.toList());
+                tracePointList.addAll(tracePoints);
+            }
+        }
+        getProjectSessionErrorsCallback.success(tracePointList);
 
     }
 
@@ -284,27 +352,37 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return new FileOutputStream(indexFile);
     }
 
-    private ArchiveIndex initialiseIndexes(String outDirFile) {
+    private ArchiveIndex initialiseIndexes(String outDirFile, String indexFilterType) {
 
-        File typeIndexFile = new File(outDirFile + INDEX_TYPE_DAT_FILE);
-//        File stringIndexFile = new File("D:\\workspace\\code\\insidious\\agent\\" + "test-output-1649906926093\\index-00001-1649906926181\\index.string.dat");
-        File stringIndexFile = new File(outDirFile + INDEX_STRING_DAT_FILE);
-        File objectIndexFile = new File(outDirFile + INDEX_OBJECT_DAT_FILE);
+        ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = null;
+        if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
+            File typeIndexFile = new File(outDirFile + INDEX_TYPE_DAT_FILE);
+            DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence
+                    = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, typeIndexFile);
+            typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
+            typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_NAME));
+        }
 
-        DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence
-                = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, typeIndexFile);
-        DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence
-                = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
-        DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence
-                = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, objectIndexFile);
 
-        ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
-        ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
-        ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+        ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = null;
+        if (indexFilterType.equals(INDEX_STRING_DAT_FILE)) {
+            File stringIndexFile = new File(outDirFile + INDEX_STRING_DAT_FILE);
+            DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence
+                    = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
+            stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
+            stringInfoIndex.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
+        }
 
-        typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_NAME));
-        stringInfoIndex.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
-        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+        ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
+        if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE)) {
+            File objectIndexFile = new File(outDirFile + INDEX_OBJECT_DAT_FILE);
+            DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence
+                    = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, objectIndexFile);
+
+            objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+        }
+
         return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
     }
 
