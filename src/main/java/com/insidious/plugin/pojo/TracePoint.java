@@ -1,8 +1,9 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
+import com.insidious.common .Util;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -12,6 +13,8 @@ import java.util.Collections;
 
 public class TracePoint {
 
+    private static final byte ATTRIBUTE_SEPARATOR = ',';
+    private static final byte ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
     private final long recordedAt;
     long classId, linenum, threadId, value;
     int dataId;
@@ -63,10 +66,10 @@ public class TracePoint {
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
 
-        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
+        KaitaiInsidiousClassWeaveParser.ProbeInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
         if (dataInfoObject != null) {
 
-            ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.getClassId()));
+            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.classId()));
 
             ObjectInfo errorKeyValueJson = traceResponse.getObjectInfo(String.valueOf(dataEvent.getValue()));
             long exceptionType = errorKeyValueJson.getTypeId();
@@ -75,26 +78,26 @@ public class TracePoint {
             if (exceptionClassJson != null) {
                 exceptionClass = exceptionClassJson.getTypeNameFromClass();
             }
-            switch (dataInfoObject.getEventType()) {
+            switch (EventType.valueOf(dataInfoObject.eventType().value())) {
                 case LABEL:
                 case CATCH:
                     return null;
 //                case METHOD_EXCEPTIONAL_EXIT:
 //                case METHOD_THROW:
             }
-            if (dataInfoObject.getAttribute("Type", "").length() == 1) {
+            if (Util.getAttribute(dataInfoObject.attributes().value(), "Type", "").length() == 1) {
                 return null;
             }
 
 
-            return new TracePoint(dataInfoObject.getClassId(),
-                    dataInfoObject.getLine(),
+            return new TracePoint(dataInfoObject.classId(),
+                    dataInfoObject.lineNumber(),
                     dataEvent.getDataId(),
                     dataEvent.getThreadId(),
                     dataEvent.getValue(),
                     dataEvent.getExecutionSessionId(),
-                    classInfo.getFilename(),
-                    classInfo.getClassName(),
+                    classInfo.fileName().value(),
+                    classInfo.className().value(),
                     exceptionClass,
                     dataEvent.getRecordedAt().getTime(),
                     dataEvent.getNanoTime());
@@ -104,6 +107,33 @@ public class TracePoint {
         return null;
 
 
+    }
+
+
+    /**
+     * Access a particular attribute of the instruction, assuming the "KEY=VALUE" format.
+     *
+     * @param key          specifies an attribute key
+     * @param defaultValue is returned if the key is unavailable.
+     * @return the value corresponding to the key.
+     */
+    public String getAttribute(String attributes, String key, String defaultValue) {
+        int index = attributes.indexOf(key);
+        while (index >= 0) {
+            if (index == 0 || attributes.charAt(index - 1) == ATTRIBUTE_SEPARATOR) {
+                int keyEndIndex = attributes.indexOf(ATTRIBUTE_KEYVALUE_SEPARATOR, index);
+                if (keyEndIndex == index + key.length()) {
+                    int valueEndIndex = attributes.indexOf(ATTRIBUTE_SEPARATOR, keyEndIndex);
+                    if (valueEndIndex > keyEndIndex) {
+                        return attributes.substring(index + key.length() + 1, valueEndIndex);
+                    } else {
+                        return attributes.substring(index + key.length() + 1);
+                    }
+                }
+            }
+            index = attributes.indexOf(key, index + 1);
+        }
+        return defaultValue;
     }
 
     public long getClassId() {

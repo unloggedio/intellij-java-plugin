@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.StringInfo;
@@ -456,10 +457,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
         }
 
-
         ResponseMetadata metadata = dataResponse.getMetadata();
-        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
-        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
+        Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo = metadata.getClassInfo();
+        Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo = metadata.getDataInfo();
+
         Map<String, StringInfo> stringInfo = metadata.getStringInfo();
         Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
         Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();

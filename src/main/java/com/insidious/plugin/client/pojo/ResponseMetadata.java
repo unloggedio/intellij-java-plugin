@@ -1,5 +1,6 @@
 package com.insidious.plugin.client.pojo;
 
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.StringInfo;
@@ -9,8 +10,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ResponseMetadata {
-    Map<String, ClassInfo> classInfo;
-    Map<String, DataInfo> dataInfo;
+    Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo;
+    Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo;
     Map<String, StringInfo> stringInfo;
     Map<String, TypeInfo> typeInfo;
     Map<String, ObjectInfo> objectInfo;
@@ -39,19 +40,19 @@ public class ResponseMetadata {
         this.typeInfo = typeInfo;
     }
 
-    public Map<String, ClassInfo> getClassInfo() {
+    public Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> getClassInfo() {
         return classInfo;
     }
 
-    public void setClassInfo(Map<String, ClassInfo> classInfo) {
+    public void setClassInfo(Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo) {
         this.classInfo = classInfo;
     }
 
-    public Map<String, DataInfo> getDataInfo() {
+    public Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> getDataInfo() {
         return dataInfo;
     }
 
-    public void setDataInfo(Map<String, DataInfo> dataInfo) {
+    public void setDataInfo(Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo) {
         this.dataInfo = dataInfo;
     }
 

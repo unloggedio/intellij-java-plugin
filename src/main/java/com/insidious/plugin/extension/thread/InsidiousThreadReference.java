@@ -1,13 +1,18 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.common.Util;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.client.pojo.ObjectInfo;
 import com.insidious.plugin.extension.connector.RequestHint;
-import com.insidious.plugin.extension.model.*;
+import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.thread.types.InsidiousClassTypeReference;
 import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
 import com.insidious.plugin.extension.thread.types.InsidiousTypeFactory;
-import com.insidious.plugin.client.pojo.ClassInfo;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.util.text.StringUtil;
@@ -27,8 +32,8 @@ public class InsidiousThreadReference implements ThreadReference {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
-    private final Map<String, DataInfo> dataInfoMap;
-    private final Map<String, ClassInfo> classInfoMap;
+    private final Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfoMap;
+    private final Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap;
     private final Map<String, StringInfo> stringInfoMap;
     private final Map<String, InsidiousField> typeFieldMap = new HashMap<>();
     private final Map<String, InsidiousClassTypeReference> classTypeMap;
@@ -105,9 +110,9 @@ public class InsidiousThreadReference implements ThreadReference {
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
             String dataId = String.valueOf(dataEvent.getDataId());
-            DataInfo probeInfo = dataInfoMap.get(dataId);
-            int classId = probeInfo.getClassId();
-            ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
+            KaitaiInsidiousClassWeaveParser.ProbeInfo probeInfo = dataInfoMap.get(dataId);
+            int classId = (int) probeInfo.classId();
+            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
             ObjectInfo objectInfo = this.replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
             TypeInfo typeInfo = null;
             if (objectInfo != null) {
@@ -117,12 +122,14 @@ public class InsidiousThreadReference implements ThreadReference {
             InsidiousObjectReference receiverObject;
 
             logger.info("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
-                    + "] line [" + probeInfo.getLine() + "][" + probeInfo.getEventType()
-                    + "]  of class [" + classInfo.getFilename() + "] => [" + dataEvent.getValue() + "]");
-            String fieldName = probeInfo.getAttribute("FieldName", null);
+                    + "] line [" + probeInfo.lineNumber() + "][" +
+                    probeInfo.eventType().value()
+                    + "]  of class [" +
+                    classInfo.fileName() + "] => [" + dataEvent.getValue() + "]");
+            String fieldName = Util.getAttribute(probeInfo.attributes().value(), "FieldName", null);
 
 
-            switch (probeInfo.getEventType()) {
+            switch (EventType.valueOf(probeInfo.eventType().value())) {
                 case PUT_INSTANCE_FIELD:
                 case GET_INSTANCE_FIELD:
                     receiverObjectId = dataEvent.getValue();
@@ -168,7 +175,8 @@ public class InsidiousThreadReference implements ThreadReference {
                     // instructionCount++;
 
 
-                    String parentId = probeInfo.getAttribute("Parent", "");
+                    String parentId = Util.getAttribute(
+                            probeInfo.attributes().value(), "Parent", "");
                     if (!Objects.equals(parentId, "")) {
                         if (!childrenObjectMap.containsKey(parentId)) {
                             childrenObjectMap.put(parentId, new LinkedList<>());
@@ -185,11 +193,13 @@ public class InsidiousThreadReference implements ThreadReference {
                         currentClassId = classId;
                         if (currentFrame.location() == null) {
                             InsidiousLocation currentLocation = new InsidiousLocation(
-                                    classInfo.getFilename(), probeInfo.getLine() - 1);
+                                    classInfo.fileName().value(), (int) (probeInfo.lineNumber() - 1));
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
-                            thisObject.setReferenceType(buildClassTypeReferenceFromName(classInfo.getClassName()));
+                            thisObject.setReferenceType(
+                                    buildClassTypeReferenceFromName(
+                                            classInfo.className().value()));
                         }
 
                     }
@@ -221,7 +231,8 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
 
 
-                    String variableName = probeInfo.getAttribute("Name", null);
+                    String variableName = Util.getAttribute(
+                            probeInfo.attributes().value(), "Name", null);
 //                    instructionCount++;
 
                     if (variableMap.containsKey(variableName) || variableName == null) {
@@ -240,12 +251,15 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (objectObjectCreatedId == 0) {
                         continue;
                     }
-                    DataInfo parentDataInfo = this.replayData.getDataInfoMap().get(probeInfo.getAttribute("NewParent", "0"));
+                    KaitaiInsidiousClassWeaveParser.ProbeInfo parentDataInfo
+                            = this.replayData.getDataInfoMap().get(
+                                    Util.getAttribute(probeInfo.attributes().value(), "NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
                         logger.warn("no data info for parent of new object created [%s]", probeInfo);
                     } else {
-                        classTypeOfNewObject = parentDataInfo.getAttribute("Type", classTypeOfNewObject);
+                        classTypeOfNewObject = Util.getAttribute(
+                                parentDataInfo.attributes().value(), "Type", classTypeOfNewObject);
                     }
 
                     buildDataObjectFromIdAndTypeValue(
@@ -267,7 +281,8 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
 
 
-                    String paramType = probeInfo.getAttribute("Type", "Ljava/lang/Object;");
+                    String paramType = Util.getAttribute(
+                            probeInfo.attributes().value(), "Type", "Ljava/lang/Object;");
                     if ("V".equals(paramType)) { // void return type
                         continue;
                     }
@@ -300,7 +315,8 @@ public class InsidiousThreadReference implements ThreadReference {
                         isMethodParam = false;
                     }
 
-                    parentId = probeInfo.getAttribute("CallParent", "0");
+                    parentId = Util.getAttribute(
+                            probeInfo.attributes().value(), "CallParent", "0");
                     if (!"0".equals(parentId)) {
                         List<InsidiousLocalVariable> list = childrenObjectMap.get(parentId);
                         if (!childrenObjectMap.containsKey(parentId)) {
@@ -316,8 +332,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
                     // instructionCount++;
-                    String interfaceOwner = probeInfo.getAttribute("Owner", "");
-                    String methodName = probeInfo.getAttribute("Name", "");
+                    String interfaceOwner = Util.getAttribute(probeInfo.attributes().value(), "Owner", "");
+                    String methodName = Util.getAttribute(probeInfo.attributes().value(),"Name", "");
 
                     Object value = buildDataObjectFromIdAndTypeValue("L" + interfaceOwner, dataEvent.getValue());
                     if (value instanceof InsidiousObjectReference) {
@@ -454,7 +470,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
                                 } else if ("get".equals(methodName)) { // get call
 
-                                    String signature = probeInfo.getAttribute("Desc", ")Object").split("\\)")[1];
+                                    String signature = Util.getAttribute(
+                                            probeInfo.attributes().value(),"Desc", ")Object").split("\\)")[1];
 
 //                                    objectReferenceMap.put(receiverObjectId, receiverObject);
 //
@@ -570,29 +587,31 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, InsidiousClassTypeReference> classMap = new HashMap<>();
         Map<String, Map<String, String>> classFieldsMap = new HashMap<>();
 
-        for (Map.Entry<String, ClassInfo> classInfoEntry : replayData.getClassInfoMap().entrySet()) {
+        for (Map.Entry<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoEntry
+                : replayData.getClassInfoMap().entrySet()) {
 
             Long classId = Long.valueOf(classInfoEntry.getKey());
-            ClassInfo classInfo = classInfoEntry.getValue();
-            List<DataInfo> probes = classInfo.getDataInfoList();
+            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = classInfoEntry.getValue();
+            ArrayList<KaitaiInsidiousClassWeaveParser.ProbeInfo> probes = classInfo.probeList();
 
             Map<String, String> classFields = new HashMap<>();
 
-            for (DataInfo probe : probes) {
-                switch (probe.getEventType()) {
+            for (KaitaiInsidiousClassWeaveParser.ProbeInfo probe : probes) {
+                switch (EventType.valueOf(probe.eventType().value())) {
                     case PUT_INSTANCE_FIELD:
                     case GET_INSTANCE_FIELD:
-                        String fieldName = probe.getAttribute("FieldName", "");
+                        String fieldName = Util.getAttribute(probe.attributes().value(), "FieldName", "");
                         if (classFields.containsKey(fieldName)) {
                             continue;
                         }
-                        String fieldType = probe.getAttribute("Type", "");
+                        String fieldType = Util.getAttribute(
+                                probe.attributes().value(), "Type", "");
                         classFields.put(fieldName, fieldType);
                         break;
                 }
             }
 
-            String className = classInfo.getClassName();
+            String className = classInfo.className().value();
             classFieldsMap.put(className, classFields);
 
             InsidiousClassTypeReference classTypeReference = buildClassTypeReferenceFromName(className);
@@ -662,11 +681,12 @@ public class InsidiousThreadReference implements ThreadReference {
         return className.startsWith("java.lang") || className.indexOf('.') == -1;
     }
 
-    private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, DataInfo probeInfo) {
+    private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, KaitaiInsidiousClassWeaveParser.ProbeInfo probeInfo) {
 
 
-        String variableSignature = probeInfo.getAttribute("Type", null);
-        ClassInfo classInfo = this.replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
+        String variableSignature = Util.getAttribute(probeInfo.attributes().value(),"Type", null);
+        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
+                = this.replayData.getClassInfoMap().get(String.valueOf(probeInfo.classId()));
         long objectId = 0;
 
         char typeFirstCharacter = variableSignature.charAt(0);
@@ -698,7 +718,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         InsidiousObjectReference objectValue = new InsidiousObjectReference(this);
 
                         objectValue.setObjectId(objectId);
-                        objectValue.setReferenceType(classTypeMap.get(classInfo.getClassName()));
+                        objectValue.setReferenceType(classTypeMap.get(classInfo.className()));
 
                         if (objectFieldMap.containsKey(objectId)) {
                             List<InsidiousLocalVariable> fieldVariables = objectFieldMap.get(objectId);
@@ -968,17 +988,19 @@ public class InsidiousThreadReference implements ThreadReference {
 //        buildClassTypeReferences();
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
-        int currentLineNumber = replayData.getDataInfoMap().get(String.valueOf(dataEvents.get(position).getDataId())).getLine();
+        int currentLineNumber = (int) replayData.getDataInfoMap().get(
+                String.valueOf(dataEvents.get(position).getDataId())).lineNumber();
 
         List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
         if (size < 0) {
             for (int i = position; i < dataEvents.size(); i++) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
-                DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
-                if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
+                KaitaiInsidiousClassWeaveParser.ProbeInfo dataInfo = replayData.getDataInfoMap().get
+                        (String.valueOf(dataEventWithSessionId.getDataId()));
+                if (!EventType.LINE_NUMBER.toString().equals(dataInfo.eventType().value())) {
                     continue;
                 }
-                if (dataInfo.getLine() != currentLineNumber) {
+                if (dataInfo.lineNumber() != currentLineNumber) {
                     position = i;
                     break;
                 }
@@ -986,11 +1008,12 @@ public class InsidiousThreadReference implements ThreadReference {
         } else {
             for (int i = position; i > 0; i--) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
-                DataInfo dataInfo = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
-                if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
+                KaitaiInsidiousClassWeaveParser.ProbeInfo dataInfo
+                        = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                if (!dataInfo.eventType().value().equals(EventType.LINE_NUMBER.toString())) {
                     continue;
                 }
-                if (dataInfo.getLine() != currentLineNumber) {
+                if (dataInfo.lineNumber() != currentLineNumber) {
                     position = i;
                     break;
                 }

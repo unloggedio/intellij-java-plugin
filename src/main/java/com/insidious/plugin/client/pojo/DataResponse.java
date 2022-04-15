@@ -1,7 +1,6 @@
 package com.insidious.plugin.client.pojo;
 
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.TypeInfo;
 
 import java.util.List;
@@ -61,11 +60,11 @@ public class DataResponse<T> {
         this.metadata = metadata;
     }
 
-    public DataInfo getDataInfo(String probeId) {
+    public KaitaiInsidiousClassWeaveParser.ProbeInfo getDataInfo(String probeId) {
         return metadata.dataInfo.get(probeId);
     }
 
-    public ClassInfo getClassInfo(String probeId) {
+    public KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(String probeId) {
         return metadata.classInfo.get(probeId);
 
     }
