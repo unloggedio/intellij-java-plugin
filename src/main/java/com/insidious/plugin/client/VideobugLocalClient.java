@@ -11,6 +11,10 @@ import com.insidious.common.UploadFile;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.parser.KaitaiInsidiousEventParser;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.pojo.*;
@@ -18,9 +22,6 @@ import com.insidious.plugin.client.pojo.local.ObjectInfoDocument;
 import com.insidious.plugin.client.pojo.local.StringInfoDocument;
 import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
-import com.insidious.plugin.extension.model.DataInfo;
-import com.insidious.plugin.extension.model.Descriptor;
-import com.insidious.plugin.extension.model.EventType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.util.io.StreamUtil;
@@ -357,7 +358,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         return new TracePoint(classId,
                                                 dataInfo.getLine(), dataInfo.getDataId(),
                                                 e1.getThreadId(), e1.getValue(),
-                                                session.getId(), classId,
+                                                session.getId(), "className-" + classId,
                                                 "asdf", "asdf", 1, 1);
                                     } catch (IOException ex) {
                                         logger.info("failed to get data probe information: "

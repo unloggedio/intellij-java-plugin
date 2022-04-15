@@ -1,6 +1,9 @@
 package com.insidious.plugin.extension.model;
 
-import com.insidious.plugin.client.pojo.ClassInfo;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ObjectInfo;
 
