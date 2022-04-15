@@ -25,6 +25,7 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.util.io.StreamUtil;
 import io.kaitai.struct.ByteBufferKaitaiStream;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -45,6 +46,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private final Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap = new HashMap<>();
     private ExecutionSession session;
     private ProjectItem currentProject;
+    private KaitaiInsidiousClassWeaveParser classWeaveInfo;
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -342,15 +344,29 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 dataEvents.stream().map(e1 -> {
 
                                     try {
-                                        getProbeInfo(sessionArchive, e.getPath(), Set.of(e1.getDataId()));
-                                    } catch (IOException ex) {
-                                        ex.printStackTrace();
-                                    }
+                                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive,
+                                                e.getPath(),
+                                                Set.of(e1.getDataId()));
 
-                                    return new TracePoint(1, 1, 1,
-                                            1, 1, "asdf", "asdf",
-                                            "asdf", "asdf", 1, 1);
-                                }).collect(Collectors.toList()));
+                                        DataInfo dataInfo = dataInfoList.get(0);
+
+                                        int classId = dataInfo.getClassId();
+                                        ClassInfo classInfo = getClassInfo(classId);
+
+
+                                        return new TracePoint(classId,
+                                                dataInfo.getLine(), dataInfo.getDataId(),
+                                                e1.getThreadId(), e1.getValue(),
+                                                session.getId(), classId,
+                                                "asdf", "asdf", 1, 1);
+                                    } catch (IOException ex) {
+                                        logger.info("failed to get data probe information: "
+                                                + ex.getMessage() + " -- " + ex.getCause());
+                                    }
+                                    return null;
+
+
+                                }).filter(Objects::nonNull).collect(Collectors.toList()));
 
                     } catch (IOException ex) {
                         ex.printStackTrace();
@@ -363,30 +379,41 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
+    private ClassInfo getClassInfo(int classId) {
+        return classWeaveInfo.classInfo();
+    }
+
     private List<DataInfo> getProbeInfo(File sessionFile, String filePath, Set<Integer> dataId) throws IOException {
 
-        createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE, filePath);
-        KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
-                new ByteBufferKaitaiStream(
-                        new FileInputStream(
-                                Path.of(sessionFile.getAbsolutePath(), filePath).toFile()).readAllBytes()));
 
+        if (classWeaveInfo == null) {
+            createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE, filePath);
+            classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
+                    new ByteBufferKaitaiStream(
+                            new FileInputStream(
+                                    Path.of(sessionFile.getAbsolutePath(), filePath).toFile()).readAllBytes()));
+        }
 
         return classWeaveInfo.classInfo().parallelStream()
                 .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
                 .flatMap(Collection::stream)
                 .filter(e -> dataId.contains(Math.toIntExact(e.dataId())))
-                .map(e -> new DataInfo(
-                        Math.toIntExact(e.classId()),
-                        Math.toIntExact(e.methodId()),
-                        Math.toIntExact(e.dataId()),
-                        Math.toIntExact(e.lineNumber()),
-                        Math.toIntExact(e.instructionIndex()),
-                        EventType.valueOf(e.eventType().value()),
-                        Descriptor.valueOf(e.valueDescriptor().value()),
-                        e.attributes().value()
-                )).collect(Collectors.toList());
+                .map(this::toDataInfo).collect(Collectors.toList());
 
+    }
+
+    @NotNull
+    private DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
+        return new DataInfo(
+                Math.toIntExact(e.classId()),
+                Math.toIntExact(e.methodId()),
+                Math.toIntExact(e.dataId()),
+                Math.toIntExact(e.lineNumber()),
+                Math.toIntExact(e.instructionIndex()),
+                EventType.valueOf(e.eventType().value()),
+                Descriptor.valueOf(e.valueDescriptor().value()),
+                e.attributes().value()
+        );
     }
 
     private List<DataEventWithSessionId> getDataEventsFromPath(File sessionFile,
