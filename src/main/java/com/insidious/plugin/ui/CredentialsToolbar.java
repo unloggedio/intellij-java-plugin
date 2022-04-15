@@ -116,8 +116,6 @@ public class CredentialsToolbar {
                                     infoError.setText("Signup was successful!");
                                     ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
                                             .submit(backgroundThreadExecutor);
-                                    ReadAction.nonBlocking(insidiousService::identifyTargetJar)
-                                            .submit(backgroundThreadExecutor);
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }

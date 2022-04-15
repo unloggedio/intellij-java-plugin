@@ -1,10 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.extension.InsidiousExecutor;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousRunConfigType;
-import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
@@ -15,13 +11,17 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.visitor.GradleFileVisitor;
-import com.insidious.plugin.visitor.PomFileVisitor;
+import com.insidious.plugin.extension.InsidiousExecutor;
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousRunConfigType;
+import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.CredentialsToolbar;
 import com.insidious.plugin.ui.HorBugTable;
 import com.insidious.plugin.ui.LogicBugs;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.visitor.GradleFileVisitor;
+import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
 import com.intellij.execution.ExecutionException;
@@ -31,7 +31,6 @@ import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.execution.ui.FragmentedSettings;
@@ -327,8 +326,6 @@ public class InsidiousService {
                         @Override
                         public void success(String token) {
                             ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
-                                    .submit(Executors.newSingleThreadExecutor());
-                            ReadAction.nonBlocking(InsidiousService.this::identifyTargetJar)
                                     .submit(Executors.newSingleThreadExecutor());
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
                                     .submit(Executors.newSingleThreadExecutor());
@@ -667,10 +664,6 @@ public class InsidiousService {
 
     }
 
-    public void setProcessHandler(ProcessHandler processHandler) {
-        this.processHandler = processHandler;
-    }
-
     public Project getProject() {
         return project;
     }
@@ -809,19 +802,6 @@ public class InsidiousService {
             this.toolWindow.getContentManager().addContent(credentialContent);
         }
 
-    }
-
-    public void identifyTargetJar() {
-        File targetFolder = new File(Path.of(project.getBasePath(), "target").toAbsolutePath().toString());
-        if (targetFolder.exists()) {
-            for (File targetFile : Objects.requireNonNull(targetFolder.listFiles())) {
-                if (targetFile.getAbsolutePath().endsWith(".jar")) {
-                    projectTargetJarLocation = targetFile.getAbsolutePath();
-                    setAppTokenOnUi();
-                    break;
-                }
-            }
-        }
     }
 
     public void setAppTokenOnUi() {
@@ -1001,8 +981,6 @@ public class InsidiousService {
         ExecutorService backgroundThreadExecutor = Executors.newSingleThreadExecutor();
 
         ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
-                .submit(backgroundThreadExecutor);
-        ReadAction.nonBlocking(InsidiousService.this::identifyTargetJar)
                 .submit(backgroundThreadExecutor);
         ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
                 .submit(backgroundThreadExecutor);
