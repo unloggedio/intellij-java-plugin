@@ -1,6 +1,6 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.videobugclient.VideobugClientInterface;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -14,7 +14,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.videobugclient.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

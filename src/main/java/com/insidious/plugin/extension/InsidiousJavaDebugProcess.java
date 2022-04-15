@@ -38,7 +38,7 @@ import com.insidious.plugin.extension.smartstep.MethodFilter;
 import com.insidious.plugin.extension.thread.InsidiousThreadReference;
 import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.videobugclient.pojo.exceptions.APICallException;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;

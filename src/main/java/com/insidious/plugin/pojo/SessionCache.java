@@ -2,9 +2,9 @@ package com.insidious.plugin.pojo;
 
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
-import com.insidious.plugin.videobugclient.cache.ArchiveIndex;
-import com.insidious.plugin.videobugclient.pojo.local.StringInfoDocument;
-import com.insidious.plugin.videobugclient.pojo.local.TypeInfoDocument;
+import com.insidious.plugin.client.cache.ArchiveIndex;
+import com.insidious.plugin.client.pojo.local.StringInfoDocument;
+import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
 
 import java.util.HashMap;
 import java.util.LinkedList;

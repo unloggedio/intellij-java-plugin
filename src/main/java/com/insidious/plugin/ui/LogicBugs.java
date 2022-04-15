@@ -1,12 +1,11 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.videobugclient.pojo.DebugPoint;
-import com.insidious.plugin.videobugclient.pojo.exceptions.APICallException;
-import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.client.pojo.DebugPoint;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
@@ -28,7 +27,6 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -240,29 +238,6 @@ public class LogicBugs {
             logger.error("failed to load trace point", e);
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
         }
-
-    }
-
-    public void setVariables(Collection<DataEvent> dataListTemp) {
-        JTableHeader header = this.varsvalueTable.getTableHeader();
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        Object[] headers = {"Variable Name", "Variable Value"};
-
-        String[][] sampleObject = new String[dataListTemp.size()][];
-
-        int i = 0;
-        for (DataEvent dataEvent : dataListTemp) {
-            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
-            i++;
-        }
-
-        if (centerRenderer == null) {
-            centerRenderer = new DefaultTableCellRenderer();
-        }
-        defaultTableModelvarsValues.setDataVector(sampleObject, headers);
-        this.varsvalueTable.setModel(defaultTableModelvarsValues);
-        this.varsvalueTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.varsvalueTable.setAutoCreateRowSorter(true);
 
     }
 

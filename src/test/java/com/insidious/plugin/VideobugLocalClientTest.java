@@ -2,10 +2,10 @@ package com.insidious.plugin;
 
 import com.insidious.plugin.callbacks.GetProjectSessionErrorsCallback;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.videobugclient.VideobugClientInterface;
-import com.insidious.plugin.videobugclient.VideobugLocalClient;
-import com.insidious.plugin.videobugclient.pojo.ExceptionResponse;
-import com.insidious.plugin.videobugclient.pojo.ExecutionSession;
+import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.pojo.TracePoint;
 import org.junit.jupiter.api.Test;
 

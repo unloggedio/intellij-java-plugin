@@ -1,7 +1,7 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.videobugclient.pojo.exceptions.APICallException;
-import com.insidious.plugin.videobugclient.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;

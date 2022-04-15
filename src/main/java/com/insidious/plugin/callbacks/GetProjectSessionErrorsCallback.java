@@ -1,6 +1,6 @@
 package com.insidious.plugin.callbacks;
 
-import com.insidious.plugin.videobugclient.pojo.ExceptionResponse;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.pojo.TracePoint;
 
 import java.util.List;

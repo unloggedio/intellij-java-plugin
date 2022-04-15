@@ -1,1 +1,0 @@
- & 'D:\Program Files (x86)\kaitai-struct-compiler\bin\kaitai-struct-compiler.bat' --target java  --java-package com.videobug.agent.logging.perthread ..\kaitai\insidious-index-format.ksy

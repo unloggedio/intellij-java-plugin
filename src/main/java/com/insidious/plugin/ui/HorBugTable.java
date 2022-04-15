@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.pojo.DataEvent;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -29,7 +28,6 @@ public class HorBugTable {
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
-    List<DataEvent> dataList;
     Project project;
     String basepath;
     DefaultTableCellRenderer centerRenderer;
@@ -196,30 +194,6 @@ public class HorBugTable {
                         project);
             }
         }
-    }
-
-    public void setVariables(Collection<DataEvent> dataListTemp) {
-        JTableHeader header = this.varsValuesTable.getTableHeader();
-
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        Object[] headers = {"Variable Name", "Variable Value"};
-
-        String[][] sampleObject = new String[dataListTemp.size()][];
-
-        int i = 0;
-        for (DataEvent dataEvent : dataListTemp) {
-            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
-            i++;
-        }
-
-        if (centerRenderer == null) {
-            centerRenderer = new DefaultTableCellRenderer();
-        }
-        varsDefaultTableModel.setDataVector(sampleObject, headers);
-        this.varsValuesTable.setModel(varsDefaultTableModel);
-        this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.varsValuesTable.setAutoCreateRowSorter(true);
-
     }
 
     private void initBugTypeTable() {

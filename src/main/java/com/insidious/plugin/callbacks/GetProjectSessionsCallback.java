@@ -1,6 +1,6 @@
 package com.insidious.plugin.callbacks;
 
-import com.insidious.plugin.videobugclient.pojo.ExecutionSession;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 
 import java.io.IOException;
 import java.util.List;
