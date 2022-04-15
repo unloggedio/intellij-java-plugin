@@ -42,7 +42,7 @@ public class VideobugLocalClientTest {
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
-        client.getTracesByObjectValue("hello-string-8", new GetProjectSessionErrorsCallback() {
+        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
             @Override
             public void error(ExceptionResponse errorResponse) {
                 assert false;
@@ -56,7 +56,7 @@ public class VideobugLocalClientTest {
         });
         TracePoint result = tracePointsQueue.take();
         assert result.getValue() == 8;
-        client.getTracesByObjectValue("hello-string-128", new GetProjectSessionErrorsCallback() {
+        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
             @Override
             public void error(ExceptionResponse errorResponse) {
                 assert false;

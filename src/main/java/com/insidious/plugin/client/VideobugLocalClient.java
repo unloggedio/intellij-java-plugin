@@ -12,17 +12,17 @@ import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.parser.KaitaiInsidiousEventParser;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.cache.ArchiveIndex;
+import com.insidious.plugin.client.pojo.*;
+import com.insidious.plugin.client.pojo.local.ObjectInfoDocument;
+import com.insidious.plugin.client.pojo.local.StringInfoDocument;
+import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.DataInfo;
 import com.insidious.plugin.extension.model.Descriptor;
 import com.insidious.plugin.extension.model.EventType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
-import com.insidious.plugin.client.cache.ArchiveIndex;
-import com.insidious.plugin.client.pojo.*;
-import com.insidious.plugin.client.pojo.local.ObjectInfoDocument;
-import com.insidious.plugin.client.pojo.local.StringInfoDocument;
-import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
 import com.intellij.openapi.util.io.StreamUtil;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 
@@ -176,7 +176,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
             logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
             createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE, null);
-            ArchiveIndex index = readArchiveIndex(sessionArchive.getAbsolutePath() + "/", INDEX_TYPE_DAT_FILE.getFileName());
+            ArchiveIndex index = readArchiveIndex(
+                    getOutDirName(sessionArchive), INDEX_TYPE_DAT_FILE.getFileName());
 
             Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, classList);
             ResultSet<TypeInfoDocument> searchResult = index.Types().retrieve(query);
@@ -198,7 +199,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private void createFileOnDiskFromSessionArchiveFile(File sessionFile,
                                                         DatFileType indexType, String pathName) throws IOException {
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-        String outDirName = sessionFile.getName().split(".zip")[0];
+        String outDirName = getOutDirName(sessionFile);
         File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
         outDirFile.mkdirs();
 
@@ -276,6 +277,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
+    private String getOutDirName(File sessionFile) {
+        return sessionFile.getName().split(".zip")[0];
+    }
+
     @Override
     public void getTracesByObjectValue(
             String value, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback
@@ -296,7 +301,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE, null);
             logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
             ArchiveIndex index =
-                    readArchiveIndex(sessionArchive.getAbsolutePath() + "/", INDEX_STRING_DAT_FILE.getFileName());
+                    readArchiveIndex(getOutDirName(sessionArchive), INDEX_STRING_DAT_FILE.getFileName());
 
 
             Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
@@ -305,7 +310,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             if (searchResult.size() > 0) {
                 ArchiveFilesIndex archiveFileIndex = null;
                 try {
-                    archiveFileIndex = readEventIndex(sessionArchive.getAbsolutePath());
+                    createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE, null);
+                    archiveFileIndex = readEventIndex(getOutDirName(sessionArchive));
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
@@ -409,7 +415,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     private ArchiveFilesIndex readEventIndex(String outDirFile) throws IOException {
-        File typeIndexFile = new File(outDirFile + INDEX_EVENTS_DAT_FILE);
+        File typeIndexFile = new File(this.pathToSessions + session.getName()
+                + "/" + outDirFile + "/" + INDEX_EVENTS_DAT_FILE.getFileName());
 
         KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(
                 new ByteBufferKaitaiStream(
@@ -423,7 +430,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
         ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = null;
 
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE.getFileName())) {
-            File typeIndexFile = new File(outDirFile + INDEX_TYPE_DAT_FILE.getFileName());
+
+
+            File typeIndexFile = new File(
+                    this.pathToSessions + session.getName()
+                            + "/" + outDirFile + "/" + INDEX_TYPE_DAT_FILE.getFileName());
+
             DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence
                     = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, typeIndexFile);
             typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
@@ -433,7 +445,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = null;
         if (indexFilterType.equals(INDEX_STRING_DAT_FILE.getFileName())) {
-            File stringIndexFile = new File(outDirFile + INDEX_STRING_DAT_FILE.getFileName());
+            File stringIndexFile = new File(this.pathToSessions + session.getName()
+                    + "/" + outDirFile + "/" + INDEX_STRING_DAT_FILE.getFileName());
             DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence
                     = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, stringIndexFile);
             stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
@@ -442,7 +455,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
         if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE.getFileName())) {
-            File objectIndexFile = new File(outDirFile + INDEX_OBJECT_DAT_FILE.getFileName());
+            File objectIndexFile = new File(this.pathToSessions + session.getName()
+                    + "/" + outDirFile + "/" + INDEX_OBJECT_DAT_FILE.getFileName());
             DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence
                     = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, objectIndexFile);
 
@@ -451,7 +465,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE.getFileName())) {
-            File objectIndexFile = new File(outDirFile + WEAVE_DAT_FILE.getFileName());
+            File objectIndexFile = new File(this.pathToSessions + session.getName()
+                    + "/" + outDirFile + "/" + WEAVE_DAT_FILE.getFileName());
             KaitaiInsidiousClassWeaveParser classWeave = new KaitaiInsidiousClassWeaveParser(
                     new ByteBufferKaitaiStream(
                             new FileInputStream(objectIndexFile).readAllBytes()));
