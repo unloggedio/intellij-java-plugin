@@ -389,7 +389,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                                                String filepath, Long[] valueIds) throws IOException {
 
         Set<Long> ids = Set.of(valueIds);
-        File eventsFile = Path.of(sessionFile.getAbsolutePath(), filepath).toFile();
+        File eventsFile = Path.of(getOutDirName(sessionFile), filepath).toFile();
         assert eventsFile.exists();
 
         KaitaiInsidiousEventParser dataEvents
