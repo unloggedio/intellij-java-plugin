@@ -1,9 +1,6 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.plugin.extension.model.DataInfo;
-import com.insidious.plugin.extension.model.TypeInfo;
-import com.insidious.plugin.client.pojo.ClassInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ObjectInfo;

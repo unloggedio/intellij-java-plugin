@@ -1,7 +1,6 @@
 package com.insidious.plugin.client.pojo;
 
-import com.insidious.plugin.extension.model.DataInfo;
-import com.insidious.plugin.extension.model.TypeInfo;
+import com.insidious.common.weaver.ClassInfo;
 
 import java.util.List;
 
