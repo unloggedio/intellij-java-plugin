@@ -215,7 +215,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         INDEX_EVENTS_DAT_FILE.getFileName()).toFile());
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
-                    } else if (entry.getName().equals(pathName)) {
+                    } else if (pathName != null && entry.getName().contains(pathName)) {
                         FileOutputStream fos = new FileOutputStream(
                                 Path.of(outDirFile.getAbsolutePath(), pathName).toFile());
                         StreamUtil.copy(indexArchive, fos);
@@ -330,9 +330,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 matchedFiles.forEach(e -> {
                     try {
 
-                        createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE, e.getPath());
+                        String fileName = Path.of(e.getPath()).getFileName().toString();
+                        createFileOnDiskFromSessionArchiveFile(
+                                sessionArchive,
+                                INDEX_EVENTS_DAT_FILE,
+                                fileName);
                         List<DataEventWithSessionId> dataEvents
-                                = getDataEventsFromPath(sessionArchive, e.getPath(), e.getValueIds());
+                                = getDataEventsFromPath(sessionArchive, fileName, e.getValueIds());
 
                         tracePointList.addAll(
                                 dataEvents.stream().map(e1 -> {
@@ -388,15 +392,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<DataEventWithSessionId> getDataEventsFromPath(File sessionFile,
                                                                String filepath, Long[] valueIds) throws IOException {
 
+        File outDirFile = new File(this.pathToSessions + session.getName() + "/" + getOutDirName(sessionFile));
         Set<Long> ids = Set.of(valueIds);
-        File eventsFile = Path.of(getOutDirName(sessionFile), filepath).toFile();
+        File eventsFile = Path.of(outDirFile.getAbsolutePath(), filepath).toFile();
         assert eventsFile.exists();
 
         KaitaiInsidiousEventParser dataEvents
                 = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(new FileInputStream(eventsFile).readAllBytes()));
 
         return dataEvents.event().entries().stream().filter(
-                e -> e.magic() == 4 && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) ids).valueId())
+                e -> e.magic() == 4 && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId())
         ).map(e -> {
             long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
 
