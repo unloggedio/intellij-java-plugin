@@ -62,18 +62,10 @@ public class LogicBugs {
         this.insidiousService = insidiousService;
 
         refreshButton.addActionListener(e -> {
-            try {
-                doSearch();
-            } catch (IOException ex) {
-                logger.error("failed to do search", ex);
-            }
+            doSearch();
         });
         searchButton.addActionListener(actionEvent -> {
-            try {
-                doSearch();
-            } catch (IOException e) {
-                logger.error("failed to do search", e);
-            }
+            doSearch();
         });
 
 
@@ -90,7 +82,7 @@ public class LogicBugs {
         List<SearchRecord> items = insidiousService.getConfiguration().getSearchRecords();
     }
 
-    private void doSearch() throws IOException {
+    private void doSearch() {
         if (traceIdfield.getText().equals("")) {
             Notifications.Bus.notify(
                     insidiousService.getNotificationGroup()
@@ -105,7 +97,11 @@ public class LogicBugs {
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
-        insidiousService.getTraces(0, traceIdfield.getText());
+        try {
+            insidiousService.getTraces(0, traceIdfield.getText());
+        } catch (IOException e) {
+            logger.error("Failed to refresh sessions", e);
+        }
     }
 
     private void initTables() {
@@ -169,8 +165,8 @@ public class LogicBugs {
                     }
                     SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
                     traceIdfield.setText(selectedSearchResult.getQuery());
-                    doSearch();
-                } catch (IOException ex) {
+                    ApplicationManager.getApplication().invokeLater(() -> doSearch());
+                } catch (Exception ex) {
                     logger.error("failed to do search", ex);
                 } finally {
                     lock.unlock();

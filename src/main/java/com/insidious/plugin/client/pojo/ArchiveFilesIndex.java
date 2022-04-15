@@ -1,6 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
-import com.google.gson.JsonParser;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.insidious.common.UploadFile;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
 import orestes.bloomfilter.BloomFilter;
@@ -10,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class ArchiveFilesIndex {
+    public static final Gson GSON = new Gson();
     private final BloomFilter<Integer> probeFilter;
     private final BloomFilter<Long> valueFilter;
     private final KaitaiInsidiousIndexParser archiveIndex;
@@ -19,8 +21,8 @@ public class ArchiveFilesIndex {
         byte[] archiveProbeLookup = archiveIndex.unionProbeIdIndex();
         byte[] archiveValueLookup = archiveIndex.unionValueIdIndex();
 
-        this.probeFilter = BloomFilterConverter.fromJson(JsonParser.parseString(new String(archiveProbeLookup)), Integer.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
-        this.valueFilter = BloomFilterConverter.fromJson(JsonParser.parseString(new String(archiveValueLookup)), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+        this.probeFilter = BloomFilterConverter.fromJson(GSON.fromJson(new String(archiveProbeLookup), JsonElement.class), Integer.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+        this.valueFilter = BloomFilterConverter.fromJson(GSON.fromJson(new String(archiveValueLookup), JsonElement.class), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
     }
 
     public boolean hasProbeId(int probeId) {
@@ -35,7 +37,7 @@ public class ArchiveFilesIndex {
         List<UploadFile> files = new LinkedList<>();
         for (KaitaiInsidiousIndexParser.IndexedFile indexFile : archiveIndex.indexFiles()) {
             BloomFilter<Long> fileValueFilter = BloomFilterConverter.fromJson(
-                    JsonParser.parseString(new String(indexFile.valueIdIndex())), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+                    GSON.fromJson(new String(indexFile.valueIdIndex()), JsonElement.class), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
             if (fileValueFilter.contains(stringId)) {
                 UploadFile uploadFile = new UploadFile(
                         new String(indexFile.filePath().value()),
