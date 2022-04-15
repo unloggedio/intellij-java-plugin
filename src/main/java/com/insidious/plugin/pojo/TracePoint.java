@@ -1,7 +1,7 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common .Util;
+import com.insidious.common.Util;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.TypeInfo;

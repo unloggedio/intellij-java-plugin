@@ -11,8 +11,9 @@ import com.insidious.common.UploadFile;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.parser.KaitaiInsidiousEventParser;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
-import com.insidious.common.weaver.LogLevel;
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
@@ -351,16 +352,17 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         DataInfo dataInfo = dataInfoList.get(0);
 
                                         int classId = dataInfo.getClassId();
-                                        ClassInfo classInfo = getClassInfo(classId);
+                                        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
+                                                = getClassInfo(classId);
 
 
                                         return new TracePoint(classId,
                                                 dataInfo.getLine(), dataInfo.getDataId(),
                                                 e1.getThreadId(), e1.getValue(),
                                                 session.getId(),
-                                                classInfo.getFilename(),
-                                                classInfo.getClassName(),
-                                                classInfo.getClassName(),
+                                                classInfo.fileName().value(),
+                                                classInfo.className().value(),
+                                                classInfo.className().value(),
                                                 e1.getRecordedAt().getTime(), e1.getNanoTime());
                                     } catch (ClassInfoNotFoundException | Exception ex) {
                                         logger.info("failed to get data probe information: "
@@ -382,31 +384,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
-    private ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
+    private KaitaiInsidiousClassWeaveParser.ClassInfo
+    getClassInfo(int classId) throws ClassInfoNotFoundException {
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             if (classInfo.classId() == classId) {
-                return toClassInfo(classInfo);
+                return classInfo;
             }
         }
         throw new ClassInfoNotFoundException(classId);
 
-    }
-
-    private ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
-
-        ArrayList<KaitaiInsidiousClassWeaveParser.ProbeInfo> probes = classInfo.probeList();
-
-        ClassInfo classInformation = new ClassInfo(
-                Math.toIntExact(classInfo.classId()),
-                classInfo.container().value(),
-                classInfo.fileName().value(),
-                classInfo.className().value(),
-                LogLevel.valueOf(classInfo.logLevel().value()),
-                classInfo.hash().value(),
-                classInfo.classLoaderIdentifier().value()
-        );
-        return classInformation;
     }
 
     private List<DataInfo> getProbeInfo(File sessionFile, String filePath, Set<Integer> dataId) throws IOException {
