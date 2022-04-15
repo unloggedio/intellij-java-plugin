@@ -212,15 +212,23 @@ public class VideobugLocalClient implements VideobugClientInterface {
             switch (indexType) {
                 case INDEX_EVENTS_DAT_FILE:
 
-                    if (entry.getName().equals(INDEX_EVENTS_DAT_FILE.getFileName())) {
+                    if ( pathName == null && entry.getName().equals(INDEX_EVENTS_DAT_FILE.getFileName())) {
+                        File file = Path.of(outDirFile.getAbsolutePath(),
+                                INDEX_EVENTS_DAT_FILE.getFileName()).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
                         FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(),
-                                        INDEX_EVENTS_DAT_FILE.getFileName()).toFile());
+                                file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     } else if (pathName != null && entry.getName().contains(pathName)) {
+                        File file = Path.of(outDirFile.getAbsolutePath(), pathName).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
                         FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(), pathName).toFile());
+                                file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     }
@@ -230,9 +238,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 case INDEX_OBJECT_DAT_FILE:
 
                     if (entry.getName().equals(INDEX_OBJECT_DAT_FILE.getFileName())) {
+                        File file = Path.of(outDirFile.getAbsolutePath(),
+                                INDEX_OBJECT_DAT_FILE.getFileName()).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
+
                         FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(),
-                                        INDEX_OBJECT_DAT_FILE.getFileName()).toFile());
+                                file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     }
@@ -243,8 +256,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
                     if (entry.getName().equals(INDEX_STRING_DAT_FILE.getFileName())) {
+                        File file = Path.of(outDirFile.getAbsolutePath(),
+                                INDEX_STRING_DAT_FILE.getFileName()).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
+
                         FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(), INDEX_STRING_DAT_FILE.getFileName()).toFile());
+                                file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     }
@@ -255,8 +274,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
                     if (entry.getName().equals(INDEX_TYPE_DAT_FILE.getFileName())) {
+                        File file = Path.of(outDirFile.getAbsolutePath(),
+                                INDEX_TYPE_DAT_FILE.getFileName()).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
+
                         FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(), INDEX_TYPE_DAT_FILE.getFileName()).toFile());
+                                file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     }
@@ -265,9 +290,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     break;
                 case WEAVE_DAT_FILE:
 
-                    if (entry.getName().equals(pathName)) {
-                        FileOutputStream fos = new FileOutputStream(
-                                Path.of(outDirFile.getAbsolutePath(), pathName).toFile());
+                    if ( pathName == null) {
+                        File file = Path.of(outDirFile.getAbsolutePath(), WEAVE_DAT_FILE.getFileName()).toFile();
+                        if (file.exists()) {
+                            continue;
+                        }
+                        FileOutputStream fos = new FileOutputStream(file);
                         StreamUtil.copy(indexArchive, fos);
                         fos.close();
                     }
@@ -334,10 +362,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     try {
 
                         String fileName = Path.of(e.getPath()).getFileName().toString();
+
                         createFileOnDiskFromSessionArchiveFile(
-                                sessionArchive,
-                                INDEX_EVENTS_DAT_FILE,
-                                fileName);
+                                sessionArchive, INDEX_EVENTS_DAT_FILE, fileName);
+
                         List<DataEventWithSessionId> dataEvents
                                 = getDataEventsFromPath(sessionArchive, fileName, e.getValueIds());
 
@@ -346,7 +374,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                                     try {
                                         List<DataInfo> dataInfoList = getProbeInfo(sessionArchive,
-                                                e.getPath(),
+                                                fileName,
                                                 Set.of(e1.getDataId()));
 
                                         DataInfo dataInfo = dataInfoList.get(0);
@@ -400,11 +428,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         if (classWeaveInfo == null) {
-            createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE, filePath);
+            createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE, null);
             classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                     new ByteBufferKaitaiStream(
                             new FileInputStream(
-                                    Path.of(sessionFile.getAbsolutePath(), filePath).toFile()).readAllBytes()));
+                                    Path.of(this.pathToSessions, this.session.getId(),  getOutDirName(sessionFile), WEAVE_DAT_FILE.getFileName()).toFile()).readAllBytes()));
         }
 
         return classWeaveInfo.classInfo().parallelStream()

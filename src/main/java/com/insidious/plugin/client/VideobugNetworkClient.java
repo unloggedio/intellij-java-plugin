@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.actions.Constants;
