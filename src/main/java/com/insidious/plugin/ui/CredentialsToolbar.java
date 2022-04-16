@@ -5,10 +5,16 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import javax.swing.*;
@@ -60,12 +66,23 @@ public class CredentialsToolbar {
                 usernameText = username.getText();
                 passwordText = new String(password.getPassword());
                 videobugURL = videobugServerURLTextField.getText();
-                try {
-                    insidiousService.signin(videobugURL, usernameText, passwordText);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
-                }
+                ProgressManager.getInstance().run(new Task.Modal(project, "Signing in...", false) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        indicator.setText("Signin in-progress");
+                        indicator.setText2("Please wait..");
+                        indicator.setIndeterminate(true);
+                        try {
+                            insidiousService.signin(videobugURL, usernameText, passwordText);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
+                        } finally {
+                            indicator.stop();
+                        }
+                    }
+                });
+
             }
         });
         textArea1.setLineWrap(true);
@@ -87,40 +104,58 @@ public class CredentialsToolbar {
                 usernameText = username.getText();
                 passwordText = new String(password.getPassword());
                 videobugURL = videobugServerURLTextField.getText();
-                insidiousService.signup(videobugURL, usernameText, passwordText,
-                        new SignUpCallback() {
-                            @Override
-                            public void error(String string) {
-                                Notifications.Bus.notify(
-                                        insidiousService.getNotificationGroup()
-                                                .createNotification(
-                                                        "Failed to signup - " + string,
-                                                        NotificationType.ERROR),
-                                        project);
 
-                            }
+                ProgressManager.getInstance().run(new Task.Backgroundable(project, "Signup in-progress..", false) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        indicator.setIndeterminate(false);
+                        indicator.setText("Signup in-progress");
+                        indicator.setText2("Please wait..");
+                        indicator.setFraction(0.5);
 
-                            @Override
-                            public void success() {
-                                try {
-                                    insidiousService.signin(videobugURL, usernameText, passwordText);
-                                    infoError.setText("Signup was successful!");
-                                    ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
-                                            .submit(backgroundThreadExecutor);
-                                    ReadAction.nonBlocking(insidiousService::identifyTargetJar)
-                                            .submit(backgroundThreadExecutor);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
+                        try {
+                            insidiousService.signup(videobugURL, usernameText, passwordText,
+                                    new SignUpCallback() {
+                                        @Override
+                                        public void error(String string) {
+                                            Notifications.Bus.notify(
+                                                    insidiousService.getNotificationGroup()
+                                                            .createNotification(
+                                                                    "Failed to signup - " + string,
+                                                                    NotificationType.ERROR),
+                                                    project);
+                                            indicator.setFraction(0.8);
+                                        }
+
+                                        @Override
+                                        public void success() {
+                                            try {
+                                                insidiousService.signin(videobugURL, usernameText, passwordText);
+                                                infoError.setText("Signup was successful!");
+                                                ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
+                                                        .submit(backgroundThreadExecutor);
+                                                ReadAction.nonBlocking(insidiousService::identifyTargetJar)
+                                                        .submit(backgroundThreadExecutor);
+                                                indicator.setFraction(0.8);
+                                            } catch (IOException e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    });
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
             }
+
         });
         payment.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
-                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/3cs17BaXdauB3U4dQQyY"));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

@@ -6,6 +6,10 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -68,7 +72,21 @@ public class HorBugTable {
         basepath = this.project.getBasePath();
 
         this.insidiousService = insidiousService;
-        fetchSessionButton.addActionListener(actionEvent -> loadBug(bugs.getSelectedRow()));
+        fetchSessionButton.addActionListener(actionEvent -> {
+            ProgressManager.getInstance().run(new Task.Modal(project, "Getting Session...", false) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    try {
+                        indicator.setText("Creating session...");
+                        indicator.setText2("This may take a while..");
+                        indicator.setIndeterminate(true);
+                        loadBug(bugs.getSelectedRow());
+                    } finally {
+                        indicator.stop();
+                    }
+                }
+            });
+        });
 
         varsDefaultTableModel = new DefaultTableModel() {
             @Override
@@ -102,21 +120,31 @@ public class HorBugTable {
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    setTracePoints(List.of());
-                    scrollpanel.setVisible(true);
-                    List<String> exceptionClassnameList = exceptionMap.entrySet()
-                            .stream()
-                            .filter(Map.Entry::getValue)
-                            .map(Map.Entry::getKey)
-                            .collect(Collectors.toList());
-                    insidiousService.refreshSession();
+                ProgressManager.getInstance().run(new Task.Modal(project,"Getting Exceptions...", false) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        try {
+                            indicator.setText("Fetching Exceptions...");
+                            indicator.setText2("Wondering where you code crashed, please wait!");
+                            indicator.setIndeterminate(true);
+                            setTracePoints(List.of());
+                            scrollpanel.setVisible(true);
+                            List<String> exceptionClassnameList = exceptionMap.entrySet()
+                                    .stream()
+                                    .filter(Map.Entry::getValue)
+                                    .map(Map.Entry::getKey)
+                                    .collect(Collectors.toList());
+                            insidiousService.refreshSession();
+                            insidiousService.getErrors(exceptionClassnameList, 0);
+                        } catch (Exception e) {
+                            logger.error("failed to load sessions for module", e);
+                        } finally {
+                            indicator.stop();
+                        }
 
+                    }
+                });
 
-                    insidiousService.getErrors(exceptionClassnameList, 0);
-                } catch (Exception e) {
-                    logger.error("failed to load sessions for module", e);
-                }
             }
         });
         custombugButton.addActionListener(new ActionListener() {
