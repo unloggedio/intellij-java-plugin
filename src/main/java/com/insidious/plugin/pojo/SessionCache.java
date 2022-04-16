@@ -3,8 +3,8 @@ package com.insidious.plugin.pojo;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.plugin.client.cache.ArchiveIndex;
-import com.insidious.plugin.client.pojo.local.StringInfoDocument;
-import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
+import com.insidious.common.cqengine.StringInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 
 import java.util.HashMap;
 import java.util.LinkedList;

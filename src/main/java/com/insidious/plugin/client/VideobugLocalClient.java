@@ -16,9 +16,9 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
-import com.insidious.plugin.client.pojo.local.ObjectInfoDocument;
-import com.insidious.plugin.client.pojo.local.StringInfoDocument;
-import com.insidious.plugin.client.pojo.local.TypeInfoDocument;
+import com.insidious.common.cqengine.ObjectInfoDocument;
+import com.insidious.common.cqengine.StringInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
@@ -168,21 +168,34 @@ public class VideobugLocalClient implements VideobugClientInterface {
             if (fileBytes == null) {
                 continue;
             }
-            ArchiveIndex index = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
 
-            Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, classList);
-            ResultSet<TypeInfoDocument> searchResult = index.Types().retrieve(query);
+            ArchiveIndex typesIndex = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
 
-            if (searchResult.size() > 0) {
-                List<TracePoint> tracePoints = searchResult.stream()
-                        .map(e ->
-                                new TracePoint(1, 1, 1, 1,
-                                        e.getTypeId(), "1", "1", "1",
-                                        e.getTypeName(), 1, 1))
-                        .collect(Collectors.toList());
+            Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME, classList);
+            ResultSet<TypeInfoDocument> searchResult = typesIndex.Types().retrieve(typeQuery);
+            Set<Integer> typeIds = searchResult.stream()
+                    .map(TypeInfoDocument::getTypeId)
+                    .collect(Collectors.toSet());
 
-                tracePointList.addAll(tracePoints);
+            NameWithBytes objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
+                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            if (objectIndexFileBytes == null) {
+                continue;
             }
+
+
+            ArchiveIndex objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+            Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
+            ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects().retrieve(query);
+            Set<Long> objectIds = typeInfoSearchResult.stream()
+                    .map(ObjectInfoDocument::getObjectId)
+                    .collect(Collectors.toSet());
+
+
+            if (objectIds.size() > 0) {
+                queryForValueId(tracePointList, sessionArchive, objectIds);
+            }
+
         }
         getProjectSessionErrorsCallback.success(tracePointList);
     }
@@ -232,80 +245,83 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             ArchiveIndex index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
-            List<Long> stringIds = index.getStringIdsFromStringValues(value);
-
+            Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(value));
             if (stringIds.size() > 0) {
-                ArchiveFilesIndex archiveFileIndex = null;
-                try {
-                    bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
-                    assert bytes != null;
-                    archiveFileIndex = readEventIndex(bytes.getBytes());
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                }
-
-                ArchiveFilesIndex finalArchiveFileIndex = archiveFileIndex;
-                Set<UploadFile> matchedFiles = stringIds.stream().map(
-                        stringId -> {
-                            assert finalArchiveFileIndex != null;
-                            boolean archiveHasSeenValue = finalArchiveFileIndex.hasValueId(stringId);
-                            List<UploadFile> matchedFilesForString = new LinkedList<>();
-                            if (archiveHasSeenValue) {
-                                matchedFilesForString = finalArchiveFileIndex.queryEventsByStringId(stringId);
-                            }
-                            return matchedFilesForString;
-                        }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
-                matchedFiles.forEach(e -> {
-                    try {
-
-                        String fileName = Path.of(e.getPath()).getFileName().toString();
-
-                        NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
-                        long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
-                        int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
-
-
-                        List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), e.getValueIds());
-
-                        tracePointList.addAll(
-                                dataEvents.stream().map(e1 -> {
-
-                                    try {
-                                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive,
-                                                Set.of(e1.getDataId()));
-
-                                        DataInfo dataInfo = dataInfoList.get(0);
-                                        int classId = dataInfo.getClassId();
-                                        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
-                                                = getClassInfo(classId);
-
-
-                                        return new TracePoint(classId,
-                                                dataInfo.getLine(), dataInfo.getDataId(),
-                                                threadId, e1.getValue(),
-                                                session.getId(),
-                                                classInfo.fileName().value(),
-                                                classInfo.className().value(),
-                                                classInfo.className().value(),
-                                                e1.getRecordedAt().getTime(), timestamp);
-                                    } catch (ClassInfoNotFoundException | Exception ex) {
-                                        logger.info("failed to get data probe information: "
-                                                + ex.getMessage() + " -- " + ex.getCause());
-                                    }
-                                    return null;
-
-
-                                }).filter(Objects::nonNull).collect(Collectors.toList()));
-
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                });
-
+                queryForValueId(tracePointList, sessionArchive, stringIds);
             }
         }
         getProjectSessionErrorsCallback.success(tracePointList);
 
+    }
+
+    private void queryForValueId(List<TracePoint> tracePointList, File sessionArchive, Set<Long> valueIds) {
+        NameWithBytes bytes;
+        ArchiveFilesIndex archiveFileIndex = null;
+        try {
+            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
+            assert bytes != null;
+            archiveFileIndex = readEventIndex(bytes.getBytes());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        ArchiveFilesIndex finalArchiveFileIndex = archiveFileIndex;
+        Set<UploadFile> matchedFiles = valueIds.stream().map(
+                valueId -> {
+                    assert finalArchiveFileIndex != null;
+                    boolean archiveHasSeenValue = finalArchiveFileIndex.hasValueId(valueId);
+                    List<UploadFile> matchedFilesForString = new LinkedList<>();
+                    if (archiveHasSeenValue) {
+                        matchedFilesForString = finalArchiveFileIndex.queryEventsByStringId(valueId);
+                    }
+                    return matchedFilesForString;
+                }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
+        matchedFiles.forEach(e -> {
+            try {
+
+                String fileName = Path.of(e.getPath()).getFileName().toString();
+
+                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+                long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
+                int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
+
+
+                List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), e.getValueIds());
+
+                tracePointList.addAll(
+                        dataEvents.stream().map(e1 -> {
+
+                            try {
+                                List<DataInfo> dataInfoList = getProbeInfo(sessionArchive,
+                                        Set.of(e1.getDataId()));
+
+                                DataInfo dataInfo = dataInfoList.get(0);
+                                int classId = dataInfo.getClassId();
+                                KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
+                                        = getClassInfo(classId);
+
+
+                                return new TracePoint(classId,
+                                        dataInfo.getLine(), dataInfo.getDataId(),
+                                        threadId, e1.getValue(),
+                                        session.getId(),
+                                        classInfo.fileName().value(),
+                                        classInfo.className().value(),
+                                        classInfo.className().value(),
+                                        e1.getRecordedAt().getTime(), timestamp);
+                            } catch (ClassInfoNotFoundException | Exception ex) {
+                                logger.info("failed to get data probe information: "
+                                        + ex.getMessage() + " -- " + ex.getCause());
+                            }
+                            return null;
+
+
+                        }).filter(Objects::nonNull).collect(Collectors.toList()));
+
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
 
@@ -398,10 +414,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Files.write(path, bytes);
 
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
-            DiskPersistence<TypeInfoDocument, String> typeInfoDocumentStringDiskPersistence
-                    = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_NAME, path.toFile());
+            DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence
+                    = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_ID, path.toFile());
             typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
             typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_NAME));
+            typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_ID));
         }
 
 
@@ -416,11 +433,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
         if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE)) {
-            DiskPersistence<ObjectInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence
-                    = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_TYPE_ID, path.toFile());
+            DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence
+                    = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, path.toFile());
 
             objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
             objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE)) {
@@ -508,11 +526,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
             assert stringsIndexBytes != null;
             ArchiveIndex stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
             Map<String, StringInfo> sessionStringInfo = stringIndex.getStringsById(
-                    valueIds.stream().filter(e -> e > 100).collect(Collectors.toSet()));
+                    valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
             stringInfo.putAll(sessionStringInfo);
 
 
-            Set<Long> typeIds = objectInfo.values().stream().map(e -> e.getTypeId()).collect(Collectors.toSet());
+            Set<Integer> typeIds = objectInfo.values().stream()
+                    .map(ObjectInfo::getTypeId)
+                    .map(Long::intValue)
+                    .collect(Collectors.toSet());
 
             NameWithBytes typeIndexBytes =
                     createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
