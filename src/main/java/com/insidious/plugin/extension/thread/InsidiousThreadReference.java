@@ -55,7 +55,7 @@ public class InsidiousThreadReference implements ThreadReference {
         long highestTimestamp = 0;
 
         List<DataEventWithSessionId> matches = replayData.getDataEvents().stream()
-                .filter(e -> e.getNanoTime() == tracePoint.getNanoTime())
+                .filter(e -> e.getValue() == tracePoint.getValue())
                 .collect(Collectors.toList());
         position = replayData.getDataEvents().indexOf(
                 matches.get(0)
@@ -707,10 +707,10 @@ public class InsidiousThreadReference implements ThreadReference {
                 // class
                 objectId = dataEvent.getValue();
 
-                String packageName = variableSignature.substring(1);
-                String[] signatureParts = packageName.split("/");
+                String packageName = typeName.replaceAll("/", ".");
+                String[] signatureParts = typeName.split("/");
 
-                if (!qualifiedClassName.startsWith("java/lang")) {
+                if (!typeName.startsWith("java/lang")) {
 
                     if (objectReferenceMap.containsKey(objectId)) {
                         value = objectReferenceMap.get(objectId);
@@ -718,7 +718,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         InsidiousObjectReference objectValue = new InsidiousObjectReference(this);
 
                         objectValue.setObjectId(objectId);
-                        objectValue.setReferenceType(classTypeMap.get(classInfo.className()));
+                        objectValue.setReferenceType(classTypeMap.get(typeName));
 
                         if (objectFieldMap.containsKey(objectId)) {
                             List<InsidiousLocalVariable> fieldVariables = objectFieldMap.get(objectId);
