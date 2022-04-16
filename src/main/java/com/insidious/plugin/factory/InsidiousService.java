@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory;
 
+import com.amplitude.Amplitude;
+import com.amplitude.Event;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -77,12 +79,14 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 @Storage("insidious.xml")
 public class InsidiousService {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
+    public static final String HOSTNAME = System.getProperty("user.name");
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private final String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
     private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
+    private final Amplitude amplitudeClient;
     private VideobugClientInterface client;
     private NotificationGroup notificationGroup;
     private Module currentModule;
@@ -103,6 +107,9 @@ public class InsidiousService {
 
     public InsidiousService(Project project) {
         this.project = project;
+        amplitudeClient = Amplitude.getInstance("PLUGIN");
+        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
+
         String logFileNotificationContent = "Insidious log file location - " +
                 LoggerUtil.getLogFilePath();
 
@@ -330,6 +337,7 @@ public class InsidiousService {
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
                                     .submit(Executors.newSingleThreadExecutor());
 
+                            amplitudeClient.logEvent(new Event("SignedIn", HOSTNAME));
 
                             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
                             insidiousCredentials = createCredentialAttributes(
@@ -527,6 +535,7 @@ public class InsidiousService {
     }
 
     public void getTraces(int pageNum, String traceValue) throws IOException {
+        amplitudeClient.logEvent(new Event("GetTracesByValue", HOSTNAME));
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -573,6 +582,7 @@ public class InsidiousService {
     }
 
     public void getErrors(List<String> classList, int pageNum) throws IOException {
+        amplitudeClient.logEvent(new Event("GetTracesByType", HOSTNAME));
 
 
         if (this.client.getCurrentSession() == null) {
@@ -631,7 +641,6 @@ public class InsidiousService {
 
     public synchronized void startDebugSession() {
         logger.info("start debug session");
-
         boolean hasInsidiousDebugSession = false;
 
         if (debugSession != null) {
@@ -651,6 +660,7 @@ public class InsidiousService {
         if (debugSession != null) {
             return;
         }
+        amplitudeClient.logEvent(new Event("StartDebugSession", HOSTNAME));
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
@@ -870,6 +880,7 @@ public class InsidiousService {
     }
 
     public void setTracePoint(TracePoint selectedTrace) {
+        amplitudeClient.logEvent(new Event("FetchByTracePoint", HOSTNAME));
 
         if (debugSession == null) {
             startDebugSession();
@@ -981,6 +992,7 @@ public class InsidiousService {
 
     public void initiateUseLocal() {
         client = new VideobugLocalClient(project.getBasePath());
+        amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
 
         ExecutorService backgroundThreadExecutor = Executors.newSingleThreadExecutor();
 
