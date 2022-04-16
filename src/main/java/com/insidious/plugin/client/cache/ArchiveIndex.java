@@ -54,8 +54,14 @@ public class ArchiveIndex {
         return typeInfoIndex;
     }
 
-    public Map<String, ObjectInfo> getObjectsById(Set<Long> valueIds) {
-        return objectInfoIndex.stream().filter(e -> valueIds.contains(e.getObjectId()))
+    public Map<String, ObjectInfo> getObjectsByObjectId(Set<Long> objectIds) {
+        return objectInfoIndex.stream().filter(e -> objectIds.contains(e.getObjectId()))
+                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), null))
+                .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
+    }
+
+    public Map<String, ObjectInfo> getObjectsByTypeIds(Set<Integer> typeIds) {
+        return objectInfoIndex.stream().filter(e -> typeIds.contains(e.getTypeId()))
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), null))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
     }

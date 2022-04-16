@@ -2,7 +2,6 @@ package com.insidious.plugin.extension.thread;
 
 import com.insidious.common.Util;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
@@ -253,7 +252,7 @@ public class InsidiousThreadReference implements ThreadReference {
                     }
                     KaitaiInsidiousClassWeaveParser.ProbeInfo parentDataInfo
                             = this.replayData.getDataInfoMap().get(
-                                    Util.getAttribute(probeInfo.attributes().value(), "NewParent", "0"));
+                            Util.getAttribute(probeInfo.attributes().value(), "NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
                         logger.warn("no data info for parent of new object created [%s]", probeInfo);
@@ -333,7 +332,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     // instructionCount++;
                     String interfaceOwner = Util.getAttribute(probeInfo.attributes().value(), "Owner", "");
-                    String methodName = Util.getAttribute(probeInfo.attributes().value(),"Name", "");
+                    String methodName = Util.getAttribute(probeInfo.attributes().value(), "Name", "");
 
                     Object value = buildDataObjectFromIdAndTypeValue("L" + interfaceOwner, dataEvent.getValue());
                     if (value instanceof InsidiousObjectReference) {
@@ -471,7 +470,7 @@ public class InsidiousThreadReference implements ThreadReference {
                                 } else if ("get".equals(methodName)) { // get call
 
                                     String signature = Util.getAttribute(
-                                            probeInfo.attributes().value(),"Desc", ")Object").split("\\)")[1];
+                                            probeInfo.attributes().value(), "Desc", ")Object").split("\\)")[1];
 
 //                                    objectReferenceMap.put(receiverObjectId, receiverObject);
 //
@@ -566,7 +565,11 @@ public class InsidiousThreadReference implements ThreadReference {
                     try {
                         ObjectInfo objectInfo = replayData.getObjectInfo().get(dataValueString);
                         TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
-                        paramType = typeInfo.getTypeNameFromClass();
+                        if (typeInfo != null) {
+                            paramType = typeInfo.getTypeNameFromClass();
+                        } else {
+                            logger.error("failed to get typ for object: " + objectInfo.getTypeId());
+                        }
                     } catch (Exception e) {
                         logger.warn("failed to identify type for value", e);
                     }
@@ -684,7 +687,7 @@ public class InsidiousThreadReference implements ThreadReference {
     private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, KaitaiInsidiousClassWeaveParser.ProbeInfo probeInfo) {
 
 
-        String variableSignature = Util.getAttribute(probeInfo.attributes().value(),"Type", null);
+        String variableSignature = Util.getAttribute(probeInfo.attributes().value(), "Type", null);
         KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
                 = this.replayData.getClassInfoMap().get(String.valueOf(probeInfo.classId()));
         long objectId = 0;

@@ -8,6 +8,9 @@ import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.UploadFile;
+import com.insidious.common.cqengine.ObjectInfoDocument;
+import com.insidious.common.cqengine.StringInfoDocument;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.parser.KaitaiInsidiousEventParser;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
@@ -16,13 +19,11 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
-import com.insidious.common.cqengine.ObjectInfoDocument;
-import com.insidious.common.cqengine.StringInfoDocument;
-import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import io.kaitai.struct.ByteBufferKaitaiStream;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -51,6 +52,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
     private File sessionDirectory;
+    private Map<String, ArchiveIndex> indexCache = new HashMap<>();
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -257,13 +259,36 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private void queryForValueId(List<TracePoint> tracePointList, File sessionArchive, Set<Long> valueIds) {
         NameWithBytes bytes;
         ArchiveFilesIndex archiveFileIndex = null;
+        ArchiveIndex objectIndex = null;
+        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         try {
             bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
             assert bytes != null;
             archiveFileIndex = readEventIndex(bytes.getBytes());
+
+
+            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(
+                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            assert objectIndexBytes != null;
+            objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+            objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
+
+            Set<Integer> types = objectInfoMap.values().stream()
+                    .map(ObjectInfo::getTypeId)
+                    .map(Long::intValue)
+                    .collect(Collectors.toSet());
+
+            NameWithBytes typesInfoBytes = createFileOnDiskFromSessionArchiveFile(
+                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            assert typesInfoBytes != null;
+            ArchiveIndex typeIndex = readArchiveIndex(typesInfoBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+            typeInfoMap = typeIndex.getTypesById(types);
+
         } catch (IOException ex) {
             ex.printStackTrace();
         }
+
 
         ArchiveFilesIndex finalArchiveFileIndex = archiveFileIndex;
         Set<UploadFile> matchedFiles = valueIds.stream().map(
@@ -276,6 +301,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     }
                     return matchedFilesForString;
                 }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
+        Map<String, ObjectInfo> finalObjectInfoMap = objectInfoMap;
+        Map<String, TypeInfo> finalTypeInfoMap = typeInfoMap;
         matchedFiles.forEach(e -> {
             try {
 
@@ -300,14 +327,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
                                         = getClassInfo(classId);
 
+                                ObjectInfo objectInfo = finalObjectInfoMap.get(String.valueOf(e1.getValue()));
+                                TypeInfo typeInfo = getTypeInfo((int) objectInfo.getTypeId());
 
                                 return new TracePoint(classId,
                                         dataInfo.getLine(), dataInfo.getDataId(),
                                         threadId, e1.getValue(),
                                         session.getId(),
                                         classInfo.fileName().value(),
-                                        classInfo.className().value(),
-                                        classInfo.className().value(),
+                                        typeInfo.getTypeNameFromClass(),
+                                        typeInfo.getSuperClass(),
                                         e1.getRecordedAt().getTime(), timestamp);
                             } catch (ClassInfoNotFoundException | Exception ex) {
                                 logger.info("failed to get data probe information: "
@@ -325,8 +354,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
 
-    private KaitaiInsidiousClassWeaveParser.ClassInfo
-    getClassInfo(int classId) throws ClassInfoNotFoundException {
+    private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId)
+            throws ClassInfoNotFoundException {
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             if (classInfo.classId() == classId) {
@@ -334,8 +363,28 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         }
         throw new ClassInfoNotFoundException(classId);
-
     }
+
+    private TypeInfo getTypeInfo(Integer typeId)
+            throws ClassInfoNotFoundException, IOException {
+        List<File> archives = this.sessionArchives;
+
+        for (int i = archives.size(); i > 0; i--) {
+            File sessionArchive = archives.get(i - 1);
+            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
+            assert typeIndexBytes != null;
+            ArchiveIndex typeIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+
+            Map<String, TypeInfo> result = typeIndex.getTypesById(Set.of(typeId));
+            if (result.size() > 0) {
+                return result.get(String.valueOf(typeId));
+            }
+
+        }
+
+        return new TypeInfo("s", typeId, "unidentified type", "", "", "", "");
+    }
+
 
     private List<DataInfo> getProbeInfo(File sessionFile, Set<Integer> dataId) throws IOException {
 
@@ -409,6 +458,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private ArchiveIndex readArchiveIndex(byte[] bytes, DatFileType indexFilterType) throws IOException {
 
         ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = null;
+        String md5Hex = DigestUtils.md5Hex(bytes);
+        String cacheKey = md5Hex + "-" + indexFilterType.getFileName();
+//        if (indexCache.containsKey(cacheKey)) {
+//            return indexCache.get(cacheKey);
+//        }
 
         Path path = Path.of(this.pathToSessions, session.getName(), indexFilterType.getFileName());
         Files.write(path, bytes);
@@ -448,9 +502,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
                 classInfoMap.put(classInfo.className().value(), classInfo);
             }
+            return new ArchiveIndex(null, null, null);
         }
 
-        return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
+        ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
+        indexCache.put(cacheKey, archiveIndex);
+        return archiveIndex;
     }
 
     @Override
@@ -517,7 +574,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 continue;
             }
             ArchiveIndex objectIndex = readArchiveIndex(objectsIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-            Map<String, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsById(valueIds);
+            Map<String, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectId(valueIds);
             objectInfo.putAll(sessionObjectInfo);
 
 
