@@ -183,6 +183,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
             logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
             byte[] fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
+            if (fileBytes == null) {
+                continue;
+            }
             ArchiveIndex index = readArchiveIndex(fileBytes, INDEX_TYPE_DAT_FILE);
 
             Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, classList);
@@ -240,6 +243,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
         for (File sessionArchive : sessionArchives) {
 
             byte[] bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+            if (bytes == null) {
+                logger.warning("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
+                continue;
+            }
             logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
             ArchiveIndex index = readArchiveIndex(bytes, INDEX_STRING_DAT_FILE);
 
@@ -280,11 +287,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                                     try {
                                         List<DataInfo> dataInfoList = getProbeInfo(sessionArchive,
-                                                fileName,
                                                 Set.of(e1.getDataId()));
 
                                         DataInfo dataInfo = dataInfoList.get(0);
-
                                         int classId = dataInfo.getClassId();
                                         KaitaiInsidiousClassWeaveParser.ClassInfo classInfo
                                                 = getClassInfo(classId);
@@ -330,7 +335,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
-    private List<DataInfo> getProbeInfo(File sessionFile, String filePath, Set<Integer> dataId) throws IOException {
+    private List<DataInfo> getProbeInfo(File sessionFile, Set<Integer> dataId) throws IOException {
 
 
         if (classWeaveInfo == null) {
@@ -349,6 +354,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @NotNull
     private DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
+        String descriptorValue = e.valueDescriptor().value();
+
+        Descriptor valueDesc = Descriptor.Object;
+        if (!descriptorValue.startsWith("L")) {
+            valueDesc = Descriptor.valueOf(descriptorValue);
+        }
         return new DataInfo(
                 Math.toIntExact(e.classId()),
                 Math.toIntExact(e.methodId()),
@@ -356,7 +367,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 Math.toIntExact(e.lineNumber()),
                 Math.toIntExact(e.instructionIndex()),
                 EventType.valueOf(e.eventType().value()),
-                Descriptor.valueOf(e.valueDescriptor().value()),
+                valueDesc,
                 e.attributes().value()
         );
     }

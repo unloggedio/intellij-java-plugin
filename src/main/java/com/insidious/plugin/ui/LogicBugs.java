@@ -165,7 +165,7 @@ public class LogicBugs {
                     }
                     SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
                     traceIdfield.setText(selectedSearchResult.getQuery());
-                    ApplicationManager.getApplication().invokeLater(() -> doSearch());
+                    doSearch();
                 } catch (Exception ex) {
                     logger.error("failed to do search", ex);
                 } finally {

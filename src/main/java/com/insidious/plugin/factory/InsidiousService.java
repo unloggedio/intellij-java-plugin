@@ -621,7 +621,11 @@ public class InsidiousService {
 
     public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
                                                                     GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
-        this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
+        try {
+            this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
+        } catch (Throwable e) {
+            logger.error("failed to get traces by value", e);
+        }
     }
 
 
