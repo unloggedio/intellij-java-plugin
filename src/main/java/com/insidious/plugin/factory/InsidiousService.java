@@ -131,7 +131,10 @@ public class InsidiousService {
         ReadAction.nonBlocking(this::logLogFileLocation).submit(Executors.newSingleThreadExecutor());
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
+//        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
+        String pathToSessions = project.getBasePath() + ".videobug";
+        Path.of(pathToSessions).toFile().mkdirs();
+        this.client = new VideobugLocalClient(pathToSessions);
     }
 
     public NotificationGroup getNotificationGroup() {
@@ -810,11 +813,11 @@ public class InsidiousService {
             logger.info("user is logged in by project is null, setting up project");
             setupProject();
         }
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
-        }
+//        if (credentialsToolbarWindow == null) {
+//            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+//            this.toolWindow.getContentManager().addContent(credentialContent);
+//        }
 
     }
 

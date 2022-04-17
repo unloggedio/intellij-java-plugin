@@ -61,23 +61,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
         this.pathToSessions = pathToSessions;
     }
 
-    private static byte[] extractFile(ZipInputStream is)
-            throws IOException {
-        ByteArrayOutputStream fos = null;
-        try {
-            fos = new ByteArrayOutputStream();
-            final byte[] buf = new byte[1024];
-            int read = 0;
-            int length;
-            while ((length = is.read(buf, 0, buf.length)) >= 0) {
-                fos.write(buf, 0, length);
-            }
-        } catch (IOException ioex) {
-            fos.close();
-        }
-        return fos.toByteArray();
-    }
-
     @Override
     public ExecutionSession getCurrentSession() {
         return this.session;
