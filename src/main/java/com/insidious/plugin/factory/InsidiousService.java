@@ -132,7 +132,7 @@ public class InsidiousService {
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 //        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
-        String pathToSessions = project.getBasePath() + ".videobug";
+        String pathToSessions = project.getBasePath();
         Path.of(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions);
     }
@@ -835,11 +835,10 @@ public class InsidiousService {
         javaAgentString = "-javaagent:\"" + videoBugAgentPath
                 + "=i="
                 + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
-                + ","
-                + "server="
-                + insidiousConfiguration.serverUrl
-                + ",format=perthread,token="
-                + appToken + "\"";
+//                + ",server=" + insidiousConfiguration.serverUrl
+//                + ",format=perthread" +
+                + ",token=" + appToken
+                + "\"";
 
         if (credentialsToolbarWindow != null) {
             credentialsToolbarWindow.setText(javaAgentString);
