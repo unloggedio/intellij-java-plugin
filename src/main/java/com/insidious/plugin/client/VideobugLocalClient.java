@@ -337,8 +337,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         threadId, e1.getValue(),
                                         session.getId(),
                                         classInfo.fileName().value(),
+                                        classInfo.className().value(),
                                         typeInfo.getTypeNameFromClass(),
-                                        typeInfo.getSuperClass(),
                                         e1.getRecordedAt().getTime(), timestamp);
                             } catch (ClassInfoNotFoundException | Exception ex) {
                                 logger.info("failed to get data probe information: "
