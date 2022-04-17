@@ -94,12 +94,8 @@ public class LogicBugs {
         setTracePoints(List.of());
         try {
             insidiousService.refreshSession();
-        } catch (APICallException | IOException e) {
-            logger.error("Failed to refresh sessions", e);
-        }
-        try {
             insidiousService.getTraces(0, traceIdfield.getText());
-        } catch (IOException e) {
+        } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
     }

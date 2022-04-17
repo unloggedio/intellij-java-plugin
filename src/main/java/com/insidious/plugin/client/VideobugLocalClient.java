@@ -143,6 +143,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 list.add(executionSession);
             }
         }
+
+        list.sort(Comparator.comparing(ExecutionSession::getName));
         Collections.reverse(list);
         return list;
 

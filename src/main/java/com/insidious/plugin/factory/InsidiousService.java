@@ -528,7 +528,7 @@ public class InsidiousService {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void getTracesByClassForProjectAndSessionId(
+    public void getTracesByTypeName(
             List<String> classList,
             GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         this.client.getTracesByObjectType(classList, getProjectSessionErrorsCallback);
@@ -546,7 +546,7 @@ public class InsidiousService {
         logicBugs.updateSearchResultsList();
 
 
-        getTracesByClassForProjectAndSessionIdAndTraceValue(traceValue,
+        getTracesByStringValue(traceValue,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -591,7 +591,7 @@ public class InsidiousService {
         }
         logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
 
-        getTracesByClassForProjectAndSessionId(classList,
+        getTracesByTypeName(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -629,8 +629,8 @@ public class InsidiousService {
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
-                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
+    public void getTracesByStringValue(String traceId,
+                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         try {
             this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
         } catch (Throwable e) {
