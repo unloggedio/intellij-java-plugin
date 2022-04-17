@@ -1,5 +1,16 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
+import com.insidious.plugin.extension.connector.InsidiousThreadsDebuggerTree;
+import com.insidious.plugin.extension.connector.RequestHint;
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousNodeManagerImpl;
+import com.insidious.plugin.extension.jwdp.RequestMessage;
+import com.insidious.plugin.extension.model.DirectionType;
+import com.insidious.plugin.extension.smartstep.MethodFilter;
+import com.insidious.plugin.extension.thread.InsidiousThreadReference;
+import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.ui.breakpoints.JavaLineBreakpointType;
@@ -10,7 +21,6 @@ import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ExecutionConsole;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.wm.impl.status.StatusBarUtil;
@@ -28,20 +38,10 @@ import com.intellij.xdebugger.stepping.XSmartStepIntoHandler;
 import com.sun.jdi.*;
 import com.sun.jdi.request.BreakpointRequest;
 import com.sun.jdi.request.ModificationWatchpointRequest;
-import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.extension.connector.InsidiousThreadsDebuggerTree;
-import com.insidious.plugin.extension.connector.RequestHint;
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousNodeManagerImpl;
-import com.insidious.plugin.extension.jwdp.RequestMessage;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.extension.smartstep.MethodFilter;
-import com.insidious.plugin.extension.thread.InsidiousThreadReference;
-import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -130,8 +130,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                         "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
                         "                                       |___/ ", ProcessOutputTypes.SYSTEM);
 
+                InsidiousService insidiousService = getProject().getService(InsidiousService.class);
 
-                processHandler.notifyTextAvailable( "                                        \n" +
+                processHandler.notifyTextAvailable("                                        \n" +
                         "                 .°...°°°°..            \n" +
                         "                  ....     .°*°.        \n" +
                         "      .     .*O##@@@@@@##Oo°   *o°      \n" +
@@ -145,7 +146,10 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                         "      °o*                      *o°      \n" +
                         "        .°*°.              .°*°.        \n" +
                         "            ..°°°°°°°°°°°°..            \n" +
-                        "                                        " , ProcessOutputTypes.SYSTEM);
+                        "                                        ", ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
+                processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
 
             }
         });
@@ -174,17 +178,17 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         return null;
     }
 
+    public static Optional<InsidiousJavaDebugProcess> getInstanceWithTelemetrySessionId(String sessionId) {
+        return instances.values().stream()
+                .filter(p -> (p.telemetryTracker != null && sessionId.equals(p.telemetryTracker.getSessionId())))
+                .findFirst();
+    }
+
     @Override
     public void sessionInitialized() {
         getProject().getService(InsidiousService.class).setDebugSession(getSession());
         getProject().getService(InsidiousService.class).setDebugProcess(this);
         getProject().getService(InsidiousService.class).focusExceptionWindow();
-    }
-
-    public static Optional<InsidiousJavaDebugProcess> getInstanceWithTelemetrySessionId(String sessionId) {
-        return instances.values().stream()
-                .filter(p -> (p.telemetryTracker != null && sessionId.equals(p.telemetryTracker.getSessionId())))
-                .findFirst();
     }
 
     @NotNull

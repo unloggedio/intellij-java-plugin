@@ -821,6 +821,14 @@ public class InsidiousService {
 
     }
 
+    public String getJavaAgentString() {
+        return javaAgentString;
+    }
+
+    public String getVideoBugAgentPath() {
+        return videoBugAgentPath.toAbsolutePath().toString();
+    }
+
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
 
