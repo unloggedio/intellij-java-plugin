@@ -31,10 +31,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class VideobugNetworkClient implements VideobugClientInterface {
@@ -322,7 +319,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectType(List<String> classList, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+    public void getTracesByObjectType(Collection<String> classList, int depth, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -530,5 +527,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         }
 
 
+    }
+
+    @Override
+    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
+        throw new RuntimeException("not implemented");
+        // todo
     }
 }

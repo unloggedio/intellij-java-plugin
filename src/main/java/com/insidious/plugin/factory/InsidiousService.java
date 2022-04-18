@@ -5,7 +5,6 @@ import com.amplitude.Event;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -15,6 +14,7 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.pojo.TracePoint;
@@ -37,10 +37,7 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.execution.ui.FragmentedSettings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.notification.NotificationGroup;
-import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
+import com.intellij.notification.*;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
@@ -78,8 +75,8 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 
 @Storage("insidious.xml")
 public class InsidiousService {
-    private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     public static final String HOSTNAME = System.getProperty("user.name");
+    private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
@@ -87,6 +84,7 @@ public class InsidiousService {
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
     private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
     private final Amplitude amplitudeClient;
+    private final ExecutorService threadPool;
     private VideobugClientInterface client;
     private NotificationGroup notificationGroup;
     private Module currentModule;
@@ -109,9 +107,9 @@ public class InsidiousService {
         this.project = project;
         amplitudeClient = Amplitude.getInstance("PLUGIN");
         amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
+        threadPool = Executors.newFixedThreadPool(4);
 
-        String logFileNotificationContent = "Insidious log file location - " +
-                LoggerUtil.getLogFilePath();
+        String logFileNotificationContent = "Insidious log file location - " + LoggerUtil.getLogFilePath();
 
         logger.info("started insidious service - project name [{}]", project.getName());
         if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -127,14 +125,85 @@ public class InsidiousService {
         }
 
 
-        ReadAction.nonBlocking(this::getProjectPackageName).submit(Executors.newSingleThreadExecutor());
-        ReadAction.nonBlocking(this::logLogFileLocation).submit(Executors.newSingleThreadExecutor());
+        ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
+        ReadAction.nonBlocking(this::logLogFileLocation).submit(threadPool);
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 //        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
         String pathToSessions = project.getBasePath();
+        assert pathToSessions != null;
         Path.of(pathToSessions).toFile().mkdirs();
         this.client = new VideobugLocalClient(pathToSessions);
+        ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
+
+        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
+                .filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
+
+        this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
+            final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
+
+            @Override
+            public void onNewTracePoints(List<TracePoint> tracePoints) {
+                if (mostRecentTracePoints.size() > 0) {
+                    List<TracePoint> newTracePoints = new LinkedList<>();
+                    for (TracePoint tracePoint : tracePoints) {
+                        if (!mostRecentTracePoints.contains(tracePoint)) {
+                            newTracePoints.add(tracePoint);
+                        }
+                    }
+                    mostRecentTracePoints.clear();
+                    mostRecentTracePoints.addAll(tracePoints);
+                    if (newTracePoints.size() == 0) {
+                        return;
+                    }
+                    tracePoints = newTracePoints;
+                } else {
+                    mostRecentTracePoints.addAll(tracePoints);
+                }
+
+                String messageContent = "Got " + tracePoints.size() + " new matching trace points";
+                StringBuilder messageBuilder = new StringBuilder();
+                Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(e -> e.getClassname()));
+                for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
+                    String className = classTracePoint.getKey();
+                    List<TracePoint> classTracePoints = classTracePoint.getValue();
+                    Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(
+                            Collectors.groupingBy(TracePoint::getExceptionClass));
+
+                    for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
+                        String exceptionClassName = exceptionTracePoint.getKey();
+                        Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue()
+                                .stream().collect(
+                                        Collectors.groupingBy(
+                                                TracePoint::getLinenum
+                                        ));
+
+                        for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
+
+                            String[] exceptionClassNameParts = exceptionClassName.split("\\.");
+                            String[] classNameParts = className.split("/");
+                            messageBuilder.append(lineExceptionPoints.getValue().size());
+                            messageBuilder.append(" ");
+                            messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
+                            messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
+                            messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
+                            messageBuilder.append("<br>");
+                        }
+
+
+                    }
+
+
+                }
+
+
+                Notification notification = InsidiousNotification.
+                        balloonNotificationGroup.createNotification("New exception",
+                                messageBuilder.toString(), NotificationType.INFORMATION);
+                Notifications.Bus.notify(notification);
+                getHorBugTable().setTracePoints(tracePoints);
+            }
+        });
     }
 
     public NotificationGroup getNotificationGroup() {
@@ -336,9 +405,9 @@ public class InsidiousService {
                         @Override
                         public void success(String token) {
                             ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
-                                    .submit(Executors.newSingleThreadExecutor());
+                                    .submit(threadPool);
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
-                                    .submit(Executors.newSingleThreadExecutor());
+                                    .submit(threadPool);
 
                             amplitudeClient.logEvent(new Event("SignedIn", HOSTNAME));
 
@@ -512,7 +581,7 @@ public class InsidiousService {
                 InsidiousService.this.appToken = token;
                 ReadAction.nonBlocking(() -> {
                     selectExecutionSession();
-                }).submit(Executors.newSingleThreadExecutor());
+                }).submit(threadPool);
                 setAppTokenOnUi();
             }
         });
@@ -534,7 +603,7 @@ public class InsidiousService {
     public void getTracesByTypeName(
             List<String> classList,
             GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
-        this.client.getTracesByObjectType(classList, getProjectSessionErrorsCallback);
+        this.client.getTracesByObjectType(classList, -1, getProjectSessionErrorsCallback);
     }
 
     public void getTraces(int pageNum, String traceValue) throws IOException {
@@ -1004,12 +1073,8 @@ public class InsidiousService {
         client = new VideobugLocalClient(project.getBasePath());
         amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
 
-        ExecutorService backgroundThreadExecutor = Executors.newSingleThreadExecutor();
 
-        ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
-                .submit(backgroundThreadExecutor);
-        ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
-                .submit(backgroundThreadExecutor);
+        ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             InsidiousService.this.initiateUI();

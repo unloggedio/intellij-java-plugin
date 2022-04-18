@@ -138,7 +138,7 @@ class VideobugLocalClientTest {
                 GetProjectSessionErrorsCallback.class);
 
         // Run the test
-        videobugLocalClientUnderTest.getTracesByObjectType(List.of("value"), mockGetProjectSessionErrorsCallback);
+        videobugLocalClientUnderTest.getTracesByObjectType(List.of("value"), -1, mockGetProjectSessionErrorsCallback);
 
         // Verify the results
     }
@@ -150,7 +150,7 @@ class VideobugLocalClientTest {
                 GetProjectSessionErrorsCallback.class);
 
         // Run the test
-        assertThrows(IOException.class, () -> videobugLocalClientUnderTest.getTracesByObjectType(List.of("value"),
+        assertThrows(IOException.class, () -> videobugLocalClientUnderTest.getTracesByObjectType(List.of("value"), -1,
                 mockGetProjectSessionErrorsCallback));
     }
 

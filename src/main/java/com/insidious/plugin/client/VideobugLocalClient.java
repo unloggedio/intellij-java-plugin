@@ -27,13 +27,15 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
@@ -47,18 +49,20 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private static final Logger logger = java.util.logging.Logger.getLogger(VideobugLocalClient.class.getName());
     private final String pathToSessions;
     private final Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap = new HashMap<>();
+    private final VideobugNetworkClient networkClient;
+    private final Map<String, ArchiveIndex> indexCache = new HashMap<>();
     private ExecutionSession session;
     private ProjectItem currentProject;
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
     private File sessionDirectory;
-    private Map<String, ArchiveIndex> indexCache = new HashMap<>();
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
             pathToSessions = pathToSessions + "/";
         }
         this.pathToSessions = pathToSessions;
+        this.networkClient = new VideobugNetworkClient("https://ssl-receiver.k8s.bug.video");
     }
 
     @Override
@@ -141,7 +145,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectType(
-            List<String> classList,
+            Collection<String> classList,
+            int historyDepth,
             GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         logger.info("trace by class: " + classList);
         refreshSessionArchivesList();
@@ -149,8 +154,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         List<TracePoint> tracePointList = new LinkedList<>();
         for (File sessionArchive : sessionArchives) {
+            if (historyDepth != -1) {
+                if (historyDepth < 1) {
+                    break;
+                }
+            }
 
-            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
+//            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
             NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             if (fileBytes == null) {
                 continue;
@@ -182,6 +192,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             if (objectIds.size() > 0) {
                 queryForValueId(tracePointList, sessionArchive, objectIds);
             }
+            historyDepth--;
 
         }
         getProjectSessionErrorsCallback.success(tracePointList);
@@ -511,6 +522,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(
                 archiveToServe, String.valueOf(filteredDataEventsRequest.getNanotime()));
 
+        assert bytesWithName != null;
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
 
@@ -617,11 +629,46 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback) {
-        agentDownloadUrlCallback.success("");
+        networkClient.getAgentDownloadUrl(agentDownloadUrlCallback);
     }
 
     @Override
     public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
+        networkClient.downloadAgentFromUrl(url, insidiousLocalPath, overwrite);
+    }
 
+    @Override
+    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
+
+        ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+
+
+        threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    List<ExecutionSession> sessions = getLocalSessions();
+                    setSession(sessions.get(0));
+                    refreshSessionArchivesList();
+
+                    getTracesByObjectType(typeNameList, 2, new GetProjectSessionErrorsCallback() {
+                        @Override
+                        public void error(ExceptionResponse errorResponse) {
+                            logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
+                        }
+
+                        @Override
+                        public void success(List<TracePoint> tracePoints) {
+                            if (tracePoints.size() > 0) {
+                                videobugExceptionCallback.onNewTracePoints(tracePoints);
+                            }
+                        }
+                    });
+                } catch (IOException e) {
+                    logger.info("failed to query traces by type in scheduler: " + e.getMessage());
+                }
+            }
+        }, 5, 5, TimeUnit.SECONDS);
     }
 }

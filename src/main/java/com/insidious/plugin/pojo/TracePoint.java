@@ -24,6 +24,42 @@ public class TracePoint {
     String exceptionClass;
     private long nanoTime;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TracePoint that = (TracePoint) o;
+
+        if (recordedAt != that.recordedAt) return false;
+        if (classId != that.classId) return false;
+        if (linenum != that.linenum) return false;
+        if (threadId != that.threadId) return false;
+        if (value != that.value) return false;
+        if (dataId != that.dataId) return false;
+        if (nanoTime != that.nanoTime) return false;
+        if (!executionSessionId.equals(that.executionSessionId)) return false;
+        if (filename != null ? !filename.equals(that.filename) : that.filename != null) return false;
+        if (!classname.equals(that.classname)) return false;
+        return exceptionClass != null ? exceptionClass.equals(that.exceptionClass) : that.exceptionClass == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (recordedAt ^ (recordedAt >>> 32));
+        result = 31 * result + (int) (classId ^ (classId >>> 32));
+        result = 31 * result + (int) (linenum ^ (linenum >>> 32));
+        result = 31 * result + (int) (threadId ^ (threadId >>> 32));
+        result = 31 * result + (int) (value ^ (value >>> 32));
+        result = 31 * result + dataId;
+        result = 31 * result + executionSessionId.hashCode();
+        result = 31 * result + (filename != null ? filename.hashCode() : 0);
+        result = 31 * result + classname.hashCode();
+        result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
+        result = 31 * result + (int) (nanoTime ^ (nanoTime >>> 32));
+        return result;
+    }
+
     public TracePoint(long classId, long linenum,
                       int dataId,
                       long threadId,

@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.TracePoint;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -37,8 +38,6 @@ public interface VideobugClientInterface {
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
-    void getTracesByObjectType(List<String> classList, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
-
     @NotNull
     default List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
         return traceResponse.getItems().stream()
@@ -46,6 +45,11 @@ public interface VideobugClientInterface {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
+
+    void getTracesByObjectType(
+            Collection<String> classList,
+            int historyDepth,
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
 
     void getTracesByObjectValue(String value,
                                 GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
@@ -63,4 +67,6 @@ public interface VideobugClientInterface {
     void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback);
 
     void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite);
+
+    void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 }
