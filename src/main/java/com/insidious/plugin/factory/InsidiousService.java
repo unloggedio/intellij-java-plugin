@@ -901,7 +901,7 @@ public class InsidiousService {
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
 
-        javaAgentString = "-javaagent:\"" + videoBugAgentPath
+        javaAgentString = "--add-opens=java.base/java.util=ALL-UNNAMED -javaagent:\"" + videoBugAgentPath
                 + "=i="
                 + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
 //                + ",server=" + insidiousConfiguration.serverUrl
