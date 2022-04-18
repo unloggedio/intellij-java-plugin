@@ -118,7 +118,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new LinkedList<>();
         File currentDir = new File(pathToSessions);
-        logger.info(String.format("looking for sessions for project in [%s]", currentDir.getAbsolutePath()));
+//        logger.info(String.format("looking for sessions for project in [%s]", currentDir.getAbsolutePath()));
         for (File file : Objects.requireNonNull(currentDir.listFiles())) {
             if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
@@ -148,7 +148,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             Collection<String> classList,
             int historyDepth,
             GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
-        logger.info("trace by class: " + classList);
+//        logger.info("trace by class: " + classList);
         refreshSessionArchivesList();
 
 
