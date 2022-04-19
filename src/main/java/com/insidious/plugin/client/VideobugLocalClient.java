@@ -84,7 +84,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void signin(SigninRequest signinRequest, SignInCallback signInCallback) {
-        signInCallback.success("localhost");
+        signInCallback.success("localhost-token");
     }
 
     @Override
