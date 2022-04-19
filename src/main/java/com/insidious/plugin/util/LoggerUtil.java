@@ -1,12 +1,10 @@
 package com.insidious.plugin.util;
 
-import com.intellij.internal.statistic.eventLog.EventLogConfiguration;
-import com.intellij.notification.EventLog;
-import com.intellij.notification.EventLogToolWindowFactory;
-import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.project.ProjectManager;
-import org.apache.log4j.*;
-import org.apache.log4j.spi.Filter;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.RollingFileAppender;
 import org.apache.log4j.spi.LoggerRepository;
 import org.apache.log4j.varia.LevelRangeFilter;
 import org.jetbrains.annotations.NotNull;
@@ -16,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.util.Collections;
 
 public class LoggerUtil {
 

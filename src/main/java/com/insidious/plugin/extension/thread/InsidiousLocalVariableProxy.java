@@ -1,9 +1,9 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.LocalVariableProxy;
 import com.sun.jdi.Type;
-import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 
 public interface InsidiousLocalVariableProxy extends LocalVariableProxy {
     String name();

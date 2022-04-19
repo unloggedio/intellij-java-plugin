@@ -1,5 +1,8 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.ui.CredentialsToolbar;
+import com.insidious.plugin.ui.HorBugTable;
+import com.insidious.plugin.ui.LogicBugs;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -8,9 +11,6 @@ import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.jetbrains.annotations.NotNull;
-import com.insidious.plugin.ui.CredentialsToolbar;
-import com.insidious.plugin.ui.HorBugTable;
-import com.insidious.plugin.ui.LogicBugs;
 import org.slf4j.Logger;
 
 public class DebuggerFactory implements ToolWindowFactory, DumbAware {

@@ -1,5 +1,9 @@
 package com.insidious.plugin.extension.connector;
 
+import com.insidious.plugin.extension.BasicStepMethodFilter;
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.smartstep.MethodFilter;
+import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.engine.BreakpointStepMethodFilter;
@@ -9,17 +13,13 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
 import com.intellij.psi.PsiElement;
 import com.intellij.util.Range;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
 import com.sun.jdi.VMDisconnectedException;
-import com.insidious.plugin.extension.BasicStepMethodFilter;
-import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.smartstep.MethodFilter;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 
 public class RequestHint {

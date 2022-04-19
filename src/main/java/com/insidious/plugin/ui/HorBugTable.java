@@ -1,36 +1,25 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.actions.Constants;
-import com.insidious.plugin.network.pojo.SessionUpdatedCallback;
+import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.factory.InsidiousService;
 import net.minidev.json.JSONObject;
 import okhttp3.Callback;
-import com.insidious.plugin.pojo.DataEvent;
-import com.insidious.plugin.pojo.TracePoint;
+import org.slf4j.Logger;
 
 import javax.swing.*;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class HorBugTable {
@@ -39,7 +28,6 @@ public class HorBugTable {
     Callback errorCallback, lastSessioncallback;
     JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
-    List<DataEvent> dataList;
     Project project;
     String basepath;
     DefaultTableCellRenderer centerRenderer;
@@ -72,21 +60,7 @@ public class HorBugTable {
         basepath = this.project.getBasePath();
 
         this.insidiousService = insidiousService;
-        fetchSessionButton.addActionListener(actionEvent -> {
-            ProgressManager.getInstance().run(new Task.Modal(project, "Getting Session...", false) {
-                @Override
-                public void run(@NotNull ProgressIndicator indicator) {
-                    try {
-                        indicator.setText("Creating session...");
-                        indicator.setText2("This may take a while..");
-                        indicator.setIndeterminate(true);
-                        loadBug(bugs.getSelectedRow());
-                    } finally {
-                        indicator.stop();
-                    }
-                }
-            });
-        });
+        fetchSessionButton.addActionListener(actionEvent -> loadBug(bugs.getSelectedRow()));
 
         varsDefaultTableModel = new DefaultTableModel() {
             @Override
@@ -120,31 +94,21 @@ public class HorBugTable {
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                ProgressManager.getInstance().run(new Task.Modal(project,"Getting Exceptions...", false) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        try {
-                            indicator.setText("Fetching Exceptions...");
-                            indicator.setText2("Wondering where you code crashed, please wait!");
-                            indicator.setIndeterminate(true);
-                            setTracePoints(List.of());
-                            scrollpanel.setVisible(true);
-                            List<String> exceptionClassnameList = exceptionMap.entrySet()
-                                    .stream()
-                                    .filter(Map.Entry::getValue)
-                                    .map(Map.Entry::getKey)
-                                    .collect(Collectors.toList());
-                            insidiousService.refreshSession();
-                            insidiousService.getErrors(exceptionClassnameList, 0);
-                        } catch (Exception e) {
-                            logger.error("failed to load sessions for module", e);
-                        } finally {
-                            indicator.stop();
-                        }
+                try {
+                    setTracePoints(List.of());
+                    scrollpanel.setVisible(true);
+                    List<String> exceptionClassnameList = exceptionMap.entrySet()
+                            .stream()
+                            .filter(Map.Entry::getValue)
+                            .map(Map.Entry::getKey)
+                            .collect(Collectors.toList());
+                    insidiousService.refreshSession();
 
-                    }
-                });
 
+                    insidiousService.getErrors(exceptionClassnameList, 0);
+                } catch (Exception e) {
+                    logger.error("failed to load sessions for module", e);
+                }
             }
         });
         custombugButton.addActionListener(new ActionListener() {
@@ -230,30 +194,6 @@ public class HorBugTable {
                         project);
             }
         }
-    }
-
-    public void setVariables(Collection<DataEvent> dataListTemp) {
-        JTableHeader header = this.varsValuesTable.getTableHeader();
-
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        Object[] headers = {"Variable Name", "Variable Value"};
-
-        String[][] sampleObject = new String[dataListTemp.size()][];
-
-        int i = 0;
-        for (DataEvent dataEvent : dataListTemp) {
-            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
-            i++;
-        }
-
-        if (centerRenderer == null) {
-            centerRenderer = new DefaultTableCellRenderer();
-        }
-        varsDefaultTableModel.setDataVector(sampleObject, headers);
-        this.varsValuesTable.setModel(varsDefaultTableModel);
-        this.varsValuesTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.varsValuesTable.setAutoCreateRowSorter(true);
-
     }
 
     private void initBugTypeTable() {

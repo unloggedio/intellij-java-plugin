@@ -1,8 +1,8 @@
 package com.insidious.plugin.actions;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.insidious.plugin.factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 
 public class JumpForward extends AnAction {

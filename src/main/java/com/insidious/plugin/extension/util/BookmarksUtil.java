@@ -1,10 +1,5 @@
 package com.insidious.plugin.extension.util;
 
-import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
-import org.slf4j.Logger;
-import com.sun.jdi.ThreadReference;
 import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
@@ -13,6 +8,11 @@ import com.insidious.plugin.extension.jwdp.GetAllBookmarksCommand;
 import com.insidious.plugin.extension.jwdp.SetBookmarkCommand;
 import com.insidious.plugin.extension.model.InsidiousBookmark;
 import com.insidious.plugin.extension.model.command.SetBookmarkRequest;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
+import com.intellij.notification.Notifications;
+import com.sun.jdi.ThreadReference;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 

@@ -1,10 +1,10 @@
 package com.insidious.plugin.extension.connector;
 
-import com.sun.jdi.ThreadGroupReference;
 import com.insidious.plugin.extension.thread.InsidiousThreadGroupReferenceProxy;
 import com.insidious.plugin.extension.thread.InsidiousThreadReference;
 import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
 import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
+import com.sun.jdi.ThreadGroupReference;
 
 import java.util.List;
 import java.util.stream.Collectors;
