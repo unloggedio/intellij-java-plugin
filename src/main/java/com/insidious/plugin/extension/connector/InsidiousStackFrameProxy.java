@@ -1,10 +1,10 @@
 package com.insidious.plugin.extension.connector;
 
+import com.insidious.plugin.extension.thread.InsidiousLocalVariableProxy;
+import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.StackFrameProxy;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.thread.InsidiousLocalVariableProxy;
-import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
 
 import java.util.List;
 

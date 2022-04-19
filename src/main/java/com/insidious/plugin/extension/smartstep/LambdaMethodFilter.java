@@ -1,5 +1,6 @@
 package com.insidious.plugin.extension.smartstep;
 
+import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
@@ -11,7 +12,6 @@ import com.intellij.psi.PsiStatement;
 import com.intellij.util.Range;
 import com.sun.jdi.Location;
 import com.sun.jdi.Method;
-import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import org.jetbrains.annotations.Nullable;
 
 public class LambdaMethodFilter

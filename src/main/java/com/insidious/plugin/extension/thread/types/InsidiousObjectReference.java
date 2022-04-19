@@ -1,7 +1,7 @@
 package com.insidious.plugin.extension.thread.types;
 
-import com.sun.jdi.*;
 import com.insidious.plugin.extension.thread.InsidiousLocalVariable;
+import com.sun.jdi.*;
 
 import java.util.HashMap;
 import java.util.List;

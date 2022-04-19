@@ -1,5 +1,10 @@
 package com.insidious.plugin.extension.descriptor.renderer;
 
+import com.insidious.plugin.extension.InsidiousDebuggerTreeNode;
+import com.insidious.plugin.extension.descriptor.*;
+import com.insidious.plugin.extension.evaluation.EvaluationContext;
+import com.insidious.plugin.extension.evaluation.InsidiousNodeDescriptorImpl;
+import com.insidious.plugin.extension.thread.InsidiousLocalVariableProxy;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.StackFrameProxy;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
@@ -8,11 +13,6 @@ import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.openapi.project.Project;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.InsidiousDebuggerTreeNode;
-import com.insidious.plugin.extension.thread.InsidiousLocalVariableProxy;
-import com.insidious.plugin.extension.descriptor.*;
-import com.insidious.plugin.extension.evaluation.EvaluationContext;
-import com.insidious.plugin.extension.evaluation.InsidiousNodeDescriptorImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

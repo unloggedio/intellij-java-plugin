@@ -1,9 +1,9 @@
 package com.insidious.plugin.extension.model.command;
 
-import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
 import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.extension.jwdp.Command;
+import com.insidious.plugin.util.LoggerUtil;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 

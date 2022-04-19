@@ -1,25 +1,22 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.SearchRecord;
+import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.client.pojo.DebugPoint;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.ui.content.Content;
-import com.intellij.xdebugger.XSourcePosition;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.xdebugger.XDebuggerManager;
+import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.network.pojo.DebugPoint;
-import com.insidious.plugin.pojo.DataEvent;
-import com.insidious.plugin.pojo.TracePoint;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -30,7 +27,6 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -65,8 +61,12 @@ public class LogicBugs {
         this.project = project;
         this.insidiousService = insidiousService;
 
-        refreshButton.addActionListener(e -> doSearch());
-        searchButton.addActionListener(actionEvent -> doSearch());
+        refreshButton.addActionListener(e -> {
+            doSearch();
+        });
+        searchButton.addActionListener(actionEvent -> {
+            doSearch();
+        });
 
 
         fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow()));
@@ -94,10 +94,10 @@ public class LogicBugs {
         setTracePoints(List.of());
         try {
             insidiousService.refreshSession();
+            insidiousService.getTraces(0, traceIdfield.getText());
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
-        insidiousService.getTraces(0, traceIdfield.getText());
     }
 
     private void initTables() {
@@ -162,6 +162,8 @@ public class LogicBugs {
                     SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
                     traceIdfield.setText(selectedSearchResult.getQuery());
                     doSearch();
+                } catch (Exception ex) {
+                    logger.error("failed to do search", ex);
                 } finally {
                     lock.unlock();
                 }
@@ -228,29 +230,6 @@ public class LogicBugs {
             logger.error("failed to load trace point", e);
             Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
         }
-
-    }
-
-    public void setVariables(Collection<DataEvent> dataListTemp) {
-        JTableHeader header = this.varsvalueTable.getTableHeader();
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        Object[] headers = {"Variable Name", "Variable Value"};
-
-        String[][] sampleObject = new String[dataListTemp.size()][];
-
-        int i = 0;
-        for (DataEvent dataEvent : dataListTemp) {
-            sampleObject[i] = new String[]{dataEvent.getVariableName(), dataEvent.getVariableValue()};
-            i++;
-        }
-
-        if (centerRenderer == null) {
-            centerRenderer = new DefaultTableCellRenderer();
-        }
-        defaultTableModelvarsValues.setDataVector(sampleObject, headers);
-        this.varsvalueTable.setModel(defaultTableModelvarsValues);
-        this.varsvalueTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.varsvalueTable.setAutoCreateRowSorter(true);
 
     }
 

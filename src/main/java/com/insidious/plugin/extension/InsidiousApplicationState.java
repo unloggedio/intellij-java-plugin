@@ -38,7 +38,6 @@ public class InsidiousApplicationState implements RunProfileState {
     public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
         @NotNull ProcessHandler processHandler = new InsidiousProcessHandler(getRunProfileName());
         InsidiousService insidiousService = configuration.getProject().getService(InsidiousService.class);
-        insidiousService.setProcessHandler(processHandler);
 
         this.consoleView = new ConsoleViewImpl(configuration.getProject(), false);
         processHandler.putUserData(KEY, this);

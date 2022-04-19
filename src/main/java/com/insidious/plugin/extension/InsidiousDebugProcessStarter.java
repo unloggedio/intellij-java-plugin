@@ -1,11 +1,10 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
-import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;

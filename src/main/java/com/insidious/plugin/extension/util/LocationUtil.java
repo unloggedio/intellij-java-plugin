@@ -1,8 +1,10 @@
 package com.insidious.plugin.extension.util;
 
+import com.insidious.plugin.extension.CommandSender;
+import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
+import com.insidious.plugin.extension.model.Location;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
-import org.slf4j.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -11,12 +13,9 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
 import com.sun.jdi.AbsentInformationException;
-//import com.sun.jdi.Location;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadReference;
-import com.insidious.plugin.extension.CommandSender;
-import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.extension.model.Location;
+import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Optional;

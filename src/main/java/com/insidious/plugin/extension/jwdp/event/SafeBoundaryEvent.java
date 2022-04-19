@@ -1,11 +1,11 @@
 package com.insidious.plugin.extension.jwdp.event;
 
-import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
 import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.extension.InsidiousApplicationState;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.jwdp.RequestMessage;
+import com.insidious.plugin.util.LoggerUtil;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 

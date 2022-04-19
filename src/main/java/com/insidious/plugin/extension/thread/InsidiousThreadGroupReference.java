@@ -1,8 +1,8 @@
 package com.insidious.plugin.extension.thread;
 
-import com.sun.jdi.*;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
+import com.sun.jdi.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,7 +25,6 @@ public class InsidiousThreadGroupReference implements ThreadGroupReference {
     public void setThreadReferenceGroup(List<ThreadReference> threads) {
         this.threads = threads;
     }
-
 
 
     @Override

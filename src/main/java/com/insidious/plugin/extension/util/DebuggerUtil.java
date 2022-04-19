@@ -1,5 +1,9 @@
 package com.insidious.plugin.extension.util;
 
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
+import com.insidious.plugin.extension.evaluation.JVMNameUtil;
+import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
@@ -8,7 +12,6 @@ import com.intellij.debugger.requests.Requestor;
 import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.PsiClass;
@@ -23,14 +26,11 @@ import com.sun.jdi.*;
 import com.sun.jdi.event.Event;
 import com.sun.jdi.event.EventSet;
 import com.sun.jdi.request.EventRequest;
-import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.evaluation.JVMNameUtil;
 import one.util.streamex.StreamEx;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.*;
 

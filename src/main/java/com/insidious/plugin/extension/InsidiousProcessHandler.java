@@ -3,6 +3,7 @@ package com.insidious.plugin.extension;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
+import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 

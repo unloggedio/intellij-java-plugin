@@ -1,38 +1,44 @@
 package com.insidious.plugin.factory;
 
+import com.amplitude.Amplitude;
+import com.amplitude.Event;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.extension.*;
+import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.DataResponse;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
+import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.client.pojo.SigninRequest;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.extension.InsidiousExecutor;
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.network.Client;
-import com.insidious.plugin.network.pojo.DataResponse;
-import com.insidious.plugin.network.pojo.ExceptionResponse;
-import com.insidious.plugin.network.pojo.ExecutionSession;
-import com.insidious.plugin.network.pojo.SigninRequest;
-import com.insidious.plugin.network.pojo.exceptions.APICallException;
-import com.insidious.plugin.network.pojo.exceptions.ProjectDoesNotExistException;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.parser.GradleFileVisitor;
-import com.insidious.plugin.parser.PomFileVisitor;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.CredentialsToolbar;
 import com.insidious.plugin.ui.HorBugTable;
 import com.insidious.plugin.ui.LogicBugs;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.visitor.GradleFileVisitor;
+import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.*;
+import com.intellij.execution.ExecutionException;
+import com.intellij.execution.ProgramRunnerUtil;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.execution.ui.FragmentedSettings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.notification.NotificationGroup;
-import com.intellij.notification.NotificationGroupManager;
-import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
+import com.intellij.notification.*;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
@@ -53,10 +59,8 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.Consumer;
-import com.intellij.util.Function;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import okhttp3.OkHttpClient;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -64,29 +68,30 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
 @Storage("insidious.xml")
-public class InsidiousService {
+public class InsidiousService implements Disposable {
+    public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
     private final InsidiousConfigurationState insidiousConfiguration;
     private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private final String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
-    private final Client client;
+    private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
+    private final Amplitude amplitudeClient;
+    private final ExecutorService threadPool;
+    private VideobugClientInterface client;
     private NotificationGroup notificationGroup;
-    private String projectTargetJarLocation = "<PATH-TO-YOUR-PROJECT-JAR>";
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
     private HorBugTable bugsTable;
     private LogicBugs logicBugs;
-    private CodeTracer tracer;
-    private ProcessHandler processHandler;
     private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
     private InsidiousJDIConnector connector;
@@ -101,8 +106,11 @@ public class InsidiousService {
 
     public InsidiousService(Project project) {
         this.project = project;
-        String logFileNotificationContent = "Insidious log file location - " +
-                LoggerUtil.getLogFilePath();
+        amplitudeClient = Amplitude.getInstance("PLUGIN");
+        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
+        threadPool = Executors.newFixedThreadPool(4);
+
+        String logFileNotificationContent = "Insidious log file location - " + LoggerUtil.getLogFilePath();
 
         logger.info("started insidious service - project name [{}]", project.getName());
         if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -112,12 +120,91 @@ public class InsidiousService {
             logger.info("current module [{}]", currentModule.getName());
         }
 
+        XDebugSession[] sessions = project.getService(XDebuggerManager.class).getDebugSessions();
+        for (XDebugSession session : sessions) {
+            session.getDebugProcess();
+        }
 
-        ReadAction.nonBlocking(this::getProjectPackageName).submit(Executors.newSingleThreadExecutor());
-        ReadAction.nonBlocking(this::logLogFileLocation).submit(Executors.newSingleThreadExecutor());
+
+        ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
+        ReadAction.nonBlocking(this::logLogFileLocation).submit(threadPool);
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-        this.client = new Client(this.insidiousConfiguration.getServerUrl());
+//        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
+        String pathToSessions = project.getBasePath();
+        assert pathToSessions != null;
+        Path.of(pathToSessions).toFile().mkdirs();
+        this.client = new VideobugLocalClient(pathToSessions);
+        ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
+
+        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
+                .filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
+
+        this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
+            final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
+
+            @Override
+            public void onNewTracePoints(List<TracePoint> tracePoints) {
+                if (mostRecentTracePoints.size() > 0) {
+                    List<TracePoint> newTracePoints = new LinkedList<>();
+                    for (TracePoint tracePoint : tracePoints) {
+                        if (!mostRecentTracePoints.contains(tracePoint)) {
+                            newTracePoints.add(tracePoint);
+                        }
+                    }
+                    mostRecentTracePoints.clear();
+                    mostRecentTracePoints.addAll(tracePoints);
+                    if (newTracePoints.size() == 0) {
+                        return;
+                    }
+                    tracePoints = newTracePoints;
+                } else {
+                    mostRecentTracePoints.addAll(tracePoints);
+                }
+
+                String messageContent = "Got " + tracePoints.size() + " new matching trace points";
+                StringBuilder messageBuilder = new StringBuilder();
+                Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(e -> e.getClassname()));
+                for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
+                    String className = classTracePoint.getKey();
+                    List<TracePoint> classTracePoints = classTracePoint.getValue();
+                    Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(
+                            Collectors.groupingBy(TracePoint::getExceptionClass));
+
+                    for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
+                        String exceptionClassName = exceptionTracePoint.getKey();
+                        Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue()
+                                .stream().collect(
+                                        Collectors.groupingBy(
+                                                TracePoint::getLinenum
+                                        ));
+
+                        for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
+
+                            String[] exceptionClassNameParts = exceptionClassName.split("\\.");
+                            String[] classNameParts = className.split("/");
+                            messageBuilder.append(lineExceptionPoints.getValue().size());
+                            messageBuilder.append(" ");
+                            messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
+                            messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
+                            messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
+                            messageBuilder.append("<br>");
+                        }
+
+
+                    }
+
+
+                }
+
+
+                Notification notification = InsidiousNotification.
+                        balloonNotificationGroup.createNotification("New exception",
+                                messageBuilder.toString(), NotificationType.INFORMATION);
+                Notifications.Bus.notify(notification);
+                getHorBugTable().setTracePoints(tracePoints);
+            }
+        });
     }
 
     public NotificationGroup getNotificationGroup() {
@@ -319,12 +406,11 @@ public class InsidiousService {
                         @Override
                         public void success(String token) {
                             ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
-                                    .submit(Executors.newSingleThreadExecutor());
-                            ReadAction.nonBlocking(InsidiousService.this::identifyTargetJar)
-                                    .submit(Executors.newSingleThreadExecutor());
+                                    .submit(threadPool);
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession)
-                                    .submit(Executors.newSingleThreadExecutor());
+                                    .submit(threadPool);
 
+                            amplitudeClient.logEvent(new Event("SignedIn", HOSTNAME));
 
                             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
                             insidiousCredentials = createCredentialAttributes(
@@ -392,14 +478,23 @@ public class InsidiousService {
                         logger.error("failed to extract session id", e);
                         executionSession.setId(sessions.getItems().get(0).getId());
                     }
-                    client.setSession(executionSession);
+                    try {
+                        client.setSession(executionSession);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }).addListener(new JBPopupListener() {
 
 
                 @Override
                 public void onClosed(@NotNull LightweightWindowEvent event) {
-                    getErrors(getSelectedExceptionClassList(), 0);
+                    try {
+                        getErrors(getSelectedExceptionClassList(), 0);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        logger.error("failed to get errors", e);
+                    }
                 }
             }).createPopup();
 
@@ -487,7 +582,7 @@ public class InsidiousService {
                 InsidiousService.this.appToken = token;
                 ReadAction.nonBlocking(() -> {
                     selectExecutionSession();
-                }).submit(Executors.newSingleThreadExecutor());
+                }).submit(threadPool);
                 setAppTokenOnUi();
             }
         });
@@ -506,13 +601,14 @@ public class InsidiousService {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void getTracesByClassForProjectAndSessionId(
+    public void getTracesByTypeName(
             List<String> classList,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionId(classList, getProjectSessionErrorsCallback);
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
+        this.client.getTracesByObjectType(classList, -1, getProjectSessionErrorsCallback);
     }
 
-    public void getTraces(int pageNum, String traceValue) {
+    public void getTraces(int pageNum, String traceValue) throws IOException {
+        amplitudeClient.logEvent(new Event("GetTracesByValue", HOSTNAME));
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -523,7 +619,7 @@ public class InsidiousService {
         logicBugs.updateSearchResultsList();
 
 
-        getTracesByClassForProjectAndSessionIdAndTraceValue(traceValue,
+        getTracesByStringValue(traceValue,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -535,8 +631,8 @@ public class InsidiousService {
                     }
 
                     @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        if (tracePointCollection.size() == 0) {
+                    public void success(List<TracePoint> tracePoints) {
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
                                 Notifications.Bus.notify(notificationGroup
@@ -547,18 +643,19 @@ public class InsidiousService {
 
                             });
                         } else {
-                            insidiousConfiguration.addSearchQuery(traceValue, tracePointCollection.size());
-                            tracePointCollection.forEach(e -> {
+                            insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
+                            tracePoints.forEach(e -> {
                                 e.setExecutionSessionId(client.getCurrentSession().getId());
                             });
-                            logicBugs.setTracePoints(tracePointCollection);
+                            logicBugs.setTracePoints(tracePoints);
                             logicBugs.updateSearchResultsList();
                         }
                     }
                 });
     }
 
-    public void getErrors(List<String> classList, int pageNum) {
+    public void getErrors(List<String> classList, int pageNum) throws IOException {
+        amplitudeClient.logEvent(new Event("GetTracesByType", HOSTNAME));
 
 
         if (this.client.getCurrentSession() == null) {
@@ -567,7 +664,7 @@ public class InsidiousService {
         }
         logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
 
-        getTracesByClassForProjectAndSessionId(classList,
+        getTracesByTypeName(classList,
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -582,9 +679,9 @@ public class InsidiousService {
                     }
 
                     @Override
-                    public void success(List<TracePoint> tracePointCollection) {
-                        logger.info("got [{}] trace points from server", tracePointCollection.size());
-                        if (tracePointCollection.size() == 0) {
+                    public void success(List<TracePoint> tracePoints) {
+                        logger.info("got [{}] trace points from server", tracePoints.size());
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication()
                                     .invokeAndWait(
                                             () -> Notifications.Bus.notify(notificationGroup
@@ -593,31 +690,40 @@ public class InsidiousService {
                                                             NotificationType.INFORMATION), project));
                         } else {
 
-                            tracePointCollection.forEach(e -> {
+                            tracePoints.forEach(e -> {
                                 e.setExecutionSessionId(client.getCurrentSession().getId());
                             });
 
 
-                            bugsTable.setTracePoints(tracePointCollection);
+                            bugsTable.setTracePoints(tracePoints);
                         }
                     }
                 });
 
     }
 
-    public void getTracesByClassForProjectAndSessionIdAndTraceValue(String traceId,
-                                                                    GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
-        this.client.getTracesByClassForProjectAndSessionIdAndTracevalue(traceId, getProjectSessionErrorsCallback);
+    public void getTracesByStringValue(String traceId,
+                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
+        try {
+            this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
+        } catch (Throwable e) {
+            logger.error("failed to get traces by value", e);
+        }
     }
 
 
     public synchronized void startDebugSession() {
         logger.info("start debug session");
-
         boolean hasInsidiousDebugSession = false;
+
+        if (debugSession != null) {
+            return;
+        }
+
         for (XDebugSession session : project.getService(XDebuggerManager.class).getDebugSessions()) {
-            if (session instanceof InsidiousJavaDebugProcess) {
+            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
                 hasInsidiousDebugSession = true;
+                debugSession = session;
                 break;
             }
 
@@ -627,6 +733,7 @@ public class InsidiousService {
         if (debugSession != null) {
             return;
         }
+        amplitudeClient.logEvent(new Event("StartDebugSession", HOSTNAME));
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
@@ -642,10 +749,6 @@ public class InsidiousService {
         });
 
 
-    }
-
-    public void setProcessHandler(ProcessHandler processHandler) {
-        this.processHandler = processHandler;
     }
 
     public Project getProject() {
@@ -780,38 +883,32 @@ public class InsidiousService {
             logger.info("user is logged in by project is null, setting up project");
             setupProject();
         }
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
-        }
+//        if (credentialsToolbarWindow == null) {
+//            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+//            this.toolWindow.getContentManager().addContent(credentialContent);
+//        }
 
     }
 
-    public void identifyTargetJar() {
-        File targetFolder = new File(Path.of(project.getBasePath(), "target").toAbsolutePath().toString());
-        if (targetFolder.exists()) {
-            for (File targetFile : Objects.requireNonNull(targetFolder.listFiles())) {
-                if (targetFile.getAbsolutePath().endsWith(".jar")) {
-                    projectTargetJarLocation = targetFile.getAbsolutePath();
-                    setAppTokenOnUi();
-                    break;
-                }
-            }
-        }
+    public String getJavaAgentString() {
+        return javaAgentString;
+    }
+
+    public String getVideoBugAgentPath() {
+        return videoBugAgentPath.toAbsolutePath().toString();
     }
 
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
 
-        javaAgentString = "-javaagent:\"" + videoBugAgentPath
+        javaAgentString = "--add-opens=java.base/java.util=ALL-UNNAMED -javaagent:\"" + videoBugAgentPath
                 + "=i="
-                + packageName.replaceAll("\\.", "/")
-                + ","
-                + "server="
-                + insidiousConfiguration.serverUrl
-                + ",format=perthread,token="
-                + appToken + "\"";
+                + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
+//                + ",server=" + insidiousConfiguration.serverUrl
+//                + ",format=perthread" +
+                + ",token=" + appToken
+                + "\"";
 
         if (credentialsToolbarWindow != null) {
             credentialsToolbarWindow.setText(javaAgentString);
@@ -821,13 +918,13 @@ public class InsidiousService {
         }
     }
 
-    public void loadSession() {
+    public void loadSession() throws IOException {
 
         if (currentModule == null) {
             currentModule = ModuleManager.getInstance(project).getModules()[0];
         }
 
-        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
+//        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
             public void error(String message) {
@@ -841,7 +938,7 @@ public class InsidiousService {
             }
 
             @Override
-            public void success(List<ExecutionSession> executionSessionList) {
+            public void success(List<ExecutionSession> executionSessionList) throws IOException {
                 logger.info("got [{}] sessions for project", executionSessionList.size());
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
@@ -863,6 +960,7 @@ public class InsidiousService {
     }
 
     public void setTracePoint(TracePoint selectedTrace) {
+        amplitudeClient.logEvent(new Event("FetchByTracePoint", HOSTNAME));
 
         if (debugSession == null) {
             startDebugSession();
@@ -903,7 +1001,7 @@ public class InsidiousService {
     }
 
 
-    public Client getClient() {
+    public VideobugClientInterface getClient() {
         return client;
     }
 
@@ -968,13 +1066,35 @@ public class InsidiousService {
         client.setSession(sessions.getItems().get(0));
     }
 
-    public void setExecutionSessionId(String sessionId) {
-        ExecutionSession session = new ExecutionSession();
-        session.setId(sessionId);
-        this.client.setSession(session);
-    }
-
     public void focusExceptionWindow() {
         this.logicBugs.bringToFocus(toolWindow);
+    }
+
+    public void initiateUseLocal() {
+        client = new VideobugLocalClient(project.getBasePath());
+        amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
+
+
+        ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            InsidiousService.this.initiateUI();
+            if (notificationGroup != null) {
+                Notifications.Bus.notify(notificationGroup
+                                .createNotification("VideoBug logged in at [" + "disk://localhost"
+                                                + "] for module [" + currentModule.getName() + "]",
+                                        NotificationType.INFORMATION),
+                        project);
+            }
+        });
+    }
+
+    @Override
+    public void dispose() {
+        if (this.client != null) {
+            this.client.close();
+            this.client = null;
+            currentModule = null;
+        }
     }
 }

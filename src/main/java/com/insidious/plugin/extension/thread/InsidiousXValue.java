@@ -1,7 +1,8 @@
 package com.insidious.plugin.extension.thread;
 
-import com.intellij.xdebugger.frame.*;
 import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
+import com.intellij.xdebugger.frame.*;
+import com.sun.jdi.Type;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -19,7 +20,12 @@ public class InsidiousXValue extends XValue {
 
         if (actualValue instanceof InsidiousObjectReference) {
             InsidiousObjectReference valueObjectReference = (InsidiousObjectReference) actualValue;
-            node.setPresentation(null, valueObjectReference.type().name() + "@" + valueObjectReference.uniqueID(),
+            Type type = valueObjectReference.type();
+            String typeName = "<na>";
+            if (type != null) {
+                typeName = type.name();
+            }
+            node.setPresentation(null, typeName + "@" + valueObjectReference.uniqueID(),
                     "",
                     true);
         } else {
