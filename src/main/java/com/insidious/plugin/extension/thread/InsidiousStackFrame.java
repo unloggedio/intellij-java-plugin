@@ -1,7 +1,7 @@
 package com.insidious.plugin.extension.thread;
 
-import com.sun.jdi.*;
 import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
+import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

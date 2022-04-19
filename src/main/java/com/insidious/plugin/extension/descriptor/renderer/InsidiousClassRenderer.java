@@ -1,5 +1,14 @@
 package com.insidious.plugin.extension.descriptor.renderer;
 
+import com.insidious.plugin.extension.DebuggerBundle;
+import com.insidious.plugin.extension.InsidiousDebuggerTreeNode;
+import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
+import com.insidious.plugin.extension.descriptor.InsidiousNodeDescriptorFactory;
+import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
+import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptorImpl;
+import com.insidious.plugin.extension.evaluation.EvaluationContext;
+import com.insidious.plugin.extension.evaluation.EvaluatorUtil;
+import com.insidious.plugin.extension.util.DebuggerUtilsAsync;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
@@ -8,7 +17,6 @@ import com.intellij.debugger.ui.impl.watch.MessageDescriptor;
 import com.intellij.debugger.ui.tree.FieldDescriptor;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.*;
 import com.intellij.openapi.util.text.StringUtil;
@@ -21,21 +29,16 @@ import com.intellij.xdebugger.XDebuggerBundle;
 import com.intellij.xdebugger.settings.XDebuggerSettingsManager;
 import com.jetbrains.jdi.StringReferenceImpl;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.DebuggerBundle;
-import com.insidious.plugin.extension.InsidiousDebuggerTreeNode;
-import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
-import com.insidious.plugin.extension.descriptor.InsidiousNodeDescriptorFactory;
-import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
-import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptorImpl;
-import com.insidious.plugin.extension.evaluation.EvaluationContext;
-import com.insidious.plugin.extension.evaluation.EvaluatorUtil;
-import com.insidious.plugin.extension.util.DebuggerUtilsAsync;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {

@@ -1,5 +1,6 @@
 package com.insidious.plugin.actions;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -7,7 +8,6 @@ import com.intellij.xdebugger.impl.DebuggerSupport;
 import com.intellij.xdebugger.impl.actions.DebuggerActionHandler;
 import com.intellij.xdebugger.impl.actions.XDebuggerActionBase;
 import com.intellij.xdebugger.impl.ui.DebuggerUIUtil;
-import com.insidious.plugin.factory.InsidiousService;
 import org.jetbrains.annotations.NotNull;
 
 public class JumpBack extends XDebuggerActionBase implements DumbAware {

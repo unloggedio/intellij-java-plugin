@@ -11,8 +11,8 @@ public class InsidiousLocation implements Location {
     private Method method;
     private long codeIndex;
     private String sourceName;
-    private String sourcePath;
-    private int lineNumber;
+    private final String sourcePath;
+    private final int lineNumber;
 
     public InsidiousLocation(ReferenceType declaringType, String methodName, long codeIndex,
                              String sourceName, String sourcePath,

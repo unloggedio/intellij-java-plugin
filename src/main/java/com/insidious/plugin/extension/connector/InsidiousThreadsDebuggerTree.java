@@ -1,18 +1,5 @@
 package com.insidious.plugin.extension.connector;
 
-import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.debugger.DebuggerInvocationUtil;
-import com.intellij.debugger.engine.events.DebuggerCommandImpl;
-import com.intellij.debugger.engine.jdi.StackFrameProxy;
-import com.intellij.debugger.engine.jdi.ThreadReferenceProxy;
-import com.intellij.debugger.jdi.ThreadGroupReferenceProxyImpl;
-import com.intellij.debugger.settings.ThreadsViewSettings;
-import com.intellij.openapi.application.ApplicationManager;
-import org.slf4j.Logger;
-import com.intellij.openapi.project.Project;
-import com.intellij.util.ui.tree.TreeModelAdapter;
-import com.intellij.xdebugger.XDebugProcess;
-import com.intellij.xdebugger.XDebuggerBundle;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.descriptor.InsidiousMessageDescriptor;
 import com.insidious.plugin.extension.descriptor.InsidiousStackFrameDescriptorImpl;
@@ -25,6 +12,19 @@ import com.insidious.plugin.extension.evaluation.EvaluationContext;
 import com.insidious.plugin.extension.evaluation.InsidiousNodeDescriptorImpl;
 import com.insidious.plugin.extension.thread.InsidiousThreadGroupReferenceProxy;
 import com.insidious.plugin.extension.thread.InsidiousThreadReferenceProxy;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.debugger.DebuggerInvocationUtil;
+import com.intellij.debugger.engine.events.DebuggerCommandImpl;
+import com.intellij.debugger.engine.jdi.StackFrameProxy;
+import com.intellij.debugger.engine.jdi.ThreadReferenceProxy;
+import com.intellij.debugger.jdi.ThreadGroupReferenceProxyImpl;
+import com.intellij.debugger.settings.ThreadsViewSettings;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.project.Project;
+import com.intellij.util.ui.tree.TreeModelAdapter;
+import com.intellij.xdebugger.XDebugProcess;
+import com.intellij.xdebugger.XDebuggerBundle;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;

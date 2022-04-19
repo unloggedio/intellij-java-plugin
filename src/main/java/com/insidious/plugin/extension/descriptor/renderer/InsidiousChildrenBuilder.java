@@ -1,9 +1,9 @@
 package com.insidious.plugin.extension.descriptor.renderer;
 
-import com.intellij.xdebugger.frame.XCompositeNode;
 import com.insidious.plugin.extension.InsidiousDebuggerTreeNode;
 import com.insidious.plugin.extension.descriptor.InsidiousNodeDescriptorFactory;
 import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
+import com.intellij.xdebugger.frame.XCompositeNode;
 
 import java.util.List;
 

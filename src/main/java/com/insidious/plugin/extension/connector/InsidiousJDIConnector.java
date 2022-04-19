@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.connector;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
 import com.insidious.plugin.extension.thread.*;
-import com.insidious.plugin.network.Client;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.PositionManager;
@@ -32,7 +32,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousVirtualMachine virtualMachine;
 
-    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, Client client) {
+    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, VideobugClientInterface client) {
         this.virtualMachine = new InsidiousVirtualMachine(client);
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }

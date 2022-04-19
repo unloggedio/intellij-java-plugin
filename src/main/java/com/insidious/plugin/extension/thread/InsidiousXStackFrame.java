@@ -1,10 +1,17 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
+import com.insidious.plugin.extension.descriptor.InsidiousJavaValue;
+import com.insidious.plugin.extension.descriptor.InsidiousStackFrameDescriptorImpl;
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousNodeManagerImpl;
+import com.insidious.plugin.extension.evaluation.EvaluationContext;
+import com.insidious.plugin.extension.evaluation.EvaluationContextImpl;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.ui.impl.watch.MethodsTracker;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
-import org.slf4j.Logger;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XCompositeNode;
 import com.intellij.xdebugger.frame.XNamedValue;
@@ -14,16 +21,9 @@ import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.LocalVariable;
 import com.sun.jdi.ObjectReference;
 import com.sun.jdi.StackFrame;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
-import com.insidious.plugin.extension.descriptor.InsidiousJavaValue;
-import com.insidious.plugin.extension.descriptor.InsidiousStackFrameDescriptorImpl;
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousNodeManagerImpl;
-import com.insidious.plugin.extension.evaluation.EvaluationContext;
-import com.insidious.plugin.extension.evaluation.EvaluationContextImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.List;
 

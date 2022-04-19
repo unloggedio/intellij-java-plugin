@@ -24,7 +24,6 @@ import com.intellij.debugger.ui.impl.tree.TreeBuilder;
 import com.intellij.debugger.ui.impl.tree.TreeBuilderNode;
 import com.intellij.openapi.actionSystem.DataKey;
 import com.intellij.openapi.actionSystem.DataProvider;
-import org.slf4j.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.text.StringUtil;
@@ -38,6 +37,7 @@ import com.intellij.xdebugger.settings.XDebuggerSettingsManager;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;

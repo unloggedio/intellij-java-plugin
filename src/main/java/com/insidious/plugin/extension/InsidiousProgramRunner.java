@@ -1,6 +1,6 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.network.Client;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -14,7 +14,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.network.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,7 +47,7 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         RemoteConnection connection;
 
         try {
-            Client client = env.getProject().getService(InsidiousService.class).getClient();
+            VideobugClientInterface client = env.getProject().getService(InsidiousService.class).getClient();
             connection = new RemoteConnection(client.getEndpoint(), client);
             ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
         } catch (IOException e) {

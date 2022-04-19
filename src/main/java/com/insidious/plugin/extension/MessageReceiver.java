@@ -2,10 +2,10 @@ package com.insidious.plugin.extension;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
 import com.insidious.plugin.extension.jwdp.RequestMessage;
 import com.insidious.plugin.extension.jwdp.event.*;
+import com.insidious.plugin.util.LoggerUtil;
+import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -13,8 +13,7 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 
-public class MessageReceiver
-        extends Thread {
+public class MessageReceiver extends Thread {
     private static final Logger logger = LoggerUtil.getInstance(MessageReceiver.class);
     private static final int SLEEP_INTERVAL = 2000;
     private Socket socket;
@@ -29,8 +28,7 @@ public class MessageReceiver
             setName(getClass().getSimpleName());
 
             RemoteConnection remoteConnection = commandSender.getDebugProcess().getRemoteConnection();
-            logger.info(
-                    String.format("Connect to %s", remoteConnection.getHostName()));
+            logger.info(String.format("Connect to %s", remoteConnection.getHostName()));
             this.socket = new Socket(remoteConnection.getHostName(), 8080);
             OutputStream out = this.socket.getOutputStream();
             this.in = new DataInputStream(new BufferedInputStream(this.socket.getInputStream()));

@@ -1,16 +1,16 @@
 package com.insidious.plugin.extension.descriptor.renderer;
 
+import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
+import com.insidious.plugin.extension.evaluation.EvaluationContext;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.evaluation.CodeFragmentKind;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.TextWithImportsImpl;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.ide.highlighter.JavaFileType;
-import org.slf4j.Logger;
 import com.sun.jdi.Type;
-import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
-import com.insidious.plugin.extension.evaluation.EvaluationContext;
 import org.jetbrains.annotations.NonNls;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;

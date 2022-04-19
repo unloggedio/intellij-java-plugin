@@ -1,11 +1,14 @@
 package com.insidious.plugin.extension.thread;
 
+import com.insidious.plugin.extension.DebuggerBundle;
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.icons.AllIcons;
-import org.slf4j.Logger;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.xdebugger.XDebuggerUtil;
@@ -13,12 +16,9 @@ import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XExecutionStack;
 import com.intellij.xdebugger.frame.XStackFrame;
 import com.sun.jdi.*;
-import com.insidious.plugin.extension.DebuggerBundle;
-import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
-import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import javax.swing.*;
 import java.io.File;
