@@ -56,6 +56,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
     private File sessionDirectory;
+    private ScheduledExecutorService threadPoolExecutor5Seconds;
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -173,6 +174,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             Set<Integer> typeIds = searchResult.stream()
                     .map(TypeInfoDocument::getTypeId)
                     .collect(Collectors.toSet());
+            if (typeIds.size() == 0) {
+                continue;
+            }
 
             NameWithBytes objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
                     sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
@@ -276,7 +280,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     .collect(Collectors.toSet());
 
             NameWithBytes typesInfoBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+                    sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             assert typesInfoBytes != null;
             ArchiveIndex typeIndex = readArchiveIndex(typesInfoBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             typeInfoMap = typeIndex.getTypesById(types);
@@ -365,10 +369,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
             throws ClassInfoNotFoundException, IOException {
         List<File> archives = this.sessionArchives;
 
-        for (int i = archives.size(); i > 0; i--) {
-            File sessionArchive = archives.get(i - 1);
+        for (int i = 0; i < archives.size(); i++) {
+            File sessionArchive = archives.get(i);
             NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
-            assert typeIndexBytes != null;
+            if (typeIndexBytes == null) {
+                continue;
+            }
             ArchiveIndex typeIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
 
             Map<String, TypeInfo> result = typeIndex.getTypesById(Set.of(typeId));
@@ -454,13 +460,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private ArchiveIndex readArchiveIndex(byte[] bytes, DatFileType indexFilterType) throws IOException {
 
         ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex = null;
-        String md5Hex = DigestUtils.md5Hex(bytes);
-        String cacheKey = md5Hex + "-" + indexFilterType.getFileName();
-//        if (indexCache.containsKey(cacheKey)) {
-//            return indexCache.get(cacheKey);
-//        }
+        String cacheKey = bytesHex(bytes, indexFilterType.getFileName());
 
-        Path path = Path.of(this.pathToSessions, session.getName(), indexFilterType.getFileName());
+
+        Path path = Path.of(this.pathToSessions, session.getName(), cacheKey, indexFilterType.getFileName());
+        Path parentPath = path.getParent();
+        parentPath.toFile().mkdirs();
+
         Files.write(path, bytes);
 
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
@@ -504,6 +510,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
         ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
         indexCache.put(cacheKey, archiveIndex);
         return archiveIndex;
+    }
+
+    @NotNull
+    private String bytesHex(byte[] bytes, String indexFilterType) {
+        String md5Hex = DigestUtils.md5Hex(bytes);
+        String cacheKey = md5Hex + "-" + indexFilterType;
+        return cacheKey;
     }
 
     @Override
@@ -638,9 +651,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
+    public void close() {
+        threadPoolExecutor5Seconds.shutdown();
+    }
+
+    @Override
     public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
 
-        ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+        threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
 
 
         threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {

@@ -68,5 +68,7 @@ public interface VideobugClientInterface {
 
     void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite);
 
+    void close();
+
     void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 }

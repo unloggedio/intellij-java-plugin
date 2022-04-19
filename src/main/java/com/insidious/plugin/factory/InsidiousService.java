@@ -38,6 +38,7 @@ import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.execution.ui.FragmentedSettings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.notification.*;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
@@ -74,7 +75,7 @@ import java.util.stream.Collectors;
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
 @Storage("insidious.xml")
-public class InsidiousService {
+public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final Project project;
@@ -1086,5 +1087,14 @@ public class InsidiousService {
                         project);
             }
         });
+    }
+
+    @Override
+    public void dispose() {
+        if (this.client != null) {
+            this.client.close();
+            this.client = null;
+            currentModule = null;
+        }
     }
 }
