@@ -110,8 +110,6 @@ public class InsidiousService implements Disposable {
         amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
         threadPool = Executors.newFixedThreadPool(4);
 
-        String logFileNotificationContent = "Insidious log file location - " + LoggerUtil.getLogFilePath();
-
         logger.info("started insidious service - project name [{}]", project.getName());
         if (ModuleManager.getInstance(project).getModules().length == 0) {
             logger.warn("no module found in the project");
@@ -120,17 +118,13 @@ public class InsidiousService implements Disposable {
             logger.info("current module [{}]", currentModule.getName());
         }
 
-        XDebugSession[] sessions = project.getService(XDebuggerManager.class).getDebugSessions();
-        for (XDebugSession session : sessions) {
-            session.getDebugProcess();
-        }
+        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
-
-        ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
-        ReadAction.nonBlocking(this::logLogFileLocation).submit(threadPool);
+        threadPool.submit(this::getProjectPackageName);
+        threadPool.submit(this::logLogFileLocation);
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-//        this.client = new VideobugNetworkClient(this.insidiousConfiguration.getServerUrl());
+
         String pathToSessions = project.getBasePath();
         assert pathToSessions != null;
         Path.of(pathToSessions).toFile().mkdirs();
@@ -205,6 +199,15 @@ public class InsidiousService implements Disposable {
                 getHorBugTable().setTracePoints(tracePoints);
             }
         });
+    }
+
+    private XDebugSession getActiveDebugSession(XDebugSession[] debugSessions) {
+        for (XDebugSession session : debugSessions) {
+            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
+                return session;
+            }
+        }
+        return null;
     }
 
     public NotificationGroup getNotificationGroup() {
@@ -720,14 +723,7 @@ public class InsidiousService implements Disposable {
             return;
         }
 
-        for (XDebugSession session : project.getService(XDebuggerManager.class).getDebugSessions()) {
-            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
-                hasInsidiousDebugSession = true;
-                debugSession = session;
-                break;
-            }
-
-        }
+        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
 
         if (debugSession != null) {
@@ -822,34 +818,13 @@ public class InsidiousService implements Disposable {
             if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
                 ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
                 @NotNull List<FragmentedSettings.Option> applicationOptions = applicationConfiguration.getSelectedOptions();
+
                 String currentVMParams = applicationConfiguration.getVMParameters();
-
                 String newVmOptions = currentVMParams;
-                if (StringUtil.isNotEmpty(currentVMParams) && currentVMParams.contains("videobug")) {
-//                    String[] vmParamParts = currentVMParams.split(" ");
-                    List<String> vmParamList = new LinkedList<>(Arrays.asList(currentVMParams.split(" ")));
-                    int foundAtIndex = -1;
-                    for (int i = 0; i < vmParamList.size(); i++) {
-                        String vmParamPart = vmParamList.get(i);
-                        if (vmParamPart.contains("videobug") && vmParamPart.contains("javaagent")) {
-                            vmParamList.set(i, "");
-                        }
-                    }
-
-                    vmParamList.add(javaAgentString);
-                    newVmOptions = String.join(" ", vmParamList);
-                    applicationConfiguration.setVMParameters(newVmOptions.trim());
-                } else {
-                    newVmOptions = javaAgentString;
-                    applicationConfiguration.setVMParameters(newVmOptions.trim());
-                }
-
-
+                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+                applicationConfiguration.setVMParameters(newVmOptions.trim());
             }
-
         }
-
-
     }
 
 
@@ -902,13 +877,14 @@ public class InsidiousService implements Disposable {
     public void setAppTokenOnUi() {
         logger.info("set app token - {} with package name [{}]" + appToken, packageName);
 
-        javaAgentString = "--add-opens=java.base/java.util=ALL-UNNAMED -javaagent:\"" + videoBugAgentPath
-                + "=i="
-                + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
-//                + ",server=" + insidiousConfiguration.serverUrl
-//                + ",format=perthread" +
-                + ",token=" + appToken
-                + "\"";
+        String[] vmParamsToAdd = new String[]{
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "-javaagent:\"" + videoBugAgentPath
+                        + "=i=" + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
+                        + ",token=" + appToken + "\""
+        };
+
+        javaAgentString = String.join(" ", vmParamsToAdd);
 
         if (credentialsToolbarWindow != null) {
             credentialsToolbarWindow.setText(javaAgentString);
