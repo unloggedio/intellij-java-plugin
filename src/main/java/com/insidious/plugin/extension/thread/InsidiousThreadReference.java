@@ -869,7 +869,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public List<StackFrame> frames() throws IncompatibleThreadStateException {
-        return stackFrames.stream().collect(Collectors.toList());
+        return new ArrayList<>(stackFrames);
     }
 
     @Override
@@ -879,7 +879,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public List<StackFrame> frames(int i, int i1) throws IncompatibleThreadStateException {
-        return stackFrames.subList(i, i1).stream().collect(Collectors.toList());
+        return new ArrayList<>(stackFrames.subList(i, i1));
     }
 
     @Override

@@ -62,9 +62,8 @@ public class ArchiveIndex {
     public static TypeInfo getTypeById(Integer valueId) {
 
         TypeInfoDocument e = typesMap.get(valueId);
-        TypeInfo ti = new TypeInfo("", e.getTypeId(), e.getTypeName(),
+        return new TypeInfo("", e.getTypeId(), e.getTypeName(),
                 "", "", "", "");
-        return ti;
 
     }
 

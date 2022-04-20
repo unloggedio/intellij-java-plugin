@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 
 import javax.swing.*;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -104,10 +105,18 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 //        });
 
         Location location = stackFrame.location();
-        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath() + ".java";
-        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(new File(path));
+        if (location.sourcePath().contains("$")) {
+            location.sourcePath(location.sourcePath().substring(0, location.sourcePath().indexOf("$")));
+        }
+        Path path = Path.of(this.myDebugProcess.getProject().getBasePath(),
+                "src/main/java", location.sourcePath() + ".java");
+        if (!path.toFile().exists()) {
+            path = Path.of(this.myDebugProcess.getProject().getBasePath(),
+                    "src/main/scala", location.sourcePath() + ".scala");
+        }
 
 
+        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(path.toFile());
         XSourcePosition xSourcePosition = XDebuggerUtil.getInstance().createPosition(file, location.lineNumber());
 
         return new InsidiousXStackFrame(
