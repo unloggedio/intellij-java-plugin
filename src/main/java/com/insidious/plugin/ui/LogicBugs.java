@@ -26,8 +26,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -178,21 +177,33 @@ public class LogicBugs {
     }
 
     private void parseTableItems(List<TracePoint> tracePointCollection) {
-        this.bugList = tracePointCollection;
+        this.bugList = new LinkedList<>(tracePointCollection);
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"ClassName", "LineNum", "ThreadId", "Timestamp"};
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
-            String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{className,
-                    String.valueOf(tracePoint.getLinenum()),
-                    String.valueOf(tracePoint.getThreadId()),
-                    new Date(tracePoint.getRecordedAt()).toString()};
+            sampleObject[i] = tracePointToStringArray(tracePoint);
             i++;
         }
 
         defaultTableModelTraces.setDataVector(sampleObject, headers);
+    }
+
+    private String[] tracePointToStringArray(TracePoint tracePoint) {
+        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        return new String[]{className,
+                String.valueOf(tracePoint.getLinenum()),
+                String.valueOf(tracePoint.getThreadId()),
+                new Date(tracePoint.getRecordedAt()).toString()};
+    }
+
+    private Vector<String> tracePointToStringVector(TracePoint tracePoint) {
+        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        return new Vector<>(Arrays.asList(className,
+                String.valueOf(tracePoint.getLinenum()),
+                String.valueOf(tracePoint.getThreadId()),
+                new Date(tracePoint.getRecordedAt()).toString()));
     }
 
     private void loadBug(int rowNum) {
@@ -274,4 +285,19 @@ public class LogicBugs {
                 true);
 
     }
+
+
+    public void addTracePoints(List<TracePoint> tracePointCollection) {
+        scrollpanel.setVisible(true);
+        bugList.addAll(tracePointCollection);
+        tracePointCollection.forEach(e -> defaultTableModelTraces.addRow(tracePointToStringArray(e)));
+    }
+
+
+    public void clearTracePoints() {
+        scrollpanel.setVisible(true);
+        bugList = new LinkedList<>();
+        setTracePoints(List.of());
+    }
+
 }

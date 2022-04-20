@@ -49,10 +49,10 @@ public interface VideobugClientInterface {
     void getTracesByObjectType(
             Collection<String> classList,
             int historyDepth,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
+            QueryTracePointsCallBack getProjectSessionErrorsCallback) throws IOException;
 
     void getTracesByObjectValue(String value,
-                                GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
+                                QueryTracePointsCallBack getProjectSessionErrorsCallback) throws IOException;
 
     ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception;
 

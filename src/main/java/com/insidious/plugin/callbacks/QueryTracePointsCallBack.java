@@ -5,8 +5,10 @@ import com.insidious.plugin.pojo.TracePoint;
 
 import java.util.List;
 
-public interface GetProjectSessionErrorsCallback {
+public interface QueryTracePointsCallBack {
     void error(ExceptionResponse errorResponse);
 
     void success(List<TracePoint> tracePoints);
+
+    void finish();
 }

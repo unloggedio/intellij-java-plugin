@@ -319,7 +319,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectType(Collection<String> classList, int depth, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+    public void getTracesByObjectType(Collection<String> classList, int depth, QueryTracePointsCallBack getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -365,7 +365,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectValue(String value,
-                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                       QueryTracePointsCallBack getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
