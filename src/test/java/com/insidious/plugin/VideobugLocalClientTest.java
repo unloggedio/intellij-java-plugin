@@ -59,7 +59,7 @@ public class VideobugLocalClientTest {
             }
 
             @Override
-            public void finish() {
+            public void complete() {
 
             }
         });
@@ -78,7 +78,7 @@ public class VideobugLocalClientTest {
             }
 
             @Override
-            public void finish() {
+            public void complete() {
 
             }
         });

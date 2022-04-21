@@ -23,7 +23,6 @@ import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -77,6 +76,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void setSession(ExecutionSession session) {
         this.session = session;
+        classWeaveInfo = null;
         refreshSessionArchivesList();
     }
 
@@ -268,7 +268,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         ProgressIndicatorProvider.getGlobalProgressIndicator().setFraction(1);
         ProgressIndicatorProvider.getGlobalProgressIndicator().stop();
 //        getProjectSessionErrorsCallback.success(tracePointList);
-        queryTracePointsCallBack.finish();
+        queryTracePointsCallBack.complete();
 
     }
 
@@ -650,7 +650,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                     List<ExecutionSession> sessions = getLocalSessions();
                     setSession(sessions.get(0));
-                    refreshSessionArchivesList();
 
                     getTracesByObjectType(typeNameList, 2, new QueryTracePointsCallBack() {
                         @Override
@@ -666,7 +665,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         }
 
                         @Override
-                        public void finish() {
+                        public void complete() {
 
                         }
                     });

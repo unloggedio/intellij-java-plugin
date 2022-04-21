@@ -10,5 +10,5 @@ public interface QueryTracePointsCallBack {
 
     void success(List<TracePoint> tracePoints);
 
-    void finish();
+    void complete();
 }

@@ -647,7 +647,7 @@ public class InsidiousService implements Disposable {
                     }
 
                     @Override
-                    public void finish() {
+                    public void complete() {
                         if (count == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
@@ -702,7 +702,7 @@ public class InsidiousService implements Disposable {
                     }
 
                     @Override
-                    public void finish() {
+                    public void complete() {
                         if (count == 0) {
                             ApplicationManager.getApplication()
                                     .invokeAndWait(

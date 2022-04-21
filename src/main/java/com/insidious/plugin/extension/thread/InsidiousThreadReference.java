@@ -191,8 +191,13 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (methodsToSkip == 0) {
                         currentClassId = classId;
                         if (currentFrame.location() == null) {
+                            String classFileLocation = classInfo.fileName().value();
+                            String[] classNameParts = classInfo.className().value().split("/");
+                            classNameParts[classNameParts.length - 1] = classFileLocation;
+                            classFileLocation = StringUtil.join(classNameParts, "/");
+                            int lineNumber = (int) (probeInfo.lineNumber() - 1);
                             InsidiousLocation currentLocation = new InsidiousLocation(
-                                    classInfo.fileName().value(), (int) (probeInfo.lineNumber() - 1));
+                                    classFileLocation, lineNumber);
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
