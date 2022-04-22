@@ -191,13 +191,8 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (methodsToSkip == 0) {
                         currentClassId = classId;
                         if (currentFrame.location() == null) {
-                            String classFileLocation = classInfo.fileName().value();
-                            String[] classNameParts = classInfo.className().value().split("/");
-                            classNameParts[classNameParts.length - 1] = classFileLocation;
-                            classFileLocation = StringUtil.join(classNameParts, "/");
-                            int lineNumber = (int) (probeInfo.lineNumber() - 1);
                             InsidiousLocation currentLocation = new InsidiousLocation(
-                                    classFileLocation, lineNumber);
+                                    classInfo.fileName().value(), (int) (probeInfo.lineNumber() - 1));
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
@@ -874,7 +869,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public List<StackFrame> frames() throws IncompatibleThreadStateException {
-        return new ArrayList<>(stackFrames);
+        return stackFrames.stream().collect(Collectors.toList());
     }
 
     @Override
@@ -884,7 +879,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
     @Override
     public List<StackFrame> frames(int i, int i1) throws IncompatibleThreadStateException {
-        return new ArrayList<>(stackFrames.subList(i, i1));
+        return stackFrames.subList(i, i1).stream().collect(Collectors.toList());
     }
 
     @Override

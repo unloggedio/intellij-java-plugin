@@ -5,7 +5,6 @@ import com.amplitude.Event;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -41,7 +40,6 @@ import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.notification.*;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.NonBlockingReadAction;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.module.Module;
@@ -122,15 +120,15 @@ public class InsidiousService implements Disposable {
 
         debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
-        ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
-        ReadAction.nonBlocking(this::logLogFileLocation).submit(threadPool);
+        threadPool.submit(this::getProjectPackageName);
+        threadPool.submit(this::logLogFileLocation);
 
         this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
         String pathToSessions = project.getBasePath();
         assert pathToSessions != null;
         Path.of(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions, new VideobugNetworkClient("https://ssl-receiver.k8s.bug.video"));
+        this.client = new VideobugLocalClient(pathToSessions);
         ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
 
         Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
@@ -608,7 +606,7 @@ public class InsidiousService implements Disposable {
 
     public void getTracesByTypeName(
             List<String> classList,
-            QueryTracePointsCallBack getProjectSessionErrorsCallback) throws IOException {
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         this.client.getTracesByObjectType(classList, -1, getProjectSessionErrorsCallback);
     }
 
@@ -622,33 +620,22 @@ public class InsidiousService implements Disposable {
 
         insidiousConfiguration.addSearchQuery(traceValue, 0);
         logicBugs.updateSearchResultsList();
-        logicBugs.clearTracePoints();
-        getTracesByStringValue(traceValue,
-                new QueryTracePointsCallBack() {
-                    int count = 0;
 
+
+        getTracesByStringValue(traceValue,
+                new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         Notifications.Bus.notify(notificationGroup
                                         .createNotification("Failed to get traces: " + errorResponse.getMessage(),
                                                 NotificationType.ERROR),
                                 project);
+
                     }
 
                     @Override
                     public void success(List<TracePoint> tracePoints) {
-                        count += tracePoints.size();
-                        insidiousConfiguration.addSearchQuery(traceValue, count);
-                        tracePoints.forEach(e -> {
-                            e.setExecutionSessionId(client.getCurrentSession().getId());
-                        });
-                        logicBugs.addTracePoints(tracePoints);
-                        logicBugs.updateSearchResultsList();
-                    }
-
-                    @Override
-                    public void complete() {
-                        if (count == 0) {
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
                                 Notifications.Bus.notify(notificationGroup
@@ -658,6 +645,13 @@ public class InsidiousService implements Disposable {
 
 
                             });
+                        } else {
+                            insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
+                            tracePoints.forEach(e -> {
+                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                            });
+                            logicBugs.setTracePoints(tracePoints);
+                            logicBugs.updateSearchResultsList();
                         }
                     }
                 });
@@ -674,9 +668,7 @@ public class InsidiousService implements Disposable {
         logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
 
         getTracesByTypeName(classList,
-                new QueryTracePointsCallBack() {
-                    int count = 0;
-
+                new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         logger.error("failed to get trace points from server - {}", errorResponse);
@@ -692,24 +684,21 @@ public class InsidiousService implements Disposable {
                     @Override
                     public void success(List<TracePoint> tracePoints) {
                         logger.info("got [{}] trace points from server", tracePoints.size());
-                        count += tracePoints.size();
-                        tracePoints.forEach(e -> {
-                            e.setExecutionSessionId(client.getCurrentSession().getId());
-                        });
-
-
-                        bugsTable.setTracePoints(tracePoints);
-                    }
-
-                    @Override
-                    public void complete() {
-                        if (count == 0) {
+                        if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication()
                                     .invokeAndWait(
                                             () -> Notifications.Bus.notify(notificationGroup
                                                     .createNotification(
                                                             "No Exception data events matched in the last session",
                                                             NotificationType.INFORMATION), project));
+                        } else {
+
+                            tracePoints.forEach(e -> {
+                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                            });
+
+
+                            bugsTable.setTracePoints(tracePoints);
                         }
                     }
                 });
@@ -717,16 +706,9 @@ public class InsidiousService implements Disposable {
     }
 
     public void getTracesByStringValue(String traceId,
-                                       QueryTracePointsCallBack getProjectSessionErrorsCallback) throws IOException {
+                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
         try {
-            NonBlockingReadAction<Void> voidNonBlockingReadAction = ReadAction.nonBlocking(() -> {
-                try {
-                    this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
-                } catch (IOException e) {
-                    logger.error("failed to query trace points by string value [{}]", traceId, e);
-                }
-            });
-            voidNonBlockingReadAction.submit(threadPool);
+            this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
         } catch (Throwable e) {
             logger.error("failed to get traces by value", e);
         }
@@ -838,7 +820,7 @@ public class InsidiousService implements Disposable {
                 @NotNull List<FragmentedSettings.Option> applicationOptions = applicationConfiguration.getSelectedOptions();
 
                 String currentVMParams = applicationConfiguration.getVMParameters();
-                String newVmOptions;
+                String newVmOptions = currentVMParams;
                 newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
                 applicationConfiguration.setVMParameters(newVmOptions.trim());
             }
@@ -963,7 +945,7 @@ public class InsidiousService implements Disposable {
         }
 
 
-        ReadAction.nonBlocking(() -> {
+        ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
                 logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
 
@@ -987,7 +969,7 @@ public class InsidiousService implements Disposable {
                 debugSession.resume();
             }
             debugSession.pause();
-        }).submit(threadPool);
+        });
     }
 
     public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
@@ -1065,7 +1047,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void initiateUseLocal() {
-        client = new VideobugLocalClient(project.getBasePath(), new VideobugNetworkClient("https://ssl-receiver.k8s.bug.video"));
+        client = new VideobugLocalClient(project.getBasePath());
         amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
 
 

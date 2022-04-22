@@ -9,7 +9,6 @@ import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.icons.AllIcons;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.xdebugger.XDebuggerUtil;
@@ -23,10 +22,8 @@ import org.slf4j.Logger;
 
 import javax.swing.*;
 import java.io.File;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Objects;
 
 public class InsidiousXExecutionStack extends XExecutionStack {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousXExecutionStack.class);
@@ -107,28 +104,10 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 //        });
 
         Location location = stackFrame.location();
-        String originalLocation = location.sourcePath();
-        if (originalLocation.contains("$")) {
-            location.sourcePath(location.sourcePath().substring(0, location.sourcePath().indexOf("$")));
-        }
-        Path path = Path.of(Objects.requireNonNull(this.myDebugProcess.getProject().getBasePath()),
-                "src/main/java", location.sourcePath());
-        if (!path.toFile().exists()) {
-
-            String[] locationParts = originalLocation.split("/");
-            String fileName = locationParts[locationParts.length - 1];
-            if (fileName.contains("$")) {
-                fileName = fileName.split("\\$")[1];
-                locationParts[locationParts.length - 1] = fileName;
-            }
-            @NotNull String newSourcePath = StringUtil.join(locationParts, "/");
-
-            path = Path.of(this.myDebugProcess.getProject().getBasePath(),
-                    "src/main/scala", newSourcePath);
-        }
+        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath() + ".java";
+        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(new File(path));
 
 
-        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(path.toFile());
         XSourcePosition xSourcePosition = XDebuggerUtil.getInstance().createPosition(file, location.lineNumber());
 
         return new InsidiousXStackFrame(

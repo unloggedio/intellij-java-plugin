@@ -12,7 +12,6 @@ import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +21,6 @@ import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
 
 public class ArchiveIndex {
-    private static final Map<Integer, TypeInfoDocument> typesMap = new HashMap();
     private final ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
     private final ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
     private final ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
@@ -34,38 +32,8 @@ public class ArchiveIndex {
         this.typeInfoIndex = typeInfoIndex;
         this.stringInfoIndex = stringInfoIndex;
         this.objectInfoIndex = objectInfoIndex;
-
-        if (this.typeInfoIndex != null) {
-            for (TypeInfoDocument doc : this.typeInfoIndex) {
-                typesMap.put(doc.getTypeId(), doc);
-            }
-        }
     }
 
-    public static Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
-
-        Map<String, TypeInfo> map = new HashMap<>();
-        for (Integer valueId : valueIds) {
-            if (typesMap.containsKey(valueId)) {
-                TypeInfoDocument e = typesMap.get(valueId);
-                TypeInfo ti = new TypeInfo("", e.getTypeId(), e.getTypeName(),
-                        "", "", "", "");
-                map.put(String.valueOf(valueId), ti);
-            }
-        }
-
-
-        return map;
-
-    }
-
-    public static TypeInfo getTypeById(Integer valueId) {
-
-        TypeInfoDocument e = typesMap.get(valueId);
-        return new TypeInfo("", e.getTypeId(), e.getTypeName(),
-                "", "", "", "");
-
-    }
 
     @NotNull
     public List<Long> getStringIdsFromStringValues(String value) {
@@ -106,15 +74,13 @@ public class ArchiveIndex {
                 .collect(Collectors.toMap(e -> String.valueOf(e.getStringId()), r -> r));
     }
 
-    public void close() {
-        if (this.typeInfoIndex != null) {
-            this.typeInfoIndex.clear();
-        }
-        if (this.stringInfoIndex != null) {
-            this.stringInfoIndex.clear();
-        }
-        if (this.objectInfoIndex != null) {
-            this.objectInfoIndex.clear();
-        }
+    public Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
+
+        Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_ID, valueIds);
+        return typeInfoIndex.retrieve(query).stream()
+                .map(e -> new TypeInfo("", e.getTypeId(), e.getTypeName(),
+                        "", "", "", ""))
+                .collect(Collectors.toMap(e -> String.valueOf(e.getTypeId()), r -> r));
+
     }
 }

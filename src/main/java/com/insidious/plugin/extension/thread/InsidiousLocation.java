@@ -11,7 +11,7 @@ public class InsidiousLocation implements Location {
     private Method method;
     private long codeIndex;
     private String sourceName;
-    private String sourcePath;
+    private final String sourcePath;
     private final int lineNumber;
 
     public InsidiousLocation(ReferenceType declaringType, String methodName, long codeIndex,
@@ -63,7 +63,6 @@ public class InsidiousLocation implements Location {
 
     @Override
     public String sourcePath(String s) throws AbsentInformationException {
-        sourcePath = s;
         return sourcePath;
     }
 
