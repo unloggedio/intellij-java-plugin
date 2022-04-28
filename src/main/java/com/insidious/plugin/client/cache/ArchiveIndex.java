@@ -4,18 +4,20 @@ import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.IndexedCollection;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.pojo.ObjectInfo;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
@@ -28,7 +30,7 @@ public class ArchiveIndex {
     public ArchiveIndex(
             ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex,
             ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex,
-            ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex) {
+            ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex, Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap) {
         this.typeInfoIndex = typeInfoIndex;
         this.stringInfoIndex = stringInfoIndex;
         this.objectInfoIndex = objectInfoIndex;
@@ -39,7 +41,9 @@ public class ArchiveIndex {
     public List<Long> getStringIdsFromStringValues(String value) {
         Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
         ResultSet<StringInfoDocument> searchResult = stringInfoIndex.retrieve(query);
-        return searchResult.stream().map(StringInfoDocument::getStringId).collect(Collectors.toList());
+        List<Long> collect = searchResult.stream().map(StringInfoDocument::getStringId).collect(Collectors.toList());
+        searchResult.close();
+        return collect;
     }
 
     public IndexedCollection<StringInfoDocument> Strings() {
@@ -55,9 +59,15 @@ public class ArchiveIndex {
     }
 
     public Map<String, ObjectInfo> getObjectsByObjectId(Set<Long> objectIds) {
-        return objectInfoIndex.stream().filter(e -> objectIds.contains(e.getObjectId()))
+
+        Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_ID, objectIds);
+        ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
+        Stream<ObjectInfoDocument> stream = retrieve.stream();
+        Map<String, ObjectInfo> collect = stream
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), null))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
+        retrieve.close();
+        return collect;
     }
 
     public Map<String, ObjectInfo> getObjectsByTypeIds(Set<Integer> typeIds) {
@@ -69,18 +79,25 @@ public class ArchiveIndex {
     public Map<String, StringInfo> getStringsById(Set<Long> valueIds) {
 
         Query<StringInfoDocument> query = in(StringInfoDocument.STRING_ID, valueIds);
-        return stringInfoIndex.retrieve(query).stream()
+        ResultSet<StringInfoDocument> retrieve = stringInfoIndex.retrieve(query);
+        Stream<StringInfoDocument> stream = retrieve.stream();
+        Map<String, StringInfo> collect = stream
                 .map(e -> new StringInfo(e.getStringId(), e.getString()))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getStringId()), r -> r));
+        retrieve.close();
+        return collect;
     }
 
     public Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
 
         Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_ID, valueIds);
-        return typeInfoIndex.retrieve(query).stream()
+        ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
+        Map<String, TypeInfo> collect = retrieve.stream()
                 .map(e -> new TypeInfo("", e.getTypeId(), e.getTypeName(),
                         "", "", "", ""))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getTypeId()), r -> r));
+        retrieve.close();
+        return collect;
 
     }
 }

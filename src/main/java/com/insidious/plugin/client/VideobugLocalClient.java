@@ -204,9 +204,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-//        String outDirName = getOutDirName(sessionFile);
-//        File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
-//        outDirFile.mkdirs();
 
         ZipEntry entry = null;
         while ((entry = indexArchive.getNextEntry()) != null) {
@@ -504,10 +501,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
                 classInfoMap.put(classInfo.className().value(), classInfo);
             }
-            return new ArchiveIndex(null, null, null);
         }
 
-        ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
+        ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex, classInfoMap);
         indexCache.put(cacheKey, archiveIndex);
         return archiveIndex;
     }
