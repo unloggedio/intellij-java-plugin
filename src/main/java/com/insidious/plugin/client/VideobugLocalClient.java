@@ -255,18 +255,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private void queryForValueId(List<TracePoint> tracePointList, File sessionArchive, Set<Long> valueIds) {
         NameWithBytes bytes;
-        ArchiveFilesIndex archiveFileIndex = null;
+        ArchiveFilesIndex eventsIndex = null;
         ArchiveIndex objectIndex = null;
         Map<String, TypeInfo> typeInfoMap = new HashMap<>();
         Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         try {
             bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
             assert bytes != null;
-            archiveFileIndex = readEventIndex(bytes.getBytes());
+            eventsIndex = readEventIndex(bytes.getBytes());
 
 
-            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            NameWithBytes objectIndexBytes =
+                    createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
             assert objectIndexBytes != null;
             objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
@@ -287,14 +287,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
 
-        ArchiveFilesIndex finalArchiveFileIndex = archiveFileIndex;
+        ArchiveFilesIndex finalEventsIndex = eventsIndex;
         Set<UploadFile> matchedFiles = valueIds.stream().map(
                 valueId -> {
-                    assert finalArchiveFileIndex != null;
-                    boolean archiveHasSeenValue = finalArchiveFileIndex.hasValueId(valueId);
+                    assert finalEventsIndex != null;
+                    boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
                     List<UploadFile> matchedFilesForString = new LinkedList<>();
                     if (archiveHasSeenValue) {
-                        matchedFilesForString = finalArchiveFileIndex.queryEventsByStringId(valueId);
+                        matchedFilesForString = finalEventsIndex.queryEventsByStringId(valueId);
                     }
                     return matchedFilesForString;
                 }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
