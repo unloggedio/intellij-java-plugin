@@ -3,8 +3,9 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.Util;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.pojo.ClassInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ObjectInfo;
@@ -102,10 +103,10 @@ public class TracePoint {
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
 
-        KaitaiInsidiousClassWeaveParser.ProbeInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
+        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
         if (dataInfoObject != null) {
 
-            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.classId()));
+            ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.getClassId()));
 
             ObjectInfo errorKeyValueJson = traceResponse.getObjectInfo(String.valueOf(dataEvent.getValue()));
             long exceptionType = errorKeyValueJson.getTypeId();
@@ -114,26 +115,26 @@ public class TracePoint {
             if (exceptionClassJson != null) {
                 exceptionClass = exceptionClassJson.getTypeNameFromClass();
             }
-            switch (EventType.valueOf(dataInfoObject.eventType().value())) {
+            switch (dataInfoObject.getEventType()) {
                 case LABEL:
                 case CATCH:
                     return null;
 //                case METHOD_EXCEPTIONAL_EXIT:
 //                case METHOD_THROW:
             }
-            if (Util.getAttribute(dataInfoObject.attributes().value(), "Type", "").length() == 1) {
+            if (Util.getAttribute(dataInfoObject.getAttributes(), "Type", "").length() == 1) {
                 return null;
             }
 
 
-            return new TracePoint(dataInfoObject.classId(),
-                    dataInfoObject.lineNumber(),
+            return new TracePoint(dataInfoObject.getClassId(),
+                    dataInfoObject.getLine(),
                     dataEvent.getDataId(),
                     dataEvent.getThreadId(),
                     dataEvent.getValue(),
-                    dataEvent.getExecutionSessionId(),
-                    classInfo.fileName().value(),
-                    classInfo.className().value(),
+                    dataEvent.getSessionId(),
+                    classInfo.getFilename(),
+                    classInfo.getClassName(),
                     exceptionClass,
                     dataEvent.getRecordedAt().getTime(),
                     dataEvent.getNanoTime());

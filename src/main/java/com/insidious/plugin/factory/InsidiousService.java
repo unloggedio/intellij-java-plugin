@@ -468,7 +468,7 @@ public class InsidiousService implements Disposable {
             }
 
             @NotNull List<String> sessionIds = sessions.getItems().stream().map(e -> {
-                return "Session [" + e.getId() + "] @" + e.getHostname() + " at " + e.getCreatedAt();
+                return "Session [" + e.getSessionId() + "] @" + e.getHostname() + " at " + e.getCreatedAt();
             }).collect(Collectors.toList());
             @NotNull JBPopup sessionPopup = JBPopupFactory.getInstance().createPopupChooserBuilder(
                     sessionIds
@@ -478,10 +478,10 @@ public class InsidiousService implements Disposable {
                     logger.info("session selected for module [" + currentModule.getName() + "] => ", selectedExecutionSession);
                     try {
                         String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
-                        executionSession.setId(sessionId);
+                        executionSession.setSessionId(sessionId);
                     } catch (Exception e) {
                         logger.error("failed to extract session id", e);
-                        executionSession.setId(sessions.getItems().get(0).getId());
+                        executionSession.setSessionId(sessions.getItems().get(0).getSessionId());
                     }
                     try {
                         client.setSession(executionSession);
@@ -650,7 +650,7 @@ public class InsidiousService implements Disposable {
                         } else {
                             insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
                             tracePoints.forEach(e -> {
-                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                                e.setExecutionSessionId(client.getCurrentSession().getSessionId());
                             });
                             logicBugs.setTracePoints(tracePoints);
                             logicBugs.updateSearchResultsList();
@@ -667,7 +667,7 @@ public class InsidiousService implements Disposable {
             loadSession();
             return;
         }
-        logger.info("get traces for session - [{}]", client.getCurrentSession().getId());
+        logger.info("get traces for session - [{}]", client.getCurrentSession().getSessionId());
 
         getTracesByTypeName(classList,
                 new GetProjectSessionErrorsCallback() {
@@ -696,7 +696,7 @@ public class InsidiousService implements Disposable {
                         } else {
 
                             tracePoints.forEach(e -> {
-                                e.setExecutionSessionId(client.getCurrentSession().getId());
+                                e.setExecutionSessionId(client.getCurrentSession().getSessionId());
                             });
 
 

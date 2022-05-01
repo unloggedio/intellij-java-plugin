@@ -3,6 +3,7 @@ package com.insidious.plugin.client.pojo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.DataInfo;
 
 import java.util.List;
 import java.util.Scanner;
@@ -15,7 +16,7 @@ public class ClassInfo {
     private String container;
     private String filename;
     private String className;
-    private List<KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfoList;
+    private List<DataInfo> dataInfoList;
     @JsonIgnore
     private LogLevel loglevel;
     @JsonIgnore
@@ -68,11 +69,11 @@ public class ClassInfo {
         return new ClassInfo(classId, container, filename, className, level, hash, id);
     }
 
-    public List<KaitaiInsidiousClassWeaveParser.ProbeInfo> getDataInfoList() {
+    public List<DataInfo> getDataInfoList() {
         return dataInfoList;
     }
 
-    public void setDataInfoList(List<KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfoList) {
+    public void setDataInfoList(List<DataInfo> dataInfoList) {
         this.dataInfoList = dataInfoList;
     }
 

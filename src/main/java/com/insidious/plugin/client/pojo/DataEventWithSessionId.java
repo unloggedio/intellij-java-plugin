@@ -15,7 +15,7 @@ public class DataEventWithSessionId {
     private int dataId;
 
     private long value;
-    private String executionSessionId;
+    private String sessionId;
 
     public int getThreadId() {
         return (int) threadId;
@@ -57,12 +57,12 @@ public class DataEventWithSessionId {
         this.value = value;
     }
 
-    public String getExecutionSessionId() {
-        return executionSessionId;
+    public String getSessionId() {
+        return sessionId;
     }
 
-    public void setExecutionSessionId(String executionSessionId) {
-        this.executionSessionId = executionSessionId;
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class DataEventWithSessionId {
                 ", recordedAt=" + recordedAt +
                 ", dataId=" + dataId +
                 ", value=" + value +
-                ", sessionId='" + executionSessionId + '\'' +
+                ", sessionId='" + sessionId + '\'' +
                 '}';
     }
 }

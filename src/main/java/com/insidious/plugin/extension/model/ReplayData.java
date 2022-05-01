@@ -1,8 +1,10 @@
 package com.insidious.plugin.extension.model;
 
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.pojo.ClassInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ObjectInfo;
 
@@ -12,15 +14,15 @@ import java.util.Map;
 public class ReplayData {
     private final String sortOrder;
     List<DataEventWithSessionId> dataEvents;
-    Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap;
-    Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfoMap;
+    Map<String, ClassInfo> classInfoMap;
+    Map<String, DataInfo> dataInfoMap;
     Map<String, StringInfo> stringInfoMap;
     Map<String, ObjectInfo> objectInfo;
     Map<String, TypeInfo> typeInfo;
 
     public ReplayData(List<DataEventWithSessionId> dataList,
-                      Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo,
-                      Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo,
+                      Map<String, ClassInfo> classInfo,
+                      Map<String, DataInfo> dataInfo,
                       Map<String, StringInfo> stringInfo,
                       Map<String, ObjectInfo> objectInfo,
                       Map<String, TypeInfo> typeInfo,
@@ -46,11 +48,11 @@ public class ReplayData {
         return dataEvents;
     }
 
-    public Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> getClassInfoMap() {
+    public Map<String, ClassInfo> getClassInfoMap() {
         return classInfoMap;
     }
 
-    public Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> getDataInfoMap() {
+    public Map<String, DataInfo> getDataInfoMap() {
         return dataInfoMap;
     }
 

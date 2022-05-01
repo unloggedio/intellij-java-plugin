@@ -19,10 +19,13 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
+import com.insidious.plugin.client.pojo.ClassInfo;
+import com.insidious.plugin.client.pojo.LogLevel;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import io.kaitai.struct.ByteBufferKaitaiStream;
+import lombok.extern.java.Log;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -123,7 +126,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         for (File file : Objects.requireNonNull(currentDir.listFiles())) {
             if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
-                executionSession.setId(file.getName());
+                executionSession.setSessionId(file.getName());
                 executionSession.setCreatedAt(new Date(file.lastModified()));
                 executionSession.setHostname("localhost");
                 executionSession.setLastUpdateAt(file.lastModified());
@@ -330,7 +333,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 return new TracePoint(classId,
                                         dataInfo.getLine(), dataInfo.getDataId(),
                                         threadId, e1.getValue(),
-                                        session.getId(),
+                                        session.getSessionId(),
                                         classInfo.fileName().value(),
                                         classInfo.className().value(),
                                         typeInfo.getTypeNameFromClass(),
@@ -552,13 +555,23 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Collections.reverse(dataEventList);
 
 
-        Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo = new HashMap<>();
-        Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo = new HashMap<>();
+        Map<String, ClassInfo> classInfo = new HashMap<>();
+        Map<String, DataInfo> dataInfo = new HashMap<>();
 
         classWeaveInfo.classInfo().forEach(e -> {
-            classInfo.put(String.valueOf(e.classId()), e);
+
+            classInfo.put(String.valueOf(e.classId()), new ClassInfo(
+                    (int) e.classId(),  e.container().value(), e.fileName().value(),
+                    e.className().value(), LogLevel.valueOf(e.logLevel().value()), e.hash().value(),
+                    e.classLoaderIdentifier().value()
+            ));
+
             e.probeList().forEach(r -> {
-                dataInfo.put(String.valueOf(r.dataId()), r);
+                dataInfo.put(String.valueOf(r.dataId()), new DataInfo(
+                        (int) r.classId(), (int) r.methodId(), (int) r.dataId(), (int) r.lineNumber(),
+                        (int) r.instructionIndex(), EventType.valueOf(r.eventType().value()),
+                        Descriptor.get(r.valueDescriptor().value()), r.attributes().value()
+                ));
             });
         });
 
