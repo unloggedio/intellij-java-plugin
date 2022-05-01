@@ -112,8 +112,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 if (response.code() == 401) {
-                    signInCallback.error("invalid credentials");
                     response.close();
+                    signInCallback.error("invalid credentials");
                     return;
                 }
                 if (response.code() == 200) {
@@ -536,7 +536,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
-        throw new RuntimeException("not implemented");
+//        throw new RuntimeException("not implemented");
         // todo
     }
 }

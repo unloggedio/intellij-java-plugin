@@ -3,8 +3,7 @@ package com.insidious.plugin.factory;
 import com.intellij.openapi.util.text.StringUtil;
 
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashSet;
 
 public class VideobugUtils {
 
@@ -12,11 +11,11 @@ public class VideobugUtils {
         if (StringUtil.isEmpty(currentVMParams)) {
             return javaAgentString;
         }
+        String[] currentParams = currentVMParams.split(" ");
+        HashSet<String> vmParamList = new HashSet<>(Arrays.asList(javaAgentString.split(" ")));
 
-        String[] paramsToAdd = javaAgentString.split(" ");
-        List<String> vmParamList = new LinkedList<>(Arrays.asList(currentVMParams.split(" ")));
-        for (String vmParamPart : paramsToAdd) {
-            if (!vmParamList.contains(vmParamPart)) {
+        for (String vmParamPart : currentParams) {
+            if (!vmParamList.contains(vmParamPart) && !vmParamPart.contains("videobug")) {
                 vmParamList.add(vmParamPart);
             }
         }
