@@ -1,12 +1,7 @@
 package com.insidious.plugin.extension.model;
 
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ClassInfo;
+import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 
 import java.util.List;
 import java.util.Map;

@@ -2,13 +2,12 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.Util;
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ClassInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 
 import java.util.Collections;
 
@@ -24,42 +23,6 @@ public class TracePoint {
     String classname;
     String exceptionClass;
     private long nanoTime;
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        TracePoint that = (TracePoint) o;
-
-        if (recordedAt != that.recordedAt) return false;
-        if (classId != that.classId) return false;
-        if (linenum != that.linenum) return false;
-        if (threadId != that.threadId) return false;
-        if (value != that.value) return false;
-        if (dataId != that.dataId) return false;
-        if (nanoTime != that.nanoTime) return false;
-        if (!executionSessionId.equals(that.executionSessionId)) return false;
-        if (filename != null ? !filename.equals(that.filename) : that.filename != null) return false;
-        if (!classname.equals(that.classname)) return false;
-        return exceptionClass != null ? exceptionClass.equals(that.exceptionClass) : that.exceptionClass == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = (int) (recordedAt ^ (recordedAt >>> 32));
-        result = 31 * result + (int) (classId ^ (classId >>> 32));
-        result = 31 * result + (int) (linenum ^ (linenum >>> 32));
-        result = 31 * result + (int) (threadId ^ (threadId >>> 32));
-        result = 31 * result + (int) (value ^ (value >>> 32));
-        result = 31 * result + dataId;
-        result = 31 * result + executionSessionId.hashCode();
-        result = 31 * result + (filename != null ? filename.hashCode() : 0);
-        result = 31 * result + classname.hashCode();
-        result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
-        result = 31 * result + (int) (nanoTime ^ (nanoTime >>> 32));
-        return result;
-    }
 
     public TracePoint(long classId, long linenum,
                       int dataId,
@@ -84,22 +47,6 @@ public class TracePoint {
         this.recordedAt = recordedAt;
         this.nanoTime = nanoTime;
     }
-
-
-    public FilteredDataEventsRequest toFilterDataEventRequest() {
-        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
-        filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
-        filteredDataEventsRequest.setProbeId(this.getDataId());
-        filteredDataEventsRequest.setThreadId(this.getThreadId());
-        filteredDataEventsRequest.setNanotime(this.getNanoTime());
-        filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
-        filteredDataEventsRequest.setPageSize(200);
-        filteredDataEventsRequest.setPageNumber(0);
-        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
-        filteredDataEventsRequest.setSortOrder("DESC");
-        return filteredDataEventsRequest;
-    }
-
 
     public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
 
@@ -146,6 +93,55 @@ public class TracePoint {
 
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TracePoint that = (TracePoint) o;
+
+        if (recordedAt != that.recordedAt) return false;
+        if (classId != that.classId) return false;
+        if (linenum != that.linenum) return false;
+        if (threadId != that.threadId) return false;
+        if (value != that.value) return false;
+        if (dataId != that.dataId) return false;
+        if (nanoTime != that.nanoTime) return false;
+        if (!executionSessionId.equals(that.executionSessionId)) return false;
+        if (filename != null ? !filename.equals(that.filename) : that.filename != null) return false;
+        if (!classname.equals(that.classname)) return false;
+        return exceptionClass != null ? exceptionClass.equals(that.exceptionClass) : that.exceptionClass == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = (int) (recordedAt ^ (recordedAt >>> 32));
+        result = 31 * result + (int) (classId ^ (classId >>> 32));
+        result = 31 * result + (int) (linenum ^ (linenum >>> 32));
+        result = 31 * result + (int) (threadId ^ (threadId >>> 32));
+        result = 31 * result + (int) (value ^ (value >>> 32));
+        result = 31 * result + dataId;
+        result = 31 * result + executionSessionId.hashCode();
+        result = 31 * result + (filename != null ? filename.hashCode() : 0);
+        result = 31 * result + classname.hashCode();
+        result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
+        result = 31 * result + (int) (nanoTime ^ (nanoTime >>> 32));
+        return result;
+    }
+
+    public FilteredDataEventsRequest toFilterDataEventRequest() {
+        FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
+        filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
+        filteredDataEventsRequest.setProbeId(this.getDataId());
+        filteredDataEventsRequest.setThreadId(this.getThreadId());
+        filteredDataEventsRequest.setNanotime(this.getNanoTime());
+        filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
+        filteredDataEventsRequest.setPageSize(200);
+        filteredDataEventsRequest.setPageNumber(0);
+        filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
+        filteredDataEventsRequest.setSortOrder("DESC");
+        return filteredDataEventsRequest;
+    }
 
     /**
      * Access a particular attribute of the instruction, assuming the "KEY=VALUE" format.

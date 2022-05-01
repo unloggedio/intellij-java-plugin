@@ -1,13 +1,8 @@
 package com.insidious.plugin.extension.thread;
 
 import com.insidious.common.Util;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.EventType;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ClassInfo;
+import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.thread.types.InsidiousClassTypeReference;

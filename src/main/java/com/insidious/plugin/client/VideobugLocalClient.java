@@ -19,13 +19,10 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
-import com.insidious.plugin.client.pojo.ClassInfo;
-import com.insidious.plugin.client.pojo.LogLevel;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import io.kaitai.struct.ByteBufferKaitaiStream;
-import lombok.extern.java.Log;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +48,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private static final Logger logger = java.util.logging.Logger.getLogger(VideobugLocalClient.class.getName());
     private final String pathToSessions;
-    private final Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap = new HashMap<>();
+    private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
     private final VideobugNetworkClient networkClient;
     private final Map<String, ArchiveIndex> indexCache = new HashMap<>();
     private ExecutionSession session;
@@ -502,11 +499,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     new ByteBufferKaitaiStream(bytes));
 
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
-                classInfoMap.put(classInfo.className().value(), classInfo);
+                classInfoMap.put(classInfo.className().value(),
+                        new ClassInfo(
+                                (int) classInfo.classId(), classInfo.container().value(), classInfo.fileName().value(),
+                                classInfo.className().value(),
+                                LogLevel.valueOf(classInfo.logLevel().value()), classInfo.hash().value(),
+                                classInfo.classLoaderIdentifier().value()
+                        ));
             }
         }
 
-        ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex, classInfoMap);
+        ArchiveIndex archiveIndex = new ArchiveIndex(
+                typeInfoIndex, stringInfoIndex, objectInfoIndex, classInfoMap);
         indexCache.put(cacheKey, archiveIndex);
         return archiveIndex;
     }
@@ -561,7 +565,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         classWeaveInfo.classInfo().forEach(e -> {
 
             classInfo.put(String.valueOf(e.classId()), new ClassInfo(
-                    (int) e.classId(),  e.container().value(), e.fileName().value(),
+                    (int) e.classId(), e.container().value(), e.fileName().value(),
                     e.className().value(), LogLevel.valueOf(e.logLevel().value()), e.hash().value(),
                     e.classLoaderIdentifier().value()
             ));

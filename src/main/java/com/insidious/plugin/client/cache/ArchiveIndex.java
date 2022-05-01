@@ -8,9 +8,10 @@ import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -30,7 +31,8 @@ public class ArchiveIndex {
     public ArchiveIndex(
             ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex,
             ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex,
-            ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex, Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap) {
+            ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex,
+            Map<String, ClassInfo> classInfoMap) {
         this.typeInfoIndex = typeInfoIndex;
         this.stringInfoIndex = stringInfoIndex;
         this.objectInfoIndex = objectInfoIndex;
@@ -64,7 +66,7 @@ public class ArchiveIndex {
         ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
         Stream<ObjectInfoDocument> stream = retrieve.stream();
         Map<String, ObjectInfo> collect = stream
-                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), null))
+                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
         retrieve.close();
         return collect;
@@ -72,7 +74,7 @@ public class ArchiveIndex {
 
     public Map<String, ObjectInfo> getObjectsByTypeIds(Set<Integer> typeIds) {
         return objectInfoIndex.stream().filter(e -> typeIds.contains(e.getTypeId()))
-                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), null))
+                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
     }
 

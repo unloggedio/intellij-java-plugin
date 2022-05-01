@@ -1,9 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
 import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
+import com.insidious.common.weaver.*;
 
 import java.util.HashMap;
 import java.util.Map;
