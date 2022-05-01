@@ -134,7 +134,7 @@ public class TracePoint {
         filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
         filteredDataEventsRequest.setProbeId(this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
-        filteredDataEventsRequest.setNanotime(this.getNanoTime());
+        filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
