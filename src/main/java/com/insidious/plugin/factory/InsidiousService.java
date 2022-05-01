@@ -13,7 +13,10 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.extension.*;
+import com.insidious.plugin.extension.InsidiousExecutor;
+import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.CredentialsToolbar;
@@ -822,257 +825,256 @@ public class InsidiousService implements Disposable {
                 String newVmOptions = currentVMParams;
                 newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
                 applicationConfiguration.setVMParameters(newVmOptions.trim());
-            } else if (runSetting.getConfiguration() instanceof InsidiousRunConfiguration) {
-
             }
         }
+    }
 
 
-        public void initiateUI () {
-            logger.info("initiate ui");
-            ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+    public void initiateUI() {
+        logger.info("initiate ui");
+        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
 
 
-            if (isLoggedIn() && bugsTable == null) {
+        if (isLoggedIn() && bugsTable == null) {
 
-                bugsTable = new HorBugTable(project, this);
-                logicBugs = new LogicBugs(project, this);
+            bugsTable = new HorBugTable(project, this);
+            logicBugs = new LogicBugs(project, this);
 
-                @NotNull Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
+            @NotNull Content bugsContent = contentFactory.createContent(bugsTable.getContent(), "Exceptions", false);
+            this.toolWindow.getContentManager().addContent(bugsContent);
+
+            Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
+            @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
+            this.toolWindow.getContentManager().addContent(logicbugContent);
+
+            Content content = this.toolWindow.getContentManager().findContent("Exceptions");
+            if (content == null) {
                 this.toolWindow.getContentManager().addContent(bugsContent);
-
-                Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-                @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
-                this.toolWindow.getContentManager().addContent(logicbugContent);
-
-                Content content = this.toolWindow.getContentManager().findContent("Exceptions");
-                if (content == null) {
-                    this.toolWindow.getContentManager().addContent(bugsContent);
-                }
-                Content traceContent2 = this.toolWindow.getContentManager().findContent("Traces");
-                if (traceContent2 == null) {
-                    this.toolWindow.getContentManager().addContent(traceContent);
-                }
             }
-            if (isLoggedIn() && client.getProject() == null) {
-                logger.info("user is logged in by project is null, setting up project");
-                setupProject();
-
-            }
-            if (credentialsToolbarWindow == null) {
-                credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-                @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-                this.toolWindow.getContentManager().addContent(credentialContent);
-            }
-
-        }
-
-        public String getJavaAgentString () {
-            return javaAgentString;
-        }
-
-        public String getVideoBugAgentPath () {
-            return videoBugAgentPath.toAbsolutePath().toString();
-        }
-
-        public void setAppTokenOnUi () {
-            logger.info("set app token - {} with package name [{}]" + appToken, packageName);
-
-            String[] vmParamsToAdd = new String[]{
-                    "--add-opens=java.base/java.util=ALL-UNNAMED",
-                    "-javaagent:\"" + videoBugAgentPath
-                            + "=i=" + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
-                            + ",server=" + insidiousConfiguration.serverUrl
-                            + ",token=" + appToken + "\""
-            };
-
-            javaAgentString = String.join(" ", vmParamsToAdd);
-
-            if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setText(javaAgentString);
-            }
-            if (appToken != null && !Objects.equals(packageName, "YOUR.PACKAGE.NAME")) {
-                addAgentToRunConfig();
+            Content traceContent2 = this.toolWindow.getContentManager().findContent("Traces");
+            if (traceContent2 == null) {
+                this.toolWindow.getContentManager().addContent(traceContent);
             }
         }
+        if (isLoggedIn() && client.getProject() == null) {
+            logger.info("user is logged in by project is null, setting up project");
+            setupProject();
 
-        public void loadSession () throws IOException {
+        }
+        if (credentialsToolbarWindow == null) {
+            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+            this.toolWindow.getContentManager().addContent(credentialContent);
+        }
 
-            if (currentModule == null) {
-                currentModule = ModuleManager.getInstance(project).getModules()[0];
-            }
+    }
+
+    public String getJavaAgentString() {
+        return javaAgentString;
+    }
+
+    public String getVideoBugAgentPath() {
+        return videoBugAgentPath.toAbsolutePath().toString();
+    }
+
+    public void setAppTokenOnUi() {
+        logger.info("set app token - {} with package name [{}]" + appToken, packageName);
+
+        String[] vmParamsToAdd = new String[]{
+                "--add-opens=java.base/java.util=ALL-UNNAMED",
+                "-javaagent:\"" + videoBugAgentPath
+                        + "=i=" + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
+                        + ",server=" + insidiousConfiguration.serverUrl
+                        + ",token=" + appToken + "\""
+        };
+
+        javaAgentString = String.join(" ", vmParamsToAdd);
+
+        if (credentialsToolbarWindow != null) {
+            credentialsToolbarWindow.setText(javaAgentString);
+        }
+        if (appToken != null && !Objects.equals(packageName, "YOUR.PACKAGE.NAME")) {
+            addAgentToRunConfig();
+        }
+    }
+
+    public void loadSession() throws IOException {
+
+        if (currentModule == null) {
+            currentModule = ModuleManager.getInstance(project).getModules()[0];
+        }
 
 //        ApplicationManager.getApplication().invokeLater(this::startDebugSession);
-            this.client.getProjectSessions(new GetProjectSessionsCallback() {
-                @Override
-                public void error(String message) {
-                    logger.error("failed to load project sessions - {}", message);
+        this.client.getProjectSessions(new GetProjectSessionsCallback() {
+            @Override
+            public void error(String message) {
+                logger.error("failed to load project sessions - {}", message);
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    Notifications.Bus.notify(notificationGroup
+                                    .createNotification("No sessions found for module [" + currentModule.getName() + "]",
+                                            NotificationType.INFORMATION),
+                            project);
+                });
+            }
+
+            @Override
+            public void success(List<ExecutionSession> executionSessionList) throws IOException {
+                logger.info("got [{}] sessions for project", executionSessionList.size());
+                if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
+
                         Notifications.Bus.notify(notificationGroup
-                                        .createNotification("No sessions found for module [" + currentModule.getName() + "]",
+                                        .createNotification("No sessions found for project " + currentModule.getName() +
+                                                        ". Start recording new sessions with the java agent",
                                                 NotificationType.INFORMATION),
                                 project);
                     });
-                }
-
-                @Override
-                public void success(List<ExecutionSession> executionSessionList) throws IOException {
-                    logger.info("got [{}] sessions for project", executionSessionList.size());
-                    if (executionSessionList.size() == 0) {
-                        ApplicationManager.getApplication().invokeLater(() -> {
-
-                            Notifications.Bus.notify(notificationGroup
-                                            .createNotification("No sessions found for project " + currentModule.getName() +
-                                                            ". Start recording new sessions with the java agent",
-                                                    NotificationType.INFORMATION),
-                                    project);
-                        });
-                        return;
-                    }
-
-                    client.setSession(executionSessionList.get(0));
-                    getErrors(getSelectedExceptionClassList(), 0);
-
-                }
-            });
-        }
-
-        public void setTracePoint (TracePoint selectedTrace){
-            amplitudeClient.logEvent(new Event("FetchByTracePoint", HOSTNAME));
-
-            if (debugSession == null) {
-                startDebugSession();
-                pendingSelectTrace = selectedTrace;
-                return;
-            }
-
-
-            ApplicationManager.getApplication().invokeAndWait(() -> {
-                try {
-                    logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
-
-                    if (connector != null) {
-                        connector.setTracePoint(selectedTrace);
-                    } else {
-                        pendingTrace = selectedTrace;
-                    }
-
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Notifications.Bus.notify(notificationGroup
-                                    .createNotification("Failed to set select trace point " + e.getMessage(),
-                                            NotificationType.ERROR),
-                            project);
                     return;
                 }
 
-                if (debugSession.isPaused()) {
-                    debugSession.resume();
-                }
-                debugSession.pause();
-            });
-        }
+                client.setSession(executionSessionList.get(0));
+                getErrors(getSelectedExceptionClassList(), 0);
 
-        public void setExceptionClassList (Map < String, Boolean > exceptionClassList){
-            insidiousConfiguration.exceptionClassMap = exceptionClassList;
-        }
-
-
-        public VideobugClientInterface getClient () {
-            return client;
-        }
-
-        public void setToolWindow (ToolWindow toolWindow){
-            this.toolWindow = toolWindow;
-            init();
-        }
-
-        public Map<String, Boolean> getDefaultExceptionClassList () {
-            return insidiousConfiguration.exceptionClassMap;
-        }
-
-        public InsidiousConfigurationState getConfiguration () {
-            return insidiousConfiguration;
-        }
-
-        public void logout () {
-            InsidiousConfigurationState newConfig = new InsidiousConfigurationState();
-            insidiousConfiguration.exceptionClassMap = newConfig.exceptionClassMap;
-            insidiousConfiguration.setServerUrl(newConfig.serverUrl);
-            insidiousConfiguration.setUsername(newConfig.username);
-
-            Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
-            if (credentials != null) {
-                PasswordSafe.getInstance().set(insidiousCredentials, null);
             }
+        });
+    }
 
+    public void setTracePoint(TracePoint selectedTrace) {
+        amplitudeClient.logEvent(new Event("FetchByTracePoint", HOSTNAME));
 
+        if (debugSession == null) {
+            startDebugSession();
+            pendingSelectTrace = selectedTrace;
+            return;
         }
 
-        public void downloadAgent () {
-            checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
-                @Override
-                public void error(String message) {
 
+        ApplicationManager.getApplication().invokeAndWait(() -> {
+            try {
+                logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
+
+                if (connector != null) {
+                    connector.setTracePoint(selectedTrace);
+                } else {
+                    pendingTrace = selectedTrace;
                 }
 
-                @Override
-                public void success(String url, String path) {
-                    try {
-                        java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
 
-
-        }
-
-        public void refreshSession () throws APICallException, IOException {
-            logger.info("fetch latest session for module: {}", currentModule.getName());
-            DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-            if (sessions.getItems().size() == 0) {
+            } catch (Exception e) {
+                e.printStackTrace();
                 Notifications.Bus.notify(notificationGroup
-                                .createNotification("No sessions available for module ["
-                                                + currentModule.getName() + "]",
+                                .createNotification("Failed to set select trace point " + e.getMessage(),
                                         NotificationType.ERROR),
                         project);
                 return;
             }
-            client.setSession(sessions.getItems().get(0));
-        }
 
-        public void focusExceptionWindow () {
-            this.logicBugs.bringToFocus(toolWindow);
-        }
-
-        public void initiateUseLocal () {
-            client = new VideobugLocalClient(project.getBasePath());
-            amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
-
-
-            ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
-
-            ApplicationManager.getApplication().invokeLater(() -> {
-                InsidiousService.this.initiateUI();
-                if (notificationGroup != null) {
-                    Notifications.Bus.notify(notificationGroup
-                                    .createNotification("VideoBug logged in at [" + "disk://localhost"
-                                                    + "] for module [" + currentModule.getName() + "]",
-                                            NotificationType.INFORMATION),
-                            project);
-                }
-            });
-        }
-
-        @Override
-        public void dispose () {
-            if (this.client != null) {
-                this.client.close();
-                this.client = null;
-                currentModule = null;
+            if (debugSession.isPaused()) {
+                debugSession.resume();
             }
+            debugSession.pause();
+        });
+    }
+
+    public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
+        insidiousConfiguration.exceptionClassMap = exceptionClassList;
+    }
+
+
+    public VideobugClientInterface getClient() {
+        return client;
+    }
+
+    public void setToolWindow(ToolWindow toolWindow) {
+        this.toolWindow = toolWindow;
+        init();
+    }
+
+    public Map<String, Boolean> getDefaultExceptionClassList() {
+        return insidiousConfiguration.exceptionClassMap;
+    }
+
+    public InsidiousConfigurationState getConfiguration() {
+        return insidiousConfiguration;
+    }
+
+    public void logout() {
+        InsidiousConfigurationState newConfig = new InsidiousConfigurationState();
+        insidiousConfiguration.exceptionClassMap = newConfig.exceptionClassMap;
+        insidiousConfiguration.setServerUrl(newConfig.serverUrl);
+        insidiousConfiguration.setUsername(newConfig.username);
+
+        Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
+        if (credentials != null) {
+            PasswordSafe.getInstance().set(insidiousCredentials, null);
+        }
+
+
+    }
+
+    public void downloadAgent() {
+        checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
+            @Override
+            public void error(String message) {
+
+            }
+
+            @Override
+            public void success(String url, String path) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+
+    }
+
+    public void refreshSession() throws APICallException, IOException {
+        logger.info("fetch latest session for module: {}", currentModule.getName());
+        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        if (sessions.getItems().size() == 0) {
+            Notifications.Bus.notify(notificationGroup
+                            .createNotification("No sessions available for module ["
+                                            + currentModule.getName() + "]",
+                                    NotificationType.ERROR),
+                    project);
+            return;
+        }
+        client.setSession(sessions.getItems().get(0));
+    }
+
+    public void focusExceptionWindow() {
+        this.logicBugs.bringToFocus(toolWindow);
+    }
+
+    public void initiateUseLocal() {
+        client = new VideobugLocalClient(project.getBasePath());
+        amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
+
+
+        ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            InsidiousService.this.initiateUI();
+            if (notificationGroup != null) {
+                Notifications.Bus.notify(notificationGroup
+                                .createNotification("VideoBug logged in at [" + "disk://localhost"
+                                                + "] for module [" + currentModule.getName() + "]",
+                                        NotificationType.INFORMATION),
+                        project);
+            }
+        });
+    }
+
+    @Override
+    public void dispose() {
+        if (this.client != null) {
+            this.client.close();
+            this.client = null;
+            currentModule = null;
         }
     }
+}
