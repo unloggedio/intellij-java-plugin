@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -136,7 +137,9 @@ public class CredentialsToolbar {
     }
 
     public void setErrorLabel(String message) {
-        Messages.showInfoMessage(project, message, "Error");
+        ApplicationManager.getApplication().invokeLater(() -> {
+            Messages.showInfoMessage(project, message, "Error");
+        });
     }
 
     public JPanel getContent() {

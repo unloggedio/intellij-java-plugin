@@ -154,25 +154,40 @@ public class HorBugTable {
     }
 
 
-    private void parseTableItems(List<TracePoint> tracePointCollection) {
+    private void setTableData(List<TracePoint> tracePointCollection) {
         this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
         Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"};
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
-            String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
-            sampleObject[i] = new String[]{
-                    tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
-                    className,
-                    String.valueOf(tracePoint.getLinenum()),
-                    String.valueOf(tracePoint.getThreadId()),
-                    new Date(tracePoint.getRecordedAt()).toString()
-            };
+            sampleObject[i] = tracePointToStringObject(tracePoint);
             i++;
         }
 
         defaultTableModel.setDataVector(sampleObject, headers);
+    }
+
+    private String[] tracePointToStringObject(TracePoint tracePoint) {
+        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        return new String[]{
+                tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
+                className,
+                String.valueOf(tracePoint.getLinenum()),
+                String.valueOf(tracePoint.getThreadId()),
+                new Date(tracePoint.getRecordedAt()).toString()
+        };
+    }
+
+    private Vector<String> tracePointToStringVector(TracePoint tracePoint) {
+        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        return new Vector<>(
+                Arrays.asList(tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
+                        className,
+                        String.valueOf(tracePoint.getLinenum()),
+                        String.valueOf(tracePoint.getThreadId()),
+                        new Date(tracePoint.getRecordedAt()).toString())
+        );
     }
 
     private void loadBug(int rowNum) {
@@ -264,6 +279,16 @@ public class HorBugTable {
 
     public void setTracePoints(List<TracePoint> tracePointCollection) {
         scrollpanel.setVisible(true);
-        parseTableItems(tracePointCollection);
+        setTableData(tracePointCollection);
+    }
+
+    public void addTracePoints(List<TracePoint> tracePointCollection) {
+        scrollpanel.setVisible(true);
+        tracePointCollection.forEach(e -> defaultTableModel.getDataVector().add(tracePointToStringVector((e))));
+    }
+
+    public void clearTracePoints() {
+        scrollpanel.setVisible(true);
+        setTracePoints(List.of());
     }
 }

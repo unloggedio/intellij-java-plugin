@@ -2,12 +2,12 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.Util;
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
-import com.insidious.plugin.client.pojo.ObjectInfo;
 
 import java.util.Collections;
 
@@ -23,6 +23,75 @@ public class TracePoint {
     String classname;
     String exceptionClass;
     private long nanoTime;
+
+    public TracePoint(long classId, long linenum,
+                      int dataId,
+                      long threadId,
+                      long value,
+                      String executionSessionId,
+                      String filename,
+                      String classname,
+                      String exceptionClass,
+                      long recordedAt,
+                      long nanoTime
+    ) {
+        this.classId = classId;
+        this.linenum = linenum;
+        this.dataId = dataId;
+        this.threadId = threadId;
+        this.value = value;
+        this.executionSessionId = executionSessionId;
+        this.filename = filename;
+        this.classname = classname;
+        this.exceptionClass = exceptionClass;
+        this.recordedAt = recordedAt;
+        this.nanoTime = nanoTime;
+    }
+
+    public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
+
+        DataInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
+        if (dataInfoObject != null) {
+
+            ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.getClassId()));
+
+            ObjectInfo errorKeyValueJson = traceResponse.getObjectInfo(String.valueOf(dataEvent.getValue()));
+            long exceptionType = errorKeyValueJson.getTypeId();
+            TypeInfo exceptionClassJson = traceResponse.getTypeInfo(String.valueOf(exceptionType));
+            String exceptionClass = "";
+            if (exceptionClassJson != null) {
+                exceptionClass = exceptionClassJson.getTypeNameFromClass();
+            }
+            switch (dataInfoObject.getEventType()) {
+                case LABEL:
+                case CATCH:
+                    return null;
+//                case METHOD_EXCEPTIONAL_EXIT:
+//                case METHOD_THROW:
+            }
+            if (Util.getAttribute(dataInfoObject.getAttributes(), "Type", "").length() == 1) {
+                return null;
+            }
+
+
+            return new TracePoint(dataInfoObject.getClassId(),
+                    dataInfoObject.getLine(),
+                    dataEvent.getDataId(),
+                    dataEvent.getThreadId(),
+                    dataEvent.getValue(),
+                    dataEvent.getSessionId(),
+                    classInfo.getFilename(),
+                    classInfo.getClassName(),
+                    exceptionClass,
+                    dataEvent.getRecordedAt().getTime(),
+                    dataEvent.getNanoTime());
+
+        }
+
+        return null;
+
+
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -60,37 +129,12 @@ public class TracePoint {
         return result;
     }
 
-    public TracePoint(long classId, long linenum,
-                      int dataId,
-                      long threadId,
-                      long value,
-                      String executionSessionId,
-                      String filename,
-                      String classname,
-                      String exceptionClass,
-                      long recordedAt,
-                      long nanoTime
-    ) {
-        this.classId = classId;
-        this.linenum = linenum;
-        this.dataId = dataId;
-        this.threadId = threadId;
-        this.value = value;
-        this.executionSessionId = executionSessionId;
-        this.filename = filename;
-        this.classname = classname;
-        this.exceptionClass = exceptionClass;
-        this.recordedAt = recordedAt;
-        this.nanoTime = nanoTime;
-    }
-
-
     public FilteredDataEventsRequest toFilterDataEventRequest() {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
         filteredDataEventsRequest.setProbeId(this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
-        filteredDataEventsRequest.setNanotime(this.getNanoTime());
+        filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
@@ -98,53 +142,6 @@ public class TracePoint {
         filteredDataEventsRequest.setSortOrder("DESC");
         return filteredDataEventsRequest;
     }
-
-
-    public static TracePoint fromDataEvent(DataEventWithSessionId dataEvent, DataResponse<DataEventWithSessionId> traceResponse) {
-
-        KaitaiInsidiousClassWeaveParser.ProbeInfo dataInfoObject = traceResponse.getDataInfo(String.valueOf(dataEvent.getDataId()));
-        if (dataInfoObject != null) {
-
-            KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = traceResponse.getClassInfo(String.valueOf(dataInfoObject.classId()));
-
-            ObjectInfo errorKeyValueJson = traceResponse.getObjectInfo(String.valueOf(dataEvent.getValue()));
-            long exceptionType = errorKeyValueJson.getTypeId();
-            TypeInfo exceptionClassJson = traceResponse.getTypeInfo(String.valueOf(exceptionType));
-            String exceptionClass = "";
-            if (exceptionClassJson != null) {
-                exceptionClass = exceptionClassJson.getTypeNameFromClass();
-            }
-            switch (EventType.valueOf(dataInfoObject.eventType().value())) {
-                case LABEL:
-                case CATCH:
-                    return null;
-//                case METHOD_EXCEPTIONAL_EXIT:
-//                case METHOD_THROW:
-            }
-            if (Util.getAttribute(dataInfoObject.attributes().value(), "Type", "").length() == 1) {
-                return null;
-            }
-
-
-            return new TracePoint(dataInfoObject.classId(),
-                    dataInfoObject.lineNumber(),
-                    dataEvent.getDataId(),
-                    dataEvent.getThreadId(),
-                    dataEvent.getValue(),
-                    dataEvent.getExecutionSessionId(),
-                    classInfo.fileName().value(),
-                    classInfo.className().value(),
-                    exceptionClass,
-                    dataEvent.getRecordedAt().getTime(),
-                    dataEvent.getNanoTime());
-
-        }
-
-        return null;
-
-
-    }
-
 
     /**
      * Access a particular attribute of the instruction, assuming the "KEY=VALUE" format.

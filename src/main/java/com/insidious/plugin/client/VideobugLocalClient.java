@@ -48,7 +48,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private static final Logger logger = java.util.logging.Logger.getLogger(VideobugLocalClient.class.getName());
     private final String pathToSessions;
-    private final Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfoMap = new HashMap<>();
+    private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
     private final VideobugNetworkClient networkClient;
     private final Map<String, ArchiveIndex> indexCache = new HashMap<>();
     private ExecutionSession session;
@@ -84,7 +84,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void signin(SigninRequest signinRequest, SignInCallback signInCallback) {
-        signInCallback.success("localhost");
+        signInCallback.success("localhost-token");
     }
 
     @Override
@@ -123,7 +123,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         for (File file : Objects.requireNonNull(currentDir.listFiles())) {
             if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
-                executionSession.setId(file.getName());
+                executionSession.setSessionId(file.getName());
                 executionSession.setCreatedAt(new Date(file.lastModified()));
                 executionSession.setHostname("localhost");
                 executionSession.setLastUpdateAt(file.lastModified());
@@ -204,9 +204,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-//        String outDirName = getOutDirName(sessionFile);
-//        File outDirFile = new File(this.pathToSessions + session.getName() + "/" + outDirName);
-//        outDirFile.mkdirs();
 
         ZipEntry entry = null;
         while ((entry = indexArchive.getNextEntry()) != null) {
@@ -258,18 +255,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private void queryForValueId(List<TracePoint> tracePointList, File sessionArchive, Set<Long> valueIds) {
         NameWithBytes bytes;
-        ArchiveFilesIndex archiveFileIndex = null;
+        ArchiveFilesIndex eventsIndex = null;
         ArchiveIndex objectIndex = null;
         Map<String, TypeInfo> typeInfoMap = new HashMap<>();
         Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         try {
             bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
             assert bytes != null;
-            archiveFileIndex = readEventIndex(bytes.getBytes());
+            eventsIndex = readEventIndex(bytes.getBytes());
 
 
-            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            NameWithBytes objectIndexBytes =
+                    createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
             assert objectIndexBytes != null;
             objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
@@ -290,14 +287,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
 
-        ArchiveFilesIndex finalArchiveFileIndex = archiveFileIndex;
+        ArchiveFilesIndex finalEventsIndex = eventsIndex;
         Set<UploadFile> matchedFiles = valueIds.stream().map(
                 valueId -> {
-                    assert finalArchiveFileIndex != null;
-                    boolean archiveHasSeenValue = finalArchiveFileIndex.hasValueId(valueId);
+                    assert finalEventsIndex != null;
+                    boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
                     List<UploadFile> matchedFilesForString = new LinkedList<>();
                     if (archiveHasSeenValue) {
-                        matchedFilesForString = finalArchiveFileIndex.queryEventsByStringId(valueId);
+                        matchedFilesForString = finalEventsIndex.queryEventsByStringId(valueId);
                     }
                     return matchedFilesForString;
                 }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
@@ -333,7 +330,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 return new TracePoint(classId,
                                         dataInfo.getLine(), dataInfo.getDataId(),
                                         threadId, e1.getValue(),
-                                        session.getId(),
+                                        session.getSessionId(),
                                         classInfo.fileName().value(),
                                         classInfo.className().value(),
                                         typeInfo.getTypeNameFromClass(),
@@ -502,12 +499,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     new ByteBufferKaitaiStream(bytes));
 
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
-                classInfoMap.put(classInfo.className().value(), classInfo);
+                classInfoMap.put(classInfo.className().value(),
+                        new ClassInfo(
+                                (int) classInfo.classId(), classInfo.container().value(), classInfo.fileName().value(),
+                                classInfo.className().value(),
+                                LogLevel.valueOf(classInfo.logLevel().value()), classInfo.hash().value(),
+                                classInfo.classLoaderIdentifier().value()
+                        ));
             }
-            return new ArchiveIndex(null, null, null);
         }
 
-        ArchiveIndex archiveIndex = new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex);
+        ArchiveIndex archiveIndex = new ArchiveIndex(
+                typeInfoIndex, stringInfoIndex, objectInfoIndex, classInfoMap);
         indexCache.put(cacheKey, archiveIndex);
         return archiveIndex;
     }
@@ -556,13 +559,23 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Collections.reverse(dataEventList);
 
 
-        Map<String, KaitaiInsidiousClassWeaveParser.ClassInfo> classInfo = new HashMap<>();
-        Map<String, KaitaiInsidiousClassWeaveParser.ProbeInfo> dataInfo = new HashMap<>();
+        Map<String, ClassInfo> classInfo = new HashMap<>();
+        Map<String, DataInfo> dataInfo = new HashMap<>();
 
         classWeaveInfo.classInfo().forEach(e -> {
-            classInfo.put(String.valueOf(e.classId()), e);
+
+            classInfo.put(String.valueOf(e.classId()), new ClassInfo(
+                    (int) e.classId(), e.container().value(), e.fileName().value(),
+                    e.className().value(), LogLevel.valueOf(e.logLevel().value()), e.hash().value(),
+                    e.classLoaderIdentifier().value()
+            ));
+
             e.probeList().forEach(r -> {
-                dataInfo.put(String.valueOf(r.dataId()), r);
+                dataInfo.put(String.valueOf(r.dataId()), new DataInfo(
+                        (int) r.classId(), (int) r.methodId(), (int) r.dataId(), (int) r.lineNumber(),
+                        (int) r.instructionIndex(), EventType.valueOf(r.eventType().value()),
+                        Descriptor.get(r.valueDescriptor().value()), r.attributes().value()
+                ));
             });
         });
 

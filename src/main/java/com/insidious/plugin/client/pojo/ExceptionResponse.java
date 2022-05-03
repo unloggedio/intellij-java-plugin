@@ -2,12 +2,22 @@ package com.insidious.plugin.client.pojo;
 
 import java.util.Date;
 
+
 public class ExceptionResponse {
     String message;
     Date timestamp;
     Integer status;
     String error;
+    String trace;
     String path;
+
+    public String getTrace() {
+        return trace;
+    }
+
+    public void setTrace(String trace) {
+        this.trace = trace;
+    }
 
     public String getMessage() {
         return message;

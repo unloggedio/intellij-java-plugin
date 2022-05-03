@@ -149,12 +149,12 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
 //        insidiousJavaDebugProcess.stop();
-        logger.warn("method not implemented - {}", new Exception().getMessage());
+        logger.warn("method not implemented createClassPrepareRequest- {}", new Exception().getMessage());
         return null;
     }
 
     public ReferenceType findClassesByName(String className) {
-        logger.warn("method not implemented", new Exception());
+        logger.warn("method not implemented findClassesByName", new Exception());
         return null;
     }
 
@@ -168,7 +168,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void deleteEventRequest(EventRequest request) {
-        logger.error("method not implemented", new Exception());
+        logger.error("method not implemented deleteEventRequest", new Exception());
 
     }
 
@@ -181,31 +181,31 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public void disableAllBreakpoints() {
-        logger.error("method not implemented", new Exception());
+        logger.error("method not implemented disableAllBreakpoints", new Exception());
 
     }
 
     public void createLocationBreakpoint(Location myRunToCursorLocation, int suspendPolicy, LocatableEventRequestor myRunToCursorBreakpoint) {
-        logger.error("method not implemented", new Exception());
+        logger.error("method not implemented createLocationBreakpoint", new Exception());
     }
 
     public Iterable<? extends BreakpointRequest> getBreakpointsWithRequestor(Requestor runToCursorBreakpoint) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getBreakpointsWithRequestor- {}", new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void enableAllBreakpoints() {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented enableAllBreakpoints- {}", new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createFieldWatchpoint- {}", new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public Iterable<? extends ModificationWatchpointRequest> getModificationWatchpointsWithRequestor(Requestor jumpToAssignmentBreakpoint) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getModificationWatchpointsWithRequestor- {}", new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
@@ -225,31 +225,31 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught,
                                           boolean notifyUncaught, int i, Breakpoint breakpoint) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createExceptionBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public List<ExceptionRequest> getAllExceptionBreakpoints() {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllExceptionBreakpoints- {}", new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createMethodBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
     }
 
     public List<EventRequest> getAllMethodRequests() {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllMethodRequests- {}", new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public List<ModificationWatchpointRequest> getAllFieldWatchpoints() {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllFieldWatchpoints- {}", new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
-        logger.warn("method not implemented - {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createSteppingBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
 
     }
 
