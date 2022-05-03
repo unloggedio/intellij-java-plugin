@@ -194,7 +194,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             if (objectIds.size() > 0) {
-                queryForValueId(tracePointList, sessionArchive, objectIds);
+                tracePointList.addAll(queryForValueId(sessionArchive, objectIds));
             }
             historyDepth--;
 
@@ -205,10 +205,24 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
 
+        long filterValueLong = 0;
+        try {
+
+            filterValueLong = Long.parseLong(pathName);
+        }catch (Exception e) {
+
+        }
+
         ZipEntry entry = null;
         while ((entry = indexArchive.getNextEntry()) != null) {
-            if (entry.getName().contains(pathName)) {
-                return new NameWithBytes(entry.getName(), IOUtils.toByteArray(indexArchive));
+            String entryName = entry.getName();
+            if (entryName.contains(pathName)) {
+                return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
+            }
+            String[] nameParts = entryName.split("@");
+            if (nameParts.length == 2 && filterValueLong > 0) {
+                int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
+                long fileTimeStamp = Long.parseLong(nameParts[0]);
             }
         }
         return null;
@@ -246,14 +260,15 @@ public class VideobugLocalClient implements VideobugClientInterface {
             ArchiveIndex index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
             Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(value));
             if (stringIds.size() > 0) {
-                queryForValueId(tracePointList, sessionArchive, stringIds);
+                tracePointList.addAll(queryForValueId(sessionArchive, stringIds));
             }
         }
         getProjectSessionErrorsCallback.success(tracePointList);
 
     }
 
-    private void queryForValueId(List<TracePoint> tracePointList, File sessionArchive, Set<Long> valueIds) {
+    private List<TracePoint> queryForValueId(File sessionArchive, Set<Long> valueIds) {
+        List<TracePoint> tracePointList = new LinkedList<>();
         NameWithBytes bytes;
         ArchiveFilesIndex eventsIndex = null;
         ArchiveIndex objectIndex = null;
@@ -334,7 +349,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         classInfo.fileName().value(),
                                         classInfo.className().value(),
                                         typeInfo.getTypeNameFromClass(),
-                                        e1.getRecordedAt().getTime(), timestamp);
+                                        timestamp, e1.getNanoTime());
                             } catch (ClassInfoNotFoundException | Exception ex) {
                                 logger.info("failed to get data probe information: "
                                         + ex.getMessage() + " -- " + ex.getCause());
@@ -348,6 +363,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 ex.printStackTrace();
             }
         });
+        return tracePointList;
     }
 
 

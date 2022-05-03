@@ -669,51 +669,61 @@ public class InsidiousService implements Disposable {
         }
         logger.info("get traces for session - [{}]", client.getCurrentSession().getSessionId());
 
-        getTracesByTypeName(classList,
-                new GetProjectSessionErrorsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-                        logger.error("failed to get trace points from server - {}", errorResponse);
 
-                        Notifications.Bus.notify(notificationGroup
-                                        .createNotification("Failed to get trace points from server: "
-                                                        + errorResponse.getMessage(),
-                                                NotificationType.ERROR),
-                                project);
+        ReadAction.nonBlocking(() -> {
+            try {
+                getTracesByTypeName(classList,
+                        new GetProjectSessionErrorsCallback() {
+                            @Override
+                            public void error(ExceptionResponse errorResponse) {
+                                logger.error("failed to get trace points from server - {}", errorResponse);
 
-                    }
+                                Notifications.Bus.notify(notificationGroup
+                                                .createNotification("Failed to get trace points from server: "
+                                                                + errorResponse.getMessage(),
+                                                        NotificationType.ERROR),
+                                        project);
 
-                    @Override
-                    public void success(List<TracePoint> tracePoints) {
-                        logger.info("got [{}] trace points from server", tracePoints.size());
-                        if (tracePoints.size() == 0) {
-                            ApplicationManager.getApplication()
-                                    .invokeAndWait(
-                                            () -> Notifications.Bus.notify(notificationGroup
-                                                    .createNotification(
-                                                            "No Exception data events matched in the last session",
-                                                            NotificationType.INFORMATION), project));
-                        } else {
+                            }
 
-                            tracePoints.forEach(e -> {
-                                e.setExecutionSessionId(client.getCurrentSession().getSessionId());
-                            });
+                            @Override
+                            public void success(List<TracePoint> tracePoints) {
+                                logger.info("got [{}] trace points from server", tracePoints.size());
+                                if (tracePoints.size() == 0) {
+                                    ApplicationManager.getApplication()
+                                            .runWriteAction(
+                                                    () -> Notifications.Bus.notify(notificationGroup
+                                                            .createNotification(
+                                                                    "No Exception data events matched in the last session",
+                                                                    NotificationType.INFORMATION), project));
+                                } else {
+
+                                    tracePoints.forEach(e -> {
+                                        e.setExecutionSessionId(client.getCurrentSession().getSessionId());
+                                    });
 
 
-                            bugsTable.setTracePoints(tracePoints);
-                        }
-                    }
-                });
+                                    bugsTable.setTracePoints(tracePoints);
+                                }
+                            }
+                        });
+            } catch (IOException e) {
+                logger.error("failed to get trace points by type");
+            }
+        }).submit(threadPool);
 
     }
 
     public void getTracesByStringValue(String traceId,
                                        GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException {
-        try {
-            this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
-        } catch (Throwable e) {
-            logger.error("failed to get traces by value", e);
-        }
+        ReadAction.nonBlocking(() -> {
+            try {
+                this.client.getTracesByObjectValue(traceId, getProjectSessionErrorsCallback);
+            } catch (Throwable e) {
+                logger.error("failed to get traces by value", e);
+            }
+        }).submit(threadPool);
+
     }
 
 

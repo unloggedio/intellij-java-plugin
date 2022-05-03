@@ -50,7 +50,7 @@ public class InsidiousThreadReference implements ThreadReference {
         long highestTimestamp = 0;
 
         List<DataEventWithSessionId> matches = replayData.getDataEvents().stream()
-                .filter(e -> e.getValue() == tracePoint.getValue())
+                .filter(e -> e.getNanoTime() == tracePoint.getNanoTime())
                 .collect(Collectors.toList());
         position = replayData.getDataEvents().indexOf(
                 matches.get(0)
@@ -187,8 +187,10 @@ public class InsidiousThreadReference implements ThreadReference {
                     if (methodsToSkip == 0) {
                         currentClassId = classId;
                         if (currentFrame.location() == null) {
+                            String[] packageParts = classInfo.getClassName().split("/");
+                            packageParts[packageParts.length  - 1] = classInfo.getFilename();
                             InsidiousLocation currentLocation = new InsidiousLocation(
-                                    classInfo.getFilename(), probeInfo.getLine() - 1);
+                                    StringUtil.join(packageParts, "/"), probeInfo.getLine() - 1);
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
@@ -592,6 +594,9 @@ public class InsidiousThreadReference implements ThreadReference {
             Long classId = Long.valueOf(classInfoEntry.getKey());
             ClassInfo classInfo = classInfoEntry.getValue();
             List<DataInfo> probes = classInfo.getDataInfoList();
+            if (probes == null) {
+                continue;
+            }
 
             Map<String, String> classFields = new HashMap<>();
 
