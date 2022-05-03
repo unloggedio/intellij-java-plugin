@@ -104,7 +104,7 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 //        });
 
         Location location = stackFrame.location();
-        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath() + ".java";
+        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath();
         VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(new File(path));
 
 
