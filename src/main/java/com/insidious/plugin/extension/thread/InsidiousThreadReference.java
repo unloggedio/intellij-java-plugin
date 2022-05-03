@@ -1001,7 +1001,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo = replayData.getDataInfoMap().get
                         (String.valueOf(dataEventWithSessionId.getDataId()));
-                if (!EventType.LINE_NUMBER.toString().equals(dataInfo.getEventType())) {
+                if (!EventType.LINE_NUMBER.equals(dataInfo.getEventType())) {
                     continue;
                 }
                 if (dataInfo.getLine() != currentLineNumber) {
