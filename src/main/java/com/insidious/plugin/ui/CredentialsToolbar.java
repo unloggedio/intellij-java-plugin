@@ -40,8 +40,9 @@ public class CredentialsToolbar {
     private JButton logoutButton;
     private JButton downloadJavaAgentToButton;
     private JButton buySingleUserLicenseButton;
-    private InsidiousService insidiousService;
-    private ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
+    private JTabbedPane tabbedPane1;
+    private final InsidiousService insidiousService;
+    private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
@@ -133,6 +134,7 @@ public class CredentialsToolbar {
                 }
             }
         });
+
     }
 
     public void setErrorLabel(String message) {
