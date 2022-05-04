@@ -541,7 +541,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws IOException {
 
-        File archiveToServe = null;
+            File archiveToServe = null;
         for (File sessionArchive : this.sessionArchives) {
             long timestamp = Long.parseLong(sessionArchive.getName().split("-")[2].split("\\.")[0]);
             if (timestamp < filteredDataEventsRequest.getNanotime()) {
