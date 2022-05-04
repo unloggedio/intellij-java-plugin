@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CredentialsToolbar {
+    private static final Logger logger = LoggerUtil.getInstance(CredentialsToolbar.class);
     private final Project project;
     private final ToolWindow toolWindow;
     private JPanel panel1;
@@ -39,10 +40,8 @@ public class CredentialsToolbar {
     private JButton logoutButton;
     private JButton downloadJavaAgentToButton;
     private JButton buySingleUserLicenseButton;
-
-    private static final Logger logger = LoggerUtil.getInstance(CredentialsToolbar.class);
     private InsidiousService insidiousService;
-    private  ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
+    private ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
@@ -59,9 +58,9 @@ public class CredentialsToolbar {
         useOfflineLocalRecordingsButton.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent itemEvent) {
-                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
-                    insidiousService.initiateUseLocal();
-                }
+                insidiousService.initiateUseLocal();
+//                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
+//                }
             }
         });
 
@@ -102,6 +101,7 @@ public class CredentialsToolbar {
                         new SignUpCallback() {
                             @Override
                             public void error(String string) {
+                                loginSupportTextArea.setText("Failed to signup\n" + string);
                                 Notifications.Bus.notify(
                                         insidiousService.getNotificationGroup()
                                                 .createNotification(
@@ -113,7 +113,7 @@ public class CredentialsToolbar {
                             public void success() {
                                 try {
                                     insidiousService.signin(videobugURL, usernameText, passwordText);
-                                    loginSupportTextArea.append("\nSignup was successful!");
+                                    loginSupportTextArea.setText("\nSignup was successful!");
                                     ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
                                             .submit(backgroundThreadExecutor);
                                 } catch (IOException e) {
@@ -146,6 +146,6 @@ public class CredentialsToolbar {
     }
 
     public void setText(String s) {
-        loginSupportTextArea.append(s + "\n");
+        loginSupportTextArea.setText(s + "\n");
     }
 }

@@ -136,10 +136,27 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         list.sort(Comparator.comparing(ExecutionSession::getName));
         Collections.reverse(list);
+        int i = -1;
+        for (ExecutionSession executionSession : list) {
+            i++;
+            if (i == 0 ) {
+                continue;
+            }
+            deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId()).toFile());
+        }
+
         return list;
 
     }
-
+    boolean deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+        return directoryToBeDeleted.delete();
+    }
     @Override
     public DataResponse<ExecutionSession> fetchProjectSessions() {
         List<ExecutionSession> localSessions = getLocalSessions();

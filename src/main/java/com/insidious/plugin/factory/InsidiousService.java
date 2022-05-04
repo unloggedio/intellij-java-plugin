@@ -1070,7 +1070,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void initiateUseLocal() {
-        client = new VideobugLocalClient(project.getBasePath());
+        client = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()));
         amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
 
 
