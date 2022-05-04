@@ -129,8 +129,8 @@ public class InsidiousService implements Disposable {
         String pathToSessions = project.getBasePath();
         assert pathToSessions != null;
         Path.of(pathToSessions).toFile().mkdirs();
-//        this.client = new VideobugLocalClient(pathToSessions);
-        this.client = new VideobugNetworkClient(insidiousConfiguration.serverUrl);
+        this.client = new VideobugLocalClient(pathToSessions);
+//        this.client = new VideobugNetworkClient(insidiousConfiguration.serverUrl);
         ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
 
         Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
@@ -871,11 +871,11 @@ public class InsidiousService implements Disposable {
             setupProject();
 
         }
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
-        }
+//        if (credentialsToolbarWindow == null) {
+//            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+//            this.toolWindow.getContentManager().addContent(credentialContent);
+//        }
 
     }
 
