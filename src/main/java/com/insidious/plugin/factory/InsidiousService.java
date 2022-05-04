@@ -321,15 +321,15 @@ public class InsidiousService implements Disposable {
                 if (credentials != null) {
                     String password = credentials.getPasswordAsString();
                     try {
-                        signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
-                        return;
+                        if (password != null ) {
+                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+                            return;
+                        }
                     } catch (IOException e) {
                         logger.error("failed to signin", e);
-
                         Notifications.Bus.notify(notificationGroup
                                         .createNotification("Failed to sign in -" + e.getMessage(),
-                                                NotificationType.ERROR),
-                                project);
+                                                NotificationType.ERROR), project);
                     }
                 }
             }
