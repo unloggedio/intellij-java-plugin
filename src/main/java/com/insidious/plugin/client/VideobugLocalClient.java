@@ -22,6 +22,8 @@ import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.WriteAction;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
@@ -199,7 +201,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             historyDepth--;
 
         }
-        getProjectSessionErrorsCallback.success(tracePointList);
+        WriteAction.run(() -> {
+            getProjectSessionErrorsCallback.success(tracePointList);
+        });
     }
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
