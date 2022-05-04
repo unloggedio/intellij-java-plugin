@@ -1057,8 +1057,7 @@ public class InsidiousService implements Disposable {
             Notifications.Bus.notify(notificationGroup
                             .createNotification("No sessions available for module ["
                                             + currentModule.getName() + "]",
-                                    NotificationType.ERROR),
-                    project);
+                                    NotificationType.ERROR), project);
             return;
         }
         client.setSession(sessions.getItems().get(0));
