@@ -201,7 +201,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             historyDepth--;
 
         }
-        WriteAction.run(() -> {
+        ApplicationManager.getApplication().invokeLater(() -> {
             getProjectSessionErrorsCallback.success(tracePointList);
         });
     }
