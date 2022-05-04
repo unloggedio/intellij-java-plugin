@@ -321,15 +321,15 @@ public class InsidiousService implements Disposable {
                 if (credentials != null) {
                     String password = credentials.getPasswordAsString();
                     try {
-                        if (password != null ) {
+                        if (password != null) {
                             signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
                             return;
                         }
                     } catch (IOException e) {
                         logger.error("failed to signin", e);
                         Notifications.Bus.notify(notificationGroup
-                                        .createNotification("Failed to sign in -" + e.getMessage(),
-                                                NotificationType.ERROR), project);
+                                .createNotification("Failed to sign in -" + e.getMessage(),
+                                        NotificationType.ERROR), project);
                     }
                 }
             }
@@ -564,9 +564,8 @@ public class InsidiousService implements Disposable {
         } catch (UnauthorizedException | IOException e) {
             e.printStackTrace();
             Notifications.Bus.notify(notificationGroup
-                            .createNotification(e.getMessage(),
-                                    NotificationType.ERROR),
-                    project);
+                    .createNotification(e.getMessage(),
+                            NotificationType.ERROR), project);
 
         }
     }
@@ -870,13 +869,12 @@ public class InsidiousService implements Disposable {
         if (isLoggedIn() && client.getProject() == null) {
             logger.info("user is logged in by project is null, setting up project");
             setupProject();
-
         }
-//        if (credentialsToolbarWindow == null) {
-//            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-//            this.toolWindow.getContentManager().addContent(credentialContent);
-//        }
+        if (credentialsToolbarWindow == null) {
+            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+            this.toolWindow.getContentManager().addContent(credentialContent);
+        }
 
     }
 
@@ -1053,6 +1051,7 @@ public class InsidiousService implements Disposable {
 
     public void refreshSession() throws APICallException, IOException {
         logger.info("fetch latest session for module: {}", currentModule.getName());
+        client.setProject(currentModule.getName());
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {
             Notifications.Bus.notify(notificationGroup

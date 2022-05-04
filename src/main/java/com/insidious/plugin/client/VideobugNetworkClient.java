@@ -316,7 +316,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
-
         String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
         TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
         };
