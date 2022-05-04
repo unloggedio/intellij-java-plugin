@@ -524,7 +524,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 if (this.telemetryTracker != null) {
                     this.telemetryTracker.endSession();
                 }
-                getProject().getService(InsidiousService.class).setDebugProcess(null);
             }
         } finally {
             this.connector.dispose();

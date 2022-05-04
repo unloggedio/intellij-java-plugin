@@ -8,7 +8,8 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
-import com.sun.jdi.request.EventRequestManager;
+import com.sun.jdi.event.EventSet;
+import com.sun.jdi.request.*;
 import org.slf4j.Logger;
 
 import java.util.Arrays;
@@ -65,12 +66,207 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     @Override
     public EventQueue eventQueue() {
-        return null;
+        return new EventQueue() {
+            @Override
+            public EventSet remove() throws InterruptedException {
+                return null;
+            }
+
+            @Override
+            public EventSet remove(long timeout) throws InterruptedException {
+                return null;
+            }
+
+            @Override
+            public VirtualMachine virtualMachine() {
+                return null;
+            }
+        };
     }
 
     @Override
     public EventRequestManager eventRequestManager() {
-        return null;
+        return new EventRequestManager() {
+            @Override
+            public ClassPrepareRequest createClassPrepareRequest() {
+                return null;
+            }
+
+            @Override
+            public ClassUnloadRequest createClassUnloadRequest() {
+                return null;
+            }
+
+            @Override
+            public ThreadStartRequest createThreadStartRequest() {
+                return null;
+            }
+
+            @Override
+            public ThreadDeathRequest createThreadDeathRequest() {
+                return null;
+            }
+
+            @Override
+            public ExceptionRequest createExceptionRequest(ReferenceType refType, boolean notifyCaught, boolean notifyUncaught) {
+                return null;
+            }
+
+            @Override
+            public MethodEntryRequest createMethodEntryRequest() {
+                return null;
+            }
+
+            @Override
+            public MethodExitRequest createMethodExitRequest() {
+                return null;
+            }
+
+            @Override
+            public MonitorContendedEnterRequest createMonitorContendedEnterRequest() {
+                return null;
+            }
+
+            @Override
+            public MonitorContendedEnteredRequest createMonitorContendedEnteredRequest() {
+                return null;
+            }
+
+            @Override
+            public MonitorWaitRequest createMonitorWaitRequest() {
+                return null;
+            }
+
+            @Override
+            public MonitorWaitedRequest createMonitorWaitedRequest() {
+                return null;
+            }
+
+            @Override
+            public StepRequest createStepRequest(ThreadReference thread, int size, int depth) {
+                return null;
+            }
+
+            @Override
+            public BreakpointRequest createBreakpointRequest(Location location) {
+                return null;
+            }
+
+            @Override
+            public AccessWatchpointRequest createAccessWatchpointRequest(Field field) {
+                return null;
+            }
+
+            @Override
+            public ModificationWatchpointRequest createModificationWatchpointRequest(Field field) {
+                return null;
+            }
+
+            @Override
+            public VMDeathRequest createVMDeathRequest() {
+                return null;
+            }
+
+            @Override
+            public void deleteEventRequest(EventRequest eventRequest) {
+
+            }
+
+            @Override
+            public void deleteEventRequests(List<? extends EventRequest> eventRequests) {
+
+            }
+
+            @Override
+            public void deleteAllBreakpoints() {
+
+            }
+
+            @Override
+            public List<StepRequest> stepRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ClassPrepareRequest> classPrepareRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ClassUnloadRequest> classUnloadRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ThreadStartRequest> threadStartRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ThreadDeathRequest> threadDeathRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ExceptionRequest> exceptionRequests() {
+                return null;
+            }
+
+            @Override
+            public List<BreakpointRequest> breakpointRequests() {
+                return null;
+            }
+
+            @Override
+            public List<AccessWatchpointRequest> accessWatchpointRequests() {
+                return null;
+            }
+
+            @Override
+            public List<ModificationWatchpointRequest> modificationWatchpointRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MethodEntryRequest> methodEntryRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MethodExitRequest> methodExitRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MonitorContendedEnterRequest> monitorContendedEnterRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MonitorContendedEnteredRequest> monitorContendedEnteredRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MonitorWaitRequest> monitorWaitRequests() {
+                return null;
+            }
+
+            @Override
+            public List<MonitorWaitedRequest> monitorWaitedRequests() {
+                return null;
+            }
+
+            @Override
+            public List<VMDeathRequest> vmDeathRequests() {
+                return null;
+            }
+
+            @Override
+            public VirtualMachine virtualMachine() {
+                return null;
+            }
+        };
     }
 
     @Override

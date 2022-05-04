@@ -34,7 +34,6 @@ public class InsidiousProcessHandler extends ProcessHandler {
     protected void detachProcessImpl() {
         logger.info("end of debug session - {}", new Exception().getStackTrace()[0]);
         if (getInsidiousJavaDebugProcess() != null) {
-            getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class).setDebugSession(null);
             getInsidiousJavaDebugProcess().closeProcess(true);
         }
         notifyProcessDetached();

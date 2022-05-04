@@ -2,6 +2,7 @@ package com.insidious.plugin.extension.connector;
 
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.extension.thread.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.pojo.TracePoint;
@@ -17,12 +18,15 @@ import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
+import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.*;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
@@ -147,10 +151,10 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 //        logger.error("method not implemented", new Exception());
     }
 
-    public ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
+    public <K, V> ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
 //        insidiousJavaDebugProcess.stop();
-        logger.warn("method not implemented createClassPrepareRequest- {}", new Exception().getMessage());
-        return null;
+        logger.warn("method not implemented createClassPrepareRequest [{}] [{}]- {}", classPattern, requestor, new Exception().getMessage());
+        return new VideobugClassPrepareRequest(classPattern, requestor, this.virtualMachine);
     }
 
     public ReferenceType findClassesByName(String className) {
