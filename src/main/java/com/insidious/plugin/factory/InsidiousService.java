@@ -358,6 +358,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void signup(String serverUrl, String usernameText, String passwordText, SignUpCallback signupCallback) {
+        this.client = new VideobugNetworkClient(serverUrl);
         this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
     }
 
@@ -370,7 +371,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
-
+        this.client = new VideobugNetworkClient(serverUrl);
         logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
@@ -933,11 +934,19 @@ public class InsidiousService implements Disposable {
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
 
-                        Notifications.Bus.notify(notificationGroup
-                                        .createNotification("No sessions found for project " + currentModule.getName() +
-                                                        ". Start recording new sessions with the java agent",
-                                                NotificationType.INFORMATION),
-                                project);
+                        if (notificationGroup != null) {
+                            Notifications.Bus.notify(notificationGroup
+                                            .createNotification("No sessions found for project " + currentModule.getName() +
+                                                            ". Start recording new sessions with the java agent",
+                                                    NotificationType.INFORMATION),
+                                    project);
+                        } else {
+
+                            Notifications.Bus.notify(new Notification("com.insidious", "No sessions found for project " + currentModule.getName() +
+                                            ". Start recording new sessions with the java agent",
+                                            NotificationType.INFORMATION),
+                                    project);
+                        }
                     });
                     return;
                 }

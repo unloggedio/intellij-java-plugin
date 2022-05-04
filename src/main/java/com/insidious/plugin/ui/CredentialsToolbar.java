@@ -13,8 +13,6 @@ import com.intellij.openapi.wm.ToolWindow;
 import org.slf4j.Logger;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -24,43 +22,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CredentialsToolbar {
+    private final Project project;
+    private final ToolWindow toolWindow;
+    private JPanel panel1;
+    private JTextField email;
+    private JPasswordField password;
+    private JButton signInButton;
+    private JTextArea loginSupportTextArea;
+    private JPanel loginFormPanel;
+    private JButton signUpButton;
+    private JButton useOfflineLocalRecordingsButton;
+    private JTextField serverEndpoint;
+    private JLabel serverLabel;
+    private JLabel passwordLabel;
+    private JLabel emailLabel;
+    private JButton logoutButton;
+    private JButton downloadJavaAgentToButton;
+    private JButton buySingleUserLicenseButton;
 
     private static final Logger logger = LoggerUtil.getInstance(CredentialsToolbar.class);
-    private final InsidiousService insidiousService;
-    private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
-    String usernameText;
-    String videobugURL, passwordText;
-    Project project;
-    ToolWindow toolWindow;
-    private JPanel panel1;
-    private JTextField username;
-    private JLabel usernameLabel;
-    private JLabel passwordLabel;
-    private JPasswordField password;
-    private JTextField videobugServerURLTextField;
-    private JButton signinButton;
-    private JLabel errorLabel;
-    private JLabel commandLabel;
-    private JTextArea textArea1;
-    private JButton downloadAgent;
-    private JButton signupButton;
-    private JLabel infoError;
-    private JButton logoutButton;
-    private JButton payment;
-    private JCheckBox useLocallyCheckBox;
+    private InsidiousService insidiousService;
+    private  ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
+
 
     public CredentialsToolbar(Project project, ToolWindow toolWindow) {
         this.project = project;
         this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
 
-        username.setText(this.insidiousService.getConfiguration().username);
+        email.setText(this.insidiousService.getConfiguration().username);
         if (!"test@example.com".equals(this.insidiousService.getConfiguration().username)) {
             password.setText("");
         }
-        videobugServerURLTextField.setText(this.insidiousService.getConfiguration().serverUrl);
+        serverEndpoint.setText(this.insidiousService.getConfiguration().serverUrl);
 
-        useLocallyCheckBox.addItemListener(new ItemListener() {
+        useOfflineLocalRecordingsButton.addItemListener(new ItemListener() {
             @Override
             public void itemStateChanged(ItemEvent itemEvent) {
                 if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
@@ -69,12 +65,12 @@ public class CredentialsToolbar {
             }
         });
 
-        signinButton.addActionListener(new ActionListener() {
+        signInButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                usernameText = username.getText();
-                passwordText = new String(password.getPassword());
-                videobugURL = videobugServerURLTextField.getText();
+                String usernameText = email.getText();
+                String passwordText = new String(password.getPassword());
+                String videobugURL = serverEndpoint.getText();
                 try {
                     insidiousService.signin(videobugURL, usernameText, passwordText);
                 } catch (IOException e) {
@@ -83,25 +79,25 @@ public class CredentialsToolbar {
                 }
             }
         });
-        textArea1.setLineWrap(true);
+        loginSupportTextArea.setLineWrap(true);
 
         logoutButton.addActionListener(e -> {
             insidiousService.logout();
-            username.setText("");
+            email.setText("");
             password.setText("");
-            videobugServerURLTextField.setText(
+            serverEndpoint.setText(
                     insidiousService.getConfiguration().getDefaultCloudServerUrl());
-            textArea1.setText("");
+            loginSupportTextArea.setText("");
         });
 
-        downloadAgent.addActionListener(ae -> insidiousService.downloadAgent());
+        downloadJavaAgentToButton.addActionListener(ae -> insidiousService.downloadAgent());
 
-        signupButton.addActionListener(new ActionListener() {
+        signUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                usernameText = username.getText();
-                passwordText = new String(password.getPassword());
-                videobugURL = videobugServerURLTextField.getText();
+                String usernameText = email.getText();
+                String passwordText = new String(password.getPassword());
+                String videobugURL = serverEndpoint.getText();
                 insidiousService.signup(videobugURL, usernameText, passwordText,
                         new SignUpCallback() {
                             @Override
@@ -109,9 +105,7 @@ public class CredentialsToolbar {
                                 Notifications.Bus.notify(
                                         insidiousService.getNotificationGroup()
                                                 .createNotification(
-                                                        "Failed to signup - " + string,
-                                                        NotificationType.ERROR),
-                                        project);
+                                                        "Failed to signup - " + string, NotificationType.ERROR), project);
 
                             }
 
@@ -119,7 +113,7 @@ public class CredentialsToolbar {
                             public void success() {
                                 try {
                                     insidiousService.signin(videobugURL, usernameText, passwordText);
-                                    infoError.setText("Signup was successful!");
+                                    loginSupportTextArea.append("\nSignup was successful!");
                                     ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
                                             .submit(backgroundThreadExecutor);
                                 } catch (IOException e) {
@@ -129,7 +123,7 @@ public class CredentialsToolbar {
                         });
             }
         });
-        payment.addActionListener(new ActionListener() {
+        buySingleUserLicenseButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
                 try {
@@ -152,10 +146,6 @@ public class CredentialsToolbar {
     }
 
     public void setText(String s) {
-        textArea1.setText(s);
-    }
-
-    public void setInfoLabel(String s) {
-        infoError.setText(s);
+        loginSupportTextArea.append(s + "\n");
     }
 }
