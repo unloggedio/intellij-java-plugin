@@ -22,10 +22,14 @@ public class InsidiousProcessHandler extends ProcessHandler {
     @Override
     protected void destroyProcessImpl() {
         try {
-            InsidiousService service = getInsidiousJavaDebugProcess().getProject().getService(InsidiousService.class);
+            InsidiousJavaDebugProcess debugProcess = getInsidiousJavaDebugProcess();
+            if (debugProcess == null) {
+                return;
+            }
+            InsidiousService service = debugProcess.getProject().getService(InsidiousService.class);
             service.setDebugSession(null);
         } catch (Exception e) {
-
+            logger.error("failed to destroy process", e);
         }
         notifyProcessTerminated(0);
     }

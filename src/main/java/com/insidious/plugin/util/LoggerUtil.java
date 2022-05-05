@@ -26,7 +26,7 @@ public class LoggerUtil {
 
         try {
             String strTmp = System.getProperty("java.io.tmpdir");
-            String projectName = ProjectManager.getInstance().getDefaultProject().getName();
+            String projectName = ProjectManager.getInstance().getDefaultProject().getName().replaceAll("[^a-zA-Z0-9]", "");
             logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious-" + projectName + ".log";
 
             RollingFileAppender insidiousAppender = new RollingFileAppender(layout, logFilePath, true);
