@@ -36,8 +36,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     private final InsidiousJavaDebugProcess insidiousJavaDebugProcess;
     private final InsidiousVirtualMachine virtualMachine;
 
-    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess, VideobugClientInterface client) {
-        this.virtualMachine = new InsidiousVirtualMachine(client);
+    public InsidiousJDIConnector(InsidiousJavaDebugProcess insidiousJavaDebugProcess) {
+        this.virtualMachine = new InsidiousVirtualMachine(insidiousJavaDebugProcess.getProject());
         this.insidiousJavaDebugProcess = insidiousJavaDebugProcess;
     }
 

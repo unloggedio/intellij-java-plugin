@@ -1,24 +1,19 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import org.slf4j.Logger;
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 
 public class RemoteConnection {
     private final static Logger logger = LoggerUtil.getInstance(RemoteConnection.class);
-    private final VideobugClientInterface client;
+    private final String address;
     private boolean myUseSockets;
     private String myHostName;
 
-    public RemoteConnection(String address, VideobugClientInterface client) throws UnauthorizedException {
-        this.client = client;
+    public RemoteConnection(String address) throws UnauthorizedException {
+        this.address = address;
     }
 
-
-    public VideobugClientInterface getClient() {
-        return client;
-    }
 
     public boolean isUseSockets() {
         return this.myUseSockets;
@@ -38,7 +33,7 @@ public class RemoteConnection {
 
     public String toString() {
         String transportName = "InsidiousVM";
-        String address = client.getEndpoint();
+        String address = this.address;
         return "'" + address + "', transport: '" + transportName + "'";
     }
 }

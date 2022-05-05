@@ -3,9 +3,10 @@ package com.insidious.plugin.extension.thread;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.project.Project;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.event.EventSet;
@@ -19,13 +20,14 @@ import java.util.Map;
 public class InsidiousVirtualMachine implements VirtualMachine {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousVirtualMachine.class);
-    private final VideobugClientInterface client;
     private InsidiousThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
+    private final Project project;
 
-    public InsidiousVirtualMachine(VideobugClientInterface client) {
-        this.client = client;
+    public InsidiousVirtualMachine(Project project) {
+        this.project = project;
     }
+
 
     @Override
     public List<ReferenceType> classesByName(String s) {
@@ -496,7 +498,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         FilteredDataEventsRequest filterDataEventRequest = tracePoint.toFilterDataEventRequest();
         filterDataEventRequest.setPageSize(1000);
 
-        this.replayData = this.client.fetchDataEvents(filterDataEventRequest);
+        this.replayData = this.project.getService(InsidiousService.class).getClient().fetchDataEvents(filterDataEventRequest);
         threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
 
         threadReferenceGroup.setThreadReferenceGroup(List.of(new InsidiousThreadReference(threadReferenceGroup, replayData, tracePoint)));
