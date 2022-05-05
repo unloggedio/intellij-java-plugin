@@ -56,9 +56,9 @@ public class CredentialsToolbar {
         }
         serverEndpoint.setText(this.insidiousService.getConfiguration().serverUrl);
 
-        useOfflineLocalRecordingsButton.addItemListener(new ItemListener() {
+        useOfflineLocalRecordingsButton.addActionListener(new ActionListener() {
             @Override
-            public void itemStateChanged(ItemEvent itemEvent) {
+            public void actionPerformed(ActionEvent actionEvent) {
                 insidiousService.initiateUseLocal();
 //                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
 //                }
