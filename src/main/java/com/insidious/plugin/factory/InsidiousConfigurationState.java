@@ -25,7 +25,7 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
 
     private final List<SearchRecord> searchRecords = new LinkedList<>();
     public String username = "";
-    private final String CLOUD_SERVER_URL = "http://cloud.bug.video";
+    private final String CLOUD_SERVER_URL = "https://cloud.bug.video";
     public String serverUrl = CLOUD_SERVER_URL;
     public Map<String, Boolean> exceptionClassMap;
 

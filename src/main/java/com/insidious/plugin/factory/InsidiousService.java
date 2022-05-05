@@ -758,7 +758,7 @@ public class InsidiousService implements Disposable {
                         new InsidiousExecutor(), runConfiguration).build();
                 ProgramRunnerUtil.executeConfiguration(env, false, false);
             } catch (ExecutionException e) {
-                e.printStackTrace();
+                logger.error("failed to execute configuration", e);
             }
         });
 
@@ -899,7 +899,7 @@ public class InsidiousService implements Disposable {
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "-javaagent:\"" + videoBugAgentPath
                         + "=i=" + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
-                        + ",server=" + insidiousConfiguration.serverUrl
+                        + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video")
                         + ",token=" + appToken + "\""
         };
 
