@@ -420,7 +420,7 @@ public class InsidiousService implements Disposable {
                             ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache)
                                     .submit(threadPool);
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
-                            ReadAction.nonBlocking(InsidiousService.this::generateAppToken).submit(threadPool);
+                            ReadAction.nonBlocking(InsidiousService.this::setupProject).submit(threadPool);
 
                             amplitudeClient.logEvent(new Event("SignedIn", HOSTNAME));
 
