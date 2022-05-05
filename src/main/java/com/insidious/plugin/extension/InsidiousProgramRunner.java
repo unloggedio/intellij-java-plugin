@@ -68,8 +68,8 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
                 InsidiousDebugProcessStarter processStarter =
                         new InsidiousDebugProcessStarter(connection, executionResult);
                 result.set(XDebuggerManager.getInstance(env.getProject()).startSession(env, processStarter).getRunContentDescriptor());
-            } catch (ExecutionException e) {
-                ex.set(e);
+            } catch (Throwable e) {
+                ex.set(new ExecutionException(e));
             }
         });
         if (ex.get() != null) throw ex.get();

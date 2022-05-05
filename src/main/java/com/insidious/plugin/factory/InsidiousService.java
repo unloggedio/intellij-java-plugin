@@ -757,7 +757,7 @@ public class InsidiousService implements Disposable {
                 ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project,
                         new InsidiousExecutor(), runConfiguration).build();
                 ProgramRunnerUtil.executeConfiguration(env, false, false);
-            } catch (ExecutionException e) {
+            } catch (Throwable e) {
                 logger.error("failed to execute configuration", e);
             }
         });
