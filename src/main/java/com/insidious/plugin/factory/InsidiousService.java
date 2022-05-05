@@ -1084,6 +1084,7 @@ public class InsidiousService implements Disposable {
         amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
 
 
+        ReadAction.nonBlocking(InsidiousService.this::setupProject).submit(threadPool);
         ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
 
         ApplicationManager.getApplication().invokeLater(() -> {
