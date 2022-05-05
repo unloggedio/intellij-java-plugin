@@ -106,101 +106,107 @@ public class InsidiousService implements Disposable {
 
 
     public InsidiousService(Project project) {
-        this.project = project;
-        amplitudeClient = Amplitude.getInstance("PLUGIN");
-        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
-        threadPool = Executors.newFixedThreadPool(4);
-
-        logger.info("started insidious service - project name [{}]", project.getName());
-        if (ModuleManager.getInstance(project).getModules().length == 0) {
-            logger.warn("no module found in the project");
-        } else {
-            currentModule = ModuleManager.getInstance(project).getModules()[0];
-            logger.info("current module [{}]", currentModule.getName());
-        }
-
-        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
-
-        ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
-        threadPool.submit(this::logLogFileLocation);
-
-        this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-
-        String pathToSessions = project.getBasePath();
-        assert pathToSessions != null;
-        Path.of(pathToSessions).toFile().mkdirs();
-        this.client = new VideobugLocalClient(pathToSessions);
-//        this.client = new VideobugNetworkClient(insidiousConfiguration.serverUrl);
-        ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
-
-        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
-                .filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
-
-        this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
-            final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
-
-            @Override
-            public void onNewTracePoints(List<TracePoint> tracePoints) {
-                if (mostRecentTracePoints.size() > 0) {
-                    List<TracePoint> newTracePoints = new LinkedList<>();
-                    for (TracePoint tracePoint : tracePoints) {
-                        if (!mostRecentTracePoints.contains(tracePoint)) {
-                            newTracePoints.add(tracePoint);
-                        }
-                    }
-                    mostRecentTracePoints.clear();
-                    mostRecentTracePoints.addAll(tracePoints);
-                    if (newTracePoints.size() == 0) {
-                        return;
-                    }
-                    tracePoints = newTracePoints;
-                } else {
-                    mostRecentTracePoints.addAll(tracePoints);
-                }
-
-                String messageContent = "Got " + tracePoints.size() + " new matching trace points";
-                StringBuilder messageBuilder = new StringBuilder();
-                Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(e -> e.getClassname()));
-                for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
-                    String className = classTracePoint.getKey();
-                    List<TracePoint> classTracePoints = classTracePoint.getValue();
-                    Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(
-                            Collectors.groupingBy(TracePoint::getExceptionClass));
-
-                    for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
-                        String exceptionClassName = exceptionTracePoint.getKey();
-                        Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue()
-                                .stream().collect(
-                                        Collectors.groupingBy(
-                                                TracePoint::getLinenum
-                                        ));
-
-                        for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
-
-                            String[] exceptionClassNameParts = exceptionClassName.split("\\.");
-                            String[] classNameParts = className.split("/");
-                            messageBuilder.append(lineExceptionPoints.getValue().size());
-                            messageBuilder.append(" ");
-                            messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
-                            messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
-                            messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
-                            messageBuilder.append("<br>");
-                        }
+        try {
 
 
-                    }
+            this.project = project;
+            amplitudeClient = Amplitude.getInstance("PLUGIN");
+            amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
+            threadPool = Executors.newFixedThreadPool(4);
 
-
-                }
-
-
-                Notification notification = InsidiousNotification.
-                        balloonNotificationGroup.createNotification("New exception",
-                                messageBuilder.toString(), NotificationType.INFORMATION);
-                Notifications.Bus.notify(notification);
-                getHorBugTable().setTracePoints(tracePoints);
+            logger.info("started insidious service - project name [{}]", project.getName());
+            if (ModuleManager.getInstance(project).getModules().length == 0) {
+                logger.warn("no module found in the project");
+            } else {
+                currentModule = ModuleManager.getInstance(project).getModules()[0];
+                logger.info("current module [{}]", currentModule.getName());
             }
-        });
+
+            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
+
+            ReadAction.nonBlocking(this::getProjectPackageName).submit(threadPool);
+            threadPool.submit(this::logLogFileLocation);
+
+            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+
+            String pathToSessions = project.getBasePath();
+            assert pathToSessions != null;
+            Path.of(pathToSessions).toFile().mkdirs();
+            this.client = new VideobugLocalClient(pathToSessions);
+//        this.client = new VideobugNetworkClient(insidiousConfiguration.serverUrl);
+            ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache).submit(threadPool);
+
+            Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream()
+                    .filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
+
+            this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
+                final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
+
+                @Override
+                public void onNewTracePoints(List<TracePoint> tracePoints) {
+                    if (mostRecentTracePoints.size() > 0) {
+                        List<TracePoint> newTracePoints = new LinkedList<>();
+                        for (TracePoint tracePoint : tracePoints) {
+                            if (!mostRecentTracePoints.contains(tracePoint)) {
+                                newTracePoints.add(tracePoint);
+                            }
+                        }
+                        mostRecentTracePoints.clear();
+                        mostRecentTracePoints.addAll(tracePoints);
+                        if (newTracePoints.size() == 0) {
+                            return;
+                        }
+                        tracePoints = newTracePoints;
+                    } else {
+                        mostRecentTracePoints.addAll(tracePoints);
+                    }
+
+                    String messageContent = "Got " + tracePoints.size() + " new matching trace points";
+                    StringBuilder messageBuilder = new StringBuilder();
+                    Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(e -> e.getClassname()));
+                    for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
+                        String className = classTracePoint.getKey();
+                        List<TracePoint> classTracePoints = classTracePoint.getValue();
+                        Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(
+                                Collectors.groupingBy(TracePoint::getExceptionClass));
+
+                        for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
+                            String exceptionClassName = exceptionTracePoint.getKey();
+                            Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue()
+                                    .stream().collect(
+                                            Collectors.groupingBy(
+                                                    TracePoint::getLinenum
+                                            ));
+
+                            for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
+
+                                String[] exceptionClassNameParts = exceptionClassName.split("\\.");
+                                String[] classNameParts = className.split("/");
+                                messageBuilder.append(lineExceptionPoints.getValue().size());
+                                messageBuilder.append(" ");
+                                messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
+                                messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
+                                messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
+                                messageBuilder.append("<br>");
+                            }
+
+
+                        }
+
+
+                    }
+
+
+                    Notification notification = InsidiousNotification.
+                            balloonNotificationGroup.createNotification("New exception",
+                                    messageBuilder.toString(), NotificationType.INFORMATION);
+                    Notifications.Bus.notify(notification);
+                    getHorBugTable().setTracePoints(tracePoints);
+                }
+            });
+        }catch (Throwable e) {
+            logger.error("exception in videobug service init");
+        }
     }
 
     private XDebugSession getActiveDebugSession(XDebugSession[] debugSessions) {
