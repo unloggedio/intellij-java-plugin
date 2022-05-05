@@ -79,14 +79,14 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private final Project project;
-    private final InsidiousConfigurationState insidiousConfiguration;
-    private final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
-    private final String agentJarName = "videobug-java-agent.jar";
+    private Project project;
+    private InsidiousConfigurationState insidiousConfiguration;
+    private Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
+    private String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
     private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
-    private final Amplitude amplitudeClient;
-    private final ExecutorService threadPool;
+    private Amplitude amplitudeClient;
+    private ExecutorService threadPool;
     private VideobugClientInterface client;
     private NotificationGroup notificationGroup;
     private Module currentModule;
