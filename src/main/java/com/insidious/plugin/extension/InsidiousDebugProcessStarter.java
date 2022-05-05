@@ -12,20 +12,20 @@ import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-
 public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousDebugProcessStarter.class);
     private final RemoteConnection connection;
     private final ExecutionResult executionResult;
+    private final InsidiousApplicationState state;
 
     public InsidiousDebugProcessStarter(
             RemoteConnection connection,
-            ExecutionResult executionResult
-    ) {
+            ExecutionResult executionResult,
+            InsidiousApplicationState state) {
         this.connection = connection;
         this.executionResult = executionResult;
+        this.state = state;
     }
 
     @Override
@@ -33,6 +33,12 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
         InsidiousJavaDebugProcess debugProcess = null;
         try {
             debugProcess = InsidiousJavaDebugProcess.create(session, connection);
+
+            InsidiousDebugProcessStarterListener listener =
+                    new InsidiousDebugProcessStarterListener(debugProcess, this.state, this.connection);
+            debugProcess.addDebugProcessListener(listener);
+            debugProcess.setExecutionResult(executionResult);
+
         } catch (UnauthorizedException e) {
             logger.error("failed to fetch project sessions", e);
             e.printStackTrace();
@@ -41,11 +47,6 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
             logger.error("failed to fetch project sessions", e);
             e.printStackTrace();
             Messages.showErrorDialog(session.getProject(), e.getMessage(), "Failed to start VideoBug Session");
-            throw new ExecutionException(e);
-        } catch (IOException e) {
-            logger.error("failed to fetch project sessions", e);
-            e.printStackTrace();
-            Messages.showErrorDialog(session.getProject(), "Failed to connect with server - " + e.getMessage(), "Failed");
             throw new ExecutionException(e);
         } catch (Exception e) {
             logger.error("failed to fetch project sessions", e);
@@ -57,8 +58,8 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
         debugProcess.setExecutionResult(this.executionResult);
         try {
             debugProcess.attachVM("100");
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            logger.error("failed to attach to vm", e);
         }
 
         return debugProcess;

@@ -1,6 +1,9 @@
 package com.insidious.plugin.extension;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.execution.process.ProcessHandler;
+import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
 import org.slf4j.Logger;
 import com.intellij.xdebugger.XDebugProcess;
@@ -20,11 +23,16 @@ public final class InsidiousDebugProcessStarterListener
     private final InsidiousJavaDebugProcess debugProcess;
 
     private final InsidiousApplicationState state;
+    private RemoteConnection myConnection;
 
 
-    public InsidiousDebugProcessStarterListener(InsidiousJavaDebugProcess debugProcess, InsidiousApplicationState state) {
+    public InsidiousDebugProcessStarterListener(
+            InsidiousJavaDebugProcess debugProcess,
+            InsidiousApplicationState state,
+            RemoteConnection myConnection) {
         this.debugProcess = debugProcess;
         this.state = state;
+        this.myConnection = myConnection;
     }
 
 
@@ -63,6 +71,8 @@ public final class InsidiousDebugProcessStarterListener
 
 
     public void resumed(XSuspendContext suspendContext) {
+        LOGGER.info(String.format("resumed Thread (%s) started", suspendContext.toString()));
+
     }
 
 
@@ -84,6 +94,46 @@ public final class InsidiousDebugProcessStarterListener
     public void processAttached(@NotNull XDebugProcess process) {
         LOGGER.info("Process has been attached.");
         updateInsidiousCommandSender(this.state, this.debugProcess);
+
+        ProcessHandler processHandler = process.getProcessHandler();
+
+        String message = DebuggerBundle.message("status.connected", myConnection + "\n");
+        processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\nFind trace points to start debugging in the VideoBug tool window", ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\nAfter fetching a session from trace point, you can step back and forward using the <- and -> arrow buttons above", ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\nYou can also assign it a keyboard shortcut, just like F8", ProcessOutputTypes.SYSTEM);
+
+
+        processHandler.notifyTextAvailable("\n\n", ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("        _     _              ___             \n" +
+                " /\\   /(_) __| | ___  ___   / __\\_   _  __ _ \n" +
+                " \\ \\ / | |/ _` |/ _ \\/ _ \\ /__\\/| | | |/ _` |\n" +
+                "  \\ V /| | (_| |  __| (_) / \\/  | |_| | (_| |\n" +
+                "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
+                "                                       |___/ ", ProcessOutputTypes.SYSTEM);
+
+        InsidiousService insidiousService = debugProcess.getProject().getService(InsidiousService.class);
+
+        processHandler.notifyTextAvailable("                                        \n" +
+                "                 .°...°°°°..            \n" +
+                "                  ....     .°*°.        \n" +
+                "      .     .*O##@@@@@@##Oo°   *o°      \n" +
+                "     O*   o@@@@@@@@@@@@@@@@@@O.  *o     \n" +
+                "    #°  °#oo#@#Oo**°°°*oO#@#o*#O  °#    \n" +
+                "   oo  .@#*                  °O@o  oo   \n" +
+                "   #.  o@#@o   OO°     o#o   @@@#  .#   \n" +
+                "   oo  .@#@.   ..       .    O@@o  oo   \n" +
+                "    #°  °@@                  o@o  °#    \n" +
+                "     o*   *                  ..  *o     \n" +
+                "      °o*                      *o°      \n" +
+                "        .°*°.              .°*°.        \n" +
+                "            ..°°°°°°°°°°°°..            \n" +
+                "                                        ", ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
+
+
         if (!this.state.isErrored()) {
             ApplicationManager.getApplication().invokeLater(() -> initialiseTimeline(process));
         }
@@ -117,6 +167,12 @@ public final class InsidiousDebugProcessStarterListener
 
     public void processDetached(@NotNull XDebugProcess process, boolean closedByUser) {
         LOGGER.info("Process has been detached.");
+
+        ProcessHandler processHandler = process.getProcessHandler();
+
+        String message = DebuggerBundle.message("status.disconnected", myConnection + "\n");
+        processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
+
         synchronized (this.state) {
             CommandSender commandSender = this.state.getCommandSender();
             if (commandSender != null) {

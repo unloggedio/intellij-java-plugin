@@ -79,15 +79,21 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
             @NotNull XDebugSession session,
             @NotNull final RemoteConnection connection) throws APICallException, IOException {
         super(session);
-        this.myEditorsProvider = new JavaDebuggerEditorsProvider();
+
+         this.myEditorsProvider = new JavaDebuggerEditorsProvider();
 
         this.connector = new InsidiousJDIConnector(this,
                 connection.getClient());
+
         session.getProject().getService(InsidiousService.class).setConnector(this.connector);
 
-        InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(getSession().getProject(), this);
-        this.insidiousNodeManager = new InsidiousNodeManagerImpl(getSession().getProject(), tree, this);
-        this.myPositionManager = ReadAction.compute(() -> new InsidiousCompoundPositionManager(new InsidiousPositionManager(this)));
+        InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(
+                getSession().getProject(), this);
+
+        this.insidiousNodeManager = new InsidiousNodeManagerImpl(
+                getSession().getProject(), tree, this);
+        this.myPositionManager = ReadAction.compute(() -> new InsidiousCompoundPositionManager(
+                new InsidiousPositionManager(this)));
 
         InsidiousBreakpointHandler[] handlers = {
                 new InsidiousBreakpointHandler.InsidiousJavaLineBreakpointHandler(this),
@@ -102,57 +108,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         this.myConnection = connection;
         instances.put(getProject(), this);
 
-        this.myDebugProcessDispatcher.addListener(new InsidiousDebugProcessListener() {
-
-            public void processDetached(@NotNull XDebugProcess process, boolean closedByUser) {
-                ProcessHandler processHandler = process.getProcessHandler();
-
-                String message = DebuggerBundle.message("status.disconnected", myConnection + "\n");
-                processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
-            }
-
-
-            public void processAttached(@NotNull XDebugProcess process) {
-                ProcessHandler processHandler = process.getProcessHandler();
-
-                String message = DebuggerBundle.message("status.connected", myConnection + "\n");
-                processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\nFind trace points to start debugging in the VideoBug tool window", ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\nAfter fetching a session from trace point, you can step back and forward using the <- and -> arrow buttons above", ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\nYou can also assign it a keyboard shortcut, just like F8", ProcessOutputTypes.SYSTEM);
-
-
-                processHandler.notifyTextAvailable("\n\n", ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("        _     _              ___             \n" +
-                        " /\\   /(_) __| | ___  ___   / __\\_   _  __ _ \n" +
-                        " \\ \\ / | |/ _` |/ _ \\/ _ \\ /__\\/| | | |/ _` |\n" +
-                        "  \\ V /| | (_| |  __| (_) / \\/  | |_| | (_| |\n" +
-                        "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
-                        "                                       |___/ ", ProcessOutputTypes.SYSTEM);
-
-                InsidiousService insidiousService = getProject().getService(InsidiousService.class);
-
-                processHandler.notifyTextAvailable("                                        \n" +
-                        "                 .°...°°°°..            \n" +
-                        "                  ....     .°*°.        \n" +
-                        "      .     .*O##@@@@@@##Oo°   *o°      \n" +
-                        "     O*   o@@@@@@@@@@@@@@@@@@O.  *o     \n" +
-                        "    #°  °#oo#@#Oo**°°°*oO#@#o*#O  °#    \n" +
-                        "   oo  .@#*                  °O@o  oo   \n" +
-                        "   #.  o@#@o   OO°     o#o   @@@#  .#   \n" +
-                        "   oo  .@#@.   ..       .    O@@o  oo   \n" +
-                        "    #°  °@@                  o@o  °#    \n" +
-                        "     o*   *                  ..  *o     \n" +
-                        "      °o*                      *o°      \n" +
-                        "        .°*°.              .°*°.        \n" +
-                        "            ..°°°°°°°°°°°°..            \n" +
-                        "                                        ", ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
-                processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
-
-            }
-        });
         this.mySmartStepIntoActionHandler = new InsidiousJavaSmartStepIntoActionHandler(this);
         session.setPauseActionSupported(true);
     }
@@ -162,11 +117,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
             throws APICallException, IOException {
         logger.info("Creating InsidiousJavaDebugProcess with port " + connection.getClient().getEndpoint());
 
-        InsidiousJavaDebugProcess debugProcess = new InsidiousJavaDebugProcess(session, connection);
-
-//        session.getProject().getService(InsidiousService.class).setDebugSession(session);
-//        session.getProject().getService(InsidiousService.class).setDebugProcess(debugProcess);
-        return debugProcess;
+        return new InsidiousJavaDebugProcess(session, connection);
     }
 
     public static InsidiousJavaDebugProcess getInstance(String runProfileName) {
@@ -216,7 +167,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         this.jdwpEventDispatcher.getMulticaster().requestMessageReceived(requestMessage);
     }
 
-    public void attachVM(String timeout) throws IOException {
+    public void attachVM(String timeout) throws Exception {
         try {
             logger.info(String.format("Attaching to VM on endpoint [%s]", this.myConnection.getClient().getEndpoint()));
             this.connector.attachVirtualMachine(this.myConnection
@@ -232,7 +183,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         } catch (Exception ex) {
             logger.error("Couldn't attach to target VM:", ex);
             if (!getState().isErrored()) {
-                throw new IOException(ex);
+                throw new Exception(ex);
             }
         }
     }

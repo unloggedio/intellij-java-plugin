@@ -12,6 +12,7 @@ import com.intellij.execution.target.TargetEnvironmentAwareRunProfileState;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
@@ -45,7 +46,6 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         @NotNull String moduleName = ModuleManager.getInstance(env.getProject()).getModules()[0].getName();
 
         RemoteConnection connection;
-
         try {
             VideobugClientInterface client = env.getProject().getService(InsidiousService.class).getClient();
             connection = new RemoteConnection(client.getEndpoint(), client);
@@ -66,8 +66,9 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
                 @Nullable ExecutionResult executionResult = state.execute(env.getExecutor(), env.getRunner());
 
                 InsidiousDebugProcessStarter processStarter =
-                        new InsidiousDebugProcessStarter(connection, executionResult);
-                result.set(XDebuggerManager.getInstance(env.getProject()).startSession(env, processStarter).getRunContentDescriptor());
+                        new InsidiousDebugProcessStarter(connection, executionResult, (InsidiousApplicationState) state);
+                XDebugSession xDebugSession = XDebuggerManager.getInstance(env.getProject()).startSession(env, processStarter);
+                result.set(xDebugSession.getRunContentDescriptor());
             } catch (Throwable e) {
                 ex.set(new ExecutionException(e));
             }

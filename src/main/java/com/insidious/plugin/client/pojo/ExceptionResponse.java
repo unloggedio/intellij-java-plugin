@@ -11,6 +11,18 @@ public class ExceptionResponse {
     String trace;
     String path;
 
+    @Override
+    public String toString() {
+        return "ExceptionResponse{" +
+                "message='" + message + '\'' +
+                ", timestamp=" + timestamp +
+                ", status=" + status +
+                ", error='" + error + '\'' +
+                ", trace='" + trace + '\'' +
+                ", path='" + path + '\'' +
+                '}';
+    }
+
     public String getTrace() {
         return trace;
     }

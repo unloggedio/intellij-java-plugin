@@ -88,12 +88,12 @@ public class CommandSender {
 
     public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
         this.debugProcess = debugProcess;
-        this.pollerThread = new MessageReceiver(this);
-        this.pollerThread.start();
-        try {
-            Thread.sleep(200L);
-        } catch (InterruptedException interruptedException) {
-        }
+//        this.pollerThread = new MessageReceiver(this);
+//        this.pollerThread.start();
+//        try {
+//            Thread.sleep(200L);
+//        } catch (InterruptedException interruptedException) {
+//        }
     }
 
     public int getLastThreadId() {

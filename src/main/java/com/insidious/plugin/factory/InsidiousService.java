@@ -682,7 +682,7 @@ public class InsidiousService implements Disposable {
                         new GetProjectSessionErrorsCallback() {
                             @Override
                             public void error(ExceptionResponse errorResponse) {
-                                logger.error("failed to get trace points from server - {}", errorResponse);
+                                logger.error("failed to get trace points from server - {}", errorResponse.getMessage());
 
                                 Notifications.Bus.notify(notificationGroup
                                                 .createNotification("Failed to get trace points from server: "
@@ -862,6 +862,7 @@ public class InsidiousService implements Disposable {
             Content traceContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             @NotNull Content logicbugContent = contentFactory.createContent(logicBugs.getContent(), "Traces", false);
             this.toolWindow.getContentManager().addContent(logicbugContent);
+            this.logicBugs.bringToFocus(toolWindow);
 
             Content content = this.toolWindow.getContentManager().findContent("Exceptions");
             if (content == null) {
@@ -1070,7 +1071,12 @@ public class InsidiousService implements Disposable {
     }
 
     public void focusExceptionWindow() {
-        this.logicBugs.bringToFocus(toolWindow);
+        if (this.logicBugs == null) {
+            initiateUI();
+        }
+        if (this.logicBugs != null) {
+            this.logicBugs.bringToFocus(toolWindow);
+        }
     }
 
     public void initiateUseLocal() {
