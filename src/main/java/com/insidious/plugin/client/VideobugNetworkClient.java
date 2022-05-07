@@ -14,6 +14,7 @@ import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.util.text.Strings;
 import net.minidev.json.JSONArray;
 import net.minidev.json.JSONObject;
@@ -331,7 +332,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 + TRACE_BY_EXCEPTION
                 + "/" + this.session.getSessionId()
                 + "?exceptionClass="
-                + Strings.join(classList, ",")
+                + StringUtil.join(classList, ",")
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
         get(url, new Callback() {

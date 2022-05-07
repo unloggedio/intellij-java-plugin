@@ -647,7 +647,7 @@ public class InsidiousThreadReference implements ThreadReference {
         List<String> signatureParts = Arrays.asList(className.split("/"));
         String qualifiedClassName = className.replaceAll("/", ".");
 //            signatureParts.remove(signatureParts.size() - 1);
-        String packageName = Strings.join(signatureParts.subList(0, signatureParts.size() - 1), ".");
+        String packageName = StringUtil.join(signatureParts.subList(0, signatureParts.size() - 1), ".");
 
 //            String nonQualifiedClassName = signatureParts.get(signatureParts.size() - 1);
 

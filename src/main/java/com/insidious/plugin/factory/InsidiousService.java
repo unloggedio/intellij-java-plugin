@@ -27,7 +27,6 @@ import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ProgramRunnerUtil;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
@@ -79,12 +78,12 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
+    private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
     private String agentJarName = "videobug-java-agent.jar";
     private final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
-    private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
     private Amplitude amplitudeClient;
     private ExecutorService threadPool;
     private VideobugClientInterface client;
@@ -199,12 +198,13 @@ public class InsidiousService implements Disposable {
 
                     Notification notification = InsidiousNotification.
                             balloonNotificationGroup.createNotification("New exception",
+                                    "These just happened",
                                     messageBuilder.toString(), NotificationType.INFORMATION);
                     Notifications.Bus.notify(notification);
                     getHorBugTable().setTracePoints(tracePoints);
                 }
             });
-        }catch (Throwable e) {
+        } catch (Throwable e) {
             logger.error("exception in videobug service init");
         }
     }
@@ -328,10 +328,10 @@ public class InsidiousService implements Disposable {
                     String password = credentials.getPasswordAsString();
                     try {
                         if (password != null) {
-                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+                            // signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
                             return;
                         }
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         logger.error("failed to signin", e);
                         Notifications.Bus.notify(notificationGroup
                                 .createNotification("Failed to sign in -" + e.getMessage(),
@@ -684,9 +684,13 @@ public class InsidiousService implements Disposable {
                             public void error(ExceptionResponse errorResponse) {
                                 logger.error("failed to get trace points from server - {}", errorResponse.getMessage());
 
+                                String message = errorResponse.getMessage();
+                                if (message == null) {
+                                    message = "No results matched";
+                                }
                                 Notifications.Bus.notify(notificationGroup
                                                 .createNotification("Failed to get trace points from server: "
-                                                                + errorResponse.getMessage(),
+                                                                + message,
                                                         NotificationType.ERROR),
                                         project);
 
@@ -947,8 +951,9 @@ public class InsidiousService implements Disposable {
                                     project);
                         } else {
 
-                            Notifications.Bus.notify(new Notification("com.insidious", "No sessions found for project " + currentModule.getName() +
-                                            ". Start recording new sessions with the java agent",
+                            Notifications.Bus.notify(new Notification("com.insidious",
+                                            "No sessions found", "For project " + currentModule.getName() +
+                                            " start recording new sessions with the java agent",
                                             NotificationType.INFORMATION),
                                     project);
                         }
@@ -1062,9 +1067,9 @@ public class InsidiousService implements Disposable {
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {
             Notifications.Bus.notify(notificationGroup
-                            .createNotification("No sessions available for module ["
-                                            + currentModule.getName() + "]",
-                                    NotificationType.ERROR), project);
+                    .createNotification("No sessions available for module ["
+                                    + currentModule.getName() + "]",
+                            NotificationType.ERROR), project);
             return;
         }
         client.setSession(sessions.getItems().get(0));
