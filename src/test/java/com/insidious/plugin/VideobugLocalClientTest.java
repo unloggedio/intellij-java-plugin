@@ -42,34 +42,34 @@ public class VideobugLocalClientTest {
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
-        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
-            @Override
-            public void error(ExceptionResponse errorResponse) {
-                assert false;
-            }
-
-            @Override
-            public void success(List<TracePoint> tracePoints) {
-                assert tracePoints.size() > 0;
-                tracePointsQueue.offer(tracePoints.get(0));
-            }
-        });
-        TracePoint result = tracePointsQueue.take();
-        assert result.getValue() == 8;
-        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
-            @Override
-            public void error(ExceptionResponse errorResponse) {
-                assert false;
-            }
-
-            @Override
-            public void success(List<TracePoint> tracePoints) {
-                assert tracePoints.size() > 0;
-                tracePointsQueue.offer(tracePoints.get(0));
-            }
-        });
-        result = tracePointsQueue.take();
-        assert result.getValue() == 128;
+//        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
+//            @Override
+//            public void error(ExceptionResponse errorResponse) {
+//                assert false;
+//            }
+//
+//            @Override
+//            public void success(List<TracePoint> tracePoints) {
+//                assert tracePoints.size() > 0;
+//                tracePointsQueue.offer(tracePoints.get(0));
+//            }
+//        });
+//        TracePoint result = tracePointsQueue.take();
+//        assert result.getValue() == 8;
+//        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
+//            @Override
+//            public void error(ExceptionResponse errorResponse) {
+//                assert false;
+//            }
+//
+//            @Override
+//            public void success(List<TracePoint> tracePoints) {
+//                assert tracePoints.size() > 0;
+//                tracePointsQueue.offer(tracePoints.get(0));
+//            }
+//        });
+//        result = tracePointsQueue.take();
+//        assert result.getValue() == 128;
     }
 
 }

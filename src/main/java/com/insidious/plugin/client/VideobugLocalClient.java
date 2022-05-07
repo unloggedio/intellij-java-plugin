@@ -715,6 +715,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
             @Override
             public void run() {
                 try {
+                    if (1 < 2) {
+                        return;
+                    }
 
                     List<ExecutionSession> sessions = getLocalSessions();
                     setSession(sessions.get(0));

@@ -196,12 +196,12 @@ public class InsidiousService implements Disposable {
                     }
 
 
-                    Notification notification = InsidiousNotification.
-                            balloonNotificationGroup.createNotification("New exception",
-                                    "These just happened",
-                                    messageBuilder.toString(), NotificationType.INFORMATION);
-                    Notifications.Bus.notify(notification);
-                    getHorBugTable().setTracePoints(tracePoints);
+//                    Notification notification = InsidiousNotification.
+//                            balloonNotificationGroup.createNotification("New exception",
+//                                    "These just happened",
+//                                    messageBuilder.toString(), NotificationType.INFORMATION);
+//                    Notifications.Bus.notify(notification);
+//                    getHorBugTable().setTracePoints(tracePoints);
                 }
             });
         } catch (Throwable e) {
@@ -267,16 +267,15 @@ public class InsidiousService implements Disposable {
     }
 
     private void logLogFileLocation() {
-        String logFileNotificationContent = "Insidious log file location - " +
-                LoggerUtil.getLogFilePath();
-
-
-        notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
-        if (notificationGroup != null) {
-            notificationGroup
-                    .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
-                    .notify(project);
-        }
+//        String logFileNotificationContent = "Insidious log file location - " + LoggerUtil.getLogFilePath();
+//
+//
+//        notificationGroup = NotificationGroupManager.getInstance().getNotificationGroup("com.insidious");
+//        if (notificationGroup != null) {
+//            notificationGroup
+//                    .createNotification(logFileNotificationContent, NotificationType.INFORMATION)
+//                    .notify(project);
+//        }
     }
 
     private void getProjectPackageName() {
