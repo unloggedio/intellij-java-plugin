@@ -1,6 +1,5 @@
 package com.insidious.plugin.util;
 
-import com.intellij.openapi.project.ProjectManager;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.PatternLayout;
@@ -26,7 +25,7 @@ public class LoggerUtil {
 
         try {
             String strTmp = System.getProperty("java.io.tmpdir");
-            String projectName = ProjectManager.getInstance().getDefaultProject().getName().replaceAll("[^a-zA-Z0-9]", "");
+            String projectName = "videobug";
             logFilePath = strTmp + FileSystems.getDefault().getSeparator() + "insidious-" + projectName + ".log";
 
             RollingFileAppender insidiousAppender = new RollingFileAppender(layout, logFilePath, true);

@@ -36,7 +36,7 @@ public class InsidiousServiceTest {
 
         vmParams = VideobugUtils.addAgentToVMParams(newVmParam,
                 "--add-opens=java.base/java.util=ALL-UNNAMED").split(" ");
-        Assert.assertTrue(vmParams.length == newVmParams.length);
+        Assert.assertTrue(vmParams.length == 3);
 
     }
 }
