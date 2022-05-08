@@ -28,6 +28,7 @@ import java.awt.event.MouseEvent;
 public class InsidiousDebuggerTreeBase extends DnDAwareTree implements Disposable {
     protected final TipManager myTipManager;
     private final Project myProject;
+    private final InsidiousDebuggerTreeRenderer cellRenderer;
     private InsidiousDebuggerTreeNodeImpl myCurrentTooltipNode;
     private JComponent myCurrentTooltip;
 
@@ -54,7 +55,8 @@ public class InsidiousDebuggerTreeBase extends DnDAwareTree implements Disposabl
 
         setRootVisible(false);
         setShowsRootHandles(true);
-        setCellRenderer(new InsidiousDebuggerTreeRenderer());
+        cellRenderer = new InsidiousDebuggerTreeRenderer();
+        setCellRenderer(cellRenderer);
         updateUI();
         TreeUtil.installActions(this);
     }

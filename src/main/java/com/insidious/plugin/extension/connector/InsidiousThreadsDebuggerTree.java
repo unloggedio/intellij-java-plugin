@@ -77,7 +77,7 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
 
 
         protected void action() {
-            InsidiousDebuggerTreeNodeImpl root = InsidiousThreadsDebuggerTree.this.getNodeFactory().getDefaultNode();
+            InsidiousDebuggerTreeNodeImpl root = getNodeFactory().getDefaultNode();
 
             if (this.myProcess == null || this.myProcess.getSession() == null) {
                 return;
@@ -90,7 +90,7 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
                 InsidiousThreadReferenceProxy currentThread = null;
                 InsidiousJDIConnector insidiousJDIConnector = InsidiousJavaDebugProcess.getConnector();
                 EvaluationContext evaluationContext = null;
-                InsidiousNodeManagerImpl nodeManager = InsidiousThreadsDebuggerTree.this.getNodeFactory();
+                InsidiousNodeManagerImpl nodeManager = getNodeFactory();
 
                 if (showGroups) {
                     ThreadGroupReferenceProxyImpl topCurrentGroup = null;
@@ -131,9 +131,9 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
                 logger.debug("failed", ex);
             }
 
-            DebuggerInvocationUtil.swingInvokeLater(InsidiousThreadsDebuggerTree.this.getProject(), () -> {
-                InsidiousThreadsDebuggerTree.this.getMutableModel().setRoot(root);
-                InsidiousThreadsDebuggerTree.this.treeChanged();
+            DebuggerInvocationUtil.swingInvokeLater(getProject(), () -> {
+                getMutableModel().setRoot(root);
+                treeChanged();
             });
         }
 
@@ -152,25 +152,27 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
 
                 private void nodeChanged(InsidiousDebuggerTreeNodeImpl debuggerTreeNode) {
                     if (pathToThread.size() == 0) {
-                        if (debuggerTreeNode.getDescriptor() instanceof InsidiousThreadDescriptorImpl && ((InsidiousThreadDescriptorImpl) debuggerTreeNode
+                        if (debuggerTreeNode.getDescriptor() instanceof InsidiousThreadDescriptorImpl
+                                && ((InsidiousThreadDescriptorImpl) debuggerTreeNode
                                 .getDescriptor())
                                 .getThreadReference() == thread) {
                             removeListener();
                             TreePath treePath = new TreePath(debuggerTreeNode.getPath());
-                            InsidiousThreadsDebuggerTree.this.setSelectionPath(treePath);
-                            if (expand && !InsidiousThreadsDebuggerTree.this.isExpanded(treePath)) {
-                                InsidiousThreadsDebuggerTree.this.expandPath(treePath);
+                            setSelectionPath(treePath);
+                            if (expand && !isExpanded(treePath)) {
+                                expandPath(treePath);
                             }
                         }
 
-                    } else if (debuggerTreeNode.getDescriptor() instanceof InsidiousThreadGroupDescriptorImpl && ((InsidiousThreadGroupDescriptorImpl) debuggerTreeNode
+                    } else if (debuggerTreeNode.getDescriptor() instanceof InsidiousThreadGroupDescriptorImpl
+                            && ((InsidiousThreadGroupDescriptorImpl) debuggerTreeNode
 
 
                             .getDescriptor())
                             .getThreadGroupReference() == pathToThread
                             .get(0)) {
                         pathToThread.remove(0);
-                        InsidiousThreadsDebuggerTree.this.expandPath(new TreePath(debuggerTreeNode.getPath()));
+                        expandPath(new TreePath(debuggerTreeNode.getPath()));
                     }
                 }
 
@@ -178,7 +180,7 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
                 private void removeListener() {
                     TreeModelAdapter listener = this;
                     ApplicationManager.getApplication()
-                            .invokeLater(() -> InsidiousThreadsDebuggerTree.this.getModel().removeTreeModelListener(listener));
+                            .invokeLater(() -> getModel().removeTreeModelListener(listener));
                 }
 
 
@@ -193,8 +195,8 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
             }
 
             MyTreeModelAdapter listener = new MyTreeModelAdapter();
-//            MyTreeModelAdapter.access$100(listener, (InsidiousDebuggerTreeNodeImpl) InsidiousThreadsDebuggerTree.this.getModel().getRoot());
-            InsidiousThreadsDebuggerTree.this.getModel().addTreeModelListener(listener);
+//            MyTreeModelAdapter.access$100(listener, (InsidiousDebuggerTreeNodeImpl) getModel().getRoot());
+            getModel().addTreeModelListener(listener);
         }
     }
 }
