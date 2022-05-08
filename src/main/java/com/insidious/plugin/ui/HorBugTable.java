@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
@@ -202,8 +203,8 @@ public class HorBugTable {
         } catch (Exception e) {
 
             logger.error("failed to fetch session events", e);
-            if (insidiousService.getNotificationGroup() != null) {
-                Notifications.Bus.notify(insidiousService.getNotificationGroup()
+            if (InsidiousNotification.balloonNotificationGroup != null) {
+                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to fetch session events - " + e.getMessage(),
                                         NotificationType.ERROR),
                         project);

@@ -87,7 +87,6 @@ public class InsidiousService implements Disposable {
     private Amplitude amplitudeClient;
     private ExecutorService threadPool;
     private VideobugClientInterface client;
-    private NotificationGroup notificationGroup;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
     private HorBugTable bugsTable;
@@ -218,10 +217,6 @@ public class InsidiousService implements Disposable {
         return null;
     }
 
-    public NotificationGroup getNotificationGroup() {
-        return notificationGroup;
-    }
-
     public void checkAndEnsureJavaAgentCache() {
         checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
             @Override
@@ -332,7 +327,7 @@ public class InsidiousService implements Disposable {
                         }
                     } catch (Exception e) {
                         logger.error("failed to signin", e);
-                        Notifications.Bus.notify(notificationGroup
+                        Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to sign in -" + e.getMessage(),
                                         NotificationType.ERROR), project);
                     }
@@ -404,8 +399,8 @@ public class InsidiousService implements Disposable {
                                 credentialsToolbarWindow.setErrorLabel("Sign in failed: " + errorMessage);
                             }
 
-                            if (notificationGroup != null) {
-                                Notifications.Bus.notify(notificationGroup
+                            if (InsidiousNotification.balloonNotificationGroup != null) {
+                                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                                 .createNotification("Failed to login VideoBug at [" + serverUrl
                                                                 + "] for module [" + currentModule.getName() + "]",
                                                         NotificationType.ERROR),
@@ -430,8 +425,8 @@ public class InsidiousService implements Disposable {
 
                             ApplicationManager.getApplication().invokeLater(() -> {
 
-                                if (notificationGroup != null) {
-                                    Notifications.Bus.notify(notificationGroup
+                                if (InsidiousNotification.balloonNotificationGroup != null) {
+                                    Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                                     .createNotification("VideoBug logged in at [" + serverUrl
                                                                     + "] for module [" + currentModule.getName() + "]",
                                                             NotificationType.INFORMATION),
@@ -452,7 +447,7 @@ public class InsidiousService implements Disposable {
             }
         } catch (Throwable e) {
             e.printStackTrace();
-            Notifications.Bus.notify(notificationGroup
+            Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                             .createNotification("Failed to connect with server - " + e.getMessage(),
                                     NotificationType.ERROR),
                     project);
@@ -548,7 +543,7 @@ public class InsidiousService implements Disposable {
 
                     logger.error("failed to create project - {}", errorMessage);
 
-                    Notifications.Bus.notify(notificationGroup
+                    Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                     .createNotification("Failed to create new project for ["
                                                     + currentModule.getName() + "] on server [" + insidiousConfiguration.serverUrl,
                                             NotificationType.ERROR),
@@ -568,7 +563,7 @@ public class InsidiousService implements Disposable {
 
         } catch (UnauthorizedException | IOException e) {
             e.printStackTrace();
-            Notifications.Bus.notify(notificationGroup
+            Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                     .createNotification(e.getMessage(),
                             NotificationType.ERROR), project);
 
@@ -579,7 +574,7 @@ public class InsidiousService implements Disposable {
         getProjectToken(new ProjectTokenCallback() {
             @Override
             public void error(String message) {
-                Notifications.Bus.notify(notificationGroup
+                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to generate app token for module [" + currentModule.getName() + "]",
                                         NotificationType.ERROR),
                         project);
@@ -633,7 +628,7 @@ public class InsidiousService implements Disposable {
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
-                        Notifications.Bus.notify(notificationGroup
+                        Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                         .createNotification("Failed to get traces: " + errorResponse.getMessage(),
                                                 NotificationType.ERROR),
                                 project);
@@ -645,7 +640,7 @@ public class InsidiousService implements Disposable {
                         if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication().invokeAndWait(() -> {
 
-                                Notifications.Bus.notify(notificationGroup
+                                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                                 .createNotification("No data available, or data may have been deleted!",
                                                         NotificationType.INFORMATION),
                                         project);
@@ -687,7 +682,7 @@ public class InsidiousService implements Disposable {
                                 if (message == null) {
                                     message = "No results matched";
                                 }
-                                Notifications.Bus.notify(notificationGroup
+                                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                                 .createNotification("Failed to get trace points from server: "
                                                                 + message,
                                                         NotificationType.ERROR),
@@ -701,10 +696,10 @@ public class InsidiousService implements Disposable {
                                 if (tracePoints.size() == 0) {
                                     ApplicationManager.getApplication()
                                             .runWriteAction(
-                                                    () -> Notifications.Bus.notify(notificationGroup
-                                                            .createNotification(
+                                                    () -> Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup.createNotification(
                                                                     "No Exception data events matched in the last session",
                                                                     NotificationType.INFORMATION), project));
+
                                 } else {
 
                                     tracePoints.forEach(e -> {
@@ -838,8 +833,6 @@ public class InsidiousService implements Disposable {
 
             if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
                 ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-                @NotNull List<FragmentedSettings.Option> applicationOptions = applicationConfiguration.getSelectedOptions();
-
                 String currentVMParams = applicationConfiguration.getVMParameters();
                 String newVmOptions = currentVMParams;
                 newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
@@ -929,7 +922,7 @@ public class InsidiousService implements Disposable {
             public void error(String message) {
                 logger.error("failed to load project sessions - {}", message);
                 ApplicationManager.getApplication().invokeLater(() -> {
-                    Notifications.Bus.notify(notificationGroup
+                    Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                     .createNotification("No sessions found for module [" + currentModule.getName() + "]",
                                             NotificationType.INFORMATION),
                             project);
@@ -942,8 +935,8 @@ public class InsidiousService implements Disposable {
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
 
-                        if (notificationGroup != null) {
-                            Notifications.Bus.notify(notificationGroup
+                        if (InsidiousNotification.balloonNotificationGroup != null) {
+                            Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                             .createNotification("No sessions found for project " + currentModule.getName() +
                                                             ". Start recording new sessions with the java agent",
                                                     NotificationType.INFORMATION),
@@ -990,7 +983,7 @@ public class InsidiousService implements Disposable {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                Notifications.Bus.notify(notificationGroup
+                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to set select trace point " + e.getMessage(),
                                         NotificationType.ERROR),
                         project);
@@ -1065,7 +1058,7 @@ public class InsidiousService implements Disposable {
         client.setProject(currentModule.getName());
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {
-            Notifications.Bus.notify(notificationGroup
+            Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                     .createNotification("No sessions available for module ["
                                     + currentModule.getName() + "]",
                             NotificationType.ERROR), project);
@@ -1093,8 +1086,8 @@ public class InsidiousService implements Disposable {
 
         ApplicationManager.getApplication().invokeLater(() -> {
             InsidiousService.this.initiateUI();
-            if (notificationGroup != null) {
-                Notifications.Bus.notify(notificationGroup
+            if (InsidiousNotification.balloonNotificationGroup != null) {
+                Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("VideoBug logged in at [" + "disk://localhost"
                                                 + "] for module [" + currentModule.getName() + "]",
                                         NotificationType.INFORMATION),

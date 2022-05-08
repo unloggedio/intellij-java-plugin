@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -104,7 +105,7 @@ public class CredentialsToolbar {
                             public void error(String string) {
                                 loginSupportTextArea.setText("Failed to signup\n" + string);
                                 Notifications.Bus.notify(
-                                        insidiousService.getNotificationGroup()
+                                        InsidiousNotification.balloonNotificationGroup
                                                 .createNotification(
                                                         "Failed to signup - " + string, NotificationType.ERROR), project);
 

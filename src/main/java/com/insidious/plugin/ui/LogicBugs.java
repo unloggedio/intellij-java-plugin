@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;
@@ -85,7 +86,7 @@ public class LogicBugs {
     private void doSearch() {
         if (traceIdfield.getText().equals("")) {
             Notifications.Bus.notify(
-                    insidiousService.getNotificationGroup()
+                    InsidiousNotification.balloonNotificationGroup
                             .createNotification("Cannot search with empty string", NotificationType.ERROR),
                     project);
             return;
