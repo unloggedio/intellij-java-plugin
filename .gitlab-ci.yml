@@ -45,3 +45,10 @@ test:
     paths:
       - build
       - .gradle
+  artifacts:
+    untracked: false
+    name: test-report.html
+    paths:
+      - build/reports/tests/test/index.html
+    expire_in: 30 days
+
