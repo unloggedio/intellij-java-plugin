@@ -25,6 +25,14 @@ public class ArchiveFilesIndex {
         this.valueFilter = BloomFilterConverter.fromJson(GSON.fromJson(new String(archiveValueLookup), JsonElement.class), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
     }
 
+    public BloomFilter<Integer> getProbeFilter() {
+        return probeFilter;
+    }
+
+    public BloomFilter<Long> getValueFilter() {
+        return valueFilter;
+    }
+
     public boolean hasProbeId(int probeId) {
         return probeFilter.contains(probeId);
     }

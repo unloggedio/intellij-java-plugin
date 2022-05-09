@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -42,34 +43,41 @@ public class VideobugLocalClientTest {
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
-//        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
-//            @Override
-//            public void error(ExceptionResponse errorResponse) {
-//                assert false;
-//            }
-//
-//            @Override
-//            public void success(List<TracePoint> tracePoints) {
-//                assert tracePoints.size() > 0;
-//                tracePointsQueue.offer(tracePoints.get(0));
-//            }
-//        });
-//        TracePoint result = tracePointsQueue.take();
-//        assert result.getValue() == 8;
-//        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
-//            @Override
-//            public void error(ExceptionResponse errorResponse) {
-//                assert false;
-//            }
-//
-//            @Override
-//            public void success(List<TracePoint> tracePoints) {
-//                assert tracePoints.size() > 0;
-//                tracePointsQueue.offer(tracePoints.get(0));
-//            }
-//        });
-//        result = tracePointsQueue.take();
-//        assert result.getValue() == 128;
+        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
+            @Override
+            public void error(ExceptionResponse errorResponse) {
+                assert false;
+            }
+
+            @Override
+            public void success(List<TracePoint> tracePoints) {
+                assert tracePoints.size() > 0;
+                tracePointsQueue.offer(tracePoints.get(0));
+            }
+        });
+        TracePoint result = tracePointsQueue.take();
+        assert result.getValue() == 581313178;
+        assert result.getRecordedAt() == 1651944876379L;
+        assert result.getLinenum() == 171;
+        assert result.getThreadId() == 3;
+        assert result.getDataId() == 2402;
+        assert Objects.equals(result.getExecutionSessionId(), "selogger-1");
+        assert Objects.equals(result.getClassname(), "org/zerhusen/service/GCDService");
+        assert Objects.equals(result.getExceptionClass(), "java.lang.String");
+        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
+            @Override
+            public void error(ExceptionResponse errorResponse) {
+                assert false;
+            }
+
+            @Override
+            public void success(List<TracePoint> tracePoints) {
+                assert tracePoints.size() > 0;
+                tracePointsQueue.offer(tracePoints.get(0));
+            }
+        });
+        result = tracePointsQueue.take();
+        assert result.getValue() == 125092821;
     }
 
 }

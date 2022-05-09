@@ -139,7 +139,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         int i = -1;
         for (ExecutionSession executionSession : list) {
             i++;
-            if (i == 0 ) {
+            if (i == 0) {
                 continue;
             }
             deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId()).toFile());
@@ -148,6 +148,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return list;
 
     }
+
     boolean deleteDirectory(File directoryToBeDeleted) {
         File[] allContents = directoryToBeDeleted.listFiles();
         if (allContents != null) {
@@ -157,6 +158,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
         return directoryToBeDeleted.delete();
     }
+
     @Override
     public DataResponse<ExecutionSession> fetchProjectSessions() {
         List<ExecutionSession> localSessions = getLocalSessions();
@@ -230,7 +232,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         try {
 
             filterValueLong = Long.parseLong(pathName);
-        }catch (Exception e) {
+        } catch (Exception e) {
 
         }
 
@@ -324,29 +326,37 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         ArchiveFilesIndex finalEventsIndex = eventsIndex;
-        Set<UploadFile> matchedFiles = valueIds.stream().map(
+        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
+        valueIds.forEach(
                 valueId -> {
                     assert finalEventsIndex != null;
                     boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
                     List<UploadFile> matchedFilesForString = new LinkedList<>();
                     if (archiveHasSeenValue) {
                         matchedFilesForString = finalEventsIndex.queryEventsByStringId(valueId);
+                        for (UploadFile uploadFile : matchedFilesForString) {
+                            String filePath = uploadFile.getPath();
+                            int threadId = Integer.parseInt(filePath.split("\\\\")[1].split("\\.")[0].split("-")[2]);
+                            UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+                            uploadFileToAdd.setValueIds(new Long[]{valueId});
+                            matchedFiles.put(filePath, uploadFile);
+                        }
                     }
-                    return matchedFilesForString;
-                }).flatMap(Collection::parallelStream).collect(Collectors.toSet());
+                });
         Map<String, ObjectInfo> finalObjectInfoMap = objectInfoMap;
         Map<String, TypeInfo> finalTypeInfoMap = typeInfoMap;
-        matchedFiles.forEach(e -> {
+        matchedFiles.values().forEach(matchedFile -> {
             try {
 
-                String fileName = Path.of(e.getPath()).getFileName().toString();
+                String fileName = Path.of(matchedFile.getPath()).getFileName().toString();
 
                 NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+                assert fileBytes != null;
                 long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
                 int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
 
 
-                List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), e.getValueIds());
+                List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), matchedFile.getValueIds());
 
                 tracePointList.addAll(
                         dataEvents.stream().map(e1 -> {
@@ -562,7 +572,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws IOException {
 
-            File archiveToServe = null;
+        File archiveToServe = null;
         for (File sessionArchive : this.sessionArchives) {
             long timestamp = Long.parseLong(sessionArchive.getName().split("-")[2].split("\\.")[0]);
             if (timestamp < filteredDataEventsRequest.getNanotime()) {
