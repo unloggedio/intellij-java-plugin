@@ -43,7 +43,6 @@ test:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull
     paths:
-      - build
       - .gradle
   artifacts:
     untracked: false
