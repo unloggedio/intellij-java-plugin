@@ -206,8 +206,7 @@ public class HorBugTable {
             if (InsidiousNotification.balloonNotificationGroup != null) {
                 Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to fetch session events - " + e.getMessage(),
-                                        NotificationType.ERROR),
-                        project);
+                                        NotificationType.ERROR), project);
             }
         }
     }

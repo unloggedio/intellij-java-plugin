@@ -35,7 +35,6 @@ import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
-import com.intellij.execution.ui.FragmentedSettings;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.notification.*;
 import com.intellij.openapi.Disposable;
@@ -59,9 +58,11 @@ import com.intellij.ui.awt.RelativePoint;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.util.Consumer;
+import com.intellij.util.lang.JavaVersion;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -101,6 +102,7 @@ public class InsidiousService implements Disposable {
     private String javaAgentString;
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
+    private final long pluginSessionId = new Date().getTime();
 
 
     public InsidiousService(Project project) {
@@ -416,7 +418,7 @@ public class InsidiousService implements Disposable {
                             ReadAction.nonBlocking(InsidiousService.this::startDebugSession).submit(threadPool);
                             ReadAction.nonBlocking(InsidiousService.this::setupProject).submit(threadPool);
 
-                            amplitudeClient.logEvent(new Event("SignedIn", HOSTNAME));
+                            newEvent("SignedIn", null);
 
                             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
                             insidiousCredentials = createCredentialAttributes(
@@ -613,7 +615,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void getTraces(int pageNum, String traceValue) throws IOException {
-        amplitudeClient.logEvent(new Event("GetTracesByValue", HOSTNAME));
+        newEvent("GetTracesByValue", null);
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -660,7 +662,8 @@ public class InsidiousService implements Disposable {
     }
 
     public void getErrors(List<String> classList, int pageNum) throws IOException {
-        amplitudeClient.logEvent(new Event("GetTracesByType", HOSTNAME));
+
+        newEvent("GetTracesByType", null);
 
 
         if (this.client.getCurrentSession() == null) {
@@ -697,8 +700,8 @@ public class InsidiousService implements Disposable {
                                     ApplicationManager.getApplication()
                                             .runWriteAction(
                                                     () -> Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup.createNotification(
-                                                                    "No Exception data events matched in the last session",
-                                                                    NotificationType.INFORMATION), project));
+                                                            "No Exception data events matched in the last session",
+                                                            NotificationType.INFORMATION), project));
 
                                 } else {
 
@@ -745,7 +748,7 @@ public class InsidiousService implements Disposable {
         if (debugSession != null) {
             return;
         }
-        amplitudeClient.logEvent(new Event("StartDebugSession", HOSTNAME));
+        newEvent("StartDebugSession", null);
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
@@ -961,7 +964,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void setTracePoint(TracePoint selectedTrace) {
-        amplitudeClient.logEvent(new Event("FetchByTracePoint", HOSTNAME));
+        newEvent("FetchByTracePoint", null);
 
         if (debugSession == null) {
             startDebugSession();
@@ -995,6 +998,17 @@ public class InsidiousService implements Disposable {
             }
             debugSession.pause();
         });
+    }
+
+    private Event newEvent(String eventName, JSONObject eventProperties) {
+        Event event = new Event(eventName, HOSTNAME);
+        event.versionName = JavaVersion.current().toString();
+        event.sessionId = pluginSessionId;
+        event.osName = System.getProperty("os.name") + ":" + System.getProperty("os.version");
+        event.language = Locale.getDefault().getLanguage();
+        event.eventProperties = eventProperties;
+        amplitudeClient.logEvent(event);
+        return event;
     }
 
     public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
@@ -1078,7 +1092,7 @@ public class InsidiousService implements Disposable {
 
     public void initiateUseLocal() {
         client = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()));
-        amplitudeClient.logEvent(new Event("InitiateUseLocal", HOSTNAME));
+        newEvent("InitiateUseLocal", null);
 
 
         ReadAction.nonBlocking(InsidiousService.this::setupProject).submit(threadPool);
