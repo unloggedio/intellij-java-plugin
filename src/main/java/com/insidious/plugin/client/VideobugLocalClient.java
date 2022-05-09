@@ -336,7 +336,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         matchedFilesForString = finalEventsIndex.queryEventsByStringId(valueId);
                         for (UploadFile uploadFile : matchedFilesForString) {
                             String filePath = uploadFile.getPath();
-                            int threadId = Integer.parseInt(filePath.split("\\\\")[1].split("\\.")[0].split("-")[2]);
+                            int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
                             UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                             uploadFileToAdd.setValueIds(new Long[]{valueId});
                             matchedFiles.put(filePath, uploadFile);
