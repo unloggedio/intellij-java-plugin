@@ -1,6 +1,8 @@
 package com.insidious.plugin.extension;
 
 import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.factory.InsidiousService;
 import com.intellij.debugger.impl.GenericDebuggerRunner;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -8,18 +10,14 @@ import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunProfile;
 import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.target.TargetEnvironmentAwareRunProfileState;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.concurrency.Promise;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -75,12 +73,6 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         });
         if (ex.get() != null) throw ex.get();
         return result.get();
-    }
-
-
-    @Override
-    protected @NotNull Promise<@Nullable RunContentDescriptor> doExecuteAsync(@NotNull TargetEnvironmentAwareRunProfileState state, @NotNull ExecutionEnvironment env) throws ExecutionException {
-        return super.doExecuteAsync(state, env);
     }
 
     @Override

@@ -16,8 +16,7 @@ public class JumpBack extends XDebuggerActionBase implements DumbAware {
         public void perform(@NotNull Project project, AnActionEvent event) {
             InsidiousService service = project.getService(InsidiousService.class);
             InsidiousJavaDebugProcess debugProcess = service.getDebugProcess();
-            debugProcess.stepBack(null,
-                            debugProcess.getSession().getSuspendContext());
+            debugProcess.stepBack(null, debugProcess.getSession().getSuspendContext());
         }
 
         @Override
@@ -26,9 +25,9 @@ public class JumpBack extends XDebuggerActionBase implements DumbAware {
         }
     };
 
+
     @Override
     protected @NotNull DebuggerActionHandler getHandler(@NotNull DebuggerSupport debuggerSupport) {
         return actionHandler;
     }
-
 }

@@ -15,12 +15,10 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
-import net.minidev.json.JSONArray;
-import net.minidev.json.JSONObject;
-import net.minidev.json.JSONValue;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
@@ -75,10 +73,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public void signup(String serverUrl, String username, String password, SignUpCallback callback) {
         logger.info("Sign up for email => " + username);
-        JSONObject json = new JSONObject();
-        json.put("email", username);
-        json.put("password", password);
-        post(serverUrl + SIGN_UP_URL, json.toJSONString(), new Callback() {
+        post(serverUrl + SIGN_UP_URL, String.format(
+                "{\"email\":\"%s\", \"password\":\"%s\"}", username, password
+        ), new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 callback.error(e.getMessage());
@@ -100,32 +97,33 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public void signin(SigninRequest signinRequest, SignInCallback signInCallback) throws UnauthorizedException {
         logger.info("Sign in for email => " + signinRequest.getEmail());
-        JSONObject json = new JSONObject();
-        json.put("email", signinRequest.getEmail());
-        json.put("password", signinRequest.getPassword());
-
-        post(signinRequest.getEndpoint() + SIGN_IN_URL, json.toJSONString(), new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                signInCallback.error(e.getMessage());
-            }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (response) {
-                    if (response.code() == 401) {
-                        signInCallback.error("invalid credentials");
-                        return;
+        post(signinRequest.getEndpoint() + SIGN_IN_URL,
+                String.format(
+                        "{\"email\":\"%s\", \"password\":\"%s\"}", signinRequest.getEmail(), signinRequest.getPassword()
+                ), new Callback() {
+                    @Override
+                    public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                        signInCallback.error(e.getMessage());
                     }
-                    if (response.code() == 200) {
-                        JSONObject jsonObject = (JSONObject) JSONValue.parse(Objects.requireNonNull(response.body()).string());
-                        VideobugNetworkClient.this.token = jsonObject.getAsString(Constants.TOKEN);
-                        VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
-                        signInCallback.success(token);
+
+                    @Override
+                    public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                        try (response) {
+                            if (response.code() == 401) {
+                                signInCallback.error("invalid credentials");
+                                return;
+                            }
+                            if (response.code() == 200) {
+
+                                JSONObject jsonObject = (JSONObject) JSONObject.stringToValue(
+                                        Objects.requireNonNull(response.body()).string());
+                                VideobugNetworkClient.this.token = jsonObject.getString(Constants.TOKEN);
+                                VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
+                                signInCallback.success(token);
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
 
 
     }
@@ -145,13 +143,14 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
                 try (response) {
-                    JSONObject jsonProjects = (JSONObject) JSONValue.parse(Objects.requireNonNull(response.body()).string());
-                    JSONArray jsonArray = (JSONArray) jsonProjects.get("items");
-                    if (jsonArray.size() == 0) {
+                    JSONObject jsonProjects = new JSONObject(
+                            Objects.requireNonNull(response.body()).string());
+                    JSONArray jsonArray = jsonProjects.getJSONArray("items");
+                    if (jsonArray.length() == 0) {
                         getProjectCallback.noSuchProject();
                     } else {
-                        JSONObject projectIdJson = (JSONObject) jsonArray.get(0);
-                        String project_id = projectIdJson.getAsString("id");
+                        JSONObject projectIdJson = jsonArray.getJSONObject(0);
+                        String project_id = projectIdJson.getString("id");
                         getProjectCallback.success(project_id);
                     }
                 }
@@ -190,8 +189,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     logger.info("create project successful response - {}", responseBody);
-                    JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
-                    String projectId = jsonObject.getAsString("id");
+                    JSONObject jsonObject = new JSONObject(responseBody);
+                    String projectId = jsonObject.getString("id");
                     newProjectCallback.success(projectId);
                 }
             }
@@ -212,8 +211,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String responseBody = Objects.requireNonNull(response.body()).string();
                 logger.info("project token response - {}", responseBody);
-                JSONObject jsonObject = (JSONObject) JSONValue.parse(responseBody);
-                projectTokenCallback.success(jsonObject.getAsString(Constants.TOKEN));
+                JSONObject jsonObject = new JSONObject(responseBody);
+                projectTokenCallback.success(jsonObject.getString(Constants.TOKEN));
             }
         });
     }
@@ -430,8 +429,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         String responseBodyString = Objects.requireNonNull(response.body()).string();
         if (response.code() != 200) {
             logger.error("error response from filterDataEvents  [{}] - [{}]", response.code(), responseBodyString);
-            ExceptionResponse errorResponse = JSONValue.parse(responseBodyString, ExceptionResponse.class);
-            throw new Exception(errorResponse.getMessage());
+            JSONObject jsonResponse = new JSONObject(responseBodyString);
+            throw new Exception(jsonResponse.getString("message"));
         }
 
         TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {

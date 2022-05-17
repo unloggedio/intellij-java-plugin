@@ -578,8 +578,7 @@ public class InsidiousService implements Disposable {
             public void error(String message) {
                 Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                                 .createNotification("Failed to generate app token for module [" + currentModule.getName() + "]",
-                                        NotificationType.ERROR),
-                        project);
+                                        NotificationType.ERROR), project);
 
                 credentialsToolbarWindow.setErrorLabel(message);
             }

@@ -62,9 +62,28 @@
                 <properties/>
                 <border type="none"/>
                 <children>
+                  <component id="d32c0" class="javax.swing.JButton" binding="refreshButton" default-binding="true">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false">
+                        <minimum-size width="500" height="-1"/>
+                        <preferred-size width="500" height="-1"/>
+                        <maximum-size width="500" height="-1"/>
+                      </grid>
+                    </constraints>
+                    <properties>
+                      <font name="JetBrains Mono" size="16" style="0"/>
+                      <icon value="actions/search.png"/>
+                      <inheritsPopupMenu value="true"/>
+                      <margin top="0" left="0" bottom="0" right="0"/>
+                      <name value="freshbuttonname"/>
+                      <text value="Search"/>
+                    </properties>
+                  </component>
                   <component id="ff53a" class="javax.swing.JButton" binding="fetchSessionButton" default-binding="true">
                     <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                        <minimum-size width="200" height="-1"/>
+                      </grid>
                     </constraints>
                     <properties>
                       <font name="JetBrains Mono" size="16" style="0"/>
@@ -74,19 +93,6 @@
                       <margin top="0" left="0" bottom="0" right="0"/>
                       <name value="fetchbuttonname"/>
                       <text value="Fetch Session"/>
-                    </properties>
-                  </component>
-                  <component id="d32c0" class="javax.swing.JButton" binding="refreshButton" default-binding="true">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <font name="JetBrains Mono" size="16" style="0"/>
-                      <icon value="actions/refresh.png"/>
-                      <inheritsPopupMenu value="true"/>
-                      <margin top="0" left="0" bottom="0" right="0"/>
-                      <name value="freshbuttonname"/>
-                      <text value="Refresh"/>
                     </properties>
                   </component>
                 </children>

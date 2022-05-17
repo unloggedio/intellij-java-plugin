@@ -99,52 +99,57 @@ public class InsidiousArrayRenderer extends InsidiousNodeRendererImpl {
 
     public void buildChildren(Value value, InsidiousChildrenBuilder builder, EvaluationContext evaluationContext) {
         ArrayReference array = (ArrayReference) value;
-        DebuggerUtilsAsync.length(array)
-                .thenAccept(arrayLength -> {
-                    if (arrayLength.intValue() > 0) {
-                        if (!this.myForced) {
-                            builder.initChildrenArrayRenderer(this, arrayLength.intValue());
-                        }
-                        if (this.ENTRIES_LIMIT <= 0) {
-                            this.ENTRIES_LIMIT = 1;
-                        }
-                        AtomicInteger added = new AtomicInteger();
-                        AtomicBoolean hiddenNulls = new AtomicBoolean();
-                        addChunk(array, this.START_INDEX, Math.min(arrayLength.intValue() - 1, this.END_INDEX), arrayLength.intValue(), builder, evaluationContext, added, hiddenNulls);
-                    }
-                });
+        int arrayLength = array.length();
+        if (arrayLength > 0) {
+            if (!this.myForced) {
+                builder.initChildrenArrayRenderer(this, arrayLength);
+            }
+            if (this.ENTRIES_LIMIT <= 0) {
+                this.ENTRIES_LIMIT = 1;
+            }
+            AtomicInteger added = new AtomicInteger();
+            AtomicBoolean hiddenNulls = new AtomicBoolean();
+            addChunk(array, this.START_INDEX, Math.min(arrayLength - 1, this.END_INDEX),
+                    arrayLength, builder, evaluationContext, added, hiddenNulls);
+        }
+
     }
 
 
-    private CompletableFuture<Void> addChunk(ArrayReference array, int start, int end, int length, InsidiousChildrenBuilder builder, EvaluationContext evaluationContext, AtomicInteger added, AtomicBoolean hiddenNulls) {
+    private CompletableFuture<Void> addChunk(ArrayReference array, int start, int end, int length,
+                                             InsidiousChildrenBuilder builder, EvaluationContext evaluationContext,
+                                             AtomicInteger added, AtomicBoolean hiddenNulls) {
         int chunkLength = Math.min(100, end - start + 1);
-        return DebuggerUtilsAsync.getValues(array, start, chunkLength)
-                .thenCompose(values -> {
-                    int idx;
-                    for (idx = start; idx < start + values.size(); idx++) {
-                        Value val = values.get(idx - start);
-                        if ((ViewsGeneralSettings.getInstance()).HIDE_NULL_ARRAY_ELEMENTS && val == null) {
-                            hiddenNulls.set(true);
-                        } else {
-                            InsidiousArrayElementDescriptorImpl descriptor = (InsidiousArrayElementDescriptorImpl) builder.getDescriptorManager().getArrayItemDescriptor(builder.getParentDescriptor(), array, idx);
-                            descriptor.setValue(val);
-                            InsidiousDebuggerTreeNode arrayItemNode = ((InsidiousNodeManagerImpl) builder.getNodeManager()).createNode(descriptor, evaluationContext);
-                            builder.addChildren(Collections.singletonList(arrayItemNode), false);
-                            if (added.incrementAndGet() >= this.ENTRIES_LIMIT) {
-                                break;
-                            }
-                        }
-                    }
-                    if (idx < end && added.get() < this.ENTRIES_LIMIT) {
-                        return addChunk(array, idx, end, length, builder, evaluationContext, added, hiddenNulls);
-                    }
-                    finish(builder, length, added.get(), hiddenNulls.get(), end, idx);
-                    return CompletableFuture.completedFuture(null);
-                });
+        List<Value> values = array.getValues(start, chunkLength);
+        int idx;
+        for (idx = start; idx < start + values.size(); idx++) {
+            Value val = values.get(idx - start);
+            if ((ViewsGeneralSettings.getInstance()).HIDE_NULL_ARRAY_ELEMENTS && val == null) {
+                hiddenNulls.set(true);
+            } else {
+                InsidiousArrayElementDescriptorImpl descriptor =
+                        (InsidiousArrayElementDescriptorImpl) builder.getDescriptorManager()
+                                .getArrayItemDescriptor(builder.getParentDescriptor(), array, idx);
+                descriptor.setValue(val);
+                InsidiousDebuggerTreeNode arrayItemNode = ((InsidiousNodeManagerImpl) builder.getNodeManager())
+                        .createNode(descriptor, evaluationContext);
+                builder.addChildren(Collections.singletonList(arrayItemNode), false);
+                if (added.incrementAndGet() >= this.ENTRIES_LIMIT) {
+                    break;
+                }
+            }
+        }
+        if (idx < end && added.get() < this.ENTRIES_LIMIT) {
+            return addChunk(array, idx, end, length, builder, evaluationContext, added, hiddenNulls);
+        }
+        finish(builder, length, added.get(), hiddenNulls.get(), end, idx);
+        return CompletableFuture.completedFuture(null);
+
     }
 
 
-    private void finish(InsidiousChildrenBuilder builder, int arrayLength, int added, boolean hiddenNulls, int end, int idx) {
+    private void finish(InsidiousChildrenBuilder builder, int arrayLength, int added,
+                        boolean hiddenNulls, int end, int idx) {
         builder.addChildren(Collections.emptyList(), true);
 
         if (added == 0) {
@@ -155,7 +160,8 @@ public class InsidiousArrayRenderer extends InsidiousNodeRendererImpl {
             } else {
 
                 builder.setMessage(
-                        DebuggerBundle.message("message.node.all.array.elements.null", Integer.valueOf(this.START_INDEX), Integer.valueOf(this.END_INDEX)), null, SimpleTextAttributes.REGULAR_ATTRIBUTES, null);
+                        DebuggerBundle.message("message.node.all.array.elements.null", Integer.valueOf(this.START_INDEX), Integer.valueOf(this.END_INDEX)), null,
+                        SimpleTextAttributes.REGULAR_ATTRIBUTES, null);
             }
 
         } else {
@@ -205,7 +211,8 @@ public class InsidiousArrayRenderer extends InsidiousNodeRendererImpl {
         if (!(value instanceof ArrayReference)) {
             return CompletableFuture.completedFuture(Boolean.valueOf(false));
         }
-        return DebuggerUtilsAsync.length((ArrayReference) value).thenApply(l -> Boolean.valueOf((l.intValue() > 0)));
+        int l = ((ArrayReference) value).length();
+        return CompletableFuture.completedFuture(l > 0);
     }
 
     public boolean isApplicable(Type type) {

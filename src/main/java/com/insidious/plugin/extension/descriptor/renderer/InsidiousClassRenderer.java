@@ -27,7 +27,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.IncorrectOperationException;
 import com.intellij.xdebugger.XDebuggerBundle;
 import com.intellij.xdebugger.settings.XDebuggerSettingsManager;
-import com.jetbrains.jdi.StringReferenceImpl;
 import com.sun.jdi.*;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
@@ -63,7 +62,7 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
         CompletableFuture<String> future;
         Value value = descriptor.getValue();
 
-        if (value instanceof StringReferenceImpl) {
+        if (value instanceof StringReference) {
             EvaluatorUtil.ensureNotInsideObjectConstructor((ObjectReference) value, evaluationContext);
 
             future = DebuggerUtilsAsync.getStringValue((StringReference) value);
@@ -223,12 +222,7 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
     }
 
     @NotNull
-    protected FieldDescriptor createFieldDescriptor(InsidiousValueDescriptor parentDescriptor,
-                                                    InsidiousNodeDescriptorFactory nodeDescriptorFactory,
-                                                    ObjectReference objRef,
-                                                    Field field,
-                                                    EvaluationContext evaluationContext
-    ) {
+    protected FieldDescriptor createFieldDescriptor(InsidiousValueDescriptor parentDescriptor, InsidiousNodeDescriptorFactory nodeDescriptorFactory, ObjectReference objRef, Field field, EvaluationContext evaluationContext) {
         return nodeDescriptorFactory.getFieldDescriptor(parentDescriptor, objRef, field);
     }
 
@@ -241,11 +235,7 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
             try {
                 InsidiousStackFrameProxy InsidiousStackFrameProxy = context.getStackFrameProxy();
                 Location location = InsidiousStackFrameProxy.location();
-                if (location != null && objInstance
-                        .equals(context.computeThisObject()) &&
-                        Comparing.equal(objInstance.referenceType(), location.declaringType()) &&
-                        StringUtil.startsWith(field
-                                .name(), "val$")) {
+                if (location != null && objInstance.equals(context.computeThisObject()) && Comparing.equal(objInstance.referenceType(), location.declaringType()) && StringUtil.startsWith(field.name(), "val$")) {
                     return false;
                 }
             } catch (EvaluateException evaluateException) {
@@ -276,26 +266,19 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
 
         try {
             Project project = context.getVirtualMachineProxy().getXDebugProcess().getSession().getProject();
-            return elementFactory.createExpressionFromText("this." + fieldDescriptor
-                            .getField().name(),
-                    DebuggerUtils.findClass(fieldDescriptor
-                                    .getObject().referenceType().name(), project,
+            return elementFactory.createExpressionFromText("this." + fieldDescriptor.getField().name(), DebuggerUtils.findClass(fieldDescriptor.getObject().referenceType().name(), project,
 
-                            GlobalSearchScope.allScope(project)));
+                    GlobalSearchScope.allScope(project)));
         } catch (IncorrectOperationException e) {
-            throw new EvaluateException(
-                    DebuggerBundle.message("error.invalid.field.name", fieldDescriptor.getField().name()), null);
+            throw new EvaluateException(DebuggerBundle.message("error.invalid.field.name", fieldDescriptor.getField().name()), null);
         }
     }
 
     public CompletableFuture<Boolean> isExpandableAsync(Value value, EvaluationContext evaluationContext, NodeDescriptor parentDescriptor) {
         if (value instanceof ArrayReference)
-            return DebuggerUtilsAsync.length((ArrayReference) value)
-                    .thenApply(r -> (r > 0))
-                    .exceptionally(throwable -> Boolean.TRUE);
+            return DebuggerUtilsAsync.length((ArrayReference) value).thenApply(r -> (r > 0)).exceptionally(throwable -> Boolean.TRUE);
         if (value instanceof ObjectReference) {
-            return CompletableFuture.completedFuture(
-                    Boolean.TRUE);
+            return CompletableFuture.completedFuture(Boolean.TRUE);
         }
 
 

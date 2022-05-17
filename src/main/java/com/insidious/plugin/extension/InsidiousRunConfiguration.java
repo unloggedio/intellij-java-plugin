@@ -9,7 +9,6 @@ import com.intellij.execution.application.JvmMainMethodRunConfigurationOptions;
 import com.intellij.execution.configurations.*;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.target.LanguageRuntimeType;
 import com.intellij.execution.util.ProgramParametersUtil;
 import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
@@ -86,11 +85,11 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration implemen
 //        return state;
     }
 
-    @NotNull
-    @Override
-    public SettingsEditor<? extends RunConfiguration> getConfigurationEditor() {
-        return new JavaApplicationSettingsEditor(this);
-    }
+//    @NotNull
+//    @Override
+//    public SettingsEditor<? extends RunConfiguration> getConfigurationEditor() {
+//        return new JavaApplicationSettingsEditor(this);
+//    }
 
     @Override
     public @Nullable @NonNls String getId() {
@@ -101,12 +100,6 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration implemen
     @Override
     protected JvmMainMethodRunConfigurationOptions getOptions() {
         return super.getOptions();
-    }
-
-    @Nullable
-    @Override
-    public LanguageRuntimeType<?> getDefaultLanguageRuntimeType() {
-        return null;
     }
 
     @Nullable

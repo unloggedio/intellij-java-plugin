@@ -8,7 +8,6 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import net.minidev.json.JSONObject;
 import okhttp3.Callback;
 import org.slf4j.Logger;
 
@@ -26,8 +25,6 @@ import java.util.stream.Collectors;
 public class HorBugTable {
     private static final Logger logger = LoggerUtil.getInstance(HorBugTable.class);
     private final InsidiousService insidiousService;
-    Callback errorCallback, lastSessioncallback;
-    JSONObject errorsJson, dataPointsJson, sessionJson;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
     Project project;
     String basepath;
@@ -170,9 +167,11 @@ public class HorBugTable {
     }
 
     private String[] tracePointToStringObject(TracePoint tracePoint) {
-        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        String className = tracePoint.getClassname().substring(
+                tracePoint.getClassname().lastIndexOf('/') + 1);
         return new String[]{
-                tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
+                tracePoint.getExceptionClass().substring(
+                        tracePoint.getExceptionClass().lastIndexOf('.') + 1),
                 className,
                 String.valueOf(tracePoint.getLinenum()),
                 String.valueOf(tracePoint.getThreadId()),
@@ -181,9 +180,12 @@ public class HorBugTable {
     }
 
     private Vector<String> tracePointToStringVector(TracePoint tracePoint) {
-        String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+        String className = tracePoint.getClassname().substring(
+                tracePoint.getClassname().lastIndexOf('/') + 1);
         return new Vector<>(
-                Arrays.asList(tracePoint.getExceptionClass().substring(tracePoint.getExceptionClass().lastIndexOf('.') + 1),
+                Arrays.asList(
+                        tracePoint.getExceptionClass().substring(
+                                tracePoint.getExceptionClass().lastIndexOf('.') + 1),
                         className,
                         String.valueOf(tracePoint.getLinenum()),
                         String.valueOf(tracePoint.getThreadId()),
@@ -193,12 +195,17 @@ public class HorBugTable {
 
     private void loadBug(int rowNum) {
         logger.info("load trace point by index: {}", rowNum);
-        if (rowNum >= bugList.size()) {
+        if (rowNum >= bugList.size() || rowNum < 0) {
             logger.info("selected by index out of size {} -> {}", rowNum, bugList.size());
+            Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
+                    .createNotification("Please select a trace point to fetch",
+                            NotificationType.ERROR), project);
+            return;
         }
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
-            logger.info(String.format("Fetch by exception for session [%s] on thread [%s]", selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+            logger.info(String.format("Fetch by exception for session [%s] on thread [%s]",
+                    selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
             insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
 

@@ -118,8 +118,8 @@ public class MethodEvaluator implements Evaluator {
 
 
                         Arrays.asList(obj, evaluationContext.getVirtualMachineProxy()
-                        .getVirtualMachine()
-                        .mirrorOf(name)));
+                                .getVirtualMachine()
+                                .mirrorOf(name)));
         }
         return null;
     }
@@ -245,9 +245,9 @@ public class MethodEvaluator implements Evaluator {
             }
 
 
-            if (!SystemInfo.isJavaVersionAtLeast(8, 0, 45) && this.myCheckDefaultInterfaceMethod && jdiMethod
-
-                    .declaringType() instanceof InterfaceType) {
+            if (Runtime.version().compareTo(Runtime.Version.parse("8.0.45")) > -1
+                    && this.myCheckDefaultInterfaceMethod &&
+                    jdiMethod.declaringType() instanceof InterfaceType) {
                 try {
                     return invokeDefaultMethod(context, objRef, this.myMethodName);
                 } catch (EvaluateException e) {
