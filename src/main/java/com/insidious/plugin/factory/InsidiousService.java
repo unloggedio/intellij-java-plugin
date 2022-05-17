@@ -876,11 +876,11 @@ public class InsidiousService implements Disposable {
             logger.info("user is logged in by project is null, setting up project");
             setupProject();
         }
-//        if (credentialsToolbarWindow == null) {
-//            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
-//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-//            this.toolWindow.getContentManager().addContent(credentialContent);
-//        }
+        if (credentialsToolbarWindow == null) {
+            credentialsToolbarWindow = new CredentialsToolbar(project, this.toolWindow);
+            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+            this.toolWindow.getContentManager().addContent(credentialContent);
+        }
 
     }
 
