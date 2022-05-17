@@ -115,7 +115,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                             }
                             if (response.code() == 200) {
 
-                                JSONObject jsonObject = (JSONObject) JSONObject.stringToValue(
+                                JSONObject jsonObject = new JSONObject(
                                         Objects.requireNonNull(response.body()).string());
                                 VideobugNetworkClient.this.token = jsonObject.getString(Constants.TOKEN);
                                 VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
