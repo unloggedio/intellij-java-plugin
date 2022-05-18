@@ -115,9 +115,9 @@
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
-                  <icon value="actions/refresh.png"/>
-                  <text value="Refresh"/>
+                  <font name="JetBrains Mono" size="16" style="0"/>
+                  <icon value="actions/download.png"/>
+                  <text value="Fetch Executions"/>
                 </properties>
               </component>
             </children>
@@ -158,8 +158,9 @@
               <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
+              <font name="JetBrains Mono" size="16" style="0"/>
               <icon value="actions/lightning.png"/>
-              <text value="Fetch Session"/>
+              <text value="Play Executions"/>
             </properties>
           </component>
         </children>
