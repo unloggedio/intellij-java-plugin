@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class InsidiousNotification {
-    private static final String DISPLAY_ID = InsidiousBundle.message("ide.notification.groupDisplayId");
+    public static final String DISPLAY_ID = InsidiousBundle.message("ide.notification.groupDisplayId");
     public static NotificationGroup balloonNotificationGroup = NotificationGroup.findRegisteredGroup(DISPLAY_ID);
     private static final String TITLE = InsidiousBundle.message("ide.notification.messageTitle");
 

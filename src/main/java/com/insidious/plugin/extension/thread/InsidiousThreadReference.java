@@ -11,7 +11,6 @@ import com.insidious.plugin.extension.thread.types.InsidiousTypeFactory;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -186,11 +185,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
                     if (methodsToSkip == 0) {
                         currentClassId = classId;
-                        if (currentFrame.location() == null) {
-                            String[] packageParts = classInfo.getClassName().split("/");
-                            packageParts[packageParts.length  - 1] = classInfo.getFilename();
-                            InsidiousLocation currentLocation = new InsidiousLocation(
-                                    StringUtil.join(packageParts, "/"), probeInfo.getLine() - 1);
+                        if (currentFrame.location() == null || currentFrame.location().lineNumber() == -1) {
+                            InsidiousLocation currentLocation = getClassLocationFromProbe(probeInfo, classInfo);
                             currentFrame.setLocation(currentLocation);
                         }
                         if (thisObject.referenceType() == null) {
@@ -215,7 +211,8 @@ public class InsidiousThreadReference implements ThreadReference {
                         thisObject = new InsidiousObjectReference(this);
                         thisObject.setObjectId(dataEvent.getValue());
                         objectReferenceMap.put(dataEvent.getValue(), thisObject);
-                        currentFrame = new InsidiousStackFrame(null, this, thisObject, this.virtualMachine());
+                        @NotNull InsidiousLocation location = getClassLocationFromProbe(probeInfo, classInfo);
+                        currentFrame = new InsidiousStackFrame(location, this, thisObject, this.virtualMachine());
                     } else {
                         methodsToSkip--;
                     }
@@ -532,6 +529,14 @@ public class InsidiousThreadReference implements ThreadReference {
 
         this.stackFrames = stackFrames;
 
+    }
+
+    @NotNull
+    private InsidiousLocation getClassLocationFromProbe(DataInfo probeInfo, ClassInfo classInfo) {
+        String[] packageParts = classInfo.getClassName().split("/");
+        packageParts[packageParts.length - 1] = classInfo.getFilename();
+        return new InsidiousLocation(StringUtil.join(packageParts, "/"),
+                probeInfo.getLine() - 1);
     }
 
     @Nullable

@@ -125,7 +125,12 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
         if (showConcreteType || classRenderer.SHOW_OBJECT_ID) {
 
             if (showConcreteType) {
-                buf.append(classRenderer.renderTypeName(objRef.type().name()));
+                Type type = objRef.type();
+                String typeName = "<type:?>";
+                if (type != null) {
+                    typeName = type.name();
+                }
+                buf.append(classRenderer.renderTypeName(typeName));
             }
             if (classRenderer.SHOW_OBJECT_ID) {
                 buf.append('@');

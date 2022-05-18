@@ -11,6 +11,8 @@ import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.search.FilenameIndex;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.xdebugger.XDebuggerUtil;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.frame.XExecutionStack;
@@ -22,6 +24,7 @@ import org.slf4j.Logger;
 
 import javax.swing.*;
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -104,11 +107,20 @@ public class InsidiousXExecutionStack extends XExecutionStack {
 //        });
 
         Location location = stackFrame.location();
-        String path = this.myDebugProcess.getProject().getBasePath() + "/src/main/java/" + location.sourcePath();
-        VirtualFile file = LocalFileSystem.getInstance().findFileByIoFile(new File(path));
+        String[] sourcePathParts = location.sourcePath().split("/");
 
 
-        XSourcePosition xSourcePosition = XDebuggerUtil.getInstance().createPosition(file, location.lineNumber());
+        @NotNull Collection<VirtualFile> file = FilenameIndex.getVirtualFilesByName(myDebugProcess.getProject(),
+                sourcePathParts[sourcePathParts.length - 1], GlobalSearchScope.projectScope(myDebugProcess.getProject()));
+
+        XSourcePosition xSourcePosition = null;
+        if (file.isEmpty()) {
+
+        } else {
+            VirtualFile vf = file.stream().findFirst().get();
+            xSourcePosition = XDebuggerUtil.getInstance().createPosition(vf, location.lineNumber());
+        }
+
 
         return new InsidiousXStackFrame(
                 this.myDebugProcess, this.mySuspendContext, this.myThreadProxy.frame(index), xSourcePosition
