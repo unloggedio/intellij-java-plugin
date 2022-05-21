@@ -23,12 +23,12 @@ import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.WriteAction;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -188,7 +188,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 continue;
             }
 
-            ArchiveIndex typesIndex = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+            ArchiveIndex typesIndex;
+            try {
+                typesIndex = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+            } catch (Exception e) {
+                logger.info("failed to read type index file: " + e.getMessage());
+                continue;
+            }
 
             Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME, classList);
             ResultSet<TypeInfoDocument> searchResult = typesIndex.Types().retrieve(typeQuery);
@@ -237,16 +243,20 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
         ZipEntry entry = null;
-        while ((entry = indexArchive.getNextEntry()) != null) {
-            String entryName = entry.getName();
-            if (entryName.contains(pathName)) {
-                return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
+        try {
+            while ((entry = indexArchive.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                if (entryName.contains(pathName)) {
+                    return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
+                }
+                String[] nameParts = entryName.split("@");
+                if (nameParts.length == 2 && filterValueLong > 0) {
+                    int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
+                    long fileTimeStamp = Long.parseLong(nameParts[0]);
+                }
             }
-            String[] nameParts = entryName.split("@");
-            if (nameParts.length == 2 && filterValueLong > 0) {
-                int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
-                long fileTimeStamp = Long.parseLong(nameParts[0]);
-            }
+        }catch (EOFException e) {
+            return null;
         }
         return null;
 
@@ -441,7 +451,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             classWeaveInfo = new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(fileBytes.getBytes()));
         }
 
-        return classWeaveInfo.classInfo().parallelStream()
+        return classWeaveInfo.classInfo().stream()
                 .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
                 .flatMap(Collection::stream)
                 .filter(e -> dataId.contains(Math.toIntExact(e.dataId())))
