@@ -265,6 +265,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private void refreshSessionArchivesList() {
         sessionDirectory = new File(this.pathToSessions + session.getName());
         assert sessionDirectory.exists();
+        classWeaveInfo = null;
         sessionArchives = Arrays
                 .stream(Objects.requireNonNull(sessionDirectory.listFiles()))
                 .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
