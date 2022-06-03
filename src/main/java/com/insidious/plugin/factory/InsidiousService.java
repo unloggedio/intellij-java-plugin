@@ -43,6 +43,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -65,7 +66,6 @@ import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,12 +116,12 @@ public class InsidiousService implements Disposable {
             amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
             threadPool = Executors.newFixedThreadPool(4);
 
-            logger.info("started insidious service - project name [{}]", project.getName());
+            logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project).getModules().length == 0) {
                 logger.warn("no module found in the project");
             } else {
                 currentModule = ModuleManager.getInstance(project).getModules()[0];
-                logger.info("current module [{}]", currentModule.getName());
+                logger.info("current module - " + currentModule.getName());
             }
 
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
@@ -252,8 +252,7 @@ public class InsidiousService implements Disposable {
             @Override
             public void success(String url) {
                 try {
-                    logger.info("agent download link: {}, downloading to path [{}]",
-                            url, videoBugAgentPath.toAbsolutePath());
+                    logger.info("agent download link: " + url + ", downloading to path " + videoBugAgentPath.toAbsolutePath());
                     client.downloadAgentFromUrl(url, videoBugAgentPath.toString(), overwrite);
                     setAppTokenOnUi();
                     agentJarDownloadCompleteCallback.success(url, videoBugAgentPath.toString());
@@ -316,8 +315,7 @@ public class InsidiousService implements Disposable {
     public void init() {
 
         if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
-            logger.info("username is not empty in configuration - [{}] with server url [{}]",
-                    insidiousConfiguration.getUsername(),
+            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " +
                     insidiousConfiguration.getServerUrl());
             insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
             if (insidiousCredentials != null) {
@@ -375,7 +373,7 @@ public class InsidiousService implements Disposable {
 
     public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
         this.client = new VideobugNetworkClient(serverUrl);
-        logger.info("signin server [{}] with username [{}]", serverUrl, usernameText);
+        logger.info("signin with username [" + usernameText + "] on server " + serverUrl);
         if (!isValidEmailAddress(usernameText)) {
             credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
             ApplicationManager.getApplication().invokeLater(this::initiateUI);
@@ -434,7 +432,7 @@ public class InsidiousService implements Disposable {
 
         } catch (UnauthorizedException e) {
 
-            logger.error("Failed to signin for user [{}]", usernameText, e);
+            logger.error("Failed to signin for user " + usernameText, e);
             e.printStackTrace();
             if (credentialsToolbarWindow != null) {
                 credentialsToolbarWindow.setErrorLabel("Sign in failed!");
@@ -468,7 +466,7 @@ public class InsidiousService implements Disposable {
             ).setItemChosenCallback(new Consumer<String>() {
                 @Override
                 public void consume(String selectedExecutionSession) {
-                    logger.info("session selected for module [" + currentModule.getName() + "] => ", selectedExecutionSession);
+                    logger.info("session selected for module [" + currentModule.getName() + "] => " + selectedExecutionSession);
                     try {
                         String sessionId = selectedExecutionSession.split("\\]")[0].split("\\]")[1];
                         executionSession.setSessionId(sessionId);
@@ -524,7 +522,7 @@ public class InsidiousService implements Disposable {
         }
 
         try {
-            logger.info("try to set project to - [{}]", currentModule.getName());
+            logger.info("try to set project to - " + currentModule.getName());
             client.setProject(currentModule.getName());
             getErrors(getSelectedExceptionClassList(), 0);
             generateAppToken();
@@ -544,10 +542,8 @@ public class InsidiousService implements Disposable {
 
                 @Override
                 public void success(String projectId) {
-                    logger.info("created new project for [{}] -> [{}]", currentModule.getName(), projectId);
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        setupProject();
-                    });
+                    logger.info("created new project for " + currentModule.getName() + " -> " + projectId);
+                    ApplicationManager.getApplication().invokeLater(() -> setupProject());
                 }
             });
 
@@ -658,7 +654,7 @@ public class InsidiousService implements Disposable {
             loadSession();
             return;
         }
-        logger.info("get traces for session - [{}]", client.getCurrentSession().getSessionId());
+        logger.info("get traces for session - " + client.getCurrentSession().getSessionId());
 
 
         ReadAction.run(() -> {
@@ -679,7 +675,7 @@ public class InsidiousService implements Disposable {
 
                             @Override
                             public void success(List<TracePoint> tracePoints) {
-                                logger.info("got [{}] trace points from server", tracePoints.size());
+                                logger.info("got [" + tracePoints.size() + "] trace points from server");
                                 if (tracePoints.size() == 0) {
                                     ApplicationManager.getApplication()
                                             .runWriteAction(
@@ -816,7 +812,7 @@ public class InsidiousService implements Disposable {
                 = project.getService(RunManager.class).getAllSettings();
 
         for (RunnerAndConfigurationSettings runSetting : allSettings) {
-            logger.info("runner config - {}", runSetting.getName());
+            logger.info("runner config - " + runSetting.getName());
 
             if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
                 ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
@@ -877,7 +873,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void setAppTokenOnUi() {
-        logger.info("set app token - {} with package name [{}]" + appToken, packageName);
+        logger.info("set app token - " + appToken + " with package name " + packageName);
 
         String[] vmParamsToAdd = new String[]{
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
@@ -915,7 +911,7 @@ public class InsidiousService implements Disposable {
 
             @Override
             public void success(List<ExecutionSession> executionSessionList) throws IOException {
-                logger.info("got [{}] sessions for project", executionSessionList.size());
+                logger.info("got [" + executionSessionList.size() + "] sessions for project");
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
 
@@ -953,7 +949,7 @@ public class InsidiousService implements Disposable {
 
         ApplicationManager.getApplication().invokeAndWait(() -> {
             try {
-                logger.info("set trace point in connector => [{}]", selectedTrace.getClassname());
+                logger.info("set trace point in connector => " + selectedTrace.getClassname());
 
                 if (connector != null) {
                     connector.setTracePoint(selectedTrace);
@@ -1044,7 +1040,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void refreshSession() throws APICallException, IOException {
-        logger.info("fetch latest session for module: {}", currentModule.getName());
+        logger.info("fetch latest session for module: " + currentModule.getName());
         client.setProject(currentModule.getName());
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {

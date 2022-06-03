@@ -5,12 +5,12 @@ import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugProcessStarter;
 import com.intellij.xdebugger.XDebugSession;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
 

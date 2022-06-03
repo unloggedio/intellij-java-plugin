@@ -70,7 +70,7 @@ public class InsidiousStackFrameDescriptorImpl extends InsidiousNodeDescriptorIm
                     .myIsInLibraryContent = DebuggerUtilsEx.isInLibraryContent(
                     (psiFile != null) ? psiFile.getVirtualFile() : null, this.myProject);
         } catch (InternalException | EvaluateException e) {
-            LOG.info("failed", e);
+            logger.info("failed", e);
             this.myLocation = null;
             this.myMethodOccurrence = tracker.getMethodOccurrence(0, null);
             this.myIsSynthetic = false;
@@ -226,7 +226,7 @@ public class InsidiousStackFrameDescriptorImpl extends InsidiousNodeDescriptorIm
             try {
                 this.myThisObject = this.myFrame.thisObject();
             } catch (EvaluateException e) {
-                LOG.info("failed", e);
+                logger.info("failed", e);
             }
         }
         return this.myThisObject;

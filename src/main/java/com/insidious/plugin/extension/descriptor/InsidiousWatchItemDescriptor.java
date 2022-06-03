@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.descriptor;
  import com.insidious.plugin.util.LoggerUtil;
  import com.intellij.debugger.engine.evaluation.EvaluateException;
  import com.intellij.debugger.engine.evaluation.TextWithImports;
- import org.slf4j.Logger;
+ import com.intellij.openapi.diagnostic.Logger;
  import com.intellij.openapi.project.Project;
  import com.intellij.psi.PsiCodeFragment;
  import com.sun.jdi.Value;

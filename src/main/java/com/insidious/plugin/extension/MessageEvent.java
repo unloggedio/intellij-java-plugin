@@ -5,16 +5,16 @@ import com.intellij.execution.ui.ConsoleViewContentType;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XDebugProcess;
 import com.insidious.plugin.extension.jwdp.RequestMessage;
 
 public class MessageEvent extends RequestMessage {
-    public static final String Insidious_MESSAGE_ERROR_COMMAND = "error";
-    public static final String Insidious_MESSAGE_WARNING_COMMAND = "warning";
-    public static final String Insidious_MESSAGE_INFO_COMMAND = "info";
-    public static final String Insidious_MESSAGE_CONSOLE_OUTPUT = "console_output";
-    public static final String Insidious_MESSAGE_CONSOLE_ERROR = "console_error";
+    public static final String INSIDIUOS_MESSAGE_ERROR_COMMAND = "error";
+    public static final String INSIDIUOS_MESSAGE_WARNING_COMMAND = "warning";
+    public static final String INSIDIUOS_MESSAGE_INFO_COMMAND = "info";
+    public static final String INSIDIUOS_MESSAGE_CONSOLE_OUTPUT = "console_output";
+    public static final String INSIDIUOS_MESSAGE_CONSOLE_ERROR = "console_error";
     private static final Logger logger = LoggerUtil.getInstance(MessageEvent.class);
     public static String EVENT_NAME = "Message";
     private final String message;

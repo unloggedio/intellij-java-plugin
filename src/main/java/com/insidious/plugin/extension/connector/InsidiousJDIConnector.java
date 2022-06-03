@@ -2,9 +2,7 @@ package com.insidious.plugin.extension.connector;
 
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.extension.thread.*;
-import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.PositionManager;
@@ -15,18 +13,15 @@ import com.intellij.debugger.requests.Requestor;
 import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.debugger.ui.breakpoints.MethodBreakpoint;
 import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
-import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.request.*;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
@@ -152,8 +147,8 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public <K, V> ClassPrepareRequest createClassPrepareRequest(String classPattern, ClassPrepareRequestor requestor) {
-//        insidiousJavaDebugProcess.stop();
-        logger.warn("method not implemented createClassPrepareRequest [{}] [{}]- {}", classPattern, requestor, new Exception().getMessage());
+        logger.warn("method not implemented " +
+                "createClassPrepareRequest [" + classPattern + "] [" + requestor + "]- " + new Exception().getStackTrace()[0]);
         return new VideobugClassPrepareRequest(classPattern, requestor, this.virtualMachine);
     }
 
@@ -194,22 +189,22 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
     }
 
     public Iterable<? extends BreakpointRequest> getBreakpointsWithRequestor(Requestor runToCursorBreakpoint) {
-        logger.warn("method not implemented getBreakpointsWithRequestor- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getBreakpointsWithRequestor - " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void enableAllBreakpoints() {
-        logger.warn("method not implemented enableAllBreakpoints- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented enableAllBreakpoints- " + new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
-        logger.warn("method not implemented createFieldWatchpoint- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createFieldWatchpoint- " + new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public Iterable<? extends ModificationWatchpointRequest> getModificationWatchpointsWithRequestor(Requestor jumpToAssignmentBreakpoint) {
-        logger.warn("method not implemented getModificationWatchpointsWithRequestor- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getModificationWatchpointsWithRequestor- " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
@@ -229,31 +224,31 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught,
                                           boolean notifyUncaught, int i, Breakpoint breakpoint) {
-        logger.warn("method not implemented createExceptionBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createExceptionBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
 
     }
 
     public List<ExceptionRequest> getAllExceptionBreakpoints() {
-        logger.warn("method not implemented getAllExceptionBreakpoints- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllExceptionBreakpoints- " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
-        logger.warn("method not implemented createMethodBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createMethodBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
     }
 
     public List<EventRequest> getAllMethodRequests() {
-        logger.warn("method not implemented getAllMethodRequests- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllMethodRequests- " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public List<ModificationWatchpointRequest> getAllFieldWatchpoints() {
-        logger.warn("method not implemented getAllFieldWatchpoints- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented getAllFieldWatchpoints- " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
     public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
-        logger.warn("method not implemented createSteppingBreakpoint- {}", new Exception().getStackTrace()[0].getFileName());
+        logger.warn("method not implemented createSteppingBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
 
     }
 

@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.evaluation.expression;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Couple;
 import com.intellij.psi.impl.PsiJavaParserFacadeImpl;
 import com.sun.jdi.*;
@@ -100,7 +100,8 @@ public class UnBoxingEvaluator implements Evaluator {
             if (valueField != null) {
                 Value primitiveValue = value.getValue(valueField);
                 if (primitiveValue instanceof PrimitiveValue) {
-                    logger.info("assert type name - {}", type.name().equals(PsiJavaParserFacadeImpl.getPrimitiveType(primitiveValue.type().name()).getBoxedTypeName()));
+                    logger.info("assert type name -" +
+                            type.name().equals(PsiJavaParserFacadeImpl.getPrimitiveType(primitiveValue.type().name()).getBoxedTypeName()));
                     return (PrimitiveValue) primitiveValue;
                 }
             }

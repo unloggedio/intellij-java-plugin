@@ -5,7 +5,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.frame.XSuspendContext;
@@ -18,7 +18,7 @@ import java.awt.*;
 
 public final class InsidiousDebugProcessStarterListener
         implements InsidiousDebugProcessListener {
-    private static final Logger LOGGER = LoggerUtil.getInstance(InsidiousDebugProcessStarterListener.class);
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousDebugProcessStarterListener.class);
 
     private final InsidiousJavaDebugProcess debugProcess;
 
@@ -37,7 +37,7 @@ public final class InsidiousDebugProcessStarterListener
 
 
     public void paused(@NotNull XSuspendContext suspendContext) {
-        LOGGER.info("Debug process has been paused.");
+        logger.info("Debug process has been paused.");
 //        TimelineManager.getTimeline(this.debugProcess.getSession().getSessionName()).refreshBookmarks(suspendContext);
         if (this.state.getCommandSender() != null && suspendContext instanceof InsidiousXSuspendContext) {
             InsidiousXSuspendContext InsidiousXSuspendContext = (InsidiousXSuspendContext) suspendContext;
@@ -71,13 +71,13 @@ public final class InsidiousDebugProcessStarterListener
 
 
     public void resumed(XSuspendContext suspendContext) {
-        LOGGER.info(String.format("resumed Thread (%s) started", suspendContext.toString()));
+        logger.info(String.format("resumed Thread (%s) started", suspendContext.toString()));
 
     }
 
 
     public void threadStarted(@NotNull XDebugProcess proc, ThreadReference thread) {
-        LOGGER.info(String.format("Thread (%s) started", thread.name()));
+        logger.info(String.format("Thread (%s) started", thread.name()));
 
         ThreadReference initialThread = this.state.getInitialThread();
         if (initialThread == null || thread.uniqueID() < initialThread.uniqueID()) {
@@ -87,12 +87,12 @@ public final class InsidiousDebugProcessStarterListener
 
 
     public void threadStopped(@NotNull XDebugProcess proc, ThreadReference thread) {
-        LOGGER.info(String.format("Thread (%s) stopped", thread.name()));
+        logger.info(String.format("Thread (%s) stopped", thread.name()));
     }
 
 
     public void processAttached(@NotNull XDebugProcess process) {
-        LOGGER.info("Process has been attached.");
+        logger.info("Process has been attached.");
         updateInsidiousCommandSender(this.state, this.debugProcess);
 
         ProcessHandler processHandler = process.getProcessHandler();
@@ -142,7 +142,7 @@ public final class InsidiousDebugProcessStarterListener
 
     private void updateInsidiousCommandSender(InsidiousApplicationState state, InsidiousJavaDebugProcess debugProcess) {
         state.getCommandSender().setDebugProcess(debugProcess);
-        LOGGER.debug("Updated commandSender with debugProcess");
+        logger.debug("Updated commandSender with debugProcess");
     }
 
     private void initialiseTimeline(@NotNull XDebugProcess process) {
@@ -161,12 +161,12 @@ public final class InsidiousDebugProcessStarterListener
         TimelineManager.createTimeline(sessionName, commandSender);
 //        TimelineToolWindowManager.createTimelineToolWindow(sessionName,
 //                InsidiousBookmarksToolWindowFactory.createTimelineToolWindow(session.getProject()));
-        LOGGER.info("Timeline has been initialised.");
+        logger.info("Timeline has been initialised.");
     }
 
 
     public void processDetached(@NotNull XDebugProcess process, boolean closedByUser) {
-        LOGGER.info("Process has been detached.");
+        logger.info("Process has been detached.");
 
         ProcessHandler processHandler = process.getProcessHandler();
 

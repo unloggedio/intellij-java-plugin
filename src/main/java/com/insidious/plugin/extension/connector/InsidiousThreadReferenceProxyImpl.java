@@ -4,9 +4,9 @@ import com.insidious.plugin.extension.thread.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.jdi.ThreadGroupReferenceProxy;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Comparing;
 import com.sun.jdi.IncompatibleThreadStateException;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Comparator;

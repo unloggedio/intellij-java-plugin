@@ -3,9 +3,8 @@ package com.insidious.plugin.extension;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
-import com.intellij.xdebugger.XDebugSession;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.io.OutputStream;
 
@@ -36,7 +35,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void detachProcessImpl() {
-        logger.info("end of debug session - {}", new Exception().getStackTrace()[0]);
+        logger.info("end of debug session - " + new Exception().getStackTrace()[0]);
         if (getInsidiousJavaDebugProcess() != null) {
             getInsidiousJavaDebugProcess().closeProcess(true);
         }

@@ -8,9 +8,9 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.TextWithImportsImpl;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.Type;
 import org.jetbrains.annotations.NonNls;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -134,7 +134,8 @@ public class RendererManager {
             return this.myDefaultArrayRenderer;
         }
 
-        logger.info("assert default class renderer is applicable - {} - {}", this.myDefaultClassRenderer.isApplicable(type), type.name());
+        logger.info("assert default class renderer is applicable - " +
+                this.myDefaultClassRenderer.isApplicable(type) + " - " + type.name());
         return this.myDefaultClassRenderer;
     }
 

@@ -14,12 +14,12 @@ import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -176,7 +176,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
-        logger.info("create project on server - [{}]", projectName);
+        logger.info("create project on server - [" + projectName + "]");
         post(PROJECT_URL + "?name=" + projectName, "", new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -188,7 +188,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 try (response) {
                     String responseBody = Objects.requireNonNull(response.body()).string();
-                    logger.info("create project successful response - {}", responseBody);
+                    logger.info("create project successful response - " + responseBody);
                     JSONObject jsonObject = new JSONObject(responseBody);
                     String projectId = jsonObject.getString("id");
                     newProjectCallback.success(projectId);
@@ -210,7 +210,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                 String responseBody = Objects.requireNonNull(response.body()).string();
-                logger.info("project token response - {}", responseBody);
+                logger.info("project token response - " + responseBody);
                 JSONObject jsonObject = new JSONObject(responseBody);
                 projectTokenCallback.success(jsonObject.getString(Constants.TOKEN));
             }
@@ -248,10 +248,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     private void get(String url, Callback callback) {
-        Request request = new Request.Builder()
-                .url(url.startsWith("http") ? url : endpoint + url)
-                .addHeader("Authorization", "Bearer " + token)
-                .build();
+        Request.Builder builder = new Request.Builder()
+                .url(url.startsWith("http") ? url : endpoint + url);
+        if (token != null) {
+            builder = builder.addHeader("Authorization", "Bearer " + token);
+        }
+        Request request = builder.build();
         client.newCall(request).enqueue(callback);
 
     }
@@ -307,7 +309,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     };
                     String responseBody = Objects.requireNonNull(response.body()).string();
                     DataResponse<ExecutionSession> sessionList = objectMapper.readValue(responseBody, typeReference);
-                    logger.info("got [{}] sessions for project [{}] - {}", sessionList.getItems().size(), project.getId(), responseBody);
+                    logger.info("got [" + sessionList.getItems().size() + "] sessions for project" +
+                            "[" + project.getId() + "] - " + responseBody);
                     getProjectSessionsCallback.success(sessionList.getItems());
                 }
             }
@@ -422,15 +425,16 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
         String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
-        logger.info("url to fetch data events => [{}] with [{}]", endpoint,
-                objectMapper.writeValueAsString(filteredDataEventsRequest));
-        Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest));
-
-        String responseBodyString = Objects.requireNonNull(response.body()).string();
-        if (response.code() != 200) {
-            logger.error("error response from filterDataEvents  [{}] - [{}]", response.code(), responseBodyString);
-            JSONObject jsonResponse = new JSONObject(responseBodyString);
-            throw new Exception(jsonResponse.getString("message"));
+        logger.info("url to fetch data events => [" + endpoint + "] with [" +
+                objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
+        String responseBodyString;
+        try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
+            responseBodyString = Objects.requireNonNull(response.body()).string();
+            if (response.code() != 200) {
+                logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
+                JSONObject jsonResponse = new JSONObject(responseBodyString);
+                throw new Exception(jsonResponse.getString("message"));
+            }
         }
 
         TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {

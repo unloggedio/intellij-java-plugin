@@ -98,9 +98,9 @@ public class InsidiousFieldDescriptorImpl extends InsidiousValueDescriptorImpl i
             if (evaluationContext
                     .getVirtualMachineProxy()
                     .canBeModified()) {
-                LOG.debug("failed", e);
+                logger.debug("failed", e);
             } else {
-                LOG.warn("failed", e);
+                logger.warn("failed", e);
             }
             throw new EvaluateException(DebuggerBundle.message("internal.debugger.error"));
         } catch (ObjectCollectedException ignored) {
@@ -120,7 +120,7 @@ public class InsidiousFieldDescriptorImpl extends InsidiousValueDescriptorImpl i
                 invokeExceptionGetStackTrace(this.myObject, evaluationContext);
                 return true;
             } catch (Throwable e) {
-                LOG.info("failed", e);
+                logger.info("failed", e);
             }
         }
         return false;

@@ -2,7 +2,7 @@ package com.insidious.plugin.extension;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.StringReference;
 import com.insidious.plugin.extension.jwdp.RequestMessage;
 import com.insidious.plugin.extension.model.command.CommandRequest;

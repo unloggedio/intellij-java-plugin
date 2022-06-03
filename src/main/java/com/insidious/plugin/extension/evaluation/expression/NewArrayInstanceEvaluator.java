@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.*;
 import com.insidious.plugin.extension.DebuggerBundle;
 import com.insidious.plugin.extension.evaluation.EvaluationContext;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 class NewArrayInstanceEvaluator implements Evaluator {
-    private static final Logger LOG = LoggerUtil.getInstance(NewArrayInstanceEvaluator.class);
+    private static final Logger logger = LoggerUtil.getInstance(NewArrayInstanceEvaluator.class);
 
     private final Evaluator myArrayTypeEvaluator;
 
@@ -117,8 +117,8 @@ class NewArrayInstanceEvaluator implements Evaluator {
         }
         ArrayReference arrayReference = EvaluatorUtil.newArrayInstance(arrayType, dimension);
         if (initialValues != null && initialValues.length > 0) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Setting initial values: dimension = " + dimension + "; array size is " + initialValues.length);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Setting initial values: dimension = " + dimension + "; array size is " + initialValues.length);
             }
 
 

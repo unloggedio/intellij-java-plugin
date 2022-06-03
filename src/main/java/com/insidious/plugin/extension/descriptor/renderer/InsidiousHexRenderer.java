@@ -5,6 +5,7 @@ import com.insidious.plugin.extension.descriptor.InsidiousValueDescriptor;
 import com.insidious.plugin.extension.evaluation.EvaluationContext;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jdi.CharValue;
 import com.sun.jdi.PrimitiveValue;
@@ -12,7 +13,6 @@ import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 
 public class InsidiousHexRenderer extends InsidiousNodeRendererImpl {

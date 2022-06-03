@@ -23,7 +23,7 @@ public class InsidiousListObjectRenderer
 
 
     public PsiElement getChildValueExpression(InsidiousDebuggerTreeNode node, EvaluationContext context) throws EvaluateException {
-        LOG.info("assert node descriptor - {}", node.getDescriptor() instanceof InsidiousArrayElementDescriptorImpl);
+        logger.info("assert node descriptor - " + (node.getDescriptor() instanceof InsidiousArrayElementDescriptorImpl));
         try {
             return getChildValueExpression("this.get(" + ((ArrayElementDescriptorImpl) node
 

@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.frame.XExecutionStack;
 import com.intellij.xdebugger.frame.XSuspendContext;
 import com.sun.jdi.Location;
@@ -24,7 +24,7 @@ import java.util.List;
 
 public class InsidiousXSuspendContext
         extends XSuspendContext {
-    private static final Logger LOG = LoggerUtil.getInstance(InsidiousXSuspendContext.class);
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousXSuspendContext.class);
     InsidiousJavaDebugProcess debugProcess;
     InsidiousXExecutionStack activeExecutionStack;
     List<InsidiousXExecutionStack> allExecutionStacks;
@@ -66,7 +66,7 @@ public class InsidiousXSuspendContext
     @Nullable
     public InsidiousXExecutionStack getActiveExecutionStack() {
         if (this.activeExecutionStack == null) {
-            LOG.info("Lazy loading InsidiousXExecutionStack");
+            logger.info("Lazy loading InsidiousXExecutionStack");
             this.activeExecutionStack = new InsidiousXExecutionStack(this, this.thread, this.debugProcess, true);
         }
 

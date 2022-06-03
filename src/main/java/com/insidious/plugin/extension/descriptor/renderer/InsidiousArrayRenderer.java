@@ -14,13 +14,13 @@ import com.intellij.debugger.DebuggerManagerEx;
 import com.intellij.debugger.actions.ArrayAction;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.TextWithImportsImpl;
-import com.intellij.debugger.impl.DebuggerUtilsAsync;
 import com.intellij.debugger.memory.utils.ErrorsValueGroup;
 import com.intellij.debugger.settings.NodeRendererSettings;
 import com.intellij.debugger.settings.ViewsGeneralSettings;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.icons.AllIcons;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.roots.LanguageLevelProjectExtension;
 import com.intellij.openapi.util.DefaultJDOMExternalizer;
 import com.intellij.openapi.util.InvalidDataException;
@@ -42,7 +42,6 @@ import com.sun.jdi.Type;
 import com.sun.jdi.Value;
 import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
-import org.slf4j.Logger;
 
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
@@ -188,8 +187,7 @@ public class InsidiousArrayRenderer extends InsidiousNodeRendererImpl {
     }
 
     public PsiExpression getChildValueExpression(InsidiousDebuggerTreeNode node, EvaluationContext context) {
-        logger.info("assert {} - {}",
-                node.getDescriptor() instanceof InsidiousArrayElementDescriptorImpl,
+        logger.info("assert " + (node.getDescriptor() instanceof InsidiousArrayElementDescriptorImpl) + " == " +
                 node.getDescriptor().getClass().getName());
 
         InsidiousArrayElementDescriptorImpl descriptor = (InsidiousArrayElementDescriptorImpl) node.getDescriptor();

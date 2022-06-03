@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.ui.breakpoints.RunToCursorBreakpoint;
 import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.smartstep.BreakpointStepMethodFilter;
@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 public class StepIntoBreakpoint
         extends RunToCursorBreakpoint
         implements SteppingBreakpoint {
-    private static final Logger LOG = LoggerUtil.getInstance(StepIntoBreakpoint.class);
+    private static final Logger logger = LoggerUtil.getInstance(StepIntoBreakpoint.class);
 
     @NotNull
     private final BreakpointStepMethodFilter myFilter;

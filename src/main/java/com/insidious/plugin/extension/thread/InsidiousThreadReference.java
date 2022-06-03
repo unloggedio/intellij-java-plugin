@@ -10,11 +10,11 @@ import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
 import com.insidious.plugin.extension.thread.types.InsidiousTypeFactory;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -115,7 +115,7 @@ public class InsidiousThreadReference implements ThreadReference {
             long receiverObjectId = 0;
             InsidiousObjectReference receiverObject;
 
-            logger.info("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
+            logger.trace("[" + (index + position) + "] Build [" + dataEvent.getNanoTime()
                     + "] line [" + probeInfo.getLine() + "][" +
                     probeInfo.getEventType()
                     + "]  of class [" +
@@ -250,7 +250,7 @@ public class InsidiousThreadReference implements ThreadReference {
                             Util.getAttribute(probeInfo.getAttributes(), "NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
-                        logger.warn("no data info for parent of new object created [%s]", probeInfo);
+                        logger.warn("no data info for parent of new object created - " + probeInfo);
                     } else {
                         classTypeOfNewObject = Util.getAttribute(
                                 parentDataInfo.getAttributes(), "Type", classTypeOfNewObject);

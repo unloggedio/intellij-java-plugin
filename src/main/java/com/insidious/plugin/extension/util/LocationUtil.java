@@ -5,6 +5,7 @@ import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.extension.model.Location;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -15,7 +16,6 @@ import com.intellij.xdebugger.XSourcePosition;
 import com.sun.jdi.AbsentInformationException;
 import com.sun.jdi.StackFrame;
 import com.sun.jdi.ThreadReference;
-import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.Optional;

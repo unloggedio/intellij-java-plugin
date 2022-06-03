@@ -6,10 +6,9 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import okhttp3.Callback;
-import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -194,9 +193,9 @@ public class HorBugTable {
     }
 
     private void loadBug(int rowNum) {
-        logger.info("load trace point by index: {}", rowNum);
+        logger.info("load trace point by index: " + rowNum);
         if (rowNum >= bugList.size() || rowNum < 0) {
-            logger.info("selected by index out of size {} -> {}", rowNum, bugList.size());
+            logger.info("selected by index out of size "+rowNum+" -> " + bugList.size());
             Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                     .createNotification("Please select a trace point to fetch",
                             NotificationType.ERROR), project);

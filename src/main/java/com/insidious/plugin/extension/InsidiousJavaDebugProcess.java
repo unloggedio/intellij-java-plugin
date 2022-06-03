@@ -18,10 +18,10 @@ import com.intellij.debugger.ui.breakpoints.JavaLineBreakpointType;
 import com.intellij.debugger.ui.breakpoints.RunToCursorBreakpoint;
 import com.intellij.execution.ExecutionResult;
 import com.intellij.execution.process.ProcessHandler;
-import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ExecutionConsole;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
 import com.intellij.openapi.wm.impl.status.StatusBarUtil;
@@ -42,7 +42,6 @@ import com.sun.jdi.request.ModificationWatchpointRequest;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.java.debugger.JavaDebuggerEditorsProvider;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -301,7 +300,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         InsidiousApplicationState state = getProcessHandler().getUserData(InsidiousApplicationState.KEY);
         CommandSender commandSender = state.getCommandSender();
         InsidiousXSuspendContext suspendContext = null;
-        if (commandSender.getLastThreadId() > 0) {
+        if (commandSender != null && commandSender.getLastThreadId() > 0) {
 
             InsidiousThreadReference thread = getConnector().getThreadReferenceWithUniqueId(commandSender.getLastThreadId());
             suspendContext = new InsidiousXSuspendContext(this, thread, 2);

@@ -20,11 +20,11 @@ import com.intellij.debugger.engine.jdi.ThreadReferenceProxy;
 import com.intellij.debugger.jdi.ThreadGroupReferenceProxyImpl;
 import com.intellij.debugger.settings.ThreadsViewSettings;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.ui.tree.TreeModelAdapter;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebuggerBundle;
-import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.TreeModelEvent;
@@ -139,7 +139,7 @@ public class InsidiousThreadsDebuggerTree extends InsidiousDebuggerTree {
 
 
         private void selectThread(final List<ThreadGroupReferenceProxyImpl> pathToThread, final ThreadReferenceProxy thread, final boolean expand) {
-            logger.info("is event dispatch thread - {}", SwingUtilities.isEventDispatchThread());
+            logger.info("is event dispatch thread - " + SwingUtilities.isEventDispatchThread());
             class MyTreeModelAdapter extends TreeModelAdapter {
                 private void structureChanged(InsidiousDebuggerTreeNodeImpl node) {
                     Enumeration<? extends TreeNode> enumeration = node.children();

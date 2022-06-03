@@ -15,15 +15,15 @@ import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.impl.DebuggerUtilsImpl;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.psi.*;
 import com.intellij.reference.SoftReference;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 public abstract class InsidiousCachedEvaluator {
-    protected static final Logger LOG = LoggerUtil.getInstance(InsidiousCachedEvaluator.class);
+    protected static final Logger logger = LoggerUtil.getInstance(InsidiousCachedEvaluator.class);
 
     private static class Cache {
         protected ExpressionEvaluator myEvaluator;

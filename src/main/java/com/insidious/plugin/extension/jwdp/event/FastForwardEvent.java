@@ -9,16 +9,16 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.impl.XDebugSessionImpl;
 import com.sun.jdi.ThreadReference;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 
 
 public class FastForwardEvent
         extends RequestMessage {
-    private static final Logger LOGGER = LoggerUtil.getInstance(FastForwardEvent.class);
+    private static final Logger logger = LoggerUtil.getInstance(FastForwardEvent.class);
 
     public static String EVENT_NAME = "VMFastForward";
 
@@ -30,7 +30,7 @@ public class FastForwardEvent
 
 
     public void process(CommandSender commandSender) throws IOException {
-        LOGGER.debug("End of program history");
+        logger.debug("End of program history");
         InsidiousJavaDebugProcess debugProcess = commandSender.getDebugProcess();
         XDebugSessionImpl session = (XDebugSessionImpl) debugProcess.getSession();
 

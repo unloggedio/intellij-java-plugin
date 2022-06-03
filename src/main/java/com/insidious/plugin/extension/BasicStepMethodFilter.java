@@ -6,8 +6,8 @@ import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.engine.StepIntoMethodBreakpoint;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
-import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.*;
 import com.intellij.psi.util.InheritanceUtil;
@@ -22,7 +22,6 @@ import com.insidious.plugin.extension.thread.InsidiousVirtualMachineProxy;
 import com.insidious.plugin.extension.util.DebuggerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.List;
 

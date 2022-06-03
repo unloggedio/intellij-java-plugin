@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.debugger.ui.overhead.OverheadProducer;
 import com.intellij.icons.AllIcons;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.SimpleColoredComponent;
 import com.sun.jdi.*;
 import com.sun.jdi.event.Event;
@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class MethodReturnValueWatcher implements OverheadProducer {
     private static final Logger logger = LoggerUtil.getInstance("#com.intellij.debugger.engine.requests.MethodReturnValueWatcher");
-    private static final String WATCHER_REQUEST_KEY = "WATCHER_REQUEST_KEY";
     private final EventRequestManager myRequestManager;
     @Nullable
     private Method myLastExecutedMethod;

@@ -4,7 +4,7 @@ import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.extension.model.command.CommandRequest;
 import com.insidious.plugin.extension.model.command.GetAllBookmarksResponse;
 import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;
 

@@ -10,7 +10,7 @@ import com.intellij.debugger.impl.DebuggerUtilsImpl;
 import com.intellij.debugger.requests.ClassPrepareRequestor;
 import com.intellij.execution.filters.LineNumbersMapping;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -25,7 +25,7 @@ import java.util.*;
 
 public class InsidiousCompoundPositionManager implements MultiRequestPositionManager {
     public static final InsidiousCompoundPositionManager EMPTY = new InsidiousCompoundPositionManager();
-    private static final Logger LOG = LoggerUtil.getInstance(InsidiousCompoundPositionManager.class);
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousCompoundPositionManager.class);
     private final ArrayList<PositionManager> myPositionManagers = new ArrayList<>();
 
 

@@ -7,7 +7,7 @@ import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.debugger.ui.tree.render.ReferenceRenderer;
 import com.intellij.debugger.ui.tree.render.Renderer;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
@@ -41,7 +41,7 @@ public class InsidiousCompoundReferenceRenderer
     public static final String UNIQUE_ID = "CompoundNodeRenderer";
     @NonNls
     public static final String UNIQUE_ID_OLD = "CompoundTypeRenderer";
-    protected static final Logger LOG = LoggerUtil.getInstance(InsidiousCompoundReferenceRenderer.class);
+    protected static final Logger logger = LoggerUtil.getInstance(InsidiousCompoundReferenceRenderer.class);
     private static final AutoToStringRenderer AUTO_TO_STRING_RENDERER = new AutoToStringRenderer();
     private InsidiousValueIconRenderer myIconRenderer = null;
     private InsidiousValueLabelRenderer myLabelRenderer;
@@ -53,8 +53,8 @@ public class InsidiousCompoundReferenceRenderer
         this.myLabelRenderer = labelRenderer;
         this.myChildrenRenderer = childrenRenderer;
         this.myProperties.setClassName("java.lang.Object");
-        LOG.info("assert label renderer - {}", (labelRenderer == null || labelRenderer instanceof InsidiousReferenceRenderer));
-        LOG.info("assert child renderer - {}", (childrenRenderer == null || childrenRenderer instanceof InsidiousReferenceRenderer));
+        logger.info("assert label renderer - " + (labelRenderer == null || labelRenderer instanceof InsidiousReferenceRenderer));
+        logger.info("assert child renderer - " + (childrenRenderer == null || childrenRenderer instanceof InsidiousReferenceRenderer));
     }
 
 

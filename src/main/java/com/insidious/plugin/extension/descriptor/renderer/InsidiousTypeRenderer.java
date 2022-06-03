@@ -4,12 +4,12 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.ui.tree.render.BasicRendererProperties;
 import com.intellij.debugger.ui.tree.render.Renderer;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.InvalidDataException;
 import com.intellij.openapi.util.WriteExternalException;
 import com.sun.jdi.Type;
 import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 public abstract class InsidiousTypeRenderer
         implements Renderer {

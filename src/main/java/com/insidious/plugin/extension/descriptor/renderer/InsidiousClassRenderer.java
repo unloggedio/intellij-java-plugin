@@ -17,6 +17,7 @@ import com.intellij.debugger.ui.impl.watch.MessageDescriptor;
 import com.intellij.debugger.ui.tree.FieldDescriptor;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.*;
 import com.intellij.openapi.util.text.StringUtil;
@@ -32,7 +33,6 @@ import org.jdom.Element;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
 public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
     @NonNls
     public static final String UNIQUE_ID = "ClassRenderer";
-    private static final Logger LOG = LoggerUtil.getInstance(InsidiousClassRenderer.class);
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousClassRenderer.class);
     public boolean SHOW_SYNTHETICS = true;
 
     public boolean SHOW_VAL_FIELDS_AS_LOCAL_VARIABLES = true;
@@ -295,7 +295,7 @@ public class InsidiousClassRenderer extends InsidiousNodeRendererImpl {
     }
 
     public void setName(String text) {
-        LOG.info("assert false");
+        logger.info("assert false");
     }
 }
 

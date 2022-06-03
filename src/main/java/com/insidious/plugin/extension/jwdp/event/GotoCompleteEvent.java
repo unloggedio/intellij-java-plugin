@@ -6,7 +6,7 @@ import com.insidious.plugin.extension.jwdp.RequestMessage;
 import com.insidious.plugin.extension.util.BookmarksUtil;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.IOException;
 
@@ -14,7 +14,7 @@ import java.io.IOException;
 public final class GotoCompleteEvent
         extends RequestMessage {
     public static final String EVENT_NAME = "GotoComplete";
-    private static final Logger LOGGER = LoggerUtil.getInstance(GotoCompleteEvent.class);
+    private static final Logger logger = LoggerUtil.getInstance(GotoCompleteEvent.class);
     private final String action;
 
     private final int threadId;
@@ -26,7 +26,7 @@ public final class GotoCompleteEvent
 
 
     public void process(CommandSender commandSender) throws IOException {
-        LOGGER.info(
+        logger.info(
                 "Processing response for action: " + this.action + ", threadId: " + this.threadId);
 
 

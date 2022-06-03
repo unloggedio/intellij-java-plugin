@@ -11,6 +11,7 @@ import com.intellij.debugger.engine.evaluation.*;
 import com.intellij.debugger.engine.evaluation.expression.Modifier;
 import com.intellij.debugger.engine.evaluation.expression.UnsupportedExpressionException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.tree.IElementType;
@@ -21,7 +22,6 @@ import com.intellij.util.SmartList;
 import com.intellij.util.containers.ContainerUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -707,7 +707,7 @@ public final class EvaluatorBuilderImpl implements EvaluatorBuilder {
 
 
         private ExpressionEvaluator buildElement(PsiElement element) throws EvaluateException {
-            logger.info("assert element is valid - {}", element.isValid());
+            logger.info("assert element is valid - " + element.isValid());
 
             setNewCodeFragmentEvaluator();
             this.myContextPsiClass = PsiTreeUtil.getContextOfType(element, PsiClass.class, false);

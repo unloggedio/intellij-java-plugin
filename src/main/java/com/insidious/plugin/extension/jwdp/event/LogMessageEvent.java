@@ -3,7 +3,7 @@ package com.insidious.plugin.extension.jwdp.event;
 import com.insidious.plugin.extension.CommandSender;
 import com.insidious.plugin.extension.jwdp.RequestMessage;
 import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;

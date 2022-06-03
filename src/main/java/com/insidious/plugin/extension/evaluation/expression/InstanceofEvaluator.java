@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
 import com.intellij.debugger.impl.DebuggerUtilsImpl;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.ObjectReference;
 import com.sun.jdi.Value;
 import com.insidious.plugin.extension.DebuggerBundle;

@@ -5,7 +5,7 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
 import com.intellij.debugger.engine.evaluation.expression.Modifier;
 import com.intellij.debugger.engine.evaluation.expression.ReturnEvaluator;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.Value;
 import com.insidious.plugin.extension.DebuggerBundle;
 import com.insidious.plugin.extension.evaluation.EvaluationContext;

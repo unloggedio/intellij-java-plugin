@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.DebuggerUtils;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.util.ArrayUtil;
 import com.sun.jdi.ClassType;
 import com.sun.jdi.Method;
@@ -22,7 +22,7 @@ import java.util.List;
 
 class NewClassInstanceEvaluator
         implements Evaluator {
-    private static final Logger LOG = LoggerUtil.getInstance(NewClassInstanceEvaluator.class);
+    private static final Logger logger = LoggerUtil.getInstance(NewClassInstanceEvaluator.class);
 
     private final TypeEvaluator myClassTypeEvaluator;
 
@@ -63,7 +63,7 @@ class NewClassInstanceEvaluator
             for (Evaluator evaluator : this.myParamsEvaluators) {
                 Object res = evaluator.evaluate(context);
                 if (!(res instanceof Value) && res != null) {
-                    LOG.error("Unable to call newInstance, evaluator " + evaluator + " result is not Value, but " + res);
+                    logger.error("Unable to call newInstance, evaluator " + evaluator + " result is not Value, but " + res);
                 }
 
 

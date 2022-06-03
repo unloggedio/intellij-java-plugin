@@ -5,7 +5,7 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
 import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.impl.ui.tree.ValueMarkup;
@@ -19,7 +19,7 @@ import java.util.Map;
 
 public abstract class InsidiousNodeDescriptorImpl implements NodeDescriptor {
     public static final String UNKNOWN_VALUE_MESSAGE = "";
-    protected static final Logger LOG = LoggerUtil.getInstance(InsidiousNodeDescriptorImpl.class);
+    protected static final Logger logger = LoggerUtil.getInstance(InsidiousNodeDescriptorImpl.class);
     private static final Key<Map<ObjectReference, ValueMarkup>> MARKUP_MAP_KEY = new Key("ValueMarkupMap");
     public boolean myIsExpanded = false;
     public boolean myIsSelected = false;

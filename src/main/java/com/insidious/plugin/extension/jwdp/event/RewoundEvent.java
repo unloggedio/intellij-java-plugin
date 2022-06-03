@@ -9,8 +9,8 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.impl.XDebugSessionImpl;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 

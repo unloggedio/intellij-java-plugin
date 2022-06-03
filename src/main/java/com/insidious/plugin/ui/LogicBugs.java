@@ -10,6 +10,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
@@ -17,7 +18,6 @@ import com.intellij.xdebugger.XDebuggerManager;
 import com.intellij.xdebugger.XSourcePosition;
 import com.intellij.xdebugger.breakpoints.XBreakpoint;
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType;
-import org.slf4j.Logger;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -197,7 +197,7 @@ public class LogicBugs {
     }
 
     private void loadBug(int rowNum) {
-        logger.info("load trace point [{}] -> [{}]", rowNum);
+        logger.info("load trace point" + rowNum);
         XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
 
         List<DebugPoint> breakpointList = new ArrayList<>();
@@ -207,7 +207,8 @@ public class LogicBugs {
                 if (breakpoint.getType() instanceof XLineBreakpointType) {
                     DebugPoint debugPoint = new DebugPoint();
                     XSourcePosition sourcePosition = breakpoint.getSourcePosition();
-                    logger.info("note break point position in file [{}] at line [{}]", sourcePosition.getFile(), sourcePosition.getLine());
+                    logger.info("note break point position in file " +
+                            sourcePosition.getFile() + "] at line [" + sourcePosition.getLine() + "]");
                     try {
                         debugPoint.setFile(sourcePosition.getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
                         debugPoint.setLineNumber(sourcePosition.getLine());
@@ -221,11 +222,11 @@ public class LogicBugs {
             logger.error("failed to load break points", e);
         }
 
-        logger.info("load trace by row number: [{}]", rowNum);
+        logger.info("load trace by row number: " + rowNum);
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
-            logger.info("Fetch by trace string [{}] for session [{}] on thread [{}]",
-                    selectedTrace.getDataId(), selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId());
+            logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
+                    + selectedTrace.getExecutionSessionId() + "] on thread" + selectedTrace.getThreadId());
             insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             logger.error("failed to load trace point", e);

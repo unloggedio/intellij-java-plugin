@@ -13,7 +13,7 @@ import com.intellij.debugger.impl.descriptors.data.DisplayKey;
 import com.intellij.debugger.ui.impl.watch.DescriptorTree;
 import com.intellij.debugger.ui.impl.watch.MarkedDescriptorTree;
 import com.intellij.debugger.ui.tree.NodeDescriptor;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.sun.jdi.*;
 import com.insidious.plugin.extension.thread.InsidiousLocalVariableProxy;
@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 
 public class InsidiousNodeDescriptorFactoryImpl implements InsidiousNodeDescriptorFactory {
-    private static final Logger LOG = LoggerUtil.getInstance(InsidiousNodeDescriptorFactoryImpl.class);
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousNodeDescriptorFactoryImpl.class);
     protected final Project myProject;
     private DescriptorTree myCurrentHistoryTree = new DescriptorTree(true);
     private DescriptorTreeSearcher myDescriptorSearcher;

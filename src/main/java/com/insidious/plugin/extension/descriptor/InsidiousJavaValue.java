@@ -10,7 +10,7 @@ import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.debugger.ui.tree.render.Renderer;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ApplicationManager;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.SimpleTextAttributes;
@@ -40,10 +40,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class InsidiousJavaValue extends XNamedValue implements InsidiousNodeDescriptorProvider {
-    private static final Logger LOG = LoggerUtil.getInstance(InsidiousJavaValue.class);
-
-    private final boolean myCanBePinned;
-
+    private static final Logger logger = LoggerUtil.getInstance(InsidiousJavaValue.class);
     private final InsidiousJavaValue myParent;
     @NotNull
     private final InsidiousValueDescriptorImpl myValueDescriptor;
@@ -52,6 +49,7 @@ public class InsidiousJavaValue extends XNamedValue implements InsidiousNodeDesc
     private final InsidiousNodeManagerImpl myNodeManager;
     private final boolean myContextSet;
     private final XExpression evaluationExpression;
+    private final boolean myCanBePinned;
     private int myChildrenRemaining;
 
     protected InsidiousJavaValue(InsidiousJavaValue parent, @NotNull InsidiousValueDescriptorImpl valueDescriptor, @NotNull EvaluationContext evaluationContext, InsidiousNodeManagerImpl nodeManager, boolean contextSet) {
@@ -181,7 +179,7 @@ public class InsidiousJavaValue extends XNamedValue implements InsidiousNodeDesc
                 }
             });
         } catch (EvaluateException e) {
-            LOG.info("failed", e);
+            logger.info("failed", e);
             result.setError(e);
         }
         return result;

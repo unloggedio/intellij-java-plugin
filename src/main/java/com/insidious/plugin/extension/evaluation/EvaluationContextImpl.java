@@ -5,7 +5,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.EvaluatingComputable;
 import com.intellij.debugger.engine.evaluation.DebuggerComputableValue;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.frame.XSuspendContext;
 import com.sun.jdi.Value;
 import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;

@@ -6,12 +6,12 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
 import com.sun.jdi.event.EventSet;
 import com.sun.jdi.request.*;
-import org.slf4j.Logger;
 
 import java.util.Arrays;
 import java.util.List;

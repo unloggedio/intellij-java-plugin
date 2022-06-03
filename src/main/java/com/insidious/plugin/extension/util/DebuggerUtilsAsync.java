@@ -1,11 +1,11 @@
 package com.insidious.plugin.extension.util;
 
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Computable;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -13,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public final class DebuggerUtilsAsync {
-    private static final Logger LOG = LoggerUtil.getInstance(DebuggerUtilsAsync.class);
+    private static final Logger logger = LoggerUtil.getInstance(DebuggerUtilsAsync.class);
 
 
     public static CompletableFuture<String> getStringValue(StringReference value) {

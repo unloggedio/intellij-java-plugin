@@ -9,7 +9,7 @@ import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
 import com.intellij.ide.util.JavaAnonymousClassesHelper;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.Ref;
@@ -30,7 +30,7 @@ import java.util.Objects;
 
 public final class JVMNameUtil {
     public static final String CONSTRUCTOR_NAME = "<init>";
-    private static final Logger LOG = LoggerUtil.getInstance(JVMNameUtil.class);
+    private static final Logger logger = LoggerUtil.getInstance(JVMNameUtil.class);
 
     @Nullable
     public static String getPrimitiveSignature(String typeName) {
@@ -71,7 +71,7 @@ public final class JVMNameUtil {
         } else if (psiType instanceof com.intellij.psi.PsiPrimitiveType) {
             buffer.append(getPrimitiveSignature(psiType.getCanonicalText()));
         } else {
-            LOG.error("unknown type " + type.getCanonicalText());
+            logger.error("unknown type " + type.getCanonicalText());
         }
     }
 

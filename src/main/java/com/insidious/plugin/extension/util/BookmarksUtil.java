@@ -11,8 +11,8 @@ import com.insidious.plugin.extension.model.command.SetBookmarkRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.ThreadReference;
-import org.slf4j.Logger;
 
 import java.io.IOException;
 

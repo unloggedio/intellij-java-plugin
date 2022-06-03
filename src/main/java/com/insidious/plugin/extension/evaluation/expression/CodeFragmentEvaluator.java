@@ -4,7 +4,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.engine.evaluation.EvaluateExceptionUtil;
 import com.intellij.debugger.engine.evaluation.EvaluateRuntimeException;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.sun.jdi.Value;
 import com.sun.jdi.VirtualMachine;
 import com.insidious.plugin.extension.DebuggerBundle;
@@ -84,7 +84,6 @@ public class CodeFragmentEvaluator
 
 
     public void setInitialValue(String localName, Object value) {
-        logger.info("assert value is of class Value - {} - {}", !(value instanceof Value), "use setValue for jdi values");
         if (hasValue(localName)) {
             throw new EvaluateRuntimeException(
                     EvaluateExceptionUtil.createEvaluateException(

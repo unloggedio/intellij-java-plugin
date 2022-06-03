@@ -13,7 +13,7 @@ import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.requests.ClassPrepareRequestor;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
@@ -191,7 +191,7 @@ public class InsidiousPositionManager implements PositionManager, MultiRequestPo
             return null;
         }
 
-        logger.info("Assert debug process is not null - {}", this.myDebugProcess != null);
+        logger.info("Assert debug process is not null - " + (this.myDebugProcess != null));
 
         int lineNumber = DebuggerUtil.getLineNumber(location, true);
 

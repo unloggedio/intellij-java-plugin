@@ -24,6 +24,7 @@ import com.intellij.debugger.settings.DebuggerSettings;
 import com.intellij.execution.filters.LineNumbersMapping;
 import com.intellij.lang.java.JavaLanguage;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.util.Ref;
@@ -43,7 +44,6 @@ import org.jetbrains.concurrency.AsyncPromise;
 import org.jetbrains.concurrency.Promise;
 import org.jetbrains.concurrency.Promises;
 import org.jetbrains.org.objectweb.asm.Label;
-import org.slf4j.Logger;
 
 import java.util.*;
 import java.util.stream.IntStream;

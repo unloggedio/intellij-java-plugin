@@ -1,8 +1,8 @@
 package com.insidious.plugin.extension.model;
 
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
 
 public class InsidiousBookmark
         implements Comparable<InsidiousBookmark> {

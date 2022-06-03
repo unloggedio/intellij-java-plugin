@@ -2,7 +2,7 @@ package com.insidious.plugin.extension;
 
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 
 public class RemoteConnection {
     private final static Logger logger = LoggerUtil.getInstance(RemoteConnection.class);

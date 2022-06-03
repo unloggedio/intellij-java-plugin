@@ -11,7 +11,7 @@ import com.intellij.debugger.ui.tree.render.DescriptorLabelListener;
 import com.intellij.debugger.ui.tree.render.Renderer;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
-import org.slf4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.text.StringUtil;
@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescriptorImpl implements InsidiousValueDescriptor {
-    protected static final Logger LOG = LoggerUtil.getInstance(InsidiousValueDescriptorImpl.class);
+    protected static final Logger logger = LoggerUtil.getInstance(InsidiousValueDescriptorImpl.class);
 
     protected final Project myProject;
     protected EvaluationContext myStoredEvaluationContext = null;
@@ -179,7 +179,7 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
 
     private void assertValueReady() {
         if (!this.myValueReady) {
-            LOG.error("Value is not yet calculated for " + getClass());
+            logger.error("Value is not yet calculated for " + getClass());
         }
     }
 
@@ -327,7 +327,7 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
                         message = DebuggerBundle.message("error.context.has.changed");
                     } else {
                         message = DebuggerBundle.message("internal.debugger.error");
-                        LOG.error("failed", new Throwable(throwable));
+                        logger.error("failed", new Throwable(throwable));
                     }
                     setValueLabelFailed(new EvaluateException(message));
                     labelListener.labelChanged();
@@ -373,7 +373,7 @@ public abstract class InsidiousValueDescriptorImpl extends InsidiousNodeDescript
                 ex = DebuggerUtilsAsync.unwrap(ex);
 
                 if (!(ex instanceof java.util.concurrent.CancellationException)) {
-                    LOG.error("failed", new Throwable(ex));
+                    logger.error("failed", new Throwable(ex));
                 }
             }
 
