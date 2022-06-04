@@ -39,7 +39,6 @@ public class CredentialsToolbar {
     private JButton logoutButton;
     private JButton downloadJavaAgentToButton;
     private JButton buySingleUserLicenseButton;
-    private JTabbedPane tabbedPane1;
     private final InsidiousService insidiousService;
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
