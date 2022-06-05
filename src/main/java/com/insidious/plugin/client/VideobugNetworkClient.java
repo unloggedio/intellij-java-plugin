@@ -51,6 +51,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     public VideobugNetworkClient(String endpoint) {
         this.endpoint = endpoint;
+        if (this.endpoint.endsWith("/")) {
+            this.endpoint = this.endpoint.substring(0, this.endpoint.length() - 1);
+        }
         client = new OkHttpClient().newBuilder()
                 .connectTimeout(600, TimeUnit.SECONDS)
                 .readTimeout(600, TimeUnit.SECONDS)
