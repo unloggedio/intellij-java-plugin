@@ -165,7 +165,8 @@ public class InsidiousService implements Disposable {
 
                     String messageContent = "Got " + tracePoints.size() + " new matching trace points";
                     StringBuilder messageBuilder = new StringBuilder();
-                    Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(e -> e.getClassname()));
+                    Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(
+                            Collectors.groupingBy(TracePoint::getClassname));
                     for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
                         String className = classTracePoint.getKey();
                         List<TracePoint> classTracePoints = classTracePoint.getValue();
@@ -524,7 +525,7 @@ public class InsidiousService implements Disposable {
         try {
             logger.info("try to set project to - " + currentModule.getName());
             client.setProject(currentModule.getName());
-            getErrors(getSelectedExceptionClassList(), 0);
+//            getErrors(getSelectedExceptionClassList(), 0);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
             createProject(currentModule.getName(), new NewProjectCallback() {
@@ -931,7 +932,7 @@ public class InsidiousService implements Disposable {
                 }
 
                 client.setSession(executionSessionList.get(0));
-                getErrors(getSelectedExceptionClassList(), 0);
+//                getErrors(getSelectedExceptionClassList(), 0);
 
             }
         });

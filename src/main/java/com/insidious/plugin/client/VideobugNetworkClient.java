@@ -98,7 +98,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void signin(SigninRequest signinRequest, SignInCallback signInCallback) throws UnauthorizedException {
+    public void signin(SigninRequest signinRequest, SignInCallback signInCallback) {
         logger.info("Sign in for email => " + signinRequest.getEmail());
         post(signinRequest.getEndpoint() + SIGN_IN_URL,
                 String.format(

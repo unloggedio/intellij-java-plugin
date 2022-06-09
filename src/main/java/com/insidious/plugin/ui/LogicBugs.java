@@ -185,11 +185,14 @@ public class LogicBugs {
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
-            String className = tracePoint.getClassname().substring(tracePoint.getClassname().lastIndexOf('/') + 1);
+            String className = tracePoint.getClassname().substring(
+                    tracePoint.getClassname().lastIndexOf('/') + 1);
+
             sampleObject[i] = new String[]{className,
                     String.valueOf(tracePoint.getLinenum()),
                     String.valueOf(tracePoint.getThreadId()),
                     new Date(tracePoint.getRecordedAt()).toString()};
+
             i++;
         }
 
