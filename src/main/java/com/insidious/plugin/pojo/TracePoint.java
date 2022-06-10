@@ -66,8 +66,6 @@ public class TracePoint {
                 case LABEL:
                 case CATCH:
                     return null;
-//                case METHOD_EXCEPTIONAL_EXIT:
-//                case METHOD_THROW:
             }
             if (Util.getAttribute(dataInfoObject.getAttributes(), "Type", "").length() == 1) {
                 return null;

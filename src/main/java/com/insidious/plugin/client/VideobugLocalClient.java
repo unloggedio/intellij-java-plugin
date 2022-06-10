@@ -228,9 +228,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
             if (objectIds.size() > 0) {
                 tracePointList.addAll(queryForObjectIds(sessionArchive, objectIds));
             }
-            historyDepth--;
+            if (historyDepth != -1) {
+                historyDepth--;
+            }
 
         }
+        tracePointList.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
+
         ApplicationManager.getApplication().invokeLater(() -> {
             getProjectSessionErrorsCallback.success(tracePointList);
         });
@@ -304,6 +308,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
             }
         }
+        tracePointList.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
         getProjectSessionErrorsCallback.success(tracePointList);
 
     }
@@ -773,5 +778,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
             }
         }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    public List<File> getSessionFiles() {
+        this.refreshSessionArchivesList();
+        return this.sessionArchives;
     }
 }

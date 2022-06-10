@@ -43,6 +43,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     private final Logger logger = LoggerUtil.getInstance(VideobugNetworkClient.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+    };
     OkHttpClient client;
     private String endpoint;
     private ProjectItem project;
@@ -361,14 +363,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
                     String responseBodyString = Objects.requireNonNull(response.body()).string();
 
-                    TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
-                    };
-
                     DataResponse<DataEventWithSessionId> traceResponse =
                             objectMapper.readValue(responseBodyString, typeReference);
 
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
 
+                    tracePoints.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 }
             }
@@ -417,6 +417,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                             responseBodyString, typeReference);
 
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
+                    tracePoints.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 }
 

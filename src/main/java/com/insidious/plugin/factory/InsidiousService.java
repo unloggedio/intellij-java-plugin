@@ -3,6 +3,7 @@ package com.insidious.plugin.factory;
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
@@ -18,6 +19,7 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
+import com.insidious.plugin.factory.callbacks.GetErrorsCallback;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.CredentialsToolbar;
 import com.insidious.plugin.ui.HorBugTable;
@@ -36,9 +38,7 @@ import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
-import com.intellij.notification.Notification;
 import com.intellij.notification.NotificationType;
-import com.intellij.notification.Notifications;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -67,8 +67,9 @@ import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -76,6 +77,7 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
+import static org.json.HTTP.CRLF;
 
 @Storage("insidious.xml")
 public class InsidiousService implements Disposable {
@@ -330,7 +332,7 @@ public class InsidiousService implements Disposable {
                         }
                     } catch (Exception e) {
                         logger.error("failed to signin", e);
-                        notifyMessage("Failed to sign in -" + e.getMessage(),
+                        InsidiousNotification.notifyMessage("Failed to sign in -" + e.getMessage(),
                                 NotificationType.ERROR);
                     }
                 }
@@ -401,7 +403,7 @@ public class InsidiousService implements Disposable {
                                 credentialsToolbarWindow.setErrorLabel("Sign in failed: " + errorMessage);
                             }
 
-                            notifyMessage("Failed to login VideoBug at ["
+                            InsidiousNotification.notifyMessage("Failed to login VideoBug at ["
                                             + serverUrl + "] for module ["
                                             + currentModule.getName() + "]",
                                     NotificationType.ERROR);
@@ -422,7 +424,7 @@ public class InsidiousService implements Disposable {
                             PasswordSafe.getInstance().set(insidiousCredentials, credentials);
 
                             ApplicationManager.getApplication().invokeLater(() -> {
-                                notifyMessage("VideoBug logged in at [" + serverUrl
+                                InsidiousNotification.notifyMessage("VideoBug logged in at [" + serverUrl
                                                 + "] for module [" + currentModule.getName() + "]",
                                         NotificationType.INFORMATION);
 
@@ -440,7 +442,7 @@ public class InsidiousService implements Disposable {
             }
         } catch (Throwable e) {
             logger.error("failed to connect with server", e);
-            notifyMessage("Failed to connect with server - " + e.getMessage(),
+            InsidiousNotification.notifyMessage("Failed to connect with server - " + e.getMessage(),
                     NotificationType.ERROR);
         }
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
@@ -534,7 +536,7 @@ public class InsidiousService implements Disposable {
 
                     logger.error("failed to create project - {}", errorMessage);
 
-                    notifyMessage("Failed to create new project for ["
+                    InsidiousNotification.notifyMessage("Failed to create new project for ["
                                     + currentModule.getName() + "] on server [" + insidiousConfiguration.serverUrl,
                             NotificationType.ERROR);
 
@@ -550,7 +552,7 @@ public class InsidiousService implements Disposable {
 
         } catch (UnauthorizedException | IOException e) {
             logger.error("failed to setup project", e);
-            notifyMessage(e.getMessage(), NotificationType.ERROR);
+            InsidiousNotification.notifyMessage(e.getMessage(), NotificationType.ERROR);
 
         }
     }
@@ -559,7 +561,7 @@ public class InsidiousService implements Disposable {
         getProjectToken(new ProjectTokenCallback() {
             @Override
             public void error(String message) {
-                notifyMessage("Failed to generate app token for module [" + currentModule.getName() + "]",
+                InsidiousNotification.notifyMessage("Failed to generate app token for module [" + currentModule.getName() + "]",
                         NotificationType.ERROR);
 
                 credentialsToolbarWindow.setErrorLabel(message);
@@ -611,7 +613,7 @@ public class InsidiousService implements Disposable {
                 new GetProjectSessionErrorsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
-                        notifyMessage("Failed to get traces: " + errorResponse.getMessage(),
+                        InsidiousNotification.notifyMessage("Failed to get traces: " + errorResponse.getMessage(),
                                 NotificationType.ERROR);
                     }
 
@@ -619,7 +621,7 @@ public class InsidiousService implements Disposable {
                     public void success(List<TracePoint> tracePoints) {
                         if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication()
-                                    .invokeAndWait(() -> notifyMessage(
+                                    .invokeAndWait(() -> InsidiousNotification.notifyMessage(
                                             "No data available, or data may have been deleted!",
                                             NotificationType.INFORMATION));
                         } else {
@@ -634,17 +636,6 @@ public class InsidiousService implements Disposable {
                 });
     }
 
-    private void notifyMessage(String message, NotificationType notificationType) {
-        if (InsidiousNotification.balloonNotificationGroup != null) {
-            Notifications.Bus.notify(
-                    InsidiousNotification.balloonNotificationGroup.createNotification(message, notificationType),
-                    project);
-        } else {
-            Notifications.Bus.notify(
-                    new Notification(InsidiousNotification.DISPLAY_ID, "VideoBug", message, notificationType)
-            );
-        }
-    }
 
     public void getErrors(List<String> classList, int pageNum) throws IOException {
 
@@ -655,46 +646,13 @@ public class InsidiousService implements Disposable {
             loadSession();
             return;
         }
-        logger.info("get traces for session - " + client.getCurrentSession().getSessionId());
+        String sessionId = client.getCurrentSession().getSessionId();
+        logger.info("get traces for session - " + sessionId);
 
 
         ReadAction.run(() -> {
             try {
-                getTracesByTypeName(classList,
-                        new GetProjectSessionErrorsCallback() {
-                            @Override
-                            public void error(ExceptionResponse errorResponse) {
-                                logger.error("failed to get trace points from server - {}", errorResponse.getMessage());
-
-                                String message = errorResponse.getMessage();
-                                if (message == null) {
-                                    message = "No results matched";
-                                }
-                                notifyMessage("Failed to get trace points from server: "
-                                        + message, NotificationType.ERROR);
-                            }
-
-                            @Override
-                            public void success(List<TracePoint> tracePoints) {
-                                logger.info("got [" + tracePoints.size() + "] trace points from server");
-                                if (tracePoints.size() == 0) {
-                                    ApplicationManager.getApplication()
-                                            .runWriteAction(
-                                                    () -> notifyMessage(
-                                                            "No Exception data events matched in the last session",
-                                                            NotificationType.INFORMATION));
-
-                                } else {
-
-                                    tracePoints.forEach(e -> {
-                                        e.setExecutionSessionId(client.getCurrentSession().getSessionId());
-                                    });
-
-
-                                    bugsTable.setTracePoints(tracePoints);
-                                }
-                            }
-                        });
+                getTracesByTypeName(classList, new GetErrorsCallback(this));
             } catch (IOException e) {
                 logger.error("failed to get trace points by type");
             }
@@ -906,7 +864,7 @@ public class InsidiousService implements Disposable {
             public void error(String message) {
                 logger.error("failed to load project sessions - {}", message);
                 ApplicationManager.getApplication().invokeLater(() ->
-                        notifyMessage("No sessions found for module [" + currentModule.getName() + "]",
+                        InsidiousNotification.notifyMessage("No sessions found for module [" + currentModule.getName() + "]",
                                 NotificationType.INFORMATION));
             }
 
@@ -917,12 +875,12 @@ public class InsidiousService implements Disposable {
                     ApplicationManager.getApplication().invokeLater(() -> {
 
                         if (InsidiousNotification.balloonNotificationGroup != null) {
-                            notifyMessage("No sessions found for project " + currentModule.getName() +
+                            InsidiousNotification.notifyMessage("No sessions found for project " + currentModule.getName() +
                                             ". Start recording new sessions with the java agent",
                                     NotificationType.INFORMATION);
                         } else {
 
-                            notifyMessage(
+                            InsidiousNotification.notifyMessage(
                                     "No sessions found" + " for project " + currentModule.getName() +
                                             " start recording new sessions with the java agent",
                                     NotificationType.INFORMATION);
@@ -961,7 +919,7 @@ public class InsidiousService implements Disposable {
 
             } catch (Exception e) {
                 logger.error("failed to set trace point", e);
-                notifyMessage("Failed to set select trace point " + e.getMessage(),
+                InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
                         NotificationType.ERROR);
                 return;
             }
@@ -1045,7 +1003,7 @@ public class InsidiousService implements Disposable {
         client.setProject(currentModule.getName());
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         if (sessions.getItems().size() == 0) {
-            notifyMessage("No sessions available for module ["
+            InsidiousNotification.notifyMessage("No sessions available for module ["
                             + currentModule.getName() + "]",
                     NotificationType.ERROR);
             return;
@@ -1072,7 +1030,7 @@ public class InsidiousService implements Disposable {
 
         ApplicationManager.getApplication().invokeLater(() -> {
             InsidiousService.this.initiateUI();
-            notifyMessage("VideoBug logged in at [" + "disk://localhost"
+            InsidiousNotification.notifyMessage("VideoBug logged in at [" + "disk://localhost"
                             + "] for module [" + currentModule.getName() + "]",
                     NotificationType.INFORMATION);
         });
@@ -1085,5 +1043,62 @@ public class InsidiousService implements Disposable {
             this.client = null;
             currentModule = null;
         }
+    }
+
+    public void uploadSessionToServer() throws IOException {
+        String pathToSessions = project.getBasePath();
+        assert pathToSessions != null;
+        Path.of(pathToSessions).toFile().mkdirs();
+
+        VideobugLocalClient localClient = new VideobugLocalClient(pathToSessions);
+        localClient.getProjectSessions(new GetProjectSessionsCallback() {
+            @Override
+            public void error(String message) {
+                InsidiousNotification.notifyMessage("Session upload failed - " + message,
+                        NotificationType.ERROR);
+            }
+
+            @Override
+            public void success(List<ExecutionSession> executionSessionList) throws IOException {
+                if (executionSessionList.size() == 0) {
+                    InsidiousNotification.notifyMessage("No sessions found. Run the application with the videobug agent to create a session",
+                            NotificationType.ERROR);
+                    return;
+                }
+                ExecutionSession latestSession = executionSessionList.get(0);
+                localClient.setSession(latestSession);
+                List<File> sessionArchives = localClient.getSessionFiles();
+                InsidiousNotification.notifyMessage("" +
+                                "Uploading " + sessionArchives.size() + " archives to server ["
+                                + InsidiousService.this.client.getEndpoint() + "]",
+                        NotificationType.INFORMATION);
+                for (File sessionArchive : sessionArchives) {
+                    sendPOSTRequest(
+                            InsidiousService.this.client.getEndpoint() + "/checkpoint/uploadArchive",
+                            localClient.getCurrentSession().getSessionId(),
+                            sessionArchive.getAbsolutePath(),
+                            InsidiousService.this.appToken
+                    );
+                }
+            }
+        });
+    }
+
+    public void sendPOSTRequest(String url, String sessionId, String attachmentFilePath, String token) throws IOException {
+
+        String charset = "UTF-8";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("User-Agent", "insidious/1.0.1");
+        headers.put("Authorization", "Bearer " + token);
+
+        MultipartUtility form = new MultipartUtility(url, charset, headers);
+
+        File binaryFile = new File(attachmentFilePath);
+        form.addFilePart("file", binaryFile);
+        form.addFormField("sessionId", sessionId);
+        form.addFormField("hostname", HOSTNAME);
+
+        String response = form.finish();
+
     }
 }

@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
+import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
@@ -39,6 +40,7 @@ public class CredentialsToolbar {
     private JButton logoutButton;
     private JButton downloadJavaAgentToButton;
     private JButton buySingleUserLicenseButton;
+    private JButton uploadSessionToServer;
     private final InsidiousService insidiousService;
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
@@ -129,6 +131,28 @@ public class CredentialsToolbar {
                     java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
                 } catch (IOException e) {
                     e.printStackTrace();
+                }
+            }
+        });
+
+        uploadSessionToServer.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (insidiousService.getClient() instanceof VideobugLocalClient) {
+                    InsidiousNotification.notifyMessage(
+                            "Please login to a server for uploading session",
+                            NotificationType.ERROR
+                    );
+                    return;
+                }
+
+                try {
+                    insidiousService.uploadSessionToServer();
+                } catch (IOException ex) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to upload archives to server - " + ex.getMessage(),
+                            NotificationType.ERROR
+                    );
                 }
             }
         });
