@@ -4,6 +4,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.OutputStream;
@@ -25,8 +26,13 @@ public class InsidiousProcessHandler extends ProcessHandler {
             if (debugProcess == null) {
                 return;
             }
-            InsidiousService service = debugProcess.getProject().getService(InsidiousService.class);
+            Project project = debugProcess.getProject();
+            if (!project.isOpen()) {
+                return;
+            }
+            InsidiousService service = project.getService(InsidiousService.class);
             service.setDebugSession(null);
+            service.setDebugProcess(null);
         } catch (Exception e) {
             logger.error("failed to destroy process", e);
         }
@@ -73,6 +79,5 @@ public class InsidiousProcessHandler extends ProcessHandler {
     public void destroyProcess() {
         super.destroyProcess();
         notifyProcessTerminated(0);
-        insidiousJavaDebugProcess.getProject().getService(InsidiousService.class).setDebugProcess(null);
     }
 }
