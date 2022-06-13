@@ -65,7 +65,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             pathToSessions = pathToSessions + "/";
         }
         this.pathToSessions = pathToSessions;
-        this.networkClient = new VideobugNetworkClient("https://ssl-receiver.k8s.bug.video");
+        this.networkClient = new VideobugNetworkClient("https://cloud.bug.video");
     }
 
     @Override

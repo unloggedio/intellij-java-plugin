@@ -211,7 +211,7 @@ public class InsidiousService implements Disposable {
                 }
             });
         } catch (Throwable e) {
-            logger.error("exception in videobug service init");
+            logger.error("exception in videobug service init", e);
         }
     }
 
@@ -412,7 +412,7 @@ public class InsidiousService implements Disposable {
 
                         @Override
                         public void success(String token) {
-                            ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
+                            ReadAction.run(InsidiousService.this::downloadAgent);
                             ReadAction.run(InsidiousService.this::startDebugSession);
                             ReadAction.run(InsidiousService.this::setupProject);
 
@@ -982,16 +982,18 @@ public class InsidiousService implements Disposable {
         checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {
-
+                InsidiousNotification.notifyMessage(
+                        "Failed to download java agent: " + message, NotificationType.ERROR
+                );
             }
 
             @Override
             public void success(String url, String path) {
-                try {
-                    java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    // java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
             }
         });
 

@@ -5,10 +5,11 @@ public class UnauthorizedException extends APICallException {
         super(message);
     }
 
-    public UnauthorizedException() {
-    }
-
     public UnauthorizedException(String s, Exception e) {
         super(s, e);
+    }
+
+    public UnauthorizedException() {
+        super("Invalid username or password");
     }
 }
