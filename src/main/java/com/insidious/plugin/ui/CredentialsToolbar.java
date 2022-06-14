@@ -90,7 +90,7 @@ public class CredentialsToolbar {
             loginSupportTextArea.setText("");
         });
 
-        downloadJavaAgentToButton.addActionListener(ae -> insidiousService.downloadAgent());
+        downloadJavaAgentToButton.addActionListener(ae -> insidiousService.ensureAgentJar());
 
         signUpButton.addActionListener(new ActionListener() {
             @Override

@@ -68,8 +68,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -77,7 +75,6 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
-import static org.json.HTTP.CRLF;
 
 @Storage("insidious.xml")
 public class InsidiousService implements Disposable {
@@ -412,7 +409,7 @@ public class InsidiousService implements Disposable {
 
                         @Override
                         public void success(String token) {
-                            ReadAction.run(InsidiousService.this::downloadAgent);
+                            ReadAction.run(InsidiousService.this::ensureAgentJar);
                             ReadAction.run(InsidiousService.this::startDebugSession);
                             ReadAction.run(InsidiousService.this::setupProject);
 
@@ -675,7 +672,6 @@ public class InsidiousService implements Disposable {
 
     public synchronized void startDebugSession() {
         logger.info("start debug session");
-        boolean hasInsidiousDebugSession = false;
 
         if (debugSession != null) {
             return;
@@ -978,7 +974,7 @@ public class InsidiousService implements Disposable {
 
     }
 
-    public void downloadAgent() {
+    public void ensureAgentJar() {
         checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {
@@ -1027,6 +1023,7 @@ public class InsidiousService implements Disposable {
         newEvent("InitiateUseLocal", null);
 
 
+        ReadAction.run(InsidiousService.this::ensureAgentJar);
         ReadAction.run(InsidiousService.this::setupProject);
         ReadAction.run(InsidiousService.this::startDebugSession);
 
