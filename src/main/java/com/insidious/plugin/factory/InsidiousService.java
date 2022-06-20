@@ -239,7 +239,9 @@ public class InsidiousService implements Disposable {
 
             @Override
             public void success(String url, String path) {
-
+                InsidiousNotification.notifyMessage(
+                        "Agent jar download complete", NotificationType.INFORMATION
+                );
             }
         });
     }
@@ -250,6 +252,22 @@ public class InsidiousService implements Disposable {
         if (!insidiousFolder.exists()) {
             insidiousFolder.mkdir();
         }
+
+        if (overwrite) {
+            videoBugAgentPath.toFile().delete();
+        }
+
+        if (!videoBugAgentPath.toFile().exists() && !overwrite) {
+            InsidiousNotification.notifyMessage(
+                    "java agent does not exist, downloading to $HOME/.Videobug/videobug-java-agent.jar. Please wait for download to finish.",
+                    NotificationType.INFORMATION
+            );
+        }
+
+        if (videoBugAgentPath.toFile().exists()) {
+            return;
+        }
+
 
         client.getAgentDownloadUrl(new AgentDownloadUrlCallback() {
             @Override
@@ -604,7 +622,9 @@ public class InsidiousService implements Disposable {
     }
 
     public void getTraces(int pageNum, String traceValue) throws IOException {
-        newEvent("GetTracesByValue", null);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("query", traceValue);
+        newEvent("GetTracesByValue", eventProperties);
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -644,8 +664,9 @@ public class InsidiousService implements Disposable {
 
 
     public void getErrors(List<String> classList, int pageNum) throws IOException {
-
-        newEvent("GetTracesByType", null);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("query", classList.toString());
+        newEvent("GetTracesByType", eventProperties);
 
 
         if (this.client.getCurrentSession() == null) {
@@ -692,7 +713,10 @@ public class InsidiousService implements Disposable {
         if (debugSession != null) {
             return;
         }
-        newEvent("StartDebugSession", null);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("module", currentModule.getName());
+
+        newEvent("StartDebugSession", eventProperties);
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
@@ -902,9 +926,21 @@ public class InsidiousService implements Disposable {
     }
 
     public void setTracePoint(TracePoint selectedTrace) {
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("value", selectedTrace.getValue());
+        eventProperties.put("classId", selectedTrace.getClassId());
+        eventProperties.put("className", selectedTrace.getClassname());
+        eventProperties.put("dataId", selectedTrace.getDataId());
+        eventProperties.put("fileName", selectedTrace.getFilename());
+        eventProperties.put("nanoTime", selectedTrace.getNanoTime());
+        eventProperties.put("lineNumber", selectedTrace.getLinenum());
+        eventProperties.put("threadId", selectedTrace.getThreadId());
+
+
         newEvent("FetchByTracePoint", null);
 
         if (debugSession == null) {
+            newEvent("StartDebugSessionAtSelectTracepoint", null);
             startDebugSession();
             pendingSelectTrace = selectedTrace;
             return;
@@ -994,14 +1030,11 @@ public class InsidiousService implements Disposable {
 
             @Override
             public void success(String url, String path) {
-//                try {
-//                    // java.awt.Desktop.getDesktop().browse(java.net.URI.create(url));
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
+                InsidiousNotification.notifyMessage(
+                        "Agent jar download complete", NotificationType.INFORMATION
+                );
             }
         });
-
 
     }
 
@@ -1112,8 +1145,13 @@ public class InsidiousService implements Disposable {
 
 
     public void generateAndUploadReport() {
+
         StringBuilder reportBuilder = new StringBuilder();
         reportBuilder.append("hostname: ").append(HOSTNAME).append("\n");
+        reportBuilder.append("version: ").append(versionManager.getVersion()).append("\n");
+        reportBuilder.append("branch: ").append(versionManager.getGitBranchName()).append("\n");
+        reportBuilder.append("hash").append(versionManager.getGitHash()).append("\n");
+        reportBuilder.append("last tag").append(versionManager.getGitLastTag()).append("\n");
 
         ProjectManager projectManager = ProjectManager.getInstance();
 
@@ -1125,6 +1163,15 @@ public class InsidiousService implements Disposable {
         }
         reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName()).append("\n");
 
+
+        File agentJarFile = videoBugAgentPath.toFile();
+        if (agentJarFile.exists()) {
+            reportBuilder.append("agent jar exists at: ").append(agentJarFile.getAbsolutePath()).append("\n");
+            reportBuilder.append("agent jar downloaded at: ").append(agentJarFile.lastModified()).append("\n");
+            reportBuilder.append("agent jar size: ").append(agentJarFile.length()).append("\n");
+        } else {
+            reportBuilder.append("agent jar DOES NOT exists at: ").append(agentJarFile.getAbsolutePath()).append("\n");
+        }
 
         Project selectedProject = getProject();
         reportBuilder.append("projected selected for videobug: ").append(selectedProject.getName()).append("\n");
@@ -1172,16 +1219,18 @@ public class InsidiousService implements Disposable {
                                                 }
                                                 reportBuilder.append("zip [").append(loggedFile)
                                                         .append("] content => [").append(zipEntry.getName())
-                                                        .append("] size => [").append(zipEntry.getSize()).append("]");
+                                                        .append("] size => [").append(zipEntry.getSize())
+                                                        .append("]").append("\n");
                                             } catch (IOException e) {
                                                 reportBuilder.append("failed to open entry in zip [")
-                                                        .append(loggedFile).append("] => ").append(e.getMessage());
+                                                        .append(loggedFile).append("] => ")
+                                                        .append(e.getMessage()).append("\n");
                                             }
 
                                         }
                                     } catch (FileNotFoundException e) {
                                         reportBuilder.append("failed to open logzip [")
-                                                .append(loggedFile).append("] => ").append(e.getMessage());
+                                                .append(loggedFile).append("] => ").append(e.getMessage()).append("\n");
                                     }
                                 }
                             }
@@ -1231,12 +1280,34 @@ public class InsidiousService implements Disposable {
             return;
         }
 
+        File file = new File(projectRootPath.getAbsoluteFile() + "/videobug-report.zip");
+        if (file.exists()) {
+            file.delete();
+        }
+        try (FileOutputStream localOutput = new FileOutputStream(file)) {
+            localOutput.write(compressedReportContents);
+        } catch (IOException e) {
+            InsidiousNotification.notifyMessage(
+                    "failed to save report locally. " +
+                            "Error was: " + e.getMessage(),
+                    NotificationType.ERROR
+            );
+        }
+
+        if (appToken == null || appToken.equals("localhost-token")) {
+            InsidiousNotification.notifyMessage(
+                    "Please login to upload report to videobug. Saving report locally only for now.",
+                    NotificationType.INFORMATION
+            );
+            return;
+        }
+
         try {
 
             sendPOSTRequest(
-                    "https://cloud.bug.video/diagnose/uploadReport",
+                    "http://localhost:8123/checkpoint/uploadReport",
                     new ByteArrayInputStream(compressedReportContents),
-                    InsidiousService.this.appToken
+                    appToken
             );
 
         } catch (IOException ex) {
@@ -1245,20 +1316,12 @@ public class InsidiousService implements Disposable {
                             "Error was: " + ex.getMessage(),
                     NotificationType.ERROR
             );
-            File file = new File(projectRootPath.getAbsoluteFile() + "/videobug-report.zip");
-            if (file.exists()) {
-                file.delete();
-            }
-            try (FileOutputStream localOutput = new FileOutputStream(file)) {
-                localOutput.write(compressedReportContents);
-            } catch (IOException e) {
-                InsidiousNotification.notifyMessage(
-                        "failed to save report locally. " +
-                                "Error was: " + e.getMessage(),
-                        NotificationType.ERROR
-                );
-            }
         }
+
+        InsidiousNotification.notifyMessage(
+                "Report generated and uploaded: vieobug-report.zip",
+                NotificationType.INFORMATION
+        );
     }
 
     private void sendPOSTRequest(String url, ByteArrayInputStream byteArrayInputStream, String token) throws IOException {
@@ -1269,7 +1332,10 @@ public class InsidiousService implements Disposable {
 
         MultipartUtility form = new MultipartUtility(url, charset, headers);
 
-        form.addStream("file", "attachment.zip", byteArrayInputStream);
+        form.addStream("file", "diagnostic-report-" + System.currentTimeMillis() + ".zip",
+                byteArrayInputStream);
+        form.addFormField("hostname", HOSTNAME);
+        form.addFormField("plugin-version", versionManager.getVersion());
         String response = form.finish();
 
     }

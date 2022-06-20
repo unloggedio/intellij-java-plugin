@@ -28,6 +28,22 @@ public class VersionManager {
         return version;
     }
 
+    public String getGitLastTag() {
+        return gitLastTag;
+    }
+
+    public String getGitHash() {
+        return gitHash;
+    }
+
+    public String getGitBranchName() {
+        return gitBranchName;
+    }
+
+    public String getGitIsCleanTag() {
+        return gitIsCleanTag;
+    }
+
     VersionManager() {
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream("classpath:/version.properties");
 

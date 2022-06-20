@@ -102,7 +102,16 @@ public class CredentialsToolbar {
             loginSupportTextArea.setText("");
         });
 
-        downloadJavaAgentToButton.addActionListener(ae -> insidiousService.ensureAgentJar());
+        downloadJavaAgentToButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                InsidiousNotification.notifyMessage(
+                        "Downloading videobug java agent to $HOME/.Videobug/videobug-java-agent.jar. Please wait for the download to complete.",
+                        NotificationType.INFORMATION
+                );
+                insidiousService.ensureAgentJar();
+            }
+        });
 
         signUpButton.addActionListener(new ActionListener() {
             @Override
