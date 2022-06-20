@@ -77,6 +77,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
@@ -119,7 +122,6 @@ public class InsidiousService implements Disposable {
             amplitudeClient = Amplitude.getInstance("PLUGIN");
             amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
             threadPool = Executors.newFixedThreadPool(4);
-            this.versionManager = new VersionManager();
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -128,6 +130,7 @@ public class InsidiousService implements Disposable {
                 currentModule = ModuleManager.getInstance(project).getModules()[0];
                 logger.info("current module - " + currentModule.getName());
             }
+            this.versionManager = new VersionManager();
 
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
@@ -1110,70 +1113,95 @@ public class InsidiousService implements Disposable {
 
     public void generateAndUploadReport() {
         StringBuilder reportBuilder = new StringBuilder();
-        reportBuilder.append("hostname: ").append(HOSTNAME);
+        reportBuilder.append("hostname: ").append(HOSTNAME).append("\n");
 
         ProjectManager projectManager = ProjectManager.getInstance();
 
         Project[] openProjects = projectManager.getOpenProjects();
-        reportBuilder.append("listing open projects");
+        reportBuilder.append("listing open projects").append("\n");
         for (Project openProject : openProjects) {
             reportBuilder.append("project: ").append(openProject.getName())
-                    .append(" from location ").append(openProject.getBasePath());
+                    .append(" from location ").append(openProject.getBasePath()).append("\n");
         }
-        reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName());
+        reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName()).append("\n");
 
 
         Project selectedProject = getProject();
-        reportBuilder.append("projected selected for videobug: ").append(selectedProject.getName());
+        reportBuilder.append("projected selected for videobug: ").append(selectedProject.getName()).append("\n");
         ModuleManager moduleManager = ModuleManager.getInstance(selectedProject);
 
-        reportBuilder.append("listing modules in default project");
+        reportBuilder.append("listing modules in default project").append("\n");
         for (Module module : moduleManager.getModules()) {
             ModuleType<?> moduleType = ModuleType.get(module);
-            reportBuilder.append("module name: ").append(module.getName()).append(" => ").append(moduleType.getName());
+            reportBuilder.append("module name: ").append(module.getName()).append(" => ").append(moduleType.getName()).append("\n");
         }
 
 
-        File projectRootPath = new File(".");
-        if (projectRootPath.exists()) {
-            reportBuilder.append("project root path doesnt exist ?");
+        File projectRootPath = new File(selectedProject.getBasePath());
+        if (!projectRootPath.exists()) {
+            reportBuilder.append("project root path doesnt exist ?").append("\n");
         } else {
             String[] folderContentList = projectRootPath.list();
             if (folderContentList == null) {
-                reportBuilder.append("file list in current folder is empty");
+                reportBuilder.append("file list in current folder is empty").append("\n");
             } else {
                 for (String fileInRootPath : folderContentList) {
                     if (fileInRootPath.startsWith("selogger")) {
-                        reportBuilder.append("log folder: ").append(fileInRootPath);
+                        reportBuilder.append("log folder: ").append(fileInRootPath).append("\n");
 
 
-                        File logFolder = new File(fileInRootPath);
+                        File logFolder = Path.of(selectedProject.getBasePath(), fileInRootPath).toFile();
                         String[] loggedFiles = logFolder.list();
                         if (loggedFiles == null) {
-                            reportBuilder.append("no files found in [").append(fileInRootPath).append("]");
+                            reportBuilder.append("no files found in [").append(fileInRootPath).append("]").append("\n");
+                            continue;
                         } else {
                             for (String loggedFile : loggedFiles) {
-                                File loggedFileInstance = new File(loggedFile);
+                                File loggedFileInstance = Path.of(logFolder.getAbsolutePath(), loggedFile).toFile();
                                 reportBuilder.append("file in [").append(fileInRootPath).append("]: ")
-                                        .append(loggedFile).append(" == Size ==> ").append(loggedFileInstance.length());
+                                        .append(loggedFile).append(" == Size ==> ").append(loggedFileInstance.length()).append("\n");
+                                if (loggedFile.endsWith(".zip")) {
+                                    try {
+                                        ZipInputStream zipReader = new ZipInputStream(new FileInputStream(loggedFileInstance));
+                                        ZipEntry zipEntry;
+                                        while (true) {
+                                            try {
+                                                zipEntry = zipReader.getNextEntry();
+                                                if (zipEntry == null) {
+                                                    break;
+                                                }
+                                                reportBuilder.append("zip [").append(loggedFile)
+                                                        .append("] content => [").append(zipEntry.getName())
+                                                        .append("] size => [").append(zipEntry.getSize()).append("]");
+                                            } catch (IOException e) {
+                                                reportBuilder.append("failed to open entry in zip [")
+                                                        .append(loggedFile).append("] => ").append(e.getMessage());
+                                            }
+
+                                        }
+                                    } catch (FileNotFoundException e) {
+                                        reportBuilder.append("failed to open logzip [")
+                                                .append(loggedFile).append("] => ").append(e.getMessage());
+                                    }
+                                }
                             }
                         }
 
 
-                        Path logFilePath = Path.of(fileInRootPath, "log.txt");
+                        Path logFilePath = Path.of(selectedProject.getBasePath(), fileInRootPath, "log.txt");
                         File logFile = logFilePath.toFile();
                         if (!logFile.exists()) {
-                            reportBuilder.append("log.txt does not exist in [").append(fileInRootPath).append("]");
+                            reportBuilder.append("log.txt does not exist in [").append(fileInRootPath).append("]").append("\n");
                         } else {
                             FileInputStream logFileInputStream = null;
                             try {
                                 logFileInputStream = new FileInputStream(logFile);
                                 String logFileContents = streamToString(logFileInputStream);
-                                reportBuilder.append("===== BEGIN  LOG.TXT ======");
-                                reportBuilder.append(logFileContents);
-                                reportBuilder.append("===== END OF LOG.TXT ======");
+                                reportBuilder.append("===== BEGIN  LOG.TXT ======").append("\n");
+                                reportBuilder.append(logFileContents).append("\n");
+                                reportBuilder.append("===== END OF LOG.TXT ======").append("\n");
                             } catch (IOException ex) {
-                                reportBuilder.append("failed to read log file: ").append(ex.getMessage());
+                                reportBuilder.append("failed to read log file: ").append(ex.getMessage()).append("\n");
                             }
                         }
                     }
@@ -1183,18 +1211,53 @@ public class InsidiousService implements Disposable {
 
         String reportContent = reportBuilder.toString();
         ByteArrayOutputStream compressedReportStream = new ByteArrayOutputStream();
-        DeflaterOutputStream zippedReportStream = new DeflaterOutputStream(compressedReportStream);
+        ZipOutputStream zipReport = new ZipOutputStream(compressedReportStream);
+        byte[] compressedReportContents = new byte[0];
+        ZipEntry zipEntry = new ZipEntry("report.txt");
         try {
-            zippedReportStream.write(reportContent.getBytes(StandardCharsets.UTF_8));
+            zipReport.putNextEntry(zipEntry);
+            zipReport.write(reportContent.getBytes(StandardCharsets.UTF_8));
+            zipReport.closeEntry();
+            zipReport.finish();
+            compressedReportContents = compressedReportStream.toByteArray();
+        } catch (IOException e) {
+            InsidiousNotification.notifyMessage("unable to compress report: " + e.getMessage(), NotificationType.ERROR);
+            try (FileOutputStream plainTextReport = new FileOutputStream(projectRootPath.getAbsoluteFile() + "/videobug-report.txt")) {
+                plainTextReport.write(reportContent.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException ex) {
+                InsidiousNotification.notifyMessage("Unable to write report on disk: " + ex.getMessage(), NotificationType.ERROR);
+
+            }
+            return;
+        }
+
+        try {
 
             sendPOSTRequest(
                     "https://cloud.bug.video/diagnose/uploadReport",
-                    new ByteArrayInputStream(compressedReportStream.toByteArray()),
+                    new ByteArrayInputStream(compressedReportContents),
                     InsidiousService.this.appToken
             );
 
         } catch (IOException ex) {
-            throw new RuntimeException(ex);
+            InsidiousNotification.notifyMessage(
+                    "failed to upload report to server, saving on disk as videobug-report.zip. " +
+                            "Error was: " + ex.getMessage(),
+                    NotificationType.ERROR
+            );
+            File file = new File(projectRootPath.getAbsoluteFile() + "/videobug-report.zip");
+            if (file.exists()) {
+                file.delete();
+            }
+            try (FileOutputStream localOutput = new FileOutputStream(file)) {
+                localOutput.write(compressedReportContents);
+            } catch (IOException e) {
+                InsidiousNotification.notifyMessage(
+                        "failed to save report locally. " +
+                                "Error was: " + e.getMessage(),
+                        NotificationType.ERROR
+                );
+            }
         }
     }
 
