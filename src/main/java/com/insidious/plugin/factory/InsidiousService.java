@@ -1305,7 +1305,7 @@ public class InsidiousService implements Disposable {
         try {
 
             sendPOSTRequest(
-                    "http://localhost:8123/checkpoint/uploadReport",
+                    "https://cloud.bug.video/checkpoint/uploadReport",
                     new ByteArrayInputStream(compressedReportContents),
                     appToken
             );
