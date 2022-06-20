@@ -106,20 +106,51 @@ public class MultipartUtility {
     public void addFilePart(String fieldName, File uploadFile)
             throws IOException {
         String fileName = uploadFile.getName();
-        writer.append("--" + boundary).append(LINE_FEED);
-        writer.append(
-                        "Content-Disposition: form-data; name=\"" + fieldName
-                                + "\"; filename=\"" + fileName + "\"")
+        writer.append("--").append(boundary).append(LINE_FEED);
+        writer.append("Content-Disposition: form-data; name=\"")
+                .append(fieldName).append("\"; filename=\"").append(fileName).append("\"")
                 .append(LINE_FEED);
-        writer.append(
-                        "Content-Type: "
-                                + URLConnection.guessContentTypeFromName(fileName))
+        writer.append("Content-Type: ").append(URLConnection.guessContentTypeFromName(fileName))
                 .append(LINE_FEED);
         writer.append("Content-Transfer-Encoding: binary").append(LINE_FEED);
         writer.append(LINE_FEED);
         writer.flush();
 
         FileInputStream inputStream = new FileInputStream(uploadFile);
+        byte[] buffer = new byte[4096];
+        int bytesRead = -1;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+        outputStream.flush();
+        inputStream.close();
+
+        writer.append(LINE_FEED);
+        writer.flush();
+    }
+
+    /**
+     * Adds a upload file section to the request
+     *
+     * @param fieldName  name attribute in <input type="file" name="..." />
+     * @param fileName for the stream a File to be uploaded
+     * @param inputStream stream to be uploaded
+     * @throws IOException
+     */
+    public void addStream(String fieldName, String fileName, InputStream inputStream)
+            throws IOException {
+
+        writer.append("--").append(boundary).append(LINE_FEED);
+        writer.append("Content-Disposition: form-data; name=\"")
+                .append(fieldName).append("\"; filename=\"").append(fileName).append("\"")
+                .append(LINE_FEED);
+        writer.append("Content-Type: ").append(URLConnection.guessContentTypeFromName(fileName))
+                .append(LINE_FEED);
+        writer.append("Content-Transfer-Encoding: binary").append(LINE_FEED);
+        writer.append(LINE_FEED);
+        writer.flush();
+
+
         byte[] buffer = new byte[4096];
         int bytesRead = -1;
         while ((bytesRead = inputStream.read(buffer)) != -1) {

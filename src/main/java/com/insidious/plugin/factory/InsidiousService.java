@@ -46,7 +46,9 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.module.ModuleType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
@@ -68,11 +70,13 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.zip.DeflaterOutputStream;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
@@ -81,6 +85,7 @@ public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
+    private VersionManager versionManager;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
@@ -114,6 +119,7 @@ public class InsidiousService implements Disposable {
             amplitudeClient = Amplitude.getInstance("PLUGIN");
             amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
             threadPool = Executors.newFixedThreadPool(4);
+            this.versionManager = new VersionManager();
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -1100,4 +1106,120 @@ public class InsidiousService implements Disposable {
         String response = form.finish();
 
     }
+
+
+    public void generateAndUploadReport() {
+        StringBuilder reportBuilder = new StringBuilder();
+        reportBuilder.append("hostname: ").append(HOSTNAME);
+
+        ProjectManager projectManager = ProjectManager.getInstance();
+
+        Project[] openProjects = projectManager.getOpenProjects();
+        reportBuilder.append("listing open projects");
+        for (Project openProject : openProjects) {
+            reportBuilder.append("project: ").append(openProject.getName())
+                    .append(" from location ").append(openProject.getBasePath());
+        }
+        reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName());
+
+
+        Project selectedProject = getProject();
+        reportBuilder.append("projected selected for videobug: ").append(selectedProject.getName());
+        ModuleManager moduleManager = ModuleManager.getInstance(selectedProject);
+
+        reportBuilder.append("listing modules in default project");
+        for (Module module : moduleManager.getModules()) {
+            ModuleType<?> moduleType = ModuleType.get(module);
+            reportBuilder.append("module name: ").append(module.getName()).append(" => ").append(moduleType.getName());
+        }
+
+
+        File projectRootPath = new File(".");
+        if (projectRootPath.exists()) {
+            reportBuilder.append("project root path doesnt exist ?");
+        } else {
+            String[] folderContentList = projectRootPath.list();
+            if (folderContentList == null) {
+                reportBuilder.append("file list in current folder is empty");
+            } else {
+                for (String fileInRootPath : folderContentList) {
+                    if (fileInRootPath.startsWith("selogger")) {
+                        reportBuilder.append("log folder: ").append(fileInRootPath);
+
+
+                        File logFolder = new File(fileInRootPath);
+                        String[] loggedFiles = logFolder.list();
+                        if (loggedFiles == null) {
+                            reportBuilder.append("no files found in [").append(fileInRootPath).append("]");
+                        } else {
+                            for (String loggedFile : loggedFiles) {
+                                File loggedFileInstance = new File(loggedFile);
+                                reportBuilder.append("file in [").append(fileInRootPath).append("]: ")
+                                        .append(loggedFile).append(" == Size ==> ").append(loggedFileInstance.length());
+                            }
+                        }
+
+
+                        Path logFilePath = Path.of(fileInRootPath, "log.txt");
+                        File logFile = logFilePath.toFile();
+                        if (!logFile.exists()) {
+                            reportBuilder.append("log.txt does not exist in [").append(fileInRootPath).append("]");
+                        } else {
+                            FileInputStream logFileInputStream = null;
+                            try {
+                                logFileInputStream = new FileInputStream(logFile);
+                                String logFileContents = streamToString(logFileInputStream);
+                                reportBuilder.append("===== BEGIN  LOG.TXT ======");
+                                reportBuilder.append(logFileContents);
+                                reportBuilder.append("===== END OF LOG.TXT ======");
+                            } catch (IOException ex) {
+                                reportBuilder.append("failed to read log file: ").append(ex.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        String reportContent = reportBuilder.toString();
+        ByteArrayOutputStream compressedReportStream = new ByteArrayOutputStream();
+        DeflaterOutputStream zippedReportStream = new DeflaterOutputStream(compressedReportStream);
+        try {
+            zippedReportStream.write(reportContent.getBytes(StandardCharsets.UTF_8));
+
+            sendPOSTRequest(
+                    "https://cloud.bug.video/diagnose/uploadReport",
+                    new ByteArrayInputStream(compressedReportStream.toByteArray()),
+                    InsidiousService.this.appToken
+            );
+
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    private void sendPOSTRequest(String url, ByteArrayInputStream byteArrayInputStream, String token) throws IOException {
+        String charset = "UTF-8";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("User-Agent", "unlogged-plugin/" + versionManager.getVersion());
+        headers.put("Authorization", "Bearer " + token);
+
+        MultipartUtility form = new MultipartUtility(url, charset, headers);
+
+        form.addStream("file", "attachment.zip", byteArrayInputStream);
+        String response = form.finish();
+
+    }
+
+    public String streamToString(InputStream stream) throws IOException {
+        int bufferSize = 1024;
+        char[] buffer = new char[bufferSize];
+        StringBuilder out = new StringBuilder();
+        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
+            out.append(buffer, 0, numRead);
+        }
+        return out.toString();
+    }
+
 }
