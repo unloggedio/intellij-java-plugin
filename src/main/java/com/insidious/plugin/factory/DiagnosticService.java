@@ -2,7 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.MultipartUtility;
-import com.insidious.plugin.client.local.VideobugLocalClient;
+import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.intellij.notification.NotificationType;
@@ -130,16 +130,16 @@ public class DiagnosticService {
             return;
         }
 
-        if (identifiedSessions.size() > 0) {
-            ExecutionSession latestSession = identifiedSessions.get(0);
-            localClient.setSession(latestSession);
-            reportBuilder.append("adding logs for latest session: ").append(latestSession.getSessionId()).append("\n");
-            List<File> sessionFiles = localClient.getSessionFiles();
-            reportBuilder.append("identified session files by vlc: ").append(sessionFiles.toString()).append("\n");
-
-            localClient.getTracesByObjectValue();
-
-        }
+//        if (identifiedSessions.size() > 0) {
+//            ExecutionSession latestSession = identifiedSessions.get(0);
+//            localClient.setSession(latestSession);
+//            reportBuilder.append("adding logs for latest session: ").append(latestSession.getSessionId()).append("\n");
+//            List<File> sessionFiles = localClient.getSessionFiles();
+//            reportBuilder.append("identified session files by vlc: ").append(sessionFiles.toString()).append("\n");
+//
+//            localClient.getTracesByObjectValue();
+//
+//        }
 
         File file = new File(projectRootPath.getAbsoluteFile() + "/videobug-report.zip");
         if (file.exists()) {

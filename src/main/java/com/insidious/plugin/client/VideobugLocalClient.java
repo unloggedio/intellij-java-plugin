@@ -1,4 +1,4 @@
-package com.insidious.plugin.client.local;
+package com.insidious.plugin.client;
 
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
@@ -16,11 +16,8 @@ import com.insidious.common.parser.KaitaiInsidiousEventParser;
 import com.insidious.common.parser.KaitaiInsidiousIndexParser;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.DatFileType;
-import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
-import com.insidious.plugin.client.network.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -316,34 +313,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
-    @Override
-    public void iterateOnValues(
-            String value, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback
-    ) throws IOException {
-        logger.info("trace by string value: " + value);
-        refreshSessionArchivesList();
-
-        List<TracePoint> tracePointList = new LinkedList<>();
-        for (File sessionArchive : sessionArchives) {
-
-            NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
-            if (bytes == null) {
-                logger.warn("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
-                continue;
-            }
-            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
-
-
-            ArchiveIndex index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
-            Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(value));
-            if (stringIds.size() > 0) {
-                tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
-            }
-        }
-        tracePointList.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
-        getProjectSessionErrorsCallback.success(tracePointList);
-
-    }
 
     private List<TracePoint> queryForObjectIds(File sessionArchive, Set<Long> objectIds) {
         logger.info("Query for objectIds [" + objectIds.toString() + "]");

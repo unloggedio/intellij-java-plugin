@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
-import com.insidious.plugin.client.local.VideobugLocalClient;
+import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;

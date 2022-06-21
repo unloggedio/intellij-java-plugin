@@ -3,7 +3,7 @@ package com.insidious.plugin;
 import com.insidious.plugin.callbacks.GetProjectSessionErrorsCallback;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.VideobugClientInterface;
-import com.insidious.plugin.client.local.VideobugLocalClient;
+import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.pojo.TracePoint;
