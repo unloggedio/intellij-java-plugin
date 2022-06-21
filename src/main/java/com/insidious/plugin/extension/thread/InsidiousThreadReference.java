@@ -364,7 +364,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
                             // if fieldName is empty, it can potentially be the first item of the call params
                             // getInt("fieldName") set("FieldName", value)
-                            if (StringUtil.isEmpty(fieldName)) {
+                            if (StringUtil.isEmpty(fieldName) && paramsArgsList.size() > 1) {
                                 InsidiousLocalVariable key = paramsArgsList.get(0);
                                 fieldName = String.valueOf(key.getValue().getActualValue());
                                 paramsArgsList.remove(0);

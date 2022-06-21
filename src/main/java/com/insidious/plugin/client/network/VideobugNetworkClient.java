@@ -1,11 +1,12 @@
-package com.insidious.plugin.client;
+package com.insidious.plugin.client.network;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.*;
-import com.insidious.plugin.actions.Constants;
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;

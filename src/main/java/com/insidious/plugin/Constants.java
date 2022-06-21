@@ -1,6 +1,8 @@
-package com.insidious.plugin.actions;
+package com.insidious.plugin;
 
 import okhttp3.MediaType;
+
+import java.nio.file.Path;
 
 public class Constants {
     public static final String CLASSINFO = "classinfo";
@@ -30,5 +32,10 @@ public class Constants {
     public static final String TRACK_LINE = "track_lines";
     public static final String PROJECT_TOKEN = "project_token";
     public static final String ERROR_NAMES = "error_names";
+
+    public static final Path videoBugHomePath = Path.of(System.getProperty("user.home"), ".VideoBug");
+    public static final String agentJarName = "videobug-java-agent.jar";
+    public static final Path videoBugAgentPath = Path.of(videoBugHomePath.toAbsolutePath().toString(), agentJarName);
+
 
 }

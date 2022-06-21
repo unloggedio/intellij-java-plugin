@@ -327,7 +327,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
         }
 
         if (suspendContext != null) {
-            this.insidiousEventReaderthread.notifyPaused(suspendContext);
+            if (this.insidiousEventReaderthread != null) {
+                this.insidiousEventReaderthread.notifyPaused(suspendContext);
+            }
 
             ((XDebugSessionImpl) getSession()).positionReached(suspendContext, true);
         }
