@@ -82,7 +82,7 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private final String DefaultPackageName = "YOUR.PACKAGE.NAME";
+    private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private Amplitude amplitudeClient;
@@ -856,7 +856,7 @@ public class InsidiousService implements Disposable {
         String[] vmParamsToAdd = new String[]{
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
                 "-javaagent:\"" + Constants.videoBugAgentPath
-                        + "=i=" + (packageName == null ? DefaultPackageName : packageName.replaceAll("\\.", "/"))
+                        + "=i=" + (packageName == null ? DEFAULT_PACKAGE_NAME : packageName.replaceAll("\\.", "/"))
                         + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video")
                         + ",token=" + appToken + "\""
         };
