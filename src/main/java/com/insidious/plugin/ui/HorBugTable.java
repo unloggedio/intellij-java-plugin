@@ -102,7 +102,7 @@ public class HorBugTable {
                     insidiousService.refreshSession();
 
 
-                    insidiousService.getErrors(exceptionClassnameList, 0);
+                    insidiousService.getTracesByType(exceptionClassnameList, 0);
                 } catch (Exception e) {
                     logger.error("failed to load sessions for module", e);
                 }

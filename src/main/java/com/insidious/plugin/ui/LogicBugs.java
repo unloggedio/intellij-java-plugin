@@ -1,11 +1,11 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
@@ -89,7 +89,7 @@ public class LogicBugs {
         setTracePoints(List.of());
         try {
             insidiousService.refreshSession();
-            insidiousService.getTraces(0, traceIdfield.getText());
+            insidiousService.getTracesByValue(0, traceIdfield.getText());
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }

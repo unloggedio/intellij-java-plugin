@@ -8,6 +8,7 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.thread.types.InsidiousClassTypeReference;
 import com.insidious.plugin.extension.thread.types.InsidiousObjectReference;
 import com.insidious.plugin.extension.thread.types.InsidiousTypeFactory;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -15,6 +16,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.sun.jdi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,6 +45,19 @@ public class InsidiousThreadReference implements ThreadReference {
         this.threadGroupReference = threadGroupReference;
         this.replayData = replayData;
         this.tracePoint = tracePoint;
+
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("classname", tracePoint.getClassname());
+        eventProperties.put("sessionId", tracePoint.getExecutionSessionId());
+        eventProperties.put("filename", tracePoint.getFilename());
+        eventProperties.put("classCount", replayData.getClassInfoMap().size());
+        eventProperties.put("eventsCount", replayData.getDataEvents().size());
+        eventProperties.put("probesCount", replayData.getDataInfoMap());
+        eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
+        eventProperties.put("typesCount", replayData.getTypeInfo().size());
+        eventProperties.put("objectsCount", replayData.getObjectInfo().size());
+        UsageInsightTracker.getInstance().NewEvent("ConstructThreadReference", eventProperties);
 
         int i = 0;
         long lowestTimestamp = 99999999999999L;
@@ -995,6 +1010,11 @@ public class InsidiousThreadReference implements ThreadReference {
 
     public void doStep(int size, int depth, RequestHint requestHint) {
 //        buildClassTypeReferences();
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("size", size);
+        eventProperties.put("depth", depth);
+        UsageInsightTracker.getInstance().NewEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
         int currentLineNumber = replayData.getDataInfoMap().get(
