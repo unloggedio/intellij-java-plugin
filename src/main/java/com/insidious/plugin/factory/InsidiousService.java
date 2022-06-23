@@ -638,7 +638,7 @@ public class InsidiousService implements Disposable {
                         if (tracePoints.size() == 0) {
                             ApplicationManager.getApplication()
                                     .invokeAndWait(() -> InsidiousNotification.notifyMessage(
-                                            "No data available, or data may have been deleted!",
+                                            "No results matched for string [" + traceValue + "]",
                                             NotificationType.INFORMATION));
                         } else {
                             insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
