@@ -6,9 +6,15 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.NonBlockingReadAction;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -17,12 +23,15 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-public class HorBugTable {
-    private static final Logger logger = LoggerUtil.getInstance(HorBugTable.class);
+public class SearchByTypeWindow {
+    private static final Logger logger = LoggerUtil.getInstance(SearchByTypeWindow.class);
     private final InsidiousService insidiousService;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
     Project project;
@@ -31,33 +40,27 @@ public class HorBugTable {
     private Map<String, Boolean> exceptionMap = new HashMap<>();
     private JPanel panel1;
     private JTable bugs;
-    private JPanel panel11;
-    private JPanel panel12;
-    private JScrollPane scrollpanel;
-    private JLabel variables;
-    private JLabel values;
+    private JPanel resultContainer;
     private JButton fetchSessionButton;
     private JButton refreshButton;
-    private JTable varsValue;
-    private JScrollPane varsvaluePane;
-    private JTable varsValuesTable;
     private JTable bugTypes;
-    private JPanel customBugPanel;
-    private JButton custombugButton;
-    private JProgressBar progressBarfield;
-    private JLabel errorLabel;
-    private JTextArea commandTextArea;
-    private JButton applybutton;
-    private JTextField traceIdfield;
-    private JLabel someLable;
+    private JPanel searchControl;
+    private JButton addNewTypeButton;
+    private JPanel searchContainer;
+    private JScrollPane searchConfig;
+    private JPanel resultControl;
+    private JScrollPane resultList;
+    private JTextField typeNameInput;
     private List<TracePoint> bugList;
 
-    public HorBugTable(Project project, InsidiousService insidiousService) {
+    public SearchByTypeWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         basepath = this.project.getBasePath();
 
         this.insidiousService = insidiousService;
-        fetchSessionButton.addActionListener(actionEvent -> loadBug(bugs.getSelectedRow()));
+        fetchSessionButton.addActionListener(actionEvent -> {
+            loadBug(bugs.getSelectedRow());
+        });
 
         varsDefaultTableModel = new DefaultTableModel() {
             @Override
@@ -91,36 +94,68 @@ public class HorBugTable {
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    setTracePoints(List.of());
-                    scrollpanel.setVisible(true);
-                    List<String> exceptionClassnameList = exceptionMap.entrySet()
-                            .stream()
-                            .filter(Map.Entry::getValue)
-                            .map(Map.Entry::getKey)
-                            .collect(Collectors.toList());
-                    insidiousService.refreshSession();
+                setTracePoints(List.of());
+
+                List<String> exceptionClassnameList = exceptionMap.entrySet()
+                        .stream()
+                        .filter(Map.Entry::getValue)
+                        .map(Map.Entry::getKey)
+                        .collect(Collectors.toList());
 
 
-                    insidiousService.getTracesByType(exceptionClassnameList, 0);
-                } catch (Exception e) {
-                    logger.error("failed to load sessions for module", e);
-                }
+                ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
+                    public void run(ProgressIndicator indicator) {
+
+                        indicator.setText("Loading latest session...");
+                        try {
+                            insidiousService.refreshSession();
+                            indicator.setFraction(0.1);  // halfway done not
+                            indicator.setText2("Searching by exceptions...");
+                            insidiousService.getTracesByType(exceptionClassnameList, indicator);
+                        } catch (Exception e) {
+                            logger.error("failed to load sessions for module", e);
+                        } finally {
+                            indicator.stop();
+                        }
+
+                    }
+                });
+
+
             }
         });
-        custombugButton.addActionListener(new ActionListener() {
+        addNewTypeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                showDialog();
+                checkInputAndSearch();
             }
         });
 
         initBugTypeTable();
         setTableValues();
+        typeNameInput.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    checkInputAndSearch();
+                    return;
+                }
+                super.keyPressed(e);
+            }
+        });
     }
 
-    public void setCommandText(String text) {
-        commandTextArea.setText(text);
+    private void checkInputAndSearch() {
+
+        String typeName = typeNameInput.getText();
+
+        if (typeName != null && typeName.trim().length() > 0) {
+            exceptionMap.put(typeName.trim(), true);
+            insidiousService.setExceptionClassList(exceptionMap);
+        }
+
+        updateTypeNameTable();
+
     }
 
     public JPanel getContent() {
@@ -195,7 +230,7 @@ public class HorBugTable {
     private void loadBug(int rowNum) {
         logger.info("load trace point by index: " + rowNum);
         if (rowNum >= bugList.size() || rowNum < 0) {
-            logger.info("selected by index out of size "+rowNum+" -> " + bugList.size());
+            logger.info("selected by index out of size " + rowNum + " -> " + bugList.size());
             Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                     .createNotification("Please select a trace point to fetch",
                             NotificationType.ERROR), project);
@@ -203,16 +238,19 @@ public class HorBugTable {
         }
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
+
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]",
                     selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+
             insidiousService.setTracePoint(selectedTrace);
+
         } catch (Exception e) {
 
             logger.error("failed to fetch session events", e);
             if (InsidiousNotification.balloonNotificationGroup != null) {
                 Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
-                                .createNotification("Failed to fetch session events - " + e.getMessage(),
-                                        NotificationType.ERROR), project);
+                        .createNotification("Failed to fetch session events - " + e.getMessage(),
+                                NotificationType.ERROR), project);
             }
         }
     }
@@ -223,7 +261,7 @@ public class HorBugTable {
 
 
         exceptionMap = insidiousService.getDefaultExceptionClassList();
-        updateBugsTable();
+        updateTypeNameTable();
 
 
         bugTypes.getModel().addTableModelListener(tableModelEvent -> {
@@ -236,15 +274,19 @@ public class HorBugTable {
         });
     }
 
-    private void updateBugsTable() {
-        Object[] headers = {"Error Type", "Track it?"};
+    private void updateTypeNameTable() {
+        Object[] headers = {"Exception Classname", "Include in search"};
 
         Set<Map.Entry<String, Boolean>> entries = exceptionMap.entrySet();
         Object[][] errorTypes = new Object[entries.size()][];
+        List<String> typeNamesSorted = entries.stream().map(Map.Entry::getKey).sorted().collect(Collectors.toList());
 
         int i = 0;
-        for (Map.Entry<String, Boolean> stringBooleanEntry : entries) {
-            Object[] errorType = new Object[]{stringBooleanEntry.getKey(), stringBooleanEntry.getValue()};
+        for (String typeName : typeNamesSorted) {
+            Object[] errorType = new Object[]{
+                    typeName,
+                    exceptionMap.get(typeName)
+            };
             errorTypes[i] = errorType;
             i++;
         }
@@ -256,45 +298,16 @@ public class HorBugTable {
 
     }
 
-    private void showDialog() {
-        String value = Messages.showInputDialog("Error Class Name (fully qualified)", "What's the Error Name?", null);
-
-        if (value == null || value.equals("")) {
-            return;
-        }
-
-        exceptionMap.put(value.trim(), true);
-        insidiousService.setExceptionClassList(exceptionMap);
-        updateBugsTable();
-    }
-
-
-    private void hideTable(String table) {
-        if (table.equals("bugs")) {
-            progressBarfield.setVisible(true);
-            scrollpanel.setVisible(false);
-        } else if (table.equals("varsvalues")) {
-            varsvaluePane.setVisible(false);
-        }
-    }
-
-
-    private void updateErrorLabel(String text) {
-        errorLabel.setText(text);
-    }
 
     public void setTracePoints(List<TracePoint> tracePointCollection) {
-        scrollpanel.setVisible(true);
         setTableData(tracePointCollection);
     }
 
     public void addTracePoints(List<TracePoint> tracePointCollection) {
-        scrollpanel.setVisible(true);
         tracePointCollection.forEach(e -> defaultTableModel.getDataVector().add(tracePointToStringVector((e))));
     }
 
     public void clearTracePoints() {
-        scrollpanel.setVisible(true);
         setTracePoints(List.of());
     }
 }

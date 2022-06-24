@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.sun.jdi.*;
 import com.sun.jdi.event.EventQueue;
@@ -498,7 +499,19 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         FilteredDataEventsRequest filterDataEventRequest = tracePoint.toFilterDataEventRequest();
         filterDataEventRequest.setPageSize(1000);
 
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
+        }
         this.replayData = this.project.getService(InsidiousService.class).getClient().fetchDataEvents(filterDataEventRequest);
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                    "Creating frames from: " + this.replayData.getDataEvents().size()
+                            + " events across " + this.replayData.getClassInfoMap().size() + " class file, for " +
+                            this.replayData.getDataInfoMap().size() + " probes");
+        }
+
+
         threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
 
         threadReferenceGroup.setThreadReferenceGroup(List.of(new InsidiousThreadReference(threadReferenceGroup, replayData, tracePoint)));

@@ -12,6 +12,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.pojo.TracePoint;
+import com.intellij.openapi.progress.ProgressIndicator;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -52,7 +53,7 @@ public interface VideobugClientInterface {
     void getTracesByObjectType(
             Collection<String> classList,
             int historyDepth,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;
+            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback, ProgressIndicator indicator) throws IOException;
 
     void getTracesByObjectValue(String value,
                                 GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) throws IOException;

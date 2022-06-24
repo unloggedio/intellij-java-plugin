@@ -15,6 +15,9 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.util.text.StringUtil;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
@@ -259,7 +262,36 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             builder = builder.addHeader("Authorization", "Bearer " + token);
         }
         Request request = builder.build();
-        client.newCall(request).enqueue(callback);
+        Call call = client.newCall(request);
+        call.enqueue(callback);
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            String dots = "";
+            while (true) {
+                try {
+                    Thread.sleep(200);
+                    if (call.isExecuted()) {
+                        break;
+                    }
+
+                    dots = dots + ".";
+                    if (dots.length() > 3) {
+                        dots = ".";
+                    }
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                        ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Request is in progress " + dots);
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                            call.cancel();
+                            throw new ProcessCanceledException();
+                        }
+                    }
+
+                } catch (InterruptedException e) {
+                    call.cancel();
+                    throw new RuntimeException(e);
+                }
+            }
+        }
 
     }
 
@@ -332,7 +364,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectType(Collection<String> classList, int depth, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+    public void getTracesByObjectType(Collection<String> classList, int depth, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback, ProgressIndicator indicator) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -342,6 +374,16 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 + StringUtil.join(classList, ",")
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
+
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Querying server for events by class type");
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+        }
+
+
         get(url, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {
@@ -388,6 +430,17 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 + value
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
+
+
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Querying server for events by value [" + value + "]");
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+        }
+
+
         get(url, new Callback() {
             @Override
             public void onFailure(@NotNull Call call, @NotNull IOException e) {

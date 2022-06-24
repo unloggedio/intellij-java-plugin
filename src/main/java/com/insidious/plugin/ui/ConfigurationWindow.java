@@ -21,8 +21,8 @@ import java.io.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class CredentialsToolbar {
-    private static final Logger logger = LoggerUtil.getInstance(CredentialsToolbar.class);
+public class ConfigurationWindow {
+    private static final Logger logger = LoggerUtil.getInstance(ConfigurationWindow.class);
     private final Project project;
     private final ToolWindow toolWindow;
     private JPanel panel1;
@@ -46,7 +46,7 @@ public class CredentialsToolbar {
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
 
-    public CredentialsToolbar(Project project, ToolWindow toolWindow) {
+    public ConfigurationWindow(Project project, ToolWindow toolWindow) {
         this.project = project;
         this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;

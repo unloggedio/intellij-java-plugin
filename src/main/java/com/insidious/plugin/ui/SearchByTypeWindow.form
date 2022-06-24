@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.SearchByTypeWindow">
+  <grid id="27dc6" binding="panel1" default-binding="true" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="0" left="0" bottom="0" right="0"/>
+    <constraints>
+      <xy x="20" y="20" width="1258" height="400"/>
+    </constraints>
+    <properties>
+      <name value=""/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <grid id="f183f" binding="resultContainer" layout-manager="GridLayoutManager" row-count="2" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="true"/>
+        </constraints>
+        <properties>
+          <name value="panel12name"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <scrollpane id="96ffe" binding="resultList">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <name value="scrollpanel1name"/>
+            </properties>
+            <border type="none"/>
+            <children>
+              <component id="81c31" class="javax.swing.JTable" binding="bugs">
+                <constraints/>
+                <properties>
+                  <font name="Fira Code" size="16" style="0"/>
+                  <intercellSpacing width="2" height="4"/>
+                  <maximumSize width="2147483647" height="40"/>
+                  <minimumSize width="30" height="40"/>
+                  <name value="bugtablename"/>
+                  <rowHeight value="24"/>
+                  <rowMargin value="4"/>
+                  <selectionBackground color="-1033939"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+          <grid id="9d489" binding="resultControl" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="1" left="1" bottom="1" right="1"/>
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="d32c0" class="javax.swing.JButton" binding="refreshButton" default-binding="true">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="4" fill="0" indent="0" use-parent-layout="false">
+                    <minimum-size width="200" height="-1"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <font name="JetBrains Mono" size="16" style="0"/>
+                  <icon value="actions/search.png"/>
+                  <inheritsPopupMenu value="true"/>
+                  <margin top="0" left="0" bottom="0" right="0"/>
+                  <name value="freshbuttonname"/>
+                  <text value="Search Executions"/>
+                </properties>
+              </component>
+              <component id="ff53a" class="javax.swing.JButton" binding="fetchSessionButton" default-binding="true">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false">
+                    <minimum-size width="200" height="-1"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <font name="JetBrains Mono" size="16" style="0"/>
+                  <hideActionText value="false"/>
+                  <horizontalAlignment value="0"/>
+                  <icon value="actions/lightning.png"/>
+                  <margin top="0" left="0" bottom="0" right="0"/>
+                  <name value="fetchbuttonname"/>
+                  <text value="Play Selected Execution"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+        </children>
+      </grid>
+      <grid id="782f2" binding="searchContainer" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="8" fill="2" indent="0" use-parent-layout="false">
+            <minimum-size width="500" height="-1"/>
+            <preferred-size width="500" height="-1"/>
+            <maximum-size width="500" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <scrollpane id="3c985" binding="searchConfig">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="547b8" class="javax.swing.JTable" binding="bugTypes">
+                <constraints/>
+                <properties>
+                  <font name="Fira Code" size="16" style="0"/>
+                  <intercellSpacing width="2" height="4"/>
+                  <maximumSize width="30" height="32"/>
+                  <rowHeight value="24"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+          <grid id="a35a" binding="searchControl" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="0" left="0" bottom="0" right="0"/>
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <minimum-size width="450" height="-1"/>
+                <preferred-size width="450" height="-1"/>
+                <maximum-size width="450" height="-1"/>
+              </grid>
+            </constraints>
+            <properties/>
+            <border type="none"/>
+            <children>
+              <component id="6614e" class="javax.swing.JTextField" binding="typeNameInput">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                    <preferred-size width="250" height="-1"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <text value=""/>
+                  <toolTipText value="com.package.name.ClassNameException"/>
+                </properties>
+              </component>
+              <component id="7e97c" class="javax.swing.JButton" binding="addNewTypeButton">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties>
+                  <font name="Fira Code" size="16" style="0"/>
+                  <icon value="general/add.png"/>
+                  <inheritsPopupMenu value="true"/>
+                  <text value="Add class"/>
+                </properties>
+              </component>
+            </children>
+          </grid>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>

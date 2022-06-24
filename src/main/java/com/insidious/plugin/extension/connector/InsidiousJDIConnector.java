@@ -14,6 +14,7 @@ import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.debugger.ui.breakpoints.MethodBreakpoint;
 import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.util.Key;
 import com.intellij.xdebugger.XDebugProcess;
 import com.sun.jdi.*;
@@ -252,7 +253,7 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     }
 
-    public void setTracePoint(TracePoint tracePoint) throws Exception {
+    public void setTracePoint(TracePoint tracePoint, ProgressIndicator indicator) throws Exception {
         this.virtualMachine.setTracePoint(tracePoint);
     }
 }

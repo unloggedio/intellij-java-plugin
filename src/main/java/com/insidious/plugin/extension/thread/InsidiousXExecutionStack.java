@@ -2,6 +2,7 @@ package com.insidious.plugin.extension.thread;
 
 import com.insidious.plugin.extension.DebuggerBundle;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousXSuspendContext;
 import com.insidious.plugin.extension.connector.InsidiousStackFrameProxy;
 import com.insidious.plugin.util.LoggerUtil;
@@ -9,7 +10,10 @@ import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.icons.AllIcons;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Computable;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -107,13 +111,22 @@ public class InsidiousXExecutionStack extends XExecutionStack {
         Location location = stackFrame.location();
         String[] sourcePathParts = location.sourcePath().split("/");
 
+        Collection<VirtualFile> file = ApplicationManager.getApplication().runReadAction(new Computable<Collection<VirtualFile>>() {
+            @Override
+            public Collection<VirtualFile> compute() {
+                return FilenameIndex.getVirtualFilesByName(myDebugProcess.getProject(),
+                        sourcePathParts[sourcePathParts.length - 1], GlobalSearchScope.projectScope(myDebugProcess.getProject()));
+            }
+        });
 
-        @NotNull Collection<VirtualFile> file = FilenameIndex.getVirtualFilesByName(myDebugProcess.getProject(),
-                sourcePathParts[sourcePathParts.length - 1], GlobalSearchScope.projectScope(myDebugProcess.getProject()));
+//        @NotNull Collection<VirtualFile> file = FilenameIndex.getVirtualFilesByName(myDebugProcess.getProject(),
+//                sourcePathParts[sourcePathParts.length - 1], GlobalSearchScope.projectScope(myDebugProcess.getProject()));
 
         XSourcePosition xSourcePosition = null;
         if (file.isEmpty()) {
-
+            InsidiousNotification.notifyMessage(
+                    "Failed to map back to a file stack to a class file", NotificationType.ERROR
+            );
         } else {
             VirtualFile vf = file.stream().findFirst().get();
             xSourcePosition = XDebuggerUtil.getInstance().createPosition(vf, location.lineNumber());

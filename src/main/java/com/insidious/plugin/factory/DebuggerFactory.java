@@ -1,8 +1,8 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.ui.CredentialsToolbar;
-import com.insidious.plugin.ui.HorBugTable;
-import com.insidious.plugin.ui.LogicBugs;
+import com.insidious.plugin.ui.ConfigurationWindow;
+import com.insidious.plugin.ui.SearchByTypeWindow;
+import com.insidious.plugin.ui.SearchByValueWindow;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
@@ -16,10 +16,10 @@ import org.jetbrains.annotations.NotNull;
 public class DebuggerFactory implements ToolWindowFactory, DumbAware {
     private static final Logger logger = LoggerUtil.getInstance(DebuggerFactory.class);
     Project currentProject;
-    CredentialsToolbar credentialsToolbar;
+    ConfigurationWindow credentialsToolbar;
     ContentFactory contentFactory;
-    HorBugTable bugsTable;
-    LogicBugs logicBugs;
+    SearchByTypeWindow bugsTable;
+    SearchByValueWindow logicBugs;
     Content credentialContent, bugsContent, logicbugContent;
     ToolWindow toolWindow;
 

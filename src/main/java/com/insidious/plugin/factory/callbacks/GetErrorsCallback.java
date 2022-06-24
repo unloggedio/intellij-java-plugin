@@ -53,12 +53,9 @@ public class GetErrorsCallback implements GetProjectSessionErrorsCallback {
             JSONObject eventProperties = new JSONObject();
             UsageInsightTracker.getInstance().NewEvent("NoResultGetTracesByType", eventProperties);
 
-
-            ApplicationManager.getApplication()
-                    .runWriteAction(
-                            () -> InsidiousNotification.notifyMessage(
-                                    "No Exception data events matched in the last session [" + sessionId + "]",
-                                    NotificationType.INFORMATION));
+            InsidiousNotification.notifyMessage(
+                    "No Exception data events matched in the last session [" + sessionId + "]",
+                    NotificationType.INFORMATION);
 
         } else {
             JSONObject eventProperties = new JSONObject();

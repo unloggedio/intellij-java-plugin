@@ -10,9 +10,13 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -21,46 +25,53 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class LogicBugs {
-    private static final Logger logger = LoggerUtil.getInstance(LogicBugs.class);
+public class SearchByValueWindow {
+    private static final Logger logger = LoggerUtil.getInstance(SearchByValueWindow.class);
     private final Project project;
     private final InsidiousService insidiousService;
     DefaultTableCellRenderer centerRenderer;
     private JPanel mainpanel;
-    private JPanel searchPanel;
+    private JPanel searchControl;
     private JTable bugsTable;
     private JTable varsvalueTable;
-    private JTextField traceIdfield;
-    private JLabel searchLabel;
+    private JTextField searchValueInput;
     private JButton searchButton;
-    private JButton refreshButton;
     private JButton fetchBackwardButton;
-    private JProgressBar progressBarfield;
-    private JLabel errorLabel;
     private JProgressBar variableProgressbar;
     private JScrollPane scrollpanel;
     private JTable searchHistoryTable;
     private JPanel searchtablepanel;
     private JScrollPane searchtablescrollpane;
+    private JPanel resultsPanel;
     private JButton fetchForwardButton;
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
     private ReentrantLock lock;
 
-    public LogicBugs(Project project, InsidiousService insidiousService) {
+    public SearchByValueWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
 
-        refreshButton.addActionListener(e -> {
-            doSearch();
-        });
         searchButton.addActionListener(actionEvent -> {
             doSearch();
+        });
+
+        searchValueInput.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    doSearch();
+                    return;
+                }
+                super.keyPressed(e);
+            }
         });
 
 
@@ -78,7 +89,7 @@ public class LogicBugs {
     }
 
     private void doSearch() {
-        if (traceIdfield.getText().equals("")) {
+        if (searchValueInput.getText().equals("")) {
             Notifications.Bus.notify(
                     InsidiousNotification.balloonNotificationGroup
                             .createNotification("Cannot search with empty string", NotificationType.ERROR),
@@ -87,12 +98,17 @@ public class LogicBugs {
         }
 
         setTracePoints(List.of());
+
         try {
             insidiousService.refreshSession();
-            insidiousService.getTracesByValue(0, traceIdfield.getText());
+            insidiousService.getTracesByValue(0, searchValueInput.getText());
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
+
+
+
+
     }
 
     private void initTables() {
@@ -155,7 +171,7 @@ public class LogicBugs {
                         return;
                     }
                     SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
-                    traceIdfield.setText(selectedSearchResult.getQuery());
+                    searchValueInput.setText(selectedSearchResult.getQuery());
                     doSearch();
                 } catch (Exception ex) {
                     logger.error("failed to do search", ex);
