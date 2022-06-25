@@ -16,7 +16,6 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.util.text.StringUtil;
 import okhttp3.*;
@@ -269,7 +268,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             String dots = "";
             while (true) {
                 try {
-                    Thread.sleep(200);
+                    Thread.sleep(500);
                     if (call.isExecuted()) {
                         break;
                     }
@@ -278,17 +277,13 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     if (dots.length() > 3) {
                         dots = ".";
                     }
-                    if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                        ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Request is in progress " + dots);
-                        if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                            call.cancel();
-                            throw new ProcessCanceledException();
-                        }
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Query is in progress " + dots);
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        throw new ProcessCanceledException();
                     }
 
                 } catch (InterruptedException e) {
-                    call.cancel();
-                    throw new RuntimeException(e);
+                    throw new ProcessCanceledException(e);
                 }
             }
         }
@@ -364,7 +359,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectType(Collection<String> classList, int depth, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback, ProgressIndicator indicator) {
+    public void getTracesByObjectType(
+            Collection<String> classList,
+            int depth,
+            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
+    ) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -377,7 +376,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Querying server for events by class type");
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Querying server for events by class type");
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                 throw new ProcessCanceledException();
             }
@@ -408,6 +407,18 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     DataResponse<DataEventWithSessionId> traceResponse =
                             objectMapper.readValue(responseBodyString, typeReference);
 
+
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                        ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                                "Mapping " + traceResponse.getItems().size() + " trace points across "
+                                        + traceResponse.getMetadata().getClassInfo().size() + " classes."
+                        );
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                            throw new ProcessCanceledException();
+                        }
+                    }
+
+
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
 
                     tracePoints.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
@@ -420,7 +431,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectValue(String value,
-                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                       GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -430,7 +441,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 + value
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
-
 
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {

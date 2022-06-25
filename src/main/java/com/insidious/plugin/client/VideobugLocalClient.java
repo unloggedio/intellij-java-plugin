@@ -24,7 +24,6 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -172,8 +171,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     public void getTracesByObjectType(
             Collection<String> classList,
             int historyDepth,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback,
-            ProgressIndicator indicator) throws IOException {
+            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
         logger.info("get trace by object type: " + classList);
         refreshSessionArchivesList();
 
@@ -185,19 +183,28 @@ public class VideobugLocalClient implements VideobugClientInterface {
         for (File sessionArchive : sessionArchives) {
             currentCount++;
 
-            if (indicator != null && indicator.isCanceled()) {
-                break;
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading type names: " + sessionArchive.getName());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
             }
+
+
             if (historyDepth != -1) {
                 if (historyDepth < 1) {
                     break;
                 }
             }
-            if (indicator != null) {
-                indicator.setText("Index: " + sessionArchive.getName());
+
+            NameWithBytes fileBytes = null;
+            try {
+                fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
+            } catch (IOException e) {
+                logger.error("failed to create type index from archive: " + sessionArchive.getName(), e);
+                continue;
             }
-//            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
-            NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             if (fileBytes == null) {
                 continue;
             }
@@ -207,12 +214,17 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 typesIndex = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
                 logger.info("loaded [" + typesIndex.Types().size() + "] typeInfo from index in [" + sessionArchive.getAbsolutePath() + "]");
             } catch (Exception e) {
-                logger.warn("failed to read type index file: " + e.getMessage());
+                logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
                 continue;
             }
-            if (indicator != null && indicator.isCanceled()) {
-                break;
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Querying type names from: " + sessionArchive.getName());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
             }
+
 
             Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME, classList);
             ResultSet<TypeInfoDocument> searchResult = typesIndex.Types().retrieve(typeQuery);
@@ -221,40 +233,67 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     .collect(Collectors.toSet());
             searchResult.close();
             logger.info("type query matches [" + typeIds.size() + "] items");
-            if (indicator != null) {
-                indicator.setText("Index: " + sessionArchive.getName() + " matched "
-                        + typeIds.size() + " of the total " + typesIndex.Types().size());
 
-                indicator.setFraction(((float) (currentCount) / (float) (totalCount)) * 0.8);
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Index: " + sessionArchive.getName() + " matched "
+                        + typeIds.size() + " of the total " + typesIndex.Types().size());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
             }
+
+
             if (typeIds.size() == 0) {
                 continue;
             }
-            if (indicator != null && indicator.isCanceled()) {
-                break;
+
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading matched objects");
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
             }
 
-            NameWithBytes objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+
+            NameWithBytes objectIndexFileBytes = null;
+            try {
+                objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
+                        sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+            } catch (IOException e) {
+                logger.warn("failed to create object index file: " + e.getMessage());
+                continue;
+            }
             if (objectIndexFileBytes == null) {
                 logger.warn("object index file bytes are empty, skipping");
                 continue;
             }
 
 
-            ArchiveIndex objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+            ArchiveIndex objectIndex = null;
+            try {
+                objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+            } catch (IOException e) {
+                logger.warn("failed to read object index file: " + e.getMessage());
+                continue;
+
+            }
             Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
             ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects().retrieve(query);
             Set<Long> objectIds = typeInfoSearchResult.stream()
                     .map(ObjectInfoDocument::getObjectId)
                     .collect(Collectors.toSet());
             typeInfoSearchResult.close();
-            if (indicator != null) {
 
-                indicator.setText("Index: " + sessionArchive.getName() + " matched "
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Index: " + sessionArchive.getName() + " matched "
                         + objectIds.size() + " objects of total " + objectIndex.Objects().size());
-                indicator.setFraction(((float) (currentCount) / (float) (totalCount)) * 0.9);
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
             }
+
 
             logger.info("matched [" + objectIds.size() + "] objects by of the total " + objectIndex.Objects().size());
             try {
@@ -262,15 +301,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
             } catch (InterruptedException e) {
                 break;
             }
-            if (indicator != null && indicator.isCanceled()) {
-                break;
-            }
 
             if (objectIds.size() > 0) {
                 tracePointList.addAll(queryForObjectIds(sessionArchive, objectIds));
-                if (indicator != null) {
-                    indicator.setText2("Matched " + tracePointList.size() + " events");
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Matched " + tracePointList.size() + " events");
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
                 }
+
             }
             if (historyDepth != -1) {
                 historyDepth--;
@@ -327,7 +367,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectValue(
-            String value, GetProjectSessionErrorsCallback getProjectSessionErrorsCallback
+            String value, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
     ) throws IOException {
         logger.info("trace by string value: " + value);
         refreshSessionArchivesList();
@@ -501,7 +541,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                 List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), matchedFile.getValueIds());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Filtering " + dataEvents.size() + " from file " + matchedFile.getPath());
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
                     if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                         throw new ProcessCanceledException();
                     }
@@ -984,31 +1024,27 @@ public class VideobugLocalClient implements VideobugClientInterface {
         threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (1 < 2) {
-                        return;
+                if (1 < 2) {
+                    return;
+                }
+
+                List<ExecutionSession> sessions = getLocalSessions();
+                setSession(sessions.get(0));
+                refreshSessionArchivesList();
+
+                getTracesByObjectType(typeNameList, 2, new GetProjectSessionTracePointsCallback() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
                     }
 
-                    List<ExecutionSession> sessions = getLocalSessions();
-                    setSession(sessions.get(0));
-                    refreshSessionArchivesList();
-
-                    getTracesByObjectType(typeNameList, 2, new GetProjectSessionErrorsCallback() {
-                        @Override
-                        public void error(ExceptionResponse errorResponse) {
-                            logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
+                    @Override
+                    public void success(List<TracePoint> tracePoints) {
+                        if (tracePoints.size() > 0) {
+                            videobugExceptionCallback.onNewTracePoints(tracePoints);
                         }
-
-                        @Override
-                        public void success(List<TracePoint> tracePoints) {
-                            if (tracePoints.size() > 0) {
-                                videobugExceptionCallback.onNewTracePoints(tracePoints);
-                            }
-                        }
-                    }, null);
-                } catch (IOException e) {
-                    logger.info("failed to query traces by type in scheduler: " + e.getMessage());
-                }
+                    }
+                });
             }
         }, 5, 5, TimeUnit.SECONDS);
     }

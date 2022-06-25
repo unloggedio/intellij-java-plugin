@@ -18,7 +18,6 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.factory.callbacks.GetErrorsCallback;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.ui.ConfigurationWindow;
 import com.insidious.plugin.ui.SearchByTypeWindow;
@@ -45,10 +44,7 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -76,6 +72,7 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
@@ -362,18 +359,6 @@ public class InsidiousService implements Disposable {
         return bugsTable;
     }
 
-    public void setHorBugTable(SearchByTypeWindow bugsTable) {
-        this.bugsTable = bugsTable;
-    }
-
-    public SearchByValueWindow getLogicBugs() {
-        return this.logicBugs;
-    }
-
-    public void setLogicBugs(SearchByValueWindow logicBugs) {
-        this.logicBugs = logicBugs;
-    }
-
     public void signup(String serverUrl, String usernameText, String passwordText, SignUpCallback signupCallback) {
         this.client = new VideobugNetworkClient(serverUrl);
         this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
@@ -397,10 +382,10 @@ public class InsidiousService implements Disposable {
             return;
         }
 
-        if (passwordText == null) {
+        if (passwordText == null || passwordText.length() < 4) {
             ApplicationManager.getApplication().invokeLater(this::initiateUI);
             if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLabel("Enter a valid Password");
+                credentialsToolbarWindow.setErrorLabel("Enter a valid password, at least 4 characters");
             }
             return;
         }
@@ -408,7 +393,7 @@ public class InsidiousService implements Disposable {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("email", usernameText);
         eventProperties.put("server", serverUrl);
-        UsageInsightTracker.getInstance().NewEvent("SignInAttempt", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("SignInAttempt", eventProperties);
 
         insidiousConfiguration.setServerUrl(serverUrl);
         insidiousConfiguration.setUsername(usernameText);
@@ -425,7 +410,7 @@ public class InsidiousService implements Disposable {
                             JSONObject eventProperties = new JSONObject();
                             eventProperties.put("email", usernameText);
                             eventProperties.put("server", serverUrl);
-                            UsageInsightTracker.getInstance().NewEvent("SignInFailed", eventProperties);
+                            UsageInsightTracker.getInstance().RecordEvent("SignInFailed", eventProperties);
 
 
                             InsidiousNotification.notifyMessage("Failed to login VideoBug at ["
@@ -444,7 +429,7 @@ public class InsidiousService implements Disposable {
                             JSONObject eventProperties = new JSONObject();
                             eventProperties.put("email", usernameText);
                             eventProperties.put("server", serverUrl);
-                            UsageInsightTracker.getInstance().NewEvent("SignInSuccess", eventProperties);
+                            UsageInsightTracker.getInstance().RecordEvent("SignInSuccess", eventProperties);
 
 
                             Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
@@ -518,7 +503,7 @@ public class InsidiousService implements Disposable {
                 @Override
                 public void onClosed(@NotNull LightweightWindowEvent event) {
                     try {
-                        getTracesByType(getSelectedExceptionClassList(), null);
+                        getTracesByType(getSelectedExceptionClassList());
                     } catch (IOException e) {
                         e.printStackTrace();
                         logger.error("failed to get errors", e);
@@ -622,9 +607,8 @@ public class InsidiousService implements Disposable {
 
     public void getTracesByTypeName(
             List<String> classList,
-            GetProjectSessionErrorsCallback getProjectSessionErrorsCallback,
-            ProgressIndicator indicator) throws IOException {
-        this.client.getTracesByObjectType(classList, -1, getProjectSessionErrorsCallback, indicator);
+            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+        this.client.getTracesByObjectType(classList, -1, getProjectSessionErrorsCallback);
     }
 
     public void getTracesByValue(int pageNum, String traceValue) throws IOException {
@@ -632,7 +616,7 @@ public class InsidiousService implements Disposable {
         eventProperties.put("trace", traceValue);
         eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
-        UsageInsightTracker.getInstance().NewEvent("GetTracesByValue", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
@@ -642,39 +626,35 @@ public class InsidiousService implements Disposable {
         insidiousConfiguration.addSearchQuery(traceValue, 0);
         logicBugs.updateSearchResultsList();
 
+        AtomicInteger done = new AtomicInteger(0);
         ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
 
             @Override
             public void run(@NotNull ProgressIndicator indicator) {
                 indicator.setText("Searching by value [" + traceValue + "] in session " + client.getCurrentSession().getSessionId());
 
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
                 getTracesByStringValue(traceValue,
-                        new GetProjectSessionErrorsCallback() {
+                        new GetProjectSessionTracePointsCallback() {
                             @Override
                             public void error(ExceptionResponse errorResponse) {
                                 eventProperties.put("error", errorResponse.getError());
                                 eventProperties.put("message", errorResponse.getMessage());
                                 eventProperties.put("path", errorResponse.getPath());
                                 eventProperties.put("trace", errorResponse.getTrace());
-                                UsageInsightTracker.getInstance().NewEvent("ErroredGetTracesByValue", eventProperties);
+                                UsageInsightTracker.getInstance().RecordEvent("ErroredGetTracesByValue", eventProperties);
 
                                 InsidiousNotification.notifyMessage("Failed to get traces: " + errorResponse.getMessage(),
                                         NotificationType.ERROR);
-                                indicator.stop();
+                                done.addAndGet(1);
                             }
 
                             @Override
                             public void success(List<TracePoint> tracePoints) {
-                                indicator.stop();
+                                done.addAndGet(1);
                                 if (tracePoints.size() == 0) {
 
                                     eventProperties.put("trace", traceValue);
-                                    UsageInsightTracker.getInstance().NewEvent("NoResultGetTracesByValue", eventProperties);
+                                    UsageInsightTracker.getInstance().RecordEvent("NoResultGetTracesByValue", eventProperties);
 
                                     ApplicationManager.getApplication()
                                             .invokeAndWait(() -> InsidiousNotification.notifyMessage(
@@ -683,7 +663,7 @@ public class InsidiousService implements Disposable {
                                 } else {
                                     eventProperties.put("trace", traceValue);
                                     eventProperties.put("count", tracePoints.size());
-                                    UsageInsightTracker.getInstance().NewEvent("YesResultGetTracesByValue", eventProperties);
+                                    UsageInsightTracker.getInstance().RecordEvent("YesResultGetTracesByValue", eventProperties);
 
                                     insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
                                     tracePoints.forEach(e -> {
@@ -694,41 +674,112 @@ public class InsidiousService implements Disposable {
                                 }
                             }
                         });
-
+                while (client instanceof VideobugNetworkClient && done.get() == 0) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        throw new ProcessCanceledException(e);
+                    }
+                }
             }
         });
 
     }
 
 
-    public void getTracesByType(List<String> classList, ProgressIndicator indicator) throws IOException {
+    public void getTracesByType(List<String> classList) throws IOException {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("query", classList.toString());
         eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
-        UsageInsightTracker.getInstance().NewEvent("GetTracesByType", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("GetTracesByType", eventProperties);
 
 
         if (this.client.getCurrentSession() == null) {
-            indicator.setText2("Session is not set, loading session");
             loadSession();
             return;
         }
         String sessionId = client.getCurrentSession().getSessionId();
-        indicator.setText2("Session: " + sessionId);
         logger.info("get traces for session - " + sessionId);
 
+        ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
+            public void run(ProgressIndicator indicator) {
+                indicator.setText("Searching in session: " + client.getCurrentSession().getSessionId());
+                indicator.setText2("Filtering by class types");
+                AtomicInteger done = new AtomicInteger(0);
+                getTracesByTypeName(classList, new GetProjectSessionTracePointsCallback() {
 
-        try {
-            getTracesByTypeName(classList, new GetErrorsCallback(this), indicator);
-        } catch (IOException e) {
-            logger.error("failed to get trace points by type");
-        }
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        logger.error("failed to get trace points from server - {}", errorResponse.getMessage());
+                        done.addAndGet(1);
+
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                            ProgressIndicatorProvider.getGlobalProgressIndicator().cancel();
+                        }
+
+
+                        JSONObject eventProperties = new JSONObject();
+                        eventProperties.put("error", errorResponse.getError());
+                        eventProperties.put("message", errorResponse.getMessage());
+                        eventProperties.put("path", errorResponse.getPath());
+                        eventProperties.put("trace", errorResponse.getTrace());
+                        UsageInsightTracker.getInstance().RecordEvent("ErroredGetTracesByType", eventProperties);
+
+
+                        String message = errorResponse.getMessage();
+                        if (message == null) {
+                            message = "No results matched";
+                        }
+                        InsidiousNotification.notifyMessage("Failed to get trace points from server: "
+                                + message, NotificationType.ERROR);
+                    }
+
+                    @Override
+                    public void success(List<TracePoint> tracePoints) {
+                        logger.info("got [" + tracePoints.size() + "] trace points from server");
+
+
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                            ProgressIndicatorProvider.getGlobalProgressIndicator().cancel();
+                        }
+
+
+                        if (tracePoints.size() == 0) {
+
+                            JSONObject eventProperties = new JSONObject();
+                            UsageInsightTracker.getInstance().RecordEvent("NoResultGetTracesByType", eventProperties);
+
+                            InsidiousNotification.notifyMessage(
+                                    "No Exception data events matched in the last session [" + sessionId + "]",
+                                    NotificationType.INFORMATION);
+
+                        } else {
+                            JSONObject eventProperties = new JSONObject();
+                            eventProperties.put("count", tracePoints.size());
+                            UsageInsightTracker.getInstance().RecordEvent("YesResultGetTracesByType", eventProperties);
+
+                            bugsTable.setTracePoints(tracePoints);
+                        }
+                        done.addAndGet(1);
+
+                    }
+                });
+                while (client instanceof VideobugNetworkClient && done.get() == 0) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        throw new ProcessCanceledException(e);
+                    }
+                }
+            }
+        });
+
 
     }
 
     private void getTracesByStringValue(String traceValue,
-                                       GetProjectSessionErrorsCallback getProjectSessionErrorsCallback) {
+                                        GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
         try {
             this.client.getTracesByObjectValue(traceValue, getProjectSessionErrorsCallback);
         } catch (ProcessCanceledException pce) {
@@ -759,7 +810,7 @@ public class InsidiousService implements Disposable {
         }
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("module", currentModule.getName());
-        UsageInsightTracker.getInstance().NewEvent("StartDebugSession", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("StartDebugSession", eventProperties);
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.
                 findConfigurationType(InsidiousRunConfigType.class).createTemplateConfiguration(project);
@@ -981,10 +1032,10 @@ public class InsidiousService implements Disposable {
         eventProperties.put("threadId", selectedTrace.getThreadId());
 
 
-        UsageInsightTracker.getInstance().NewEvent("FetchByTracePoint", null);
+        UsageInsightTracker.getInstance().RecordEvent("FetchByTracePoint", null);
 
         if (debugSession == null) {
-            UsageInsightTracker.getInstance().NewEvent("StartDebugSessionAtSelectTracepoint", null);
+            UsageInsightTracker.getInstance().RecordEvent("StartDebugSessionAtSelectTracepoint", null);
             startDebugSession();
             pendingSelectTrace = selectedTrace;
             return;
@@ -1110,7 +1161,7 @@ public class InsidiousService implements Disposable {
 
     public void initiateUseLocal() {
         client = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()));
-        UsageInsightTracker.getInstance().NewEvent("InitiateUseLocal", null);
+        UsageInsightTracker.getInstance().RecordEvent("InitiateUseLocal", null);
 
 
         ReadAction.run(InsidiousService.this::ensureAgentJar);

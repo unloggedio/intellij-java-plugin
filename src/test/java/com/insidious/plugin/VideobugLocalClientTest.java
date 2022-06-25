@@ -1,6 +1,6 @@
 package com.insidious.plugin;
 
-import com.insidious.plugin.callbacks.GetProjectSessionErrorsCallback;
+import com.insidious.plugin.callbacks.GetProjectSessionTracePointsCallback;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -43,7 +43,7 @@ public class VideobugLocalClientTest {
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
-        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionErrorsCallback() {
+        client.getTracesByObjectValue("trace3:2:1:1:2:trace3", new GetProjectSessionTracePointsCallback() {
             @Override
             public void error(ExceptionResponse errorResponse) {
                 assert false;
@@ -64,7 +64,7 @@ public class VideobugLocalClientTest {
         assert Objects.equals(result.getExecutionSessionId(), "selogger-1");
         assert Objects.equals(result.getClassname(), "org/zerhusen/service/GCDService");
         assert Objects.equals(result.getExceptionClass(), "java.lang.String");
-        client.getTracesByObjectValue("what a message", new GetProjectSessionErrorsCallback() {
+        client.getTracesByObjectValue("what a message", new GetProjectSessionTracePointsCallback() {
             @Override
             public void error(ExceptionResponse errorResponse) {
                 assert false;

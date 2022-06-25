@@ -2,7 +2,6 @@ package com.insidious.plugin.factory;
 
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
-import com.intellij.util.lang.JavaVersion;
 import org.json.JSONObject;
 
 import java.util.Locale;
@@ -40,13 +39,12 @@ public class UsageInsightTracker {
         versionManager = new VersionManager();
     }
 
-    public Event NewEvent(String eventName, JSONObject eventProperties) {
+    public void RecordEvent(String eventName, JSONObject eventProperties) {
         Event event = new Event(eventName, HOSTNAME);
         event.osName = OS_TAG;
         event.language = LANGUAGE;
         event.appVersion = versionManager.getVersion();
         event.eventProperties = eventProperties;
         amplitudeClient.logEvent(event);
-        return event;
     }
 }

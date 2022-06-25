@@ -57,7 +57,7 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
         eventProperties.put("typesCount", replayData.getTypeInfo().size());
         eventProperties.put("objectsCount", replayData.getObjectInfo().size());
-        UsageInsightTracker.getInstance().NewEvent("ConstructThreadReference", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("ConstructThreadReference", eventProperties);
 
         int i = 0;
         long lowestTimestamp = 99999999999999L;
@@ -1014,7 +1014,7 @@ public class InsidiousThreadReference implements ThreadReference {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("size", size);
         eventProperties.put("depth", depth);
-        UsageInsightTracker.getInstance().NewEvent("DebugStep", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
         int currentLineNumber = replayData.getDataInfoMap().get(

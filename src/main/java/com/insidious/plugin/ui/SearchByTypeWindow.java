@@ -6,15 +6,8 @@ import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.NonBlockingReadAction;
-import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -27,7 +20,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 public class SearchByTypeWindow {
@@ -94,34 +86,7 @@ public class SearchByTypeWindow {
         refreshButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                setTracePoints(List.of());
-
-                List<String> exceptionClassnameList = exceptionMap.entrySet()
-                        .stream()
-                        .filter(Map.Entry::getValue)
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
-
-
-                ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
-                    public void run(ProgressIndicator indicator) {
-
-                        indicator.setText("Loading latest session...");
-                        try {
-                            insidiousService.refreshSession();
-                            indicator.setFraction(0.1);  // halfway done not
-                            indicator.setText2("Searching by exceptions...");
-                            insidiousService.getTracesByType(exceptionClassnameList, indicator);
-                        } catch (Exception e) {
-                            logger.error("failed to load sessions for module", e);
-                        } finally {
-                            indicator.stop();
-                        }
-
-                    }
-                });
-
-
+                doSearch();
             }
         });
         addNewTypeButton.addActionListener(new ActionListener() {
@@ -143,6 +108,24 @@ public class SearchByTypeWindow {
                 super.keyPressed(e);
             }
         });
+    }
+
+    private void doSearch() {
+        setTracePoints(List.of());
+
+        List<String> exceptionClassnameList = exceptionMap.entrySet()
+                .stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        try {
+            insidiousService.refreshSession();
+            insidiousService.getTracesByType(exceptionClassnameList);
+        } catch (Exception e) {
+            logger.error("failed to load sessions for module", e);
+        }
+
     }
 
     private void checkInputAndSearch() {
