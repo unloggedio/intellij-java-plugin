@@ -612,16 +612,18 @@ public class InsidiousService implements Disposable {
     }
 
     public void getTracesByValue(int pageNum, String traceValue) throws IOException {
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("trace", traceValue);
-        eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
-        eventProperties.put("projectId", client.getCurrentSession().getProjectId());
-        UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
+
 
         if (this.client.getCurrentSession() == null) {
             loadSession();
             return;
         }
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("trace", traceValue);
+        eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
+        eventProperties.put("projectId", client.getCurrentSession().getProjectId());
+        UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
 
         insidiousConfiguration.addSearchQuery(traceValue, 0);
         logicBugs.updateSearchResultsList();
@@ -689,16 +691,17 @@ public class InsidiousService implements Disposable {
 
     public void getTracesByType(List<String> classList) throws IOException {
         JSONObject eventProperties = new JSONObject();
+        if (this.client.getCurrentSession() == null) {
+            loadSession();
+            return;
+        }
+
         eventProperties.put("query", classList.toString());
         eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
         UsageInsightTracker.getInstance().RecordEvent("GetTracesByType", eventProperties);
 
 
-        if (this.client.getCurrentSession() == null) {
-            loadSession();
-            return;
-        }
         String sessionId = client.getCurrentSession().getSessionId();
         logger.info("get traces for session - " + sessionId);
 
