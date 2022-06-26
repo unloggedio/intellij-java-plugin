@@ -1247,6 +1247,7 @@ public class InsidiousService implements Disposable {
 
 
     public void generateAndUploadReport() {
+        UsageInsightTracker.getInstance().RecordEvent("DiagnosticReport", null);
         DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project, this.currentModule);
         diagnosticService.generateAndUploadReport();
     }

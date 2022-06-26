@@ -37,7 +37,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
             this.currentProject = project;
             InsidiousService insidiousService = project.getService(InsidiousService.class);
             if (insidiousService.isLoggedIn()) {
-                insidiousService.startDebugSession();
+//                insidiousService.startDebugSession();
             }
             insidiousService.setToolWindow(toolWindow);
         }catch (Exception e) {

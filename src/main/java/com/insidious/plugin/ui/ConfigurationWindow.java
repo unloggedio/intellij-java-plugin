@@ -1,9 +1,9 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
-import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
@@ -13,6 +13,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -30,7 +31,6 @@ public class ConfigurationWindow {
     private JPasswordField password;
     private JButton signInButton;
     private JTextArea loginSupportTextArea;
-    private JPanel loginFormPanel;
     private JButton signUpButton;
     private JButton useOfflineLocalRecordingsButton;
     private JTextField serverEndpoint;
@@ -42,6 +42,11 @@ public class ConfigurationWindow {
     private JButton buySingleUserLicenseButton;
     private JButton uploadSessionToServer;
     private JButton reportIssuesButton;
+    private JPanel supportPanel;
+    private JPanel outputPanel;
+    private JPanel buttonsPanel;
+    private JTextField supportEmailAddress;
+    private JButton getInTouchButton;
     private final InsidiousService insidiousService;
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
@@ -82,25 +87,24 @@ public class ConfigurationWindow {
         });
         loginSupportTextArea.setLineWrap(true);
 
-        logoutButton.addActionListener(e -> {
-            insidiousService.logout();
-            email.setText("");
-            password.setText("");
-            serverEndpoint.setText(
-                    insidiousService.getConfiguration().getDefaultCloudServerUrl());
-            loginSupportTextArea.setText("");
-        });
+//        logoutButton.addActionListener(e -> {
+//            insidiousService.logout();
+//            email.setText("");
+//            password.setText("");
+//            serverEndpoint.setText(insidiousService.getConfiguration().getDefaultCloudServerUrl());
+//            loginSupportTextArea.setText("");
+//        });
 
-        downloadJavaAgentToButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                InsidiousNotification.notifyMessage(
-                        "Downloading videobug java agent to $HOME/.Videobug/videobug-java-agent.jar. Please wait for the download to complete.",
-                        NotificationType.INFORMATION
-                );
-                insidiousService.ensureAgentJar();
-            }
-        });
+//        downloadJavaAgentToButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                InsidiousNotification.notifyMessage(
+//                        "Downloading videobug java agent to $HOME/.Videobug/videobug-java-agent.jar. Please wait for the download to complete.",
+//                        NotificationType.INFORMATION
+//                );
+//                insidiousService.ensureAgentJar();
+//            }
+//        });
 
         signUpButton.addActionListener(new ActionListener() {
             @Override
@@ -134,43 +138,38 @@ public class ConfigurationWindow {
                         });
             }
         });
-        buySingleUserLicenseButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                try {
-                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        uploadSessionToServer.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (insidiousService.getClient() instanceof VideobugLocalClient) {
-                    InsidiousNotification.notifyMessage(
-                            "Please login to a server for uploading session",
-                            NotificationType.ERROR
-                    );
-                    return;
-                }
-
-                try {
-                    insidiousService.uploadSessionToServer();
-                } catch (IOException ex) {
-                    InsidiousNotification.notifyMessage(
-                            "Failed to upload archives to server - " + ex.getMessage(),
-                            NotificationType.ERROR
-                    );
-                }
-            }
-        });
+//        buySingleUserLicenseButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                try {
+//                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        });
 
         reportIssuesButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                insidiousService.generateAndUploadReport();
+            }
+        });
+
+        getInTouchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String emailValue = supportEmailAddress.getText();
+                if (!insidiousService.isValidEmailAddress(emailValue)) {
+                    Messages.showErrorDialog("Please enter a valid email address", "Videobug");
+                    return;
+                }
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("email", emailValue);
+                UsageInsightTracker.getInstance().RecordEvent("RequestSupport", eventProperties);
+                Messages.showMessageDialog("Someone from videobug will get in touch with you soon.", "Videobug", Messages.getInformationIcon());
+                insidiousService.generateAndUploadReport();
+
             }
         });
 
