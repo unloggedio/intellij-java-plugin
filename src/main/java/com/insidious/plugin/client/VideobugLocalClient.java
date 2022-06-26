@@ -60,7 +60,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
     private File sessionDirectory;
-    private ScheduledExecutorService threadPoolExecutor5Seconds;
+    private ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -1018,7 +1018,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
 
-        threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
 
 
         threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
