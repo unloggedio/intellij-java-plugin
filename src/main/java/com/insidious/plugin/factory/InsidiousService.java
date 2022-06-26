@@ -1121,7 +1121,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void ensureAgentJar() {
-        checkAndEnsureJavaAgent(true, new AgentJarDownloadCompleteCallback() {
+        checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {
                 InsidiousNotification.notifyMessage(
