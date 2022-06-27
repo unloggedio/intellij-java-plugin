@@ -149,12 +149,12 @@ public class ConfigurationWindow {
 //            }
 //        });
 
-        reportIssuesButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-               insidiousService.generateAndUploadReport();
-            }
-        });
+//        reportIssuesButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//               insidiousService.generateAndUploadReport();
+//            }
+//        });
 
         getInTouchButton.addActionListener(new ActionListener() {
             @Override
