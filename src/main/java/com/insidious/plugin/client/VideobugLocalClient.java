@@ -122,6 +122,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new LinkedList<>();
+        logger.info(String.format("looking for sessions in [%s]", pathToSessions));
         File currentDir = new File(pathToSessions);
         if (!currentDir.exists()) {
             currentDir.mkdirs();
@@ -131,7 +132,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
         if (sessionDirectories == null) {
             return List.of();
         }
-//        logger.info(String.format("looking for sessions for project in [%s]", currentDir.getAbsolutePath()));
         for (File file : sessionDirectories) {
             if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
@@ -147,12 +147,15 @@ public class VideobugLocalClient implements VideobugClientInterface {
         list.sort(Comparator.comparing(ExecutionSession::getName));
         Collections.reverse(list);
         int i = -1;
-        for (ExecutionSession executionSession : list) {
-            i++;
-            if (i == 0) {
-                continue;
+        if (list.size() > 0) {
+
+            for (ExecutionSession executionSession : list) {
+                i++;
+                if (i == 0) {
+                    continue;
+                }
+                deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId()).toFile());
             }
-            deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId()).toFile());
         }
 
         return list;
@@ -1025,7 +1028,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
-
 
 
         threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {

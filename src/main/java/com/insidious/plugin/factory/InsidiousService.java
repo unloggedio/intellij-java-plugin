@@ -123,6 +123,7 @@ public class InsidiousService implements Disposable {
 
             ReadAction.run(this::getProjectPackageName);
             threadPool.submit(this::logLogFileLocation);
+            threadPool.submit(this::startDebugSession);
 
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
