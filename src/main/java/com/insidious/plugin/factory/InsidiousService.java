@@ -125,8 +125,7 @@ public class InsidiousService implements Disposable {
 
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
-            String pathToSessions = project.getBasePath();
-            assert pathToSessions != null;
+            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
 //        this.client = new VideobugNetworkClient(insidiousConfiguration.serverUrl);
@@ -234,23 +233,23 @@ public class InsidiousService implements Disposable {
 
     public void checkAndEnsureJavaAgent(boolean overwrite, AgentJarDownloadCompleteCallback agentJarDownloadCompleteCallback) {
 
-        File insidiousFolder = new File(Constants.videoBugHomePath.toString());
+        File insidiousFolder = new File(Constants.VIDEOBUG_HOME_PATH.toString());
         if (!insidiousFolder.exists()) {
             insidiousFolder.mkdir();
         }
 
         if (overwrite) {
-            Constants.videoBugAgentPath.toFile().delete();
+            Constants.VIDEOBUG_AGENT_PATH.toFile().delete();
         }
 
-        if (!Constants.videoBugAgentPath.toFile().exists() && !overwrite) {
+        if (!Constants.VIDEOBUG_AGENT_PATH.toFile().exists() && !overwrite) {
             InsidiousNotification.notifyMessage(
-                    "java agent does not exist, downloading to $HOME/.Videobug/videobug-java-agent.jar. Please wait for download to finish.",
+                    "java agent does not exist, downloading to $HOME/.videobug/videobug-java-agent.jar. Please wait for download to finish.",
                     NotificationType.INFORMATION
             );
         }
 
-        if (Constants.videoBugAgentPath.toFile().exists()) {
+        if (Constants.VIDEOBUG_AGENT_PATH.toFile().exists()) {
             return;
         }
 
@@ -265,10 +264,10 @@ public class InsidiousService implements Disposable {
             @Override
             public void success(String url) {
                 try {
-                    logger.info("agent download link: " + url + ", downloading to path " + Constants.videoBugAgentPath.toAbsolutePath());
-                    client.downloadAgentFromUrl(url, Constants.videoBugAgentPath.toString(), overwrite);
+                    logger.info("agent download link: " + url + ", downloading to path " + Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath());
+                    client.downloadAgentFromUrl(url, Constants.VIDEOBUG_AGENT_PATH.toString(), overwrite);
                     setAppTokenOnUi();
-                    agentJarDownloadCompleteCallback.success(url, Constants.videoBugAgentPath.toString());
+                    agentJarDownloadCompleteCallback.success(url, Constants.VIDEOBUG_AGENT_PATH.toString());
                 } catch (Exception e) {
                     logger.info("failed to download agent - ", e);
                 }
@@ -322,7 +321,7 @@ public class InsidiousService implements Disposable {
     }
 
     public String getJarPath() {
-        return Constants.videoBugAgentPath.toAbsolutePath().toString();
+        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath().toString();
     }
 
     public void init() {
@@ -423,7 +422,6 @@ public class InsidiousService implements Disposable {
                         @Override
                         public void success(String token) {
                             ReadAction.run(InsidiousService.this::ensureAgentJar);
-                            ReadAction.run(InsidiousService.this::startDebugSession);
                             ReadAction.run(InsidiousService.this::setupProject);
 
                             JSONObject eventProperties = new JSONObject();
@@ -668,6 +666,8 @@ public class InsidiousService implements Disposable {
                                     UsageInsightTracker.getInstance().RecordEvent("YesResultGetTracesByValue", eventProperties);
 
                                     insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
+                                    tracePoints = tracePoints.stream().filter(e -> e.getLinenum() != 0)
+                                            .collect(Collectors.toList());
                                     tracePoints.forEach(e -> {
                                         e.setExecutionSessionId(client.getCurrentSession().getSessionId());
                                     });
@@ -762,6 +762,8 @@ public class InsidiousService implements Disposable {
                             eventProperties.put("count", tracePoints.size());
                             UsageInsightTracker.getInstance().RecordEvent("YesResultGetTracesByType", eventProperties);
 
+                            tracePoints = tracePoints.stream()
+                                    .filter(e -> e.getLinenum() != 0).collect(Collectors.toList());
                             bugsTable.setTracePoints(tracePoints);
                         }
                         done.addAndGet(1);
@@ -770,7 +772,7 @@ public class InsidiousService implements Disposable {
                 });
                 while (client instanceof VideobugNetworkClient && done.get() == 0) {
                     try {
-                        Thread.sleep(200);
+                        Thread.sleep(400);
                     } catch (InterruptedException e) {
                         throw new ProcessCanceledException(e);
                     }
@@ -800,10 +802,6 @@ public class InsidiousService implements Disposable {
 
     public synchronized void startDebugSession() {
         logger.info("start debug session");
-
-        if (debugSession != null) {
-            return;
-        }
 
         debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
@@ -954,7 +952,7 @@ public class InsidiousService implements Disposable {
     }
 
     public String getVideoBugAgentPath() {
-        return Constants.videoBugAgentPath.toAbsolutePath().toString();
+        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath().toString();
     }
 
     public void setAppTokenOnUi() {
@@ -962,7 +960,7 @@ public class InsidiousService implements Disposable {
 
         String[] vmParamsToAdd = new String[]{
                 "--add-opens=java.base/java.util=ALL-UNNAMED",
-                "-javaagent:\"" + Constants.videoBugAgentPath
+                "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH
                         + "=i=" + (packageName == null ? DEFAULT_PACKAGE_NAME : packageName.replaceAll("\\.", "/"))
                         + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video")
                         + ",token=" + appToken + "\""
@@ -1037,10 +1035,10 @@ public class InsidiousService implements Disposable {
 
         UsageInsightTracker.getInstance().RecordEvent("FetchByTracePoint", null);
 
-        if (debugSession == null) {
+        if (debugSession == null ||  getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions()) == null) {
             UsageInsightTracker.getInstance().RecordEvent("StartDebugSessionAtSelectTracepoint", null);
-            startDebugSession();
             pendingSelectTrace = selectedTrace;
+            startDebugSession();
             return;
         }
 
@@ -1163,13 +1161,12 @@ public class InsidiousService implements Disposable {
     }
 
     public void initiateUseLocal() {
-        client = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()));
+        client = new VideobugLocalClient(Constants.VIDEOBUG_AGENT_PATH + "/sessions");
         UsageInsightTracker.getInstance().RecordEvent("InitiateUseLocal", null);
 
 
         ReadAction.run(InsidiousService.this::ensureAgentJar);
         ReadAction.run(InsidiousService.this::setupProject);
-        ReadAction.run(InsidiousService.this::startDebugSession);
 
         ApplicationManager.getApplication().invokeLater(() -> {
             InsidiousService.this.initiateUI();
@@ -1188,44 +1185,44 @@ public class InsidiousService implements Disposable {
         }
     }
 
-    public void uploadSessionToServer() throws IOException {
-        String pathToSessions = project.getBasePath();
-        assert pathToSessions != null;
-        Path.of(pathToSessions).toFile().mkdirs();
-
-        VideobugLocalClient localClient = new VideobugLocalClient(pathToSessions);
-        localClient.getProjectSessions(new GetProjectSessionsCallback() {
-            @Override
-            public void error(String message) {
-                InsidiousNotification.notifyMessage("Session upload failed - " + message,
-                        NotificationType.ERROR);
-            }
-
-            @Override
-            public void success(List<ExecutionSession> executionSessionList) throws IOException {
-                if (executionSessionList.size() == 0) {
-                    InsidiousNotification.notifyMessage("No sessions found. Run the application with the videobug agent to create a session",
-                            NotificationType.ERROR);
-                    return;
-                }
-                ExecutionSession latestSession = executionSessionList.get(0);
-                localClient.setSession(latestSession);
-                List<File> sessionArchives = localClient.getSessionFiles();
-                InsidiousNotification.notifyMessage("" +
-                                "Uploading " + sessionArchives.size() + " archives to server ["
-                                + InsidiousService.this.client.getEndpoint() + "]",
-                        NotificationType.INFORMATION);
-                for (File sessionArchive : sessionArchives) {
-                    sendPOSTRequest(
-                            InsidiousService.this.client.getEndpoint() + "/checkpoint/uploadArchive",
-                            localClient.getCurrentSession().getSessionId(),
-                            sessionArchive.getAbsolutePath(),
-                            InsidiousService.this.appToken
-                    );
-                }
-            }
-        });
-    }
+//    public void uploadSessionToServer() throws IOException {
+//        String pathToSessions = project.getBasePath();
+//        assert pathToSessions != null;
+//        Path.of(pathToSessions).toFile().mkdirs();
+//
+//        VideobugLocalClient localClient = new VideobugLocalClient(pathToSessions);
+//        localClient.getProjectSessions(new GetProjectSessionsCallback() {
+//            @Override
+//            public void error(String message) {
+//                InsidiousNotification.notifyMessage("Session upload failed - " + message,
+//                        NotificationType.ERROR);
+//            }
+//
+//            @Override
+//            public void success(List<ExecutionSession> executionSessionList) throws IOException {
+//                if (executionSessionList.size() == 0) {
+//                    InsidiousNotification.notifyMessage("No sessions found. Run the application with the videobug agent to create a session",
+//                            NotificationType.ERROR);
+//                    return;
+//                }
+//                ExecutionSession latestSession = executionSessionList.get(0);
+//                localClient.setSession(latestSession);
+//                List<File> sessionArchives = localClient.getSessionFiles();
+//                InsidiousNotification.notifyMessage("" +
+//                                "Uploading " + sessionArchives.size() + " archives to server ["
+//                                + InsidiousService.this.client.getEndpoint() + "]",
+//                        NotificationType.INFORMATION);
+//                for (File sessionArchive : sessionArchives) {
+//                    sendPOSTRequest(
+//                            InsidiousService.this.client.getEndpoint() + "/checkpoint/uploadArchive",
+//                            localClient.getCurrentSession().getSessionId(),
+//                            sessionArchive.getAbsolutePath(),
+//                            InsidiousService.this.appToken
+//                    );
+//                }
+//            }
+//        });
+//    }
 
     public void sendPOSTRequest(String url, String sessionId, String attachmentFilePath, String token) throws IOException {
 

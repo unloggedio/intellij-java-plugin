@@ -63,7 +63,7 @@ public class DiagnosticService {
         reportBuilder.append("default project: ").append(projectManager.getDefaultProject().getName()).append("\n");
 
 
-        File agentJarFile = Constants.videoBugAgentPath.toFile();
+        File agentJarFile = Constants.VIDEOBUG_AGENT_PATH.toFile();
         if (agentJarFile.exists()) {
             reportBuilder.append("agent jar exists at: ").append(agentJarFile.getAbsolutePath()).append("\n");
             reportBuilder.append("agent jar downloaded at: ").append(agentJarFile.lastModified()).append("\n");

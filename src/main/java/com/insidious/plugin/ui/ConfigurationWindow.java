@@ -99,7 +99,7 @@ public class ConfigurationWindow {
 //            @Override
 //            public void actionPerformed(ActionEvent e) {
 //                InsidiousNotification.notifyMessage(
-//                        "Downloading videobug java agent to $HOME/.Videobug/videobug-java-agent.jar. Please wait for the download to complete.",
+//                        "Downloading videobug java agent to $HOME/.videobug/videobug-java-agent.jar. Please wait for the download to complete.",
 //                        NotificationType.INFORMATION
 //                );
 //                insidiousService.ensureAgentJar();
