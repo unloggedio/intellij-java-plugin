@@ -421,7 +421,7 @@ public class InsidiousService implements Disposable {
 
                         @Override
                         public void success(String token) {
-                            ReadAction.run(InsidiousService.this::ensureAgentJar);
+                            ReadAction.run(() -> InsidiousService.this.ensureAgentJar(false));
                             ReadAction.run(InsidiousService.this::setupProject);
 
                             JSONObject eventProperties = new JSONObject();
@@ -1118,8 +1118,8 @@ public class InsidiousService implements Disposable {
 
     }
 
-    public void ensureAgentJar() {
-        checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
+    public void ensureAgentJar(boolean overwrite) {
+        checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {
                 InsidiousNotification.notifyMessage(
@@ -1165,7 +1165,7 @@ public class InsidiousService implements Disposable {
         UsageInsightTracker.getInstance().RecordEvent("InitiateUseLocal", null);
 
 
-        ReadAction.run(InsidiousService.this::ensureAgentJar);
+        ReadAction.run(() -> this.ensureAgentJar(false));
         ReadAction.run(InsidiousService.this::setupProject);
 
         ApplicationManager.getApplication().invokeLater(() -> {
