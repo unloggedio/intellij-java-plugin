@@ -46,6 +46,7 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.ui.popup.JBPopup;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
 import com.intellij.openapi.ui.popup.JBPopupListener;
@@ -1173,6 +1174,9 @@ public class InsidiousService implements Disposable {
             InsidiousNotification.notifyMessage("VideoBug logged in at [" + "disk://localhost"
                             + "] for module [" + currentModule.getName() + "]",
                     NotificationType.INFORMATION);
+            Messages.showMessageDialog("Copy the JVM parameter and configure it for your application" +
+                            "and start running your application to start record.",
+                    "Videobug", Messages.getInformationIcon());
         });
     }
 

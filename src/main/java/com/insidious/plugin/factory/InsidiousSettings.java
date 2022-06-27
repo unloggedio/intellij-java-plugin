@@ -5,7 +5,6 @@ import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.configurations.*;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.util.Factory;
-import com.intellij.openapi.util.NlsSafe;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -77,12 +76,12 @@ public class InsidiousSettings implements RunnerAndConfigurationSettings {
     }
 
     @Override
-    public void setName(@NlsSafe String name) {
+    public void setName(String name) {
 
     }
 
     @Override
-    public @NotNull @NlsSafe String getName() {
+    public @NotNull String getName() {
         return null;
     }
 

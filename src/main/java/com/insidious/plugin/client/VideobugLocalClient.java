@@ -123,9 +123,16 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<ExecutionSession> getLocalSessions() {
         List<ExecutionSession> list = new LinkedList<>();
         File currentDir = new File(pathToSessions);
-        currentDir.mkdirs();
+        if (!currentDir.exists()) {
+            currentDir.mkdirs();
+            return List.of();
+        }
+        File[] sessionDirectories = currentDir.listFiles();
+        if (sessionDirectories == null) {
+            return List.of();
+        }
 //        logger.info(String.format("looking for sessions for project in [%s]", currentDir.getAbsolutePath()));
-        for (File file : Objects.requireNonNull(currentDir.listFiles())) {
+        for (File file : sessionDirectories) {
             if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
                 executionSession.setSessionId(file.getName());

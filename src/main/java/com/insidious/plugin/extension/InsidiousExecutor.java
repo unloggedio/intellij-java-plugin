@@ -2,7 +2,6 @@ package com.insidious.plugin.extension;
 
 import com.intellij.execution.Executor;
 import com.intellij.openapi.util.IconLoader;
-import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.wm.ToolWindowId;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -35,12 +34,12 @@ public class InsidiousExecutor extends Executor {
     }
 
     @Override
-    public @NlsActions.ActionDescription String getDescription() {
+    public String getDescription() {
         return "Time travel debugger";
     }
 
     @Override
-    public @NotNull @NlsActions.ActionText String getActionName() {
+    public @NotNull String getActionName() {
         return "InsidiousTimeTravel";
     }
 
