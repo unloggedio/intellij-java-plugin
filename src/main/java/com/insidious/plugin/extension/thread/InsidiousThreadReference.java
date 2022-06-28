@@ -557,7 +557,7 @@ public class InsidiousThreadReference implements ThreadReference {
     @Nullable
     private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
 
-        if (Long.valueOf(String.valueOf(dataValue)) == 0L) {
+        if (Long.parseLong(String.valueOf(dataValue)) == 0L) {
             return dataValue;
         }
 
@@ -595,7 +595,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 InsidiousObjectReference newInsidiousDataValue = new InsidiousObjectReference(this);
                 newInsidiousDataValue.setObjectId(paramObjectId);
                 newInsidiousDataValue.setReferenceType(buildClassTypeReferenceFromName(paramType));
-                if (Long.valueOf(String.valueOf(dataValue)) != 0) {
+                if (Long.parseLong(String.valueOf(dataValue)) != 0) {
                     objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
                 }
                 return newInsidiousDataValue;
