@@ -668,8 +668,8 @@ public class InsidiousService implements Disposable {
                                     UsageInsightTracker.getInstance().RecordEvent("YesResultGetTracesByValue", eventProperties);
 
                                     insidiousConfiguration.addSearchQuery(traceValue, tracePoints.size());
-                                    tracePoints = tracePoints.stream().filter(e -> e.getLinenum() != 0)
-                                            .collect(Collectors.toList());
+//                                    tracePoints = tracePoints.stream().filter(e -> e.getLinenum() != 0)
+//                                            .collect(Collectors.toList());
                                     tracePoints.forEach(e -> {
                                         e.setExecutionSessionId(client.getCurrentSession().getSessionId());
                                     });
@@ -1176,7 +1176,7 @@ public class InsidiousService implements Disposable {
                             + "] for module [" + currentModule.getName() + "]",
                     NotificationType.INFORMATION);
             Messages.showMessageDialog("Copy the JVM parameter and configure it for your application" +
-                            "and start running your application to start record.",
+                            " and start running your application to start record.",
                     "Videobug", Messages.getInformationIcon());
         });
     }

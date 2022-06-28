@@ -1011,10 +1011,10 @@ public class InsidiousThreadReference implements ThreadReference {
     public void doStep(int size, int depth, RequestHint requestHint) {
 //        buildClassTypeReferences();
 
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("size", size);
-        eventProperties.put("depth", depth);
-        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
+//        JSONObject eventProperties = new JSONObject();
+//        eventProperties.put("size", size);
+//        eventProperties.put("depth", depth);
+//        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
         int currentLineNumber = replayData.getDataInfoMap().get(
