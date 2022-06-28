@@ -545,7 +545,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 String fileName = Path.of(matchedFile.getPath()).getFileName().toString();
 
                 NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
-                if (fileBytes != null) {
+                if (fileBytes == null) {
                     logger.error(String.format("matched file not found " +
                             "inside the session archive [%s] -> [%s]", fileName, sessionArchive));
                     throw new RuntimeException("matched file not found inside the session archive");
