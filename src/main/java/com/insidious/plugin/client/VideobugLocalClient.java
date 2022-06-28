@@ -559,9 +559,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                 NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
                 if (fileBytes == null) {
+                    List<String> fileList = listArchiveFiles(sessionArchive);
                     logger.error(String.format("matched file not found " +
-                            "inside the session archive [%s] -> [%s] -> ", fileName, sessionArchive, listArchiveFiles(sessionArchive)));
-                    throw new RuntimeException("matched file not found inside the session archive -> " + listArchiveFiles(sessionArchive));
+                            "inside the session archive [%s] -> [%s] -> [%s]", fileName, sessionArchive, fileList));
+                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
                 }
                 long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
                 int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
