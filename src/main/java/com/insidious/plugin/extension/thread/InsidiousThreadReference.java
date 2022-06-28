@@ -53,7 +53,7 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("filename", tracePoint.getFilename());
         eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
-        eventProperties.put("probesCount", replayData.getDataInfoMap());
+        eventProperties.put("probesCount", replayData.getDataInfoMap().size());
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
         eventProperties.put("typesCount", replayData.getTypeInfo().size());
         eventProperties.put("objectsCount", replayData.getObjectInfo().size());

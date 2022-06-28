@@ -994,8 +994,7 @@ public class InsidiousService implements Disposable {
         eventProperties.put("lineNumber", selectedTrace.getLinenum());
         eventProperties.put("threadId", selectedTrace.getThreadId());
 
-
-        UsageInsightTracker.getInstance().RecordEvent("FetchByTracePoint", null);
+        UsageInsightTracker.getInstance().RecordEvent("FetchByTracePoint", eventProperties);
 
         if (debugSession == null || getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions()) == null) {
             UsageInsightTracker.getInstance().RecordEvent("StartDebugSessionAtSelectTracepoint", null);

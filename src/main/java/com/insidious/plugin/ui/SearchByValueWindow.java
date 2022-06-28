@@ -82,6 +82,24 @@ public class SearchByValueWindow {
         ApplicationManager.getApplication().invokeLater(this::refreshSearchHistory);
         //variableProgressbar.setVisible(false);
     }
+    private void loadBug(int rowNum) {
+        logger.info("load trace point" + rowNum);
+        logger.info("load trace by row number: " + rowNum);
+        if (rowNum == -1 ||  rowNum > bugList.size()) {
+            InsidiousNotification.notifyMessage("Please select a trace point to replay execution", NotificationType.ERROR);
+            return;
+        }
+        TracePoint selectedTrace = bugList.get(rowNum);
+        try {
+            logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
+                    + selectedTrace.getExecutionSession().getSessionId() + "] on thread" + selectedTrace.getThreadId());
+            insidiousService.setTracePoint(selectedTrace);
+        } catch (Exception e) {
+            logger.error("failed to load trace point", e);
+            Messages.showErrorDialog(project, "Failed to fetch session events: " + e.getMessage(), "Unlogged");
+        }
+
+    }
 
     private void refreshSearchHistory() {
         List<SearchRecord> items = insidiousService.getConfiguration().getSearchRecords();
@@ -209,22 +227,6 @@ public class SearchByValueWindow {
         Vector<Vector> dataVector = defaultTableModelTraces.getDataVector();
         dataVector.addAll(VectorUtils.convertToVector(sampleObject));
         defaultTableModelTraces.setDataVector(dataVector, headers);
-    }
-
-
-    private void loadBug(int rowNum) {
-        logger.info("load trace point" + rowNum);
-        logger.info("load trace by row number: " + rowNum);
-        TracePoint selectedTrace = bugList.get(rowNum);
-        try {
-            logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
-                    + selectedTrace.getExecutionSession().getSessionId() + "] on thread" + selectedTrace.getThreadId());
-            insidiousService.setTracePoint(selectedTrace);
-        } catch (Exception e) {
-            logger.error("failed to load trace point", e);
-            Messages.showErrorDialog(project, "Failed to fetch session events: " + e.getMessage(), "Unlogged");
-        }
-
     }
 
     public void addTracePoints(List<TracePoint> tracePointCollection) {
