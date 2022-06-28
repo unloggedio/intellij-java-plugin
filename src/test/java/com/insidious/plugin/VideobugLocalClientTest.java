@@ -61,7 +61,7 @@ public class VideobugLocalClientTest {
         assert result.getLinenum() == 171;
         assert result.getThreadId() == 3;
         assert result.getDataId() == 2402;
-        assert Objects.equals(result.getExecutionSessionId(), "selogger-1");
+        assert Objects.equals(result.getExecutionSession().getSessionId(), "selogger-1");
         assert Objects.equals(result.getClassname(), "org/zerhusen/service/GCDService");
         assert Objects.equals(result.getExceptionClass(), "java.lang.String");
         client.getTracesByObjectValue("what a message", "selogger-1", new GetProjectSessionTracePointsCallback() {

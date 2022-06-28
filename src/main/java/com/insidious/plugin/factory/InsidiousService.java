@@ -36,6 +36,7 @@ import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
+import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -197,6 +198,8 @@ public class InsidiousService implements Disposable {
 //                    getHorBugTable().setTracePoints(tracePoints);
                 }
             });
+        } catch (ServiceNotReadyException snre) {
+            logger.info("service not ready exception -> " + snre.getMessage());
         } catch (Throwable e) {
             logger.error("exception in videobug service init", e);
         }
@@ -1004,7 +1007,7 @@ public class InsidiousService implements Disposable {
         }
 
         ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
-            public void run(ProgressIndicator indicator) {
+            public void run(@NotNull ProgressIndicator indicator) {
 
                 try {
                     logger.info("set trace point in connector => " + selectedTrace.getClassname());
@@ -1122,7 +1125,7 @@ public class InsidiousService implements Disposable {
     }
 
     public void initiateUseLocal() {
-        client = new VideobugLocalClient(Constants.VIDEOBUG_AGENT_PATH + "/sessions");
+        client = new VideobugLocalClient(Constants.VIDEOBUG_HOME_PATH + "/sessions");
         UsageInsightTracker.getInstance().RecordEvent("InitiateUseLocal", null);
 
 

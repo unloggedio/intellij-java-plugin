@@ -26,6 +26,7 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,7 +50,7 @@ public class SearchByValueWindow {
     private JScrollPane searchtablescrollpane;
     private JPanel resultsPanel;
     private JButton fetchForwardButton;
-    private List<TracePoint> bugList;
+    private List<TracePoint> tracePointList = new LinkedList<>();
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
     private ReentrantLock lock;
     Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"ClassName", "LineNum", "ThreadId", "Timestamp"});
@@ -82,14 +83,15 @@ public class SearchByValueWindow {
         ApplicationManager.getApplication().invokeLater(this::refreshSearchHistory);
         //variableProgressbar.setVisible(false);
     }
+
     private void loadBug(int rowNum) {
         logger.info("load trace point" + rowNum);
         logger.info("load trace by row number: " + rowNum);
-        if (rowNum == -1 ||  rowNum > bugList.size()) {
+        if (rowNum == -1 || rowNum > tracePointList.size()) {
             InsidiousNotification.notifyMessage("Please select a trace point to replay execution", NotificationType.ERROR);
             return;
         }
-        TracePoint selectedTrace = bugList.get(rowNum);
+        TracePoint selectedTrace = tracePointList.get(rowNum);
         try {
             logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
                     + selectedTrace.getExecutionSession().getSessionId() + "] on thread" + selectedTrace.getThreadId());
@@ -106,6 +108,7 @@ public class SearchByValueWindow {
     }
 
     private void doSearch() {
+
         if (searchValueInput.getText().equals("")) {
             Notifications.Bus.notify(
                     InsidiousNotification.balloonNotificationGroup
@@ -113,19 +116,14 @@ public class SearchByValueWindow {
                     project);
             return;
         }
-
-        addTracePoints(List.of());
-        defaultTableModelTraces.setDataVector(new Vector<>(), headers);
-
+        this.tracePointList.clear();
+        this.parseTableItems();
         try {
             insidiousService.refreshSession();
             insidiousService.getTracesByValue(0, searchValueInput.getText());
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
-
-
-
 
     }
 
@@ -207,12 +205,11 @@ public class SearchByValueWindow {
         return mainpanel;
     }
 
-    private void parseTableItems(List<TracePoint> tracePointCollection) {
-        this.bugList = tracePointCollection;
-        Object[][] sampleObject = new Object[bugList.size()][];
+    private void parseTableItems() {
+        Object[][] sampleObject = new Object[tracePointList.size()][];
 
         int i = 0;
-        for (TracePoint tracePoint : bugList) {
+        for (TracePoint tracePoint : this.tracePointList) {
             String className = tracePoint.getClassname().substring(
                     tracePoint.getClassname().lastIndexOf('/') + 1);
 
@@ -231,7 +228,8 @@ public class SearchByValueWindow {
 
     public void addTracePoints(List<TracePoint> tracePointCollection) {
         scrollpanel.setVisible(true);
-        parseTableItems(tracePointCollection);
+        this.tracePointList.addAll(tracePointCollection);
+        parseTableItems();
     }
 
     public void updateSearchResultsList() {

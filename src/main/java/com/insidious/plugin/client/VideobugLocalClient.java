@@ -212,7 +212,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             try {
                 fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             } catch (IOException e) {
-                logger.error("failed to create type index from archive: " + sessionArchive.getName(), e);
+                logger.warn("failed to create type index from archive: " + sessionArchive.getName(), e);
                 continue;
             }
             if (fileBytes == null) {
@@ -337,9 +337,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         long filterValueLong = 0;
         try {
-
             filterValueLong = Long.parseLong(pathName);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
 
         }
 
@@ -486,8 +485,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
             }
 
-            NameWithBytes typesInfoBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
+            NameWithBytes typesInfoBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             assert typesInfoBytes != null;
             ArchiveIndex typeIndex = readArchiveIndex(typesInfoBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             typeInfoMap = typeIndex.getTypesById(types);
@@ -650,8 +648,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         List<File> archives = this.sessionArchives;
 
         for (File sessionArchive : archives) {
-            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
+            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             if (typeIndexBytes == null) {
                 continue;
             }
@@ -825,8 +822,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
 
-        NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(
-                archiveToServe, String.valueOf(filteredDataEventsRequest.getNanotime()));
+        NameWithBytes bytesWithName =
+                createFileOnDiskFromSessionArchiveFile(archiveToServe, String.valueOf(filteredDataEventsRequest.getNanotime()));
 
 
         assert bytesWithName != null;

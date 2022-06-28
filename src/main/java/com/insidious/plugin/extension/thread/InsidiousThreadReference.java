@@ -586,7 +586,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         if (typeInfo != null) {
                             paramType = typeInfo.getTypeNameFromClass();
                         } else {
-                            logger.error("failed to get typ for object: " + objectInfo.getTypeId());
+                            logger.warn("failed to get type for object: " + objectInfo.getTypeId());
                         }
                     } catch (Exception e) {
                         logger.warn("failed to identify type for value", e);
