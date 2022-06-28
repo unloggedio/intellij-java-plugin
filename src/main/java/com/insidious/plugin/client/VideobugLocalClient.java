@@ -30,7 +30,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -333,6 +332,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
+        logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
 
         long filterValueLong = 0;
@@ -344,20 +344,17 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
         ZipEntry entry = null;
-        try {
-            while ((entry = indexArchive.getNextEntry()) != null) {
-                String entryName = entry.getName();
-                if (entryName.contains(pathName)) {
-                    return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
-                }
-                String[] nameParts = entryName.split("@");
-                if (nameParts.length == 2 && filterValueLong > 0) {
-                    int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
-                    long fileTimeStamp = Long.parseLong(nameParts[0]);
-                }
+        while ((entry = indexArchive.getNextEntry()) != null) {
+            String entryName = entry.getName();
+            logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
+            if (entryName.contains(pathName)) {
+                return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
             }
-        } catch (EOFException e) {
-            return null;
+            String[] nameParts = entryName.split("@");
+            if (nameParts.length == 2 && filterValueLong > 0) {
+                int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
+                long fileTimeStamp = Long.parseLong(nameParts[0]);
+            }
         }
         return null;
 
