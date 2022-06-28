@@ -6,17 +6,14 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -30,6 +27,7 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class SearchByValueWindow {
@@ -54,6 +52,7 @@ public class SearchByValueWindow {
     private List<TracePoint> bugList;
     private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
     private ReentrantLock lock;
+    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"ClassName", "LineNum", "ThreadId", "Timestamp"});
 
     public SearchByValueWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -97,7 +96,8 @@ public class SearchByValueWindow {
             return;
         }
 
-        setTracePoints(List.of());
+        addTracePoints(List.of());
+        defaultTableModelTraces.setDataVector(new Vector<>(), headers);
 
         try {
             insidiousService.refreshSession();
@@ -147,6 +147,7 @@ public class SearchByValueWindow {
         this.bugsTable.setDefaultRenderer(Object.class, centerRenderer);
         this.bugsTable.setAutoCreateRowSorter(true);
 
+        defaultTableModelTraces.setColumnIdentifiers(headers);
 
         this.searchHistoryTable.setCellEditor(this.searchHistoryTable.getDefaultEditor(String.class));
         this.searchHistoryTable.setModel(searchHistoryTableModel);
@@ -191,7 +192,6 @@ public class SearchByValueWindow {
     private void parseTableItems(List<TracePoint> tracePointCollection) {
         this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
-        Object[] headers = {"ClassName", "LineNum", "ThreadId", "Timestamp"};
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
@@ -206,49 +206,28 @@ public class SearchByValueWindow {
             i++;
         }
 
-        defaultTableModelTraces.setDataVector(sampleObject, headers);
+        Vector<Vector> dataVector = defaultTableModelTraces.getDataVector();
+        dataVector.addAll(VectorUtils.convertToVector(sampleObject));
+        defaultTableModelTraces.setDataVector(dataVector, headers);
     }
+
 
     private void loadBug(int rowNum) {
         logger.info("load trace point" + rowNum);
-//        XBreakpoint[] breakpoints = XDebuggerManager.getInstance(project).getBreakpointManager().getAllBreakpoints();
-//
-//        List<DebugPoint> breakpointList = new ArrayList<>();
-//
-//        try {
-//            for (XBreakpoint breakpoint : breakpoints) {
-//                if (breakpoint.getType() instanceof XLineBreakpointType) {
-//                    DebugPoint debugPoint = new DebugPoint();
-//                    XSourcePosition sourcePosition = breakpoint.getSourcePosition();
-//                    logger.info("note break point position in file " +
-//                            sourcePosition.getFile() + "] at line [" + sourcePosition.getLine() + "]");
-//                    try {
-//                        debugPoint.setFile(sourcePosition.getFile().toString().split("/src/main/java/")[1].split(".java")[0]);
-//                        debugPoint.setLineNumber(sourcePosition.getLine());
-//                        breakpointList.add(debugPoint);
-//                    } catch (Exception e) {
-//                        logger.error("debug break point not added in query", e);
-//                    }
-//                }
-//            }
-//        } catch (Exception e) {
-//            logger.error("failed to load break points", e);
-//        }
-
         logger.info("load trace by row number: " + rowNum);
         TracePoint selectedTrace = bugList.get(rowNum);
         try {
             logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
-                    + selectedTrace.getExecutionSessionId() + "] on thread" + selectedTrace.getThreadId());
+                    + selectedTrace.getExecutionSession().getSessionId() + "] on thread" + selectedTrace.getThreadId());
             insidiousService.setTracePoint(selectedTrace);
         } catch (Exception e) {
             logger.error("failed to load trace point", e);
-            Messages.showErrorDialog(project, e.getMessage(), "Failed to fetch session events");
+            Messages.showErrorDialog(project, "Failed to fetch session events: " + e.getMessage(), "Unlogged");
         }
 
     }
 
-    public void setTracePoints(List<TracePoint> tracePointCollection) {
+    public void addTracePoints(List<TracePoint> tracePointCollection) {
         scrollpanel.setVisible(true);
         parseTableItems(tracePointCollection);
     }
@@ -260,7 +239,7 @@ public class SearchByValueWindow {
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
         List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
         Object[][] searchResultRows = new Object[searchResults.size()][];
-        Object[] headers = {"Search String", "TimeStamp", "Occurances"};
+        Object[] headers = {"Search String", "TimeStamp", "# Matched"};
 
         int i = 0;
         for (SearchRecord searchRecord : searchResults) {

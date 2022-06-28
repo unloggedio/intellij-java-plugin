@@ -51,11 +51,11 @@ public interface VideobugClientInterface {
 
     void getTracesByObjectType(
             Collection<String> classList,
-            int historyDepth,
+            String sessionId, int historyDepth,
             GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback);
 
     void getTracesByObjectValue(String value,
-                                GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) throws IOException;
+                                String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) throws IOException;
 
     ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception;
 
@@ -74,4 +74,6 @@ public interface VideobugClientInterface {
     void close();
 
     void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
+
+    List<ExecutionSession> getSessionList();
 }

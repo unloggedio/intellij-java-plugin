@@ -95,7 +95,9 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         searchRecords.removeAll(matched);
         searchRecords.add(newSearchRecord);
         if (searchRecords.size() > 50) {
-            List<SearchRecord> recordsToRemove = searchRecords.stream().sorted(Comparator.comparing(SearchRecord::getLastQueryDate)).limit(searchRecords.size() - 10).collect(Collectors.toList());
+            List<SearchRecord> recordsToRemove = searchRecords.stream().sorted(
+                    Comparator.comparing(SearchRecord::getLastQueryDate)).limit(
+                            searchRecords.size() - 10).collect(Collectors.toList());
             searchRecords.removeAll(recordsToRemove);
         }
     }

@@ -4,6 +4,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
@@ -23,6 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SearchByTypeWindow {
+    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"});
+
     private static final Logger logger = LoggerUtil.getInstance(SearchByTypeWindow.class);
     private final InsidiousService insidiousService;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
@@ -172,7 +175,6 @@ public class SearchByTypeWindow {
     private void setTableData(List<TracePoint> tracePointCollection) {
         this.bugList = tracePointCollection;
         Object[][] sampleObject = new Object[bugList.size()][];
-        Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"};
 
         int i = 0;
         for (TracePoint tracePoint : bugList) {
@@ -180,7 +182,9 @@ public class SearchByTypeWindow {
             i++;
         }
 
-        defaultTableModel.setDataVector(sampleObject, headers);
+        Vector<Vector> dataVector = defaultTableModel.getDataVector();
+        dataVector.addAll(VectorUtils.convertToVector(sampleObject));
+        defaultTableModel.setDataVector(dataVector, headers);
     }
 
     private String[] tracePointToStringObject(TracePoint tracePoint) {
@@ -223,7 +227,7 @@ public class SearchByTypeWindow {
         try {
 
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]",
-                    selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+                    selectedTrace.getExecutionSession().getSessionId(), selectedTrace.getThreadId()));
 
             insidiousService.setTracePoint(selectedTrace);
 

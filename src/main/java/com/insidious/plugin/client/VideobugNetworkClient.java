@@ -52,6 +52,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     private ProjectItem project;
     private String token;
     private ExecutionSession session;
+    private List<ExecutionSession> sessionList;
 
     public VideobugNetworkClient(String endpoint) {
         this.endpoint = endpoint;
@@ -309,6 +310,17 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
+    public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
+        String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
+        TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
+        };
+
+        DataResponse<ExecutionSession> sessionDataResponse = get(executionsUrl, typeReference);
+        this.sessionList = sessionDataResponse.getItems();
+        return sessionDataResponse;
+    }
+
+    @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
         logger.info("get project sessions - " + this.project.getId());
         String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
@@ -350,25 +362,16 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
-        String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
-        TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
-        };
-
-        return get(executionsUrl, typeReference);
-    }
-
-    @Override
     public void getTracesByObjectType(
             Collection<String> classList,
-            int depth,
+            String sessionId, int depth,
             GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
     ) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_EXCEPTION
-                + "/" + this.session.getSessionId()
+                + "/" + sessionId
                 + "?exceptionClass="
                 + StringUtil.join(classList, ",")
                 + "&pageNumber=" + 0
@@ -421,7 +424,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
 
-                    tracePoints.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
+                    tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 }
             }
@@ -431,12 +434,12 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectValue(String value,
-                                       GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+                                       String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_STRING
-                + "/" + this.session.getSessionId()
+                + "/" + sessionId
                 + "?traceValue="
                 + value
                 + "&pageNumber=" + 0
@@ -480,7 +483,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                             responseBodyString, typeReference);
 
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
-                    tracePoints.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
+                    tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 }
 
@@ -620,5 +623,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
 //        throw new RuntimeException("not implemented");
         // todo
+    }
+
+    @Override
+    public List<ExecutionSession> getSessionList() {
+        return this.sessionList;
     }
 }

@@ -49,7 +49,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("classname", tracePoint.getClassname());
-        eventProperties.put("sessionId", tracePoint.getExecutionSessionId());
+        eventProperties.put("sessionId", tracePoint.getExecutionSession().getSessionId());
         eventProperties.put("filename", tracePoint.getFilename());
         eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());

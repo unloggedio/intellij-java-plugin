@@ -180,7 +180,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void getTracesByObjectType(
             Collection<String> classList,
-            int historyDepth,
+            String sessionId, int historyDepth,
             GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
         logger.info("get trace by object type: " + classList);
         refreshSessionArchivesList();
@@ -327,7 +327,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
         }
-        tracePointList.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
+        tracePointList.forEach(e -> e.setExecutionSession(session));
         getProjectSessionErrorsCallback.success(tracePointList);
     }
 
@@ -391,7 +391,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getTracesByObjectValue(
-            String value, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
+            String value, String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
     ) throws IOException {
         logger.info("trace by string value: " + value);
         refreshSessionArchivesList();
@@ -433,7 +433,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
             }
         }
-        tracePointList.forEach(e -> e.setExecutionSessionId(session.getSessionId()));
+        tracePointList.forEach(e -> e.setExecutionSession(session));
         getProjectSessionErrorsCallback.success(tracePointList);
 
     }
@@ -596,14 +596,15 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         ObjectInfo objectInfo = finalObjectInfoMap.get(String.valueOf(e1.getValue()));
                         TypeInfo typeInfo = getTypeInfo((int) objectInfo.getTypeId());
 
-                        return new TracePoint(classId,
+                        TracePoint tracePoint = new TracePoint(classId,
                                 dataInfo.getLine(), dataInfo.getDataId(),
                                 threadId, e1.getValue(),
-                                session.getSessionId(),
                                 classInfo.fileName().value(),
                                 classInfo.className().value(),
                                 typeInfo.getTypeNameFromClass(),
                                 timestamp, e1.getNanoTime());
+                        tracePoint.setExecutionSession(session);
+                        return tracePoint;
                     } catch (ClassInfoNotFoundException | Exception ex) {
                         logger.error("failed to get data probe information", ex);
                     }
@@ -1059,7 +1060,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 setSession(sessions.get(0));
                 refreshSessionArchivesList();
 
-                getTracesByObjectType(typeNameList, 2, new GetProjectSessionTracePointsCallback() {
+                getTracesByObjectType(typeNameList, session.getSessionId(),
+                        2, new GetProjectSessionTracePointsCallback() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
@@ -1074,6 +1076,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 });
             }
         }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public List<ExecutionSession> getSessionList() {
+        return List.of(session);
     }
 
     public List<File> getSessionFiles() {
