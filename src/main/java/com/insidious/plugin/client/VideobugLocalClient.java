@@ -561,7 +561,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 if (fileBytes == null) {
                     logger.error(String.format("matched file not found " +
                             "inside the session archive [%s] -> [%s]", fileName, sessionArchive));
-                    throw new RuntimeException("matched file not found inside the session archive");
+                    throw new RuntimeException("matched file not found inside the session archive -> " + listArchiveFiles(sessionArchive));
                 }
                 long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
                 int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
