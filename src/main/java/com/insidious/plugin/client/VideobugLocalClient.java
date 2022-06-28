@@ -360,6 +360,22 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
+    private List<String> listArchiveFiles(File sessionFile) throws IOException {
+        List<String> files = new LinkedList<>();
+
+        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+
+        long filterValueLong = 0;
+
+        ZipEntry entry = null;
+        while ((entry = indexArchive.getNextEntry()) != null) {
+            String entryName = entry.getName();
+            files.add(entryName);
+        }
+        return files;
+
+    }
+
     private void refreshSessionArchivesList() {
         logger.info("refresh session archives list");
         sessionDirectory = new File(this.pathToSessions + session.getName());
