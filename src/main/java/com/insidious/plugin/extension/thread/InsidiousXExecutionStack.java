@@ -125,7 +125,7 @@ public class InsidiousXExecutionStack extends XExecutionStack {
         XSourcePosition xSourcePosition = null;
         if (file.isEmpty()) {
             InsidiousNotification.notifyMessage(
-                    "Failed to map back to a file stack to a class file", NotificationType.ERROR
+                    "Failed to map stack back to a source file [" + sourcePathParts[sourcePathParts.length - 1] + "]. File not found. If you think this is a bug, please report at support@bug.video", NotificationType.ERROR
             );
         } else {
             VirtualFile vf = file.stream().findFirst().get();

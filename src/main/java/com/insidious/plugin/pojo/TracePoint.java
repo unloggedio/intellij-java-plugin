@@ -8,6 +8,7 @@ import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 
 import java.util.Collections;
 
@@ -18,17 +19,16 @@ public class TracePoint {
     private final long recordedAt;
     long classId, linenum, threadId, value;
     int dataId;
-    String executionSessionId;
     String filename;
     String classname;
     String exceptionClass;
     private long nanoTime;
+    private ExecutionSession executionSession;
 
     public TracePoint(long classId, long linenum,
                       int dataId,
                       long threadId,
                       long value,
-                      String executionSessionId,
                       String filename,
                       String classname,
                       String exceptionClass,
@@ -40,7 +40,6 @@ public class TracePoint {
         this.dataId = dataId;
         this.threadId = threadId;
         this.value = value;
-        this.executionSessionId = executionSessionId;
         this.filename = filename;
         this.classname = classname;
         this.exceptionClass = exceptionClass;
@@ -72,17 +71,20 @@ public class TracePoint {
             }
 
 
-            return new TracePoint(dataInfoObject.getClassId(),
+            TracePoint tracePoint = new TracePoint(dataInfoObject.getClassId(),
                     dataInfoObject.getLine(),
                     dataEvent.getDataId(),
                     dataEvent.getThreadId(),
                     dataEvent.getValue(),
-                    dataEvent.getSessionId(),
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
                     dataEvent.getRecordedAt().getTime(),
                     dataEvent.getNanoTime());
+            ExecutionSession executionSession1 = new ExecutionSession();
+            executionSession1.setSessionId(dataEvent.getSessionId());
+            tracePoint.setExecutionSession(executionSession1);
+            return tracePoint;
 
         }
 
@@ -105,7 +107,6 @@ public class TracePoint {
         if (value != that.value) return false;
         if (dataId != that.dataId) return false;
         if (nanoTime != that.nanoTime) return false;
-        if (!executionSessionId.equals(that.executionSessionId)) return false;
         if (filename != null ? !filename.equals(that.filename) : that.filename != null) return false;
         if (!classname.equals(that.classname)) return false;
         return exceptionClass != null ? exceptionClass.equals(that.exceptionClass) : that.exceptionClass == null;
@@ -119,7 +120,6 @@ public class TracePoint {
         result = 31 * result + (int) (threadId ^ (threadId >>> 32));
         result = 31 * result + (int) (value ^ (value >>> 32));
         result = 31 * result + dataId;
-        result = 31 * result + executionSessionId.hashCode();
         result = 31 * result + (filename != null ? filename.hashCode() : 0);
         result = 31 * result + classname.hashCode();
         result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
@@ -129,7 +129,7 @@ public class TracePoint {
 
     public FilteredDataEventsRequest toFilterDataEventRequest() {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
-        filteredDataEventsRequest.setSessionId(this.getExecutionSessionId());
+        filteredDataEventsRequest.setSessionId(this.getExecutionSession().getSessionId());
         filteredDataEventsRequest.setProbeId(this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
@@ -187,14 +187,6 @@ public class TracePoint {
         return value;
     }
 
-    public String getExecutionSessionId() {
-        return executionSessionId;
-    }
-
-    public void setExecutionSessionId(String executionSessionId) {
-        this.executionSessionId = executionSessionId;
-    }
-
     public String getFilename() {
         return filename;
     }
@@ -221,5 +213,13 @@ public class TracePoint {
 
     public void setNanoTime(long nanoTime) {
         this.nanoTime = nanoTime;
+    }
+
+    public void setExecutionSession(ExecutionSession executionSession) {
+        this.executionSession = executionSession;
+    }
+
+    public ExecutionSession getExecutionSession() {
+        return executionSession;
     }
 }

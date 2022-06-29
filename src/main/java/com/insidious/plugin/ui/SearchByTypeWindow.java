@@ -4,6 +4,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.diagnostic.Logger;
@@ -23,6 +24,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SearchByTypeWindow {
+    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"});
+
     private static final Logger logger = LoggerUtil.getInstance(SearchByTypeWindow.class);
     private final InsidiousService insidiousService;
     DefaultTableModel defaultTableModel, varsDefaultTableModel, bugTypeTableModel, searchHistoryTableModel;
@@ -43,7 +46,7 @@ public class SearchByTypeWindow {
     private JPanel resultControl;
     private JScrollPane resultList;
     private JTextField typeNameInput;
-    private List<TracePoint> bugList;
+    private List<TracePoint> tracePointList = new LinkedList<>();
 
     public SearchByTypeWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -97,7 +100,7 @@ public class SearchByTypeWindow {
         });
 
         initBugTypeTable();
-        setTableValues();
+        initTable();
         typeNameInput.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -111,7 +114,8 @@ public class SearchByTypeWindow {
     }
 
     private void doSearch() {
-        setTracePoints(List.of());
+        this.tracePointList.clear();
+        setTableData();
 
         List<String> exceptionClassnameList = exceptionMap.entrySet()
                 .stream()
@@ -146,7 +150,7 @@ public class SearchByTypeWindow {
     }
 
 
-    public void setTableValues() {
+    public void initTable() {
 
         defaultTableModel = new DefaultTableModel() {
             @Override
@@ -169,18 +173,18 @@ public class SearchByTypeWindow {
     }
 
 
-    private void setTableData(List<TracePoint> tracePointCollection) {
-        this.bugList = tracePointCollection;
-        Object[][] sampleObject = new Object[bugList.size()][];
-        Object[] headers = {"Type of Crash", "ClassName", "LineNum", "ThreadId", "Timestamp"};
+    private void setTableData() {
+        Object[][] sampleObject = new Object[tracePointList.size()][];
 
         int i = 0;
-        for (TracePoint tracePoint : bugList) {
+        for (TracePoint tracePoint : tracePointList) {
             sampleObject[i] = tracePointToStringObject(tracePoint);
             i++;
         }
 
-        defaultTableModel.setDataVector(sampleObject, headers);
+        Vector<Vector> dataVector = new Vector<>();
+        dataVector.addAll(VectorUtils.convertToVector(sampleObject));
+        defaultTableModel.setDataVector(dataVector, headers);
     }
 
     private String[] tracePointToStringObject(TracePoint tracePoint) {
@@ -212,18 +216,18 @@ public class SearchByTypeWindow {
 
     private void loadBug(int rowNum) {
         logger.info("load trace point by index: " + rowNum);
-        if (rowNum >= bugList.size() || rowNum < 0) {
-            logger.info("selected by index out of size " + rowNum + " -> " + bugList.size());
+        if (rowNum >= tracePointList.size() || rowNum < 0) {
+            logger.info("selected by index out of size " + rowNum + " -> " + tracePointList.size());
             Notifications.Bus.notify(InsidiousNotification.balloonNotificationGroup
                     .createNotification("Please select a trace point to fetch",
                             NotificationType.ERROR), project);
             return;
         }
-        TracePoint selectedTrace = bugList.get(rowNum);
+        TracePoint selectedTrace = tracePointList.get(rowNum);
         try {
 
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]",
-                    selectedTrace.getExecutionSessionId(), selectedTrace.getThreadId()));
+                    selectedTrace.getExecutionSession().getSessionId(), selectedTrace.getThreadId()));
 
             insidiousService.setTracePoint(selectedTrace);
 
@@ -283,7 +287,8 @@ public class SearchByTypeWindow {
 
 
     public void setTracePoints(List<TracePoint> tracePointCollection) {
-        setTableData(tracePointCollection);
+        this.tracePointList.addAll(tracePointCollection);
+        setTableData();
     }
 
     public void addTracePoints(List<TracePoint> tracePointCollection) {

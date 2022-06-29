@@ -49,11 +49,11 @@ public class InsidiousThreadReference implements ThreadReference {
 
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("classname", tracePoint.getClassname());
-        eventProperties.put("sessionId", tracePoint.getExecutionSessionId());
+        eventProperties.put("sessionId", tracePoint.getExecutionSession().getSessionId());
         eventProperties.put("filename", tracePoint.getFilename());
         eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
-        eventProperties.put("probesCount", replayData.getDataInfoMap());
+        eventProperties.put("probesCount", replayData.getDataInfoMap().size());
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
         eventProperties.put("typesCount", replayData.getTypeInfo().size());
         eventProperties.put("objectsCount", replayData.getObjectInfo().size());
@@ -557,7 +557,7 @@ public class InsidiousThreadReference implements ThreadReference {
     @Nullable
     private Object buildDataObjectFromIdAndTypeValue(String paramType, Object dataValue) {
 
-        if (Long.valueOf(String.valueOf(dataValue)) == 0L) {
+        if (Long.parseLong(String.valueOf(dataValue)) == 0L) {
             return dataValue;
         }
 
@@ -586,7 +586,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         if (typeInfo != null) {
                             paramType = typeInfo.getTypeNameFromClass();
                         } else {
-                            logger.error("failed to get typ for object: " + objectInfo.getTypeId());
+                            logger.warn("failed to get type for object: " + objectInfo.getTypeId());
                         }
                     } catch (Exception e) {
                         logger.warn("failed to identify type for value", e);
@@ -595,7 +595,7 @@ public class InsidiousThreadReference implements ThreadReference {
                 InsidiousObjectReference newInsidiousDataValue = new InsidiousObjectReference(this);
                 newInsidiousDataValue.setObjectId(paramObjectId);
                 newInsidiousDataValue.setReferenceType(buildClassTypeReferenceFromName(paramType));
-                if (Long.valueOf(String.valueOf(dataValue)) != 0) {
+                if (Long.parseLong(String.valueOf(dataValue)) != 0) {
                     objectReferenceMap.put(paramObjectId, newInsidiousDataValue);
                 }
                 return newInsidiousDataValue;
