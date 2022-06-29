@@ -35,6 +35,7 @@ public class UsageInsightTracker {
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
+//        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
         amplitudeClient.init("993c17091c853700ea386f71df5fb72c");
         versionManager = new VersionManager();
     }

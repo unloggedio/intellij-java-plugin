@@ -182,7 +182,7 @@ public class SearchByTypeWindow {
             i++;
         }
 
-        Vector<Vector> dataVector = defaultTableModel.getDataVector();
+        Vector<Vector> dataVector = new Vector<>();
         dataVector.addAll(VectorUtils.convertToVector(sampleObject));
         defaultTableModel.setDataVector(dataVector, headers);
     }

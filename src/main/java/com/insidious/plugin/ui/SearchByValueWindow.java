@@ -221,7 +221,7 @@ public class SearchByValueWindow {
             i++;
         }
 
-        Vector<Vector> dataVector = defaultTableModelTraces.getDataVector();
+        Vector<Vector> dataVector = new Vector<>();
         dataVector.addAll(VectorUtils.convertToVector(sampleObject));
         defaultTableModelTraces.setDataVector(dataVector, headers);
     }
