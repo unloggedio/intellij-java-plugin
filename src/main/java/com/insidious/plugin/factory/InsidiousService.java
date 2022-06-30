@@ -528,17 +528,21 @@ public class InsidiousService implements Disposable {
 
                 });
 
-                while (client instanceof VideobugNetworkClient && searchResultsHandler.getDoneCount() != sessionList.size()) {
+                while (client instanceof VideobugNetworkClient &&
+                        searchResultsHandler.getDoneCount() != sessionList.size()) {
                     try {
                         Thread.sleep(300);
                     } catch (InterruptedException e) {
                         throw new ProcessCanceledException(e);
                     }
                 }
+
                 if (searchQuery.getQueryType().equals(QueryType.BY_TYPE)) {
                     searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
                 } else {
                     searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
+                    insidiousConfiguration.addSearchQuery(searchQuery.getQuery(), searchResultsHandler.getResults().size());
+                    searchByValueWindow.updateQueryList();
                 }
 
                 if (searchResultsHandler.getResults().size() == 0) {
@@ -658,7 +662,11 @@ public class InsidiousService implements Disposable {
         logger.info("initiate ui");
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
 
-
+        if (credentialsToolbarWindow == null) {
+            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
+            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+            this.toolWindow.getContentManager().addContent(credentialContent);
+        }
         if (isLoggedIn() && searchByTypesWindow == null) {
 
             searchByTypesWindow = new SearchByTypesWindow(project, this);
@@ -684,11 +692,7 @@ public class InsidiousService implements Disposable {
             logger.info("user is logged in by project is null, setting up project");
             setupProject();
         }
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
-        }
+
 
     }
 
