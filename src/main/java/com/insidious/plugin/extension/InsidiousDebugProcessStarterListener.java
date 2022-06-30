@@ -132,6 +132,7 @@ public final class InsidiousDebugProcessStarterListener
         processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
         processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
         processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
+        processHandler.notifyTextAvailable("\n", ProcessOutputTypes.SYSTEM);
 
 
         if (!this.state.isErrored()) {

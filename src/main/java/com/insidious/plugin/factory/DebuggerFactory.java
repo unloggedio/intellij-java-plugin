@@ -1,7 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.ui.ConfigurationWindow;
-import com.insidious.plugin.ui.SearchByTypeWindow;
+import com.insidious.plugin.ui.SearchByTypesWindow;
 import com.insidious.plugin.ui.SearchByValueWindow;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -18,7 +18,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
     Project currentProject;
     ConfigurationWindow credentialsToolbar;
     ContentFactory contentFactory;
-    SearchByTypeWindow bugsTable;
+    SearchByTypesWindow bugsTable;
     SearchByValueWindow logicBugs;
     Content credentialContent, bugsContent, logicbugContent;
     ToolWindow toolWindow;

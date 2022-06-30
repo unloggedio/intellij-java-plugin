@@ -1,5 +1,7 @@
 package com.insidious.plugin.client.pojo;
 
+import com.insidious.plugin.pojo.SearchQuery;
+
 import java.util.Date;
 
 
@@ -8,8 +10,8 @@ public class ExceptionResponse {
     Date timestamp;
     Integer status;
     String error;
-    String trace;
     String path;
+    private SearchQuery searchQuery;
 
     @Override
     public String toString() {
@@ -18,17 +20,9 @@ public class ExceptionResponse {
                 ", timestamp=" + timestamp +
                 ", status=" + status +
                 ", error='" + error + '\'' +
-                ", trace='" + trace + '\'' +
+                ", query='" + searchQuery + '\'' +
                 ", path='" + path + '\'' +
                 '}';
-    }
-
-    public String getTrace() {
-        return trace;
-    }
-
-    public void setTrace(String trace) {
-        this.trace = trace;
     }
 
     public String getMessage() {
@@ -69,5 +63,13 @@ public class ExceptionResponse {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public void setSearchQuery(SearchQuery searchQuery) {
+        this.searchQuery = searchQuery;
+    }
+
+    public SearchQuery getSearchQuery() {
+        return searchQuery;
     }
 }

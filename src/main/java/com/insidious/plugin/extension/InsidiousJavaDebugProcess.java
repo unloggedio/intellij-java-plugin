@@ -139,7 +139,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     public void sessionInitialized() {
         getProject().getService(InsidiousService.class).setDebugSession(getSession());
         getProject().getService(InsidiousService.class).setDebugProcess(this);
-        getProject().getService(InsidiousService.class).focusExceptionWindow();
     }
 
     @NotNull

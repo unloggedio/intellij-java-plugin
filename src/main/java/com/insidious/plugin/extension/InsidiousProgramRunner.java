@@ -39,7 +39,8 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
     @Nullable
     @Override
-    protected RunContentDescriptor doExecute(@NotNull RunProfileState state, @NotNull ExecutionEnvironment env) throws ExecutionException {
+    protected RunContentDescriptor doExecute(@NotNull RunProfileState state,
+                                             @NotNull ExecutionEnvironment env) throws ExecutionException {
 
         @NotNull String moduleName = ModuleManager.getInstance(env.getProject()).getModules()[0].getName();
 

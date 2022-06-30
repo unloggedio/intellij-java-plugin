@@ -3,17 +3,15 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.SearchRecord;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -25,43 +23,46 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class SearchByValueWindow {
+public class SearchByValueWindow extends SearchByWindowCommon {
     private static final Logger logger = LoggerUtil.getInstance(SearchByValueWindow.class);
     private final Project project;
     private final InsidiousService insidiousService;
     DefaultTableCellRenderer centerRenderer;
-    private JPanel mainpanel;
+    private JPanel mainPanel;
     private JPanel searchControl;
     private JTable bugsTable;
-    private JTable varsvalueTable;
     private JTextField searchValueInput;
     private JButton searchButton;
     private JButton fetchBackwardButton;
-    private JProgressBar variableProgressbar;
     private JScrollPane scrollpanel;
-    private JTable searchHistoryTable;
+    private JTable searchQueryHistoryTable;
     private JPanel searchtablepanel;
     private JScrollPane searchtablescrollpane;
     private JPanel resultsPanel;
-    private JButton fetchForwardButton;
-    private List<TracePoint> tracePointList = new LinkedList<>();
-    private DefaultTableModel defaultTableModelTraces, defaultTableModelvarsValues, searchHistoryTableModel;
+    private final List<TracePoint> tracePointList = new LinkedList<>();
+    private DefaultTableModel searchHistoryTableModel;
     private ReentrantLock lock;
-    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"ClassName", "LineNum", "ThreadId", "Timestamp"});
+    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"Class", "# Line", "# Thread", "Time"});
 
     public SearchByValueWindow(Project project, InsidiousService insidiousService) {
+        super(new Vector<>(List.of("Class", "# Line", "# Thread", "Time")), project);
         this.project = project;
         this.insidiousService = insidiousService;
+        init();
+        addComponentEventListeners();
+        updateQueryList();
 
-        searchButton.addActionListener(actionEvent -> {
-            doSearch();
-        });
+    }
+
+    private void addComponentEventListeners() {
+        fetchBackwardButton.addActionListener(actionEvent -> loadTracePoint(bugsTable.getSelectedRow()));
+
+        searchButton.addActionListener(actionEvent -> doSearch());
 
         searchValueInput.addKeyListener(new KeyAdapter() {
             @Override
@@ -75,36 +76,6 @@ public class SearchByValueWindow {
         });
 
 
-        fetchBackwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow()));
-//        fetchForwardButton.addActionListener(actionEvent -> loadBug(bugsTable.getSelectedRow(), DirectionType.FORWARDS));
-
-        initTables();
-        updateSearchResultsList();
-        ApplicationManager.getApplication().invokeLater(this::refreshSearchHistory);
-        //variableProgressbar.setVisible(false);
-    }
-
-    private void loadBug(int rowNum) {
-        logger.info("load trace point" + rowNum);
-        logger.info("load trace by row number: " + rowNum);
-        if (rowNum == -1 || rowNum > tracePointList.size()) {
-            InsidiousNotification.notifyMessage("Please select a trace point to replay execution", NotificationType.ERROR);
-            return;
-        }
-        TracePoint selectedTrace = tracePointList.get(rowNum);
-        try {
-            logger.info("Fetch by trace string [" + selectedTrace.getDataId() + "] for session ["
-                    + selectedTrace.getExecutionSession().getSessionId() + "] on thread" + selectedTrace.getThreadId());
-            insidiousService.setTracePoint(selectedTrace);
-        } catch (Exception e) {
-            logger.error("failed to load trace point", e);
-            Messages.showErrorDialog(project, "Failed to fetch session events: " + e.getMessage(), "Unlogged");
-        }
-
-    }
-
-    private void refreshSearchHistory() {
-        List<SearchRecord> items = insidiousService.getConfiguration().getSearchRecords();
     }
 
     private void doSearch() {
@@ -116,39 +87,22 @@ public class SearchByValueWindow {
                     project);
             return;
         }
-        this.tracePointList.clear();
-        this.parseTableItems();
+        this.clearResultsTable();
         try {
-            insidiousService.refreshSession();
-            insidiousService.getTracesByValue(0, searchValueInput.getText());
+            updateQueryList();
+            insidiousService.doSearch(SearchQuery.ByValue(searchValueInput.getText()));
         } catch (APICallException | IOException e) {
             logger.error("Failed to refresh sessions", e);
         }
 
     }
 
-    private void initTables() {
-        defaultTableModelTraces = new DefaultTableModel() {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
-        defaultTableModelvarsValues = new DefaultTableModel() {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-
+    private void init() {
         searchHistoryTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
-
-
         };
 
 
@@ -159,20 +113,18 @@ public class SearchByValueWindow {
 
 
         this.bugsTable.setCellEditor(this.bugsTable.getDefaultEditor(Boolean.class));
-        this.bugsTable.setModel(defaultTableModelTraces);
+        this.bugsTable.setModel(this.searchResultsTableModel);
         this.bugsTable.setDefaultRenderer(Object.class, centerRenderer);
         this.bugsTable.setAutoCreateRowSorter(true);
 
-        defaultTableModelTraces.setColumnIdentifiers(headers);
-
-        this.searchHistoryTable.setCellEditor(this.searchHistoryTable.getDefaultEditor(String.class));
-        this.searchHistoryTable.setModel(searchHistoryTableModel);
-        this.searchHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.searchHistoryTable.setAutoCreateRowSorter(true);
+        this.searchQueryHistoryTable.setCellEditor(this.searchQueryHistoryTable.getDefaultEditor(String.class));
+        this.searchQueryHistoryTable.setModel(searchHistoryTableModel);
+        this.searchQueryHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
+        this.searchQueryHistoryTable.setAutoCreateRowSorter(true);
 
         lock = new ReentrantLock();
 
-        this.searchHistoryTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+        this.searchQueryHistoryTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public synchronized void valueChanged(ListSelectionEvent e) {
                 if (lock.isLocked()) {
@@ -202,47 +154,19 @@ public class SearchByValueWindow {
     }
 
     public JPanel getContent() {
-        return mainpanel;
+        return mainPanel;
     }
 
-    private void parseTableItems() {
-        Object[][] sampleObject = new Object[tracePointList.size()][];
+    public void updateQueryList() {
 
-        int i = 0;
-        for (TracePoint tracePoint : this.tracePointList) {
-            String className = tracePoint.getClassname().substring(
-                    tracePoint.getClassname().lastIndexOf('/') + 1);
-
-            sampleObject[i] = new String[]{className,
-                    String.valueOf(tracePoint.getLinenum()),
-                    String.valueOf(tracePoint.getThreadId()),
-                    new Date(tracePoint.getRecordedAt()).toString()};
-
-            i++;
-        }
-
-        Vector<Vector> dataVector = new Vector<>();
-        dataVector.addAll(VectorUtils.convertToVector(sampleObject));
-        defaultTableModelTraces.setDataVector(dataVector, headers);
-    }
-
-    public void addTracePoints(List<TracePoint> tracePointCollection) {
-        scrollpanel.setVisible(true);
-        this.tracePointList.addAll(tracePointCollection);
-        parseTableItems();
-    }
-
-    public void updateSearchResultsList() {
-//        this.searchResults = insidiousService.getConfiguration().getSearchRecords().stream().sorted();
-
-        JTableHeader header = this.searchHistoryTable.getTableHeader();
+        JTableHeader header = this.searchQueryHistoryTable.getTableHeader();
         header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
-        Object[][] searchResultRows = new Object[searchResults.size()][];
-        Object[] headers = {"Search String", "TimeStamp", "# Matched"};
+        List<SearchRecord> searchQueries = insidiousService.getConfiguration().getSearchRecords();
+        Object[][] searchResultRows = new Object[searchQueries.size()][];
+        Object[] headers = {"Search query", "Time", "# Matched"};
 
         int i = 0;
-        for (SearchRecord searchRecord : searchResults) {
+        for (SearchRecord searchRecord : searchQueries) {
 
             searchResultRows[i] = new String[]{
                     searchRecord.getQuery(),
@@ -253,19 +177,8 @@ public class SearchByValueWindow {
         }
 
         searchHistoryTableModel.setDataVector(searchResultRows, headers);
-
-        this.searchHistoryTable.setModel(searchHistoryTableModel);
-        this.searchHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.searchHistoryTable.setAutoCreateRowSorter(true);
-
-
-    }
-
-    public void bringToFocus(ToolWindow toolWindow) {
-
-        toolWindow.getContentManager().setSelectedContent(
-                toolWindow.getContentManager().getContents()[0],
-                true);
+        this.searchQueryHistoryTable.setModel(searchHistoryTableModel);
+        this.searchQueryHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
 
     }
 }

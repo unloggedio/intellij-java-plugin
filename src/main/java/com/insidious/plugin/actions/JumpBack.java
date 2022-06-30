@@ -1,10 +1,13 @@
 package com.insidious.plugin.actions;
 
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
+import com.intellij.xdebugger.frame.XSuspendContext;
 import com.intellij.xdebugger.impl.DebuggerSupport;
 import com.intellij.xdebugger.impl.actions.DebuggerActionHandler;
 import com.intellij.xdebugger.impl.actions.XDebuggerActionBase;
@@ -21,7 +24,13 @@ public class JumpBack extends XDebuggerActionBase implements DumbAware {
 
         @Override
         public boolean isEnabled(@NotNull Project project, AnActionEvent event) {
-            return true;
+            InsidiousJavaDebugProcess debugProcess = project.getService(InsidiousService.class)
+                    .getDebugProcess();
+            if (debugProcess == null) {
+                return false;
+            }
+            XSuspendContext suspendContext = debugProcess.getSession().getSuspendContext();
+            return suspendContext != null;
         }
     };
 

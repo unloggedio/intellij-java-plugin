@@ -12,12 +12,12 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.util.text.StringUtil;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -362,8 +362,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectType(
-            Collection<String> classList,
+    public void queryTracePointsByType(
+            SearchQuery searchQuery,
             String sessionId, int depth,
             GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
     ) {
@@ -373,7 +373,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 + TRACE_BY_EXCEPTION
                 + "/" + sessionId
                 + "?exceptionClass="
-                + StringUtil.join(classList, ",")
+                + searchQuery.getQuery()
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
 
@@ -433,21 +433,23 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getTracesByObjectValue(String value,
-                                       String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+    public void queryTracePointsByValue(SearchQuery searchQuery,
+                                        String sessionId,
+                                        GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
                 + TRACE_BY_STRING
                 + "/" + sessionId
                 + "?traceValue="
-                + value
+                + searchQuery.getQuery()
                 + "&pageNumber=" + 0
                 + "&pageSize=500";
 
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Querying server for events by value [" + value + "]");
+            ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .setText("Querying server for events by value [" + searchQuery.getQuery() + "]");
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                 throw new ProcessCanceledException();
             }

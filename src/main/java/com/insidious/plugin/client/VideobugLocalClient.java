@@ -21,6 +21,7 @@ import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -59,7 +60,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
     private File sessionDirectory;
-    private ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -177,12 +178,133 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return new DataResponse<>(localSessions, localSessions.size(), 1);
     }
 
+    private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) {
+        logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
+        ZipInputStream indexArchive = null;
+        try {
+            indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+
+
+            long filterValueLong = 0;
+            try {
+                filterValueLong = Long.parseLong(pathName);
+            } catch (Exception ignored) {
+
+            }
+
+            ZipEntry entry = null;
+            while ((entry = indexArchive.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
+                if (entryName.contains(pathName)) {
+                    return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
+                }
+                String[] nameParts = entryName.split("@");
+                if (nameParts.length == 2 && filterValueLong > 0) {
+                    int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
+                    long fileTimeStamp = Long.parseLong(nameParts[0]);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("failed to create file [" + pathName + "] on disk from archive[" + sessionFile.getName() + "]", e);
+            return null;
+        }
+        return null;
+
+    }
+
+    private List<String> listArchiveFiles(File sessionFile) throws IOException {
+        List<String> files = new LinkedList<>();
+
+        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+
+        long filterValueLong = 0;
+
+        ZipEntry entry = null;
+        while ((entry = indexArchive.getNextEntry()) != null) {
+            String entryName = entry.getName();
+            files.add(entryName);
+        }
+        return files;
+
+    }
+
+    private void refreshSessionArchivesList() {
+        logger.info("refresh session archives list");
+        sessionDirectory = new File(this.pathToSessions + session.getName());
+        assert sessionDirectory.exists();
+        classWeaveInfo = null;
+        sessionArchives = Arrays
+                .stream(Objects.requireNonNull(sessionDirectory.listFiles()))
+                .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
+                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
+                .collect(Collectors.toList());
+        logger.info("found [" + sessionArchives.size() + "] session archives");
+    }
+
     @Override
-    public void getTracesByObjectType(
-            Collection<String> classList,
+    public void queryTracePointsByValue(
+            SearchQuery searchQuery, String sessionId,
+            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
+    ) {
+        logger.info("trace by string value: " + searchQuery);
+        refreshSessionArchivesList();
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .setText("Searching locally by value [" + searchQuery.getQuery() + "]");
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                getProjectSessionErrorsCallback.success(List.of());
+                return;
+            }
+        }
+
+
+        List<TracePoint> tracePointList = new LinkedList<>();
+        for (File sessionArchive : sessionArchives) {
+
+            NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+            if (bytes == null) {
+                logger.warn("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
+                continue;
+            }
+            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
+
+
+            ArchiveIndex index = null;
+            try {
+                index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
+            } catch (Exception e) {
+                logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
+                continue;
+            }
+            Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(searchQuery.getQuery()));
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + stringIds.size()
+                        + " strings from archive " + sessionArchive.getName());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    getProjectSessionErrorsCallback.success(tracePointList);
+                    return;
+                }
+            }
+
+
+            if (stringIds.size() > 0) {
+                tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
+            }
+        }
+        tracePointList.forEach(e -> e.setExecutionSession(session));
+        getProjectSessionErrorsCallback.success(tracePointList);
+
+    }
+
+    @Override
+    public void queryTracePointsByType(
+            SearchQuery searchQuery,
             String sessionId, int historyDepth,
             GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
-        logger.info("get trace by object type: " + classList);
+        logger.info("get trace by object type: " + searchQuery.getQuery());
         refreshSessionArchivesList();
 
 
@@ -195,7 +317,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading type names: " + sessionArchive.getName());
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2("Loading type names: " + sessionArchive.getName());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
@@ -209,12 +332,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
             NameWithBytes fileBytes = null;
-            try {
-                fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
-            } catch (IOException e) {
-                logger.warn("failed to create type index from archive: " + sessionArchive.getName(), e);
-                continue;
-            }
+            fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
             if (fileBytes == null) {
                 continue;
             }
@@ -222,7 +340,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             ArchiveIndex typesIndex;
             try {
                 typesIndex = readArchiveIndex(fileBytes.getBytes(), INDEX_TYPE_DAT_FILE);
-                logger.info("loaded [" + typesIndex.Types().size() + "] typeInfo from index in [" + sessionArchive.getAbsolutePath() + "]");
+                logger.info("loaded [" + typesIndex.Types().size()
+                        + "] typeInfo from index in [" + sessionArchive.getAbsolutePath() + "]");
             } catch (Exception e) {
                 logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
                 continue;
@@ -236,7 +355,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
 
-            Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME, classList);
+            Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME,
+                    List.of(searchQuery.getQuery().split(",")));
             ResultSet<TypeInfoDocument> searchResult = typesIndex.Types().retrieve(typeQuery);
             Set<Integer> typeIds = searchResult.stream()
                     .map(TypeInfoDocument::getTypeId)
@@ -268,13 +388,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             NameWithBytes objectIndexFileBytes = null;
-            try {
-                objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
-                        sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
-            } catch (IOException e) {
-                logger.warn("failed to create object index file: " + e.getMessage());
-                continue;
-            }
+            objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(
+                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
             if (objectIndexFileBytes == null) {
                 logger.warn("object index file bytes are empty, skipping");
                 continue;
@@ -329,112 +444,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
         tracePointList.forEach(e -> e.setExecutionSession(session));
         getProjectSessionErrorsCallback.success(tracePointList);
-    }
-
-    private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) throws IOException {
-        logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
-        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-
-        long filterValueLong = 0;
-        try {
-            filterValueLong = Long.parseLong(pathName);
-        } catch (Exception ignored) {
-
-        }
-
-        ZipEntry entry = null;
-        while ((entry = indexArchive.getNextEntry()) != null) {
-            String entryName = entry.getName();
-            logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
-            if (entryName.contains(pathName)) {
-                return new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
-            }
-            String[] nameParts = entryName.split("@");
-            if (nameParts.length == 2 && filterValueLong > 0) {
-                int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
-                long fileTimeStamp = Long.parseLong(nameParts[0]);
-            }
-        }
-        return null;
-
-    }
-
-    private List<String> listArchiveFiles(File sessionFile) throws IOException {
-        List<String> files = new LinkedList<>();
-
-        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-
-        long filterValueLong = 0;
-
-        ZipEntry entry = null;
-        while ((entry = indexArchive.getNextEntry()) != null) {
-            String entryName = entry.getName();
-            files.add(entryName);
-        }
-        return files;
-
-    }
-
-    private void refreshSessionArchivesList() {
-        logger.info("refresh session archives list");
-        sessionDirectory = new File(this.pathToSessions + session.getName());
-        assert sessionDirectory.exists();
-        classWeaveInfo = null;
-        sessionArchives = Arrays
-                .stream(Objects.requireNonNull(sessionDirectory.listFiles()))
-                .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
-                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
-                .collect(Collectors.toList());
-        logger.info("found [" + sessionArchives.size() + "] session archives");
-    }
-
-    @Override
-    public void getTracesByObjectValue(
-            String value, String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
-    ) throws IOException {
-        logger.info("trace by string value: " + value);
-        refreshSessionArchivesList();
-
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Searching locally by value [" + value + "]");
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                getProjectSessionErrorsCallback.success(List.of());
-                return;
-            }
-        }
-
-
-        List<TracePoint> tracePointList = new LinkedList<>();
-        for (File sessionArchive : sessionArchives) {
-
-            NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
-            if (bytes == null) {
-                logger.warn("archive [" + sessionArchive.getAbsolutePath() + "] is not complete or is corrupt.");
-                continue;
-            }
-            logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
-
-
-            ArchiveIndex index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
-            Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(value));
-
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + stringIds.size()
-                        + " strings from archive " + sessionArchive.getName());
-                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                    getProjectSessionErrorsCallback.success(tracePointList);
-                    return;
-                }
-            }
-
-
-            if (stringIds.size() > 0) {
-                tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
-            }
-        }
-        tracePointList.forEach(e -> e.setExecutionSession(session));
-        getProjectSessionErrorsCallback.success(tracePointList);
-
     }
 
 
@@ -1057,20 +1066,20 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 setSession(sessions.get(0));
                 refreshSessionArchivesList();
 
-                getTracesByObjectType(typeNameList, session.getSessionId(),
+                queryTracePointsByType(SearchQuery.ByType(typeNameList), session.getSessionId(),
                         2, new GetProjectSessionTracePointsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-                        logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
-                    }
+                            @Override
+                            public void error(ExceptionResponse errorResponse) {
+                                logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
+                            }
 
-                    @Override
-                    public void success(List<TracePoint> tracePoints) {
-                        if (tracePoints.size() > 0) {
-                            videobugExceptionCallback.onNewTracePoints(tracePoints);
-                        }
-                    }
-                });
+                            @Override
+                            public void success(List<TracePoint> tracePoints) {
+                                if (tracePoints.size() > 0) {
+                                    videobugExceptionCallback.onNewTracePoints(tracePoints);
+                                }
+                            }
+                        });
             }
         }, 5, 5, TimeUnit.SECONDS);
     }
@@ -1080,8 +1089,4 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return List.of(session);
     }
 
-    public List<File> getSessionFiles() {
-        this.refreshSessionArchivesList();
-        return this.sessionArchives;
-    }
 }

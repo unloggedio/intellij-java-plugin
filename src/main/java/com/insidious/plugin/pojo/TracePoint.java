@@ -17,7 +17,7 @@ public class TracePoint {
     private static final byte ATTRIBUTE_SEPARATOR = ',';
     private static final byte ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
     private final long recordedAt;
-    long classId, linenum, threadId, value;
+    long classId, lineNumber, threadId, matchedValueId;
     int dataId;
     String filename;
     String classname;
@@ -25,10 +25,10 @@ public class TracePoint {
     private long nanoTime;
     private ExecutionSession executionSession;
 
-    public TracePoint(long classId, long linenum,
+    public TracePoint(long classId, long lineNumber,
                       int dataId,
                       long threadId,
-                      long value,
+                      long matchedValueId,
                       String filename,
                       String classname,
                       String exceptionClass,
@@ -36,10 +36,10 @@ public class TracePoint {
                       long nanoTime
     ) {
         this.classId = classId;
-        this.linenum = linenum;
+        this.lineNumber = lineNumber;
         this.dataId = dataId;
         this.threadId = threadId;
-        this.value = value;
+        this.matchedValueId = matchedValueId;
         this.filename = filename;
         this.classname = classname;
         this.exceptionClass = exceptionClass;
@@ -102,9 +102,9 @@ public class TracePoint {
 
         if (recordedAt != that.recordedAt) return false;
         if (classId != that.classId) return false;
-        if (linenum != that.linenum) return false;
+        if (lineNumber != that.lineNumber) return false;
         if (threadId != that.threadId) return false;
-        if (value != that.value) return false;
+        if (matchedValueId != that.matchedValueId) return false;
         if (dataId != that.dataId) return false;
         if (nanoTime != that.nanoTime) return false;
         if (filename != null ? !filename.equals(that.filename) : that.filename != null) return false;
@@ -116,9 +116,9 @@ public class TracePoint {
     public int hashCode() {
         int result = (int) (recordedAt ^ (recordedAt >>> 32));
         result = 31 * result + (int) (classId ^ (classId >>> 32));
-        result = 31 * result + (int) (linenum ^ (linenum >>> 32));
+        result = 31 * result + (int) (lineNumber ^ (lineNumber >>> 32));
         result = 31 * result + (int) (threadId ^ (threadId >>> 32));
-        result = 31 * result + (int) (value ^ (value >>> 32));
+        result = 31 * result + (int) (matchedValueId ^ (matchedValueId >>> 32));
         result = 31 * result + dataId;
         result = 31 * result + (filename != null ? filename.hashCode() : 0);
         result = 31 * result + classname.hashCode();
@@ -133,7 +133,7 @@ public class TracePoint {
         filteredDataEventsRequest.setProbeId(this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
-        filteredDataEventsRequest.setValueId(Collections.singletonList(this.getValue()));
+        filteredDataEventsRequest.setValueId(Collections.singletonList(this.getMatchedValueId()));
         filteredDataEventsRequest.setPageSize(200);
         filteredDataEventsRequest.setPageNumber(0);
         filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
@@ -171,8 +171,8 @@ public class TracePoint {
         return classId;
     }
 
-    public long getLinenum() {
-        return linenum;
+    public long getLineNumber() {
+        return lineNumber;
     }
 
     public int getDataId() {
@@ -183,8 +183,8 @@ public class TracePoint {
         return threadId;
     }
 
-    public long getValue() {
-        return value;
+    public long getMatchedValueId() {
+        return matchedValueId;
     }
 
     public String getFilename() {

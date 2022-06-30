@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.SearchByValueWindow">
-  <grid id="27dc6" binding="mainpanel" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+  <grid id="27dc6" binding="mainPanel" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
       <xy x="20" y="20" width="1164" height="400"/>
@@ -70,7 +70,7 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="b0c8c" class="javax.swing.JTable" binding="searchHistoryTable">
+              <component id="b0c8c" class="javax.swing.JTable" binding="searchQueryHistoryTable">
                 <constraints/>
                 <properties>
                   <font name="Fira Code" size="16" style="0"/>
