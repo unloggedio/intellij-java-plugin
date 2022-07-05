@@ -312,7 +312,7 @@ public class InsidiousService implements Disposable {
                     String password = credentials.getPasswordAsString();
                     try {
                         if (password != null) {
-                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+//                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
                         }
                     } catch (Exception e) {
                         logger.error("failed to signin", e);

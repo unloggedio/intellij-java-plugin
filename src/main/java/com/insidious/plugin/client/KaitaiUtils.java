@@ -14,11 +14,20 @@ public class KaitaiUtils {
         if (!descriptorValue.startsWith("L")) {
             valueDesc = Descriptor.get(descriptorValue);
         }
+        long lineNumber = e.lineNumber();
+
+        EventType eventType = EventType.valueOf(e.eventType().value());
+        long instructionIndex = e.instructionIndex();
+        if (eventType.equals(EventType.RESERVED)) {
+            lineNumber = -1;
+            instructionIndex = -1;
+        }
+
         return new DataInfo(Math.toIntExact(e.classId()), Math.toIntExact(e.methodId()),
                 Math.toIntExact(e.dataId()),
-                Math.toIntExact(e.lineNumber()),
-                Math.toIntExact(e.instructionIndex()),
-                EventType.valueOf(e.eventType().value()),
+                Math.toIntExact(lineNumber),
+                Math.toIntExact(instructionIndex),
+                eventType,
                 valueDesc,
                 e.attributes().value());
     }

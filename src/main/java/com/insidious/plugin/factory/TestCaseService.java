@@ -8,8 +8,10 @@ import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -24,9 +26,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -82,7 +84,7 @@ public class TestCaseService {
      *
      * @param clientCallBack callback to stream the results to
      */
-    public void getTestCandidates(ClientCallBack<TestCandidate> clientCallBack) throws APICallException, IOException {
+    public void getTestCandidates(ClientCallBack<TestCandidate> clientCallBack) throws APICallException, IOException, InterruptedException {
 
         List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
 
@@ -95,58 +97,153 @@ public class TestCaseService {
 
         ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
 
-        for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
-
-            List<MethodInfo> methods =
-                    classWeaveInfo.getMethodInfoByClassId(classInfo.getClassId());
-
-            for (MethodInfo method : methods) {
 
 
-                // test can be generated for public methods
-                if (Modifier.isPublic(method.getAccess())) {
+        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
+//                EventType.METHOD_EXCEPTIONAL_EXIT,
+//                EventType.METHOD_OBJECT_INITIALIZED,
+//                EventType.METHOD_PARAM,
+//                EventType.METHOD_THROW,
+//                EventType.METHOD_NORMAL_EXIT,
+                        EventType.METHOD_ENTRY
+                )
+        );
 
-                    String methodDescriptor = method.getMethodDesc();
-                    List<DataInfo> methodProbes = classWeaveInfo.getProbesByMethodId(method.getMethodId());
+        BlockingQueue<String> tracePointLock = new ArrayBlockingQueue<>(1);
 
-                    if (methodProbes.size() == 0) {
-                        logger.warn("method [" +
-                                method.getClassName() + ":" + method.getMethodName()
-                                + "] has no probes");
-                        continue;
+        List<TracePoint> tracePointList = new LinkedList<>();
+        this.client.queryTracePointsByProbe(searchQuery,
+                session.getSessionId(), new ClientCallBack<TracePoint>() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+
                     }
 
-                    Optional<DataInfo> methodEntryProbeOption =
-                            methodProbes.stream()
-                                    .filter(p -> p.getEventType() == EventType.METHOD_ENTRY)
-                                    .findFirst();
+                    @Override
+                    public void success(Collection<TracePoint> tracePoints) {
+                        tracePointList.addAll(tracePoints);
 
-                    Set<DataInfo> methodParamProbes = methodProbes.stream()
-                            .filter(p -> p.getEventType() == EventType.METHOD_PARAM)
-                            .collect(Collectors.toSet());
-
-                    assert methodEntryProbeOption.isPresent();
-
-                    DataInfo methodEntryProbe = methodEntryProbeOption.get();
-
-                    FilteredDataEventsRequest filterDataEventsRequest = new FilteredDataEventsRequest();
-                    filterDataEventsRequest.setSessionId(session.getSessionId());
-
-                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
-                    try {
-                        client.fetchDataEvents(filterDataEventsRequest);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
                     }
 
+                    @Override
+                    public void completed() {
+                        tracePointLock.offer("new ExecutionSession()");
+                    }
+                });
 
-                }
+        tracePointLock.take();
 
-
-            }
-
-
+        if (tracePointList.size() == 0) {
+            logger.warn("no trace point found for method_entry event");
+            clientCallBack.completed();
+            return;
         }
+
+        for (TracePoint tracePoint : tracePointList) {
+
+            DataInfo probeInfo = classWeaveInfo.getProbeById(tracePoint.getDataId());
+            MethodInfo methodInfo = classWeaveInfo.getMethodInfoById(probeInfo.getMethodId());
+            ClassInfo classInfo = classWeaveInfo.getClassInfoById(methodInfo.getClassId());
+
+            FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+
+            ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+
+            logger.warn("generate test case for ["
+                    +  classInfo.getClassName() + ":" + methodInfo.getMethodName()
+                    + "] using " + probeReplayData.getDataEvents().size() +
+                    " events");
+        }
+
+
+
+
+
+
+
+
+
+//        for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
+//
+//            List<MethodInfo> methods =
+//                    classWeaveInfo.getMethodInfoByClassId(classInfo.getClassId());
+//
+//            for (MethodInfo method : methods) {
+//
+//
+//                // test can be generated for public methods
+//                if (Modifier.isPublic(method.getAccess())) {
+//
+//                    String methodDescriptor = method.getMethodDesc();
+//                    List<DataInfo> methodProbes = classWeaveInfo.getProbesByMethodId(method.getMethodId());
+//
+//                    if (methodProbes.size() == 0) {
+//                        logger.warn("method [" +
+//                                classInfo.getClassName() + ":" + method.getMethodName()
+//                                + "] has no probes");
+//                        continue;
+//                    }
+//
+//                    Optional<DataInfo> methodEntryProbeOption =
+//                            methodProbes.stream()
+//                                    .filter(p -> p.getEventType() == EventType.METHOD_ENTRY)
+//                                    .findFirst();
+//
+//                    Set<DataInfo> methodParamProbes = methodProbes.stream()
+//                            .filter(p -> p.getEventType() == EventType.METHOD_PARAM)
+//                            .collect(Collectors.toSet());
+//
+//                    assert methodEntryProbeOption.isPresent();
+//
+//                    DataInfo methodEntryProbe = methodEntryProbeOption.get();
+//
+//                    BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
+//
+//                    List<TracePoint> tracePoints = new LinkedList<>();
+//                    client.queryTracePointsByProbe(
+//                            SearchQuery.ByProbe(List.of(methodEntryProbe.getClassId())),
+//                            session.getSessionId(), new ClientCallBack<TracePoint>() {
+//                                @Override
+//                                public void error(ExceptionResponse errorResponse) {
+//                                    assert false;
+//                                }
+//
+//                                @Override
+//                                public void success(Collection<TracePoint> tracePointList) {
+//                                    tracePoints.addAll(tracePointList);
+//                                }
+//
+//                                @Override
+//                                public void completed() {
+//                                    blockingQueue.offer(new ExecutionSession());
+//                                }
+//                            });
+//
+//                    blockingQueue.take();
+//
+//                    if (tracePoints.size() == 0) {
+//                        logger.warn("no trace point found for probe["
+//                                + methodEntryProbe.getDataId() + " => [" + classInfo.getClassName() + "] => "
+//                                + method.getMethodName());
+//                        continue;
+//                    }
+//
+//                    TracePoint tracePoint = tracePoints.get(0);
+//
+//                    FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+//                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
+//                    ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+//
+//                    logger.info("generate test case using " + probeReplayData.getDataEvents().size() + " events");
+//
+//
+//                }
+//
+//
+//            }
+//
+//
+//        }
 
 
     }
