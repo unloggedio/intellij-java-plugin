@@ -8,8 +8,10 @@ import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -24,9 +26,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Modifier;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -77,12 +79,23 @@ public class TestCaseService {
      * this is the third attempt to generate test candidates, by using the
      * complete class weave information of a session loaded instead of trying
      * to rebuild the pieces one by one. here we are going to have
-     * classInfoList, methodInfoList and also probeInfoList to do our
+     * classInfoList, methodInfoList and also probeInfoList to do *our*
      * processing and then return actually usable results
      *
      * @param clientCallBack callback to stream the results to
      */
-    public void getTestCandidates(ClientCallBack<TestCandidate> clientCallBack) throws APICallException, IOException {
+    public
+
+    void
+
+    getTestCandidates(
+
+            ClientCallBack<TestCandidate> clientCallBack
+
+    )
+
+
+            throws APICallException, IOException, InterruptedException {
 
         List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
 
@@ -92,7 +105,91 @@ public class TestCaseService {
         }
 
         ExecutionSession session = sessions.get(0);
+        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
+//                EventType.METHOD_EXCEPTIONAL_EXIT,
+//                EventType.METHOD_OBJECT_INITIALIZED,
+//                EventType.METHOD_PARAM,
+//                EventType.METHOD_THROW,
+//                EventType.METHOD_NORMAL_EXIT,
+                        EventType.METHOD_ENTRY
+                )
+        );
 
+        BlockingQueue<String> tracePointLock = new ArrayBlockingQueue<>(1);
+
+        List<TracePoint> tracePointList = new LinkedList<>();
+        this.client.queryTracePointsByProbe(searchQuery,
+                session.getSessionId(), new ClientCallBack<TracePoint>() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+
+                    }
+
+                    @Override
+                    public void success(Collection<TracePoint> tracePoints) {
+                        tracePointList.addAll(tracePoints);
+
+                    }
+
+                    @Override
+                    public void completed() {
+                        tracePointLock.offer("new ExecutionSession()");
+                    }
+                });
+
+        tracePointLock.take();
+
+        if (tracePointList.size() == 0) {
+            logger.warn("no trace point found for method_entry event");
+            clientCallBack.completed();
+            return;
+        }
+
+        ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
+
+        for (TracePoint tracePoint : tracePointList) {
+
+            DataInfo probeInfo = classWeaveInfo.getProbeById(tracePoint.getDataId());
+            MethodInfo methodInfo = classWeaveInfo.getMethodInfoById(probeInfo.getMethodId());
+            ClassInfo classInfo = classWeaveInfo.getClassInfoById(methodInfo.getClassId());
+
+            FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+
+            ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+
+            TestCandidate testCandidate = new TestCandidate(methodInfo, classInfo, session, probeInfo,
+                    probeReplayData);
+            clientCallBack.success(List.of(testCandidate));
+
+            logger.warn("generate test case for ["
+                    +  classInfo.getClassName() + ":" + methodInfo.getMethodName()
+                    + "] using " + probeReplayData.getDataEvents().size() +
+                    " events");
+        }
+
+        clientCallBack.completed();
+
+
+    }
+
+    /**
+     * If the name doesnt give enough meaning, this will iterate thru all the classes, their
+     * methods, and query for each single method_entry probe entry one by one.
+     * it is very slow
+     * @throws APICallException it tries to use client
+     * @throws IOException // if something on the disk fails
+     * @throws InterruptedException // it waits
+     */
+    public void listTestCandidatesByEnumeratingAllProbes() throws APICallException, IOException, InterruptedException {
+
+        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
+
+        if (sessions.size() == 0) {
+            return;
+        }
+
+
+        ExecutionSession session = sessions.get(0);
         ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
 
         for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
@@ -111,7 +208,7 @@ public class TestCaseService {
 
                     if (methodProbes.size() == 0) {
                         logger.warn("method [" +
-                                method.getClassName() + ":" + method.getMethodName()
+                                classInfo.getClassName() + ":" + method.getMethodName()
                                 + "] has no probes");
                         continue;
                     }
@@ -129,15 +226,44 @@ public class TestCaseService {
 
                     DataInfo methodEntryProbe = methodEntryProbeOption.get();
 
-                    FilteredDataEventsRequest filterDataEventsRequest = new FilteredDataEventsRequest();
-                    filterDataEventsRequest.setSessionId(session.getSessionId());
+                    BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
 
-                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
-                    try {
-                        client.fetchDataEvents(filterDataEventsRequest);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
+                    List<TracePoint> tracePoints = new LinkedList<>();
+                    client.queryTracePointsByProbe(
+                            SearchQuery.ByProbe(List.of(methodEntryProbe.getClassId())),
+                            session.getSessionId(), new ClientCallBack<TracePoint>() {
+                                @Override
+                                public void error(ExceptionResponse errorResponse) {
+                                    assert false;
+                                }
+
+                                @Override
+                                public void success(Collection<TracePoint> tracePointList) {
+                                    tracePoints.addAll(tracePointList);
+                                }
+
+                                @Override
+                                public void completed() {
+                                    blockingQueue.offer(new ExecutionSession());
+                                }
+                            });
+
+                    blockingQueue.take();
+
+                    if (tracePoints.size() == 0) {
+                        logger.warn("no trace point found for probe["
+                                + methodEntryProbe.getDataId() + " => [" + classInfo.getClassName() + "] => "
+                                + method.getMethodName());
+                        continue;
                     }
+
+                    TracePoint tracePoint = tracePoints.get(0);
+
+                    FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
+                    ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+
+                    logger.info("generate test case using " + probeReplayData.getDataEvents().size() + " events");
 
 
                 }
@@ -147,7 +273,6 @@ public class TestCaseService {
 
 
         }
-
 
     }
 

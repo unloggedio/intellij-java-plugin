@@ -24,6 +24,10 @@ public class SearchQuery {
         return new SearchQuery(QueryType.BY_EVENT, eventTypeList);
     }
 
+    public static SearchQuery ByProbe(Collection<Integer> probeIdList) {
+        return new SearchQuery(QueryType.BY_PROBE, probeIdList);
+    }
+
     private SearchQuery(QueryType queryType, Object query) {
         this.queryType = queryType;
         this.query = query;

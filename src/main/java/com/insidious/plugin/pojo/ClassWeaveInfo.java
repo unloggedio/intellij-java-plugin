@@ -61,6 +61,16 @@ public class ClassWeaveInfo {
         return methods;
     }
 
+    public DataInfo getProbeById(int probeId) {
+        List<DataInfo> methods = new LinkedList<>();
+        for (DataInfo dataInfo : dataInfoList) {
+            if (dataInfo.getDataId() == probeId) {
+                return dataInfo;
+            }
+        }
+        return null;
+    }
+
     public List<ClassInfo> getClassInfoList() {
         return classInfoList;
     }
