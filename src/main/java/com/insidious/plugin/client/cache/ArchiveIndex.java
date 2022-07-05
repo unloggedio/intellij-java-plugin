@@ -7,11 +7,7 @@ import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.ObjectInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
+import com.insidious.common.weaver.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;

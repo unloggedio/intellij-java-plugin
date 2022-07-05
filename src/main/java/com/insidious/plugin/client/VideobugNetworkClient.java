@@ -13,6 +13,7 @@ import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -320,6 +321,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         return sessionDataResponse;
     }
 
+
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
         logger.info("get project sessions - " + this.project.getId());
@@ -365,7 +367,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public void queryTracePointsByType(
             SearchQuery searchQuery,
             String sessionId, int depth,
-            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
+            ClientCallBack<TracePoint> getProjectSessionErrorsCallback
     ) {
 
         String url = PROJECT_URL
@@ -426,7 +428,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
+                } finally {
+                    getProjectSessionErrorsCallback.completed();
                 }
+
             }
         });
 
@@ -435,7 +440,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public void queryTracePointsByValue(SearchQuery searchQuery,
                                         String sessionId,
-                                        GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+                                        ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -487,6 +492,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
+                }finally {
+                    getProjectSessionErrorsCallback.completed();
                 }
 
             }
@@ -627,8 +634,18 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         // todo
     }
 
+
     @Override
-    public List<ExecutionSession> getSessionList() {
-        return this.sessionList;
+    public void queryTracePointsByDataIds(SearchQuery searchQuery,
+                                          String sessionid,
+                                          ClientCallBack<TracePoint> tracePointsCallback) {
+
     }
+
+    @Override
+    public void getMethods(String sessionId, ClientCallBack<TestCandidate> tracePointsCallback) {
+
+    }
+
+
 }

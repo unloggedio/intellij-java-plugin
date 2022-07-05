@@ -1,37 +1,58 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.pojo.TestCandidate;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 
 public class TestCaseServiceTest {
 
 
     @Test
-    void testGeneration() throws IOException {
+    void testGeneration() throws APICallException, IOException {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("user.home") + "/.videobug/sessions");
+        VideobugLocalClient client = new VideobugLocalClient(
+                System.getenv("USERPROFILE") + "/.videobug/sessions");
 
         TestCaseService testCaseService = new TestCaseService(project, client);
 
-        List<TracePoint> testCandidates = testCaseService.listTestCandidates();
+        testCaseService.listTestCandidates(
+                new ClientCallBack<>() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        assert false;
+                    }
 
+                    @Override
+                    public void success(Collection<TestCandidate> testCandidates) {
 
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                        if (testCandidates.size() == 0) {
+                            return;
+                        }
 
-        String testCaseScript = testCaseService.generateTestCase(testCandidates.get(0));
+                        for (TestCandidate testCandidate : testCandidates) {
+                            try {
+                                String testCaseScript = testCaseService.generateTestCase(testCandidate);
+                                System.out.println(testCaseScript);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }
 
-//        byte[] testCaseScript = outputStream.toByteArray();
+                    public void completed() {
 
-        System.out.println(testCaseScript);
-
+                    }
+                }
+        );
     }
 }

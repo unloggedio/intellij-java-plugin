@@ -22,6 +22,7 @@ import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -60,7 +61,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private ProjectItem currentProject;
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
-    private File sessionDirectory;
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -78,7 +78,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void setSession(ExecutionSession session) {
         this.session = session;
-        refreshSessionArchivesList();
+        this.sessionArchives = refreshSessionArchivesList(session.getSessionId());
     }
 
     @Override
@@ -206,7 +206,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
             }
         } catch (Exception e) {
-            logger.error("failed to create file [" + pathName + "] on disk from archive[" + sessionFile.getName() + "]", e);
+            logger.warn("failed to create file [" + pathName + "] on disk from" +
+                    " archive[" + sessionFile.getName() + "]", e);
             return null;
         }
         return null;
@@ -229,31 +230,41 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
-    private void refreshSessionArchivesList() {
+    private List<File> refreshSessionArchivesList(String sessionId) {
         logger.info("refresh session archives list");
-        sessionDirectory = new File(this.pathToSessions + session.getName());
+        File sessionDirectory = new File(this.pathToSessions + sessionId);
         assert sessionDirectory.exists();
         classWeaveInfo = null;
-        sessionArchives = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles())).sorted((a, b) -> -1 * a.getName().compareTo(b.getName())).filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-")).collect(Collectors.toList());
-        logger.info("found [" + sessionArchives.size() + "] session archives");
+        List<File> sessionFiles = Arrays.stream(
+                        Objects.requireNonNull(sessionDirectory.listFiles()))
+                .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
+                .filter(e -> e.getName().endsWith(".zip")
+                        && e.getName().startsWith("index-"))
+                .collect(Collectors.toList());
+        logger.info("found [" + sessionFiles.size() + "] session archives");
+        return sessionFiles;
     }
 
     @Override
-    public void queryTracePointsByValue(SearchQuery searchQuery, String sessionId, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+    public void queryTracePointsByValue(
+            SearchQuery searchQuery,
+            String sessionId,
+            ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
         logger.info("trace by string value: " + searchQuery);
-        refreshSessionArchivesList();
+        List<File> archives = refreshSessionArchivesList(sessionId);
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Searching locally by value [" + searchQuery.getQuery() + "]");
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText(
+                    "Searching locally by value [" + searchQuery.getQuery() + "]");
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                getProjectSessionErrorsCallback.success(List.of());
+                getProjectSessionErrorsCallback.completed();
                 return;
             }
         }
 
 
         List<TracePoint> tracePointList = new LinkedList<>();
-        for (File sessionArchive : sessionArchives) {
+        for (File sessionArchive : archives) {
 
             NameWithBytes bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
             if (bytes == null) {
@@ -270,10 +281,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
                 continue;
             }
-            Set<Long> stringIds = new HashSet<>(index.getStringIdsFromStringValues(searchQuery.getQuery()));
+            Set<Long> valueIds = new HashSet<>(index.getStringIdsFromStringValues((String) searchQuery.getQuery()));
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + stringIds.size() + " strings from archive " + sessionArchive.getName());
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + valueIds.size() + " strings from archive " + sessionArchive.getName());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     getProjectSessionErrorsCallback.success(tracePointList);
                     return;
@@ -281,8 +292,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
 
-            if (stringIds.size() > 0) {
-                tracePointList.addAll(queryForObjectIds(sessionArchive, stringIds));
+            if (valueIds.size() > 0) {
+                tracePointList.addAll(getTracePointsByValueIds(sessionArchive, valueIds));
             }
         }
         tracePointList.forEach(e -> e.setExecutionSession(session));
@@ -290,17 +301,20 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     }
 
+
     @Override
-    public void queryTracePointsByType(SearchQuery searchQuery, String sessionId, int historyDepth, GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+    public void queryTracePointsByType(SearchQuery searchQuery,
+                                       String sessionId, int historyDepth,
+                                       ClientCallBack<TracePoint> clientCallBack) {
         logger.info("get trace by object type: " + searchQuery.getQuery());
-        refreshSessionArchivesList();
+        List<File> archives = refreshSessionArchivesList(sessionId);
 
 
-        List<TracePoint> tracePointList = new LinkedList<>();
         int totalCount = sessionArchives.size();
         int currentCount = 0;
+        int totalMatched = 0;
 
-        for (File sessionArchive : sessionArchives) {
+        for (File sessionArchive : archives) {
             currentCount++;
 
 
@@ -341,7 +355,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
 
-            Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME, List.of(searchQuery.getQuery().split(",")));
+            Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME
+                    , List.of(((String) searchQuery.getQuery()).split(",")));
             ResultSet<TypeInfoDocument> searchResult = typesIndex.Types().retrieve(typeQuery);
             Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
             searchResult.close();
@@ -387,28 +402,31 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
             Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
             ResultSet<ObjectInfoDocument> typeInfoSearchResult = objectIndex.Objects().retrieve(query);
-            Set<Long> objectIds = typeInfoSearchResult.stream().map(ObjectInfoDocument::getObjectId).collect(Collectors.toSet());
+            Set<Long> valueIds = typeInfoSearchResult.stream().map(ObjectInfoDocument::getObjectId).collect(Collectors.toSet());
             typeInfoSearchResult.close();
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Index: " + sessionArchive.getName() + " matched " + objectIds.size() + " objects of total " + objectIndex.Objects().size());
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Index: " + sessionArchive.getName() + " matched " + valueIds.size() + " objects of total " + objectIndex.Objects().size());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
             }
 
 
-            logger.info("matched [" + objectIds.size() + "] objects by of the total " + objectIndex.Objects().size());
+            logger.info("matched [" + valueIds.size() + "] objects by of the total " + objectIndex.Objects().size());
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
                 break;
             }
 
-            if (objectIds.size() > 0) {
-                tracePointList.addAll(queryForObjectIds(sessionArchive, objectIds));
+            if (valueIds.size() > 0) {
+                List<TracePoint> tracePointsByValueIds = getTracePointsByValueIds(sessionArchive, valueIds);
+                tracePointsByValueIds.forEach(e -> e.setExecutionSession(session));
+                clientCallBack.success(tracePointsByValueIds);
+                totalMatched += tracePointsByValueIds.size();
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Matched " + tracePointList.size() + " events");
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Matched " + totalMatched + " events");
                     if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                         throw new ProcessCanceledException();
                     }
@@ -420,13 +438,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
         }
-        tracePointList.forEach(e -> e.setExecutionSession(session));
-        getProjectSessionErrorsCallback.success(tracePointList);
+        clientCallBack.completed();
     }
 
 
-    private List<TracePoint> queryForObjectIds(File sessionArchive, Set<Long> objectIds) {
-        logger.info("Query for objectIds [" + objectIds.toString() + "]");
+    private List<TracePoint> getTracePointsByValueIds(File sessionArchive,
+                                                      Set<Long> valueIds) {
+        logger.info("Query for valueIds [" + valueIds.toString() + "]");
         List<TracePoint> tracePointList = new LinkedList<>();
         NameWithBytes bytes;
         ArchiveFilesIndex eventsIndex = null;
@@ -435,7 +453,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         try {
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading events index " + sessionArchive.getName() + " to match against " + objectIds.size() + " values");
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading events index " + sessionArchive.getName() + " to match against " + valueIds.size() + " values");
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
@@ -448,7 +466,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading objects from " + sessionArchive.getName() + " to match against " + objectIds.size() + " values");
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading objects from " + sessionArchive.getName() + " to match against " + valueIds.size() + " values");
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
@@ -457,7 +475,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             assert objectIndexBytes != null;
             objectIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             logger.info("object index has [" + objectIndex.Objects().size() + "] objects");
-            objectInfoMap = objectIndex.getObjectsByObjectId(objectIds);
+            objectInfoMap = objectIndex.getObjectsByObjectId(valueIds);
 
             Set<Integer> types = objectInfoMap.values().stream().map(ObjectInfo::getTypeId).map(Long::intValue).collect(Collectors.toSet());
 
@@ -482,12 +500,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
         ArchiveFilesIndex finalEventsIndex = eventsIndex;
         HashMap<String, UploadFile> matchedFiles = new HashMap<>();
         AtomicInteger counter = new AtomicInteger();
-        objectIds.forEach(valueId -> {
+        valueIds.forEach(valueId -> {
             int currentIndex = counter.addAndGet(1);
             assert finalEventsIndex != null;
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Matching events for item " + currentIndex + " of " + objectIds.size());
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Matching events for item " + currentIndex + " of " + valueIds.size());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
@@ -504,7 +522,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         throw new ProcessCanceledException();
                     }
                 }
-                matchedFilesForString = finalEventsIndex.queryEventsByStringId(valueId);
+                matchedFilesForString = finalEventsIndex.querySessionFilesByValueId(valueId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
                     int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
@@ -547,7 +565,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
 
 
-                List<DataEventWithSessionId> dataEvents = getDataEventsFromPath(fileBytes.getBytes(), matchedFile.getValueIds());
+                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByValueIds(fileBytes.getBytes(), matchedFile.getValueIds());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
                     ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
                     if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
@@ -606,6 +624,169 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
 
+    private List<TracePoint> getTracePointsByProbeIds(File sessionArchive,
+                                                      Set<Integer> probeIds) {
+        logger.info("Query for probeIds [" + probeIds.toString() + "]");
+        List<TracePoint> tracePointList = new LinkedList<>();
+        NameWithBytes bytes;
+        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
+
+
+        ArchiveFilesIndex eventsIndex = null;
+        ArchiveIndex objectIndex = null;
+        try {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                        "Loading events index " + sessionArchive.getName() + " to match against " + probeIds.size() + " values");
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
+            }
+
+
+            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
+            if (bytes == null) {
+                return List.of();
+            }
+            eventsIndex = readEventIndex(bytes.getBytes());
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+
+        ArchiveFilesIndex finalEventsIndex = eventsIndex;
+        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
+        AtomicInteger counter = new AtomicInteger();
+        probeIds.forEach(probeId -> {
+            int currentIndex = counter.addAndGet(1);
+            assert finalEventsIndex != null;
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                        "Matching events for probe " + currentIndex + " of " + probeIds.size());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    throw new ProcessCanceledException();
+                }
+            }
+
+            boolean archiveHasSeenValue = finalEventsIndex.hasProbeId(probeId);
+            List<UploadFile> matchedFilesForString = new LinkedList<>();
+            logger.info("probeId [" + probeId + "] found in archive: [" + archiveHasSeenValue + "]");
+
+            if (archiveHasSeenValue) {
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Events matched in " + sessionArchive.getName());
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
+                }
+                matchedFilesForString =
+                        finalEventsIndex.querySessionFilesByProbeId(probeId);
+                for (UploadFile uploadFile : matchedFilesForString) {
+                    String filePath = uploadFile.getPath();
+                    int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+                    uploadFileToAdd.setProbeIds(new Integer[]{probeId});
+                    matchedFiles.put(filePath, uploadFile);
+                }
+            }
+        });
+        logger.info("matched [" + matchedFiles.size() + "] files");
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText("Found " + matchedFiles.size() + " archives with matching values");
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+        }
+
+
+        for (UploadFile matchedFile : matchedFiles.values()) {
+            try {
+
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading events data from " + matchedFile.getPath());
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
+                }
+                String fileName = Path.of(matchedFile.getPath()).getFileName().toString();
+
+                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+                if (fileBytes == null) {
+                    List<String> fileList = listArchiveFiles(sessionArchive);
+                    logger.error(String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]", fileName, sessionArchive, fileList));
+                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
+                }
+                long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
+                int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
+
+
+                List<DataEventWithSessionId> dataEvents =
+                        getDataEventsFromPathByProbeIds(fileBytes.getBytes(),
+                                matchedFile.getProbeIds());
+
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                    ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        throw new ProcessCanceledException();
+                    }
+                }
+                List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
+
+                    try {
+                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive, Set.of(e1.getDataId()));
+                        logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                                return null;
+                            }
+                        }
+
+
+                        DataInfo dataInfo = dataInfoList.get(0);
+                        int classId = dataInfo.getClassId();
+                        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
+
+                        ObjectInfo objectInfo = objectInfoMap.get(String.valueOf(e1.getValue()));
+                        TypeInfo typeInfo = getTypeInfo((int) objectInfo.getTypeId());
+
+                        TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(), dataInfo.getDataId(), threadId, e1.getValue(), classInfo.fileName().value(), classInfo.className().value(), typeInfo.getTypeNameFromClass(), timestamp, e1.getNanoTime());
+                        tracePoint.setExecutionSession(session);
+                        return tracePoint;
+                    } catch (ClassInfoNotFoundException | Exception ex) {
+                        logger.error("failed to get data probe information", ex);
+                    }
+                    return null;
+
+
+                }).filter(Objects::nonNull).collect(Collectors.toList());
+                tracePointList.addAll(matchedTracePoints);
+
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                    if (tracePointList.size() > 0) {
+                        ProgressIndicatorProvider.getGlobalProgressIndicator().setText(tracePointList.size() + " matched...");
+                    }
+                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                        return tracePointList;
+                    }
+                }
+
+
+            } catch (IOException ex) {
+                logger.error("exception while creating trace points in file[" + matchedFile.path + "]",
+                        ex);
+            }
+
+        }
+
+        return tracePointList;
+    }
+
+
     private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
@@ -640,15 +821,19 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<DataInfo> getProbeInfo(File sessionFile, Set<Integer> dataId) throws IOException {
 
 
+        readClassWeaveInfo(sessionFile);
         if (classWeaveInfo == null) {
-            NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
-            assert fileBytes != null;
-            classWeaveInfo = new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(fileBytes.getBytes()));
+            return List.of();
         }
 
-        return classWeaveInfo.classInfo().stream().map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList).flatMap(Collection::stream).filter(e -> dataId.contains(Math.toIntExact(e.dataId()))).map(this::toDataInfo).collect(Collectors.toList());
+        return classWeaveInfo.classInfo().stream()
+                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+                .flatMap(Collection::stream)
+                .filter(e -> dataId.contains(Math.toIntExact(e.dataId())))
+                .map(this::toDataInfo).collect(Collectors.toList());
 
     }
+
 
     @NotNull
     private DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
@@ -656,31 +841,63 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         Descriptor valueDesc = Descriptor.Object;
         if (!descriptorValue.startsWith("L")) {
-            valueDesc = Descriptor.valueOf(descriptorValue);
+            valueDesc = Descriptor.get(descriptorValue);
         }
-        return new DataInfo(Math.toIntExact(e.classId()), Math.toIntExact(e.methodId()), Math.toIntExact(e.dataId()), Math.toIntExact(e.lineNumber()), Math.toIntExact(e.instructionIndex()), EventType.valueOf(e.eventType().value()), valueDesc, e.attributes().value());
+        return new DataInfo(Math.toIntExact(e.classId()), Math.toIntExact(e.methodId()),
+                Math.toIntExact(e.dataId()),
+                Math.toIntExact(e.lineNumber()),
+                Math.toIntExact(e.instructionIndex()),
+                EventType.valueOf(e.eventType().value()),
+                valueDesc,
+                e.attributes().value());
     }
 
-    private List<DataEventWithSessionId> getDataEventsFromPath(byte[] bytes, Long[] valueIds) throws IOException {
+    private List<DataEventWithSessionId> getDataEventsFromPathByValueIds(byte[] bytes, Long[] valueIds) throws IOException {
 
         Set<Long> ids = Set.of(valueIds);
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
-        return dataEvents.event().entries().stream().filter(e -> e.magic() == 4 && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId())).map(e -> {
-            long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+        return dataEvents.event().entries().stream().filter(e -> e.magic() == 4
+                        && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId()))
+                .map(e -> {
+                    long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
 
-            int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                    int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
 
-            long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-            long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+                    long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
+                    long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
 
-            DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-            dataEvent.setDataId(probeId);
-            dataEvent.setValue(valueId);
-            dataEvent.setNanoTime(eventId);
-            dataEvent.setRecordedAt(new Date(timestamp));
-            return dataEvent;
-        }).collect(Collectors.toList());
+                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                    dataEvent.setDataId(probeId);
+                    dataEvent.setValue(valueId);
+                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setRecordedAt(new Date(timestamp));
+                    return dataEvent;
+                }).collect(Collectors.toList());
+    }
+
+    private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
+
+        Set<Integer> ids = Set.of(probeIds);
+        KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
+
+        return dataEvents.event().entries().stream().filter(e -> e.magic() == 4
+                        && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId()))
+                .map(e -> {
+                    long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+
+                    int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+
+                    long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
+                    long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+
+                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                    dataEvent.setDataId(probeId);
+                    dataEvent.setValue(valueId);
+                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setRecordedAt(new Date(timestamp));
+                    return dataEvent;
+                }).collect(Collectors.toList());
     }
 
     private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
@@ -702,7 +919,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Files.write(path, bytes);
 
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
-            DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_ID, path.toFile());
+            DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence =
+                    DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_ID, path.toFile());
             typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
             typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_NAME));
             typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_ID));
@@ -711,7 +929,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = null;
         if (indexFilterType.equals(INDEX_STRING_DAT_FILE)) {
-            DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, path.toFile());
+            DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence =
+                    DiskPersistence.onPrimaryKeyInFile(StringInfoDocument.STRING_ID, path.toFile());
             stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
 
             stringInfoIndex.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
@@ -719,7 +938,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
         if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE)) {
-            DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence = DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, path.toFile());
+            DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence =
+                    DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, path.toFile());
 
             objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
             objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
@@ -727,10 +947,19 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE)) {
-            KaitaiInsidiousClassWeaveParser classWeave = new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(bytes));
+            KaitaiInsidiousClassWeaveParser classWeave =
+                    new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(bytes));
 
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
-                classInfoMap.put(classInfo.className().value(), new ClassInfo((int) classInfo.classId(), classInfo.container().value(), classInfo.fileName().value(), classInfo.className().value(), LogLevel.valueOf(classInfo.logLevel().value()), classInfo.hash().value(), classInfo.classLoaderIdentifier().value()));
+                classInfoMap.put(classInfo.className().value(),
+                        new ClassInfo((int) classInfo.classId(),
+                                classInfo.container().value(),
+                                classInfo.fileName().value(),
+                                classInfo.className().value(),
+                                LogLevel.valueOf(classInfo.logLevel().value()),
+                                classInfo.hash().value(),
+                                classInfo.classLoaderIdentifier().value())
+                );
             }
         }
 
@@ -747,7 +976,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws IOException {
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest)
+            throws IOException {
 
         File archiveToServe = null;
         for (File sessionArchive : this.sessionArchives) {
@@ -766,7 +996,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
 
-        NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(archiveToServe, String.valueOf(filteredDataEventsRequest.getNanotime()));
+        NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(
+                archiveToServe, String.valueOf(filteredDataEventsRequest.getNanotime()));
 
 
         assert bytesWithName != null;
@@ -779,26 +1010,31 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         }
 
-        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytesWithName.getBytes()));
+        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
+                new ByteBufferKaitaiStream(bytesWithName.getBytes()));
 
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Mapping " + eventsContainer.event().entries().size() + " events ");
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                    "Mapping " + eventsContainer.event().entries().size() + " events ");
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                 return null;
             }
         }
 
-        List<DataEventWithSessionId> dataEventList = eventsContainer.event().entries().stream().filter(e -> e.magic() == 4).map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block()).map(e -> {
-            DataEventWithSessionId d = new DataEventWithSessionId();
+        List<DataEventWithSessionId> dataEventList = eventsContainer.event()
+                .entries().stream().filter(e -> e.magic() == 4)
+                .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
+                .map(e -> {
+                    DataEventWithSessionId d = new DataEventWithSessionId();
 
-            d.setDataId((int) e.probeId());
-            d.setNanoTime(e.eventId());
-            d.setRecordedAt(new Date(e.timestamp()));
-            d.setThreadId(filteredDataEventsRequest.getThreadId());
-            d.setValue(e.valueId());
-            return d;
-        }).collect(Collectors.toList());
+                    d.setDataId((int) e.probeId());
+                    d.setNanoTime(e.eventId());
+                    d.setRecordedAt(new Date(e.timestamp()));
+                    d.setThreadId(filteredDataEventsRequest.getThreadId());
+                    d.setValue(e.valueId());
+                    return d;
+                }).collect(Collectors.toList());
 
         Collections.reverse(dataEventList);
 
@@ -822,17 +1058,33 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
             }
 
-            classInfo.put(String.valueOf(e.classId()), new ClassInfo((int) e.classId(), e.container().value(), e.fileName().value(), e.className().value(), LogLevel.valueOf(e.logLevel().value()), e.hash().value(), e.classLoaderIdentifier().value()));
+            classInfo.put(String.valueOf(e.classId()), new ClassInfo((int) e.classId(),
+                    e.container().value(),
+                    e.fileName().value(),
+                    e.className().value(),
+                    LogLevel.valueOf(e.logLevel().value()),
+                    e.hash().value(),
+                    e.classLoaderIdentifier().value()));
 
             if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loading " + e.probeCount() + " probes in class: " + e.className());
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+                        "Loading " + e.probeCount() + " probes in class: " + e.className());
                 if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
                     throw new ProcessCanceledException();
                 }
             }
 
             e.probeList().forEach(r -> {
-                dataInfo.put(String.valueOf(r.dataId()), new DataInfo((int) r.classId(), (int) r.methodId(), (int) r.dataId(), (int) r.lineNumber(), (int) r.instructionIndex(), EventType.valueOf(r.eventType().value()), Descriptor.get(r.valueDescriptor().value()), r.attributes().value()));
+                dataInfo.put(String.valueOf(r.dataId()),
+                        new DataInfo((int) r.classId(),
+                                (int) r.methodId(),
+                                (int) r.dataId(),
+                                (int) r.lineNumber(),
+                                (int) r.instructionIndex(),
+                                EventType.valueOf(r.eventType().value()),
+                                Descriptor.get(r.valueDescriptor().value()),
+                                r.attributes().value())
+                );
             });
         });
 
@@ -973,29 +1225,139 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
 
                 List<ExecutionSession> sessions = getLocalSessions();
-                setSession(sessions.get(0));
-                refreshSessionArchivesList();
+                ExecutionSession executionSession = sessions.get(0);
+                setSession(executionSession);
 
-                queryTracePointsByType(SearchQuery.ByType(typeNameList), session.getSessionId(), 2, new GetProjectSessionTracePointsCallback() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-                        logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
-                    }
+                queryTracePointsByType(SearchQuery.ByType(typeNameList), session.getSessionId(), 2,
+                        new ClientCallBack<TracePoint>() {
+                            @Override
+                            public void error(ExceptionResponse errorResponse) {
+                                logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
+                            }
 
-                    @Override
-                    public void success(List<TracePoint> tracePoints) {
-                        if (tracePoints.size() > 0) {
-                            videobugExceptionCallback.onNewTracePoints(tracePoints);
-                        }
-                    }
-                });
+                            @Override
+                            public void success(Collection<TracePoint> tracePoints) {
+                                if (tracePoints.size() > 0) {
+                                    videobugExceptionCallback.onNewTracePoints(tracePoints);
+                                }
+                            }
+
+                            @Override
+                            public void completed() {
+
+                            }
+                        });
             }
         }, 5, 5, TimeUnit.SECONDS);
     }
 
     @Override
-    public List<ExecutionSession> getSessionList() {
-        return List.of(session);
+    public void getMethods(String sessionId,
+                           ClientCallBack<TestCandidate> tracePointsCallback) {
+
+        classWeaveInfo
+                .classInfo()
+                .forEach(classInfo -> tracePointsCallback.success(
+                        classInfo.methodList()
+                                .stream().map(e -> new MethodInfo(
+                                        (int) e.classId(),
+                                        (int) e.methodId(),
+                                        classInfo.className().value(),
+                                        e.methodName().value(),
+                                        e.methodDescriptor().value(),
+                                        (int) e.access(),
+                                        e.sourceFileName().value(),
+                                        e.methodHash().value()))
+                                .map(TestCandidate::new)
+                                .collect(Collectors.toSet()))
+                );
+        tracePointsCallback.completed();
+    }
+
+    private List<DataInfo> queryProbeFromFileByEventType(File sessionFile,
+                                                         Collection<EventType> eventTypes) {
+
+        readClassWeaveInfo(sessionFile);
+
+        if (classWeaveInfo == null) {
+            return List.of();
+        }
+
+        return classWeaveInfo.classInfo().stream()
+                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+                .flatMap(Collection::stream)
+                .filter(e -> eventTypes.size() == 0 ||
+                        // dont check contains if the list is empty
+                        eventTypes.contains(EventType.valueOf(e.eventType().value())))
+                .map(this::toDataInfo).collect(Collectors.toList());
+
+
+    }
+
+    private void readClassWeaveInfo(@NotNull File sessionFile) {
+
+        if (classWeaveInfo == null) {
+            NameWithBytes fileBytes =
+                    createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
+            if (fileBytes == null) {
+                logger.error("failed to read class weave info from " +
+                        "sessionFile [" + sessionFile.getName() + "]");
+                return;
+            }
+            classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
+                    new ByteBufferKaitaiStream(fileBytes.getBytes()));
+        }
+    }
+
+    @Override
+    public void queryTracePointsByDataIds(
+            SearchQuery searchQuery,
+            String sessionId,
+            ClientCallBack<TracePoint> tracePointsCallback) {
+        logger.info("trace by probe ids: " + searchQuery);
+        ExecutionSession executionSession = new ExecutionSession();
+        executionSession.setSessionId(sessionId);
+        setSession(executionSession);
+
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            ProgressIndicatorProvider.getGlobalProgressIndicator().setText(
+                    "Searching locally by value [" + searchQuery.getQuery() + "]");
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                tracePointsCallback.completed();
+                return;
+            }
+        }
+
+
+        List<DataInfo> probeIds = null;
+        for (File sessionArchive : sessionArchives) {
+            logger.info("check archive [" + sessionArchive.getName() + "] for " +
+                    "probes");
+            if (probeIds == null) {
+                Collection<EventType> eventTypes =
+                        (Collection<EventType>) searchQuery.getQuery();
+                probeIds = queryProbeFromFileByEventType(sessionArchive,
+                        eventTypes);
+            }
+
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + probeIds.size() + " objects from archive " + sessionArchive.getName());
+                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                    tracePointsCallback.success(List.of());
+                    return;
+                }
+            }
+
+
+            if (probeIds.size() > 0) {
+                List<TracePoint> tracePointsByProbeIds = getTracePointsByProbeIds(sessionArchive,
+                        probeIds.stream().map(DataInfo::getDataId)
+                                .collect(Collectors.toSet()));
+                tracePointsByProbeIds.forEach(e -> e.setExecutionSession(session));
+                tracePointsCallback.success(tracePointsByProbeIds);
+            }
+        }
+        tracePointsCallback.completed();
     }
 
 }

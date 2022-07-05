@@ -1,6 +1,6 @@
 package com.insidious.plugin.factory.callbacks;
 
-import com.insidious.plugin.callbacks.GetProjectSessionTracePointsCallback;
+import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -12,11 +12,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import org.json.JSONObject;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SearchResultsCallbackHandler implements GetProjectSessionTracePointsCallback {
+public class SearchResultsCallbackHandler implements ClientCallBack<TracePoint> {
 
     private final AtomicInteger doneCount;
     private static final Logger logger = LoggerUtil.getInstance(SearchResultsCallbackHandler.class);
@@ -51,9 +52,8 @@ public class SearchResultsCallbackHandler implements GetProjectSessionTracePoint
     }
 
     @Override
-    public void success(List<TracePoint> tracePoints) {
+    public void success(Collection<TracePoint> tracePoints) {
         logger.info("got [" + tracePoints.size() + "] trace points from server");
-        doneCount.addAndGet(1);
         results.addAll(tracePoints);
 
 
@@ -65,6 +65,11 @@ public class SearchResultsCallbackHandler implements GetProjectSessionTracePoint
             eventProperties.put("count", tracePoints.size());
             UsageInsightTracker.getInstance().RecordEvent("YesResultGetTraces" + searchQuery.getQueryType(), eventProperties);
         }
+    }
+
+    @Override
+    public void completed() {
+        doneCount.addAndGet(1);
     }
 
     public List<TracePoint> getResults() {

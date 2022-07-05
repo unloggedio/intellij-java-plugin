@@ -1,13 +1,15 @@
 package com.insidious.plugin.pojo;
 
 
+import com.insidious.common.weaver.EventType;
 import com.intellij.openapi.util.text.StringUtil;
 
 import java.util.Collection;
+import java.util.List;
 
 public class SearchQuery {
     QueryType queryType;
-    String query;
+    Object query;
 
     public static SearchQuery ByType(Collection<String> classNameList) {
         String query = StringUtil.join(classNameList, ",");
@@ -18,7 +20,11 @@ public class SearchQuery {
         return new SearchQuery(QueryType.BY_VALUE, query);
     }
 
-    private SearchQuery(QueryType queryType, String query) {
+    public static SearchQuery ByEvent(Collection<EventType> eventTypeList) {
+        return new SearchQuery(QueryType.BY_EVENT, eventTypeList);
+    }
+
+    private SearchQuery(QueryType queryType, Object query) {
         this.queryType = queryType;
         this.query = query;
     }
@@ -27,7 +33,7 @@ public class SearchQuery {
         return queryType;
     }
 
-    public String getQuery() {
+    public Object getQuery() {
         return query;
     }
 

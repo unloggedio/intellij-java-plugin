@@ -41,16 +41,37 @@ public class ArchiveFilesIndex {
         return valueFilter.contains(valueId);
     }
 
-    public List<UploadFile> queryEventsByStringId(long stringId) {
+    public List<UploadFile> querySessionFilesByValueId(long valueId) {
         List<UploadFile> files = new LinkedList<>();
         for (KaitaiInsidiousIndexParser.IndexedFile indexFile : archiveIndex.indexFiles()) {
             BloomFilter<Long> fileValueFilter = BloomFilterConverter.fromJson(
-                    GSON.fromJson(new String(indexFile.valueIdIndex()), JsonElement.class), Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
-            if (fileValueFilter.contains(stringId)) {
+                    GSON.fromJson(
+                            new String(indexFile.valueIdIndex()), JsonElement.class),
+                    Long.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+            if (fileValueFilter.contains(valueId)) {
                 UploadFile uploadFile = new UploadFile(
                         new String(indexFile.filePath().value()),
                         indexFile.threadId(), null, null);
-                uploadFile.setValueIds(new Long[]{stringId});
+                uploadFile.setValueIds(new Long[]{valueId});
+                files.add(uploadFile);
+            }
+
+        }
+        return files;
+    }
+
+    public List<UploadFile> querySessionFilesByProbeId(int probeId) {
+        List<UploadFile> files = new LinkedList<>();
+        for (KaitaiInsidiousIndexParser.IndexedFile indexFile : archiveIndex.indexFiles()) {
+            BloomFilter<Integer> probeIdFilter = BloomFilterConverter.fromJson(
+                    GSON.fromJson(
+                            new String(indexFile.probeIdIndex()), JsonElement.class),
+                    Integer.class); //{"size":240,"hashes":4,"HashMethod":"MD5","bits":"AAAAEAAAAACAgAAAAAAAAAAAAAAQ"}
+            if (probeIdFilter.contains(probeId)) {
+                UploadFile uploadFile = new UploadFile(
+                        new String(indexFile.filePath().value()),
+                        indexFile.threadId(), null, null);
+                uploadFile.setProbeIds(new Integer[]{probeId});
                 files.add(uploadFile);
             }
 

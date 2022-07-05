@@ -1,6 +1,6 @@
 package com.insidious.plugin;
 
-import com.insidious.plugin.callbacks.GetProjectSessionTracePointsCallback;
+import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -11,6 +11,7 @@ import com.insidious.plugin.pojo.TracePoint;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -44,16 +45,17 @@ public class VideobugLocalClientTest {
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
-        client.queryTracePointsByValue(SearchQuery.ByValue("trace3:2:1:1:2:trace3"), "selogger-1", new GetProjectSessionTracePointsCallback() {
+        client.queryTracePointsByValue(SearchQuery.ByValue("trace3:2:1:1:2:trace3"), "selogger-1",
+                new ClientCallBack<TracePoint>() {
             @Override
             public void error(ExceptionResponse errorResponse) {
                 assert false;
             }
 
             @Override
-            public void success(List<TracePoint> tracePoints) {
+            public void success(Collection<TracePoint> tracePoints) {
                 assert tracePoints.size() > 0;
-                tracePointsQueue.offer(tracePoints.get(0));
+                tracePointsQueue.offer(tracePoints.stream().findFirst().get());
             }
         });
         TracePoint result = tracePointsQueue.take();
@@ -67,16 +69,16 @@ public class VideobugLocalClientTest {
         assert Objects.equals(result.getExceptionClass(), "java.lang.String");
 
         client.queryTracePointsByValue(SearchQuery.ByValue("what a message"),
-                "selogger-1", new GetProjectSessionTracePointsCallback() {
+                "selogger-1", new ClientCallBack<TracePoint>() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
                         assert false;
                     }
 
                     @Override
-                    public void success(List<TracePoint> tracePoints) {
+                    public void success(Collection<TracePoint> tracePoints) {
                         assert tracePoints.size() > 0;
-                        tracePointsQueue.offer(tracePoints.get(0));
+                        tracePointsQueue.offer(tracePoints.stream().findFirst().get());
                     }
                 });
         result = tracePointsQueue.take();

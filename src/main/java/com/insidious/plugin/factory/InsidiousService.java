@@ -145,7 +145,7 @@ public class InsidiousService implements Disposable {
             final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
 
             @Override
-            public void onNewTracePoints(List<TracePoint> tracePoints) {
+            public void onNewTracePoints(Collection<TracePoint> tracePoints) {
                 if (mostRecentTracePoints.size() > 0) {
                     List<TracePoint> newTracePoints = new LinkedList<>();
                     for (TracePoint tracePoint : tracePoints) {
@@ -497,7 +497,8 @@ public class InsidiousService implements Disposable {
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
         UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
 
-        insidiousConfiguration.addSearchQuery(searchQuery.getQuery(), 0);
+        insidiousConfiguration.addSearchQuery((String )searchQuery.getQuery(),
+                0);
         searchByValueWindow.updateQueryList();
 
         long start = System.currentTimeMillis();
@@ -506,7 +507,15 @@ public class InsidiousService implements Disposable {
         ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
             public void run(@NotNull ProgressIndicator indicator) {
 
-                List<ExecutionSession> sessionList = client.getSessionList();
+                List<ExecutionSession> sessionList =
+                        null;
+                try {
+                    sessionList = client.fetchProjectSessions().getItems();
+                } catch (APICallException | IOException e) {
+                    InsidiousNotification.notifyMessage("Failed to get " +
+                            "project sessions", NotificationType.ERROR);
+                    return;
+                }
                 if (sessionList.size() > 10) {
                     sessionList = sessionList.subList(0, 10);
                 }
@@ -523,6 +532,10 @@ public class InsidiousService implements Disposable {
                             break;
                         case BY_VALUE:
                             client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(), searchResultsHandler);
+                            break;
+                        case BY_PROBE:
+                            client.queryTracePointsByDataIds(searchQuery,
+                                    executionSession.getSessionId(), searchResultsHandler);
                             break;
                     }
 
@@ -541,7 +554,8 @@ public class InsidiousService implements Disposable {
                     searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
                 } else {
                     searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                    insidiousConfiguration.addSearchQuery(searchQuery.getQuery(), searchResultsHandler.getResults().size());
+                    insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+                            searchResultsHandler.getResults().size());
                     searchByValueWindow.updateQueryList();
                 }
 
