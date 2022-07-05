@@ -5,6 +5,7 @@ import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.pojo.TestCandidate;
+import com.insidious.plugin.pojo.TestCaseScript;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -25,7 +26,7 @@ public class TestCaseServiceTest {
 
         TestCaseService testCaseService = new TestCaseService(project, client);
 
-        testCaseService.listTestCandidates(
+        testCaseService.listTestCandidatesByMethods(
                 new ClientCallBack<>() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -41,7 +42,8 @@ public class TestCaseServiceTest {
 
                         for (TestCandidate testCandidate : testCandidates) {
                             try {
-                                String testCaseScript = testCaseService.generateTestCase(testCandidate);
+                                TestCaseScript testCaseScript =
+                                        testCaseService.generateTestCase(testCandidate);
                                 System.out.println(testCaseScript);
                             } catch (IOException e) {
                                 throw new RuntimeException(e);

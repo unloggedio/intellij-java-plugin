@@ -6,11 +6,12 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
-import com.insidious.plugin.extension.connector.model.ProjectItem;
-import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
+import com.insidious.plugin.extension.connector.model.ProjectItem;
+import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.pojo.TracePoint;
@@ -33,7 +34,8 @@ public interface VideobugClientInterface {
 
     void getProjectByName(String projectName, GetProjectCallback getProjectCallback);
 
-    ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+    ProjectItem fetchProjectByName(String projectName)
+            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
 
     void createProject(String projectName, NewProjectCallback newProjectCallback);
 
@@ -51,27 +53,25 @@ public interface VideobugClientInterface {
                 .collect(Collectors.toList());
     }
 
-    void queryTracePointsByDataIds(
-            SearchQuery searchQuery,
-            String sessionid,
-            ClientCallBack<TracePoint> tracePointsCallback);
+    ClassWeaveInfo getSessionClassWeave(String sessionId);
 
-    void queryTracePointsByType(
-            SearchQuery classList,
-            String sessionId, int historyDepth,
-            ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
+    void queryTracePointsByProbe(SearchQuery searchQuery, String sessionid,
+                                 ClientCallBack<TracePoint> tracePointsCallback);
 
-    void queryTracePointsByValue(SearchQuery value,
-                                 String sessionId,
+    void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
                                  ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
 
-    ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception;
+    void queryTracePointsByValue(SearchQuery value, String sessionId,
+                                 ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
+
+    ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException;
 
     String getToken();
 
     ProjectItem getProject();
 
-    void setProject(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+    void setProject(String projectName)
+            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
 
     String getEndpoint();
 
@@ -84,6 +84,5 @@ public interface VideobugClientInterface {
     void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 
 
-    void getMethods(String sessionId,
-                    ClientCallBack<TestCandidate> tracePointsCallback);
+    void getMethods(String sessionId, ClientCallBack<TestCandidate> tracePointsCallback);
 }

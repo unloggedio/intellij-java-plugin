@@ -16,14 +16,17 @@ public class TracePoint {
 
     private static final byte ATTRIBUTE_SEPARATOR = ',';
     private static final byte ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
-    private final long recordedAt;
-    long classId, lineNumber, threadId, matchedValueId;
-    int dataId;
-    String filename;
-    String classname;
-    String exceptionClass;
+    private long recordedAt;
+    private long classId, lineNumber, threadId, matchedValueId;
+    private int dataId;
+    private String filename;
+    private String classname;
+    private String exceptionClass;
     private long nanoTime;
     private ExecutionSession executionSession;
+
+    public TracePoint() {
+    }
 
     public TracePoint(long classId, long lineNumber,
                       int dataId,

@@ -12,7 +12,6 @@ public class ExecutionSession {
     private long lastUpdateAt;
     private String projectId;
     private Date createdAt;
-    private String name;
     private String sessionId;
     private String hostname;
 
@@ -66,14 +65,7 @@ public class ExecutionSession {
         this.createdAt = createdAt;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-//
+    //
 //    public String getId() {
 //        return id;
 //    }

@@ -47,17 +47,21 @@ public class VideobugLocalClientTest {
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);
         client.queryTracePointsByValue(SearchQuery.ByValue("trace3:2:1:1:2:trace3"), "selogger-1",
                 new ClientCallBack<TracePoint>() {
-            @Override
-            public void error(ExceptionResponse errorResponse) {
-                assert false;
-            }
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+                        assert false;
+                    }
 
-            @Override
-            public void success(Collection<TracePoint> tracePoints) {
-                assert tracePoints.size() > 0;
-                tracePointsQueue.offer(tracePoints.stream().findFirst().get());
-            }
-        });
+                    @Override
+                    public void success(Collection<TracePoint> tracePoints) {
+                        assert tracePoints.size() > 0;
+                    }
+
+                    @Override
+                    public void completed() {
+                        tracePointsQueue.offer(new TracePoint());
+                    }
+                });
         TracePoint result = tracePointsQueue.take();
         assert result.getMatchedValueId() == 581313178;
         assert result.getRecordedAt() == 1651944876379L;
@@ -78,7 +82,11 @@ public class VideobugLocalClientTest {
                     @Override
                     public void success(Collection<TracePoint> tracePoints) {
                         assert tracePoints.size() > 0;
-                        tracePointsQueue.offer(tracePoints.stream().findFirst().get());
+                    }
+
+                    @Override
+                    public void completed() {
+                        tracePointsQueue.offer(new TracePoint());
                     }
                 });
         result = tracePointsQueue.take();

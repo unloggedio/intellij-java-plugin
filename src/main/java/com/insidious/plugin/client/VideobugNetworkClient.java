@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
@@ -12,6 +13,7 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.pojo.TracePoint;
@@ -321,6 +323,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         return sessionDataResponse;
     }
 
+    @Override
+    public ClassWeaveInfo getSessionClassWeave(String sessionId) {
+        throw new RuntimeException("not implemented");
+    }
+
 
     @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
@@ -364,7 +371,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void queryTracePointsByType(
+    public void queryTracePointsByTypes(
             SearchQuery searchQuery,
             String sessionId, int depth,
             ClientCallBack<TracePoint> getProjectSessionErrorsCallback
@@ -492,7 +499,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
-                }finally {
+                } finally {
                     getProjectSessionErrorsCallback.completed();
                 }
 
@@ -502,24 +509,35 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException {
         String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
-        logger.info("url to fetch data events => [" + endpoint + "] with [" +
-                objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
+        try {
+            logger.info("url to fetch data events => [" + endpoint + "] with [" +
+                    objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
+        } catch (JsonProcessingException e) {
+            throw new APICallException("failed to log request as json", e);
+        }
         String responseBodyString;
         try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
             responseBodyString = Objects.requireNonNull(response.body()).string();
             if (response.code() != 200) {
                 logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
                 JSONObject jsonResponse = new JSONObject(responseBodyString);
-                throw new Exception(jsonResponse.getString("message"));
+                throw new APICallException(jsonResponse.getString("message"));
             }
+        } catch (IOException e) {
+            throw new APICallException("failed to complete request", e);
         }
 
         TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
         };
 //
-        DataResponse<DataEventStream> dataResponse = objectMapper.readValue(responseBodyString, typeReference);
+        DataResponse<DataEventStream> dataResponse = null;
+        try {
+            dataResponse = objectMapper.readValue(responseBodyString, typeReference);
+        } catch (JsonProcessingException e) {
+            throw new APICallException("failed to read response as json", e);
+        }
 
         DataEventStream responseStream = dataResponse.getItems().get(0);
 
@@ -636,9 +654,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
 
     @Override
-    public void queryTracePointsByDataIds(SearchQuery searchQuery,
-                                          String sessionid,
-                                          ClientCallBack<TracePoint> tracePointsCallback) {
+    public void queryTracePointsByProbe(SearchQuery searchQuery,
+                                        String sessionid,
+                                        ClientCallBack<TracePoint> tracePointsCallback) {
 
     }
 

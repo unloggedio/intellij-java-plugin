@@ -528,13 +528,13 @@ public class InsidiousService implements Disposable {
                 sessionList.forEach(executionSession -> {
                     switch (searchQuery.getQueryType()) {
                         case BY_TYPE:
-                            client.queryTracePointsByType(searchQuery, executionSession.getSessionId(), -1, searchResultsHandler);
+                            client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1, searchResultsHandler);
                             break;
                         case BY_VALUE:
                             client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(), searchResultsHandler);
                             break;
                         case BY_PROBE:
-                            client.queryTracePointsByDataIds(searchQuery,
+                            client.queryTracePointsByProbe(searchQuery,
                                     executionSession.getSessionId(), searchResultsHandler);
                             break;
                     }
