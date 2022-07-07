@@ -83,7 +83,8 @@ public class TestCaseServiceTest {
                         if (testCandidates.size() == 0) {
                             return;
                         }
-                        TestSuite testSuite = null;
+                        TestSuite testSuite =
+                                null;
                         try {
                             testSuite = testCaseService.generateTestCase(testCandidates);
                         } catch (IOException e) {
@@ -91,48 +92,6 @@ public class TestCaseServiceTest {
                         }
                         System.out.println(testSuite);
 
-                    }
-
-                    public void completed() {
-
-                    }
-                }
-        );
-    }
-
-    @Test
-    void testGenerationUsingClassWeave() throws APICallException, IOException, InterruptedException {
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(
-                System.getenv("USERPROFILE") + "/.videobug/sessions");
-
-        TestCaseService testCaseService = new TestCaseService(project, client);
-
-        testCaseService.getTestCandidates(
-                new ClientCallBack<>() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-                        assert false;
-                    }
-
-                    @Override
-                    public void success(Collection<TestCandidate> testCandidates) {
-
-                        if (testCandidates.size() == 0) {
-                            return;
-                        }
-
-                        for (TestCandidate testCandidate : testCandidates) {
-                            try {
-                                TestCaseScript testCaseScript =
-                                        testCaseService.generateTestCase(testCandidate);
-                                System.out.println(testCaseScript);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
                     }
 
                     public void completed() {
