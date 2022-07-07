@@ -12,18 +12,20 @@ public class TestCandidate {
     private final ExecutionSession executionSession;
     private final DataInfo methodEntryProbe;
     private final ReplayData probeReplayData;
+    private final ClassWeaveInfo classWeaveInfo;
 
     public TestCandidate(MethodInfo methodInfo,
                          ClassInfo classInfo,
                          ExecutionSession session,
                          DataInfo methodEntryProbe,
-                         ReplayData probeReplayData) {
+                         ReplayData probeReplayData, ClassWeaveInfo classWeaveInfo) {
 
         this.methodInfo = methodInfo;
         this.classInfo = classInfo;
         this.executionSession = session;
         this.methodEntryProbe = methodEntryProbe;
         this.probeReplayData = probeReplayData;
+        this.classWeaveInfo = classWeaveInfo;
     }
 
     public MethodInfo getMethodInfo() {
@@ -32,5 +34,21 @@ public class TestCandidate {
 
     public ClassInfo getClassInfo() {
         return classInfo;
+    }
+
+    public ExecutionSession getExecutionSession() {
+        return executionSession;
+    }
+
+    public DataInfo getMethodEntryProbe() {
+        return methodEntryProbe;
+    }
+
+    public ReplayData getProbeReplayData() {
+        return probeReplayData;
+    }
+
+    public ClassWeaveInfo getClassWeaveInfo() {
+        return classWeaveInfo;
     }
 }

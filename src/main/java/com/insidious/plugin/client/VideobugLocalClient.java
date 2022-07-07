@@ -1123,7 +1123,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                     .map(methodInfo ->
                                             new TestCandidate(methodInfo,
                                                     classInfoContainer,
-                                                    executionSession, probeInfo, probeReplayData))
+                                                    executionSession,
+                                                    null, null, null))
                                     .collect(Collectors.toSet()));
                 });
         tracePointsCallback.completed();

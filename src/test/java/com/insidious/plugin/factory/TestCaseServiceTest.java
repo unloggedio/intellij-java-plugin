@@ -5,16 +5,19 @@ import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.pojo.TestCandidate;
-import com.insidious.plugin.pojo.TestCaseScript;
+import com.insidious.plugin.pojo.TestSuite;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.logging.Logger;
 
 public class TestCaseServiceTest {
 
+
+    private final static Logger logger = Logger.getLogger(TestCaseServiceTest.class.getName());
 
     @Test
     void testGeneration() throws APICallException, IOException {
@@ -39,20 +42,19 @@ public class TestCaseServiceTest {
                         if (testCandidates.size() == 0) {
                             return;
                         }
-
-                        for (TestCandidate testCandidate : testCandidates) {
-                            try {
-                                TestCaseScript testCaseScript =
-                                        testCaseService.generateTestCase(testCandidate);
-                                System.out.println(testCaseScript);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
+                        TestSuite testSuite = null;
+                        try {
+                            logger.info("generating test cases for " + testCandidates.size());
+                            testSuite = testCaseService.generateTestCase(testCandidates);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
+                        System.out.println(testSuite);
+
                     }
 
                     public void completed() {
-
+                        logger.info("Received all test candidates");
                     }
                 }
         );
@@ -81,16 +83,14 @@ public class TestCaseServiceTest {
                         if (testCandidates.size() == 0) {
                             return;
                         }
-
-                        for (TestCandidate testCandidate : testCandidates) {
-                            try {
-                                TestCaseScript testCaseScript =
-                                        testCaseService.generateTestCase(testCandidate);
-                                System.out.println(testCaseScript);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
+                        TestSuite testSuite = null;
+                        try {
+                            testSuite = testCaseService.generateTestCase(testCandidates);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
                         }
+                        System.out.println(testSuite);
+
                     }
 
                     public void completed() {
