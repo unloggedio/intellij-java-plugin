@@ -501,6 +501,7 @@ public class TestCaseService {
                     testMethodBuilder.addStatement("method returned: $S", returnProbeValue);
                 }
 
+                testMethodBuilder.addStatement("todo: add new variable for each parameter");
                 testMethodBuilder.addStatement("**/");
 
                 ClassName squareClassName = ClassName.get(packageName, unqualifiedClassName);
