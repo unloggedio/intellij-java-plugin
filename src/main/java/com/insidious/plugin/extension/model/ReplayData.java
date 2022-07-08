@@ -1,6 +1,7 @@
 package com.insidious.plugin.extension.model;
 
 import com.insidious.common.weaver.*;
+import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Map;
 
 public class ReplayData {
     private final String sortOrder;
+    private final VideobugClientInterface client;
     List<DataEventWithSessionId> dataEvents;
     Map<String, ClassInfo> classInfoMap;
     Map<String, DataInfo> dataInfoMap;
@@ -15,13 +17,15 @@ public class ReplayData {
     Map<String, ObjectInfo> objectInfo;
     Map<String, TypeInfo> typeInfo;
 
-    public ReplayData(List<DataEventWithSessionId> dataList,
+    public ReplayData(VideobugClientInterface client,
+                      List<DataEventWithSessionId> dataList,
                       Map<String, ClassInfo> classInfo,
                       Map<String, DataInfo> dataInfo,
                       Map<String, StringInfo> stringInfo,
                       Map<String, ObjectInfo> objectInfo,
                       Map<String, TypeInfo> typeInfo,
                       String sortOrder) {
+        this.client = client;
         dataEvents = dataList;
         classInfoMap = classInfo;
         dataInfoMap = dataInfo;
@@ -42,6 +46,12 @@ public class ReplayData {
     public List<DataEventWithSessionId> getDataEvents() {
         return dataEvents;
     }
+
+
+    public List<DataEventWithSessionId> getDataEvents(PageInfo pageInfo) {
+        return dataEvents;
+    }
+
 
     public Map<String, ClassInfo> getClassInfoMap() {
         return classInfoMap;

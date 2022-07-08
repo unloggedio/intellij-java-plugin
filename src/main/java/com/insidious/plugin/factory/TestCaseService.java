@@ -9,6 +9,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
@@ -399,9 +400,10 @@ public class TestCaseService {
             JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
                     .build();
 
-            testCases.add(new TestCaseUnit(
-                    javaFile.toString()
-            ));
+            TestCaseUnit testCaseUnit = new TestCaseUnit(metadata, javaFile.toString());
+
+
+            testCases.add(testCaseUnit);
 
         }
 
@@ -571,46 +573,78 @@ public class TestCaseService {
             List<ObjectsWithTypeInfo> allObjects
     ) {
 
+        List<TestCaseUnit> testCaseScripts = new LinkedList<>();
         TestSuite testSuite = new TestSuite(List.of());
         for (ObjectsWithTypeInfo testableObject : allObjects) {
 
 
-            List<ObjectHistory> objectHistoryById = client.fetchObjectHistoryByObjectId(
-                    List.of(testableObject.getObjectInfo().getObjectId())
-            );
+            long objectId = testableObject.getObjectInfo().getObjectId();
+//            ReplayData objectHistory = client.fetchObjectHistoryByObjectId(
+//                    objectId, -1, (long) -1, new PageInfo());
 
-            TestSuite classTestSuite = generateTestCaseFromObjectHistory(objectHistoryById.get(0));
-            testSuite.getTestCaseScripts().addAll(classTestSuite.getTestCaseScripts());
+            assert objectId != 0;
+
+            TestSuite classTestSuite = generateTestCaseFromObjectHistory(objectId);
+            testCaseScripts.addAll(classTestSuite.getTestCaseScripts());
 
         }
 
-        return testSuite;
+        return new TestSuite(testCaseScripts);
 
 
     }
 
-    private TestSuite generateTestCaseFromObjectHistory(ObjectHistory objectHistory) {
+    private TestSuite generateTestCaseFromObjectHistory(final Long objectId) {
         List<TestCaseUnit> testCases = new LinkedList<>();
 
-        ObjectInfo objectInfo = objectHistory.getObjectInfo();
+        ReplayData objectHistory = client.fetchObjectHistoryByObjectId(
+                objectId, -1, (long) -1, new PageInfo(0, 50000, PageInfo.Order.ASC));
 
-        List<DataEventWithSessionId> objectEvents = objectHistory.getReplayData().getDataEvents();
-        Collections.reverse(objectEvents);
+
+        Map<String, ObjectInfo> objectInfoMap = objectHistory.getObjectInfo();
+
+        List<DataEventWithSessionId> objectEvents = objectHistory.getDataEvents();
 
         // iterate from oldest to newest event
+        Map<String, TypeInfo> typeInfo = objectHistory.getTypeInfo();
+        Map<String, DataInfo> probeInfoMap = objectHistory.getDataInfoMap();
+
+        MethodSpec.Builder objectRepeater = MethodSpec.constructorBuilder();
+
         for (DataEventWithSessionId dataEvent : objectEvents) {
 
-            long objectTypeId = objectInfo.getTypeId();
-            TypeInfo objectTypeInfo = objectHistory.getReplayData()
-                    .getTypeInfo().get(String.valueOf(objectTypeId));
+            final long eventValue = dataEvent.getValue();
+            String eventValueString = String.valueOf(eventValue);
+            ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
 
-            DataInfo probeInfo = objectHistory.getReplayData()
-                    .getDataInfoMap().get(String.valueOf(dataEvent.getDataId()));
+            if (eventValue != objectId) {
+                continue;
+            }
 
-            logger.warn("Object[" + objectInfo.getObjectId() + "]["
-                    + objectTypeInfo.getTypeNameFromClass() + "] -> " + probeInfo.getEventType());
+            String objectInfoString = "";
+            TypeInfo objectTypeInfo = null;
+            if (objectInfo != null) {
+                long objectTypeId = objectInfo.getTypeId();
+                objectTypeInfo = typeInfo.get(String.valueOf(objectTypeId));
+                objectInfoString = "[Object:" + objectInfo.getObjectId() + "]";
+
+            }
+
+            DataInfo probeInfo = probeInfoMap.get(String.valueOf(dataEvent.getDataId()));
+            int methodId = probeInfo.getMethodId();
+
+            logger.warn("Object" +
+                    objectInfoString +
+                    "[Thread:" + dataEvent.getThreadId() + "]" +
+                    "[Seq:" + dataEvent.getNanoTime() + "]" +
+                    "[Time:" + dataEvent.getRecordedAt().getTime() + "] -> " +
+//                    "[Class:" + objectTypeInfo.getTypeNameFromClass() + "] -> "+
+                    probeInfo.getEventType());
 
         }
+        logger.warn(" ============================================================= ");
+        logger.warn(" ============================================================= ");
+        logger.warn(" ============================================================= ");
 
 
         TestSuite testSuite = new TestSuite(testCases);

@@ -1,16 +1,17 @@
 package com.insidious.plugin.pojo;
 
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.MethodInfo;
+import com.insidious.plugin.factory.TestCandidateMetadata;
 
 public class TestCaseUnit {
 
-    MethodInfo methodInfo;
+    private final TestCandidateMetadata testCandidateMetadata;
 
 
     private final String code;
 
-    public TestCaseUnit(String code) {
+    public TestCaseUnit(TestCandidateMetadata testCandidateMetadata,
+                        String code) {
+        this.testCandidateMetadata = testCandidateMetadata;
         this.code = code;
     }
 

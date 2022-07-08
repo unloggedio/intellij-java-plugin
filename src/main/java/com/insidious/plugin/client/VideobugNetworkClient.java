@@ -12,6 +12,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
+import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
@@ -569,14 +570,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
         Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
 
-        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo,
+        return new ReplayData(this, dataEventsList, classInfo, dataInfo, stringInfo,
                 objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
 
-    }
-
-    @Override
-    public List<ObjectHistory> fetchObjectHistoryByObjectId(Collection<Long> objectIdList) {
-        return null;
     }
 
     @Override
@@ -660,6 +656,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                                         String sessionid,
                                         ClientCallBack<TracePoint> tracePointsCallback) {
 
+    }
+
+    @Override
+    public ReplayData fetchObjectHistoryByObjectId(Long objectId, Integer threadId, Long nanoTime, PageInfo pageInfo) {
+        return null;
     }
 
     @Override

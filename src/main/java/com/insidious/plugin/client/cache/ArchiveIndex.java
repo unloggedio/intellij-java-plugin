@@ -10,6 +10,7 @@ import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +57,7 @@ public class ArchiveIndex {
         return typeInfoIndex;
     }
 
-    public Map<String, ObjectInfo> getObjectsByObjectId(Set<Long> objectIds) {
+    public Map<String, ObjectInfo> getObjectsByObjectId(Collection<Long> objectIds) {
 
         Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_ID, objectIds);
         ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);

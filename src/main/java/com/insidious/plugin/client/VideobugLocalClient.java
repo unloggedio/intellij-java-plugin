@@ -20,6 +20,7 @@ import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
+import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.diagnostic.Logger;
@@ -40,6 +41,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -257,14 +259,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         logger.info("trace by string value: " + searchQuery);
         List<File> archives = refreshSessionArchivesList(sessionId);
 
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText(
-                    "Searching locally by value [" + searchQuery.getQuery() + "]");
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                getProjectSessionErrorsCallback.completed();
-                return;
-            }
-        }
+        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
 
 
         List<TracePoint> tracePointList = new LinkedList<>();
@@ -287,14 +282,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
             Set<Long> valueIds = new HashSet<>(index.getStringIdsFromStringValues((String) searchQuery.getQuery()));
 
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Loaded " + valueIds.size() + " strings from archive " + sessionArchive.getName());
-                if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                    getProjectSessionErrorsCallback.success(tracePointList);
-                    return;
-                }
-            }
 
+            checkProgressIndicator(null, "Loaded " + valueIds.size() + " strings from archive " + sessionArchive.getName());
 
             if (valueIds.size() > 0) {
                 tracePointList.addAll(getTracePointsByValueIds(sessionArchive, valueIds));
@@ -306,34 +295,38 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public List<ObjectHistory> fetchObjectHistoryByObjectId(
-            Collection<Long> objectIdList
+    public ReplayData fetchObjectHistoryByObjectId(
+            Long objectId,
+            Integer threadId,
+            Long nanoTime,
+            PageInfo pageInfo
     ) {
-
-        HashMap<Long, List<DataEventWithSessionId>> objectTimelineMap = new HashMap<>();
-
-        for (Long aLong : objectIdList) {
-            objectTimelineMap.put(aLong, new LinkedList<>());
-        }
 
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
-        Map<String, ClassInfo> classInfo = null;
-        Map<String, DataInfo> dataInfo = null;
-        Map<String, StringInfo> stringInfo = null;
-        Map<String, ObjectInfo> objectInfo = new HashMap<>();
-        Map<String, TypeInfo> typeInfo = null;
+        Map<String, ClassInfo> classInfoMap = new HashMap<>();
+        Map<String, DataInfo> probeInfoMap = new HashMap<>();
+        Map<String, StringInfo> stringInfoMap = new HashMap<>();
+        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
+        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
 
-        Collection<ObjectInfo> sessionObjectInfo = getObjectInfoById(objectIdList);
-        if (sessionObjectInfo == null) {
-            return List.of();
-        }
+        Collection<ObjectInfo> sessionObjectInfo = getObjectInfoById(List.of(objectId));
 
         for (ObjectInfo info : sessionObjectInfo) {
-            objectInfo.put(String.valueOf(info.getObjectId()), info);
+            objectInfoMap.put(String.valueOf(info.getObjectId()), info);
+        }
+
+        Collections.sort(this.sessionArchives);
+
+        if (pageInfo.isDesc()) {
+            Collections.reverse(this.sessionArchives);
         }
 
 
+        Integer skip = pageInfo.getNumber() * pageInfo.getSize();
+        Integer remaining = pageInfo.getSize();
+
+        final AtomicLong previousEventAt = new AtomicLong(-1);
         for (File sessionArchive : this.sessionArchives) {
 
             KaitaiInsidiousClassWeaveParser classWeaveInfoLocal = readClassWeaveInfo(sessionArchive);
@@ -341,19 +334,53 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 continue;
             }
 
+            checkProgressIndicator(null, "Loading class mappings");
+
+            Map<String, ClassInfo> finalClassInfo = classInfoMap;
+            Map<String, DataInfo> finalProbeInfoMap = probeInfoMap;
+            classWeaveInfoLocal.classInfo().forEach(e -> {
+
+                checkProgressIndicator(null, "Loading class: " + e.className());
+
+                finalClassInfo.put(String.valueOf(e.classId()), KaitaiUtils.toClassInfo(e));
+
+                checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
+
+                e.probeList().forEach(r -> {
+                    finalProbeInfoMap.put(String.valueOf(r.dataId()),
+                            KaitaiUtils.toDataInfo(r));
+                });
+            });
+
+
             try {
                 List<String> archiveFiles = listArchiveFiles(sessionArchive);
+                if (archiveFiles.size() == 0) {
+                    continue;
+                }
+
 
                 Collections.sort(archiveFiles);
+                if (pageInfo.isDesc()) {
+                    Collections.reverse(archiveFiles);
+                }
 
                 for (String archiveFile : archiveFiles) {
+
+                    if (remaining == 0) {
+                        break;
+                    }
 
                     if (!archiveFile.endsWith(".selog")) {
                         continue;
                     }
-                    int threadId = Integer.parseInt(
+                    long startTime = Long.parseLong(archiveFile.split("@")[0]);
+                    final int fileThreadId = Integer.parseInt(
                             archiveFile.split("\\.")[0].split("-")[2]
                     );
+                    if (threadId != -1 && fileThreadId != threadId) {
+                        continue;
+                    }
 
                     NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(
                             sessionArchive, archiveFile);
@@ -365,38 +392,74 @@ public class VideobugLocalClient implements VideobugClientInterface {
                             new ByteBufferKaitaiStream(bytesWithName.getBytes()));
 
 
-                    Map<Long, List<DataEventWithSessionId>> dataEventGroupedList =
-                            eventsContainer.event()
-                                    .entries().stream()
-                                    .filter(e -> e.magic() == 4
-                                            && objectIdList.contains(
-                                                    ((KaitaiInsidiousEventParser.DataEventBlock) e.block())
-                                                            .valueId()
-                                    ))
-                                    .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
-                                    .map(e -> {
-                                        DataEventWithSessionId d = new DataEventWithSessionId();
+                    ArrayList<KaitaiInsidiousEventParser.Block> events =
+                            eventsContainer.event().entries();
 
-                                        d.setDataId((int) e.probeId());
-                                        d.setNanoTime(e.eventId());
-                                        d.setRecordedAt(new Date(e.timestamp()));
-                                        d.setThreadId(threadId);
-                                        d.setValue(e.valueId());
-                                        return d;
-                                    }).collect(Collectors.groupingBy(DataEventWithSessionId::getValue));
+                    List<KaitaiInsidiousEventParser.Block> eventsSublist = events;
 
-                    for (Map.Entry<Long, List<DataEventWithSessionId>>
-                            integerListEntry : dataEventGroupedList.entrySet()) {
-
-                        long objectId = integerListEntry.getKey();
-                        List<DataEventWithSessionId> events = integerListEntry.getValue();
-                        Collections.reverse(events);
-                        dataEventList.addAll(events);
-                        if (!objectTimelineMap.containsKey(objectId)) {
-                            objectTimelineMap.put(objectId, new LinkedList<>());
+                    if (skip > 0) {
+                        if (skip > events.size()) {
+                            skip = skip - events.size();
+                            continue;
                         }
-                        objectTimelineMap.get(objectId).addAll(events);
+                        skip = 0;
+                        eventsSublist = events.subList(skip, events.size());
 
+                    }
+
+                    List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
+                            .stream()
+                            .filter(e -> {
+                                boolean isDataEvent = e.magic() == 4;
+                                if (!isDataEvent) {
+                                    return false;
+                                }
+                                long currentFirstEventAt = previousEventAt.get();
+
+                                KaitaiInsidiousEventParser.DataEventBlock dataEventBlock =
+                                        (KaitaiInsidiousEventParser.DataEventBlock) e.block();
+                                long currentEventId = dataEventBlock.eventId();
+
+                                if (currentFirstEventAt != -1 &&
+                                        Math.abs(currentFirstEventAt - currentEventId) < pageInfo.getSize()) {
+                                        return true;
+                                }
+
+                                boolean isRequestedObject =
+                                        dataEventBlock.valueId() == objectId;
+
+                                if (isRequestedObject) {
+                                    previousEventAt.set(dataEventBlock.eventId());
+                                }
+
+                                return isRequestedObject;
+                            })
+                            .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
+                            .map(e -> {
+                                DataEventWithSessionId d = new DataEventWithSessionId();
+                                d.setDataId((int) e.probeId());
+                                d.setNanoTime(e.eventId());
+                                d.setRecordedAt(new Date(e.timestamp()));
+                                d.setThreadId(fileThreadId);
+                                d.setValue(e.valueId());
+                                return d;
+                            }).collect(Collectors.toList());
+
+                    if (remaining < dataEventGroupedList.size()) {
+                        dataEventGroupedList = dataEventGroupedList.subList(0, remaining);
+                        remaining = 0;
+                    } else {
+                        remaining = remaining - dataEventGroupedList.size();
+                    }
+
+                    if (pageInfo.isDesc()) {
+                        Collections.reverse(dataEventGroupedList);
+                    }
+
+                    dataEventList.addAll(dataEventGroupedList);
+
+                    if (remaining == 0) {
+                        break;
                     }
 
 
@@ -409,42 +472,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
 
 
-            classInfo = new HashMap<>();
-            dataInfo = new HashMap<>();
-
-            checkProgressIndicator(null, "Loading class mappings");
-
-            Map<String, ClassInfo> finalClassInfo = classInfo;
-            Map<String, DataInfo> finalDataInfo = dataInfo;
-            classWeaveInfoLocal.classInfo().forEach(e -> {
-
-                checkProgressIndicator(null, "Loading class: " + e.className());
-
-                finalClassInfo.put(String.valueOf(e.classId()), KaitaiUtils.toClassInfo(e));
-
-                checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
-
-                e.probeList().forEach(r -> {
-                    finalDataInfo.put(String.valueOf(r.dataId()),
-                            KaitaiUtils.toDataInfo(r));
-                });
-            });
-
             Set<Integer> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
             Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
 
 
-            stringInfo = new HashMap<>();
-            typeInfo = new HashMap<>();
-
-            checkProgressIndicator(null, "Loading types");
-
-            checkProgressIndicator(null, "Loading objects from " + sessionArchive.getName());
-
-
-
             checkProgressIndicator(null, "Loading strings from " + sessionArchive.getName());
-            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(
+                    sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
             assert stringsIndexBytes != null;
 
 
@@ -457,10 +491,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 continue;
             }
             Map<String, StringInfo> sessionStringInfo = stringIndex.getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
-            stringInfo.putAll(sessionStringInfo);
+            stringInfoMap.putAll(sessionStringInfo);
 
 
-            Set<Integer> typeIds = objectInfo.values()
+            Set<Integer> typeIds = objectInfoMap.values()
                     .stream().map(ObjectInfo::getTypeId)
                     .map(Long::intValue).collect(Collectors.toSet());
 
@@ -476,28 +510,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 continue;
             }
             Map<String, TypeInfo> sessionTypeInfo = typesIndex.getTypesById(typeIds);
-            typeInfo.putAll(sessionTypeInfo);
+            typeInfoMap.putAll(sessionTypeInfo);
 
 
             checkProgressIndicator(null, "Completed loading");
 
         }
 
-        Map<String, ClassInfo> finalClassInfo1 = classInfo;
-        Map<String, DataInfo> finalDataInfo1 = dataInfo;
-        Map<String, StringInfo> finalStringInfo = stringInfo;
-        Map<String, ObjectInfo> finalObjectInfo = objectInfo;
-        Map<String, TypeInfo> finalTypeInfo = typeInfo;
-        List<ObjectHistory> returnList = objectTimelineMap.keySet().stream()
-                .map(objectId -> new ObjectHistory(
-                        new ReplayData(
-                                objectTimelineMap.get(objectId), finalClassInfo1, finalDataInfo1,
-                                finalStringInfo, finalObjectInfo, finalTypeInfo, "DESC"),
-                        finalObjectInfo.get(String.valueOf(objectId))
-                )).collect(Collectors.toList());
+        return new ReplayData(
+                this, dataEventList, classInfoMap, probeInfoMap,
+                stringInfoMap, objectInfoMap, typeInfoMap,
+                "DESC");
 
-
-        return returnList;
     }
 
     private Collection<ObjectInfo> getObjectInfoById(Collection<Long> valueIds) {
@@ -509,7 +533,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             NameWithBytes objectsIndexBytes = createFileOnDiskFromSessionArchiveFile(
                     sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
             if (objectsIndexBytes == null) {
-                return null;
+                continue;
             }
 
 
@@ -519,7 +543,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 objectIndex = readArchiveIndex(objectsIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             } catch (IOException e) {
                 logger.error("failed to read object index from session bytes: " + e.getMessage(), e);
-                return null;
+                continue;
             }
             Map<String, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectId(valueIds);
             objectInfoCollection.addAll(sessionObjectInfo.values());
@@ -1264,7 +1288,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         checkProgressIndicator(null, "Completed loading");
-        return new ReplayData(dataEventList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo, "DESC");
+        return new ReplayData(this, dataEventList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo, "DESC");
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -1505,7 +1529,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) {
 
-        if (classWeaveInfo == null) {
+        if (classWeaveInfo == null || true) {
             NameWithBytes fileBytes =
                     createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
             if (fileBytes == null) {

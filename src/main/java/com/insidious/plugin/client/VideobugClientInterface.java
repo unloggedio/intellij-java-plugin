@@ -10,6 +10,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
+import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +56,13 @@ public interface VideobugClientInterface {
     void queryTracePointsByProbe(SearchQuery searchQuery, String sessionid,
                                  ClientCallBack<TracePoint> tracePointsCallback);
 
+    ReplayData fetchObjectHistoryByObjectId(
+            Long objectId,
+            Integer threadId,
+            Long nanoTime,
+            PageInfo pageInfo
+    );
+
     void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
                                  ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
 
@@ -63,9 +71,6 @@ public interface VideobugClientInterface {
 
     ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException;
 
-    List<ObjectHistory> fetchObjectHistoryByObjectId(
-            Collection<Long> objectIdList
-    );
 
     String getToken();
 
