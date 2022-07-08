@@ -45,11 +45,11 @@ public class KaitaiUtils {
 
     @NotNull
     public static MethodInfo toMethodInfo(
-            KaitaiInsidiousClassWeaveParser.MethodInfo e) {
+            KaitaiInsidiousClassWeaveParser.MethodInfo e, String className) {
         return new MethodInfo(
                 (int) e.classId(),
                 (int) e.methodId(),
-                null,
+                className,
                 e.methodName().value(),
                 e.methodDescriptor().value(),
                 (int) e.access(),

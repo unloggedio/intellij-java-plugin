@@ -2,8 +2,9 @@ package com.insidious.plugin.extension.model;
 
 public class PageInfo {
     Integer number = 0;
-    Integer size = 10000;
+    Integer size = 50000;
     Order order = Order.ASC;
+    private int bufferSize = 10000;
 
     public Integer getNumber() {
         return number;
@@ -19,6 +20,14 @@ public class PageInfo {
 
     public Integer getSize() {
         return size;
+    }
+
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    public void setBufferSize(int bufferSize) {
+        this.bufferSize = bufferSize;
     }
 
     public enum Order {

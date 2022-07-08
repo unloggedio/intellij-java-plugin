@@ -3,27 +3,23 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.TestCandidateMetadata;
 
 public class TestCandidate {
     private final MethodInfo methodInfo;
     private final ClassInfo classInfo;
-    private final ExecutionSession executionSession;
-    private final DataInfo methodEntryProbe;
+    private final long methodEntryProbeIndex;
     private final ClassWeaveInfo classWeaveInfo;
     private TestCandidateMetadata metadata;
 
     public TestCandidate(MethodInfo methodInfo,
                          ClassInfo classInfo,
-                         ExecutionSession session,
-                         DataInfo methodEntryProbe,
+                         long methodEntryProbeIndex,
                          ClassWeaveInfo classWeaveInfo) {
 
         this.methodInfo = methodInfo;
         this.classInfo = classInfo;
-        this.executionSession = session;
-        this.methodEntryProbe = methodEntryProbe;
+        this.methodEntryProbeIndex = methodEntryProbeIndex;
         this.classWeaveInfo = classWeaveInfo;
     }
 
@@ -35,12 +31,8 @@ public class TestCandidate {
         return classInfo;
     }
 
-    public ExecutionSession getExecutionSession() {
-        return executionSession;
-    }
-
-    public DataInfo getMethodEntryProbe() {
-        return methodEntryProbe;
+    public long getMethodEntryProbeIndex() {
+        return methodEntryProbeIndex;
     }
 
     public ClassWeaveInfo getClassWeaveInfo() {

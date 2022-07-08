@@ -3,7 +3,6 @@ package com.insidious.plugin.factory;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -39,42 +38,43 @@ public class TestCandidateMetadata {
 
     private String methodName;
 
-    public static TestCandidateMetadata create(TestCandidate testCandidate, ReplayData replayData) {
+    public static TestCandidateMetadata create(
+            MethodInfo methodInfo,
+            long entryProbeDataId,
+            ReplayData replayData
+    ) {
         TestCandidateMetadata metadata = new TestCandidateMetadata();
 
-        ClassInfo classInfo = testCandidate.getClassInfo();
+        final String className = methodInfo.getClassName();
+        String targetMethodName = methodInfo.getMethodName();
 
+        metadata.setFullyQualifiedClassname(className);
 
-        String fullyQualifiedClassName = classInfo.getClassName();
-        metadata.setFullyQualifiedClassname(fullyQualifiedClassName);
-
-        String[] classNameParts = fullyQualifiedClassName.split("/");
+        String[] classNameParts = className.split("/");
         String unqualifiedClassName = classNameParts[classNameParts.length - 1];
         metadata.setUnqualifiedClassname(unqualifiedClassName);
         String packageName = StringUtil.join(classNameParts, ".");
-        metadata.setPackageName(packageName);
         int lastDotIndex = packageName.lastIndexOf(".");
         if (lastDotIndex > -1) {
             packageName = packageName.substring(0, lastDotIndex);
         } else {
             packageName = "";
         }
+        metadata.setPackageName(packageName);
 
 
-        MethodInfo methodInfo = testCandidate.getMethodInfo();
-        ClassWeaveInfo classWeaveInfo = testCandidate.getClassWeaveInfo();
         Map<String, TypeInfo> typeInfo = replayData.getTypeInfo();
         Map<String, ObjectInfo> objectInfoMap = replayData.getObjectInfo();
+        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
         Map<String, StringInfo> stringInfoMap = replayData.getStringInfoMap();
 
-        String methodName = methodInfo.getMethodName();
-        metadata.setMethodName(methodName);
+        metadata.setMethodName(targetMethodName);
 
         String potentialClassVariableInstanceName = lowerInstanceName(unqualifiedClassName);
 
         metadata.setTestSubjectInstanceName(potentialClassVariableInstanceName);
 
-        String testMethodName = "test" + upperInstanceName(methodName);
+        String testMethodName = "test" + upperInstanceName(targetMethodName);
         metadata.setTestMethodName(testMethodName);
 
         // https://gist.github.com/VijayKrishna/6160036
@@ -84,8 +84,6 @@ public class TestCandidateMetadata {
         methodDescription.remove(methodDescription.size() - 1);
 
 
-        DataInfo entryProbeInfo = testCandidate.getMethodEntryProbe();
-        String probeAttributes = entryProbeInfo.getAttributes();
 
         List<DataEventWithSessionId> events = replayData.getDataEvents();
 
@@ -97,7 +95,7 @@ public class TestCandidateMetadata {
         // up is back in time
         while (entryProbeIndex < events.size()) {
             DataEventWithSessionId eventInfo = events.get(entryProbeIndex);
-            if (eventInfo.getDataId() == entryProbeInfo.getDataId()) break;
+            if (eventInfo.getNanoTime() == entryProbeDataId) break;
             entryProbeIndex++;
         }
 
@@ -113,7 +111,7 @@ public class TestCandidateMetadata {
         // to match the first call_return probe
         while (callReturnIndex > -1) {
             DataEventWithSessionId event = events.get(callReturnIndex);
-            DataInfo eventProbeInfo = classWeaveInfo.getProbeById(event.getDataId());
+            DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
             EventType eventType = eventProbeInfo.getEventType();
 
             if (eventType == EventType.METHOD_ENTRY) {
@@ -142,8 +140,8 @@ public class TestCandidateMetadata {
         }
 
         metadata.setExitProbeIndex(callReturnIndex);
-        logger.info("entry probe matched at event: " + entryProbeIndex + ", return found " +
-                "at: " + callReturnIndex);
+        logger.info("entry probe matched at event: " + entryProbeIndex +
+                ", return found " + "at: " + callReturnIndex);
 
 
         int i = 0;
@@ -175,9 +173,9 @@ public class TestCandidateMetadata {
 
 
         if (callReturnIndex == -1) {
-            logger.warn("call_return probe not found in the slice: " + entryProbeInfo +
-                    " when generating test for method " + methodInfo.getMethodName() + " " +
-                    " in class " + classInfo.getClassName() + ". Maybe need a bigger " +
+            logger.debug("call_return probe not found in the slice: " + entryProbeDataId +
+                    " when generating test for method " + targetMethodName + " " +
+                    " in class " + className + ". Maybe need a bigger " +
                     "slice");
             return metadata;
         }
@@ -199,14 +197,14 @@ public class TestCandidateMetadata {
         }
 
         String potentialReturnValueName;
-        if (methodName.startsWith("get") || methodName.startsWith("set")) {
-            if (methodName.length() > 3) {
-                potentialReturnValueName = lowerInstanceName(methodName.substring(3)) + "Value";
+        if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
+            if (targetMethodName.length() > 3) {
+                potentialReturnValueName = lowerInstanceName(targetMethodName.substring(3)) + "Value";
             } else {
                 potentialReturnValueName = "value";
             }
         } else {
-            potentialReturnValueName = methodName + "Result";
+            potentialReturnValueName = targetMethodName + "Result";
         }
 
         metadata.setReturnSubjectInstanceName(potentialReturnValueName);

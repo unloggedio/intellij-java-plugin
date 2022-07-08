@@ -165,12 +165,12 @@ public class TestCaseService {
             ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
 
             TestCandidate testCandidate = new TestCandidate(
-                    methodInfo, classInfo, session,
-                    probeInfo, classWeaveInfo
+                    methodInfo, classInfo,
+                    tracePoint.getNanoTime(), classWeaveInfo
             );
 
             TestCandidateMetadata testCandidateMetadata = TestCandidateMetadata.create(
-                    testCandidate, probeReplayData
+                    methodInfo, tracePoint.getNanoTime(), probeReplayData
             );
             testCandidate.setMetadata(testCandidateMetadata);
 
@@ -305,6 +305,7 @@ public class TestCaseService {
      * @throws IOException      every thing is on the files
      */
     public void listTestCandidatesByMethods(
+            int typeId,
             ClientCallBack<TestCandidate> tracePointsCallback) throws APICallException, IOException {
 
         List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
@@ -326,7 +327,7 @@ public class TestCaseService {
 //                )
 //        );
 
-        this.client.getMethods(session.getSessionId(), tracePointsCallback);
+        this.client.getMethods(session.getSessionId(), typeId, tracePointsCallback);
     }
 
     @NotNull
@@ -344,8 +345,7 @@ public class TestCaseService {
 
     public TestSuite generateTestCase(
             Collection<TestCandidate> testCandidateList
-    )
-            throws IOException {
+    ) {
 
         List<TestCaseUnit> testCases = new LinkedList<>();
 
@@ -367,7 +367,6 @@ public class TestCaseService {
             TestCandidateMetadata metadata = null;
             for (String methodHash : candidatesByMethod.keySet()) {
                 List<TestCandidate> candidateSet = candidatesByMethod.get(methodHash);
-                TestCandidate testCandidate = candidateSet.get(0);
 
 
                 Set<TestCandidateMetadata> metadataSet = candidateSet.stream()
@@ -379,7 +378,9 @@ public class TestCaseService {
                     continue;
                 }
                 metadata = metadataSet.stream().findFirst().get();
-                MethodSpec.Builder testMethodBuilder = buildTestFromTestMetadataSet(metadataSet);
+
+                MethodSpec.Builder testMethodBuilder = buildTestCaseSkeleton(metadata);
+                buildTestFromTestMetadataSet(metadataSet, testMethodBuilder);
 
                 testMethods.add(testMethodBuilder.build());
 
@@ -400,7 +401,7 @@ public class TestCaseService {
             JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
                     .build();
 
-            TestCaseUnit testCaseUnit = new TestCaseUnit(metadata, javaFile.toString());
+            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString());
 
 
             testCases.add(testCaseUnit);
@@ -420,16 +421,12 @@ public class TestCaseService {
 
     }
 
-    @NotNull
-    private MethodSpec.Builder buildTestFromTestMetadataSet(Collection<TestCandidateMetadata> metadataCollection) {
+    private void buildTestFromTestMetadataSet(
+            Collection<TestCandidateMetadata> metadataCollection,
+            MethodSpec.Builder testMethodBuilder) {
         assert metadataCollection.size() != 0;
 
         TestCandidateMetadata metadata = metadataCollection.stream().findFirst().get();
-        MethodSpec.Builder testMethodBuilder = buildTestCaseSkeleton(metadata);
-
-        ClassName squareClassName = ClassName.get(metadata.getPackageName(), metadata.getUnqualifiedClassname());
-
-        testMethodBuilder.addStatement("$T $L = new $T()", squareClassName, metadata.getTestSubjectInstanceName(), squareClassName);
 
         Object returnValueSquareClass = null;
         if (metadata.getReturnValueType().startsWith("L")
@@ -444,7 +441,14 @@ public class TestCaseService {
             @NotNull String parameterString = StringUtil.join(testCandidateMetadata.getParameterValues(), ", ");
 
             // return type == V ==> void return type => no return value
-            if (testCandidateMetadata.getReturnValueType().equals("V")) {
+            if (testCandidateMetadata.getMethodName().equals("<init>")) {
+
+                ClassName squareClassName = ClassName.get(metadata.getPackageName(),
+                        metadata.getUnqualifiedClassname());
+                testMethodBuilder.addStatement("$T $L = new $T(" + parameterString + ")",
+                        squareClassName, metadata.getTestSubjectInstanceName(), squareClassName);
+
+            } else if (testCandidateMetadata.getReturnValueType().equals("V")) {
 
                 testMethodBuilder.addStatement("$L.$L(" + parameterString + ")",
                         testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
@@ -457,20 +461,19 @@ public class TestCaseService {
                         testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
 
 
-                if (testCandidateMetadata.getReturnValue() == null) {
-                    testMethodBuilder.addStatement("assert $L == $S",
-                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.callReturnProbe().getValue());
+                if (testCandidateMetadata.getReturnValue() != null) {
+                    testMethodBuilder.addStatement("assert $L == $L",
+                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.getReturnValue());
                 } else {
                     testMethodBuilder.addStatement("assert $L == $S",
-                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.getReturnValue());
+                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.callReturnProbe().getValue());
                 }
 
 
-                testMethodBuilder.addStatement("// thats all folks");
+                testMethodBuilder.addComment("");
 
             }
         }
-        return testMethodBuilder;
     }
 
     @NotNull
@@ -480,7 +483,6 @@ public class TestCaseService {
                         .addModifiers(javax.lang.model.element.Modifier.PUBLIC)
                         .returns(void.class)
                         .addAnnotation(ClassName.get("org.junit", "Test"))
-//                .addParameter(String[].class, "args")
                         .addStatement("/**")
                         .addStatement("$S", "Testing method: " + metadata.getMethodName())
                         .addStatement("$S", "In class: " + metadata.getFullyQualifiedClassname())
@@ -495,6 +497,14 @@ public class TestCaseService {
         testMethodBuilder.addStatement("todo: add new variable for each parameter");
         testMethodBuilder.addStatement("**/");
         return testMethodBuilder;
+    }
+
+    @NotNull
+    private MethodSpec.Builder buildJUnitTestCaseSkeleton(String testMethodName) {
+        return MethodSpec.methodBuilder(testMethodName)
+                .addModifiers(javax.lang.model.element.Modifier.PUBLIC)
+                .returns(void.class)
+                .addAnnotation(ClassName.get("org.junit", "Test"));
     }
 
     private ClassName constructClassName(String methodReturnValueType) {
@@ -573,46 +583,85 @@ public class TestCaseService {
             List<ObjectsWithTypeInfo> allObjects
     ) {
 
-        List<TestCaseUnit> testCaseScripts = new LinkedList<>();
-        TestSuite testSuite = new TestSuite(List.of());
-        for (ObjectsWithTypeInfo testableObject : allObjects) {
+        Map<Long, List<ObjectsWithTypeInfo>> objectsByType =
+                allObjects.stream()
+                        .collect(Collectors.groupingBy(e -> e.getTypeInfo().getTypeId()));
 
+        List<MethodSpec> testCaseScripts = new LinkedList<>();
 
-            long objectId = testableObject.getObjectInfo().getObjectId();
-//            ReplayData objectHistory = client.fetchObjectHistoryByObjectId(
-//                    objectId, -1, (long) -1, new PageInfo());
+        List<TestCaseUnit> testCases = new LinkedList<>();
+        for (Long typeId : objectsByType.keySet()) {
 
-            assert objectId != 0;
+            List<ObjectsWithTypeInfo> objectsList = objectsByType.get(typeId);
+            TypeInfo typeInfo = objectsList.get(0).getTypeInfo();
+            String fullClassName = typeInfo.getTypeNameFromClass();
+            List<String> classNameParts = new LinkedList<>(Arrays.asList(fullClassName.split("\\.")));
+            String simpleClassName = classNameParts.get(classNameParts.size() - 1);
+            classNameParts.remove(classNameParts.size() - 1);
+            @NotNull String packageName = StringUtil.join(classNameParts, ".");
 
-            TestSuite classTestSuite = generateTestCaseFromObjectHistory(objectId);
-            testCaseScripts.addAll(classTestSuite.getTestCaseScripts());
+            for (ObjectsWithTypeInfo testableObject : objectsList) {
+
+                long objectId = testableObject.getObjectInfo().getObjectId();
+                assert objectId != 0;
+
+                MethodSpec classTestSuite = generateTestCaseFromObjectHistory(objectId);
+                testCaseScripts.add(classTestSuite);
+
+            }
+
+            TypeSpec helloWorld = TypeSpec.classBuilder("Test" + simpleClassName)
+                    .addModifiers(javax.lang.model.element.Modifier.PUBLIC,
+                            javax.lang.model.element.Modifier.FINAL)
+                    .addMethods(testCaseScripts)
+                    .build();
+
+            JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
+                    .build();
+
+            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString());
+
+            testCases.add(testCaseUnit);
 
         }
 
-        return new TestSuite(testCaseScripts);
+
+        return new TestSuite(testCases);
 
 
     }
 
-    private TestSuite generateTestCaseFromObjectHistory(final Long objectId) {
-        List<TestCaseUnit> testCases = new LinkedList<>();
-
-        ReplayData objectHistory = client.fetchObjectHistoryByObjectId(
-                objectId, -1, (long) -1, new PageInfo(0, 50000, PageInfo.Order.ASC));
+    private MethodSpec generateTestCaseFromObjectHistory(final Long objectId) {
 
 
-        Map<String, ObjectInfo> objectInfoMap = objectHistory.getObjectInfo();
+        PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
 
-        List<DataEventWithSessionId> objectEvents = objectHistory.getDataEvents();
+        ReplayData objectReplayData = client.
+                fetchObjectHistoryByObjectId(objectId, -1, (long) -1, pagination);
+
+
+        Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
+
+        List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
+        List<DataEventWithSessionId> objectEventsReverse =
+                new ArrayList<>(objectReplayData.getDataEvents());
+        Collections.reverse(objectEventsReverse);
+        objectReplayData.setDataEvents(objectEventsReverse);
 
         // iterate from oldest to newest event
-        Map<String, TypeInfo> typeInfo = objectHistory.getTypeInfo();
-        Map<String, DataInfo> probeInfoMap = objectHistory.getDataInfoMap();
+        Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
+        Map<String, DataInfo> probeInfoMap = objectReplayData.getDataInfoMap();
+        Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
+        Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
 
-        MethodSpec.Builder objectRepeater = MethodSpec.constructorBuilder();
 
+        MethodSpec.Builder testMethodBuilder =
+                buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
+
+        int eventIndex = -1;
+        TypeInfo typeInfo = null;
         for (DataEventWithSessionId dataEvent : objectEvents) {
-
+            eventIndex++;
             final long eventValue = dataEvent.getValue();
             String eventValueString = String.valueOf(eventValue);
             ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
@@ -625,30 +674,168 @@ public class TestCaseService {
             TypeInfo objectTypeInfo = null;
             if (objectInfo != null) {
                 long objectTypeId = objectInfo.getTypeId();
-                objectTypeInfo = typeInfo.get(String.valueOf(objectTypeId));
+                objectTypeInfo = typeInfoMap.get(String.valueOf(objectTypeId));
                 objectInfoString = "[Object:" + objectInfo.getObjectId() + "]";
-
+                typeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
 
             DataInfo probeInfo = probeInfoMap.get(String.valueOf(dataEvent.getDataId()));
             int methodId = probeInfo.getMethodId();
 
-            logger.warn("Object" +
-                    objectInfoString +
-                    "[Thread:" + dataEvent.getThreadId() + "]" +
-                    "[Seq:" + dataEvent.getNanoTime() + "]" +
-                    "[Time:" + dataEvent.getRecordedAt().getTime() + "] -> " +
-//                    "[Class:" + objectTypeInfo.getTypeNameFromClass() + "] -> "+
-                    probeInfo.getEventType());
+//            logger.warn("Object" +
+//                    objectInfoString +
+//                    "[Thread:" + dataEvent.getThreadId() + "]" +
+//                    "[Seq:" + dataEvent.getNanoTime() + "]" +
+//                    "[Time:" + dataEvent.getRecordedAt().getTime() + "] -> " +
+////                    "[Class:" + objectTypeInfo.getTypeNameFromClass() + "] -> "+
+//                    probeInfo.getEventType());
+
+            int methodCallStackCount = 0;
+            ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+
+
+            switch (probeInfo.getEventType()) {
+                case RESERVED:
+                    break;
+
+                case METHOD_OBJECT_INITIALIZED:
+                case METHOD_ENTRY:
+
+                    MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
+
+
+                    TestCandidateMetadata testCandidateMetadata =
+                            TestCandidateMetadata.create(methodInfo, dataEvent.getNanoTime(), objectReplayData);
+//
+//                    if (testCandidateMetadata.getCallReturnProbe() == null) {
+//
+//                        ReplayData objectLongerReplayData = client.
+//                                fetchObjectHistoryByObjectId(objectId,
+//                                        dataEvent.getThreadId(), dataEvent.getNanoTime(), pagination);
+//
+//
+//                        testCandidateMetadata =
+//                                TestCandidateMetadata.create(methodInfo,
+//                                        dataEvent.getNanoTime(), objectLongerReplayData);
+//                    }
+                    if (testCandidateMetadata.getCallReturnProbe() == null) {
+                        logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                        continue;
+                    }
+
+
+                    buildTestFromTestMetadataSet(List.of(testCandidateMetadata), testMethodBuilder);
+
+
+                    break;
+                case METHOD_PARAM:
+                    break;
+                case METHOD_NORMAL_EXIT:
+                    methodCallStackCount--;
+                    break;
+                case METHOD_THROW:
+                    methodCallStackCount--;
+                    break;
+                case METHOD_EXCEPTIONAL_EXIT:
+                    methodCallStackCount--;
+                    break;
+                case CALL:
+                    methodCallStackCount++;
+                    break;
+                case CALL_PARAM:
+                    if (methodCallStackCount == 0) {
+
+                    }
+                    break;
+                case CALL_RETURN:
+                    break;
+                case CATCH_LABEL:
+                    break;
+                case CATCH:
+                    break;
+                case NEW_OBJECT:
+                    break;
+                case NEW_OBJECT_CREATED:
+                    break;
+                case GET_INSTANCE_FIELD:
+                    break;
+                case GET_INSTANCE_FIELD_RESULT:
+                    break;
+                case GET_STATIC_FIELD:
+                    break;
+                case PUT_INSTANCE_FIELD:
+                    break;
+                case PUT_INSTANCE_FIELD_VALUE:
+                    break;
+                case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
+                case PUT_STATIC_FIELD:
+                    break;
+                case ARRAY_LOAD:
+                    break;
+                case ARRAY_LOAD_INDEX:
+                    break;
+                case ARRAY_LOAD_RESULT:
+                    break;
+                case ARRAY_STORE:
+                    break;
+                case ARRAY_STORE_INDEX:
+                    break;
+                case ARRAY_STORE_VALUE:
+                    break;
+                case NEW_ARRAY:
+                    break;
+                case NEW_ARRAY_RESULT:
+                    break;
+                case MULTI_NEW_ARRAY:
+                    break;
+                case MULTI_NEW_ARRAY_OWNER:
+                    break;
+                case MULTI_NEW_ARRAY_ELEMENT:
+                    break;
+                case ARRAY_LENGTH:
+                    break;
+                case ARRAY_LENGTH_RESULT:
+                    break;
+                case MONITOR_ENTER:
+                    break;
+                case MONITOR_ENTER_RESULT:
+                    break;
+                case MONITOR_EXIT:
+                    break;
+                case OBJECT_CONSTANT_LOAD:
+                    break;
+                case OBJECT_INSTANCEOF:
+                    break;
+                case OBJECT_INSTANCEOF_RESULT:
+                    break;
+                case INVOKE_DYNAMIC:
+                    break;
+                case INVOKE_DYNAMIC_PARAM:
+                    break;
+                case INVOKE_DYNAMIC_RESULT:
+                    break;
+                case LABEL:
+                    break;
+                case JUMP:
+                    break;
+                case LOCAL_LOAD:
+                    break;
+                case LOCAL_STORE:
+                    break;
+                case LOCAL_INCREMENT:
+                    break;
+                case RET:
+                    break;
+                case DIVIDE:
+                    break;
+                case LINE_NUMBER:
+                    break;
+            }
 
         }
-        logger.warn(" ============================================================= ");
-        logger.warn(" ============================================================= ");
-        logger.warn(" ============================================================= ");
 
+        return testMethodBuilder.build();
 
-        TestSuite testSuite = new TestSuite(testCases);
-        return testSuite;
     }
 
 

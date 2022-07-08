@@ -570,8 +570,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
         Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
 
+        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
         return new ReplayData(this, dataEventsList, classInfo, dataInfo, stringInfo,
-                objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
+                objectInfo, typeInfo, methodInfoMap, filteredDataEventsRequest.getSortOrder());
 
     }
 
@@ -664,7 +665,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getMethods(String sessionId, ClientCallBack<TestCandidate> tracePointsCallback) {
+    public void getMethods(String sessionId, Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
 
     }
 

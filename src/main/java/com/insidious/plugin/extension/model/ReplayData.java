@@ -16,6 +16,7 @@ public class ReplayData {
     Map<String, StringInfo> stringInfoMap;
     Map<String, ObjectInfo> objectInfo;
     Map<String, TypeInfo> typeInfo;
+    Map<String, MethodInfo> methodInfoMap;
 
     public ReplayData(VideobugClientInterface client,
                       List<DataEventWithSessionId> dataList,
@@ -24,6 +25,7 @@ public class ReplayData {
                       Map<String, StringInfo> stringInfo,
                       Map<String, ObjectInfo> objectInfo,
                       Map<String, TypeInfo> typeInfo,
+                      Map<String, MethodInfo> methodInfoMap,
                       String sortOrder) {
         this.client = client;
         dataEvents = dataList;
@@ -32,7 +34,12 @@ public class ReplayData {
         stringInfoMap = stringInfo;
         this.objectInfo = objectInfo;
         this.typeInfo = typeInfo;
+        this.methodInfoMap = methodInfoMap;
         this.sortOrder = sortOrder;
+    }
+
+    public Map<String, MethodInfo> getMethodInfoMap() {
+        return methodInfoMap;
     }
 
     public Map<String, ObjectInfo> getObjectInfo() {
@@ -63,5 +70,9 @@ public class ReplayData {
 
     public Map<String, StringInfo> getStringInfoMap() {
         return stringInfoMap;
+    }
+
+    public void setDataEvents(List<DataEventWithSessionId> objectEventsReverse) {
+        this.dataEvents = objectEventsReverse;
     }
 }

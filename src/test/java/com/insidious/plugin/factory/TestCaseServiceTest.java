@@ -34,7 +34,8 @@ public class TestCaseServiceTest {
 
         TestCaseService testCaseService = new TestCaseService(project, client);
 
-        testCaseService.listTestCandidatesByMethods(
+        int typeId = 174;
+        testCaseService.listTestCandidatesByMethods(typeId,
                 new ClientCallBack<>() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -48,12 +49,8 @@ public class TestCaseServiceTest {
                             return;
                         }
                         TestSuite testSuite = null;
-                        try {
-                            logger.info("generating test cases for " + testCandidates.size());
-                            testSuite = testCaseService.generateTestCase(testCandidates);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        logger.info("generating test cases for " + testCandidates.size());
+                        testSuite = testCaseService.generateTestCase(testCandidates);
                         System.out.println(testSuite);
 
                     }
@@ -102,11 +99,7 @@ public class TestCaseServiceTest {
         waiter.take();
 
         TestSuite testSuite = null;
-        try {
-            testSuite = testCaseService.generateTestCase(testCandidateList);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        testSuite = testCaseService.generateTestCase(testCandidateList);
         System.out.println(testSuite);
 
     }

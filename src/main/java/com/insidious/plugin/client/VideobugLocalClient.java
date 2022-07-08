@@ -302,13 +302,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
             PageInfo pageInfo
     ) {
 
-
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
         Map<String, ClassInfo> classInfoMap = new HashMap<>();
         Map<String, DataInfo> probeInfoMap = new HashMap<>();
         Map<String, StringInfo> stringInfoMap = new HashMap<>();
         Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
 
         Collection<ObjectInfo> sessionObjectInfo = getObjectInfoById(List.of(objectId));
 
@@ -336,18 +336,22 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
             checkProgressIndicator(null, "Loading class mappings");
 
-            Map<String, ClassInfo> finalClassInfo = classInfoMap;
-            Map<String, DataInfo> finalProbeInfoMap = probeInfoMap;
             classWeaveInfoLocal.classInfo().forEach(e -> {
 
                 checkProgressIndicator(null, "Loading class: " + e.className());
 
-                finalClassInfo.put(String.valueOf(e.classId()), KaitaiUtils.toClassInfo(e));
+                ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
+                classInfoMap.put(String.valueOf(e.classId()), classInfo);
 
                 checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
 
+                e.methodList().forEach(m -> {
+                    MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.getClassName());
+                    methodInfoMap.put(String.valueOf(m.methodId()), methodInfo);
+                });
+
                 e.probeList().forEach(r -> {
-                    finalProbeInfoMap.put(String.valueOf(r.dataId()),
+                    probeInfoMap.put(String.valueOf(r.dataId()),
                             KaitaiUtils.toDataInfo(r));
                 });
             });
@@ -421,7 +425,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 long currentEventId = dataEventBlock.eventId();
 
                                 if (currentFirstEventAt != -1 &&
-                                        Math.abs(currentFirstEventAt - currentEventId) < pageInfo.getSize()) {
+                                        Math.abs(currentFirstEventAt - currentEventId)
+                                                < pageInfo.getBufferSize()) {
                                         return true;
                                 }
 
@@ -490,7 +495,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
             }
-            Map<String, StringInfo> sessionStringInfo = stringIndex.getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
+            Map<String, StringInfo> sessionStringInfo = stringIndex
+                    .getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
             stringInfoMap.putAll(sessionStringInfo);
 
 
@@ -519,7 +525,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         return new ReplayData(
                 this, dataEventList, classInfoMap, probeInfoMap,
-                stringInfoMap, objectInfoMap, typeInfoMap,
+                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap,
                 "DESC");
 
     }
@@ -1229,6 +1235,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Map<String, StringInfo> stringInfo = new HashMap<>();
         Map<String, ObjectInfo> objectInfo = new HashMap<>();
         Map<String, TypeInfo> typeInfo = new HashMap<>();
+        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
 
         checkProgressIndicator(null, "Loading types");
         for (File sessionArchive : this.sessionArchives) {
@@ -1288,7 +1295,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         checkProgressIndicator(null, "Completed loading");
-        return new ReplayData(this, dataEventList, classInfo, dataInfo, stringInfo, objectInfo, typeInfo, "DESC");
+        return new ReplayData(this, dataEventList, classInfo,
+                dataInfo, stringInfo, objectInfo, typeInfo, methodInfoMap, "DESC");
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -1384,7 +1392,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public void getMethods(String sessionId,
-                           ClientCallBack<TestCandidate> tracePointsCallback) {
+                           Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
 
         ExecutionSession executionSession = new ExecutionSession();
         executionSession.setSessionId(sessionId);
@@ -1401,15 +1409,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 .classInfo()
                 .forEach(classInfo -> {
 
+                    if (classInfo.classId() != typeId) {
+                        return;
+                    }
                     ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
                     tracePointsCallback.success(
                             classInfo.methodList()
-                                    .stream().map(KaitaiUtils::toMethodInfo)
+                                    .stream().map(e -> KaitaiUtils.toMethodInfo(e,
+                                            classInfo.className().value()))
                                     .map(methodInfo ->
                                             new TestCandidate(methodInfo,
                                                     classInfoContainer,
-                                                    executionSession,
-                                                    null, null))
+                                                    0, null))
                                     .collect(Collectors.toSet()));
                 });
         tracePointsCallback.completed();
@@ -1490,7 +1501,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     classInfoList.add(classInfoContainer);
 
                     classInfo.methodList()
-                            .stream().map(KaitaiUtils::toMethodInfo)
+                            .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
+                                    classInfo.className().value()))
                             .forEach(methodInfoList::add);
 
                     classInfo.probeList()
@@ -1533,7 +1545,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             NameWithBytes fileBytes =
                     createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
             if (fileBytes == null) {
-                logger.warn("failed to read class weave info from " +
+                logger.debug("failed to read class weave info from " +
                         "sessionFile [" + sessionFile.getName() + "]");
                 return null;
             }
