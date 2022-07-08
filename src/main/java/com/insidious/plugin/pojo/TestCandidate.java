@@ -4,27 +4,26 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.TestCandidateMetadata;
 
 public class TestCandidate {
     private final MethodInfo methodInfo;
     private final ClassInfo classInfo;
     private final ExecutionSession executionSession;
     private final DataInfo methodEntryProbe;
-    private final ReplayData probeReplayData;
     private final ClassWeaveInfo classWeaveInfo;
+    private TestCandidateMetadata metadata;
 
     public TestCandidate(MethodInfo methodInfo,
                          ClassInfo classInfo,
                          ExecutionSession session,
                          DataInfo methodEntryProbe,
-                         ReplayData probeReplayData, ClassWeaveInfo classWeaveInfo) {
+                         ClassWeaveInfo classWeaveInfo) {
 
         this.methodInfo = methodInfo;
         this.classInfo = classInfo;
         this.executionSession = session;
         this.methodEntryProbe = methodEntryProbe;
-        this.probeReplayData = probeReplayData;
         this.classWeaveInfo = classWeaveInfo;
     }
 
@@ -44,11 +43,15 @@ public class TestCandidate {
         return methodEntryProbe;
     }
 
-    public ReplayData getProbeReplayData() {
-        return probeReplayData;
-    }
-
     public ClassWeaveInfo getClassWeaveInfo() {
         return classWeaveInfo;
+    }
+
+    public void setMetadata(TestCandidateMetadata metadata) {
+        this.metadata = metadata;
+    }
+
+    public TestCandidateMetadata getMetadata() {
+        return metadata;
     }
 }

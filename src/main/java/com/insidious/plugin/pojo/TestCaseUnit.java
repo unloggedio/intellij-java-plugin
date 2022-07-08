@@ -1,11 +1,16 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.MethodInfo;
 
-public class TestCaseScript {
+public class TestCaseUnit {
+
+    MethodInfo methodInfo;
+
+
     private final String code;
 
-    public TestCaseScript(String code, ClassInfo classInfo) {
+    public TestCaseUnit(String code) {
         this.code = code;
     }
 

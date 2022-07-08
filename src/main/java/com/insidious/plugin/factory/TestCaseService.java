@@ -26,8 +26,6 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -144,18 +142,38 @@ public class TestCaseService {
 
         ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
 
+        HashMap<String, Integer> candidateCountMap = new HashMap<>();
         for (TracePoint tracePoint : tracePointList) {
 
             DataInfo probeInfo = classWeaveInfo.getProbeById(tracePoint.getDataId());
             MethodInfo methodInfo = classWeaveInfo.getMethodInfoById(probeInfo.getMethodId());
             ClassInfo classInfo = classWeaveInfo.getClassInfoById(methodInfo.getClassId());
+            String targetName = classInfo.getClassName() + ":" + methodInfo.getMethodName();
+            if (!candidateCountMap.containsKey(targetName)) {
+                candidateCountMap.put(targetName, 0);
+            }
+
+            int newCount = candidateCountMap.get(targetName) + 1;
+            if (newCount > 10) {
+                continue;
+            }
+            candidateCountMap.put(targetName, newCount);
 
             FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
 
             ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
 
-            TestCandidate testCandidate = new TestCandidate(methodInfo, classInfo, session, probeInfo,
-                    probeReplayData, classWeaveInfo);
+            TestCandidate testCandidate = new TestCandidate(
+                    methodInfo, classInfo, session,
+                    probeInfo, classWeaveInfo
+            );
+
+            TestCandidateMetadata testCandidateMetadata = TestCandidateMetadata.create(
+                    testCandidate, probeReplayData
+            );
+            testCandidate.setMetadata(testCandidateMetadata);
+
+
             clientCallBack.success(List.of(testCandidate));
 
             logger.warn("generate test case for ["
@@ -328,7 +346,7 @@ public class TestCaseService {
     )
             throws IOException {
 
-        List<TestCaseScript> testCases = new LinkedList<>();
+        List<TestCaseUnit> testCases = new LinkedList<>();
 
 
         Map<String, List<TestCandidate>> testCandidatesByClass = testCandidateList.stream()
@@ -340,236 +358,49 @@ public class TestCaseService {
             logger.info("generate test cases for class: "
                     + className + ": we have " + candidates.size() + " candidates");
 
-            ClassInfo classInfo = candidates.get(0).getClassInfo();
-            String fullyQualifiedClassName = classInfo.getClassName();
-
-            String[] classNameParts = fullyQualifiedClassName.split("/");
-            String unqualifiedClassName = classNameParts[classNameParts.length - 1];
-            String packageName = StringUtil.join(classNameParts, ".");
-            int lastDotIndex = packageName.lastIndexOf(".");
-            if (lastDotIndex > -1) {
-                packageName = packageName.substring(0, lastDotIndex);
-            } else {
-                packageName = "";
-            }
+            Map<String, List<TestCandidate>> candidatesByMethod = candidates.stream().collect(
+                    Collectors.groupingBy(e -> e.getMethodInfo().getMethodHash()));
 
             List<MethodSpec> testMethods = new LinkedList<>();
-            for (TestCandidate testCandidate : candidates) {
 
-                MethodInfo methodInfo = testCandidate.getMethodInfo();
-                ClassWeaveInfo classWeaveInfo = testCandidate.getClassWeaveInfo();
-                Map<String, TypeInfo> typeInfo = testCandidate.getProbeReplayData().getTypeInfo();
-                Map<String, ObjectInfo> objectInfoMap = testCandidate.getProbeReplayData().getObjectInfo();
-                Map<String, StringInfo> stringInfoMap = testCandidate.getProbeReplayData().getStringInfoMap();
+            TestCandidateMetadata metadata = null;
+            for (String methodHash : candidatesByMethod.keySet()) {
+                List<TestCandidate> candidateSet = candidatesByMethod.get(methodHash);
+                TestCandidate testCandidate = candidateSet.get(0);
 
-                String methodName = methodInfo.getMethodName();
 
-                if (methodName.equals("<init>")) {
-                    logger.warn("skipping <init> method, " +
-                            "is a constructor for or in class: " + classInfo.getClassName());
+                Set<TestCandidateMetadata> metadataSet = candidateSet.stream()
+                        .filter(e -> !e.getMethodInfo().getMethodName().startsWith("<"))
+                        .map(TestCandidate::getMetadata)
+                        .collect(Collectors.toSet());
+                if (metadataSet.size() == 0) {
+                    logger.info("class [" + className + "] has only constructor method candidates");
                     continue;
                 }
-
-                String potentialClassVariableInstanceName = lowerInstanceName(unqualifiedClassName);
-
-                String testMethodName = "test" + upperInstanceName(methodName);
-
-                // https://gist.github.com/VijayKrishna/6160036
-                List<String> methodDescription = splitMethodDesc(methodInfo.getMethodDesc());
-                String methodReturnValueType = methodDescription.get(methodDescription.size() - 1);
-                methodDescription.remove(methodDescription.size() - 1);
-
-
-                MethodSpec.Builder testMethodBuilder = MethodSpec.methodBuilder(testMethodName)
-                        .addModifiers(javax.lang.model.element.Modifier.PUBLIC)
-                        .returns(void.class)
-                        .addAnnotation(ClassName.get("org.junit", "Test"))
-//                .addParameter(String[].class, "args")
-                        .addStatement("/**")
-                        .addStatement("$S", "Testing method: " + methodInfo.getMethodName())
-                        .addStatement("$S", "In class: " + classInfo.getClassName())
-                        .addStatement("$S", "Method has " + methodDescription.size() + " " +
-                                "parameters.");
-
-
-                DataInfo entryProbeInfo = testCandidate.getMethodEntryProbe();
-                String probeAttributes = entryProbeInfo.getAttributes();
-
-                List<DataEventWithSessionId> events = testCandidate.getProbeReplayData().getDataEvents();
-
-                int entryProbeIndex = 0;
-                List<DataEventWithSessionId> methodParameterProbes = new LinkedList<>();
-                boolean lookingForParams = true;
-                // going up matching the first event for our method entry probe
-                // up is back in time
-                while (entryProbeIndex < events.size()) {
-                    DataEventWithSessionId eventInfo = events.get(entryProbeIndex);
-                    if (eventInfo.getDataId() == entryProbeInfo.getDataId()) break;
-                    entryProbeIndex++;
-                }
-
-                int direction = -1;
-                int callReturnIndex = entryProbeIndex + direction;
-                DataEventWithSessionId entryPointEvent = events.get(entryProbeIndex);
-
-                int callStack = 0;
-                // going down from where we found the method entry probe
-                // to match the first call_return probe
-                while (callReturnIndex > -1) {
-                    DataEventWithSessionId event = events.get(callReturnIndex);
-                    DataInfo eventProbeInfo = classWeaveInfo.getProbeById(event.getDataId());
-                    EventType eventType = eventProbeInfo.getEventType();
-
-                    if (eventType == EventType.METHOD_ENTRY) {
-                        callStack++;
-                    }
-                    if (callStack > 0 && eventType == EventType.CALL_RETURN) {
-                        callStack--;
-                    }
-                    if (callStack > 0) {
-                        callReturnIndex += direction;
-                        continue;
-                    }
-
-                    if (lookingForParams && eventType == EventType.METHOD_PARAM) {
-                        methodParameterProbes.add(event);
-                    } else {
-                        lookingForParams = false;
-                    }
-
-                    if (eventProbeInfo.getEventType() == EventType.CALL_RETURN) {
-                        break;
-                    }
-
-                    callReturnIndex += direction;
-
-                }
-
-                logger.info("entry probe matched at event: " + entryProbeIndex + ", return found " +
-                        "at: " + callReturnIndex);
-
-
-                int i = 0;
-                List<String> methodParameterValues = new LinkedList<>();
-                List<String> methodParameterTypes = new LinkedList<>();
-
-                for (DataEventWithSessionId parameterProbe : methodParameterProbes) {
-                    i++;
-                    long probeValue = parameterProbe.getValue();
-                    String probeValueString = String.valueOf(probeValue);
-                    ObjectInfo objectInfo = objectInfoMap.get(probeValueString);
-                    assert objectInfo != null;
-                    TypeInfo probeType = typeInfo.get(String.valueOf(objectInfo.getTypeId()));
-                    testMethodBuilder.addStatement("$S",
-                            "Parameter " + i + ": [" + probeType.getTypeNameFromClass() + "] " +
-                                    "potential value: [" + probeValueString + "] ");
-                    if (stringInfoMap.containsKey(probeValueString)) {
-                        String quotedStringValue =
-                                "\"" + StringUtil.escapeQuotes(stringInfoMap.get(probeValueString).getContent()) + "\"";
-                        methodParameterValues.add(quotedStringValue);
-                    } else {
-                        methodParameterValues.add(probeValueString);
-                    }
-                }
-
-
-                if (callReturnIndex == -1) {
-                    logger.warn("call_return probe not found in the slice: " + entryProbeInfo +
-                            " when generating test for method " + methodInfo.getMethodName() + " " +
-                            " in class " + classInfo.getClassName() + ". Maybe need a bigger " +
-                            "slice");
-                    continue;
-                }
-
-                logger.info("call_return probe found at " + callReturnIndex);
-                DataEventWithSessionId callReturnProbe = events.get(callReturnIndex);
-                logger.info("call return value is: " + callReturnProbe.getValue());
-
-
-                String returnProbeValue = String.valueOf(callReturnProbe.getValue());
-                ObjectInfo objectInfo = objectInfoMap.get(returnProbeValue);
-
-                StringInfo possibleReturnStringValue = null;
-                if (stringInfoMap.containsKey(returnProbeValue)) {
-                    possibleReturnStringValue = stringInfoMap.get(returnProbeValue);
-                    testMethodBuilder.addStatement("method returned a string: $S", possibleReturnStringValue);
-                } else if (objectInfo != null) {
-                    TypeInfo objectTypeInfo = typeInfo.get(String.valueOf(objectInfo.getTypeId()));
-                    testMethodBuilder.addStatement("method returned a value of type: $S"
-                            , objectTypeInfo);
-                } else {
-                    testMethodBuilder.addStatement("method returned: $S", returnProbeValue);
-                }
-
-                testMethodBuilder.addStatement("todo: add new variable for each parameter");
-                testMethodBuilder.addStatement("**/");
-
-                ClassName squareClassName = ClassName.get(packageName, unqualifiedClassName);
-
-                testMethodBuilder.addStatement("$T $L = new $T()", squareClassName,
-                        potentialClassVariableInstanceName, squareClassName);
-
-                @NotNull String parameterString = StringUtil.join(methodParameterValues, ", ");
-
-                // return type == V ==> void return type => no return value
-                if (methodReturnValueType.equals("V")) {
-                    testMethodBuilder.addStatement("$L.$L(" + parameterString + ")",
-                            potentialClassVariableInstanceName, methodName);
-                } else {
-
-
-                    String potentialReturnValueName = methodName;
-                    if (methodName.startsWith("get") || methodName.startsWith("set")) {
-                        if (methodName.length() > 3) {
-                            potentialReturnValueName =
-                                    lowerInstanceName(methodName.substring(3)) + "Value";
-                        } else {
-                            potentialReturnValueName = "value";
-                        }
-                    } else {
-                        potentialReturnValueName = methodName + "Result";
-                    }
-
-
-                    Object returnValueSquareClass = null;
-                    if (methodReturnValueType.startsWith("L") || methodReturnValueType.startsWith("[")) {
-                        returnValueSquareClass = constructClassName(methodReturnValueType);
-                    } else {
-                        returnValueSquareClass = getClassFromDescriptor(methodReturnValueType);
-                    }
-
-                    testMethodBuilder.addStatement("$T $L = $L.$L(" + parameterString + ")",
-                            returnValueSquareClass, potentialReturnValueName,
-                            potentialClassVariableInstanceName, methodName);
-
-                    if (possibleReturnStringValue == null) {
-                        testMethodBuilder.addStatement("assert $L == $S", potentialReturnValueName, returnProbeValue);
-                    } else {
-                        testMethodBuilder.addStatement("assert $L == $S", potentialReturnValueName, possibleReturnStringValue);
-                    }
-
-                    testMethodBuilder.addStatement("// thats all folks");
-
-                }
+                metadata = metadataSet.stream().findFirst().get();
+                MethodSpec.Builder testMethodBuilder = buildTestFromTestMetadataSet(metadataSet);
 
                 testMethods.add(testMethodBuilder.build());
 
 
             }
 
+            if (metadata == null) {
+                continue;
+            }
 
-            TypeSpec helloWorld = TypeSpec.classBuilder("Test" + unqualifiedClassName)
+
+            TypeSpec helloWorld = TypeSpec.classBuilder("Test" + metadata.getUnqualifiedClassname())
                     .addModifiers(javax.lang.model.element.Modifier.PUBLIC,
                             javax.lang.model.element.Modifier.FINAL)
                     .addMethods(testMethods)
                     .build();
 
-            JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
+            JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
                     .build();
 
-            testCases.add(new TestCaseScript(
-                    javaFile.toString(),
-                    classInfo
+            testCases.add(new TestCaseUnit(
+                    javaFile.toString()
             ));
 
         }
@@ -585,6 +416,83 @@ public class TestCaseService {
 //        doss.write("\t}\n".getBytes());
 
 
+    }
+
+    @NotNull
+    private MethodSpec.Builder buildTestFromTestMetadataSet(Collection<TestCandidateMetadata> metadataCollection) {
+        assert metadataCollection.size() != 0;
+
+        TestCandidateMetadata metadata = metadataCollection.stream().findFirst().get();
+        MethodSpec.Builder testMethodBuilder = buildTestCaseSkeleton(metadata);
+
+        ClassName squareClassName = ClassName.get(metadata.getPackageName(), metadata.getUnqualifiedClassname());
+
+        testMethodBuilder.addStatement("$T $L = new $T()", squareClassName, metadata.getTestSubjectInstanceName(), squareClassName);
+
+        Object returnValueSquareClass = null;
+        if (metadata.getReturnValueType().startsWith("L")
+                || metadata.getReturnValueType().startsWith("[")) {
+            returnValueSquareClass = constructClassName(metadata.getReturnValueType());
+        } else {
+            returnValueSquareClass = getClassFromDescriptor(metadata.getReturnValueType());
+        }
+
+
+        for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
+            @NotNull String parameterString = StringUtil.join(testCandidateMetadata.getParameterValues(), ", ");
+
+            // return type == V ==> void return type => no return value
+            if (testCandidateMetadata.getReturnValueType().equals("V")) {
+
+                testMethodBuilder.addStatement("$L.$L(" + parameterString + ")",
+                        testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
+
+            } else {
+
+
+                testMethodBuilder.addStatement("$T $L = $L.$L(" + parameterString + ")",
+                        returnValueSquareClass, testCandidateMetadata.getReturnSubjectInstanceName(),
+                        testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
+
+
+                if (testCandidateMetadata.getReturnValue() == null) {
+                    testMethodBuilder.addStatement("assert $L == $S",
+                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.callReturnProbe().getValue());
+                } else {
+                    testMethodBuilder.addStatement("assert $L == $S",
+                            testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.getReturnValue());
+                }
+
+
+                testMethodBuilder.addStatement("// thats all folks");
+
+            }
+        }
+        return testMethodBuilder;
+    }
+
+    @NotNull
+    private MethodSpec.Builder buildTestCaseSkeleton(TestCandidateMetadata metadata) {
+        MethodSpec.Builder testMethodBuilder =
+                MethodSpec.methodBuilder(metadata.getTestMethodName())
+                        .addModifiers(javax.lang.model.element.Modifier.PUBLIC)
+                        .returns(void.class)
+                        .addAnnotation(ClassName.get("org.junit", "Test"))
+//                .addParameter(String[].class, "args")
+                        .addStatement("/**")
+                        .addStatement("$S", "Testing method: " + metadata.getMethodName())
+                        .addStatement("$S", "In class: " + metadata.getFullyQualifiedClassname())
+                        .addStatement("$S", "Method has " + metadata.getParameterProbes().size() + " " +
+                                "parameters.");
+
+
+        TypeInfo objectTypeInfo = metadata.getReturnTypeInfo();
+        testMethodBuilder.addStatement("method returned a value of type: $S",
+                objectTypeInfo + " => " + metadata.getReturnValue());
+
+        testMethodBuilder.addStatement("todo: add new variable for each parameter");
+        testMethodBuilder.addStatement("**/");
+        return testMethodBuilder;
     }
 
     private ClassName constructClassName(String methodReturnValueType) {
@@ -659,27 +567,55 @@ public class TestCaseService {
     }
 
 
-    public static List<String> splitMethodDesc(String desc) {
-        int beginIndex = desc.indexOf('(');
-        int endIndex = desc.lastIndexOf(')');
-        if ((beginIndex == -1 && endIndex != -1) || (beginIndex != -1 && endIndex == -1)) {
-            System.err.println(beginIndex);
-            System.err.println(endIndex);
-            throw new RuntimeException();
+    public TestSuite generateTestCase(
+            List<ObjectsWithTypeInfo> allObjects
+    ) {
+
+        TestSuite testSuite = new TestSuite(List.of());
+        for (ObjectsWithTypeInfo testableObject : allObjects) {
+
+
+            List<ObjectHistory> objectHistoryById = client.fetchObjectHistoryByObjectId(
+                    List.of(testableObject.getObjectInfo().getObjectId())
+            );
+
+            TestSuite classTestSuite = generateTestCaseFromObjectHistory(objectHistoryById.get(0));
+            testSuite.getTestCaseScripts().addAll(classTestSuite.getTestCaseScripts());
+
         }
-        String x0;
-        if (beginIndex == -1 && endIndex == -1) {
-            x0 = desc;
-        } else {
-            x0 = desc.substring(beginIndex + 1, endIndex);
-        }
-        Pattern pattern = Pattern.compile("\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
-        Matcher matcher = pattern.matcher(x0);
-        List<String> listMatches = new LinkedList<>();
-        while (matcher.find()) {
-            listMatches.add(matcher.group());
-        }
-        listMatches.add(desc.substring(endIndex + 1));
-        return listMatches;
+
+        return testSuite;
+
+
     }
+
+    private TestSuite generateTestCaseFromObjectHistory(ObjectHistory objectHistory) {
+        List<TestCaseUnit> testCases = new LinkedList<>();
+
+        ObjectInfo objectInfo = objectHistory.getObjectInfo();
+
+        List<DataEventWithSessionId> objectEvents = objectHistory.getReplayData().getDataEvents();
+        Collections.reverse(objectEvents);
+
+        // iterate from oldest to newest event
+        for (DataEventWithSessionId dataEvent : objectEvents) {
+
+            long objectTypeId = objectInfo.getTypeId();
+            TypeInfo objectTypeInfo = objectHistory.getReplayData()
+                    .getTypeInfo().get(String.valueOf(objectTypeId));
+
+            DataInfo probeInfo = objectHistory.getReplayData()
+                    .getDataInfoMap().get(String.valueOf(dataEvent.getDataId()));
+
+            logger.warn("Object[" + objectInfo.getObjectId() + "]["
+                    + objectTypeInfo.getTypeNameFromClass() + "] -> " + probeInfo.getEventType());
+
+        }
+
+
+        TestSuite testSuite = new TestSuite(testCases);
+        return testSuite;
+    }
+
+
 }

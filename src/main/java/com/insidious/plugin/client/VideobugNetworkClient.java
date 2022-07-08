@@ -13,10 +13,7 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TestCandidate;
-import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -578,6 +575,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
+    public List<ObjectHistory> fetchObjectHistoryByObjectId(Collection<Long> objectIdList) {
+        return null;
+    }
+
+    @Override
     public String getToken() {
         return token;
     }
@@ -662,6 +664,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void getMethods(String sessionId, ClientCallBack<TestCandidate> tracePointsCallback) {
+
+    }
+
+    @Override
+    public void getObjectsByType(SearchQuery searchQuery, String sessionId, ClientCallBack<ObjectsWithTypeInfo> clientCallBack) {
 
     }
 
