@@ -580,6 +580,7 @@ public class TestCaseService {
 
 
     public TestSuite generateTestCase(
+            List<String> classNameList,
             List<ObjectsWithTypeInfo> allObjects
     ) {
 
@@ -595,6 +596,9 @@ public class TestCaseService {
             List<ObjectsWithTypeInfo> objectsList = objectsByType.get(typeId);
             TypeInfo typeInfo = objectsList.get(0).getTypeInfo();
             String fullClassName = typeInfo.getTypeNameFromClass();
+            if (!classNameList.contains(fullClassName)) {
+                continue;
+            }
             List<String> classNameParts = new LinkedList<>(Arrays.asList(fullClassName.split("\\.")));
             String simpleClassName = classNameParts.get(classNameParts.size() - 1);
             classNameParts.remove(classNameParts.size() - 1);
@@ -640,7 +644,7 @@ public class TestCaseService {
                 fetchObjectHistoryByObjectId(objectId, -1, (long) -1, pagination);
 
 
-        Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
+        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
 
@@ -657,17 +661,21 @@ public class TestCaseService {
         objectReplayData.getDataEvents().addAll(0, contextEvents);
 
 
-
         List<DataEventWithSessionId> objectEventsReverse =
                 new ArrayList<>(objectReplayData.getDataEvents());
         Collections.reverse(objectEventsReverse);
         objectReplayData.setDataEvents(objectEventsReverse);
 
         // iterate from oldest to newest event
-        Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
-        Map<String, DataInfo> probeInfoMap = objectReplayData.getDataInfoMap();
-        Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
-        Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
+        final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
+        final Map<String, DataInfo> probeInfoMap = objectReplayData.getDataInfoMap();
+        final Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
+        final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
+
+        final ObjectInfo subjectObjectInfo =
+                objectInfoMap.get(String.valueOf(objectId));
+        final TypeInfo subjectTypeInfo =
+                typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
 
 
         MethodSpec.Builder testMethodBuilder =
@@ -701,29 +709,14 @@ public class TestCaseService {
 ////                    "[Class:" + objectTypeInfo.getTypeNameFromClass() + "] -> "+
 //                    probeInfo.getEventType());
 
-            int methodCallStackCount = 0;
+            int callStack = 0;
             ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
-
 
             switch (probeInfo.getEventType()) {
                 case RESERVED:
                     break;
 
                 case METHOD_ENTRY:
-
-                    MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
-
-
-                    TestCandidateMetadata testCandidateMetadata =
-                            TestCandidateMetadata.create(methodInfo, dataEvent.getNanoTime(), objectReplayData);
-                    if (testCandidateMetadata.getCallReturnProbe() == null) {
-                        logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
-                        continue;
-                    }
-
-
-                    buildTestFromTestMetadataSet(List.of(testCandidateMetadata), testMethodBuilder);
-
 
                     break;
                 case METHOD_PARAM:
@@ -735,10 +728,44 @@ public class TestCaseService {
                 case METHOD_EXCEPTIONAL_EXIT:
                     break;
                 case CALL:
+
+                    String constructorOwnerClass = probeInfo.getAttribute("Owner", "");
+                    if (!StringUtil.isEmpty(constructorOwnerClass)) {
+                        constructorOwnerClass = constructorOwnerClass.replaceAll("/", ".");
+                        if (subjectTypeInfo != null
+                                && Objects.equals(subjectTypeInfo.getTypeNameFromClass(),
+                                constructorOwnerClass)) {
+
+//                            MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
+                            MethodInfo methodInfo =
+                                    getMethodInfo(objectEvents.size() - eventIndex - 1,
+                                    objectReplayData);
+
+
+                            TestCandidateMetadata testCandidateMetadata =
+                                    TestCandidateMetadata.create(methodInfo, dataEvent.getNanoTime(), objectReplayData);
+
+
+
+                            if (testCandidateMetadata.getCallReturnProbe() == null
+                            || testCandidateMetadata.getTestSubjectInstanceName() == null) {
+                                logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                                continue;
+                            }
+
+                            buildTestFromTestMetadataSet(List.of(testCandidateMetadata), testMethodBuilder);
+
+
+                        }
+                    }
+
+
+                    callStack += 1;
                     break;
                 case CALL_PARAM:
                     break;
                 case CALL_RETURN:
+                    callStack -= 1;
                     break;
                 case CATCH_LABEL:
                     break;
@@ -829,5 +856,30 @@ public class TestCaseService {
 
     }
 
+    private MethodInfo getMethodInfo(int eventIndex, ReplayData objectReplayData) {
+        int callStack = 0;
+        int direction = -1;
+        for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size(); i += direction) {
+            DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
+            DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
+            switch (probeInfo.getEventType()) {
+                case CALL:
+                    callStack += 1;
+                    break;
+                case CALL_RETURN:
+                    callStack -= 1;
+                case METHOD_ENTRY:
+                    if (callStack == 0) {
+                        return objectReplayData
+                                .getMethodInfoMap()
+                                .get(String.valueOf(probeInfo.getMethodId()));
+                    }
+            }
+            if (probeInfo.getEventType() == EventType.CALL) {
+                callStack += 1;
+            }
+        }
+        return null;
+    }
 
 }

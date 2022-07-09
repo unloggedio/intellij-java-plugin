@@ -3,7 +3,6 @@ package com.insidious.plugin.factory;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.TestCandidate;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
@@ -38,6 +37,40 @@ public class TestCandidateMetadata {
 
     private String methodName;
 
+
+    private static String getTestSubjectName(int eventIndex,
+                                      MethodInfo methodInfo,
+                                      ReplayData objectReplayData) {
+        int callStack = 0;
+        int direction = -1;
+        ClassInfo classInfo = objectReplayData.getClassInfoMap().get(String.valueOf(methodInfo.getClassId()));
+        String[] classNameParts = classInfo.getClassName().split("/");
+        String potentialClassVariableInstanceName =
+                lowerInstanceName(classNameParts[classNameParts.length - 1]);
+        for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size() && i > -1; i += direction) {
+            DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
+            DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
+            switch (probeInfo.getEventType()) {
+                case CALL:
+                    callStack += 1;
+                    break;
+                case CALL_RETURN:
+                    callStack -= 1;
+                    break;
+                case NEW_OBJECT_CREATED:
+                    if (callStack == -1) {
+                        DataInfo nextEventProbe = objectReplayData.getDataInfoMap().get(
+                                String.valueOf(objectReplayData.getDataEvents().get(i + direction).getDataId())
+                        );
+                        return nextEventProbe.getAttribute("Name", potentialClassVariableInstanceName);
+                    }
+                    break;
+            }
+        }
+        return null;
+    }
+
+
     public static TestCandidateMetadata create(
             MethodInfo methodInfo,
             long entryProbeDataId,
@@ -70,9 +103,7 @@ public class TestCandidateMetadata {
 
         metadata.setMethodName(targetMethodName);
 
-        String potentialClassVariableInstanceName = lowerInstanceName(unqualifiedClassName);
 
-        metadata.setTestSubjectInstanceName(potentialClassVariableInstanceName);
 
         String testMethodName = "test" + upperInstanceName(targetMethodName);
         metadata.setTestMethodName(testMethodName);
@@ -82,7 +113,6 @@ public class TestCandidateMetadata {
         String methodReturnValueType = methodDescription.get(methodDescription.size() - 1);
         metadata.setReturnValueType(methodReturnValueType);
         methodDescription.remove(methodDescription.size() - 1);
-
 
 
         List<DataEventWithSessionId> events = replayData.getDataEvents();
@@ -114,18 +144,18 @@ public class TestCandidateMetadata {
             DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
             EventType eventType = eventProbeInfo.getEventType();
 
-            if (eventType == EventType.METHOD_ENTRY) {
-                callStack++;
+            if (eventType == EventType.CALL) {
+                callStack += 1;
             }
             if (callStack > 0 && eventType == EventType.CALL_RETURN) {
-                callStack--;
+                callStack -= 1;
             }
             if (callStack > 0) {
                 callReturnIndex += direction;
                 continue;
             }
 
-            if (lookingForParams && eventType == EventType.METHOD_PARAM) {
+            if (lookingForParams && eventType == EventType.CALL_PARAM) {
                 methodParameterProbes.add(event);
             } else {
                 lookingForParams = false;
@@ -142,6 +172,49 @@ public class TestCandidateMetadata {
         metadata.setExitProbeIndex(callReturnIndex);
         logger.info("entry probe matched at event: " + entryProbeIndex +
                 ", return found " + "at: " + callReturnIndex);
+
+
+        String testSubjectInstanceName = lowerInstanceName(unqualifiedClassName);
+
+        int paramsToSkip = methodParameterProbes.size();
+        boolean subjectNameFound = false;
+
+
+        if (methodInfo.getMethodName().equals("<init>")) {
+            String subjectName = getTestSubjectName(entryProbeIndex, methodInfo, replayData);
+            if (subjectName != null) {
+                metadata.setTestSubjectInstanceName(subjectName);
+                subjectNameFound = true;
+            }
+        } else {
+            for (int i = entryProbeIndex; i < events.size(); i += 1) {
+                DataEventWithSessionId event = events.get(i);
+                DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+                EventType eventType = eventProbeInfo.getEventType();
+                switch (eventType) {
+                    case LOCAL_LOAD:
+                    case GET_STATIC_FIELD:
+                    case GET_INSTANCE_FIELD:
+                        if (eventProbeInfo.getAttribute("Type", "").contains(className)
+                                && paramsToSkip == 0) {
+                            metadata.setTestSubjectInstanceName(
+                                    eventProbeInfo.getAttribute("Name", testSubjectInstanceName));
+                            subjectNameFound = true;
+                        }
+                        paramsToSkip = paramsToSkip - 1;
+
+                }
+
+            }
+        }
+
+
+
+        if (!subjectNameFound) {
+            metadata.setTestSubjectInstanceName(null);
+            return metadata;
+        }
+
 
 
         int i = 0;

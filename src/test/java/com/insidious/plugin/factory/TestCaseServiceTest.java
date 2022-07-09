@@ -151,7 +151,10 @@ public class TestCaseServiceTest {
         );
         waiter.take();
 
-        TestSuite testSuite = testCaseService.generateTestCase(allObjects);
+        TestSuite testSuite = testCaseService.generateTestCase(List.of(
+                        "org.zerhusen.service.Adder"
+                ),
+                allObjects);
 
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             System.out.println(testCaseScript);

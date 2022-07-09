@@ -837,7 +837,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         ObjectInfo objectInfo = finalObjectInfoMap.get(String.valueOf(e1.getValue()));
                         TypeInfo typeInfo = getTypeInfo((int) objectInfo.getTypeId());
 
-                        TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(), dataInfo.getDataId(), threadId, e1.getValue(), classInfo.fileName().value(), classInfo.className().value(), typeInfo.getTypeNameFromClass(), timestamp, e1.getNanoTime());
+                        TracePoint tracePoint = new TracePoint(
+                                classId, dataInfo.getLine(), dataInfo.getDataId(),
+                                threadId, e1.getValue(), classInfo.fileName().value(),
+                                classInfo.className().value(), typeInfo.getTypeNameFromClass(),
+                                timestamp, e1.getNanoTime());
                         tracePoint.setExecutionSession(session);
                         return tracePoint;
                     } catch (ClassInfoNotFoundException | Exception ex) {
