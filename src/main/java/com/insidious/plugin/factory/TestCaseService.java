@@ -643,6 +643,21 @@ public class TestCaseService {
         Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
+
+        PageInfo paginationOlder = new PageInfo(0, 100, PageInfo.Order.DESC);
+        DataEventWithSessionId event = objectEvents.get(0);
+
+        ReplayData callContext = client.fetchObjectHistoryByObjectId((long) -1,
+                event.getThreadId(),
+                event.getNanoTime(), paginationOlder);
+
+        List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
+        Collections.reverse(contextEvents);
+        contextEvents.remove(contextEvents.size() - 1);
+        objectReplayData.getDataEvents().addAll(0, contextEvents);
+
+
+
         List<DataEventWithSessionId> objectEventsReverse =
                 new ArrayList<>(objectReplayData.getDataEvents());
         Collections.reverse(objectEventsReverse);
@@ -665,10 +680,6 @@ public class TestCaseService {
             final long eventValue = dataEvent.getValue();
             String eventValueString = String.valueOf(eventValue);
             ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
-
-            if (eventValue != objectId) {
-                continue;
-            }
 
             String objectInfoString = "";
             TypeInfo objectTypeInfo = null;
@@ -698,7 +709,6 @@ public class TestCaseService {
                 case RESERVED:
                     break;
 
-                case METHOD_OBJECT_INITIALIZED:
                 case METHOD_ENTRY:
 
                     MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
@@ -706,18 +716,6 @@ public class TestCaseService {
 
                     TestCandidateMetadata testCandidateMetadata =
                             TestCandidateMetadata.create(methodInfo, dataEvent.getNanoTime(), objectReplayData);
-//
-//                    if (testCandidateMetadata.getCallReturnProbe() == null) {
-//
-//                        ReplayData objectLongerReplayData = client.
-//                                fetchObjectHistoryByObjectId(objectId,
-//                                        dataEvent.getThreadId(), dataEvent.getNanoTime(), pagination);
-//
-//
-//                        testCandidateMetadata =
-//                                TestCandidateMetadata.create(methodInfo,
-//                                        dataEvent.getNanoTime(), objectLongerReplayData);
-//                    }
                     if (testCandidateMetadata.getCallReturnProbe() == null) {
                         logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
                         continue;
@@ -731,21 +729,14 @@ public class TestCaseService {
                 case METHOD_PARAM:
                     break;
                 case METHOD_NORMAL_EXIT:
-                    methodCallStackCount--;
                     break;
                 case METHOD_THROW:
-                    methodCallStackCount--;
                     break;
                 case METHOD_EXCEPTIONAL_EXIT:
-                    methodCallStackCount--;
                     break;
                 case CALL:
-                    methodCallStackCount++;
                     break;
                 case CALL_PARAM:
-                    if (methodCallStackCount == 0) {
-
-                    }
                     break;
                 case CALL_RETURN:
                     break;

@@ -401,6 +401,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = events;
 
+                    if (pageInfo.isDesc()) {
+                        Collections.reverse(eventsSublist);
+                    }
+
+
                     if (skip > 0) {
                         if (skip > events.size()) {
                             skip = skip - events.size();
@@ -424,14 +429,27 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         (KaitaiInsidiousEventParser.DataEventBlock) e.block();
                                 long currentEventId = dataEventBlock.eventId();
 
+                                if (nanoTime != -1) {
+                                    if (pageInfo.isAsc()) {
+                                        if (dataEventBlock.eventId() < nanoTime) {
+                                            return false;
+                                        }
+                                    } else {
+                                        if (dataEventBlock.eventId() > nanoTime) {
+                                            return false;
+                                        }
+
+                                    }
+                                }
+
                                 if (currentFirstEventAt != -1 &&
                                         Math.abs(currentFirstEventAt - currentEventId)
                                                 < pageInfo.getBufferSize()) {
-                                        return true;
+                                    return true;
                                 }
 
                                 boolean isRequestedObject =
-                                        dataEventBlock.valueId() == objectId;
+                                        dataEventBlock.valueId() == objectId || objectId == -1;
 
                                 if (isRequestedObject) {
                                     previousEventAt.set(dataEventBlock.eventId());
@@ -457,9 +475,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
                         remaining = remaining - dataEventGroupedList.size();
                     }
 
-                    if (pageInfo.isDesc()) {
-                        Collections.reverse(dataEventGroupedList);
-                    }
 
                     dataEventList.addAll(dataEventGroupedList);
 
@@ -498,6 +513,25 @@ public class VideobugLocalClient implements VideobugClientInterface {
             Map<String, StringInfo> sessionStringInfo = stringIndex
                     .getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
             stringInfoMap.putAll(sessionStringInfo);
+
+            Set<Long> objectIds = dataEventList.stream()
+                    .map(DataEventWithSessionId::getValue)
+                    .filter(e -> e > 1000)
+                    .collect(Collectors.toSet());
+
+            checkProgressIndicator(null, "Loading obbjects from " + sessionArchive.getName());
+            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+                    INDEX_OBJECT_DAT_FILE.getFileName());
+            assert objectIndexBytes != null;
+            ArchiveIndex objectsIndex = null;
+            try {
+                objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+            } catch (IOException e) {
+                logger.error("failed to read object index from session archive", e);
+                continue;
+            }
+            Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
+            objectInfoMap.putAll(sessionObjectsInfo);
 
 
             Set<Integer> typeIds = objectInfoMap.values()
