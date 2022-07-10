@@ -1,6 +1,7 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.common.Util;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -137,10 +138,8 @@ public class TracePoint {
         filteredDataEventsRequest.setThreadId(this.getThreadId());
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getMatchedValueId()));
-        filteredDataEventsRequest.setPageSize(200);
-        filteredDataEventsRequest.setPageNumber(0);
+        filteredDataEventsRequest.setPageInfo(new PageInfo(0, 50000, PageInfo.Order.DESC));
         filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
-        filteredDataEventsRequest.setSortOrder("DESC");
         return filteredDataEventsRequest;
     }
 

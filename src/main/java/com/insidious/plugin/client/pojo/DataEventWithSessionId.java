@@ -17,8 +17,8 @@ public class DataEventWithSessionId {
     private long value;
     private String sessionId;
 
-    public int getThreadId() {
-        return (int) threadId;
+    public long getThreadId() {
+        return threadId;
     }
 
     public void setThreadId(long threadId) {

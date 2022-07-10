@@ -1,15 +1,18 @@
 package com.insidious.plugin.extension.model;
 
+import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 
 import java.util.List;
 import java.util.Map;
 
 public class ReplayData {
-    private final String sortOrder;
     private final VideobugClientInterface client;
+    private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
     Map<String, ClassInfo> classInfoMap;
     Map<String, DataInfo> dataInfoMap;
@@ -18,16 +21,19 @@ public class ReplayData {
     Map<String, TypeInfo> typeInfo;
     Map<String, MethodInfo> methodInfoMap;
 
-    public ReplayData(VideobugClientInterface client,
-                      List<DataEventWithSessionId> dataList,
-                      Map<String, ClassInfo> classInfo,
-                      Map<String, DataInfo> dataInfo,
-                      Map<String, StringInfo> stringInfo,
-                      Map<String, ObjectInfo> objectInfo,
-                      Map<String, TypeInfo> typeInfo,
-                      Map<String, MethodInfo> methodInfoMap,
-                      String sortOrder) {
+    public ReplayData(
+            VideobugClientInterface client,
+            FilteredDataEventsRequest filteredDataEventsRequest,
+            List<DataEventWithSessionId> dataList,
+            Map<String, ClassInfo> classInfo,
+            Map<String, DataInfo> dataInfo,
+            Map<String, StringInfo> stringInfo,
+            Map<String, ObjectInfo> objectInfo,
+            Map<String, TypeInfo> typeInfo,
+            Map<String, MethodInfo> methodInfoMap
+    ) {
         this.client = client;
+        this.filteredDataEventsRequest = filteredDataEventsRequest;
         dataEvents = dataList;
         classInfoMap = classInfo;
         dataInfoMap = dataInfo;
@@ -35,7 +41,6 @@ public class ReplayData {
         this.objectInfo = objectInfo;
         this.typeInfo = typeInfo;
         this.methodInfoMap = methodInfoMap;
-        this.sortOrder = sortOrder;
     }
 
     public Map<String, MethodInfo> getMethodInfoMap() {
@@ -55,8 +60,18 @@ public class ReplayData {
     }
 
 
-    public List<DataEventWithSessionId> getDataEvents(PageInfo pageInfo) {
-        return dataEvents;
+    public ReplayData getNextPage() throws APICallException {
+        FilteredDataEventsRequest filteredDataEventsRequestClone =
+                FilteredDataEventsRequest.copyOf(filteredDataEventsRequest);
+
+        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
+        PageInfo.Order pageOrder = pageInfo.isAsc() ? PageInfo.Order.ASC : PageInfo.Order.DESC;
+        pageInfo = new PageInfo(pageInfo.getNumber() + 1, pageInfo.getSize(), pageOrder);
+
+        filteredDataEventsRequestClone.setPageInfo(pageInfo);
+        return client.fetchObjectHistoryByObjectId(
+                filteredDataEventsRequestClone
+        );
     }
 
 

@@ -1,15 +1,14 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugClientInterface;
-import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
@@ -34,7 +33,7 @@ public class TestCaseService {
     private final Project project;
     private final VideobugClientInterface client;
 
-    public TestCaseService(Project project, VideobugLocalClient client) {
+    public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
         this.client = client;
     }
@@ -401,7 +400,8 @@ public class TestCaseService {
             JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
                     .build();
 
-            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString());
+            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(), metadata.getPackageName(),
+                    metadata.getUnqualifiedClassname());
 
 
             testCases.add(testCaseUnit);
@@ -462,10 +462,10 @@ public class TestCaseService {
 
 
                 if (testCandidateMetadata.getReturnValue() != null) {
-                    testMethodBuilder.addStatement("assert $L == $L",
+                    testMethodBuilder.addStatement("assert $L == $S",
                             testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.getReturnValue());
                 } else {
-                    testMethodBuilder.addStatement("assert $L == $S",
+                    testMethodBuilder.addStatement("assert $L == $L",
                             testCandidateMetadata.getReturnSubjectInstanceName(), testCandidateMetadata.callReturnProbe().getValue());
                 }
 
@@ -582,7 +582,7 @@ public class TestCaseService {
     public TestSuite generateTestCase(
             List<String> classNameList,
             List<ObjectsWithTypeInfo> allObjects
-    ) {
+    ) throws APICallException {
 
         Map<Long, List<ObjectsWithTypeInfo>> objectsByType =
                 allObjects.stream()
@@ -614,7 +614,8 @@ public class TestCaseService {
 
             }
 
-            TypeSpec helloWorld = TypeSpec.classBuilder("Test" + simpleClassName)
+            String generatedTestClassName = "Test" + simpleClassName;
+            TypeSpec helloWorld = TypeSpec.classBuilder(generatedTestClassName)
                     .addModifiers(javax.lang.model.element.Modifier.PUBLIC,
                             javax.lang.model.element.Modifier.FINAL)
                     .addMethods(testCaseScripts)
@@ -623,7 +624,8 @@ public class TestCaseService {
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
                     .build();
 
-            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString());
+            TestCaseUnit testCaseUnit = new TestCaseUnit(
+                    javaFile.toString(), packageName, generatedTestClassName);
 
             testCases.add(testCaseUnit);
 
@@ -635,25 +637,32 @@ public class TestCaseService {
 
     }
 
-    private MethodSpec generateTestCaseFromObjectHistory(final Long objectId) {
+    private MethodSpec generateTestCaseFromObjectHistory(final Long objectId) throws APICallException {
 
 
         PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
 
+        FilteredDataEventsRequest request = new FilteredDataEventsRequest();
+        request.setPageInfo(pagination);
+        request.setObjectId(objectId);
         ReplayData objectReplayData = client.
-                fetchObjectHistoryByObjectId(objectId, -1, (long) -1, pagination);
+                fetchObjectHistoryByObjectId(request);
 
 
         final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
 
+
         PageInfo paginationOlder = new PageInfo(0, 100, PageInfo.Order.DESC);
         DataEventWithSessionId event = objectEvents.get(0);
+        FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+//        (long) -1, event.getThreadId(), event.getNanoTime(), paginationOlder
+        filterRequest.setThreadId(event.getThreadId());
+        filterRequest.setNanotime(event.getNanoTime());
+        filterRequest.setPageInfo(paginationOlder);
+        ReplayData callContext = client.fetchObjectHistoryByObjectId(filterRequest);
 
-        ReplayData callContext = client.fetchObjectHistoryByObjectId((long) -1,
-                event.getThreadId(),
-                event.getNanoTime(), paginationOlder);
 
         List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
         Collections.reverse(contextEvents);
@@ -713,20 +722,6 @@ public class TestCaseService {
             ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
 
             switch (probeInfo.getEventType()) {
-                case RESERVED:
-                    break;
-
-                case METHOD_ENTRY:
-
-                    break;
-                case METHOD_PARAM:
-                    break;
-                case METHOD_NORMAL_EXIT:
-                    break;
-                case METHOD_THROW:
-                    break;
-                case METHOD_EXCEPTIONAL_EXIT:
-                    break;
                 case CALL:
 
                     String constructorOwnerClass = probeInfo.getAttribute("Owner", "");
@@ -739,17 +734,17 @@ public class TestCaseService {
 //                            MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
                             MethodInfo methodInfo =
                                     getMethodInfo(objectEvents.size() - eventIndex - 1,
-                                    objectReplayData);
+                                            objectReplayData);
 
 
                             TestCandidateMetadata testCandidateMetadata =
-                                    TestCandidateMetadata.create(methodInfo, dataEvent.getNanoTime(), objectReplayData);
-
+                                    TestCandidateMetadata.create(
+                                            methodInfo, dataEvent.getNanoTime(), objectReplayData);
 
 
                             if (testCandidateMetadata.getCallReturnProbe() == null
-                            || testCandidateMetadata.getTestSubjectInstanceName() == null) {
-                                logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                                    || testCandidateMetadata.getTestSubjectInstanceName() == null) {
+                                logger.debug("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
                                 continue;
                             }
 
@@ -762,92 +757,7 @@ public class TestCaseService {
 
                     callStack += 1;
                     break;
-                case CALL_PARAM:
-                    break;
-                case CALL_RETURN:
-                    callStack -= 1;
-                    break;
-                case CATCH_LABEL:
-                    break;
-                case CATCH:
-                    break;
-                case NEW_OBJECT:
-                    break;
-                case NEW_OBJECT_CREATED:
-                    break;
-                case GET_INSTANCE_FIELD:
-                    break;
-                case GET_INSTANCE_FIELD_RESULT:
-                    break;
-                case GET_STATIC_FIELD:
-                    break;
-                case PUT_INSTANCE_FIELD:
-                    break;
-                case PUT_INSTANCE_FIELD_VALUE:
-                    break;
-                case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
-                case PUT_STATIC_FIELD:
-                    break;
-                case ARRAY_LOAD:
-                    break;
-                case ARRAY_LOAD_INDEX:
-                    break;
-                case ARRAY_LOAD_RESULT:
-                    break;
-                case ARRAY_STORE:
-                    break;
-                case ARRAY_STORE_INDEX:
-                    break;
-                case ARRAY_STORE_VALUE:
-                    break;
-                case NEW_ARRAY:
-                    break;
-                case NEW_ARRAY_RESULT:
-                    break;
-                case MULTI_NEW_ARRAY:
-                    break;
-                case MULTI_NEW_ARRAY_OWNER:
-                    break;
-                case MULTI_NEW_ARRAY_ELEMENT:
-                    break;
-                case ARRAY_LENGTH:
-                    break;
-                case ARRAY_LENGTH_RESULT:
-                    break;
-                case MONITOR_ENTER:
-                    break;
-                case MONITOR_ENTER_RESULT:
-                    break;
-                case MONITOR_EXIT:
-                    break;
-                case OBJECT_CONSTANT_LOAD:
-                    break;
-                case OBJECT_INSTANCEOF:
-                    break;
-                case OBJECT_INSTANCEOF_RESULT:
-                    break;
-                case INVOKE_DYNAMIC:
-                    break;
-                case INVOKE_DYNAMIC_PARAM:
-                    break;
-                case INVOKE_DYNAMIC_RESULT:
-                    break;
-                case LABEL:
-                    break;
-                case JUMP:
-                    break;
-                case LOCAL_LOAD:
-                    break;
-                case LOCAL_STORE:
-                    break;
-                case LOCAL_INCREMENT:
-                    break;
-                case RET:
-                    break;
-                case DIVIDE:
-                    break;
-                case LINE_NUMBER:
-                    break;
+
             }
 
         }

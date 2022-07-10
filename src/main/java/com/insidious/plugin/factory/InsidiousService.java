@@ -7,6 +7,7 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.DataResponse;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
@@ -18,9 +19,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
-import com.insidious.plugin.pojo.QueryType;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.ConfigurationWindow;
 import com.insidious.plugin.ui.SearchByTypesWindow;
 import com.insidious.plugin.ui.SearchByValueWindow;
@@ -67,10 +66,14 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -481,6 +484,69 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
+    public void generateTestCases(List<String> targetClasses) throws InterruptedException, APICallException, IOException {
+
+        TestCaseService testCaseService = new TestCaseService(project, client);
+
+        List<TestCandidate> testCandidateList = new LinkedList<>();
+        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+
+
+//        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
+
+        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+
+        List<ObjectsWithTypeInfo> allObjects = new LinkedList<>();
+
+        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        ExecutionSession session = sessions.getItems().get(0);
+
+        client.getObjectsByType(
+                searchQuery, session.getSessionId(), new ClientCallBack<>() {
+                    @Override
+                    public void error(ExceptionResponse errorResponse) {
+
+                    }
+
+                    @Override
+                    public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+                        allObjects.addAll(tracePoints);
+                    }
+
+                    @Override
+                    public void completed() {
+                        waiter.offer("done");
+                    }
+                }
+        );
+        waiter.take();
+
+        TestSuite testSuite = testCaseService.generateTestCase(targetClasses,
+                allObjects);
+
+        for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
+            String testOutputDirPath =
+                    project.getBasePath() + "/src/test/java/"
+                            + testCaseScript.getPackageName().replaceAll("\\.", "/");
+            File outputDir = new File(testOutputDirPath);
+            outputDir.mkdirs();
+            File testcaseFile = new File(
+                    testOutputDirPath + "/Test" + testCaseScript.getClassName() + "ByVideobug.java");
+
+            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test case: " + testCaseScript + " -> "
+                                + e.getMessage(), NotificationType.ERROR
+                );
+            }
+            logger.info("Test case for [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
+        }
+
+
+    }
+
     public void doSearch(SearchQuery searchQuery) throws APICallException, IOException {
 
 
@@ -497,7 +563,7 @@ public class InsidiousService implements Disposable {
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
         UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
 
-        insidiousConfiguration.addSearchQuery((String )searchQuery.getQuery(),
+        insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
                 0);
         searchByValueWindow.updateQueryList();
 

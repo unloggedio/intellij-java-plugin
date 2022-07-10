@@ -7,6 +7,7 @@ import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.common.UploadFile;
 import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
@@ -20,7 +21,6 @@ import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
-import com.insidious.plugin.extension.model.PageInfo;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.diagnostic.Logger;
@@ -296,10 +296,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public ReplayData fetchObjectHistoryByObjectId(
-            Long objectId,
-            Integer threadId,
-            Long nanoTime,
-            PageInfo pageInfo
+            FilteredDataEventsRequest filteredDataEventsRequest
     ) {
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
@@ -310,7 +307,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Map<String, TypeInfo> typeInfoMap = new HashMap<>();
         Map<String, MethodInfo> methodInfoMap = new HashMap<>();
 
-        Collection<ObjectInfo> sessionObjectInfo = getObjectInfoById(List.of(objectId));
+        final long objectId = filteredDataEventsRequest.getObjectId();
+        Collection<ObjectInfo> sessionObjectInfo = List.of();
+        if (objectId != -1 ) {
+            sessionObjectInfo = getObjectInfoById(
+                    List.of(objectId));
+        }
+
 
         for (ObjectInfo info : sessionObjectInfo) {
             objectInfoMap.put(String.valueOf(info.getObjectId()), info);
@@ -318,12 +321,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         Collections.sort(this.sessionArchives);
 
+        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
         if (pageInfo.isDesc()) {
             Collections.reverse(this.sessionArchives);
         }
 
 
-        Integer skip = pageInfo.getNumber() * pageInfo.getSize();
+        final AtomicInteger skip = new AtomicInteger(pageInfo.getNumber() * pageInfo.getSize());
         Integer remaining = pageInfo.getSize();
 
         final AtomicLong previousEventAt = new AtomicLong(-1);
@@ -382,7 +386,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     final int fileThreadId = Integer.parseInt(
                             archiveFile.split("\\.")[0].split("-")[2]
                     );
-                    if (threadId != -1 && fileThreadId != threadId) {
+                    if (filteredDataEventsRequest.getThreadId() != -1
+                            && fileThreadId != filteredDataEventsRequest.getThreadId()) {
                         continue;
                     }
 
@@ -406,15 +411,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     }
 
 
-                    if (skip > 0) {
-                        if (skip > events.size()) {
-                            skip = skip - events.size();
-                            continue;
-                        }
-                        skip = 0;
-                        eventsSublist = events.subList(skip, events.size());
 
-                    }
 
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
                             .stream()
@@ -429,13 +426,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         (KaitaiInsidiousEventParser.DataEventBlock) e.block();
                                 long currentEventId = dataEventBlock.eventId();
 
-                                if (nanoTime != -1) {
+                                if (filteredDataEventsRequest.getNanotime() != -1) {
                                     if (pageInfo.isAsc()) {
-                                        if (dataEventBlock.eventId() < nanoTime) {
+                                        if (dataEventBlock.eventId() < filteredDataEventsRequest.getNanotime()) {
                                             return false;
                                         }
                                     } else {
-                                        if (dataEventBlock.eventId() > nanoTime) {
+                                        if (dataEventBlock.eventId() > filteredDataEventsRequest.getNanotime()) {
                                             return false;
                                         }
 
@@ -449,13 +446,21 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 }
 
                                 boolean isRequestedObject =
-                                        dataEventBlock.valueId() == objectId || objectId == -1;
+                                        dataEventBlock.valueId() == objectId
+                                                || objectId == -1;
 
                                 if (isRequestedObject) {
                                     previousEventAt.set(dataEventBlock.eventId());
                                 }
 
                                 return isRequestedObject;
+                            })
+                            .filter(e -> {
+                                if (skip.get() > 0) {
+                                    int remainingNow = skip.decrementAndGet();
+                                    return remainingNow <= 0;
+                                }
+                                return true;
                             })
                             .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
                             .map(e -> {
@@ -558,9 +563,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
         }
 
         return new ReplayData(
-                this, dataEventList, classInfoMap, probeInfoMap,
-                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap,
-                "DESC");
+                this, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap,
+                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
     }
 
@@ -1333,8 +1337,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         checkProgressIndicator(null, "Completed loading");
-        return new ReplayData(this, dataEventList, classInfo,
-                dataInfo, stringInfo, objectInfo, typeInfo, methodInfoMap, "DESC");
+        return new ReplayData(this, filteredDataEventsRequest, dataEventList, classInfo,
+                dataInfo, stringInfo, objectInfo, typeInfo, methodInfoMap);
     }
 
     private void checkProgressIndicator(String text1, String text2) {

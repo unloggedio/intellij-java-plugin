@@ -2,11 +2,13 @@ package com.insidious.plugin.factory;
 
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +77,7 @@ public class TestCandidateMetadata {
             MethodInfo methodInfo,
             long entryProbeDataId,
             ReplayData replayData
-    ) {
+    ) throws APICallException {
         TestCandidateMetadata metadata = new TestCandidateMetadata();
 
         final String className = methodInfo.getClassName();
@@ -102,7 +104,6 @@ public class TestCandidateMetadata {
         Map<String, StringInfo> stringInfoMap = replayData.getStringInfoMap();
 
         metadata.setMethodName(targetMethodName);
-
 
 
         String testMethodName = "test" + upperInstanceName(targetMethodName);
@@ -169,9 +170,68 @@ public class TestCandidateMetadata {
 
         }
 
+        ReplayData callReturnReplayData;
+        callReturnReplayData = replayData;
+//        while (callReturnIndex == -1) {
+//            callReturnReplayData = callReturnReplayData.getNextPage();
+//            List<DataEventWithSessionId> nextPageEvents = callReturnReplayData.getDataEvents();
+//            Collections.reverse(nextPageEvents);
+//
+//            int size = nextPageEvents.size();
+//            if (size < 1) {
+//                break;
+//            }
+//            callReturnIndex = size - 1;
+//            while (callReturnIndex > -1) {
+//                DataEventWithSessionId event = nextPageEvents.get(callReturnIndex);
+//                DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+//                EventType eventType = eventProbeInfo.getEventType();
+//
+//                if (eventType == EventType.CALL) {
+//                    callStack += 1;
+//                }
+//                if (callStack > 0 && eventType == EventType.CALL_RETURN) {
+//                    callStack -= 1;
+//                }
+//                if (callStack > 0) {
+//                    callReturnIndex += direction;
+//                    continue;
+//                }
+//
+//                if (lookingForParams && eventType == EventType.CALL_PARAM) {
+//                    methodParameterProbes.add(event);
+//                } else {
+//                    lookingForParams = false;
+//                }
+//
+//                if (eventProbeInfo.getEventType() == EventType.CALL_RETURN) {
+//                    break;
+//                }
+//
+//                callReturnIndex += direction;
+//
+//            }
+//
+//        }
+
+
         metadata.setExitProbeIndex(callReturnIndex);
         logger.info("entry probe matched at event: " + entryProbeIndex +
                 ", return found " + "at: " + callReturnIndex);
+
+        if (callReturnIndex == -1) {
+            logger.debug("call_return probe not found in the slice: " + entryProbeDataId +
+                    " when generating test for method " + targetMethodName + " " +
+                    " in class " + className + ". Maybe need a bigger " +
+                    "slice");
+            return metadata;
+        }
+
+
+        DataEventWithSessionId callReturnProbeValue =
+                callReturnReplayData.getDataEvents().get(callReturnIndex);
+        String returnProbeValue = String.valueOf(callReturnProbeValue.getValue());
+        ObjectInfo returnProbeEventObjectInfo = callReturnReplayData.getObjectInfo().get(returnProbeValue);
 
 
         String testSubjectInstanceName = lowerInstanceName(unqualifiedClassName);
@@ -209,12 +269,10 @@ public class TestCandidateMetadata {
         }
 
 
-
         if (!subjectNameFound) {
             metadata.setTestSubjectInstanceName(null);
             return metadata;
         }
-
 
 
         int i = 0;
@@ -245,18 +303,6 @@ public class TestCandidateMetadata {
         metadata.setParameterValues(methodParameterValues);
 
 
-        if (callReturnIndex == -1) {
-            logger.debug("call_return probe not found in the slice: " + entryProbeDataId +
-                    " when generating test for method " + targetMethodName + " " +
-                    " in class " + className + ". Maybe need a bigger " +
-                    "slice");
-            return metadata;
-        }
-        DataEventWithSessionId callReturnProbeValue = events.get(callReturnIndex);
-        String returnProbeValue = String.valueOf(callReturnProbeValue.getValue());
-        ObjectInfo objectInfo = objectInfoMap.get(returnProbeValue);
-
-
         metadata.setReturnValue(returnProbeValue);
         metadata.setCallReturnProbe(callReturnProbeValue);
 
@@ -264,8 +310,8 @@ public class TestCandidateMetadata {
         if (stringInfoMap.containsKey(returnProbeValue)) {
             possibleReturnStringValue = stringInfoMap.get(returnProbeValue);
             metadata.setReturnValue(possibleReturnStringValue.getContent());
-        } else if (objectInfo != null) {
-            TypeInfo objectTypeInfo = typeInfo.get(String.valueOf(objectInfo.getTypeId()));
+        } else if (returnProbeEventObjectInfo != null) {
+            TypeInfo objectTypeInfo = typeInfo.get(String.valueOf(returnProbeEventObjectInfo.getTypeId()));
             metadata.setReturnTypeInfo(objectTypeInfo);
         }
 

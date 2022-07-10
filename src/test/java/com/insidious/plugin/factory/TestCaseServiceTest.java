@@ -105,7 +105,7 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    void testGenerateByObjects() throws InterruptedException {
+    void testGenerateByObjects() throws InterruptedException, APICallException {
 
 
         Project project = Mockito.mock(Project.class);
@@ -120,11 +120,9 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        SearchQuery searchQuery = SearchQuery.ByType(
-                List.of(
-                        "org.zerhusen.service.Adder"
-                )
-        );
+        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
+
+        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 
         List<ObjectsWithTypeInfo> allObjects = new LinkedList<>();
 
@@ -151,17 +149,11 @@ public class TestCaseServiceTest {
         );
         waiter.take();
 
-        TestSuite testSuite = testCaseService.generateTestCase(List.of(
-                        "org.zerhusen.service.Adder"
-                ),
+        TestSuite testSuite = testCaseService.generateTestCase(targetClasses,
                 allObjects);
 
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             System.out.println(testCaseScript);
-//            System.out.println(" =============================================================== ");
-//            System.out.println(" =============================================================== ");
-//            System.out.println(" =============================================================== ");
-
         }
 
 
