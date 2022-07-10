@@ -138,6 +138,8 @@ public class InsidiousService implements Disposable {
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
+        } catch (ProcessCanceledException pce) {
+            throw pce;
         } catch (Throwable e) {
             logger.error("exception in videobug service init", e);
         }
