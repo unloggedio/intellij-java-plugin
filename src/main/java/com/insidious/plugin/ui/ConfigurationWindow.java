@@ -87,7 +87,7 @@ public class ConfigurationWindow {
                     }
 
                     insidiousService.generateTestCases(Arrays.asList(classNamesList.split(",")));
-                } catch (InterruptedException | APICallException | IOException ex) {
+                } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }
             }

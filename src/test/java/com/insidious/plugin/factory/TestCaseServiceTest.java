@@ -50,7 +50,11 @@ public class TestCaseServiceTest {
                         }
                         TestSuite testSuite = null;
                         logger.info("generating test cases for " + testCandidates.size());
-                        testSuite = testCaseService.generateTestCase(testCandidates);
+                        try {
+                            testSuite = testCaseService.generateTestCase(testCandidates);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
                         System.out.println(testSuite);
 
                     }
@@ -105,7 +109,7 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    void testGenerateByObjects() throws InterruptedException, APICallException {
+    void testGenerateByObjects() throws InterruptedException, APICallException, IOException {
 
 
         Project project = Mockito.mock(Project.class);
@@ -149,8 +153,7 @@ public class TestCaseServiceTest {
         );
         waiter.take();
 
-        TestSuite testSuite = testCaseService.generateTestCase(targetClasses,
-                allObjects);
+        TestSuite testSuite = testCaseService.generateTestCase(targetClasses, allObjects);
 
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             System.out.println(testCaseScript);

@@ -8,7 +8,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +40,8 @@ public class TestCandidateMetadata {
 
 
     private static String getTestSubjectName(int eventIndex,
-                                      MethodInfo methodInfo,
-                                      ReplayData objectReplayData) {
+                                             MethodInfo methodInfo,
+                                             ReplayData objectReplayData) {
         int callStack = 0;
         int direction = -1;
         ClassInfo classInfo = objectReplayData.getClassInfoMap().get(String.valueOf(methodInfo.getClassId()));
@@ -60,7 +59,10 @@ public class TestCandidateMetadata {
                     callStack -= 1;
                     break;
                 case NEW_OBJECT_CREATED:
-                    if (callStack == -1) {
+                    // pagination required
+                    if (callStack == -1 &&
+                            (i + direction > -1 &&
+                                    i + direction < objectReplayData.getDataEvents().size())) {
                         DataInfo nextEventProbe = objectReplayData.getDataInfoMap().get(
                                 String.valueOf(objectReplayData.getDataEvents().get(i + direction).getDataId())
                         );
@@ -150,6 +152,8 @@ public class TestCandidateMetadata {
             }
             if (callStack > 0 && eventType == EventType.CALL_RETURN) {
                 callStack -= 1;
+                callReturnIndex += direction;
+                continue;
             }
             if (callStack > 0) {
                 callReturnIndex += direction;
@@ -255,24 +259,27 @@ public class TestCandidateMetadata {
                     case LOCAL_LOAD:
                     case GET_STATIC_FIELD:
                     case GET_INSTANCE_FIELD:
-                        if (eventProbeInfo.getAttribute("Type", "").contains(className)
-                                && paramsToSkip == 0) {
+                        if (eventProbeInfo.getAttribute("Type", "").contains(className)) {
                             metadata.setTestSubjectInstanceName(
                                     eventProbeInfo.getAttribute("Name", testSubjectInstanceName));
                             subjectNameFound = true;
+                            break;
                         }
                         paramsToSkip = paramsToSkip - 1;
 
+                }
+                if (subjectNameFound) {
+                    break;
                 }
 
             }
         }
 
 
-        if (!subjectNameFound) {
-            metadata.setTestSubjectInstanceName(null);
-            return metadata;
-        }
+//        if (!subjectNameFound) {
+//            metadata.setTestSubjectInstanceName(null);
+//            return metadata;
+//        }
 
 
         int i = 0;

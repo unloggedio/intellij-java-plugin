@@ -374,6 +374,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 }
 
                 for (String archiveFile : archiveFiles) {
+                    checkProgressIndicator(null,
+                            "Reading events from  " + archiveFile);
 
                     if (remaining == 0) {
                         break;
@@ -501,13 +503,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
             Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
 
 
-            checkProgressIndicator(null, "Loading strings from " + sessionArchive.getName());
             NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(
                     sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
             assert stringsIndexBytes != null;
 
 
-            checkProgressIndicator(null, "Loading strings from " + sessionArchive.getName());
             ArchiveIndex stringIndex = null;
             try {
                 stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
@@ -524,7 +524,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     .filter(e -> e > 1000)
                     .collect(Collectors.toSet());
 
-            checkProgressIndicator(null, "Loading obbjects from " + sessionArchive.getName());
             NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                     INDEX_OBJECT_DAT_FILE.getFileName());
             assert objectIndexBytes != null;
@@ -1486,7 +1485,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
         setSession(session);
         List<File> archives = refreshSessionArchivesList(sessionId);
 
+        checkProgressIndicator("Looking for objects by class: " + searchQuery.getQuery(), null);
+
         for (File sessionArchive : archives) {
+
+            checkProgressIndicator(null, sessionArchive.getName());
 
             Set<ObjectInfoDocument> objects = queryObjectsByTypeFromSessionArchive(searchQuery,
                     sessionArchive);
@@ -1505,6 +1508,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                     typesMap.get((long) e.getTypeId())))
                     .collect(Collectors.toSet());
             if (collect.size() > 0) {
+                checkProgressIndicator(null,
+                        sessionArchive.getName() + " matched " + collect.size() + " objects");
                 clientCallBack.success(collect);
             }
 

@@ -55,6 +55,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
@@ -484,46 +485,56 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void generateTestCases(List<String> targetClasses) throws InterruptedException, APICallException, IOException {
+    public void generateTestCases(List<String> targetClasses) throws Exception {
 
-        TestCaseService testCaseService = new TestCaseService(project, client);
+        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+                "Videobug", true) {
+            @Override
+            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
 
-        List<TestCandidate> testCandidateList = new LinkedList<>();
-        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+                TestCaseService testCaseService = new TestCaseService(project, client);
+
+                List<TestCandidate> testCandidateList = new LinkedList<>();
+                BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
 //        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
 
-        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+                SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 
-        List<ObjectsWithTypeInfo> allObjects = new LinkedList<>();
+                List<ObjectsWithTypeInfo> allObjects = new LinkedList<>();
 
-        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems().get(0);
+                DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+                ExecutionSession session = sessions.getItems().get(0);
 
-        client.getObjectsByType(
-                searchQuery, session.getSessionId(), new ClientCallBack<>() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
+                client.getObjectsByType(
+                        searchQuery, session.getSessionId(), new ClientCallBack<>() {
+                            @Override
+                            public void error(ExceptionResponse errorResponse) {
 
-                    }
+                            }
 
-                    @Override
-                    public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
-                        allObjects.addAll(tracePoints);
-                    }
+                            @Override
+                            public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+                                allObjects.addAll(tracePoints);
+                            }
 
-                    @Override
-                    public void completed() {
-                        waiter.offer("done");
-                    }
-                }
-        );
-        waiter.take();
+                            @Override
+                            public void completed() {
+                                waiter.offer("done");
+                            }
+                        }
+                );
+                waiter.take();
 
-        TestSuite testSuite = testCaseService.generateTestCase(targetClasses,
-                allObjects);
+                TestSuite testSuite = testCaseService.generateTestCase(targetClasses,
+                        allObjects);
+                return testSuite;
 
+            }
+        });
+
+        File lastFile = null;
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             String testOutputDirPath =
                     project.getBasePath() + "/src/test/java/"
@@ -531,7 +542,8 @@ public class InsidiousService implements Disposable {
             File outputDir = new File(testOutputDirPath);
             outputDir.mkdirs();
             File testcaseFile = new File(
-                    testOutputDirPath + "/Test" + testCaseScript.getClassName() + "ByVideobug.java");
+                    testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
+            lastFile = testcaseFile;
 
             try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
                 out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));
@@ -541,7 +553,7 @@ public class InsidiousService implements Disposable {
                                 + e.getMessage(), NotificationType.ERROR
                 );
             }
-            logger.info("Test case for [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
+            logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
         }
 
 
