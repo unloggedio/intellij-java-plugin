@@ -30,7 +30,7 @@ public class TestCandidateMetadata {
     private List<String> parameterValues;
     private String returnValue;
     private TypeInfo returnTypeInfo;
-    private Object returnSubjectInstanceName;
+    private String returnSubjectInstanceName;
 
     public String getMethodName() {
         return methodName;
@@ -492,11 +492,11 @@ public class TestCandidateMetadata {
         return returnTypeInfo;
     }
 
-    public Object getReturnSubjectInstanceName() {
+    public String getReturnSubjectInstanceName() {
         return returnSubjectInstanceName;
     }
 
-    public void setReturnSubjectInstanceName(Object returnSubjectInstanceName) {
+    public void setReturnSubjectInstanceName(String returnSubjectInstanceName) {
         this.returnSubjectInstanceName = returnSubjectInstanceName;
     }
 }

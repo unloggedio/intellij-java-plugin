@@ -23,7 +23,6 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import org.apache.logging.log4j.core.util.NameUtil;
 import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.jcajce.provider.digest.MD5;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
@@ -349,99 +348,102 @@ public class TestCaseService {
                 1235);
     }
 
-    public TestSuite generateTestCase(
-            Collection<TestCandidate> testCandidateList
-    ) throws IOException {
-
-        List<TestCaseUnit> testCases = new LinkedList<>();
-
-
-        Map<String, List<TestCandidate>> testCandidatesByClass = testCandidateList.stream()
-                .collect(Collectors.groupingBy(e -> e.getClassInfo().getClassName()));
-
-        for (String className : testCandidatesByClass.keySet()) {
-
-            List<TestCandidate> candidates = testCandidatesByClass.get(className);
-            logger.info("generate test cases for class: "
-                    + className + ": we have " + candidates.size() + " candidates");
-
-            Map<String, List<TestCandidate>> candidatesByMethod = candidates.stream().collect(
-                    Collectors.groupingBy(e -> e.getMethodInfo().getMethodHash()));
-
-            List<TestMethodScript> testMethods = new LinkedList<>();
-
-            TestCandidateMetadata metadata = null;
-            for (String methodHash : candidatesByMethod.keySet()) {
-                List<TestCandidate> candidateSet = candidatesByMethod.get(methodHash);
-
-
-                Set<TestCandidateMetadata> metadataSet = candidateSet.stream()
-                        .filter(e -> !e.getMethodInfo().getMethodName().startsWith("<"))
-                        .map(TestCandidate::getMetadata)
-                        .collect(Collectors.toSet());
-                if (metadataSet.size() == 0) {
-                    logger.info("class [" + className + "] has only constructor method candidates");
-                    continue;
-                }
-                metadata = metadataSet.stream().findFirst().get();
-
-                MethodSpec.Builder testMethodBuilder = buildTestCaseSkeleton(metadata);
-
-                ByteArrayOutputStream boas = new ByteArrayOutputStream();
-                DataOutputStream dos = new DataOutputStream(boas);
-
-                buildTestFromTestMetadataSet(metadataSet, testMethodBuilder, dos);
-
-                testMethods.add(new TestMethodScript(testMethodBuilder.build(),
-                        new MD5Digest(boas.toByteArray()).toString()));
-
-
-            }
-
-            if (metadata == null) {
-                continue;
-            }
-
-
-            String generatedClassName = "Test" + metadata.getUnqualifiedClassname() + "V";
-            TypeSpec helloWorld = TypeSpec.classBuilder(generatedClassName)
-                    .addModifiers(
-                            javax.lang.model.element.Modifier.PUBLIC,
-                            javax.lang.model.element.Modifier.FINAL)
-                    .addMethods(testMethods
-                            .stream()
-                            .map(TestMethodScript::getMethodSpec)
-                            .collect(Collectors.toList()))
-                    .build();
-
-            JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
-                    .build();
-
-            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
-                    metadata.getPackageName(),
-                    generatedClassName);
-
-
-            testCases.add(testCaseUnit);
-
-        }
-
-
-        return new TestSuite(testCases);
-
-//        BufferedOutputStream boss = new BufferedOutputStream(outputStream);
-//        DataOutputStream doss = new DataOutputStream(boss);
-//        doss.write("package com.package.test\n".getBytes());
-//        doss.write("\t@Test".getBytes());
-//        doss.write("\t\tpublic void testMethod1() {\n".getBytes());
-//        doss.write("\t}\n".getBytes());
-
-
-    }
-
+//    public TestSuite generateTestCase(
+//            Collection<TestCandidate> testCandidateList
+//    ) throws IOException {
+//
+//        List<TestCaseUnit> testCases = new LinkedList<>();
+//
+//
+//        Map<String, List<TestCandidate>> testCandidatesByClass = testCandidateList.stream()
+//                .collect(Collectors.groupingBy(e -> e.getClassInfo().getClassName()));
+//
+//        for (String className : testCandidatesByClass.keySet()) {
+//
+//            List<TestCandidate> candidates = testCandidatesByClass.get(className);
+//            logger.info("generate test cases for class: "
+//                    + className + ": we have " + candidates.size() + " candidates");
+//
+//            Map<String, List<TestCandidate>> candidatesByMethod = candidates.stream().collect(
+//                    Collectors.groupingBy(e -> e.getMethodInfo().getMethodHash()));
+//
+//            List<TestMethodScript> testMethods = new LinkedList<>();
+//
+//            TestCandidateMetadata metadata = null;
+//            for (String methodHash : candidatesByMethod.keySet()) {
+//                List<TestCandidate> candidateSet = candidatesByMethod.get(methodHash);
+//
+//
+//                Set<TestCandidateMetadata> metadataSet = candidateSet.stream()
+//                        .filter(e -> !e.getMethodInfo().getMethodName().startsWith("<"))
+//                        .map(TestCandidate::getMetadata)
+//                        .collect(Collectors.toSet());
+//                if (metadataSet.size() == 0) {
+//                    logger.info("class [" + className + "] has only constructor method candidates");
+//                    continue;
+//                }
+//                metadata = metadataSet.stream().findFirst().get();
+//                Map<String, Boolean> variableStack = new HashMap<>();
+//
+//                MethodSpec.Builder testMethodBuilder = buildTestCaseSkeleton(metadata);
+//
+//                ByteArrayOutputStream boas = new ByteArrayOutputStream();
+//                DataOutputStream dos = new DataOutputStream(boas);
+//
+//                buildTestFromTestMetadataSet(metadataSet, variableStack, testMethodBuilder, dos);
+//
+//                testMethods.add(new TestMethodScript(testMethodBuilder.build(),
+//                        new MD5Digest(boas.toByteArray()).toString()));
+//
+//
+//            }
+//
+//            if (metadata == null) {
+//                continue;
+//            }
+//
+//
+//            String generatedClassName = "Test" + metadata.getUnqualifiedClassname() + "V";
+//            TypeSpec helloWorld = TypeSpec.classBuilder(generatedClassName)
+//                    .addModifiers(
+//                            javax.lang.model.element.Modifier.PUBLIC,
+//                            javax.lang.model.element.Modifier.FINAL)
+//                    .addMethods(testMethods
+//                            .stream()
+//                            .map(TestMethodScript::getMethodSpec)
+//                            .collect(Collectors.toList()))
+//                    .build();
+//
+//            JavaFile javaFile = JavaFile.builder(metadata.getPackageName(), helloWorld)
+//                    .build();
+//
+//            TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
+//                    metadata.getPackageName(),
+//                    generatedClassName);
+//
+//
+//            testCases.add(testCaseUnit);
+//
+//        }
+//
+//
+//        return new TestSuite(testCases);
+//
+////        BufferedOutputStream boss = new BufferedOutputStream(outputStream);
+////        DataOutputStream doss = new DataOutputStream(boss);
+////        doss.write("package com.package.test\n".getBytes());
+////        doss.write("\t@Test".getBytes());
+////        doss.write("\t\tpublic void testMethod1() {\n".getBytes());
+////        doss.write("\t}\n".getBytes());
+//
+//
+//    }
+//
     private void buildTestFromTestMetadataSet(
             Collection<TestCandidateMetadata> metadataCollection,
-            MethodSpec.Builder testMethodBuilder, DataOutputStream hashStream) throws IOException {
+            Map<String, Boolean> variableStack,
+            MethodSpec.Builder testMethodBuilder,
+            DataOutputStream hashStream) throws IOException {
         assert metadataCollection.size() != 0;
 
         TestCandidateMetadata metadata = metadataCollection.stream().findFirst().get();
@@ -465,20 +467,33 @@ public class TestCaseService {
 
                 ClassName squareClassName = ClassName.get(metadata.getPackageName(),
                         metadata.getUnqualifiedClassname());
+
                 testMethodBuilder.addStatement("$T $L = new $T(" + parameterString + ")",
-                        squareClassName, metadata.getTestSubjectInstanceName(), squareClassName);
+                        squareClassName,
+                        metadata.getTestSubjectInstanceName(),
+                        squareClassName);
 
             } else if (testCandidateMetadata.getReturnValueType().equals("V")) {
 
                 testMethodBuilder.addStatement("$L.$L(" + parameterString + ")",
-                        testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
+                        testCandidateMetadata.getTestSubjectInstanceName(),
+                        testCandidateMetadata.getMethodName());
 
             } else {
 
+                String returnSubjectInstanceName = testCandidateMetadata.getReturnSubjectInstanceName();
+                if (variableStack.containsKey(returnSubjectInstanceName)) {
+                    testMethodBuilder.addStatement("$L = $L.$L(" + parameterString + ")",
+                            returnSubjectInstanceName,
+                            testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
 
-                testMethodBuilder.addStatement("$T $L = $L.$L(" + parameterString + ")",
-                        returnValueSquareClass, testCandidateMetadata.getReturnSubjectInstanceName(),
-                        testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
+                } else {
+                    testMethodBuilder.addStatement("$T $L = $L.$L(" + parameterString + ")",
+                            returnValueSquareClass, returnSubjectInstanceName,
+                            testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
+
+                }
+
 
                 String returnType = testCandidateMetadata.getReturnValueType();
 
@@ -487,14 +502,14 @@ public class TestCaseService {
                     testMethodBuilder.addStatement("$T.assertEquals($S, $L);",
                             assertClass,
                             testCandidateMetadata.getReturnValue(),
-                            testCandidateMetadata.getReturnSubjectInstanceName()
+                            returnSubjectInstanceName
                     );
                 } else {
                     hashStream.writeLong(testCandidateMetadata.callReturnProbe().getValue());
                     testMethodBuilder.addStatement("$T.assertEquals($L, $L);",
                             assertClass,
                             testCandidateMetadata.callReturnProbe().getValue(),
-                            testCandidateMetadata.getReturnSubjectInstanceName()
+                            returnSubjectInstanceName
                     );
                 }
 
@@ -805,14 +820,13 @@ public class TestCaseService {
                                 newTestCaseMetadata.setTestSubjectInstanceName(
                                         testCandidateMetadata.getTestSubjectInstanceName());
                             }
+
                             if (newTestCaseMetadata.getMethodName().equals("<init>")
                                     && variableStack.containsKey(newTestCaseMetadata.getTestSubjectInstanceName())
                             ) {
                                 break;
 //                                continue;
                             }
-                            variableStack.put(newTestCaseMetadata.getTestSubjectInstanceName(),
-                                    true);
 
                             if (newTestCaseMetadata.getCallReturnProbe() == null
                                     || newTestCaseMetadata.getTestSubjectInstanceName() == null) {
@@ -821,8 +835,14 @@ public class TestCaseService {
                             }
 
                             buildTestFromTestMetadataSet(
-                                    List.of(newTestCaseMetadata), testMethodBuilder,
+                                    List.of(newTestCaseMetadata),
+                                    variableStack,
+                                    testMethodBuilder,
                                     dos);
+
+                            variableStack.put(newTestCaseMetadata.getTestSubjectInstanceName(), true);
+                            variableStack.put(newTestCaseMetadata.getReturnSubjectInstanceName(), true);
+
                             testCandidateMetadata = newTestCaseMetadata;
 
 
