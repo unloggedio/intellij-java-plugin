@@ -505,10 +505,18 @@ public class TestCaseService {
                             returnSubjectInstanceName
                     );
                 } else {
-                    hashStream.writeLong(testCandidateMetadata.callReturnProbe().getValue());
+                    Object returnValue = testCandidateMetadata.callReturnProbe().getValue();
+                    hashStream.write(String.valueOf(returnValue).getBytes());
+                    if(returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
+                        if ((long)returnValue == 1) {
+                            returnValue = "true";
+                        } else {
+                            returnValue = "false";
+                        }
+                    }
                     testMethodBuilder.addStatement("$T.assertEquals($L, $L);",
                             assertClass,
-                            testCandidateMetadata.callReturnProbe().getValue(),
+                            returnValue,
                             returnSubjectInstanceName
                     );
                 }

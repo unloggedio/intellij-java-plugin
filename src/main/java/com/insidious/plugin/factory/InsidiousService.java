@@ -274,6 +274,9 @@ public class InsidiousService implements Disposable {
     }
 
     private void getProjectPackageName() {
+        if (currentModule == null) {
+            return;
+        }
         logger.info("looking up package name for the module [" + currentModule.getName() + "]");
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml", GlobalSearchScope.projectScope(project));
         if (pomFileSearchResult.length > 0) {
