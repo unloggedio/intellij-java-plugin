@@ -82,7 +82,7 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
+        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 

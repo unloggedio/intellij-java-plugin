@@ -31,6 +31,7 @@ public class TestCandidateMetadata {
     private String returnValue;
     private TypeInfo returnTypeInfo;
     private String returnSubjectInstanceName;
+    private List<DataEventWithSessionId> dependentObjects;
 
     public String getMethodName() {
         return methodName;
@@ -81,6 +82,8 @@ public class TestCandidateMetadata {
             ReplayData replayData
     ) throws APICallException {
         TestCandidateMetadata metadata = new TestCandidateMetadata();
+        List<DataEventWithSessionId> objectDependencies = new LinkedList<>();
+        metadata.setDependentObjects(objectDependencies);
 
         final String className = methodInfo.getClassName();
         String targetMethodName = methodInfo.getMethodName();
@@ -260,8 +263,15 @@ public class TestCandidateMetadata {
                     case GET_STATIC_FIELD:
                     case GET_INSTANCE_FIELD:
                         if (eventProbeInfo.getAttribute("Type", "").contains(className)) {
-                            metadata.setTestSubjectInstanceName(
-                                    eventProbeInfo.getAttribute("Name", testSubjectInstanceName));
+                            String variableName = eventProbeInfo.getAttribute("Name", null);
+
+                            if (variableName == null) {
+                                variableName = eventProbeInfo.getAttribute("FieldName",
+                                        testSubjectInstanceName);
+                            }
+                            objectDependencies.add(events.get(i-1));
+
+                            metadata.setTestSubjectInstanceName(variableName);
                             subjectNameFound = true;
                             break;
                         }
@@ -290,6 +300,7 @@ public class TestCandidateMetadata {
         for (DataEventWithSessionId parameterProbe : methodParameterProbes) {
             i++;
             long probeValue = parameterProbe.getValue();
+            objectDependencies.add(parameterProbe);
             String probeValueString = String.valueOf(probeValue);
             ObjectInfo objectInfo = objectInfoMap.get(probeValueString);
 
@@ -498,5 +509,13 @@ public class TestCandidateMetadata {
 
     public void setReturnSubjectInstanceName(String returnSubjectInstanceName) {
         this.returnSubjectInstanceName = returnSubjectInstanceName;
+    }
+
+    public void setDependentObjects(List<DataEventWithSessionId> dependentObjects) {
+        this.dependentObjects = dependentObjects;
+    }
+
+    public List<DataEventWithSessionId> getDependentObjects() {
+        return dependentObjects;
     }
 }

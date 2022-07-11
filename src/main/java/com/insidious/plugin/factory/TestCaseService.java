@@ -16,13 +16,12 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
-import org.apache.logging.log4j.core.util.NameUtil;
-import org.bouncycastle.crypto.digests.MD5Digest;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.ByteArrayOutputStream;
@@ -38,6 +37,7 @@ public class TestCaseService {
     private final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final Project project;
     private final VideobugClientInterface client;
+    final private int MAX_TEST_CASE_LINES = 1000;
 
     public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
@@ -348,7 +348,7 @@ public class TestCaseService {
                 1235);
     }
 
-//    public TestSuite generateTestCase(
+    //    public TestSuite generateTestCase(
 //            Collection<TestCandidate> testCandidateList
 //    ) throws IOException {
 //
@@ -442,7 +442,7 @@ public class TestCaseService {
     private void buildTestFromTestMetadataSet(
             Collection<TestCandidateMetadata> metadataCollection,
             Map<String, Boolean> variableStack,
-            MethodSpec.Builder testMethodBuilder,
+            StatementContainer statementList,
             DataOutputStream hashStream) throws IOException {
         assert metadataCollection.size() != 0;
 
@@ -468,14 +468,16 @@ public class TestCaseService {
                 ClassName squareClassName = ClassName.get(metadata.getPackageName(),
                         metadata.getUnqualifiedClassname());
 
-                testMethodBuilder.addStatement("$T $L = new $T(" + parameterString + ")",
+
+                statementList.addStatement("$T $L = new $T(" + parameterString + ")",
                         squareClassName,
                         metadata.getTestSubjectInstanceName(),
                         squareClassName);
 
+
             } else if (testCandidateMetadata.getReturnValueType().equals("V")) {
 
-                testMethodBuilder.addStatement("$L.$L(" + parameterString + ")",
+                statementList.addStatement("$L.$L(" + parameterString + ")",
                         testCandidateMetadata.getTestSubjectInstanceName(),
                         testCandidateMetadata.getMethodName());
 
@@ -483,12 +485,12 @@ public class TestCaseService {
 
                 String returnSubjectInstanceName = testCandidateMetadata.getReturnSubjectInstanceName();
                 if (variableStack.containsKey(returnSubjectInstanceName)) {
-                    testMethodBuilder.addStatement("$L = $L.$L(" + parameterString + ")",
+                    statementList.addStatement("$L = $L.$L(" + parameterString + ")",
                             returnSubjectInstanceName,
                             testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
 
                 } else {
-                    testMethodBuilder.addStatement("$T $L = $L.$L(" + parameterString + ")",
+                    statementList.addStatement("$T $L = $L.$L(" + parameterString + ")",
                             returnValueSquareClass, returnSubjectInstanceName,
                             testCandidateMetadata.getTestSubjectInstanceName(), testCandidateMetadata.getMethodName());
 
@@ -499,7 +501,7 @@ public class TestCaseService {
 
                 if (returnType.equals("Ljava/lang/String;")) {
                     hashStream.write(testCandidateMetadata.getReturnValue().getBytes());
-                    testMethodBuilder.addStatement("$T.assertEquals($S, $L);",
+                    statementList.addStatement("$T.assertEquals($S, $L);",
                             assertClass,
                             testCandidateMetadata.getReturnValue(),
                             returnSubjectInstanceName
@@ -507,14 +509,14 @@ public class TestCaseService {
                 } else {
                     Object returnValue = testCandidateMetadata.callReturnProbe().getValue();
                     hashStream.write(String.valueOf(returnValue).getBytes());
-                    if(returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
-                        if ((long)returnValue == 1) {
+                    if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
+                        if ((long) returnValue == 1) {
                             returnValue = "true";
                         } else {
                             returnValue = "false";
                         }
                     }
-                    testMethodBuilder.addStatement("$T.assertEquals($L, $L);",
+                    statementList.addStatement("$T.assertEquals($L, $L);",
                             assertClass,
                             returnValue,
                             returnSubjectInstanceName
@@ -522,7 +524,7 @@ public class TestCaseService {
                 }
 
 
-                testMethodBuilder.addComment("");
+                statementList.addComment("");
 
             }
         }
@@ -659,7 +661,7 @@ public class TestCaseService {
         checkProgressIndicator("Generating test cases using " + allObjects.size() + " objects",
                 null);
 
-        HashMap<String, Boolean> doneSignatures = new HashMap<>();
+        HashMap<Integer, Boolean> doneSignatures = new HashMap<>();
         List<TestCaseUnit> testCases = new LinkedList<>();
         for (Long typeId : objectsByType.keySet()) {
 
@@ -680,19 +682,39 @@ public class TestCaseService {
                 i++;
                 long objectId = testableObject.getObjectInfo().getObjectId();
                 assert objectId != 0;
-                checkProgressIndicator("Generating test case for object [ " + i + "/" + total +
-                                " ]",
+                checkProgressIndicator("Generating test case using history of object [ " + i +
+                                "/" + total + " ]",
                         null);
 
-                TestMethodScript classTestSuite = generateTestCaseFromObjectHistory(objectId);
-                String testHash = classTestSuite.getTestSignature();
+                StatementContainer classTestSuite = generateTestCaseFromObjectHistory(objectId, Set.of());
+                int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
+
+
+                // dropping some kind of duplicates
                 if (doneSignatures.containsKey(testHash)) {
                     continue;
                 }
                 doneSignatures.put(testHash, true);
-                testCaseScripts.add(classTestSuite.getMethodSpec());
+
+                MethodSpec.Builder builder = MethodSpec.methodBuilder(
+                        "testAsInstance" + i);
+
+                for (Pair<String, Object[]> statement : classTestSuite.getStatements()) {
+                    builder.addStatement(statement.getFirst(), statement.getSecond());
+                }
+
+                MethodSpec methodTestScript = builder.build();
+
+
+                testCaseScripts.add(methodTestScript);
 
             }
+
+            if (testCaseScripts.size() > MAX_TEST_CASE_LINES) {
+                logger.warn("have more than " + MAX_TEST_CASE_LINES + " lines in the script, dropping some");
+                testCaseScripts = testCaseScripts.subList(0, MAX_TEST_CASE_LINES);
+            }
+
 
             checkProgressIndicator(null, "Generate java source for test scenario");
             String generatedTestClassName = "Test" + simpleClassName + "V";
@@ -719,8 +741,15 @@ public class TestCaseService {
 
     }
 
-    private TestMethodScript generateTestCaseFromObjectHistory(final Long objectId) throws APICallException,
+    private StatementContainer
+    generateTestCaseFromObjectHistory
+            (
+                    final Long objectId,
+                    final Set<Long> dependentObjectIdsOriginal) throws APICallException,
             IOException {
+        LinkedList<Long> dependentObjectIds = new LinkedList<>(dependentObjectIdsOriginal);
+        StatementContainer statementList = new StatementContainer();
+
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -772,15 +801,17 @@ public class TestCaseService {
                 typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
 
 
-        MethodSpec.Builder testMethodBuilder =
-                buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
-        checkProgressIndicator("Parsing " + objectEvents.size() + " events of object[" + objectId +
-                "]", null);
+//        MethodSpec.Builder testMethodBuilder = buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
+//        MethodSpec.Builder methodParent =
+//                buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
+//        checkProgressIndicator("Parsing " + objectEvents.size() + " events of object[" + objectId +
+//                "]", null);
 
 
         int eventIndex = -1;
         TypeInfo typeInfo = null;
         TestCandidateMetadata testCandidateMetadata = null;
+        List<DataEventWithSessionId> newDependentObjectIds = new ArrayList<>();
 
         Map<String, Boolean> variableStack = new HashMap<>();
         for (DataEventWithSessionId dataEvent : objectEvents) {
@@ -820,8 +851,9 @@ public class TestCaseService {
                                             objectReplayData);
 
 
-                            TestCandidateMetadata newTestCaseMetadata = TestCandidateMetadata.create(
-                                    methodInfo, dataEvent.getNanoTime(), objectReplayData);
+                            TestCandidateMetadata newTestCaseMetadata =
+                                    TestCandidateMetadata.create(
+                                            methodInfo, dataEvent.getNanoTime(), objectReplayData);
 
                             if (newTestCaseMetadata.getTestSubjectInstanceName() == null
                                     && testCandidateMetadata != null) {
@@ -842,10 +874,12 @@ public class TestCaseService {
                                 continue;
                             }
 
+                            newDependentObjectIds.addAll(newTestCaseMetadata.getDependentObjects());
+
                             buildTestFromTestMetadataSet(
                                     List.of(newTestCaseMetadata),
                                     variableStack,
-                                    testMethodBuilder,
+                                    statementList,
                                     dos);
 
                             variableStack.put(newTestCaseMetadata.getTestSubjectInstanceName(), true);
@@ -865,14 +899,62 @@ public class TestCaseService {
 
         }
 
-        return new TestMethodScript(testMethodBuilder.build(), NameUtil.md5(baos.toString()));
+
+        Set<Long> newPotentialObjects = new HashSet<>();
+
+        newPotentialObjects.addAll(dependentObjectIds);
+        newPotentialObjects.addAll(
+                newDependentObjectIds
+                        .stream()
+                        .map(DataEventWithSessionId::getValue)
+                        .collect(Collectors.toList()));
+
+        dependentObjectIds.add(objectId);
+        for (DataEventWithSessionId newDependentObjectId : newDependentObjectIds) {
+
+
+            if (dependentObjectIds.contains(newDependentObjectId.getValue())) {
+                logger.debug("object is already being constructed: " + newDependentObjectId.getValue());
+                continue;
+            }
+
+            dependentObjectIds.add(newDependentObjectId.getValue());
+
+            ObjectInfo dependentObjectInfo = objectInfoMap.get(String.valueOf(
+                    newDependentObjectId.getValue()
+            ));
+            if (dependentObjectInfo == null) {
+                logger.warn("this value is not an object: [" + newDependentObjectId + "]");
+                continue;
+            }
+            TypeInfo dependentObjectTypeInfo = typeInfoMap.get(String.valueOf(dependentObjectInfo.getTypeId()));
+
+            if (!dependentObjectTypeInfo.getTypeNameFromClass().contains("org.zerhusen")) {
+                continue;
+            }
+
+            StatementContainer dependentObjectCreation = generateTestCaseFromObjectHistory(
+                    newDependentObjectId.getValue(), newPotentialObjects);
+
+//            methodParent.addStatement(dependentObjectCreation.getMethodSpec().toString());
+            statementList.getStatements().addAll(0, dependentObjectCreation.getStatements());
+        }
+
+//        statementList.add(testMethodBuilder.build().toString());
+
+//        methodParent.addStatement(testMethodBuilder.build().toString());
+
+
+        return statementList;
 
     }
 
     private MethodInfo getMethodInfo(int eventIndex, ReplayData objectReplayData) {
         int callStack = 0;
         int direction = -1;
-        for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size(); i += direction) {
+        for (int i = eventIndex + direction;
+             i < objectReplayData.getDataEvents().size() && i > -1
+                ; i += direction) {
             DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
             DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
             switch (probeInfo.getEventType()) {
