@@ -4,6 +4,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
@@ -11,27 +12,22 @@ import com.intellij.openapi.util.text.StringUtil;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
-    private DataEventWithSessionId callReturnProbe;
     private String fullyQualifiedClassname;
     private String unqualifiedClassname;
     private String packageName;
     private String testMethodName;
-    private String testSubjectInstanceName;
-    private String returnValueType;
+    private Parameter testSubject;
+    private Parameter returnParameter;
     private int entryProbeIndex;
     private int exitProbeIndex;
     private DataEventWithSessionId entryProbe;
-    private List<DataEventWithSessionId> parameterProbes;
-    private List<String> parameterValues;
-    private String returnValue;
-    private TypeInfo returnTypeInfo;
-    private String returnSubjectInstanceName;
-    private List<DataEventWithSessionId> dependentObjects;
+    private final List<Parameter> parameters = new LinkedList<>();
 
     public String getMethodName() {
         return methodName;
@@ -82,8 +78,6 @@ public class TestCandidateMetadata {
             ReplayData replayData
     ) throws APICallException {
         TestCandidateMetadata metadata = new TestCandidateMetadata();
-        List<DataEventWithSessionId> objectDependencies = new LinkedList<>();
-        metadata.setDependentObjects(objectDependencies);
 
         final String className = methodInfo.getClassName();
         String targetMethodName = methodInfo.getMethodName();
@@ -117,7 +111,7 @@ public class TestCandidateMetadata {
         // https://gist.github.com/VijayKrishna/6160036
         List<String> methodDescription = splitMethodDesc(methodInfo.getMethodDesc());
         String methodReturnValueType = methodDescription.get(methodDescription.size() - 1);
-        metadata.setReturnValueType(methodReturnValueType);
+
         methodDescription.remove(methodDescription.size() - 1);
 
 
@@ -125,8 +119,6 @@ public class TestCandidateMetadata {
 
 
         int entryProbeIndex = 0;
-        List<DataEventWithSessionId> methodParameterProbes = new LinkedList<>();
-        boolean lookingForParams = true;
         // going up matching the first event for our method entry probe
         // up is back in time
         while (entryProbeIndex < events.size()) {
@@ -139,12 +131,150 @@ public class TestCandidateMetadata {
         metadata.setEntryProbe(events.get(entryProbeIndex));
 
 
+        int callReturnIndex = -1;
+        ReplayData replayDataPage = replayData;
+        while (true) {
+            callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex);
+            if (callReturnIndex != -1) {
+                break;
+            }
+            replayDataPage = replayDataPage.getNextPage();
+            if (replayDataPage.getDataEvents().size() == 0) {
+                break;
+            }
+        }
+
+
+        ReplayData callReturnReplayData;
+        callReturnReplayData = replayData;
+
+        metadata.setExitProbeIndex(callReturnIndex);
+        logger.info("entry probe matched at event: " + entryProbeIndex +
+                ", return found " + "at: " + callReturnIndex);
+
+        if (callReturnIndex == -1) {
+            logger.debug("call_return probe not found in the slice: " + entryProbeDataId +
+                    " when generating test for method " + targetMethodName + " " +
+                    " in class " + className + ". Maybe need a bigger " +
+                    "slice");
+            return metadata;
+        }
+
+
+        List<Parameter> methodParameters = searchCallParameters(replayDataPage, entryProbeIndex);
+        metadata.addAllParameter(methodParameters);
+
+
+        Parameter returnParameter = createObject(callReturnIndex, replayData);
+
+//        if (returnParameter)
+
+        metadata.setReturnParameter(returnParameter);
+
+
+        String testSubjectInstanceName = lowerInstanceName(unqualifiedClassName);
+
+        int paramsToSkip = methodParameters.size();
+        boolean subjectNameFound = false;
+
+
+        // identify the variable name on which this method is called
+        if (methodInfo.getMethodName().equals("<init>")) {
+            Parameter newInstance = createObject(entryProbeIndex, replayData);
+            String subjectName = getTestSubjectName(entryProbeIndex, methodInfo, replayData);
+            if (subjectName != null) {
+                newInstance.setName(subjectName);
+                metadata.setTestSubject(newInstance);
+                subjectNameFound = true;
+            }
+        } else {
+            for (int i = entryProbeIndex; i < events.size(); i += 1) {
+                DataEventWithSessionId event = events.get(i);
+                DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+                EventType eventType = eventProbeInfo.getEventType();
+                switch (eventType) {
+                    case LOCAL_LOAD:
+                    case GET_STATIC_FIELD:
+                    case GET_INSTANCE_FIELD:
+                        if (eventProbeInfo.getAttribute("Type", "").contains(className)) {
+                            String variableName = eventProbeInfo.getAttribute("Name", null);
+
+                            if (variableName == null) {
+                                variableName = eventProbeInfo.getAttribute("FieldName",
+                                        testSubjectInstanceName);
+                            }
+                            Parameter subjectInstanceParameter = createObject(i - 1, replayData);
+
+                            metadata.setTestSubject(subjectInstanceParameter);
+                            subjectNameFound = true;
+                            break;
+                        }
+                        paramsToSkip = paramsToSkip - 1;
+
+                }
+                if (subjectNameFound) {
+                    break;
+                }
+
+            }
+        }
+
+
+
+        if (metadata.getReturnParameter().getName() == null) {
+
+            String potentialReturnValueName;
+            if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
+                if (targetMethodName.length() > 3) {
+                    potentialReturnValueName = lowerInstanceName(targetMethodName.substring(3)) + "Value";
+                } else {
+                    potentialReturnValueName = "value";
+                }
+            } else {
+                potentialReturnValueName = targetMethodName + "Result";
+            }
+
+            metadata.getReturnParameter().setName(potentialReturnValueName);
+        }
+
+
+        return metadata;
+    }
+
+    private static Object getValueByObjectId(DataEventWithSessionId event, ReplayData replayData) {
+        long probeValue = event.getValue();
+        String probeValueString = String.valueOf(probeValue);
+        ObjectInfo objectInfo = replayData.getObjectInfo().get(probeValueString);
+
+        if (objectInfo == null) {
+            return probeValueString;
+        }
+        Map<String, StringInfo> stringInfoMap = replayData.getStringInfoMap();
+
+        TypeInfo probeType = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+        if (stringInfoMap.containsKey(probeValueString)) {
+            String strContent = stringInfoMap.get(probeValueString).getContent();
+            return "\"" + StringUtil.escapeQuotes(strContent) + "\"";
+        } else {
+            return probeValueString;
+        }
+    }
+
+    private static List<Parameter> searchCallParameters
+            (
+                    ReplayData replayData,
+                    int entryProbeIndex
+            ) {
+        List<Parameter> methodParameterProbes = new LinkedList<>();
         int direction = -1;
         int callReturnIndex = entryProbeIndex + direction;
 
+        boolean lookingForParams = true;
         int callStack = 0;
         // going down from where we found the method entry probe
         // to match the first call_return probe
+        List<DataEventWithSessionId> events = replayData.getDataEvents();
+        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
         while (callReturnIndex > -1) {
             DataEventWithSessionId event = events.get(callReturnIndex);
             DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
@@ -164,7 +294,8 @@ public class TestCandidateMetadata {
             }
 
             if (lookingForParams && eventType == EventType.CALL_PARAM) {
-                methodParameterProbes.add(event);
+                Parameter parameter = createObject(callReturnIndex, replayData);
+                methodParameterProbes.add(parameter);
             } else {
                 lookingForParams = false;
             }
@@ -176,178 +307,142 @@ public class TestCandidateMetadata {
             callReturnIndex += direction;
 
         }
-
-        ReplayData callReturnReplayData;
-        callReturnReplayData = replayData;
-//        while (callReturnIndex == -1) {
-//            callReturnReplayData = callReturnReplayData.getNextPage();
-//            List<DataEventWithSessionId> nextPageEvents = callReturnReplayData.getDataEvents();
-//            Collections.reverse(nextPageEvents);
-//
-//            int size = nextPageEvents.size();
-//            if (size < 1) {
-//                break;
-//            }
-//            callReturnIndex = size - 1;
-//            while (callReturnIndex > -1) {
-//                DataEventWithSessionId event = nextPageEvents.get(callReturnIndex);
-//                DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
-//                EventType eventType = eventProbeInfo.getEventType();
-//
-//                if (eventType == EventType.CALL) {
-//                    callStack += 1;
-//                }
-//                if (callStack > 0 && eventType == EventType.CALL_RETURN) {
-//                    callStack -= 1;
-//                }
-//                if (callStack > 0) {
-//                    callReturnIndex += direction;
-//                    continue;
-//                }
-//
-//                if (lookingForParams && eventType == EventType.CALL_PARAM) {
-//                    methodParameterProbes.add(event);
-//                } else {
-//                    lookingForParams = false;
-//                }
-//
-//                if (eventProbeInfo.getEventType() == EventType.CALL_RETURN) {
-//                    break;
-//                }
-//
-//                callReturnIndex += direction;
-//
-//            }
-//
-//        }
+        return methodParameterProbes;
+    }
 
 
-        metadata.setExitProbeIndex(callReturnIndex);
-        logger.info("entry probe matched at event: " + entryProbeIndex +
-                ", return found " + "at: " + callReturnIndex);
+    private static int searchCallReturnIndex
+            (
+                    ReplayData replayData,
+                    int entryProbeIndex
+            ) {
+        int direction = -1;
+        int callReturnIndex = entryProbeIndex + direction;
 
-        if (callReturnIndex == -1) {
-            logger.debug("call_return probe not found in the slice: " + entryProbeDataId +
-                    " when generating test for method " + targetMethodName + " " +
-                    " in class " + className + ". Maybe need a bigger " +
-                    "slice");
-            return metadata;
-        }
+        int callStack = 0;
+        // going down from where we found the method entry probe
+        // to match the first call_return probe
+        List<DataEventWithSessionId> events = replayData.getDataEvents();
+        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
+        while (callReturnIndex > -1) {
+            DataEventWithSessionId event = events.get(callReturnIndex);
+            DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+            EventType eventType = eventProbeInfo.getEventType();
 
-
-        DataEventWithSessionId callReturnProbeValue =
-                callReturnReplayData.getDataEvents().get(callReturnIndex);
-        String returnProbeValue = String.valueOf(callReturnProbeValue.getValue());
-        ObjectInfo returnProbeEventObjectInfo = callReturnReplayData.getObjectInfo().get(returnProbeValue);
-
-
-        String testSubjectInstanceName = lowerInstanceName(unqualifiedClassName);
-
-        int paramsToSkip = methodParameterProbes.size();
-        boolean subjectNameFound = false;
-
-
-        if (methodInfo.getMethodName().equals("<init>")) {
-            String subjectName = getTestSubjectName(entryProbeIndex, methodInfo, replayData);
-            if (subjectName != null) {
-                metadata.setTestSubjectInstanceName(subjectName);
-                subjectNameFound = true;
+            if (eventType == EventType.CALL) {
+                callStack += 1;
             }
-        } else {
-            for (int i = entryProbeIndex; i < events.size(); i += 1) {
-                DataEventWithSessionId event = events.get(i);
-                DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
-                EventType eventType = eventProbeInfo.getEventType();
-                switch (eventType) {
-                    case LOCAL_LOAD:
-                    case GET_STATIC_FIELD:
-                    case GET_INSTANCE_FIELD:
-                        if (eventProbeInfo.getAttribute("Type", "").contains(className)) {
-                            String variableName = eventProbeInfo.getAttribute("Name", null);
-
-                            if (variableName == null) {
-                                variableName = eventProbeInfo.getAttribute("FieldName",
-                                        testSubjectInstanceName);
-                            }
-                            objectDependencies.add(events.get(i-1));
-
-                            metadata.setTestSubjectInstanceName(variableName);
-                            subjectNameFound = true;
-                            break;
-                        }
-                        paramsToSkip = paramsToSkip - 1;
-
-                }
-                if (subjectNameFound) {
-                    break;
-                }
-
+            if (callStack > 0 && eventType == EventType.CALL_RETURN) {
+                callStack -= 1;
+                callReturnIndex += direction;
+                continue;
             }
-        }
-
-
-//        if (!subjectNameFound) {
-//            metadata.setTestSubjectInstanceName(null);
-//            return metadata;
-//        }
-
-
-        int i = 0;
-        List<String> methodParameterValues = new LinkedList<>();
-        List<String> methodParameterTypes = new LinkedList<>();
-
-        metadata.setParameterProbes(methodParameterProbes);
-        for (DataEventWithSessionId parameterProbe : methodParameterProbes) {
-            i++;
-            long probeValue = parameterProbe.getValue();
-            objectDependencies.add(parameterProbe);
-            String probeValueString = String.valueOf(probeValue);
-            ObjectInfo objectInfo = objectInfoMap.get(probeValueString);
-
-            if (objectInfo == null) {
-                methodParameterValues.add(probeValueString);
+            if (callStack > 0) {
+                callReturnIndex += direction;
                 continue;
             }
 
-            TypeInfo probeType = typeInfo.get(String.valueOf(objectInfo.getTypeId()));
-            if (stringInfoMap.containsKey(probeValueString)) {
-                String quotedStringValue =
-                        "\"" + StringUtil.escapeQuotes(stringInfoMap.get(probeValueString).getContent()) + "\"";
-                methodParameterValues.add(quotedStringValue);
-            } else {
-                methodParameterValues.add(probeValueString);
+            if (eventProbeInfo.getEventType() == EventType.CALL_RETURN) {
+                break;
             }
+
+            callReturnIndex += direction;
+
         }
-        metadata.setParameterValues(methodParameterValues);
+        return callReturnIndex;
+    }
+
+    private static Parameter createObject
+            (
+                    int eventIndex,
+                    ReplayData replayData
+            ) {
+
+        Parameter parameter = new Parameter();
+        DataEventWithSessionId event = replayData.getDataEvents().get(eventIndex);
+
+        parameter.setProb(event);
+        parameter.setIndex(eventIndex);
 
 
-        metadata.setReturnValue(returnProbeValue);
-        metadata.setCallReturnProbe(callReturnProbeValue);
+        String eventProbeIdString = String.valueOf(event.getDataId());
+        String eventValueString = String.valueOf(event.getValue());
+        DataInfo probeInfo = replayData.getDataInfoMap().get(eventProbeIdString);
+        ObjectInfo objectInfo = replayData.getObjectInfo().get(eventValueString);
+        parameter.setProbeInfo(probeInfo);
+//
+//        TypeInfo valueTypeInfo;
+//        if (objectInfo != null) {
+//            valueTypeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+//        }
 
-        StringInfo possibleReturnStringValue = null;
-        if (stringInfoMap.containsKey(returnProbeValue)) {
-            possibleReturnStringValue = stringInfoMap.get(returnProbeValue);
-            metadata.setReturnValue(possibleReturnStringValue.getContent());
-        } else if (returnProbeEventObjectInfo != null) {
-            TypeInfo objectTypeInfo = typeInfo.get(String.valueOf(returnProbeEventObjectInfo.getTypeId()));
-            metadata.setReturnTypeInfo(objectTypeInfo);
+        Object probeValue = getValueByObjectId(parameter.getProb(), replayData);
+        parameter.setValue(probeValue);
+
+
+        String variableTypeName = probeInfo.getAttribute("Type", "V");
+        parameter.setType(variableTypeName);
+        if (Objects.equals(variableTypeName, "V")) {
+            parameter.setValue(null);
+            return parameter;
         }
 
-        String potentialReturnValueName;
-        if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
-            if (targetMethodName.length() > 3) {
-                potentialReturnValueName = lowerInstanceName(targetMethodName.substring(3)) + "Value";
-            } else {
-                potentialReturnValueName = "value";
-            }
+        int direction;
+        if (probeInfo.getEventType() == EventType.CALL_RETURN) {
+            direction = -1; // go forward from current event
         } else {
-            potentialReturnValueName = targetMethodName + "Result";
+            direction = 1; // go backward from current event
         }
 
-        metadata.setReturnSubjectInstanceName(potentialReturnValueName);
+        for (int i = eventIndex + direction; i < replayData.getDataEvents().size(); i += direction) {
+            DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
+            DataInfo historyEventProbe = replayData.getDataInfoMap().get(
+                    String.valueOf(historyEvent.getDataId())
+            );
+            switch (historyEventProbe.getEventType()) {
+                case NEW_OBJECT_CREATED:
+                    ObjectInfo oInfo = replayData.getObjectInfo().get(String.valueOf(historyEvent.getValue()));
+                    TypeInfo oTypeInfo = replayData.getTypeInfo().get(String.valueOf(oInfo.getTypeId()));
+                    String typeName = oTypeInfo.getTypeNameFromClass();
+                    String typeNameRaw = typeName.replaceAll("\\.", "/");
+                    String newVariableInstanceName = createVariableName(typeNameRaw);
+                    if (variableTypeName.contains(typeNameRaw)) {
+                        parameter.setName(newVariableInstanceName);
+                        return parameter;
+                    }
+                    break;
+                case LOCAL_LOAD:
+                case LOCAL_STORE:
+                    String variableType = historyEventProbe.getAttribute("Type", "V");
+                    if (variableType.equals(variableTypeName)) {
+                        String variableName = historyEventProbe.getAttribute("Name", null);
+                        parameter.setName(variableName);
+                        return parameter;
+                    }
+                    break;
+                case GET_STATIC_FIELD:
+                case PUT_STATIC_FIELD:
+                case GET_INSTANCE_FIELD:
+                case PUT_INSTANCE_FIELD:
+                    String fieldType = historyEventProbe.getAttribute("Type", "V");
+                    if (fieldType.equals(variableTypeName)) {
+                        String variableName = historyEventProbe.getAttribute("FieldName", null);
+                        parameter.setName(variableName);
+                        return parameter;
+                    }
+                    break;
+            }
+        }
 
 
-        return metadata;
+        return parameter;
+    }
+
+    private static String createVariableName(String typeNameRaw) {
+        String[] typeNameParts = typeNameRaw.split("/");
+        String lastPart = typeNameParts[typeNameParts.length - 1];
+        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
+        return lastPart;
     }
 
     private void setMethodName(String methodName) {
@@ -387,18 +482,6 @@ public class TestCandidateMetadata {
         return listMatches;
     }
 
-    public DataEventWithSessionId callReturnProbe() {
-        return callReturnProbe;
-    }
-
-    public void setCallReturnProbe(DataEventWithSessionId callReturnProbe) {
-        this.callReturnProbe = callReturnProbe;
-    }
-
-    public DataEventWithSessionId getCallReturnProbe() {
-        return callReturnProbe;
-    }
-
     public void setFullyQualifiedClassname(String fullyQualifiedClassname) {
         this.fullyQualifiedClassname = fullyQualifiedClassname;
     }
@@ -431,20 +514,12 @@ public class TestCandidateMetadata {
         return testMethodName;
     }
 
-    public void setTestSubjectInstanceName(String testSubjectInstanceName) {
-        this.testSubjectInstanceName = testSubjectInstanceName;
+    public Parameter getTestSubject() {
+        return testSubject;
     }
 
-    public String getTestSubjectInstanceName() {
-        return testSubjectInstanceName;
-    }
-
-    public void setReturnValueType(String returnValueType) {
-        this.returnValueType = returnValueType;
-    }
-
-    public String getReturnValueType() {
-        return returnValueType;
+    public void setTestSubject(Parameter testSubject) {
+        this.testSubject = testSubject;
     }
 
     public void setEntryProbeIndex(int entryProbeIndex) {
@@ -471,51 +546,24 @@ public class TestCandidateMetadata {
         return entryProbe;
     }
 
-    public void setParameterProbes(List<DataEventWithSessionId> parameterProbes) {
-        this.parameterProbes = parameterProbes;
+
+    public void addParameter(Parameter parameter) {
+        this.parameters.add(parameter);
     }
 
-    public List<DataEventWithSessionId> getParameterProbes() {
-        return parameterProbes;
+    public void addAllParameter(List<Parameter> parameter) {
+        this.parameters.addAll(parameter);
     }
 
-    public void setParameterValues(List<String> parameterValues) {
-        this.parameterValues = parameterValues;
+    public List<Parameter> getParameterValues() {
+        return this.parameters;
     }
 
-    public List<String> getParameterValues() {
-        return parameterValues;
+    public void setReturnParameter(Parameter returnParameter) {
+        this.returnParameter = returnParameter;
     }
 
-    public void setReturnValue(String returnValue) {
-        this.returnValue = returnValue;
-    }
-
-    public String getReturnValue() {
-        return returnValue;
-    }
-
-    public void setReturnTypeInfo(TypeInfo returnTypeInfo) {
-        this.returnTypeInfo = returnTypeInfo;
-    }
-
-    public TypeInfo getReturnTypeInfo() {
-        return returnTypeInfo;
-    }
-
-    public String getReturnSubjectInstanceName() {
-        return returnSubjectInstanceName;
-    }
-
-    public void setReturnSubjectInstanceName(String returnSubjectInstanceName) {
-        this.returnSubjectInstanceName = returnSubjectInstanceName;
-    }
-
-    public void setDependentObjects(List<DataEventWithSessionId> dependentObjects) {
-        this.dependentObjects = dependentObjects;
-    }
-
-    public List<DataEventWithSessionId> getDependentObjects() {
-        return dependentObjects;
+    public Parameter getReturnParameter() {
+        return returnParameter;
     }
 }

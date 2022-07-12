@@ -309,7 +309,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         final long objectId = filteredDataEventsRequest.getObjectId();
         Collection<ObjectInfo> sessionObjectInfo = List.of();
-        if (objectId != -1 ) {
+        if (objectId != -1) {
             sessionObjectInfo = getObjectInfoById(
                     List.of(objectId));
         }
@@ -333,10 +333,44 @@ public class VideobugLocalClient implements VideobugClientInterface {
         final AtomicLong previousEventAt = new AtomicLong(-1);
         for (File sessionArchive : this.sessionArchives) {
 
+
+            NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+                    INDEX_EVENTS_DAT_FILE.getFileName());
+            if (eventIndexBytes == null) {
+                logger.warn("failed to read events index from : " + sessionArchive.getName());
+                continue;
+            }
+            ArchiveFilesIndex eventsIndex = null;
+            try {
+                eventsIndex = readEventIndex(eventIndexBytes.getBytes());
+            } catch (IOException e) {
+                logger.warn("failed to read events index from : " + sessionArchive.getName());
+                continue;
+            }
+            Map<String, UploadFile> matchedFiles = new HashMap<>();
+            if (objectId != -1) {
+                if (!eventsIndex.hasValueId(objectId)) {
+                    continue;
+                }
+
+                List<UploadFile> matchedFilesForString = eventsIndex.querySessionFilesByValueId(objectId);
+                for (UploadFile uploadFile : matchedFilesForString) {
+                    String filePath = uploadFile.getPath();
+                    int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                    UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+                    uploadFileToAdd.setValueIds(new Long[]{objectId});
+                    matchedFiles.put(filePath, uploadFile);
+                }
+
+
+            }
+
+
             KaitaiInsidiousClassWeaveParser classWeaveInfoLocal = readClassWeaveInfo(sessionArchive);
             if (classWeaveInfoLocal == null) {
                 continue;
             }
+
 
             checkProgressIndicator(null, "Loading class mappings");
 
@@ -362,7 +396,18 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
             try {
-                List<String> archiveFiles = listArchiveFiles(sessionArchive);
+                List<String> archiveFiles = new LinkedList<>();
+
+                if (objectId != -1 && matchedFiles.size() > 0) {
+                    archiveFiles =
+                            matchedFiles.keySet().stream().map(e -> {
+                                String[] parts = e.split("\\\\");
+                                return parts[parts.length - 1];
+                            }).collect(Collectors.toList());
+                } else {
+                    archiveFiles = listArchiveFiles(sessionArchive);
+                }
+
                 if (archiveFiles.size() == 0) {
                     continue;
                 }
@@ -372,6 +417,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 if (pageInfo.isDesc()) {
                     Collections.reverse(archiveFiles);
                 }
+
 
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null,
@@ -384,7 +430,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (!archiveFile.endsWith(".selog")) {
                         continue;
                     }
-                    long startTime = Long.parseLong(archiveFile.split("@")[0]);
                     final int fileThreadId = Integer.parseInt(
                             archiveFile.split("\\.")[0].split("-")[2]
                     );
@@ -411,8 +456,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (pageInfo.isDesc()) {
                         Collections.reverse(eventsSublist);
                     }
-
-
 
 
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
