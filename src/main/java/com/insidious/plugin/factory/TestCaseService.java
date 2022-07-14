@@ -442,7 +442,7 @@ public class TestCaseService {
 //
     private void buildTestFromTestMetadataSet(
             Collection<TestCandidateMetadata> metadataCollection,
-            Map<String, Boolean> variableStack,
+            Map<String, Parameter> variableStack,
             StatementContainer statementList,
             DataOutputStream hashStream) throws IOException {
         assert metadataCollection.size() != 0;
@@ -502,60 +502,66 @@ public class TestCaseService {
                         metadata.getTestSubject().getName(),
                         squareClassName);
 
+                variableStack.put(metadata.getTestSubject().getName(), metadata.getTestSubject());
 
-            } else if (testCandidateMetadata.getReturnParameter().getType().equals("V")) {
-
-                statementList.addStatement("$L.$L(" + parameterString + ")",
-                        testCandidateMetadata.getTestSubject().getName(),
-                        testCandidateMetadata.getMethodName());
 
             } else {
+                Parameter returnParameter = testCandidateMetadata.getReturnParameter();
+                if (returnParameter.getType().equals("V")) {
 
-                String returnSubjectInstanceName = testCandidateMetadata.getReturnParameter().getName();
-                if (variableStack.containsKey(returnSubjectInstanceName)) {
-                    statementList.addStatement("$L = $L.$L(" + parameterString + ")",
-                            returnSubjectInstanceName,
+                    statementList.addStatement("$L.$L(" + parameterString + ")",
                             testCandidateMetadata.getTestSubject().getName(),
                             testCandidateMetadata.getMethodName());
 
                 } else {
-                    statementList.addStatement("$T $L = $L.$L(" + parameterString + ")",
-                            returnValueSquareClass, returnSubjectInstanceName,
-                            testCandidateMetadata.getTestSubject().getName(),
-                            testCandidateMetadata.getMethodName());
 
-                }
+                    String returnSubjectInstanceName = returnParameter.getName();
+                    if (variableStack.containsKey(returnSubjectInstanceName)) {
+                        statementList.addStatement("$L = $L.$L(" + parameterString + ")",
+                                returnSubjectInstanceName,
+                                testCandidateMetadata.getTestSubject().getName(),
+                                testCandidateMetadata.getMethodName());
 
+                    } else {
+                        statementList.addStatement("$T $L = $L.$L(" + parameterString + ")",
+                                returnValueSquareClass, returnSubjectInstanceName,
+                                testCandidateMetadata.getTestSubject().getName(),
+                                testCandidateMetadata.getMethodName());
+                        variableStack.put(returnParameter.getName(), returnParameter);
 
-                String returnType = testCandidateMetadata.getReturnParameter().getType();
-
-                if (returnType.equals("Ljava/lang/String;")) {
-                    hashStream.write(((String) testCandidateMetadata.getReturnParameter().getValue()).getBytes());
-                    statementList.addStatement("$T.assertEquals($L, $L);",
-                            assertClass,
-                            testCandidateMetadata.getReturnParameter().getValue(),
-                            returnSubjectInstanceName
-                    );
-                } else {
-                    Object returnValue = testCandidateMetadata.getReturnParameter().getValue();
-                    hashStream.write(String.valueOf(returnValue).getBytes());
-                    if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
-                        if ((long) returnValue == 1) {
-                            returnValue = "true";
-                        } else {
-                            returnValue = "false";
-                        }
                     }
-                    statementList.addStatement("$T.assertEquals($L, $L);",
-                            assertClass,
-                            returnValue,
-                            returnSubjectInstanceName
-                    );
+
+
+                    String returnType = returnParameter.getType();
+
+                    if (returnType.equals("Ljava/lang/String;")) {
+                        hashStream.write(((String) returnParameter.getValue()).getBytes());
+                        statementList.addStatement("$T.assertEquals($L, $L);",
+                                assertClass,
+                                returnParameter.getValue(),
+                                returnSubjectInstanceName
+                        );
+                    } else {
+                        Object returnValue = returnParameter.getValue();
+                        hashStream.write(String.valueOf(returnValue).getBytes());
+                        if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
+                            if ((long) returnValue == 1) {
+                                returnValue = "true";
+                            } else {
+                                returnValue = "false";
+                            }
+                        }
+                        statementList.addStatement("$T.assertEquals($L, $L);",
+                                assertClass,
+                                returnValue,
+                                returnSubjectInstanceName
+                        );
+                    }
+
+
+                    statementList.addComment("");
+
                 }
-
-
-                statementList.addComment("");
-
             }
         }
     }
@@ -716,7 +722,9 @@ public class TestCaseService {
                                 "/" + total + " ]",
                         null);
 
-                StatementContainer classTestSuite = generateTestCaseFromObjectHistory(objectId, Set.of());
+                Map<String, Parameter> variableMap = new HashMap<>();
+                StatementContainer classTestSuite = generateTestCaseFromObjectHistory(
+                        objectId, Set.of(), variableMap);
                 int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
 
 
@@ -776,7 +784,9 @@ public class TestCaseService {
     generateTestCaseFromObjectHistory
             (
                     final Long objectId,
-                    final Set<Long> dependentObjectIdsOriginal) throws APICallException,
+                    final Set<Long> dependentObjectIdsOriginal,
+                    Map<String, Parameter> variableStack
+            ) throws APICallException,
             IOException {
         LinkedList<Long> dependentObjectIds = new LinkedList<>(dependentObjectIdsOriginal);
         StatementContainer statementList = new StatementContainer();
@@ -844,7 +854,7 @@ public class TestCaseService {
         TestCandidateMetadata testCandidateMetadata = null;
         List<Parameter> dependentParameters = new ArrayList<>();
 
-        Map<String, Boolean> variableStack = new HashMap<>();
+
         for (DataEventWithSessionId dataEvent : objectEvents) {
             eventIndex++;
             final long eventValue = dataEvent.getValue();
@@ -886,39 +896,35 @@ public class TestCaseService {
                                     TestCandidateMetadata.create(
                                             methodInfo, dataEvent.getNanoTime(), objectReplayData);
 
-                            if (newTestCaseMetadata.getTestSubject() == null) {
+                            Parameter testSubjectParameter = newTestCaseMetadata.getTestSubject();
+                            if (testSubjectParameter == null) {
                                 // whats happening here
                                 continue;
                             }
 
-                            if (newTestCaseMetadata.getTestSubject().getName() == null
+                            if (testSubjectParameter.getName() == null
                                     && testCandidateMetadata != null) {
-                                newTestCaseMetadata.getTestSubject().setName(
+                                testSubjectParameter.setName(
                                         testCandidateMetadata.getTestSubject().getName());
                             }
 
-                            if (newTestCaseMetadata.getMethodName().equals("<init>")
-                                    && variableStack.containsKey(newTestCaseMetadata.getTestSubject().getName())
-                            ) {
-                                break;
+                            if (newTestCaseMetadata.getMethodName().equals("<init>")) {
+                                if (variableStack.containsKey(testSubjectParameter.getName())) {
+                                    break;
+                                } else {
+                                    variableStack.put(testSubjectParameter.getName(), testSubjectParameter);
+                                }
 //                                continue;
                             }
 
-                            if (newTestCaseMetadata.getReturnParameter() == null
-                                    || newTestCaseMetadata.getTestSubject() == null) {
+                            // we should find a return parameter even if the type of the return
+                            // is void, return parameter marks the completion of the method
+                            if (newTestCaseMetadata.getReturnParameter() == null) {
                                 logger.debug("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
                                 continue;
                             }
 
-                            LinkedList<Parameter> newParameters = new LinkedList<>(
-                                    List.of(newTestCaseMetadata.getReturnParameter(),
-                                            newTestCaseMetadata.getTestSubject())
-                            );
-
-                            newParameters.addAll(newTestCaseMetadata.getParameterValues());
-
-
-                            dependentParameters.addAll(newParameters);
+                            dependentParameters.addAll(newTestCaseMetadata.getParameterValues());
 
                             buildTestFromTestMetadataSet(
                                     List.of(newTestCaseMetadata),
@@ -926,8 +932,6 @@ public class TestCaseService {
                                     statementList,
                                     dos);
 
-                            variableStack.put(newTestCaseMetadata.getTestSubject().getName(), true);
-                            variableStack.put(newTestCaseMetadata.getReturnParameter().getName(), true);
 
                             testCandidateMetadata = newTestCaseMetadata;
 
@@ -956,6 +960,10 @@ public class TestCaseService {
         dependentObjectIds.add(objectId);
         for (Parameter newParameter : dependentParameters) {
 
+            if (variableStack.containsKey(newParameter.getName())) {
+                logger.warn("variable already exists: " + newParameter.getName());
+                continue;
+            }
 
             DataEventWithSessionId parameterProbe = newParameter.getProb();
             if (dependentObjectIds.contains(parameterProbe.getValue())) {
@@ -980,7 +988,8 @@ public class TestCaseService {
             }
 
             StatementContainer dependentObjectCreation =
-                    generateTestCaseFromObjectHistory(parameterProbe.getValue(), newPotentialObjects);
+                    generateTestCaseFromObjectHistory(parameterProbe.getValue(),
+                            newPotentialObjects, variableStack);
 
 //            methodParent.addStatement(dependentObjectCreation.getMethodSpec().toString());
             statementList.getStatements().addAll(0, dependentObjectCreation.getStatements());
