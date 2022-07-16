@@ -721,8 +721,7 @@ public class TestCaseService {
                 long objectId = testableObject.getObjectInfo().getObjectId();
                 assert objectId != 0;
                 checkProgressIndicator("Generating test case using history of object [ " + i +
-                                "/" + total + " ]",
-                        null);
+                        "/" + total + " ]", null);
 
                 VariableContainer variableContainer = new VariableContainer();
                 ObjectRoutineContainer classTestSuite = generateTestCaseFromObjectHistory(
@@ -736,23 +735,35 @@ public class TestCaseService {
                 }
                 doneSignatures.put(testHash, true);
 
+                ObjectRoutine constructorRoutine = classTestSuite.getConstructor();
+
                 for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
-                    if (objectRoutine.getName())
+                    if (objectRoutine.getRoutineName().equals("<init>")) {
+                        continue;
+                    }
+                    if (objectRoutine.getStatements().size() == 0) {
+                        continue;
+                    }
+
+                    MethodSpec.Builder builder = MethodSpec.methodBuilder(
+                            "testAsInstance" + objectRoutine.getRoutineName());
+
+                    ObjectRoutineContainer e1 =
+                            new ObjectRoutineContainer(List.of(constructorRoutine, objectRoutine));
+//                    e1.getObjectRoutines().clear();
+//                    e1.getObjectRoutines().add(constructorRoutine);
+//                    e1.getObjectRoutines().add(objectRoutine);
+                    addRoutinesToMethodBuilder(builder, List.of(e1));
+
+                    builder.addAnnotation(JUNIT_CLASS_NAME);
+
+                    MethodSpec methodTestScript = builder.build();
+
+
+                    testCaseScripts.add(methodTestScript);
+
                 }
 
-
-                MethodSpec.Builder builder = MethodSpec.methodBuilder(
-                        "testAsInstance" + i);
-
-                builder.addAnnotation(JUNIT_CLASS_NAME);
-                for (Pair<String, Object[]> statement : classTestSuite.getStatements()) {
-                    builder.addStatement(statement.getFirst(), statement.getSecond());
-                }
-
-                MethodSpec methodTestScript = builder.build();
-
-
-                testCaseScripts.add(methodTestScript);
 
             }
 
@@ -784,6 +795,37 @@ public class TestCaseService {
         checkProgressIndicator(null, "Generated" + testCases.size() + " test cases");
         return new TestSuite(testCases);
 
+
+    }
+
+    private void addRoutinesToMethodBuilder(
+            MethodSpec.Builder builder,
+            List<ObjectRoutineContainer> dependentObjectsList) {
+        for (ObjectRoutineContainer objectRoutineContainer : dependentObjectsList) {
+
+
+            ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
+            addRoutinesToMethodBuilder(builder, constructorRoutine.getDependentList());
+
+            for (Pair<String, Object[]> statement : constructorRoutine.getStatements()) {
+                builder.addStatement(statement.getFirst(), statement.getSecond());
+            }
+
+            for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+                if (objectRoutine.getRoutineName().equals("<init>")) {
+                    continue;
+                }
+
+                addRoutinesToMethodBuilder(builder, objectRoutine.getDependentList());
+
+                for (Pair<String, Object[]> statement : objectRoutine.getStatements()) {
+                    builder.addStatement(statement.getFirst(), statement.getSecond());
+                }
+
+            }
+
+
+        }
 
     }
 
@@ -890,65 +932,78 @@ public class TestCaseService {
             switch (probeInfo.getEventType()) {
                 case CALL:
                     constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
-                    methodInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
+
+                    if (subjectTypeInfo != null &&
+                            !Objects.equals(subjectTypeInfo.getTypeNameFromClass(),
+                                    constructorOwnerClass)) {
+                        continue;
+                    }
+
+                    MethodInfo methodEntryInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
+                    if (methodEntryInfo != null) {
+                        methodInfo = methodEntryInfo;
+                    }
 
                 case METHOD_ENTRY:
-                    if (!StringUtil.isEmpty(constructorOwnerClass)) {
-                        constructorOwnerClass = constructorOwnerClass;
-                        if (subjectTypeInfo != null &&
-                                Objects.equals(subjectTypeInfo.getTypeNameFromClass(), constructorOwnerClass)) {
 
-                            if (methodInfo.getMethodName().equals("<clinit>")) {
-                                continue;
-                            }
-
-
-                            TestCandidateMetadata newTestCaseMetadata =
-                                    TestCandidateMetadata.create(
-                                            methodInfo, dataEvent.getNanoTime(), objectReplayData);
-
-                            Parameter testSubjectParameter = newTestCaseMetadata.getTestSubject();
-                            if (testSubjectParameter == null) {
-                                // whats happening here
-                                continue;
-                            }
-                            if (testSubjectParameter.getValue() == null ||
-                                    !Long.valueOf((String) testSubjectParameter.getValue()).equals(objectId)) {
-                                continue;
-                            }
-
-                            if (testSubjectParameter.getName() == null
-                                    && testCandidateMetadata != null) {
-                                testSubjectParameter.setName(
-                                        testCandidateMetadata.getTestSubject().getName());
-                            }
-
-                            // we should find a return parameter even if the type of the return
-                            // is void, return parameter marks the completion of the method
-                            if (newTestCaseMetadata.getReturnParameter() == null) {
-                                logger.debug("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
-                                continue;
-                            }
-
-                            long currentThreadId = dataEvent.getThreadId();
-                            if (currentThreadId != threadId) {
-                                // this is happening on a different thread
-                                objectRoutineContainer.newRoutine("thread" + currentThreadId);
-                                threadId = currentThreadId;
-                            }
-
-                            if (methodInfo.getMethodName().equals("<init>")) {
-                                objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
-                            } else {
-                                objectRoutineContainer.addMetadata(newTestCaseMetadata);
-                            }
-
-                            eventIndex =
-                                    objectEvents.size() - newTestCaseMetadata.getReturnParameter().getIndex();
-
-
-                        }
+                    if (StringUtil.isEmpty(constructorOwnerClass)) {
+                        continue;
                     }
+                    if (subjectTypeInfo != null &&
+                            !Objects.equals(
+                                    subjectTypeInfo.getTypeNameFromClass(),
+                                    constructorOwnerClass)) {
+                        continue;
+                    }
+
+                    if (methodInfo.getMethodName().equals("<clinit>")) {
+                        continue;
+                    }
+
+
+                    TestCandidateMetadata newTestCaseMetadata =
+                            TestCandidateMetadata.create(
+                                    methodInfo, dataEvent.getNanoTime(), objectReplayData);
+
+                    Parameter testSubjectParameter = newTestCaseMetadata.getTestSubject();
+                    if (testSubjectParameter == null) {
+                        // whats happening here
+                        continue;
+                    }
+                    if (testSubjectParameter.getValue() == null ||
+                            !Long.valueOf((String) testSubjectParameter.getValue()).equals(objectId)) {
+                        continue;
+                    }
+
+                    if (testSubjectParameter.getName() == null
+                            && testCandidateMetadata != null) {
+                        testSubjectParameter.setName(
+                                testCandidateMetadata.getTestSubject().getName());
+                    }
+
+                    // we should find a return parameter even if the type of the return
+                    // is void, return parameter marks the completion of the method
+                    if (newTestCaseMetadata.getReturnParameter() == null) {
+                        logger.debug("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                        continue;
+                    }
+
+                    long currentThreadId = dataEvent.getThreadId();
+                    if (currentThreadId != threadId) {
+                        // this is happening on a different thread
+                        objectRoutineContainer.newRoutine("thread" + currentThreadId);
+                        threadId = currentThreadId;
+                    }
+
+                    if (methodInfo.getMethodName().equals("<init>")) {
+                        objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
+                    } else {
+                        objectRoutineContainer.addMetadata(newTestCaseMetadata);
+                    }
+
+                    eventIndex =
+                            objectEvents.size() - newTestCaseMetadata.getReturnParameter().getIndex();
+
 
                     callStack += 1;
                     break;
@@ -961,7 +1016,7 @@ public class TestCaseService {
         ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
 
-            if (objectRoutine.getMetadata().size() == 0){
+            if (objectRoutine.getMetadata().size() == 0) {
                 continue;
             }
 
@@ -1014,18 +1069,17 @@ public class TestCaseService {
                 }
                 TypeInfo dependentObjectTypeInfo = typeInfoMap.get(String.valueOf(dependentObjectInfo.getTypeId()));
 
-                if (!dependentObjectTypeInfo.getTypeNameFromClass().contains("org.zerhusen")) {
-                    // TODO: remove
-                    continue;
-                }
+//                if (!dependentObjectTypeInfo.getTypeNameFromClass().contains("org.zerhusen")) {
+                // TODO: remove
+//                    continue;
+//                }
 
                 ObjectRoutineContainer dependentObjectCreation =
                         generateTestCaseFromObjectHistory(parameterProbe.getValue(),
                                 newPotentialObjects, variableContainer);
+                dependentObjectCreation.setName(newParameter.getName());
 
-                objectRoutineContainer.addDependent(
-                        newParameter.getName(),
-                        dependentObjectCreation);
+                objectRoutine.addDependent(dependentObjectCreation);
             }
 
 
@@ -1077,9 +1131,7 @@ public class TestCaseService {
     private MethodInfo getMethodInfo(int eventIndex, ReplayData objectReplayData) {
         int callStack = 0;
         int direction = -1;
-        for (int i = eventIndex + direction;
-             i < objectReplayData.getDataEvents().size() && i > -1
-                ; i += direction) {
+        for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size() && i > -1; i += direction) {
             DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
             DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
             switch (probeInfo.getEventType()) {

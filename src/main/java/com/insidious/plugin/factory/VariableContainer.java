@@ -2,10 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.pojo.Parameter;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class VariableContainer {
@@ -78,4 +75,7 @@ public class VariableContainer {
         return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
     }
 
+    public Collection<String> getNames() {
+        return parameterList.stream().map(Parameter::getName).collect(Collectors.toList());
+    }
 }

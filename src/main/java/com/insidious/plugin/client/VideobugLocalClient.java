@@ -213,7 +213,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         } catch (Exception e) {
             logger.warn("failed to create file [" + pathName + "] on disk from" +
-                    " archive[" + sessionFile.getName() + "]", e);
+                    " archive[" + sessionFile.getName() + "]");
             return null;
         }
         return null;

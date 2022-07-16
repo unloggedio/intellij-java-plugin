@@ -467,7 +467,8 @@ public class TestCandidateMetadata {
             direction = 1; // go backward from current event
         }
 
-        for (int i = eventIndex + direction; i < replayData.getDataEvents().size(); i += direction) {
+        for (int i = eventIndex + direction; i < replayData.getDataEvents().size()
+                && i > -1; i += direction) {
             DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
             DataInfo historyEventProbe = replayData.getDataInfoMap().get(
                     String.valueOf(historyEvent.getDataId())
@@ -476,7 +477,8 @@ public class TestCandidateMetadata {
                 case NEW_OBJECT_CREATED:
                     ObjectInfo oInfo = replayData.getObjectInfo().get(String.valueOf(historyEvent.getValue()));
                     if (oInfo == null) {
-                        logger.warn("object info is null, gotta check");
+                        logger.info("object info is null ["+  historyEvent.getValue() +"], gotta " +
+                                "check");
                         break;
                     }
                     TypeInfo oTypeInfo = replayData.getTypeInfo().get(String.valueOf(oInfo.getTypeId()));

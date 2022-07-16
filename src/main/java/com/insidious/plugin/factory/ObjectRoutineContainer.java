@@ -1,22 +1,38 @@
 package com.insidious.plugin.factory;
 
 
-import com.insidious.plugin.pojo.SessionCache;
 import com.intellij.openapi.util.Pair;
 
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class ObjectRoutineContainer {
+    public ObjectRoutineContainer(List<ObjectRoutine> constructorRoutine) {
+        for (ObjectRoutine objectRoutine : constructorRoutine) {
+            if (objectRoutine.getRoutineName().equals("<init>")) {
+                this.constructor = objectRoutine;
+            }
+        }
+        this.objectRoutines.clear();
+        this.objectRoutines.addAll(constructorRoutine);
+        this.currentRoutine = constructorRoutine.get(constructorRoutine.size() - 1);
+
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
 
 
     private ObjectRoutine constructor = newRoutine("<init>");
     private ObjectRoutine currentRoutine;
-    private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
+    private String name;
 
     public ObjectRoutine newRoutine(String routineName) {
         ObjectRoutine newRoutine = new ObjectRoutine(routineName);
@@ -53,7 +69,4 @@ public class ObjectRoutineContainer {
         currentRoutine.addMetadata(newTestCaseMetadata);
     }
 
-    public void addDependent(String name, ObjectRoutineContainer dependentObjectCreation) {
-        this.dependentMap.put(name, dependentObjectCreation);
-    }
 }
