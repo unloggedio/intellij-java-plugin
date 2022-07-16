@@ -137,7 +137,13 @@ public class TestCandidateMetadata {
         while (true) {
             if (entryProbeInfo.getEventType() == EventType.CALL) {
 
-                callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex, List.of(EventType.CALL_RETURN));
+                if (methodInfo.getMethodName().equals("<init>")) {
+                    callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex,
+                            List.of(EventType.NEW_OBJECT_CREATED));
+                } else {
+                    callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex, List.of(EventType.CALL_RETURN));
+                }
+
             } else if (entryProbeInfo.getEventType() == EventType.METHOD_ENTRY) {
                 callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex,
                         List.of(
@@ -237,7 +243,11 @@ public class TestCandidateMetadata {
                     potentialReturnValueName = "value";
                 }
             } else {
-                potentialReturnValueName = targetMethodName + "Result";
+                if (targetMethodName.equals("<init>")) {
+                    potentialReturnValueName = createVariableName(metadata.getUnqualifiedClassname());
+                } else {
+                    potentialReturnValueName = targetMethodName + "Result";
+                }
             }
 
             metadata.getReturnParameter().setName(potentialReturnValueName);
