@@ -870,6 +870,10 @@ public class TestCaseService {
         contextEvents.remove(contextEvents.size() - 1);
         objectReplayData.getDataEvents().addAll(0, contextEvents);
 
+        objectReplayData.getObjectInfo().putAll(callContext.getObjectInfo());
+        objectReplayData.getTypeInfo().putAll(callContext.getTypeInfo());
+        objectReplayData.getStringInfoMap().putAll(callContext.getStringInfoMap());
+
 
         List<DataEventWithSessionId> objectEventsReverse =
                 new ArrayList<>(objectReplayData.getDataEvents());

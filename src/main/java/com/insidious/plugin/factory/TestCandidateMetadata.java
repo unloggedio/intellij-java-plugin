@@ -477,7 +477,7 @@ public class TestCandidateMetadata {
                 case NEW_OBJECT_CREATED:
                     ObjectInfo oInfo = replayData.getObjectInfo().get(String.valueOf(historyEvent.getValue()));
                     if (oInfo == null) {
-                        logger.info("object info is null ["+  historyEvent.getValue() +"], gotta " +
+                        logger.warn("object info is null ["+  historyEvent.getValue() +"], gotta " +
                                 "check");
                         break;
                     }
