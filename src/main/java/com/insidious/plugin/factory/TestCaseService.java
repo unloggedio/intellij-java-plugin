@@ -551,7 +551,7 @@ public class TestCaseService {
 
             if (parameterValue.getName() != null &&
                     (parameterValue.getType().startsWith("L")
-                    && !parameterValue.getType().equals("Ljava/lang/String;"))) {
+                            && !parameterValue.getType().equals("Ljava/lang/String;"))) {
                 if (parameterValue.getName().equals("new")) {
 
                 } else {
@@ -845,21 +845,11 @@ public class TestCaseService {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
 
-        if (parameter.getType() != null && parameter.getType().equals("Ljava/lang/String;")) {
+        if (parameter.getType() != null && parameter.getType().startsWith("L" + "java/lang/")) {
 
-            TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
-
-            testCandidateMetadata.setTestSubject(null);
-            Parameter returnStringParam = new Parameter();
-            testCandidateMetadata.setReturnParameter(returnStringParam);
-            testCandidateMetadata.setFullyQualifiedClassname("java.lang.String");
-            testCandidateMetadata.setPackageName("java.lang");
-            testCandidateMetadata.setTestMethodName("<init>");
-            testCandidateMetadata.setUnqualifiedClassname("String");
-            objectRoutineContainer.getConstructor().setMetadata(testCandidateMetadata);
-
+            String[] nameParts = parameter.getType().split(";")[0].split("/");
+            buildTestCandidateForBaseClass(objectRoutineContainer, nameParts[nameParts.length - 1]);
             return objectRoutineContainer;
-
 
         }
 
@@ -1023,7 +1013,6 @@ public class TestCaseService {
                     }
 
 
-
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
                     } else {
@@ -1101,7 +1090,7 @@ public class TestCaseService {
                             .collect(Collectors.toList()));
 
             Long parameterValue;
-            if (parameter.getValue() instanceof  Long) {
+            if (parameter.getValue() instanceof Long) {
 
                 parameterValue = (Long) parameter.getValue();
             } else {
@@ -1123,14 +1112,14 @@ public class TestCaseService {
 
                 dependentObjectIds.add(parameterProbe.getValue());
 
-                ObjectInfo dependentObjectInfo = objectInfoMap.get(String.valueOf(
-                        parameterProbe.getValue()
-                ));
-                if (dependentObjectInfo == null) {
-                    logger.warn("this value is not an object: [" + parameterProbe + "]");
-                    continue;
-                }
-                TypeInfo dependentObjectTypeInfo = typeInfoMap.get(String.valueOf(dependentObjectInfo.getTypeId()));
+//                ObjectInfo dependentObjectInfo = objectInfoMap.get(String.valueOf(
+//                        parameterProbe.getValue()
+//                ));
+//                if (dependentObjectInfo == null) {
+//                    logger.warn("this value is not an object: [" + parameterProbe + "]");
+//                    continue;
+//                }
+//                TypeInfo dependentObjectTypeInfo = typeInfoMap.get(String.valueOf(dependentObjectInfo.getTypeId()));
 
 //                if (!dependentObjectTypeInfo.getTypeNameFromClass().contains("org.zerhusen")) {
                 // TODO: remove
@@ -1157,6 +1146,19 @@ public class TestCaseService {
 
         return objectRoutineContainer;
 
+    }
+
+    private void buildTestCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer, String javaClassName) {
+        TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+
+        testCandidateMetadata.setTestSubject(null);
+        Parameter returnStringParam = new Parameter();
+        testCandidateMetadata.setReturnParameter(returnStringParam);
+        testCandidateMetadata.setFullyQualifiedClassname("java.lang." + javaClassName);
+        testCandidateMetadata.setPackageName("java.lang");
+        testCandidateMetadata.setTestMethodName("<init>");
+        testCandidateMetadata.setUnqualifiedClassname(javaClassName);
+        objectRoutineContainer.getConstructor().setMetadata(testCandidateMetadata);
     }
 
     private void processVariables(List<TestCandidateMetadata> metadataList, VariableContainer variableContainer) {
