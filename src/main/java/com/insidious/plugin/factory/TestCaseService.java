@@ -443,19 +443,20 @@ public class TestCaseService {
         List<TestCandidateMetadata> metadataCollection = objectRoutine.getMetadata();
         VariableContainer variableContainer = objectRoutine.getVariableContainer();
 
-        TestCandidateMetadata metadata = metadataCollection.get(0);
 
         ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
-        Object returnValueSquareClass = null;
-        String returnParameterType = metadata.getReturnParameter().getType();
-        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
-            returnValueSquareClass = constructClassName(returnParameterType);
-        } else {
-            returnValueSquareClass = getClassFromDescriptor(returnParameterType);
-        }
 
 
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
+
+            Object returnValueSquareClass = null;
+            String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
+            if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
+                returnValueSquareClass = constructClassName(returnParameterType);
+            } else {
+                returnValueSquareClass = getClassFromDescriptor(returnParameterType);
+            }
+
 
             String parameterString = createMethodParametersString(testCandidateMetadata);
 
