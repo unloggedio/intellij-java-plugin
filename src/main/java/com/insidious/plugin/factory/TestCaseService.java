@@ -548,8 +548,9 @@ public class TestCaseService {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameterValue.getType().startsWith("L")
-                    && !parameterValue.getType().equals("Ljava/lang/String;")) {
+            if (parameterValue.getName() != null &&
+                    (parameterValue.getType().startsWith("L")
+                    && !parameterValue.getType().equals("Ljava/lang/String;"))) {
                 if (parameterValue.getName().equals("new")) {
 
                 } else {
@@ -724,8 +725,11 @@ public class TestCaseService {
                         "/" + total + " ]", null);
 
                 VariableContainer variableContainer = new VariableContainer();
+
+                Parameter objectParameter = new Parameter();
+                objectParameter.setValue(objectId);
                 ObjectRoutineContainer classTestSuite = generateTestCaseFromObjectHistory(
-                        objectId, Set.of(), variableContainer);
+                        objectParameter, Set.of(), variableContainer);
                 int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
 
 
@@ -832,20 +836,40 @@ public class TestCaseService {
     private ObjectRoutineContainer
     generateTestCaseFromObjectHistory
             (
-                    final Long objectId,
+                    Parameter parameter,
                     final Set<Long> dependentObjectIdsOriginal,
                     VariableContainer globalVariableContainer
             ) throws APICallException,
             IOException {
-        Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
+
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
+
+        if (parameter.getType() != null && parameter.getType().equals("Ljava/lang/String;")) {
+
+            TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+
+            testCandidateMetadata.setTestSubject(null);
+            Parameter returnStringParam = new Parameter();
+            testCandidateMetadata.setReturnParameter(returnStringParam);
+            testCandidateMetadata.setFullyQualifiedClassname("java.lang.String");
+            testCandidateMetadata.setPackageName("java.lang");
+            testCandidateMetadata.setTestMethodName("<init>");
+            testCandidateMetadata.setUnqualifiedClassname("String");
+            objectRoutineContainer.getConstructor().setMetadata(testCandidateMetadata);
+
+            return objectRoutineContainer;
+
+
+        }
+
+        Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
         PageInfo pagination = new PageInfo(0, 500000, PageInfo.Order.ASC);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
-        request.setObjectId(objectId);
+        request.setObjectId(Long.valueOf(String.valueOf(parameter.getValue())));
         ReplayData objectReplayData = client.
                 fetchObjectHistoryByObjectId(request);
 
@@ -887,7 +911,7 @@ public class TestCaseService {
         final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
 
         final ObjectInfo subjectObjectInfo =
-                objectInfoMap.get(String.valueOf(objectId));
+                objectInfoMap.get(String.valueOf(parameter.getValue()));
         final TypeInfo subjectTypeInfo =
                 typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
 
@@ -901,7 +925,8 @@ public class TestCaseService {
 
 //        int eventIndex = -1;
         TypeInfo typeInfo = null;
-        TestCandidateMetadata testCandidateMetadata = null;
+//        TestCandidateMetadata testCandidateMetadata = null;
+        String subjectName = null;
 
 
         long threadId = -1;
@@ -971,19 +996,23 @@ public class TestCaseService {
 
                     Parameter testSubjectParameter = newTestCaseMetadata.getTestSubject();
                     if (testSubjectParameter == null) {
-                        // whats happening here
+                        // whats happening here, if we were unable to pick a test subject
+                        // parameter then when dont know which variable to invoke this method on
+                        // potentially be a pagination issue also
                         continue;
                     }
                     if (testSubjectParameter.getValue() == null ||
-                            !Long.valueOf((String) testSubjectParameter.getValue()).equals(objectId)) {
+                            !(String.valueOf(testSubjectParameter.getValue()))
+                                    .equals(String.valueOf(parameter.getValue()))
+                    ) {
                         continue;
                     }
 
-                    if (testSubjectParameter.getName() == null
-                            && testCandidateMetadata != null) {
-                        testSubjectParameter.setName(
-                                testCandidateMetadata.getTestSubject().getName());
-                    }
+//                    if (testSubjectParameter.getName() == null
+//                            && testCandidateMetadata != null) {
+//                        testSubjectParameter.setName(
+//                                testCandidateMetadata.getTestSubject().getName());
+//                    }
 
                     // we should find a return parameter even if the type of the return
                     // is void, return parameter marks the completion of the method
@@ -992,16 +1021,20 @@ public class TestCaseService {
                         continue;
                     }
 
-                    long currentThreadId = dataEvent.getThreadId();
-                    if (currentThreadId != threadId) {
-                        // this is happening on a different thread
-                        objectRoutineContainer.newRoutine("thread" + currentThreadId);
-                        threadId = currentThreadId;
-                    }
+
 
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
                     } else {
+                        if (subjectName == null) {
+                            subjectName = newTestCaseMetadata.getTestSubject().getName();
+                        }
+                        long currentThreadId = dataEvent.getThreadId();
+                        if (currentThreadId != threadId) {
+                            // this is happening on a different thread
+                            objectRoutineContainer.newRoutine("thread" + currentThreadId);
+                            threadId = currentThreadId;
+                        }
                         objectRoutineContainer.addMetadata(newTestCaseMetadata);
                     }
 
@@ -1016,8 +1049,13 @@ public class TestCaseService {
 
         }
 
+        if (subjectName != null) {
+            objectRoutineContainer.setName(subjectName);
+        }
+
 
         ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
+
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
 
             if (objectRoutine.getMetadata().size() == 0) {
@@ -1026,12 +1064,25 @@ public class TestCaseService {
 
             VariableContainer variableContainer = globalVariableContainer.clone();
             processVariables(objectRoutine.getMetadata(), variableContainer);
+            if (objectRoutine.getRoutineName().equals("<init>")) {
+                globalVariableContainer = variableContainer;
+            }
+            objectRoutine.setVariableContainer(variableContainer);
+            for (String name : variableContainer.getNames()) {
+                Parameter localVariable = variableContainer.getParameterByName(name);
+                if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
+                    Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
+                    if (byId.isPresent()) {
+                        byId.get().setName(localVariable.getName());
+                    }
+                }
+            }
 
 
             Set<Long> newPotentialObjects = new HashSet<>();
             List<Parameter> dependentParameters = new LinkedList<>();
 
-            dependentParameters.addAll(constructorRoutine.getMetadata().get(0).getParameterValues());
+
             dependentParameters.addAll(
                     objectRoutine
                             .getMetadata()
@@ -1048,15 +1099,22 @@ public class TestCaseService {
                             .map(e -> e.getProb().getValue())
                             .collect(Collectors.toList()));
 
-            dependentObjectIds.add(objectId);
-            for (Parameter newParameter : dependentParameters) {
+            Long parameterValue;
+            if (parameter.getValue() instanceof  Long) {
 
-                if (variableContainer.contains(newParameter.getName())) {
-                    logger.warn("variable already exists: " + newParameter.getName());
+                parameterValue = (Long) parameter.getValue();
+            } else {
+                parameterValue = Long.valueOf(String.valueOf(parameter.getValue()));
+            }
+            dependentObjectIds.add(parameterValue);
+            for (Parameter dependentParameter : dependentParameters) {
+
+                if (variableContainer.contains(dependentParameter.getName())) {
+                    logger.warn("variable already exists: " + dependentParameter.getName());
                     continue;
                 }
 
-                DataEventWithSessionId parameterProbe = newParameter.getProb();
+                DataEventWithSessionId parameterProbe = dependentParameter.getProb();
                 if (dependentObjectIds.contains(parameterProbe.getValue())) {
                     logger.debug("object is already being constructed: " + parameterProbe.getValue());
                     continue;
@@ -1079,16 +1137,20 @@ public class TestCaseService {
 //                }
 
                 ObjectRoutineContainer dependentObjectCreation =
-                        generateTestCaseFromObjectHistory(parameterProbe.getValue(),
+                        generateTestCaseFromObjectHistory(
+                                dependentParameter,
                                 newPotentialObjects, variableContainer);
-                dependentObjectCreation.setName(newParameter.getName());
+                dependentParameter.setName(dependentObjectCreation.getName());
 
                 objectRoutine.addDependent(dependentObjectCreation);
             }
+        }
 
-
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+            if (objectRoutine.getMetadata().size() == 0) {
+                continue;
+            }
             buildTestFromTestMetadataSet(objectRoutine);
-
         }
 
 
@@ -1125,6 +1187,8 @@ public class TestCaseService {
                         = variableContainer.getParametersById((String) testSubject.getValue());
                 if (parameterByValue.isPresent()) {
                     parameterByValue.get().setName(testSubject.getName());
+                } else {
+                    variableContainer.add(testSubject);
                 }
             }
 

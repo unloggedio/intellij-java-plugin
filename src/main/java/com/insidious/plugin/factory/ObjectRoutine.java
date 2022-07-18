@@ -7,6 +7,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ObjectRoutine is representing a block of code, close to a method, containing all the
+ * statements and dependent variables along with their own object routines (the whole hierarchy
+ * should be available to recreate this object inside a test case)
+ */
 public class ObjectRoutine {
     private final List<Pair<String, Object[]>> statements = new LinkedList<>();
     private final String routineName;

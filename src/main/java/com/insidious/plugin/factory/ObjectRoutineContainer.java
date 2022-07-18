@@ -6,6 +6,11 @@ import com.intellij.openapi.util.Pair;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * A convienent container for list of ObjectRoutine. we always have one constructor routine for
+ * the object, which is always named &lt;init&gt; and the other methods have proper names. Add
+ * statements is redirected to most recently created object routine.
+ */
 public class ObjectRoutineContainer {
     public ObjectRoutineContainer(List<ObjectRoutine> constructorRoutine) {
         for (ObjectRoutine objectRoutine : constructorRoutine) {
@@ -32,6 +37,10 @@ public class ObjectRoutineContainer {
 
     private ObjectRoutine constructor = newRoutine("<init>");
     private ObjectRoutine currentRoutine;
+
+    /**
+     * Name for variable for this particular object
+     */
     private String name;
 
     public ObjectRoutine newRoutine(String routineName) {
@@ -68,5 +77,4 @@ public class ObjectRoutineContainer {
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
         currentRoutine.addMetadata(newTestCaseMetadata);
     }
-
 }

@@ -24,9 +24,6 @@ public class TestCandidateMetadata {
     private String testMethodName;
     private Parameter testSubject;
     private Parameter returnParameter;
-    private int entryProbeIndex;
-    private int exitProbeIndex;
-    private DataEventWithSessionId entryProbe;
     private final List<Parameter> parameters = new LinkedList<>();
 
     public String getMethodName() {
@@ -127,8 +124,8 @@ public class TestCandidateMetadata {
             entryProbeIndex++;
         }
 
-        metadata.setEntryProbeIndex(entryProbeIndex);
-        metadata.setEntryProbe(events.get(entryProbeIndex));
+//        metadata.setEntryProbeIndex(entryProbeIndex);
+//        metadata.setEntryProbe(events.get(entryProbeIndex));
 
 
         int callReturnIndex = -1;
@@ -165,7 +162,7 @@ public class TestCandidateMetadata {
         ReplayData callReturnReplayData;
         callReturnReplayData = replayData;
 
-        metadata.setExitProbeIndex(callReturnIndex);
+//        metadata.setExitProbeIndex(callReturnIndex);
         logger.info("entry probe matched at event: " + entryProbeIndex +
                 ", return found " + "at: " + callReturnIndex);
 
@@ -599,30 +596,6 @@ public class TestCandidateMetadata {
 
     public void setTestSubject(Parameter testSubject) {
         this.testSubject = testSubject;
-    }
-
-    public void setEntryProbeIndex(int entryProbeIndex) {
-        this.entryProbeIndex = entryProbeIndex;
-    }
-
-    public int getEntryProbeIndex() {
-        return entryProbeIndex;
-    }
-
-    public void setExitProbeIndex(int callReturnProbeIndex) {
-        this.exitProbeIndex = callReturnProbeIndex;
-    }
-
-    public int getExitProbeIndex() {
-        return exitProbeIndex;
-    }
-
-    public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryProbe = entryProbe;
-    }
-
-    public DataEventWithSessionId getEntryProbe() {
-        return entryProbe;
     }
 
 
