@@ -834,6 +834,15 @@ public class TestCaseService {
 
     }
 
+    /**
+     * this is our main man in the team
+     * @param parameter
+     * @param dependentObjectIdsOriginal
+     * @param globalVariableContainer
+     * @return
+     * @throws APICallException
+     * @throws IOException
+     */
     private ObjectRoutineContainer
     generateTestCaseFromObjectHistory
             (
@@ -845,6 +854,9 @@ public class TestCaseService {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
 
+        // we want to create the objects from java.lang.* namespace using their real values, so
+        // in the test case it looks something like
+        // Integer varName = value;
         if (parameter.getType() != null && parameter.getType().startsWith("L" + "java/lang/")) {
 
             String[] nameParts = parameter.getType().split(";")[0].split("/");
@@ -941,7 +953,11 @@ public class TestCaseService {
                         generateTestCaseFromObjectHistory(
                                 dependentParameter,
                                 newPotentialObjects, variableContainer);
-                dependentParameter.setName(dependentObjectCreation.getName());
+                if (dependentObjectCreation.getName() != null) {
+                    dependentParameter.setName(dependentObjectCreation.getName());
+                } else {
+                    dependentObjectCreation.setName(dependentParameter.getName());
+                }
 
                 objectRoutine.addDependent(dependentObjectCreation);
             }

@@ -458,7 +458,10 @@ public class TestCandidateMetadata {
         }
 
         int direction;
-        if (probeInfo.getEventType() == EventType.CALL_RETURN) {
+        if (
+                probeInfo.getEventType() == EventType.CALL_RETURN ||
+                probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED
+        ) {
             direction = -1; // go forward from current event
         } else {
             direction = 1; // go backward from current event
