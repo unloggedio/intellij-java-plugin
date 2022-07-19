@@ -865,7 +865,119 @@ public class TestCaseService {
                 fetchObjectHistoryByObjectId(request);
 
 
-        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
+        String subjectName = buildTestCandidates(parameter, objectRoutineContainer, objectReplayData);
+
+        if (subjectName != null) {
+            objectRoutineContainer.setName(subjectName);
+        }
+
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+
+            if (objectRoutine.getMetadata().size() == 0) {
+                continue;
+            }
+
+            VariableContainer variableContainer = globalVariableContainer.clone();
+            processVariables(objectRoutine.getMetadata(), variableContainer);
+            if (objectRoutine.getRoutineName().equals("<init>")) {
+                globalVariableContainer = variableContainer;
+            }
+            objectRoutine.setVariableContainer(variableContainer);
+            for (String name : variableContainer.getNames()) {
+                Parameter localVariable = variableContainer.getParameterByName(name);
+                if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
+                    Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
+                    if (byId.isPresent()) {
+                        byId.get().setName(localVariable.getName());
+                    }
+                }
+            }
+
+
+            Set<Long> newPotentialObjects = new HashSet<>();
+            List<Parameter> dependentParameters = new LinkedList<>();
+
+
+            dependentParameters.addAll(
+                    objectRoutine
+                            .getMetadata()
+                            .stream()
+                            .map(TestCandidateMetadata::getParameterValues)
+                            .flatMap(Collection::stream)
+                            .collect(Collectors.toList()));
+
+
+            newPotentialObjects.addAll(dependentObjectIds);
+            newPotentialObjects.addAll(
+                    dependentParameters
+                            .stream()
+                            .map(e -> e.getProb().getValue())
+                            .collect(Collectors.toList()));
+
+            Long parameterValue;
+            if (parameter.getValue() instanceof Long) {
+
+                parameterValue = (Long) parameter.getValue();
+            } else {
+                parameterValue = Long.valueOf(String.valueOf(parameter.getValue()));
+            }
+            dependentObjectIds.add(parameterValue);
+            for (Parameter dependentParameter : dependentParameters) {
+
+                if (variableContainer.contains(dependentParameter.getName())) {
+                    logger.warn("variable already exists: " + dependentParameter.getName());
+                    continue;
+                }
+
+                DataEventWithSessionId parameterProbe = dependentParameter.getProb();
+                if (dependentObjectIds.contains(parameterProbe.getValue())) {
+                    logger.debug("object is already being constructed: " + parameterProbe.getValue());
+                    continue;
+                }
+
+                dependentObjectIds.add(parameterProbe.getValue());
+
+                ObjectRoutineContainer dependentObjectCreation =
+                        generateTestCaseFromObjectHistory(
+                                dependentParameter,
+                                newPotentialObjects, variableContainer);
+                dependentParameter.setName(dependentObjectCreation.getName());
+
+                objectRoutine.addDependent(dependentObjectCreation);
+            }
+        }
+
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+            if (objectRoutine.getMetadata().size() == 0) {
+                continue;
+            }
+            buildTestFromTestMetadataSet(objectRoutine);
+        }
+
+
+        return objectRoutineContainer;
+
+    }
+
+    /**
+     * the method uses the parameter as a filter, and iterates thru all the events in the
+     * replayData parameter. Any matching CALL or METHOD_ENTRY is a potential call and its
+     * parameters and return value is captured, which serves the bases of the test candidate.
+     *
+     * @param parameter              the value is the most important part
+     * @param objectRoutineContainer the identifies method calles on this parameter will be added
+     *                               as a parameter to the object routine container
+     * @param objectReplayData the series of events based on which we are rebuilding the object history
+     * @return a name for the target object (which was originally a long id),
+     * @throws APICallException this happens when we fail to read the data from the disk or the
+     * network
+     */
+    private String buildTestCandidates(
+            Parameter parameter,
+            ObjectRoutineContainer objectRoutineContainer,
+            ReplayData objectReplayData
+    ) throws APICallException {
+
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
 
@@ -895,11 +1007,17 @@ public class TestCaseService {
         Collections.reverse(objectEventsReverse);
         objectReplayData.setDataEvents(objectEventsReverse);
 
-        // iterate from oldest to newest event
+
+        // we need to identify a name for this object some way by using a variable name or a
+        // paramter name
+        String subjectName = null;
+
+
         final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
         final Map<String, DataInfo> probeInfoMap = objectReplayData.getDataInfoMap();
         final Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
         final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
+        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
 
         final ObjectInfo subjectObjectInfo =
                 objectInfoMap.get(String.valueOf(parameter.getValue()));
@@ -907,21 +1025,8 @@ public class TestCaseService {
                 typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
 
 
-//        MethodSpec.Builder testMethodBuilder = buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
-//        MethodSpec.Builder methodParent =
-//                buildJUnitTestCaseSkeleton("testClassAsInstance" + objectId);
-//        checkProgressIndicator("Parsing " + objectEvents.size() + " events of object[" + objectId +
-//                "]", null);
-
-
-//        int eventIndex = -1;
-        TypeInfo typeInfo = null;
-//        TestCandidateMetadata testCandidateMetadata = null;
-        String subjectName = null;
-
-
         long threadId = -1;
-
+        TypeInfo typeInfo;
         for (int eventIndex = 0; eventIndex < objectEvents.size(); eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
             final long eventValue = dataEvent.getValue();
@@ -999,11 +1104,6 @@ public class TestCaseService {
                         continue;
                     }
 
-//                    if (testSubjectParameter.getName() == null
-//                            && testCandidateMetadata != null) {
-//                        testSubjectParameter.setName(
-//                                testCandidateMetadata.getTestSubject().getName());
-//                    }
 
                     // we should find a return parameter even if the type of the return
                     // is void, return parameter marks the completion of the method
@@ -1038,114 +1138,7 @@ public class TestCaseService {
             }
 
         }
-
-        if (subjectName != null) {
-            objectRoutineContainer.setName(subjectName);
-        }
-
-
-        ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
-
-        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-
-            if (objectRoutine.getMetadata().size() == 0) {
-                continue;
-            }
-
-            VariableContainer variableContainer = globalVariableContainer.clone();
-            processVariables(objectRoutine.getMetadata(), variableContainer);
-            if (objectRoutine.getRoutineName().equals("<init>")) {
-                globalVariableContainer = variableContainer;
-            }
-            objectRoutine.setVariableContainer(variableContainer);
-            for (String name : variableContainer.getNames()) {
-                Parameter localVariable = variableContainer.getParameterByName(name);
-                if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
-                    Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
-                    if (byId.isPresent()) {
-                        byId.get().setName(localVariable.getName());
-                    }
-                }
-            }
-
-
-            Set<Long> newPotentialObjects = new HashSet<>();
-            List<Parameter> dependentParameters = new LinkedList<>();
-
-
-            dependentParameters.addAll(
-                    objectRoutine
-                            .getMetadata()
-                            .stream()
-                            .map(TestCandidateMetadata::getParameterValues)
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toList()));
-
-
-            newPotentialObjects.addAll(dependentObjectIds);
-            newPotentialObjects.addAll(
-                    dependentParameters
-                            .stream()
-                            .map(e -> e.getProb().getValue())
-                            .collect(Collectors.toList()));
-
-            Long parameterValue;
-            if (parameter.getValue() instanceof Long) {
-
-                parameterValue = (Long) parameter.getValue();
-            } else {
-                parameterValue = Long.valueOf(String.valueOf(parameter.getValue()));
-            }
-            dependentObjectIds.add(parameterValue);
-            for (Parameter dependentParameter : dependentParameters) {
-
-                if (variableContainer.contains(dependentParameter.getName())) {
-                    logger.warn("variable already exists: " + dependentParameter.getName());
-                    continue;
-                }
-
-                DataEventWithSessionId parameterProbe = dependentParameter.getProb();
-                if (dependentObjectIds.contains(parameterProbe.getValue())) {
-                    logger.debug("object is already being constructed: " + parameterProbe.getValue());
-                    continue;
-                }
-
-                dependentObjectIds.add(parameterProbe.getValue());
-
-//                ObjectInfo dependentObjectInfo = objectInfoMap.get(String.valueOf(
-//                        parameterProbe.getValue()
-//                ));
-//                if (dependentObjectInfo == null) {
-//                    logger.warn("this value is not an object: [" + parameterProbe + "]");
-//                    continue;
-//                }
-//                TypeInfo dependentObjectTypeInfo = typeInfoMap.get(String.valueOf(dependentObjectInfo.getTypeId()));
-
-//                if (!dependentObjectTypeInfo.getTypeNameFromClass().contains("org.zerhusen")) {
-                // TODO: remove
-//                    continue;
-//                }
-
-                ObjectRoutineContainer dependentObjectCreation =
-                        generateTestCaseFromObjectHistory(
-                                dependentParameter,
-                                newPotentialObjects, variableContainer);
-                dependentParameter.setName(dependentObjectCreation.getName());
-
-                objectRoutine.addDependent(dependentObjectCreation);
-            }
-        }
-
-        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-            if (objectRoutine.getMetadata().size() == 0) {
-                continue;
-            }
-            buildTestFromTestMetadataSet(objectRoutine);
-        }
-
-
-        return objectRoutineContainer;
-
+        return subjectName;
     }
 
     private void buildTestCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer, String javaClassName) {
