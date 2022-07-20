@@ -34,7 +34,7 @@ public class TestCaseService {
     private final Project project;
     private final VideobugClientInterface client;
     final private int MAX_TEST_CASE_LINES = 1000;
-    private CompareMode MODE = CompareMode.SERIALIZED_JSON;
+    private final CompareMode MODE = CompareMode.SERIALIZED_JSON;
 
     public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
@@ -518,8 +518,8 @@ public class TestCaseService {
                     // round ? Maybe serializing the object and then comparing the serialized
                     // string forms would be more readable ? string comparison would fail if the
                     // serialization has fields serialized in random order
-                    if (MODE == CompareMode.OBJECT) {
-                        if (serializedBytes.length > 0) {
+                    if (serializedBytes.length > 0) {
+                        if (MODE == CompareMode.OBJECT) {
                             objectRoutine.addStatement("$T $L = gson.fromJson($S, $T.class)",
                                     returnValueSquareClass,
                                     returnSubjectInstanceName + "Expected",
@@ -527,20 +527,20 @@ public class TestCaseService {
                                     returnValueSquareClass
                             );
                             returnValue = returnSubjectInstanceName + "Expected";
+                        } else if (MODE == CompareMode.SERIALIZED_JSON) {
+                            objectRoutine.addStatement("$T $L = gson.toJson($L)",
+                                    String.class,
+                                    returnSubjectInstanceName + "Json",
+                                    returnSubjectInstanceName
+                            );
+                            objectRoutine.addStatement("$T $L = $S",
+                                    String.class,
+                                    returnSubjectInstanceName + "ExpectedJson",
+                                    serializedValue
+                            );
+                            returnValue = returnSubjectInstanceName + "ExpectedJson";
+                            returnSubjectInstanceName = returnSubjectInstanceName + "Json";
                         }
-                    } else if (MODE == CompareMode.SERIALIZED_JSON) {
-                        objectRoutine.addStatement("$T $L = gson.toJson($L)",
-                                String.class,
-                                returnSubjectInstanceName + "Json",
-                                returnSubjectInstanceName
-                        );
-                        objectRoutine.addStatement("$T $L = $S",
-                                String.class,
-                                returnSubjectInstanceName + "ExpectedJson",
-                                serializedValue
-                        );
-                        returnValue = returnSubjectInstanceName + "ExpectedJson";
-                        returnSubjectInstanceName = returnSubjectInstanceName + "Json";
                     }
 
 
@@ -911,6 +911,14 @@ public class TestCaseService {
             String[] nameParts = parameter.getType().split(";")[0].split("/");
             buildTestCandidateForBaseClass(objectRoutineContainer, nameParts[nameParts.length - 1]);
             return objectRoutineContainer;
+
+        }
+
+        if (parameter.getType() != null && parameter.getType().length() == 1) {
+            buildTestCandidateForBaseClass(objectRoutineContainer,
+                    parameter.getProbeInfo().getValueDesc().name());
+            return objectRoutineContainer;
+
 
         }
 
