@@ -18,10 +18,7 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -37,6 +34,7 @@ public class TestCaseService {
     private final Project project;
     private final VideobugClientInterface client;
     final private int MAX_TEST_CASE_LINES = 1000;
+    private CompareMode MODE = CompareMode.SERIALIZED_JSON;
 
     public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
@@ -446,7 +444,6 @@ public class TestCaseService {
 
         ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
 
-
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
 
             Object returnValueSquareClass = null;
@@ -487,6 +484,7 @@ public class TestCaseService {
                             testSubjectName, testCandidateMetadata.getMethodName());
 
                 } else {
+                    Object returnValue = returnParameter.getValue();
 
                     String returnSubjectInstanceName = returnParameter.getName();
                     if (variableContainer.contains(returnSubjectInstanceName)) {
@@ -507,14 +505,52 @@ public class TestCaseService {
 
                     String returnType = returnParameter.getType();
 
+                    // deserialize and compare objects
+                    byte[] serializedBytes = returnParameter.getProb().getSerializedValue();
+                    if (serializedBytes == null) {
+                        serializedBytes = new byte[0];
+                    }
+                    String serializedValue = new String(serializedBytes);
+                    objectRoutine.addComment("Serialized value: " + serializedValue);
+
+                    // reconstruct object from the serialized form to an object instance in the
+                    // test method to compare it with the new object, or do it the other way
+                    // round ? Maybe serializing the object and then comparing the serialized
+                    // string forms would be more readable ? string comparison would fail if the
+                    // serialization has fields serialized in random order
+                    if (MODE == CompareMode.OBJECT) {
+                        if (serializedBytes.length > 0) {
+                            objectRoutine.addStatement("$T $L = gson.fromJson($S, $T.class)",
+                                    returnValueSquareClass,
+                                    returnSubjectInstanceName + "Expected",
+                                    serializedValue,
+                                    returnValueSquareClass
+                            );
+                            returnValue = returnSubjectInstanceName + "Expected";
+                        }
+                    } else if (MODE == CompareMode.SERIALIZED_JSON) {
+                        objectRoutine.addStatement("$T $L = gson.toJson($L)",
+                                String.class,
+                                returnSubjectInstanceName + "Json",
+                                returnSubjectInstanceName
+                        );
+                        objectRoutine.addStatement("$T $L = $S",
+                                String.class,
+                                returnSubjectInstanceName + "ExpectedJson",
+                                serializedValue
+                        );
+                        returnValue = returnSubjectInstanceName + "ExpectedJson";
+                        returnSubjectInstanceName = returnSubjectInstanceName + "Json";
+                    }
+
+
                     if (returnType.equals("Ljava/lang/String;")) {
-                        objectRoutine.addStatement("$T.assertEquals($L, $L);",
+                        objectRoutine.addStatement("$T.assertEquals($L, $L)",
                                 assertClass,
                                 returnParameter.getValue(),
                                 returnSubjectInstanceName
                         );
                     } else {
-                        Object returnValue = returnParameter.getValue();
                         if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
                             if ((long) returnValue == 1) {
                                 returnValue = "true";
@@ -522,7 +558,7 @@ public class TestCaseService {
                                 returnValue = "false";
                             }
                         }
-                        objectRoutine.addStatement("$T.assertEquals($L, $L);",
+                        objectRoutine.addStatement("$T.assertEquals($L, $L)",
                                 assertClass,
                                 returnValue,
                                 returnSubjectInstanceName
@@ -760,6 +796,7 @@ public class TestCaseService {
 //                    e1.getObjectRoutines().add(objectRoutine);
                     addRoutinesToMethodBuilder(builder, List.of(e1));
 
+
                     builder.addAnnotation(JUNIT_CLASS_NAME);
 
                     MethodSpec methodTestScript = builder.build();
@@ -780,11 +817,22 @@ public class TestCaseService {
 
             checkProgressIndicator(null, "Generate java source for test scenario");
             String generatedTestClassName = "Test" + simpleClassName + "V";
-            TypeSpec helloWorld = TypeSpec.classBuilder(generatedTestClassName)
+            TypeSpec.Builder typeSpecBuilder = TypeSpec.classBuilder(generatedTestClassName)
                     .addModifiers(javax.lang.model.element.Modifier.PUBLIC,
                             javax.lang.model.element.Modifier.FINAL)
-                    .addMethods(testCaseScripts)
-                    .build();
+                    .addMethods(testCaseScripts);
+
+            ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
+
+            typeSpecBuilder
+                    .addField(FieldSpec
+                            .builder(gsonClass,
+                                    "gson", javax.lang.model.element.Modifier.PUBLIC)
+                            .initializer("new $T()", gsonClass)
+                            .build());
+
+
+            TypeSpec helloWorld = typeSpecBuilder.build();
 
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
                     .build();
@@ -836,6 +884,7 @@ public class TestCaseService {
 
     /**
      * this is our main man in the team
+     *
      * @param parameter
      * @param dependentObjectIdsOriginal
      * @param globalVariableContainer
@@ -845,11 +894,11 @@ public class TestCaseService {
      */
     private ObjectRoutineContainer
     generateTestCaseFromObjectHistory
-            (
-                    Parameter parameter,
-                    final Set<Long> dependentObjectIdsOriginal,
-                    VariableContainer globalVariableContainer
-            ) throws APICallException,
+    (
+            Parameter parameter,
+            final Set<Long> dependentObjectIdsOriginal,
+            VariableContainer globalVariableContainer
+    ) throws APICallException,
             IOException {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
@@ -983,10 +1032,10 @@ public class TestCaseService {
      * @param parameter              the value is the most important part
      * @param objectRoutineContainer the identifies method calles on this parameter will be added
      *                               as a parameter to the object routine container
-     * @param objectReplayData the series of events based on which we are rebuilding the object history
+     * @param objectReplayData       the series of events based on which we are rebuilding the object history
      * @return a name for the target object (which was originally a long id),
      * @throws APICallException this happens when we fail to read the data from the disk or the
-     * network
+     *                          network
      */
     private String buildTestCandidates(
             Parameter parameter,
@@ -1072,6 +1121,7 @@ public class TestCaseService {
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
             switch (probeInfo.getEventType()) {
                 case CALL:
+
                     constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
 
                     if (subjectTypeInfo != null &&

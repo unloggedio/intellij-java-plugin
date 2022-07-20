@@ -461,23 +461,38 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
                             .stream()
                             .filter(e -> {
-                                boolean isDataEvent = e.magic() == 4;
+                                boolean isDataEvent = e.magic() == 7 || e.magic() == 4;
+
+
                                 if (!isDataEvent) {
                                     return false;
                                 }
                                 long currentFirstEventAt = previousEventAt.get();
 
-                                KaitaiInsidiousEventParser.DataEventBlock dataEventBlock =
-                                        (KaitaiInsidiousEventParser.DataEventBlock) e.block();
-                                long currentEventId = dataEventBlock.eventId();
+                                long currentEventId = -1;
+                                long valueId = -1;
+
+                                if (e.magic() == 4) {
+                                    KaitaiInsidiousEventParser.DataEventBlock dataEventBlock =
+                                            (KaitaiInsidiousEventParser.DataEventBlock) e.block();
+                                    currentEventId = dataEventBlock.eventId();
+                                    valueId = dataEventBlock.valueId();
+
+                                } else if (e.magic() == 7) {
+                                    KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock =
+                                            (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
+                                    currentEventId = detailedEventBlock.eventId();
+                                    valueId = detailedEventBlock.valueId();
+
+                                }
 
                                 if (filteredDataEventsRequest.getNanotime() != -1) {
                                     if (pageInfo.isAsc()) {
-                                        if (dataEventBlock.eventId() < filteredDataEventsRequest.getNanotime()) {
+                                        if (currentEventId < filteredDataEventsRequest.getNanotime()) {
                                             return false;
                                         }
                                     } else {
-                                        if (dataEventBlock.eventId() > filteredDataEventsRequest.getNanotime()) {
+                                        if (currentEventId > filteredDataEventsRequest.getNanotime()) {
                                             return false;
                                         }
 
@@ -491,11 +506,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 }
 
                                 boolean isRequestedObject =
-                                        dataEventBlock.valueId() == objectId
-                                                || objectId == -1;
+                                        valueId == objectId || objectId == -1;
 
                                 if (isRequestedObject) {
-                                    previousEventAt.set(dataEventBlock.eventId());
+                                    previousEventAt.set(currentEventId);
                                 }
 
                                 return isRequestedObject;
@@ -507,15 +521,34 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                 }
                                 return true;
                             })
-                            .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
+//                            .map(e -> (KaitaiInsidiousEventParser.DetailedEventBlock) e.block())
                             .map(e -> {
-                                DataEventWithSessionId d = new DataEventWithSessionId();
-                                d.setDataId((int) e.probeId());
-                                d.setNanoTime(e.eventId());
-                                d.setRecordedAt(new Date(e.timestamp()));
-                                d.setThreadId(fileThreadId);
-                                d.setValue(e.valueId());
-                                return d;
+                                if (e.magic() == 4) {
+                                    KaitaiInsidiousEventParser.DataEventBlock eventBlock
+                                            = (KaitaiInsidiousEventParser.DataEventBlock) e.block();
+                                    DataEventWithSessionId d = new DataEventWithSessionId();
+                                    d.setDataId((int) eventBlock.probeId());
+                                    d.setNanoTime(eventBlock.eventId());
+                                    d.setRecordedAt(new Date(eventBlock.timestamp()));
+                                    d.setThreadId(fileThreadId);
+                                    d.setValue(eventBlock.valueId());
+                                    return d;
+                                } else if (e.magic() == 7) {
+                                    KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
+                                            = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
+                                    DataEventWithSessionId d = new DataEventWithSessionId();
+                                    d.setDataId((int) eventBlock.probeId());
+                                    d.setNanoTime(eventBlock.eventId());
+                                    d.setRecordedAt(new Date(eventBlock.timestamp()));
+                                    d.setThreadId(fileThreadId);
+                                    d.setValue(eventBlock.valueId());
+                                    d.setSerializedValue(eventBlock.serializedData());
+                                    return d;
+
+                                }
+
+
+                                return null;
                             }).collect(Collectors.toList());
 
                     if (remaining < dataEventGroupedList.size()) {

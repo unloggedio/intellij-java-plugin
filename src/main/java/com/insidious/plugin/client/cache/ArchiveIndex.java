@@ -10,10 +10,7 @@ import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,10 +88,13 @@ public class ArchiveIndex {
 
         Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_ID, valueIds);
         ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
-        Map<String, TypeInfo> collect = retrieve.stream()
+        final Map<String, TypeInfo> collect = new HashMap<>();
+        retrieve.stream()
                 .map(e -> new TypeInfo("", e.getTypeId(), e.getTypeName(),
                         "", "", "", ""))
-                .collect(Collectors.toMap(e -> String.valueOf(e.getTypeId()), r -> r));
+                .forEach(e -> {
+                    collect.put(String.valueOf(e.getTypeId()), e);
+                });
         retrieve.close();
         return collect;
 
