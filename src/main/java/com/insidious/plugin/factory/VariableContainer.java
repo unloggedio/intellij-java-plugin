@@ -47,7 +47,7 @@ public class VariableContainer {
     public boolean contains(String returnSubjectInstanceName) {
         return this.parameterList
                 .stream()
-                .anyMatch(e -> e.getName().equals(returnSubjectInstanceName));
+                .anyMatch(e -> e.getName() != null && e.getName().equals(returnSubjectInstanceName));
     }
 
     public String createVariableName(String className) {

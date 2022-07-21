@@ -58,9 +58,6 @@ public class SearchResultsCallbackHandler implements ClientCallBack<TracePoint> 
 
 
         if (tracePoints.size() != 0) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().cancel();
-            }
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("count", tracePoints.size());
             UsageInsightTracker.getInstance().RecordEvent("YesResultGetTraces" + searchQuery.getQueryType(), eventProperties);

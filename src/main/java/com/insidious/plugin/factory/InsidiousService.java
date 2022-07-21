@@ -23,6 +23,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.ConfigurationWindow;
 import com.insidious.plugin.ui.SearchByTypesWindow;
 import com.insidious.plugin.ui.SearchByValueWindow;
+import com.insidious.plugin.ui.SingleWindowView;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
@@ -61,6 +62,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import com.intellij.ui.content.ContentManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
@@ -96,6 +98,7 @@ public class InsidiousService implements Disposable {
     private String packageName = "YOUR.PACKAGE.NAME";
     private SearchByTypesWindow searchByTypesWindow;
     private SearchByValueWindow searchByValueWindow;
+    private SingleWindowView singleWindowView;
     private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
     private InsidiousJDIConnector connector;
@@ -531,6 +534,11 @@ public class InsidiousService implements Disposable {
                 );
                 waiter.take();
 
+                if (allObjects.size() == 0) {
+                    InsidiousNotification.notifyMessage("Could not find any instances of [" + targetClasses + "]",
+                            NotificationType.WARNING);
+                }
+
                 TestSuite testSuite = testCaseService.generateTestCase(targetClasses, allObjects);
                 return testSuite;
 
@@ -606,7 +614,7 @@ public class InsidiousService implements Disposable {
                 indicator.setText2("Filtering by class types");
                 AtomicInteger done = new AtomicInteger(0);
 
-                sessionList.forEach(executionSession -> {
+                for (ExecutionSession executionSession : sessionList) {
                     switch (searchQuery.getQueryType()) {
                         case BY_TYPE:
                             client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1, searchResultsHandler);
@@ -620,7 +628,7 @@ public class InsidiousService implements Disposable {
                             break;
                     }
 
-                });
+                }
 
                 while (client instanceof VideobugNetworkClient &&
                         searchResultsHandler.getDoneCount() != sessionList.size()) {
@@ -757,30 +765,29 @@ public class InsidiousService implements Disposable {
         logger.info("initiate ui");
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
 
+        ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {
             credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
             @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
+            contentManager.addContent(credentialContent);
         }
         if (isLoggedIn() && searchByTypesWindow == null) {
 
             searchByTypesWindow = new SearchByTypesWindow(project, this);
             searchByValueWindow = new SearchByValueWindow(project, this);
 
-            @NotNull Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
-            this.toolWindow.getContentManager().addContent(bugsContent);
-
+            // create the windows
+            Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            @NotNull Content logicbugContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            this.toolWindow.getContentManager().addContent(logicbugContent);
 
-            Content content = this.toolWindow.getContentManager().findContent("Exceptions");
+
+            Content content = contentManager.findContent("Exceptions");
             if (content == null) {
-                this.toolWindow.getContentManager().addContent(bugsContent);
+                contentManager.addContent(bugsContent);
             }
-            Content traceContent2 = this.toolWindow.getContentManager().findContent("Traces");
+            Content traceContent2 = contentManager.findContent("Traces");
             if (traceContent2 == null) {
-                this.toolWindow.getContentManager().addContent(traceContent);
+                contentManager.addContent(traceContent);
             }
         }
         if (isLoggedIn() && client.getProject() == null) {

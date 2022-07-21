@@ -449,7 +449,18 @@ public class TestCaseService {
             Object returnValueSquareClass = null;
             String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
             if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
-                returnValueSquareClass = constructClassName(returnParameterType);
+
+                switch (returnParameterType) {
+                    case "Ljava/lang/Integer;":
+                        returnValueSquareClass = int.class;
+                        break;
+                    case "Ljava/lang/Long;":
+                        returnValueSquareClass = long.class;
+                        break;
+                    default:
+                        returnValueSquareClass = constructClassName(returnParameterType);
+                }
+
             } else {
                 returnValueSquareClass = getClassFromDescriptor(returnParameterType);
             }
@@ -544,7 +555,7 @@ public class TestCaseService {
                     }
 
 
-                    if (returnType.equals("Ljava/lang/String;")) {
+                    if (returnType.equals("Ljava/lang/String;") && returnParameter.getName() == null) {
                         objectRoutine.addStatement("$T.assertEquals($L, $L)",
                                 assertClass,
                                 returnParameter.getValue(),
@@ -585,15 +596,8 @@ public class TestCaseService {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameterValue.getName() != null &&
-                    (parameterValue.getType().startsWith("L")
-                            && !parameterValue.getType().equals("Ljava/lang/String;"))) {
-                if (parameterValue.getName().equals("new")) {
-
-                } else {
-                    parameterStringBuilder.append(parameterValue.getName());
-                }
-
+            if (parameterValue.getName() != null) {
+                parameterStringBuilder.append(parameterValue.getName());
             } else {
                 parameterStringBuilder.append(parameterValue.getValue());
             }
@@ -787,14 +791,17 @@ public class TestCaseService {
                     }
 
                     MethodSpec.Builder builder = MethodSpec.methodBuilder(
-                            "testAsInstance" + objectRoutine.getRoutineName());
+                            "testAsInstance" + upperInstanceName(objectRoutine.getRoutineName()));
+
+                    builder.addModifiers(javax.lang.model.element.Modifier.PUBLIC);
+                    builder.addException(Exception.class);
 
                     ObjectRoutineContainer e1 =
                             new ObjectRoutineContainer(List.of(constructorRoutine, objectRoutine));
 //                    e1.getObjectRoutines().clear();
 //                    e1.getObjectRoutines().add(constructorRoutine);
 //                    e1.getObjectRoutines().add(objectRoutine);
-                    addRoutinesToMethodBuilder(builder, List.of(e1));
+                    addRoutinesToMethodBuilder(builder, List.of(e1), new LinkedList<>());
 
 
                     builder.addAnnotation(JUNIT_CLASS_NAME);
@@ -817,8 +824,10 @@ public class TestCaseService {
 
             checkProgressIndicator(null, "Generate java source for test scenario");
             String generatedTestClassName = "Test" + simpleClassName + "V";
-            TypeSpec.Builder typeSpecBuilder = TypeSpec.classBuilder(generatedTestClassName)
-                    .addModifiers(javax.lang.model.element.Modifier.PUBLIC,
+            TypeSpec.Builder typeSpecBuilder = TypeSpec
+                    .classBuilder(generatedTestClassName)
+                    .addModifiers(
+                            javax.lang.model.element.Modifier.PUBLIC,
                             javax.lang.model.element.Modifier.FINAL)
                     .addMethods(testCaseScripts);
 
@@ -827,7 +836,7 @@ public class TestCaseService {
             typeSpecBuilder
                     .addField(FieldSpec
                             .builder(gsonClass,
-                                    "gson", javax.lang.model.element.Modifier.PUBLIC)
+                                    "gson", javax.lang.model.element.Modifier.PRIVATE)
                             .initializer("new $T()", gsonClass)
                             .build());
 
@@ -853,15 +862,19 @@ public class TestCaseService {
 
     private void addRoutinesToMethodBuilder(
             MethodSpec.Builder builder,
-            List<ObjectRoutineContainer> dependentObjectsList) {
+            List<ObjectRoutineContainer> dependentObjectsList, List<String> variableContainer) {
         for (ObjectRoutineContainer objectRoutineContainer : dependentObjectsList) {
 
+            if (variableContainer.contains(objectRoutineContainer.getName())) {
+                // variable has already been initialized
+            } else {
+                ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
+                addRoutinesToMethodBuilder(builder, constructorRoutine.getDependentList(), variableContainer);
 
-            ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
-            addRoutinesToMethodBuilder(builder, constructorRoutine.getDependentList());
-
-            for (Pair<String, Object[]> statement : constructorRoutine.getStatements()) {
-                builder.addStatement(statement.getFirst(), statement.getSecond());
+                for (Pair<String, Object[]> statement : constructorRoutine.getStatements()) {
+                    builder.addStatement(statement.getFirst(), statement.getSecond());
+                }
+                variableContainer.add(objectRoutineContainer.getName());
             }
 
             for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
@@ -869,7 +882,7 @@ public class TestCaseService {
                     continue;
                 }
 
-                addRoutinesToMethodBuilder(builder, objectRoutine.getDependentList());
+                addRoutinesToMethodBuilder(builder, objectRoutine.getDependentList(), variableContainer);
 
                 for (Pair<String, Object[]> statement : objectRoutine.getStatements()) {
                     builder.addStatement(statement.getFirst(), statement.getSecond());
@@ -908,15 +921,26 @@ public class TestCaseService {
         // Integer varName = value;
         if (parameter.getType() != null && parameter.getType().startsWith("L" + "java/lang/")) {
 
-            String[] nameParts = parameter.getType().split(";")[0].split("/");
-            buildTestCandidateForBaseClass(objectRoutineContainer, nameParts[nameParts.length - 1]);
+            if (globalVariableContainer.contains(parameter.getName())) {
+                logger.warn("variable already exists: " + parameter.getName());
+                return objectRoutineContainer;
+            }
+
+
+            buildTestCandidateForBaseClass(objectRoutineContainer, parameter);
             return objectRoutineContainer;
 
         }
 
         if (parameter.getType() != null && parameter.getType().length() == 1) {
+
+            if (globalVariableContainer.contains(parameter.getName())) {
+                logger.warn("variable already exists: " + parameter.getName());
+                return objectRoutineContainer;
+            }
+
             buildTestCandidateForBaseClass(objectRoutineContainer,
-                    parameter.getProbeInfo().getValueDesc().name());
+                    parameter);
             return objectRoutineContainer;
 
 
@@ -993,16 +1017,19 @@ public class TestCaseService {
             dependentObjectIds.add(parameterValue);
             for (Parameter dependentParameter : dependentParameters) {
 
+                if (dependentParameter.getName() == null) {
+                    continue;
+                }
                 if (variableContainer.contains(dependentParameter.getName())) {
                     logger.warn("variable already exists: " + dependentParameter.getName());
                     continue;
                 }
 
                 DataEventWithSessionId parameterProbe = dependentParameter.getProb();
-                if (dependentObjectIds.contains(parameterProbe.getValue())) {
-                    logger.debug("object is already being constructed: " + parameterProbe.getValue());
-                    continue;
-                }
+//                if (dependentObjectIds.contains(parameterProbe.getValue())) {
+//                    logger.debug("object is already being constructed: " + parameterProbe.getValue());
+//                    continue;
+//                }
 
                 dependentObjectIds.add(parameterProbe.getValue());
 
@@ -1010,6 +1037,7 @@ public class TestCaseService {
                         generateTestCaseFromObjectHistory(
                                 dependentParameter,
                                 newPotentialObjects, variableContainer);
+                variableContainer.add(dependentParameter);
                 if (dependentObjectCreation.getName() != null) {
                     dependentParameter.setName(dependentObjectCreation.getName());
                 } else {
@@ -1215,9 +1243,19 @@ public class TestCaseService {
         return subjectName;
     }
 
-    private void buildTestCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer, String javaClassName) {
+    private void buildTestCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer, Parameter parameter) {
+
+        String javaClassName;
+        if (parameter.getType().length() > 1) {
+            String[] nameParts = parameter.getType().split(";")[0].split("/");
+            javaClassName = nameParts[nameParts.length - 1];
+        } else {
+            javaClassName = parameter.getProbeInfo().getValueDesc().name();
+        }
+
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
+        ClassName targetClassname = ClassName.get("java.lang", javaClassName);
         testCandidateMetadata.setTestSubject(null);
         Parameter returnStringParam = new Parameter();
         testCandidateMetadata.setReturnParameter(returnStringParam);
@@ -1225,7 +1263,9 @@ public class TestCaseService {
         testCandidateMetadata.setPackageName("java.lang");
         testCandidateMetadata.setTestMethodName("<init>");
         testCandidateMetadata.setUnqualifiedClassname(javaClassName);
-        objectRoutineContainer.getConstructor().setMetadata(testCandidateMetadata);
+        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+        constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(), parameter.getValue());
+        constructor.setMetadata(testCandidateMetadata);
     }
 
     private void processVariables(List<TestCandidateMetadata> metadataList, VariableContainer variableContainer) {
