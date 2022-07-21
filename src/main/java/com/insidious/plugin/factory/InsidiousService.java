@@ -45,6 +45,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -54,18 +57,21 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
+import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -564,8 +570,20 @@ public class InsidiousService implements Disposable {
                                 + e.getMessage(), NotificationType.ERROR
                 );
             }
+
+            @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                    .refreshAndFindFileByUrl(
+                            Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
+
+
+            FileContentUtil.reparseFiles(project, List.of(newFile), true);
+            @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+
+            FileEditorManager.getInstance(project).openFile(newFile, true, true);
+
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
         }
+        VirtualFileManager.getInstance().syncRefresh();
 
 
     }
