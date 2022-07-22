@@ -83,7 +83,7 @@ public class TracePoint {
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
-                    dataEvent.getRecordedAt().getTime(),
+                    dataEvent.getRecordedAt(),
                     dataEvent.getNanoTime());
             ExecutionSession executionSession1 = new ExecutionSession();
             executionSession1.setSessionId(dataEvent.getSessionId());

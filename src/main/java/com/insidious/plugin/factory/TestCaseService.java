@@ -446,6 +446,11 @@ public class TestCaseService {
 
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
 
+            objectRoutine.addComment("");
+            objectRoutine.addComment("Test candidate method ["
+                    + testCandidateMetadata.getMethodName()
+                    + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue()  + "ms");
+
             Object returnValueSquareClass = null;
             String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
             if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {

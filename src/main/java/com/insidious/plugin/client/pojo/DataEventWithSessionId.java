@@ -10,7 +10,7 @@ public class DataEventWithSessionId {
 
     private long threadId;
     private long nanoTime;
-    private Date recordedAt;
+    private long recordedAt;
 
     private int dataId;
 
@@ -34,11 +34,11 @@ public class DataEventWithSessionId {
         this.nanoTime = nanoTime;
     }
 
-    public Date getRecordedAt() {
+    public long getRecordedAt() {
         return recordedAt;
     }
 
-    public void setRecordedAt(Date recordedAt) {
+    public void setRecordedAt(long recordedAt) {
         this.recordedAt = recordedAt;
     }
 

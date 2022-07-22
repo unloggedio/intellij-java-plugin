@@ -356,6 +356,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 List<UploadFile> matchedFilesForString = eventsIndex.querySessionFilesByValueId(objectId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
+//                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
                     int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                     uploadFileToAdd.setValueIds(new Long[]{objectId});
@@ -399,13 +400,30 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 List<String> archiveFiles = new LinkedList<>();
 
                 if (objectId != -1 && matchedFiles.size() > 0) {
+//                    logger.info("Files were matched: " + matchedFiles);
+                    String splitAt = "\\\\";
+
+                    archiveFiles = new LinkedList<>();
+                    for (String s : matchedFiles.keySet()) {
+                        String[] parts;
+                        if (s.contains("/")) {
+                            parts = s.split(splitAt);
+                        } else {
+                            parts = s.split("\\\\");
+                        }
+                        archiveFiles.add(parts[parts.length - 1]);
+                    }
+
+
                     archiveFiles =
                             matchedFiles.keySet().stream().map(e -> {
-                                String[] parts = e.split("\\\\");
+                                String[] parts = e.split(splitAt);
                                 return parts[parts.length - 1];
                             }).collect(Collectors.toList());
                 } else {
                     archiveFiles = listArchiveFiles(sessionArchive);
+                    logger.info("no files were matched, listing files from session archive ["
+                            + sessionArchive.getName() + "] -> " + archiveFiles);
                 }
 
                 if (archiveFiles.size() == 0) {
@@ -430,6 +448,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     if (!archiveFile.endsWith(".selog")) {
                         continue;
                     }
+                    logger.info("Checking file " + archiveFile + " for data");
                     final int fileThreadId = Integer.parseInt(
                             archiveFile.split("\\.")[0].split("-")[2]
                     );
@@ -529,7 +548,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                     DataEventWithSessionId d = new DataEventWithSessionId();
                                     d.setDataId((int) eventBlock.probeId());
                                     d.setNanoTime(eventBlock.eventId());
-                                    d.setRecordedAt(new Date(eventBlock.timestamp()));
+                                    d.setRecordedAt(eventBlock.timestamp());
                                     d.setThreadId(fileThreadId);
                                     d.setValue(eventBlock.valueId());
                                     return d;
@@ -539,7 +558,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                     DataEventWithSessionId d = new DataEventWithSessionId();
                                     d.setDataId((int) eventBlock.probeId());
                                     d.setNanoTime(eventBlock.eventId());
-                                    d.setRecordedAt(new Date(eventBlock.timestamp()));
+                                    d.setRecordedAt(eventBlock.timestamp());
                                     d.setThreadId(fileThreadId);
                                     d.setValue(eventBlock.valueId());
                                     d.setSerializedValue(eventBlock.serializedData());
@@ -1178,7 +1197,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     dataEvent.setDataId(probeId);
                     dataEvent.setValue(valueId);
                     dataEvent.setNanoTime(eventId);
-                    dataEvent.setRecordedAt(new Date(timestamp));
+                    dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 }).collect(Collectors.toList());
     }
@@ -1202,7 +1221,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     dataEvent.setDataId(probeId);
                     dataEvent.setValue(valueId);
                     dataEvent.setNanoTime(eventId);
-                    dataEvent.setRecordedAt(new Date(timestamp));
+                    dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 }).collect(Collectors.toList());
     }
@@ -1317,7 +1336,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                     d.setDataId((int) e.probeId());
                     d.setNanoTime(e.eventId());
-                    d.setRecordedAt(new Date(e.timestamp()));
+                    d.setRecordedAt(e.timestamp());
                     d.setThreadId(filteredDataEventsRequest.getThreadId());
                     d.setValue(e.valueId());
                     return d;

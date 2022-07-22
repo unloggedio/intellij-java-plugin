@@ -25,6 +25,7 @@ public class TestCandidateMetadata {
     private Parameter testSubject;
     private Parameter returnParameter;
     private final List<Parameter> parameters = new LinkedList<>();
+    private long callTimeNanoSecond;
 
     public String getMethodName() {
         return methodName;
@@ -166,6 +167,8 @@ public class TestCandidateMetadata {
                     "slice");
             return metadata;
         }
+        long callTime = events.get(callReturnIndex).getRecordedAt() - events.get(entryProbeIndex).getRecordedAt();
+        metadata.setCallTimeNanoSecond(callTime);
 
         List<Parameter> methodParameters =
                 searchCallParameters(replayDataPage, entryProbeIndex, methodDescription.size());
@@ -673,5 +676,13 @@ public class TestCandidateMetadata {
 
     public Parameter getReturnParameter() {
         return returnParameter;
+    }
+
+    public void setCallTimeNanoSecond(long callTimeNanoSecond) {
+        this.callTimeNanoSecond = callTimeNanoSecond;
+    }
+
+    public long getCallTimeNanoSecond() {
+        return callTimeNanoSecond;
     }
 }
