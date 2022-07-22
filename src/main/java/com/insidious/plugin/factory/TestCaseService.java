@@ -449,7 +449,7 @@ public class TestCaseService {
             objectRoutine.addComment("");
             objectRoutine.addComment("Test candidate method ["
                     + testCandidateMetadata.getMethodName()
-                    + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue()  + "ms");
+                    + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue() + "ms");
 
             Object returnValueSquareClass = null;
             String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
@@ -876,8 +876,13 @@ public class TestCaseService {
                 ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
                 addRoutinesToMethodBuilder(builder, constructorRoutine.getDependentList(), variableContainer);
 
-                for (Pair<String, Object[]> statement : constructorRoutine.getStatements()) {
-                    builder.addStatement(statement.getFirst(), statement.getSecond());
+                for (Pair<CodeLine, Object[]> statement : constructorRoutine.getStatements()) {
+                    CodeLine line = statement.getFirst();
+                    if (line instanceof StatementCodeLine) {
+                        builder.addStatement(line.getLine(), statement.getSecond());
+                    } else {
+                        builder.addComment(line.getLine(), statement.getSecond());
+                    }
                 }
                 variableContainer.add(objectRoutineContainer.getName());
             }
@@ -889,8 +894,14 @@ public class TestCaseService {
 
                 addRoutinesToMethodBuilder(builder, objectRoutine.getDependentList(), variableContainer);
 
-                for (Pair<String, Object[]> statement : objectRoutine.getStatements()) {
-                    builder.addStatement(statement.getFirst(), statement.getSecond());
+                for (Pair<CodeLine, Object[]> statement : objectRoutine.getStatements()) {
+                    CodeLine line = statement.getFirst();
+                    if (line instanceof StatementCodeLine) {
+                        builder.addStatement(line.getLine(), statement.getSecond());
+                    } else {
+                        builder.addComment(line.getLine(), statement.getSecond());
+                    }
+
                 }
 
             }

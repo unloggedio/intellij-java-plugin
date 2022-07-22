@@ -62,7 +62,7 @@ public class ObjectRoutineContainer {
         return objectRoutines;
     }
 
-    public List<Pair<String, Object[]>> getStatements() {
+    public List<Pair<CodeLine, Object[]>> getStatements() {
         return currentRoutine.getStatements();
     }
 

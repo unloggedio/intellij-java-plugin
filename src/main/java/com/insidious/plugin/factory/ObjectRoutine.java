@@ -13,7 +13,7 @@ import java.util.Map;
  * should be available to recreate this object inside a test case)
  */
 public class ObjectRoutine {
-    private final List<Pair<String, Object[]>> statements = new LinkedList<>();
+    private final List<Pair<CodeLine, Object[]>> statements = new LinkedList<>();
     private final String routineName;
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
@@ -35,15 +35,15 @@ public class ObjectRoutine {
 
     public void addStatement(String s,
                              Object... args) {
-        statements.add(Pair.create(s, args));
+        statements.add(Pair.create(new StatementCodeLine(s), args));
     }
 
-    public List<Pair<String, Object[]>> getStatements() {
+    public List<Pair<CodeLine, Object[]>> getStatements() {
         return statements;
     }
 
-    public void addComment(String s) {
-        statements.add(Pair.create("// " + s, new Object[]{}));
+    public void addComment(String s, Object... args) {
+        statements.add(Pair.create(new CommentCodeLine(s), args));
     }
 
     public void setMetadata(TestCandidateMetadata metadata) {

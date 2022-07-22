@@ -63,6 +63,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private List<File> sessionArchives;
     private final Map<String, NameWithBytes> entryCache = new HashMap<>();
 
+    RecordSession recordSession;
+
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
             pathToSessions = pathToSessions + "/";
@@ -407,19 +409,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     for (String s : matchedFiles.keySet()) {
                         String[] parts;
                         if (s.contains("/")) {
-                            parts = s.split(splitAt);
+                            parts = s.split("/");
                         } else {
                             parts = s.split("\\\\");
                         }
                         archiveFiles.add(parts[parts.length - 1]);
                     }
 
-
-                    archiveFiles =
-                            matchedFiles.keySet().stream().map(e -> {
-                                String[] parts = e.split(splitAt);
-                                return parts[parts.length - 1];
-                            }).collect(Collectors.toList());
                 } else {
                     archiveFiles = listArchiveFiles(sessionArchive);
                     logger.info("no files were matched, listing files from session archive ["
