@@ -526,8 +526,11 @@ public class TestCaseService {
                     if (serializedBytes == null) {
                         serializedBytes = new byte[0];
                     }
-                    String serializedValue = new String(serializedBytes);
-                    objectRoutine.addComment("Serialized value: " + serializedValue);
+                    String serializedValue = "";
+                    if (serializedBytes.length > 0) {
+                        serializedValue = new String(serializedBytes);
+                        objectRoutine.addComment("Serialized value: " + serializedValue);
+                    }
 
                     // reconstruct object from the serialized form to an object instance in the
                     // test method to compare it with the new object, or do it the other way

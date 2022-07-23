@@ -542,12 +542,17 @@ public class TestCandidateMetadata {
                         continue;
                     }
                     String variableType = historyEventProbe.getAttribute("Type", "V");
-                    if (variableType.equals(parameter.getType())) {
+
+                    // removing this if condition because this fails in the case of int vs
+                    // Ljava/lang/Integer (implicite conversion by jvm). removing the if should
+                    // be fine because we are also tracing the parameters by index (which was not
+                    // there when the type check was initially added)
+//                    if (variableType.equals(parameter.getType())) {
                         String variableName = historyEventProbe.getAttribute("Name", null);
                         parameter.setName(variableName);
                         return parameter;
-                    }
-                    break;
+//                    }
+//                    break;
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
                 case GET_INSTANCE_FIELD:
@@ -560,12 +565,12 @@ public class TestCandidateMetadata {
                         continue;
                     }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
-                    if (fieldType.equals(parameter.getType())) {
-                        String variableName = historyEventProbe.getAttribute("FieldName", null);
-                        parameter.setName(variableName);
+//                    if (fieldType.equals(parameter.getType())) {
+                        String variableName1 = historyEventProbe.getAttribute("FieldName", null);
+                        parameter.setName(variableName1);
                         return parameter;
-                    }
-                    break;
+//                    }
+//                    break;
             }
         }
 
