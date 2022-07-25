@@ -73,8 +73,8 @@ public class TestCaseServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(
-                System.getenv("USERPROFILE") + "/.videobug/sessions");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+//        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
 
         TestCaseService testCaseService = new TestCaseService(project, client);
 
@@ -82,7 +82,7 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
+        List<String> targetClasses = List.of("com.appsmith.server.solutions.UserSignupImpl");
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 

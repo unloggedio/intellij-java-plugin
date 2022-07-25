@@ -14,9 +14,12 @@ public class PomFileVisitor extends PsiRecursiveElementVisitor {
         if (packageName != null) {
             return;
         }
-        if (!insideParent) {
-            if (element.textMatches("groupId")) {
-                packageName = element.getNextSibling().getNextSibling().getFirstChild().getText();
+        if (element.textMatches("groupId")) {
+            packageName = element.getNextSibling().getNextSibling().getFirstChild().getText();
+            if (!insideParent) {
+                if (packageName.startsWith("org.springframework")) {
+                    packageName = null;
+                }
             }
         }
         if (element.textMatches("parent")) {
