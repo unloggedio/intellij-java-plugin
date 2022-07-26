@@ -6,11 +6,16 @@ import com.insidious.common.weaver.MethodInfo;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ClassWeaveInfo {
+    public static final List<MethodInfo> EMPTY_LIST = List.of();
     private final List<ClassInfo> classInfoList;
     private final List<MethodInfo> methodInfoList;
     private final List<DataInfo> dataInfoList;
+    private final Map<Integer, List<MethodInfo>> methodByClass;
+    private final Map<Integer, List<DataInfo>> probesByMethod;
 
 
     public ClassWeaveInfo(
@@ -21,6 +26,9 @@ public class ClassWeaveInfo {
         this.classInfoList = classInfoList;
         this.methodInfoList = methodInfoList;
         this.dataInfoList = dataInfoList;
+        methodByClass = methodInfoList.stream().collect(Collectors.groupingBy(MethodInfo::getClassId));
+        probesByMethod =
+                dataInfoList.stream().collect(Collectors.groupingBy(DataInfo::getMethodId));
     }
 
     public ClassInfo getClassInfoById(int classId) {
@@ -42,23 +50,30 @@ public class ClassWeaveInfo {
     }
 
     public List<MethodInfo> getMethodInfoByClassId(int classId) {
-        List<MethodInfo> methods = new LinkedList<>();
-        for (MethodInfo methodInfo : methodInfoList) {
-            if (methodInfo.getClassId() == classId) {
-                methods.add(methodInfo);
-            }
+        List<MethodInfo> methodInfos = methodByClass.get(classId);
+        if (methodInfos == null) {
+            return EMPTY_LIST;
         }
-        return methods;
+        return methodInfos;
+//        List<MethodInfo> methods = new LinkedList<>();
+//        for (MethodInfo methodInfo : methodInfoList) {
+//            if (methodInfo.getClassId() == classId) {
+//                methods.add(methodInfo);
+//            }
+//        }
+//        return methods;
     }
 
     public List<DataInfo> getProbesByMethodId(int methodId) {
-        List<DataInfo> methods = new LinkedList<>();
-        for (DataInfo dataInfo : dataInfoList) {
-            if (dataInfo.getMethodId() == methodId) {
-                methods.add(dataInfo);
-            }
-        }
-        return methods;
+        List<DataInfo> dataInfos = probesByMethod.get(methodId);
+        return dataInfos;
+//        List<DataInfo> methods = new LinkedList<>();
+//        for (DataInfo dataInfo : dataInfoList) {
+//            if (dataInfo.getMethodId() == methodId) {
+//                methods.add(dataInfo);
+//            }
+//        }
+//        return methods;
     }
 
     public DataInfo getProbeById(int probeId) {

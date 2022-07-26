@@ -10,6 +10,7 @@ import java.util.List;
 public class SearchQuery {
     QueryType queryType;
     Object query;
+    private String range;
 
     public static SearchQuery ByType(Collection<String> classNameList) {
         String query = StringUtil.join(classNameList, ",");
@@ -44,5 +45,13 @@ public class SearchQuery {
     @Override
     public String toString() {
         return queryType + "{" + "query='" + query + '\'' + '}';
+    }
+
+    public void setRange(String range) {
+        this.range = range;
+    }
+
+    public String getRange() {
+        return range;
     }
 }

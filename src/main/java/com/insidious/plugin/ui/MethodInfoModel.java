@@ -19,6 +19,11 @@ public class MethodInfoModel extends DefaultMutableTreeNode {
         return sessionId;
     }
 
+    @Override
+    public String toString() {
+        return methodName;
+    }
+
     public MethodInfoModel(String methodName, String className, String sessionId) {
         this.methodName = methodName;
         this.className = className;

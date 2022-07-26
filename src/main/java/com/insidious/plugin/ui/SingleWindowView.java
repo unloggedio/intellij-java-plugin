@@ -1,62 +1,62 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.callbacks.ClientCallBack;
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
-import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.insidious.plugin.pojo.ObjectsWithTypeInfo;
-import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.util.Comparing;
-import com.intellij.ui.tree.StructureTreeModel;
-import com.intellij.ui.treeStructure.SimpleTree;
 import com.intellij.uiDesigner.core.GridConstraints;
-
+import com.intellij.util.ui.tree.TreeUtil;
 
 import javax.swing.*;
 import javax.swing.event.*;
-import javax.swing.tree.*;
-import java.awt.*;
-import java.io.IOException;
-import java.util.*;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH;
+import javax.swing.tree.ExpandVetoException;
 
 public class SingleWindowView implements TreeExpansionListener, TreeWillExpandListener, TreeSelectionListener {
     public static final String CLASSES_LABEL = "Classes";
     private final Project project;
     private final InsidiousService insidiousService;
+    private final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
+    private final VideobugTreeCellRenderer cellRenderer;
     private JTree mainTree;
     private JButton refreshButton;
     private JPanel mainPanel;
+    private JPanel filterPanel;
+    private JSplitPane resultPanel;
     private JScrollPane treePanel;
-    private JPanel controlPanel;
+    private JPanel infoPanel;
+    private JTextField textField1;
+    private JButton button1;
+    private SingleClassInfoWindow informationPanel;
     private JScrollPane detailedView;
-    private final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
 
     public SingleWindowView(Project project, InsidiousService insidiousService) {
 
         this.project = project;
 
 
-        refreshButton.addActionListener(e -> refresh());
+//        refreshButton.addActionListener(e -> {
+//            try {
+//                refresh();
+//            }catch (Throwable e1) {
+//                e1.printStackTrace();
+//            }
+//        });
         this.insidiousService = insidiousService;
         mainTree.addTreeExpansionListener(SingleWindowView.this);
         mainTree.addTreeWillExpandListener(SingleWindowView.this);
         mainTree.addTreeSelectionListener(SingleWindowView.this);
 
-        mainPanel.remove(detailedView);
+//        mainPanel.remove(detailedView);
         mainTree.setModel(new VideobugTreeModel(insidiousService));
+
+
+        cellRenderer = new VideobugTreeCellRenderer(insidiousService);
+
+        mainTree.setCellRenderer(cellRenderer);
+        resultPanel.setDividerLocation(0.99d);
+        TreeUtil.installActions(mainTree);
+
+
         refresh();
 
     }
@@ -100,25 +100,20 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
 
         if (nodeType.equals(TreeClassInfoModel.class)) {
             TreeClassInfoModel treeNode = (TreeClassInfoModel) selectedNode;
-            insidiousService.getClient().getObjectsByType(
-                    SearchQuery.ByType(List.of(treeNode.getClassName())),
-                    treeNode.getSessionId(), new ClientCallBack<ObjectsWithTypeInfo>() {
-                        @Override
-                        public void error(ExceptionResponse errorResponse) {
 
-                        }
+            if (informationPanel != null) {
+                infoPanel.remove(informationPanel.getContent());
+            }
 
-                        @Override
-                        public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+            informationPanel = new SingleClassInfoWindow(project, insidiousService, treeNode);
 
-                        }
+            resultPanel.setDividerLocation(0.50d);
 
-                        @Override
-                        public void completed() {
-                            mainPanel.add(detailedView);
-                        }
-                    }
-            );
+            GridConstraints constraints = new GridConstraints();
+            constraints.setFill(GridConstraints.FILL_BOTH);
+
+            infoPanel.add(informationPanel.getContent(), constraints);
+
         }
 
     }

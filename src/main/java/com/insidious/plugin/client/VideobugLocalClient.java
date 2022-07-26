@@ -58,12 +58,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private final VideobugNetworkClient networkClient;
     private final Map<String, ArchiveIndex> indexCache = new HashMap<>();
     private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+    RecordSession recordSession;
     private ExecutionSession session;
     private ProjectItem currentProject;
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private List<File> sessionArchives;
-
-    RecordSession recordSession;
 
     public VideobugLocalClient(String pathToSessions) {
         if (!pathToSessions.endsWith("/")) {
@@ -1595,10 +1594,25 @@ public class VideobugLocalClient implements VideobugClientInterface {
         List<File> archives = refreshSessionArchivesList(sessionId);
 
         checkProgressIndicator("Looking for objects by class: " + searchQuery.getQuery(), null);
+        int rangeLow = -1;
+        int rangeHigh = 9999999;
+
+        if (searchQuery.getRange() != null && searchQuery.getRange().length() > 0) {
+            String[] searchRange = searchQuery.getRange().split("-");
+            rangeLow = Integer.parseInt(searchRange[0]);
+            if (searchRange.length > 1) {
+                rangeHigh = Integer.parseInt(searchRange[1]);
+            }
+        }
 
         for (File sessionArchive : archives) {
 
-            checkProgressIndicator(null, sessionArchive.getName());
+            String archiveName = sessionArchive.getName();
+            checkProgressIndicator(null, archiveName);
+            int archiveIndex = Integer.parseInt(archiveName.split("-")[1]);
+            if (archiveIndex < rangeLow || archiveIndex > rangeHigh) {
+                continue;
+            }
 
             Set<ObjectInfoDocument> objects = queryObjectsByTypeFromSessionArchive(searchQuery,
                     sessionArchive);
@@ -1618,7 +1632,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     .collect(Collectors.toSet());
             if (collect.size() > 0) {
                 checkProgressIndicator(null,
-                        sessionArchive.getName() + " matched " + collect.size() + " objects");
+                        archiveName + " matched " + collect.size() + " objects");
                 clientCallBack.success(collect);
             }
 
@@ -1629,6 +1643,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
     }
+
+    @Override
+    public List<String> getSessionArchiveList(String sessionId) {
+        return refreshSessionArchivesList(sessionId)
+                .stream().map(File::getName).collect(Collectors.toList());
+
+    }
+
     @Override
     public ClassWeaveInfo getSessionClassWeave(String sessionId) {
 
@@ -1648,25 +1670,27 @@ public class VideobugLocalClient implements VideobugClientInterface {
         List<DataInfo> dataInfoList = new LinkedList<>();
 
 
-        classWeaveInfo1
-                .classInfo()
-                .forEach(classInfo -> {
+        i = 0;
+        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo1
+                .classInfo()) {
+            i += 1;
+            checkProgressIndicator(null,
+                    "Parsing class [ " + i + " of " + classInfoList.size() + " ]");
+            ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
+            classInfoList.add(classInfoContainer);
 
-                    ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
-                    classInfoList.add(classInfoContainer);
+            classInfo.methodList()
+                    .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
+                            classInfo.className().value()))
+                    .forEach(methodInfoList::add);
 
-                    classInfo.methodList()
-                            .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
-                                    classInfo.className().value()))
-                            .forEach(methodInfoList::add);
+            classInfo.probeList()
+                    .stream()
+                    .filter(e -> !Objects.equals(e.eventType().value(), EventType.RESERVED.toString()))
+                    .map(KaitaiUtils::toDataInfo)
+                    .forEach(dataInfoList::add);
 
-                    classInfo.probeList()
-                            .stream()
-                            .filter(e -> !Objects.equals(e.eventType().value(), EventType.RESERVED.toString()))
-                            .map(KaitaiUtils::toDataInfo)
-                            .forEach(dataInfoList::add);
-
-                });
+        }
 
         ClassWeaveInfo classWeave = new ClassWeaveInfo(classInfoList,
                 methodInfoList, dataInfoList);

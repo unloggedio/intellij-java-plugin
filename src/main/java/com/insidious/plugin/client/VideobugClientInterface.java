@@ -93,4 +93,6 @@ public interface VideobugClientInterface {
     void getObjectsByType(SearchQuery searchQuery, String sessionId,
                           ClientCallBack<ObjectsWithTypeInfo> clientCallBack);
 
+    List<String> getSessionArchiveList(String sessionId);
+
 }

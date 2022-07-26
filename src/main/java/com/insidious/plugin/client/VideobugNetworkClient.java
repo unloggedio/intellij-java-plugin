@@ -673,5 +673,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     }
 
+    @Override
+    public List<String> getSessionArchiveList(String sessionId) {
+        return List.of();
+    }
+
 
 }

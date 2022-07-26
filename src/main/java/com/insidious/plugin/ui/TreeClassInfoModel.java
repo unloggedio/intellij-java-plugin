@@ -17,17 +17,20 @@ public class TreeClassInfoModel {
     private final List<TreeModelListener> treeModelListeners = new LinkedList<>();
     private final String className;
     private final String sessionId;
+    private final String simpleClassName;
 
     public TreeClassInfoModel(String className, String sessionId) {
 
 
         this.className = className;
+        String[] classnameParts = className.split("/");
+        this.simpleClassName = classnameParts[classnameParts.length - 1];
         this.sessionId = sessionId;
     }
 
     @Override
     public String toString() {
-        return className;
+        return simpleClassName;
     }
 
     public String getSessionId() {
