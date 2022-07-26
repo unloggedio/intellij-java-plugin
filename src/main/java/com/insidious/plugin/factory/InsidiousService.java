@@ -793,10 +793,13 @@ public class InsidiousService implements Disposable {
 
             searchByTypesWindow = new SearchByTypesWindow(project, this);
             searchByValueWindow = new SearchByValueWindow(project, this);
+            singleWindowView = new SingleWindowView(project, this);
 
             // create the windows
             Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
+            Content singleWindowContent =
+                    contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
 
             Content content = contentManager.findContent("Exceptions");
@@ -806,6 +809,10 @@ public class InsidiousService implements Disposable {
             Content traceContent2 = contentManager.findContent("Traces");
             if (traceContent2 == null) {
                 contentManager.addContent(traceContent);
+            }
+            Content rawViewContent2 = contentManager.findContent("Raw");
+            if (rawViewContent2 == null) {
+                contentManager.addContent(singleWindowContent);
             }
         }
         if (isLoggedIn() && client.getProject() == null) {

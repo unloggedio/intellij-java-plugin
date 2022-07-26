@@ -82,7 +82,7 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        List<String> targetClasses = List.of("com.appsmith.server.solutions.UserSignupImpl");
+        List<String> targetClasses = List.of("com.appsmith.server.services.UserServiceImpl");
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 

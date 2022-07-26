@@ -1,7 +1,7 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.PageInfo;
+import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -92,4 +92,5 @@ public interface VideobugClientInterface {
 
     void getObjectsByType(SearchQuery searchQuery, String sessionId,
                           ClientCallBack<ObjectsWithTypeInfo> clientCallBack);
+
 }

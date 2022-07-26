@@ -65,7 +65,12 @@ public class ExecutionSession {
         this.createdAt = createdAt;
     }
 
-    //
+    @Override
+    public String toString() {
+        return "[" + hostname + "] " +
+                sessionId + " - " + createdAt;
+    }
+//
 //    public String getId() {
 //        return id;
 //    }

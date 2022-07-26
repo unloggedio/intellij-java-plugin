@@ -327,7 +327,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         KaitaiInsidiousClassWeaveParser classWeaveInfoLocal = null;
 
-        int i=0;
+        int i = 0;
         while (classWeaveInfoLocal == null) {
             classWeaveInfoLocal = readClassWeaveInfo(this.sessionArchives.get(i));
             i++;
@@ -386,7 +386,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
                     continue;
                 }
             }
-
 
 
             try {
@@ -1578,7 +1577,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     /**
-     * we need to find all unique objects of these given class types
+     * find all unique objects of given class types
      *
      * @param searchQuery    class type query
      * @param clientCallBack results go here
@@ -1630,7 +1629,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
     }
-
     @Override
     public ClassWeaveInfo getSessionClassWeave(String sessionId) {
 
