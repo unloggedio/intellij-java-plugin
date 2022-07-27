@@ -20,10 +20,7 @@ import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.ConfigurationWindow;
-import com.insidious.plugin.ui.SearchByTypesWindow;
-import com.insidious.plugin.ui.SearchByValueWindow;
-import com.insidious.plugin.ui.SingleWindowView;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
@@ -115,6 +112,7 @@ public class InsidiousService implements Disposable {
     private String javaAgentString;
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
+    private AboutUsWindow aboutUsWindow;
 
 
     public InsidiousService(Project project) {
@@ -794,12 +792,15 @@ public class InsidiousService implements Disposable {
             searchByTypesWindow = new SearchByTypesWindow(project, this);
             searchByValueWindow = new SearchByValueWindow(project, this);
             singleWindowView = new SingleWindowView(project, this);
+            aboutUsWindow = new AboutUsWindow();
 
             // create the windows
             Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            Content singleWindowContent =
-                    contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(),
+                    "About",
+                    false);
 
 
             Content content = contentManager.findContent("Exceptions");
@@ -813,6 +814,10 @@ public class InsidiousService implements Disposable {
             Content rawViewContent2 = contentManager.findContent("Raw");
             if (rawViewContent2 == null) {
                 contentManager.addContent(singleWindowContent);
+            }
+            Content aboutVideobug = contentManager.findContent("About");
+            if (aboutVideobug == null) {
+//                contentManager.addContent(aboutWindowContent);
             }
         }
         if (isLoggedIn() && client.getProject() == null) {

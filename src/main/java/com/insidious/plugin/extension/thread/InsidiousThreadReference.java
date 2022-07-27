@@ -53,7 +53,7 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("filename", tracePoint.getFilename());
         eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
-        eventProperties.put("probesCount", replayData.getDataInfoMap().size());
+        eventProperties.put("probesCount", replayData.getProbeInfoMap().size());
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
         eventProperties.put("typesCount", replayData.getTypeInfo().size());
         eventProperties.put("objectsCount", replayData.getObjectInfo().size());
@@ -71,7 +71,7 @@ public class InsidiousThreadReference implements ThreadReference {
         );
 
 
-        dataInfoMap = this.replayData.getDataInfoMap();
+        dataInfoMap = this.replayData.getProbeInfoMap();
         classInfoMap = this.replayData.getClassInfoMap();
         stringInfoMap = this.replayData.getStringInfoMap();
 
@@ -261,7 +261,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         continue;
                     }
                     DataInfo parentDataInfo
-                            = this.replayData.getDataInfoMap().get(
+                            = this.replayData.getProbeInfoMap().get(
                             Util.getAttribute(probeInfo.getAttributes(), "NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
@@ -1017,14 +1017,14 @@ public class InsidiousThreadReference implements ThreadReference {
 //        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
-        int currentLineNumber = replayData.getDataInfoMap().get(
+        int currentLineNumber = replayData.getProbeInfoMap().get(
                 String.valueOf(dataEvents.get(position).getDataId())).getLine();
 
         List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
         if (size < 0) {
             for (int i = position; i < dataEvents.size(); i++) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
-                DataInfo dataInfo = replayData.getDataInfoMap().get
+                DataInfo dataInfo = replayData.getProbeInfoMap().get
                         (String.valueOf(dataEventWithSessionId.getDataId()));
                 if (!EventType.LINE_NUMBER.equals(dataInfo.getEventType())) {
                     continue;
@@ -1038,7 +1038,7 @@ public class InsidiousThreadReference implements ThreadReference {
             for (int i = position; i > 0; i--) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo
-                        = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                        = replayData.getProbeInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
                 if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
                     continue;
                 }

@@ -1134,7 +1134,7 @@ public class TestCaseService {
 
 
         final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
-        final Map<String, DataInfo> probeInfoMap = objectReplayData.getDataInfoMap();
+        final Map<String, DataInfo> probeInfoMap = objectReplayData.getProbeInfoMap();
         final Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
         final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
         final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
@@ -1330,7 +1330,7 @@ public class TestCaseService {
         int direction = -1;
         for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size() && i > -1; i += direction) {
             DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
-            DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
+            DataInfo probeInfo = objectReplayData.getProbeInfoMap().get(String.valueOf(event.getDataId()));
             switch (probeInfo.getEventType()) {
                 case CALL:
                     callStack += 1;

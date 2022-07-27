@@ -15,7 +15,7 @@ public class ReplayData {
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
     Map<String, ClassInfo> classInfoMap;
-    Map<String, DataInfo> dataInfoMap;
+    Map<String, DataInfo> probeInfoMap;
     Map<String, StringInfo> stringInfoMap;
     Map<String, ObjectInfo> objectInfo;
     Map<String, TypeInfo> typeInfo;
@@ -36,7 +36,7 @@ public class ReplayData {
         this.filteredDataEventsRequest = filteredDataEventsRequest;
         dataEvents = dataList;
         classInfoMap = classInfo;
-        dataInfoMap = dataInfo;
+        probeInfoMap = dataInfo;
         stringInfoMap = stringInfo;
         this.objectInfo = objectInfo;
         this.typeInfo = typeInfo;
@@ -79,8 +79,8 @@ public class ReplayData {
         return classInfoMap;
     }
 
-    public Map<String, DataInfo> getDataInfoMap() {
-        return dataInfoMap;
+    public Map<String, DataInfo> getProbeInfoMap() {
+        return probeInfoMap;
     }
 
     public Map<String, StringInfo> getStringInfoMap() {

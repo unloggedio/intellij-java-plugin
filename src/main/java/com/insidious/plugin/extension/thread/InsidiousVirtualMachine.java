@@ -510,7 +510,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
                     "Creating frames from: " + this.replayData.getDataEvents().size()
                             + " events across " + this.replayData.getClassInfoMap().size() + " class file, for " +
-                            this.replayData.getDataInfoMap().size() + " probes");
+                            this.replayData.getProbeInfoMap().size() + " probes");
         }
 
 

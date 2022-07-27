@@ -3,6 +3,9 @@ package com.insidious.plugin.ui;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.ObjectInfo;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
@@ -21,14 +24,17 @@ import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 public class SingleClassInfoWindow {
+    private static final String SPAN_FORMAT = "<span style='color:%s;'>%s</span>";
     private final Project project;
     private final TreeClassInfoModel treeNode;
     private final InsidiousService insidiousService;
+    private final List<ObjectsWithTypeInfo> objectResultList = new LinkedList<>();
     private JPanel containerPanel;
     private JTextArea resultTextArea;
     private JLabel headingLabel;
@@ -51,7 +57,15 @@ public class SingleClassInfoWindow {
         loadObjectHistoryButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String objectId = Messages.showInputDialog("Object ID", "Unlogged", null);
+                String initialValue = null;
+                if (objectResultList.size() > 0) {
+                    initialValue = String.valueOf(objectResultList.get(0).getObjectInfo().getObjectId());
+                }
+                String objectId = initialValue;
+                if (objectResultList.size() > 1) {
+                    objectId = Messages.showInputDialog("Object ID", "Unlogged", null,
+                            initialValue, null);
+                }
                 if (objectId == null || objectId.length() == 0) {
                     return;
                 }
@@ -71,12 +85,37 @@ public class SingleClassInfoWindow {
                             );
 
                             for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
-                                DataInfo probeInfo = replayData.getDataInfoMap().get(String.valueOf(dataEvent.getDataId()));
-                                resultTextArea.append(
-                                        "["+ dataEvent.getRecordedAt() +"]["+
-                                                dataEvent.getNanoTime() +"]["+ probeInfo.getEventType() +"] value: "
-                                        + dataEvent.getValue()
-                                );
+                                DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
+                                ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+                                String eventType = "<>";
+                                if (probeInfo != null) {
+                                    eventType = probeInfo.getEventType().toString();
+                                }
+
+                                String eventLogLine = "["
+                                        + dataEvent.getRecordedAt()
+                                        + "][" + dataEvent.getDataId()
+                                        + "][" + eventType +
+                                        "] value: " + Long.valueOf(dataEvent.getValue()).toString();
+
+                                if (objectInfo != null) {
+                                    TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                                    eventLogLine =
+                                            eventLogLine + ", Type: " + typeInfo.getTypeNameFromClass();
+
+                                }
+                                if (replayData.getStringInfoMap().containsKey(String.valueOf(dataEvent.getValue()))) {
+                                    StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
+                                    eventLogLine =
+                                            eventLogLine + ", Value: " + stringValue.getContent();
+                                }
+
+
+                                if (dataEvent.getValue() == objectLongId) {
+                                    eventLogLine = " ** " + eventLogLine;
+                                }
+
+                                resultTextArea.append(eventLogLine + "\n");
                             }
 
 
@@ -109,6 +148,7 @@ public class SingleClassInfoWindow {
 
                 try {
                     String finalSearchRange = searchRange;
+                    objectResultList.clear();
                     ProgressManager.getInstance().run(new Task.WithResult<Object, Exception>(
                             project, "Unlogged", true
                     ) {
@@ -132,6 +172,7 @@ public class SingleClassInfoWindow {
 
                                         @Override
                                         public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+                                            objectResultList.addAll(tracePoints);
                                             for (ObjectsWithTypeInfo tracePoint : tracePoints) {
                                                 String newLine = "Trace point: " +
                                                         "ObjectId=" +

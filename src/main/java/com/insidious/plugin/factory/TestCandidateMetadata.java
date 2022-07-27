@@ -45,7 +45,7 @@ public class TestCandidateMetadata {
                 lowerInstanceName(classNameParts[classNameParts.length - 1]);
         for (int i = eventIndex + direction; i < objectReplayData.getDataEvents().size() && i > -1; i += direction) {
             DataEventWithSessionId event = objectReplayData.getDataEvents().get(i);
-            DataInfo probeInfo = objectReplayData.getDataInfoMap().get(String.valueOf(event.getDataId()));
+            DataInfo probeInfo = objectReplayData.getProbeInfoMap().get(String.valueOf(event.getDataId()));
             switch (probeInfo.getEventType()) {
                 case CALL:
                     callStack += 1;
@@ -58,7 +58,7 @@ public class TestCandidateMetadata {
                     if (callStack == -1 &&
                             (i + direction > -1 &&
                                     i + direction < objectReplayData.getDataEvents().size())) {
-                        DataInfo nextEventProbe = objectReplayData.getDataInfoMap().get(
+                        DataInfo nextEventProbe = objectReplayData.getProbeInfoMap().get(
                                 String.valueOf(objectReplayData.getDataEvents().get(i + direction).getDataId())
                         );
                         return nextEventProbe.getAttribute("Name", potentialClassVariableInstanceName);
@@ -95,7 +95,7 @@ public class TestCandidateMetadata {
         metadata.setPackageName(packageName);
 
 
-        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
+        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
 
         metadata.setMethodName(targetMethodName);
 
@@ -275,7 +275,7 @@ public class TestCandidateMetadata {
                     int entryProbeIndex,
                     int paramCount
             ) {
-        DataInfo entryProbeInfo = replayData.getDataInfoMap().get(
+        DataInfo entryProbeInfo = replayData.getProbeInfoMap().get(
                 String.valueOf(replayData.getDataEvents().get(entryProbeIndex).getDataId())
         );
         List<Parameter> methodParameterProbes = new LinkedList<>();
@@ -287,7 +287,7 @@ public class TestCandidateMetadata {
         // going down from where we found the method entry probe
         // to match the first call_return probe
         List<DataEventWithSessionId> events = replayData.getDataEvents();
-        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
+        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
         int paramIndex = paramCount;
         if (entryProbeInfo.getEventType() == EventType.CALL) {
             while (callReturnIndex > -1) {
@@ -382,7 +382,7 @@ public class TestCandidateMetadata {
         // going down from where we found the method entry probe
         // to match the first call_return probe
         List<DataEventWithSessionId> events = replayData.getDataEvents();
-        Map<String, DataInfo> probeInfoMap = replayData.getDataInfoMap();
+        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
         while (callReturnIndex > -1) {
             DataEventWithSessionId event = events.get(callReturnIndex);
             DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
@@ -426,7 +426,7 @@ public class TestCandidateMetadata {
 
         String eventProbeIdString = String.valueOf(event.getDataId());
         String eventValueString = String.valueOf(event.getValue());
-        DataInfo probeInfo = replayData.getDataInfoMap().get(eventProbeIdString);
+        DataInfo probeInfo = replayData.getProbeInfoMap().get(eventProbeIdString);
         ObjectInfo objectInfo = replayData.getObjectInfo().get(eventValueString);
         parameter.setProbeInfo(probeInfo);
         if (objectInfo != null) {
@@ -456,7 +456,7 @@ public class TestCandidateMetadata {
         }
 
         if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD_RESULT) {
-            String name = replayData.getDataInfoMap()
+            String name = replayData.getProbeInfoMap()
                     .get(String.valueOf(replayData.getDataEvents().get(eventIndex + 1).getDataId()))
                     .getAttribute("FieldName", null);
             parameter.setName(name);
@@ -464,7 +464,7 @@ public class TestCandidateMetadata {
         }
 
         if (probeInfo.getEventType() == EventType.GET_STATIC_FIELD) {
-            String name = replayData.getDataInfoMap()
+            String name = replayData.getProbeInfoMap()
                     .get(String.valueOf(replayData.getDataEvents().get(eventIndex + 1).getDataId()))
                     .getAttribute("FieldName", null);
             parameter.setName(name);
@@ -472,7 +472,7 @@ public class TestCandidateMetadata {
         }
 
         if (probeInfo.getEventType() == EventType.LOCAL_LOAD) {
-            String name = replayData.getDataInfoMap()
+            String name = replayData.getProbeInfoMap()
                     .get(String.valueOf(replayData.getDataEvents().get(eventIndex + 1).getDataId()))
                     .getAttribute("Name", null);
             parameter.setName(name);
@@ -497,7 +497,7 @@ public class TestCandidateMetadata {
         for (int i = eventIndex + direction; i < replayData.getDataEvents().size()
                 && i > -1; i += direction) {
             DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
-            DataInfo historyEventProbe = replayData.getDataInfoMap().get(
+            DataInfo historyEventProbe = replayData.getProbeInfoMap().get(
                     String.valueOf(historyEvent.getDataId())
             );
             switch (historyEventProbe.getEventType()) {

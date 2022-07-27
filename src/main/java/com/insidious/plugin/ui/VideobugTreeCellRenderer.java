@@ -19,6 +19,8 @@ public class VideobugTreeCellRenderer extends DefaultTreeCellRenderer {
     private final Icon offlineIcon;
     private final Icon methodIcon;
     private final Icon classIcon;
+    private final Icon packageIcon;
+    private final Icon sessionIcon;
     private InsidiousService insidiousService;
     private Icon onlineIcon;
 
@@ -28,8 +30,12 @@ public class VideobugTreeCellRenderer extends DefaultTreeCellRenderer {
 
         this.onlineIcon = IconLoader.getIcon("icons/png/outline-screen-disabled.png", VideobugTreeCellRenderer.class);
         this.offlineIcon = IconLoader.getIcon("icons/png/outline-screen.png", VideobugTreeCellRenderer.class);
-        this.methodIcon = IconLoader.getIcon("icons/png/outline-chevron-right-small.png", VideobugTreeCellRenderer.class);
-        this.classIcon = IconLoader.getIcon("icons/png/outline-map.png",
+        this.methodIcon = IconLoader.getIcon("icons/png/icons8-letter-m-14.png", VideobugTreeCellRenderer.class);
+        this.sessionIcon = IconLoader.getIcon("icons/png/icons8-folder-14.png",
+                VideobugTreeCellRenderer.class);
+        this.packageIcon = IconLoader.getIcon("icons/png/icons8-p-14.png",
+                VideobugTreeCellRenderer.class);
+        this.classIcon = IconLoader.getIcon("icons/png/icons8-c-14.png",
                 VideobugTreeCellRenderer.class);
     }
 
@@ -51,17 +57,18 @@ public class VideobugTreeCellRenderer extends DefaultTreeCellRenderer {
         } else if (userObject instanceof ExecutionSession) {
             ExecutionSession executionSession = (ExecutionSession) userObject;
             String text = String.format(SPAN_FORMAT, "#aba497", executionSession);
-            if (Calendar.getInstance().getTime().getTime() - executionSession.getLastUpdateAt() < 1000 * 60) {
-                this.setIcon(onlineIcon);
-            } else {
-                this.setIcon(offlineIcon);
-            }
+            this.setIcon(this.sessionIcon);
             this.setText("<html>" + text + "</html>");
         } else if (userObject instanceof MethodInfoModel) {
             MethodInfoModel methodInfoModel  = (MethodInfoModel) userObject;
             String text = String.format(SPAN_FORMAT, "#719775", methodInfoModel);
             this.setText("<html>" + text + "</html>");
             this.setIcon(methodIcon);
+        } else if (userObject instanceof PackageInfoModel) {
+            PackageInfoModel packageInfoModel  = (PackageInfoModel) userObject;
+            String text = String.format(SPAN_FORMAT, "#719775", packageInfoModel);
+            this.setText("<html>" + text + "</html>");
+            this.setIcon(packageIcon);
         } else {
             String text = String.format("%s", userObject);
             this.setText("<html>" + text + "</html>");
