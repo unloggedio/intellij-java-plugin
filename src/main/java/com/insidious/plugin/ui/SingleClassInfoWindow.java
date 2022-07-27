@@ -2,12 +2,7 @@ package com.insidious.plugin.ui;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.ObjectInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.ClientCallBack;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
@@ -42,6 +37,7 @@ public class SingleClassInfoWindow {
     private JPanel headingPanel;
     private JButton searchObjects;
     private JButton loadObjectHistoryButton;
+    private LoadEventHistoryListener eventHistoryListener;
 
     public SingleClassInfoWindow(
             Project project,
@@ -70,63 +66,8 @@ public class SingleClassInfoWindow {
                     return;
                 }
                 final Long objectLongId = Long.valueOf(objectId);
-
-                try {
-                    ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
-                            project, "Unlogged", true
-                    ) {
-                        @Override
-                        protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
-                            FilteredDataEventsRequest request = new FilteredDataEventsRequest();
-                            request.setObjectId(objectLongId);
-                            request.setPageInfo(new PageInfo(0, 1000));
-                            ReplayData replayData = insidiousService.getClient().fetchObjectHistoryByObjectId(
-                                    request
-                            );
-
-                            for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
-                                DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
-                                ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
-                                String eventType = "<>";
-                                if (probeInfo != null) {
-                                    eventType = probeInfo.getEventType().toString();
-                                }
-
-                                String eventLogLine = "["
-                                        + dataEvent.getRecordedAt()
-                                        + "][" + dataEvent.getDataId()
-                                        + "][" + eventType +
-                                        "] value: " + Long.valueOf(dataEvent.getValue()).toString();
-
-                                if (objectInfo != null) {
-                                    TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
-                                    eventLogLine =
-                                            eventLogLine + ", Type: " + typeInfo.getTypeNameFromClass();
-
-                                }
-                                if (replayData.getStringInfoMap().containsKey(String.valueOf(dataEvent.getValue()))) {
-                                    StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
-                                    eventLogLine =
-                                            eventLogLine + ", Value: " + stringValue.getContent();
-                                }
-
-
-                                if (dataEvent.getValue() == objectLongId) {
-                                    eventLogLine = " ** " + eventLogLine;
-                                }
-
-                                resultTextArea.append(eventLogLine + "\n");
-                            }
-
-
-                            return replayData;
-                        }
-                    });
-                } catch (Exception ex) {
-                    resultTextArea.append("Failed to load object history: " + ex.getMessage() +
-                            "\n");
-                }
-
+                resultTextArea.append("Loading object history: " + objectId);
+                eventHistoryListener.loadEventHistory(objectLongId);
 
             }
         });
@@ -144,7 +85,8 @@ public class SingleClassInfoWindow {
                             "Unlogged", null);
                 }
 
-                resultTextArea.setText("Searching...\n");
+                String fullyClassifiedClassName = treeNode.getClassName().replaceAll("/", ".");
+                resultTextArea.setText("Searching for objects of type " + fullyClassifiedClassName + "\n");
 
                 try {
                     String finalSearchRange = searchRange;
@@ -158,7 +100,7 @@ public class SingleClassInfoWindow {
                             BlockingQueue<Boolean> sync = new ArrayBlockingQueue<>(1);
                             SearchQuery searchQuery = SearchQuery
                                     .ByType(List.of(
-                                            treeNode.getClassName().replaceAll("/", ".")
+                                            fullyClassifiedClassName
                                     ));
                             searchQuery.setRange(finalSearchRange);
                             insidiousService.getClient().getObjectsByType(
@@ -208,5 +150,9 @@ public class SingleClassInfoWindow {
 
     public JPanel getContent() {
         return containerPanel;
+    }
+
+    public void addEventHistoryLoadRequestListener(LoadEventHistoryListener loadEventHistoryListener) {
+        this.eventHistoryListener = loadEventHistoryListener;
     }
 }

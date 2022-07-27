@@ -116,7 +116,9 @@ public class VideobugTreeModel implements TreeModel {
 
                                 List<ClassInfo> classInfoList = classWeaveInfo.getClassInfoList();
                                 Map<String, PackageInfoModel> packageInfoModelMap = new HashMap<>();
-
+                                if (classInfoList.size() == 0) {
+                                    return null;
+                                }
                                 classInfoList.sort(Comparator.comparing(ClassInfo::getClassName));
 
 
@@ -196,6 +198,7 @@ public class VideobugTreeModel implements TreeModel {
                     });
             sessionClassWeaveMap.put(session.getSessionId(), classWeaveInfo);
         } catch (Exception e) {
+            e.printStackTrace();
             InsidiousNotification.notifyMessage("Failed to load session: " + e.getMessage(), NotificationType.ERROR);
         }
 
@@ -229,7 +232,11 @@ public class VideobugTreeModel implements TreeModel {
             ExecutionSession session = (ExecutionSession) parent;
             init(session);
 
-            return sessionPackageMap.get(session.getSessionId()).size();
+            List<PackageInfoModel> packageInfoModels = sessionPackageMap.get(session.getSessionId());
+            if (packageInfoModels == null) {
+                return 0;
+            }
+            return packageInfoModels.size();
 
 
         } else if (nodeType.equals(PackageInfoModel.class)) {
@@ -321,5 +328,13 @@ public class VideobugTreeModel implements TreeModel {
     @Override
     public void removeTreeModelListener(TreeModelListener l) {
         this.listeners.remove(l);
+    }
+
+    public void refreshSessionList() throws APICallException, IOException {
+        this.sessionList = client.fetchProjectSessions();
+//        for (TreeModelListener listener : this.listeners) {
+//            listener.
+//        }
+
     }
 }

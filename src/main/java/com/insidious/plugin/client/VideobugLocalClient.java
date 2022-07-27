@@ -1660,9 +1660,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
         KaitaiInsidiousClassWeaveParser classWeaveInfo1 = null;
 
         int i = 0;
-        while (classWeaveInfo1 == null) {
+        while (classWeaveInfo1 == null && i < archives.size()) {
             classWeaveInfo1 = readClassWeaveInfo(archives.get(i));
             i++;
+        }
+        if (classWeaveInfo1 == null) {
+            return new ClassWeaveInfo(List.of(), List.of(), List.of());
         }
 
         List<ClassInfo> classInfoList = new LinkedList<>();
@@ -1671,8 +1674,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         i = 0;
-        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo1
-                .classInfo()) {
+        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo :
+                classWeaveInfo1.classInfo()) {
             i += 1;
             checkProgressIndicator(null,
                     "Parsing class [ " + i + " of " + classInfoList.size() + " ]");
