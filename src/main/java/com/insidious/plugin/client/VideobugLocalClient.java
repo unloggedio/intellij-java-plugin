@@ -983,6 +983,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
             } catch (IOException ex) {
                 ex.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw e;
             }
 
         }
@@ -1203,23 +1206,47 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Set<Long> ids = Set.of(valueIds);
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
-        return dataEvents.event().entries().stream().filter(e -> e.magic() == 4
-                        && ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId()))
+        return dataEvents.event().entries().stream()
+                .filter(e -> e.magic() == 4 || e.magic() == 7)
+                .filter(e -> {
+                    if (e.block() instanceof KaitaiInsidiousEventParser.DataEventBlock) {
+                        return ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId());
+                    }
+                    if (e.block() instanceof KaitaiInsidiousEventParser.DetailedEventBlock) {
+                        return ids.contains(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId());
+                    }
+                    return false;
+                })
                 .map(e -> {
-                    long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
 
-                    int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                    if (e.magic() == 4) {
+                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
 
-                    long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-                    long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
 
-                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
-                    dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
-                    dataEvent.setRecordedAt(timestamp);
-                    return dataEvent;
-                }).collect(Collectors.toList());
+                    } else {
+                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
+
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
+                    }
+               })
+                .collect(Collectors.toList());
     }
 
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
@@ -1227,22 +1254,46 @@ public class VideobugLocalClient implements VideobugClientInterface {
         Set<Integer> ids = Set.of(probeIds);
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
-        return dataEvents.event().entries().stream().filter(e -> e.magic() == 4
-                        && ids.contains((int) ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId()))
+        return dataEvents.event().entries().stream()
+                .filter(e -> e.magic() == 4 || e.magic() == 7)
+                .filter(e -> {
+                    if (e.block() instanceof KaitaiInsidiousEventParser.DataEventBlock) {
+                        return ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                    }
+                    if (e.block() instanceof KaitaiInsidiousEventParser.DetailedEventBlock) {
+                        return ids.contains(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
+                    }
+                    return false;
+                })
                 .map(e -> {
-                    long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+                    if (e.magic() == 4) {
+                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
 
-                    int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
 
-                    long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-                    long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+                    } else {
+                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
 
-                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
-                    dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
-                    dataEvent.setRecordedAt(timestamp);
-                    return dataEvent;
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
+                    }
+
+
                 }).collect(Collectors.toList());
     }
 
@@ -1349,17 +1400,35 @@ public class VideobugLocalClient implements VideobugClientInterface {
         checkProgressIndicator(null, "Mapping " + eventsContainer.event().entries().size() + " events ");
 
         List<DataEventWithSessionId> dataEventList = eventsContainer.event()
-                .entries().stream().filter(e -> e.magic() == 4)
-                .map(e -> (KaitaiInsidiousEventParser.DataEventBlock) e.block())
+                .entries().stream().filter(e -> e.magic() == 4 || e.magic() == 7)
                 .map(e -> {
-                    DataEventWithSessionId d = new DataEventWithSessionId();
+                    if (e.magic() == 4) {
+                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
 
-                    d.setDataId((int) e.probeId());
-                    d.setNanoTime(e.eventId());
-                    d.setRecordedAt(e.timestamp());
-                    d.setThreadId(filteredDataEventsRequest.getThreadId());
-                    d.setValue(e.valueId());
-                    return d;
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
+
+                    } else {
+                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
+                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
+                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
+                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
+
+                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                        dataEvent.setDataId(probeId);
+                        dataEvent.setValue(valueId);
+                        dataEvent.setNanoTime(eventId);
+                        dataEvent.setRecordedAt(timestamp);
+                        return dataEvent;
+                    }
+
                 }).collect(Collectors.toList());
 
         Collections.reverse(dataEventList);
