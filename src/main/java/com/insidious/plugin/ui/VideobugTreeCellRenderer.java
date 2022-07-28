@@ -45,23 +45,27 @@ public class VideobugTreeCellRenderer extends DefaultTreeCellRenderer {
         super.getTreeCellRendererComponent(tree, userObject, sel, expanded, leaf, row, hasFocus);
         if (userObject instanceof ProbeInfoModel) {
             ProbeInfoModel probeInfoModel = (ProbeInfoModel) userObject;
-            String text = String.format(SPAN_FORMAT, "#d6caf0", probeInfoModel);
+//            String text = String.format(SPAN_FORMAT, "#d6caf0", probeInfoModel);
+            String text = probeInfoModel.toString();
 //            text += " [" + String.format(SPAN_FORMAT, "orange", pp.getRole()) + "]";
             this.setText("<html>" + text + "</html>");
 //            this.setIcon(employeeIcon);
         } else if (userObject instanceof TreeClassInfoModel) {
             TreeClassInfoModel classInfoModel = (TreeClassInfoModel) userObject;
-            String text = String.format(SPAN_FORMAT, "#aba497", classInfoModel);
+//            String text = String.format(SPAN_FORMAT, "#aba497", classInfoModel);
+            String text = classInfoModel.toString();
             this.setText("<html>" + text + "</html>");
             this.setIcon(classIcon);
         } else if (userObject instanceof ExecutionSession) {
             ExecutionSession executionSession = (ExecutionSession) userObject;
-            String text = String.format(SPAN_FORMAT, "#aba497", executionSession);
+//            String text = String.format(SPAN_FORMAT, "#aba497", executionSession);
+            String text = executionSession.toString();
             this.setIcon(this.sessionIcon);
             this.setText("<html>" + text + "</html>");
         } else if (userObject instanceof MethodInfoModel) {
             MethodInfoModel methodInfoModel  = (MethodInfoModel) userObject;
-            String text = String.format(SPAN_FORMAT, "#719775", methodInfoModel);
+//            String text = String.format(SPAN_FORMAT, "#719775", methodInfoModel);
+            String text = methodInfoModel.toString();
             this.setText("<html>" + text + "</html>");
             this.setIcon(methodIcon);
         } else if (userObject instanceof PackageInfoModel) {

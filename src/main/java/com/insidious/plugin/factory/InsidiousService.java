@@ -573,6 +573,12 @@ public class InsidiousService implements Disposable {
                     .refreshAndFindFileByUrl(
                             Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
 
+            if (newFile == null) {
+                logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
+                InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+                return;
+            }
+
 
             FileContentUtil.reparseFiles(project, List.of(newFile), true);
             @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);

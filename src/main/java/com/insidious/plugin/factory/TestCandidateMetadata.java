@@ -209,7 +209,12 @@ public class TestCandidateMetadata {
                                 variableName = eventProbeInfo.getAttribute("FieldName",
                                         testSubjectInstanceName);
                             }
-                            Parameter subjectInstanceParameter = createObject(i - 1, replayData, 0);
+                            Parameter subjectInstanceParameter;
+                            if (eventType == EventType.LOCAL_LOAD) {
+                                subjectInstanceParameter = createObject(i, replayData, 0);
+                            } else {
+                                subjectInstanceParameter = createObject(i - 1, replayData, 0);
+                            }
 
                             metadata.setTestSubject(subjectInstanceParameter);
                             subjectNameFound = true;

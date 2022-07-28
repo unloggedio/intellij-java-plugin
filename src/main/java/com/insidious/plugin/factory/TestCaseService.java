@@ -1315,7 +1315,12 @@ public class TestCaseService {
                 Optional<Parameter> parameterByValue
                         = variableContainer.getParametersById((String) testSubject.getValue());
                 if (parameterByValue.isPresent()) {
-                    parameterByValue.get().setName(testSubject.getName());
+                    Parameter existingParameter = parameterByValue.get();
+                    if (existingParameter.getName() == null && testSubject.getName() != null) {
+                        existingParameter.setName(testSubject.getName());
+                    } else if (existingParameter.getName() != null && testSubject.getName() == null) {
+                        testSubject.setName(existingParameter.getName());
+                    }
                 } else {
                     variableContainer.add(testSubject);
                 }

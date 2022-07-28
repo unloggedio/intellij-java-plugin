@@ -328,7 +328,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
         int i = 0;
         while (classWeaveInfoLocal == null) {
-            classWeaveInfoLocal = readClassWeaveInfo(this.sessionArchives.get(i));
+            if (pageInfo.isAsc()) {
+                classWeaveInfoLocal =
+                        readClassWeaveInfo(this.sessionArchives.get(this.sessionArchives.size() - i - 1));
+            } else {
+                classWeaveInfoLocal =
+                        readClassWeaveInfo(this.sessionArchives.get(i));
+
+            }
             i++;
         }
 
