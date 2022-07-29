@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ReplayData {
-    private final VideobugClientInterface client;
+    private VideobugClientInterface client;
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
     Map<String, ClassInfo> classInfoMap;
@@ -72,6 +72,10 @@ public class ReplayData {
         return client.fetchObjectHistoryByObjectId(
                 filteredDataEventsRequestClone
         );
+    }
+
+    public void setClient(VideobugClientInterface client) {
+        this.client = client;
     }
 
 

@@ -1006,7 +1006,10 @@ public class InsidiousService implements Disposable {
             InsidiousNotification.notifyMessage("No sessions available for module [" + currentModule.getName() + "]", NotificationType.ERROR);
             return;
         }
-        client.setSession(sessions.getItems().get(0));
+        if (client.getCurrentSession() == null || !client.getCurrentSession()
+                .getSessionId().equals(sessions.getItems().get(0).getSessionId())) {
+            client.setSession(sessions.getItems().get(0));
+        }
     }
 
     public void initiateUseLocal() {

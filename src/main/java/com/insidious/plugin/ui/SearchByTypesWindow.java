@@ -91,7 +91,6 @@ public class SearchByTypesWindow extends SearchByWindowCommon {
                 .collect(Collectors.toList());
 
         try {
-            insidiousService.refreshSession();
             insidiousService.doSearch(SearchQuery.ByType(exceptionClassnameList));
         } catch (Exception e) {
             logger.error("failed to load sessions for module", e);
