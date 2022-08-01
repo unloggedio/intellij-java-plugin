@@ -1,12 +1,9 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.PageInfo;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
-import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.pojo.ObjectsWithTypeInfo;
+import com.insidious.plugin.pojo.ObjectWithTypeInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -29,7 +26,7 @@ public class SingleClassInfoWindow {
     private final Project project;
     private final TreeClassInfoModel treeNode;
     private final InsidiousService insidiousService;
-    private final List<ObjectsWithTypeInfo> objectResultList = new LinkedList<>();
+    private final List<ObjectWithTypeInfo> objectResultList = new LinkedList<>();
     private JPanel containerPanel;
     private JTextArea resultTextArea;
     private JLabel headingLabel;
@@ -105,7 +102,7 @@ public class SingleClassInfoWindow {
                             searchQuery.setRange(finalSearchRange);
                             insidiousService.getClient().getObjectsByType(
                                     searchQuery,
-                                    treeNode.getSessionId(), new ClientCallBack<ObjectsWithTypeInfo>() {
+                                    treeNode.getSessionId(), new ClientCallBack<ObjectWithTypeInfo>() {
                                         @Override
                                         public void error(ExceptionResponse errorResponse) {
                                             resultTextArea.setText("Failed - " + errorResponse.getMessage()
@@ -113,9 +110,9 @@ public class SingleClassInfoWindow {
                                         }
 
                                         @Override
-                                        public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+                                        public void success(Collection<ObjectWithTypeInfo> tracePoints) {
                                             objectResultList.addAll(tracePoints);
-                                            for (ObjectsWithTypeInfo tracePoint : tracePoints) {
+                                            for (ObjectWithTypeInfo tracePoint : tracePoints) {
                                                 String newLine = "Trace point: " +
                                                         "ObjectId=" +
                                                         tracePoint.getObjectInfo().getObjectId() +

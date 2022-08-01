@@ -94,4 +94,8 @@ public class ReplayData {
     public void setDataEvents(List<DataEventWithSessionId> objectEventsReverse) {
         this.dataEvents = objectEventsReverse;
     }
+
+    public FilteredDataEventsRequest getFilteredDataEventsRequest() {
+        return filteredDataEventsRequest;
+    }
 }

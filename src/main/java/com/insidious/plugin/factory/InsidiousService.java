@@ -513,7 +513,7 @@ public class InsidiousService implements Disposable {
 
                 SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 
-                List<ObjectsWithTypeInfo> allObjects = new LinkedList<>();
+                List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
 
                 DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
                 ExecutionSession session = sessions.getItems().get(0);
@@ -526,7 +526,7 @@ public class InsidiousService implements Disposable {
                             }
 
                             @Override
-                            public void success(Collection<ObjectsWithTypeInfo> tracePoints) {
+                            public void success(Collection<ObjectWithTypeInfo> tracePoints) {
                                 allObjects.addAll(tracePoints);
                             }
 
@@ -543,7 +543,7 @@ public class InsidiousService implements Disposable {
                             NotificationType.WARNING);
                 }
 
-                TestSuite testSuite = testCaseService.generateTestCase(targetClasses, allObjects);
+                TestSuite testSuite = testCaseService.generateTestCase(allObjects);
                 return testSuite;
 
             }
@@ -645,7 +645,7 @@ public class InsidiousService implements Disposable {
                             client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(), searchResultsHandler);
                             break;
                         case BY_PROBE:
-                            client.queryTracePointsByProbe(searchQuery,
+                            client.queryTracePointsByEventType(searchQuery,
                                     executionSession.getSessionId(), searchResultsHandler);
                             break;
                     }
@@ -1098,5 +1098,9 @@ public class InsidiousService implements Disposable {
         UsageInsightTracker.getInstance().RecordEvent("DiagnosticReport", null);
         DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project, this.currentModule);
         diagnosticService.generateAndUploadReport();
+    }
+
+    public Project getProject() {
+        return project;
     }
 }

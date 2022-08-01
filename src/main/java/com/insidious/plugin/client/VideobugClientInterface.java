@@ -1,7 +1,6 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -53,8 +52,8 @@ public interface VideobugClientInterface {
 
     ClassWeaveInfo getSessionClassWeave(String sessionId);
 
-    void queryTracePointsByProbe(SearchQuery searchQuery, String sessionid,
-                                 ClientCallBack<TracePoint> tracePointsCallback);
+    void queryTracePointsByEventType(SearchQuery searchQuery, String sessionid,
+                                     ClientCallBack<TracePoint> tracePointsCallback);
 
     ReplayData fetchObjectHistoryByObjectId(
             FilteredDataEventsRequest request
@@ -91,8 +90,12 @@ public interface VideobugClientInterface {
                     ClientCallBack<TestCandidate> tracePointsCallback);
 
     void getObjectsByType(SearchQuery searchQuery, String sessionId,
-                          ClientCallBack<ObjectsWithTypeInfo> clientCallBack);
+                          ClientCallBack<ObjectWithTypeInfo> clientCallBack);
 
     List<String> getSessionArchiveList(String sessionId);
 
+    void queryTracePointsByProbeIds(
+            SearchQuery searchQuery,
+            String sessionId,
+            ClientCallBack<TracePoint> tracePointsCallback);
 }

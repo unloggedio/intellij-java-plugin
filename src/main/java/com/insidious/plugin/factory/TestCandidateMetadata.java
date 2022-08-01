@@ -18,21 +18,15 @@ import java.util.regex.Pattern;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
+    private final List<Parameter> parameters = new LinkedList<>();
     private String fullyQualifiedClassname;
     private String unqualifiedClassname;
     private String packageName;
     private String testMethodName;
     private Parameter testSubject;
     private Parameter returnParameter;
-    private final List<Parameter> parameters = new LinkedList<>();
     private long callTimeNanoSecond;
-
-    public String getMethodName() {
-        return methodName;
-    }
-
     private String methodName;
-
 
     private static String getTestSubjectName(int eventIndex,
                                              MethodInfo methodInfo,
@@ -68,7 +62,6 @@ public class TestCandidateMetadata {
         }
         return null;
     }
-
 
     public static TestCandidateMetadata create(
             MethodInfo methodInfo,
@@ -128,18 +121,19 @@ public class TestCandidateMetadata {
         int callReturnIndex = -1;
         ReplayData replayDataPage = replayData;
         DataInfo entryProbeInfo = probeInfoMap.get(String.valueOf(events.get(entryProbeIndex).getDataId()));
+        int currentEntryProbeIndex = entryProbeIndex;
         while (true) {
             if (entryProbeInfo.getEventType() == EventType.CALL) {
 
                 if (methodInfo.getMethodName().equals("<init>")) {
-                    callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex,
+                    callReturnIndex = searchCallReturnIndex(replayDataPage, currentEntryProbeIndex,
                             List.of(EventType.NEW_OBJECT_CREATED));
                 } else {
                     callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex, List.of(EventType.CALL_RETURN));
                 }
 
             } else if (entryProbeInfo.getEventType() == EventType.METHOD_ENTRY) {
-                callReturnIndex = searchCallReturnIndex(replayDataPage, entryProbeIndex,
+                callReturnIndex = searchCallReturnIndex(replayDataPage, currentEntryProbeIndex,
                         List.of(
                                 EventType.METHOD_OBJECT_INITIALIZED
                         ));
@@ -153,6 +147,7 @@ public class TestCandidateMetadata {
             if (replayDataPage.getDataEvents().size() == 0) {
                 break;
             }
+            currentEntryProbeIndex = replayDataPage.getDataEvents().size();
         }
 
 
@@ -191,8 +186,8 @@ public class TestCandidateMetadata {
 
         // identify the variable name on which this method is called
         if (methodInfo.getMethodName().equals("<init>")) {
-                metadata.setTestSubject(returnParameter);
-                subjectNameFound = true;
+            metadata.setTestSubject(returnParameter);
+            subjectNameFound = true;
         } else {
             for (int i = entryProbeIndex; i < events.size(); i += 1) {
                 DataEventWithSessionId event = events.get(i);
@@ -331,7 +326,7 @@ public class TestCandidateMetadata {
 
             }
 
-        } else if (entryProbeInfo.getEventType() ==  EventType.METHOD_ENTRY) {
+        } else if (entryProbeInfo.getEventType() == EventType.METHOD_ENTRY) {
             while (callReturnIndex > -1) {
                 DataEventWithSessionId event = events.get(callReturnIndex);
                 DataInfo eventProbeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
@@ -372,7 +367,6 @@ public class TestCandidateMetadata {
 
         return methodParameterProbes;
     }
-
 
     private static int searchCallReturnIndex
             (
@@ -438,7 +432,11 @@ public class TestCandidateMetadata {
             TypeInfo typeInfo = replayData.getTypeInfo().get(
                     String.valueOf(objectInfo.getTypeId())
             );
-            parameter.setType("L" + typeInfo.getTypeNameFromClass().replaceAll("\\.", "/") + ";");
+            if (typeInfo == null) {
+                logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
+            } else {
+                parameter.setType("L" + typeInfo.getTypeNameFromClass().replaceAll("\\.", "/") + ";");
+            }
 
         }
 //
@@ -489,7 +487,7 @@ public class TestCandidateMetadata {
         int direction;
         if (
                 probeInfo.getEventType() == EventType.CALL_RETURN ||
-                probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED
+                        probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED
         ) {
             direction = -1; // go forward from current event
             callStackSearchLevel = 0; // we want something in the current method only
@@ -524,7 +522,7 @@ public class TestCandidateMetadata {
                     }
                     ObjectInfo oInfo = replayData.getObjectInfo().get(String.valueOf(historyEvent.getValue()));
                     if (oInfo == null) {
-                        logger.warn("object info is null ["+  historyEvent.getValue() +"], gotta " +
+                        logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
                                 "check");
                         break;
                     }
@@ -553,9 +551,9 @@ public class TestCandidateMetadata {
                     // be fine because we are also tracing the parameters by index (which was not
                     // there when the type check was initially added)
 //                    if (variableType.equals(parameter.getType())) {
-                        String variableName = historyEventProbe.getAttribute("Name", null);
-                        parameter.setName(variableName);
-                        return parameter;
+                    String variableName = historyEventProbe.getAttribute("Name", null);
+                    parameter.setName(variableName);
+                    return parameter;
 //                    }
 //                    break;
                 case GET_STATIC_FIELD:
@@ -571,9 +569,9 @@ public class TestCandidateMetadata {
                     }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 //                    if (fieldType.equals(parameter.getType())) {
-                        String variableName1 = historyEventProbe.getAttribute("FieldName", null);
-                        parameter.setName(variableName1);
-                        return parameter;
+                    String variableName1 = historyEventProbe.getAttribute("FieldName", null);
+                    parameter.setName(variableName1);
+                    return parameter;
 //                    }
 //                    break;
             }
@@ -589,11 +587,6 @@ public class TestCandidateMetadata {
         lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
         return lastPart;
     }
-
-    private void setMethodName(String methodName) {
-        this.methodName = methodName;
-    }
-
 
     private static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
@@ -627,36 +620,44 @@ public class TestCandidateMetadata {
         return listMatches;
     }
 
-    public void setFullyQualifiedClassname(String fullyQualifiedClassname) {
-        this.fullyQualifiedClassname = fullyQualifiedClassname;
+    public String getMethodName() {
+        return methodName;
+    }
+
+    private void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 
     public String getFullyQualifiedClassname() {
         return fullyQualifiedClassname;
     }
 
-    public void setUnqualifiedClassname(String unqualifiedClassname) {
-        this.unqualifiedClassname = unqualifiedClassname;
+    public void setFullyQualifiedClassname(String fullyQualifiedClassname) {
+        this.fullyQualifiedClassname = fullyQualifiedClassname;
     }
 
     public String getUnqualifiedClassname() {
         return unqualifiedClassname;
     }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
+    public void setUnqualifiedClassname(String unqualifiedClassname) {
+        this.unqualifiedClassname = unqualifiedClassname;
     }
 
     public String getPackageName() {
         return packageName;
     }
 
-    public void setTestMethodName(String testMethodName) {
-        this.testMethodName = testMethodName;
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
     }
 
     public String getTestMethodName() {
         return testMethodName;
+    }
+
+    public void setTestMethodName(String testMethodName) {
+        this.testMethodName = testMethodName;
     }
 
     public Parameter getTestSubject() {
@@ -680,19 +681,19 @@ public class TestCandidateMetadata {
         return this.parameters;
     }
 
-    public void setReturnParameter(Parameter returnParameter) {
-        this.returnParameter = returnParameter;
-    }
-
     public Parameter getReturnParameter() {
         return returnParameter;
     }
 
-    public void setCallTimeNanoSecond(long callTimeNanoSecond) {
-        this.callTimeNanoSecond = callTimeNanoSecond;
+    public void setReturnParameter(Parameter returnParameter) {
+        this.returnParameter = returnParameter;
     }
 
     public long getCallTimeNanoSecond() {
         return callTimeNanoSecond;
+    }
+
+    public void setCallTimeNanoSecond(long callTimeNanoSecond) {
+        this.callTimeNanoSecond = callTimeNanoSecond;
     }
 }

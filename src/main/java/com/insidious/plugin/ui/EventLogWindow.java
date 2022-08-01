@@ -1,60 +1,153 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.ObjectInfo;
-import com.insidious.common.weaver.StringInfo;
-import com.insidious.common.weaver.TypeInfo;
+import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
+import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditor;
+import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Vector;
 
 public class EventLogWindow {
     private final InsidiousService service;
-    private final ReplayData replayData;
-    private final DefaultTableModel tableModel;
+    private ReplayData replayData;
+    private DefaultTableModel tableModel;
     private JPanel filterPanel;
     private JTable eventsTable;
     private JTextField queryTextField;
     private JButton filterButton;
     private JScrollPane eventsPanel;
     private JPanel containerPanel;
+    private JSpinner bufferSize;
 
-    public EventLogWindow(InsidiousService service, ReplayData replayData) {
-        this.service = service;
-        this.replayData = replayData;
+    public EventLogWindow(InsidiousService insidiousService) {
 
-        TableColumnModel eventsTableColumnModel = new DefaultTableColumnModel();
+        this.service = insidiousService;
 
-        TableColumn nanoTimeColumn = new TableColumn();
-        nanoTimeColumn.setHeaderValue("#Seq");
-        eventsTableColumnModel.addColumn(nanoTimeColumn);
 
-        TableColumn eventTypeColumn = new TableColumn();
-        eventTypeColumn.setHeaderValue("EventType");
-        eventsTableColumnModel.addColumn(eventTypeColumn);
+        queryTextField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    String newObjectId = queryTextField.getText();
+                    if (newObjectId == null || newObjectId.length() < 1) {
+                        return;
+                    }
+                    long objectId;
+                    try {
+                        objectId = Long.parseLong(newObjectId);
+                    } catch (Exception e3) {
+                        InsidiousNotification.notifyMessage("Invalid object id to search", NotificationType.ERROR);
+                        return;
+                    }
+                    loadObject(objectId);
+                }
+            }
+        });
 
-        TableColumn probeIdColumn = new TableColumn();
-        probeIdColumn.setHeaderValue("ProbeId");
-        eventsTableColumnModel.addColumn(probeIdColumn);
+        this.filterButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String newObjectId = queryTextField.getText();
+                if (newObjectId == null || newObjectId.length() < 1) {
+                    return;
+                }
+                long objectId;
+                try {
+                    objectId = Long.parseLong(newObjectId);
+                } catch (Exception e3) {
+                    InsidiousNotification.notifyMessage("Invalid object id to search", NotificationType.ERROR);
+                    return;
+                }
+                loadObject(objectId);
+            }
+        });
 
-        TableColumn valueColumn = new TableColumn();
-        valueColumn.setHeaderValue("Value");
-        eventsTableColumnModel.addColumn(valueColumn);
 
-        eventsTable.setColumnModel(eventsTableColumnModel);
+        eventsTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                int selectedColumn = eventsTable.getSelectedColumn();
+                String selectedColumnName = tableModel.getColumnName(selectedColumn);
 
+                int selectedRowIndex = eventsTable.getSelectedRow();
+                Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
+
+                DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
+                DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(selectedEvent.getDataId()));
+
+                ClassInfo classInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
+                String fileName = classInfo.getFilename();
+
+                String fileLocation = "src/main/java/" + classInfo.getClassName() + ".java";
+
+
+                @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(
+                                Path.of(service.getProject().getBasePath(), fileLocation).toUri().toString());
+
+
+                FileEditor[] fileEditor = FileEditorManager.getInstance(service.getProject()).openFile(newFile,
+                        true, true);
+
+                @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+                int lineOffsetStart = newDocument.getLineStartOffset(probeInfo.getLine());
+                newDocument.createRangeMarker(lineOffsetStart, lineOffsetStart + 10);
+
+            }
+
+        });
+    }
+
+    public void loadObject(long objectId) {
+        try {
+            ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
+                    service.getProject(), "Unlogged", true
+            ) {
+                @Override
+                protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
+                    FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+                    filterRequest.setObjectId(objectId);
+                    PageInfo pageInfo = new PageInfo(0, 1000, PageInfo.Order.ASC);
+
+                    pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
+
+                    filterRequest.setPageInfo(pageInfo);
+                    ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+                    return replayData1;
+                }
+            });
+        } catch (Exception e) {
+            InsidiousNotification.notifyMessage("failed to search: " + e.getMessage(),
+                    NotificationType.ERROR);
+        }
+
+    }
+
+    private void updateTableData(ReplayData replayData1) {
+        this.replayData = replayData1;
         Vector<Object> columnVector = new Vector<>(List.of(
-                "#seq", "Event", "#Probe", "Value", "Value Class", "String"
+                "Event", "#Line", "Value", "Attributes", "Value type", "String"
         ));
         Vector<Vector<Object>> dataVector = new Vector<>(replayData.getDataEvents().size());
 
@@ -65,32 +158,21 @@ public class EventLogWindow {
 
             DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
             ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
-            String eventType = "<>";
-            if (probeInfo != null) {
-                eventType = probeInfo.getEventType().toString();
-            }
+            String eventType = probeInfo.getEventType().toString();
 
-            rowVector.add(dataEvent.getRecordedAt());
+
+//            rowVector.add(dataEvent.getRecordedAt());
             rowVector.add(eventType);
-            rowVector.add(dataEvent.getDataId());
+            rowVector.add(probeInfo.getLine());
             rowVector.add(Long.valueOf(dataEvent.getValue()).toString());
-
-            String eventLogLine = "["
-                    + dataEvent.getRecordedAt()
-                    + "][" + dataEvent.getDataId()
-                    + "][" + eventType +
-                    "] value: " + Long.valueOf(dataEvent.getValue()).toString();
+            rowVector.add(probeInfo.getAttributes());
 
             if (objectInfo != null) {
                 TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
-                eventLogLine =
-                        eventLogLine + ", Type: " + typeInfo.getTypeNameFromClass();
                 rowVector.add(typeInfo.getTypeNameFromClass());
             }
             if (replayData.getStringInfoMap().containsKey(String.valueOf(dataEvent.getValue()))) {
                 StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
-                eventLogLine =
-                        eventLogLine + ", Value: " + stringValue.getContent();
                 rowVector.add(stringValue.getContent());
             }
 
@@ -107,24 +189,6 @@ public class EventLogWindow {
             }
         };
         eventsTable.setModel(tableModel);
-        eventsTable.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                int selectedColumn = eventsTable.getSelectedColumn();
-                String selectedColumnName = tableModel.getColumnName(selectedColumn);
-
-                int selectedRowIndex = eventsTable.getSelectedRow();
-                Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
-
-                switch (selectedColumnName) {
-                    case "Probe":
-
-                        break;
-                }
-
-            }
-        });
     }
 
     public JPanel getContent() {

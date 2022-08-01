@@ -144,22 +144,13 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
                         public void run() {
                             try {
 
-                                ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
+                                ProgressManager.getInstance().run(new Task.WithResult<EventLogWindow, Exception>(
                                         project, "Unlogged", true
                                 ) {
                                     @Override
-                                    protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
-
-
-                                        FilteredDataEventsRequest request = new FilteredDataEventsRequest();
-                                        request.setObjectId(objectId);
-                                        request.setPageInfo(new PageInfo(0, 1000));
-                                        ReplayData replayData1 = insidiousService.getClient().fetchObjectHistoryByObjectId(
-                                                request
-                                        );
-
-                                        eventViewer = new EventLogWindow(insidiousService, replayData1);
-                                        return replayData1;
+                                    protected EventLogWindow compute(@NotNull ProgressIndicator indicator) throws Exception {
+                                        eventViewer = new EventLogWindow(insidiousService);
+                                        return eventViewer;
                                     }
                                 });
 

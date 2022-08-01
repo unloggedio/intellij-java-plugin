@@ -3,11 +3,11 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.TypeInfo;
 
-public class ObjectsWithTypeInfo {
+public class ObjectWithTypeInfo {
     private final ObjectInfo objectInfo;
     private final TypeInfo typeInfo;
 
-    public ObjectsWithTypeInfo(ObjectInfo objectInfo, TypeInfo typeInfo) {
+    public ObjectWithTypeInfo(ObjectInfo objectInfo, TypeInfo typeInfo) {
         this.objectInfo = objectInfo;
         this.typeInfo = typeInfo;
     }

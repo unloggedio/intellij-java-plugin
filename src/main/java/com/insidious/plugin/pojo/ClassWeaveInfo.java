@@ -7,6 +7,7 @@ import com.insidious.common.weaver.MethodInfo;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ClassWeaveInfo {
@@ -16,6 +17,7 @@ public class ClassWeaveInfo {
     private final List<DataInfo> dataInfoList;
     private final Map<Integer, List<MethodInfo>> methodByClass;
     private final Map<Integer, List<DataInfo>> probesByMethod;
+    private final Map<Integer, List<DataInfo>> probesByClass;
 
 
     public ClassWeaveInfo(
@@ -29,11 +31,22 @@ public class ClassWeaveInfo {
         methodByClass = methodInfoList.stream().collect(Collectors.groupingBy(MethodInfo::getClassId));
         probesByMethod =
                 dataInfoList.stream().collect(Collectors.groupingBy(DataInfo::getMethodId));
+        probesByClass =
+                dataInfoList.stream().collect(Collectors.groupingBy(DataInfo::getClassId));
     }
 
     public ClassInfo getClassInfoById(int classId) {
         for (ClassInfo classInfo : classInfoList) {
             if (classInfo.getClassId() == classId) {
+                return classInfo;
+            }
+        }
+        return null;
+    }
+
+    public ClassInfo getClassInfoByName(String className) {
+        for (ClassInfo classInfo : classInfoList) {
+            if (Objects.equals(classInfo.getClassName(), className)) {
                 return classInfo;
             }
         }
@@ -65,15 +78,11 @@ public class ClassWeaveInfo {
     }
 
     public List<DataInfo> getProbesByMethodId(int methodId) {
-        List<DataInfo> dataInfos = probesByMethod.get(methodId);
-        return dataInfos;
-//        List<DataInfo> methods = new LinkedList<>();
-//        for (DataInfo dataInfo : dataInfoList) {
-//            if (dataInfo.getMethodId() == methodId) {
-//                methods.add(dataInfo);
-//            }
-//        }
-//        return methods;
+        return probesByMethod.get(methodId);
+    }
+
+    public List<DataInfo> getProbesByClassId(int classId) {
+        return probesByClass.get(classId);
     }
 
     public DataInfo getProbeById(int probeId) {

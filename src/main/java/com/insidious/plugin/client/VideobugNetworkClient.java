@@ -321,6 +321,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
+    public @NotNull List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
     public ClassWeaveInfo getSessionClassWeave(String sessionId) {
         throw new RuntimeException("not implemented");
     }
@@ -652,9 +657,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
 
     @Override
-    public void queryTracePointsByProbe(SearchQuery searchQuery,
-                                        String sessionid,
-                                        ClientCallBack<TracePoint> tracePointsCallback) {
+    public void queryTracePointsByEventType(SearchQuery searchQuery,
+                                            String sessionid,
+                                            ClientCallBack<TracePoint> tracePointsCallback) {
 
     }
 
@@ -669,13 +674,18 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getObjectsByType(SearchQuery searchQuery, String sessionId, ClientCallBack<ObjectsWithTypeInfo> clientCallBack) {
+    public void getObjectsByType(SearchQuery searchQuery, String sessionId, ClientCallBack<ObjectWithTypeInfo> clientCallBack) {
 
     }
 
     @Override
     public List<String> getSessionArchiveList(String sessionId) {
         return List.of();
+    }
+
+    @Override
+    public void queryTracePointsByProbeIds(SearchQuery searchQuery, String sessionId, ClientCallBack<TracePoint> tracePointsCallback) {
+
     }
 
 

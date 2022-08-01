@@ -306,7 +306,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     public void getObjectsByType(
             SearchQuery searchQuery,
             String sessionId,
-            ClientCallBack<ObjectsWithTypeInfo> clientCallBack
+            ClientCallBack<ObjectWithTypeInfo> clientCallBack
     ) {
 
 
@@ -339,15 +339,28 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public void queryTracePointsByProbe(
+    public void queryTracePointsByEventType(
             SearchQuery searchQuery,
             String sessionId,
             ClientCallBack<TracePoint> tracePointsCallback) {
         checkSession(sessionId);
         logger.info("trace by probe ids: " + searchQuery);
         checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        this.session.queryTracePointsByProbe(searchQuery, tracePointsCallback);
+        this.session.queryTracePointsByEventType(searchQuery, tracePointsCallback);
 
+
+    }
+
+    @Override
+    public void queryTracePointsByProbeIds(
+            SearchQuery searchQuery,
+            String sessionId,
+            ClientCallBack<TracePoint> tracePointsCallback) {
+        checkSession(sessionId);
+        logger.info("trace by probe ids: " + searchQuery);
+        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
+        this.session.queryTracePointsByProbeIds(searchQuery, tracePointsCallback);
+//        this.session.queryTracePointsByProbeIdsWithoutIndex(searchQuery, tracePointsCallback);
 
     }
 

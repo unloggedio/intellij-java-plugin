@@ -35,6 +35,7 @@ public class TestCaseService {
     private final VideobugClientInterface client;
     final private int MAX_TEST_CASE_LINES = 1000;
     private final CompareMode MODE = CompareMode.SERIALIZED_JSON;
+    private Integer[] x;
 
     public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
@@ -71,7 +72,7 @@ public class TestCaseService {
                         EventType.METHOD_ENTRY
                 )
         );
-        this.client.queryTracePointsByProbe(searchQuery,
+        this.client.queryTracePointsByEventType(searchQuery,
                 session.getSessionId(), tracePointsCallback);
     }
 
@@ -116,7 +117,7 @@ public class TestCaseService {
         BlockingQueue<String> tracePointLock = new ArrayBlockingQueue<>(1);
 
         List<TracePoint> tracePointList = new LinkedList<>();
-        this.client.queryTracePointsByProbe(searchQuery,
+        this.client.queryTracePointsByEventType(searchQuery,
                 session.getSessionId(), new ClientCallBack<TracePoint>() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
@@ -199,7 +200,9 @@ public class TestCaseService {
      * @throws IOException          // if something on the disk fails
      * @throws InterruptedException // it waits
      */
-    public void listTestCandidatesByEnumeratingAllProbes() throws APICallException, IOException, InterruptedException {
+    public void
+    listTestCandidatesByEnumeratingAllProbes (List<String> classNames)
+            throws APICallException, IOException, InterruptedException {
 
         List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
 
@@ -213,6 +216,9 @@ public class TestCaseService {
 
         for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
 
+            if (!classNames.contains(classInfo.getClassName())) {
+                continue;
+            }
             List<MethodInfo> methods =
                     classWeaveInfo.getMethodInfoByClassId(classInfo.getClassId());
 
@@ -234,12 +240,16 @@ public class TestCaseService {
 
                     Optional<DataInfo> methodEntryProbeOption =
                             methodProbes.stream()
-                                    .filter(p -> p.getEventType() == EventType.METHOD_ENTRY)
+                                    .filter(p -> p.getEventType() == EventType.METHOD_OBJECT_INITIALIZED)
                                     .findFirst();
 
                     Set<DataInfo> methodParamProbes = methodProbes.stream()
                             .filter(p -> p.getEventType() == EventType.METHOD_PARAM)
                             .collect(Collectors.toSet());
+
+                    if (methodEntryProbeOption.isEmpty()) {
+                        continue;
+                    }
 
                     assert methodEntryProbeOption.isPresent();
 
@@ -248,8 +258,8 @@ public class TestCaseService {
                     BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
 
                     List<TracePoint> tracePoints = new LinkedList<>();
-                    client.queryTracePointsByProbe(
-                            SearchQuery.ByProbe(List.of(methodEntryProbe.getClassId())),
+                    client.queryTracePointsByProbeIds(
+                            SearchQuery.ByProbe(List.of(methodEntryProbe.getDataId())),
                             session.getSessionId(), new ClientCallBack<TracePoint>() {
                                 @Override
                                 public void error(ExceptionResponse errorResponse) {
@@ -271,7 +281,7 @@ public class TestCaseService {
 
                     if (tracePoints.size() == 0) {
                         logger.warn("no trace point found for probe["
-                                + methodEntryProbe.getDataId() + " => [" + classInfo.getClassName() + "] => "
+                                + methodEntryProbe.getDataId() + "] => [" + classInfo.getClassName() + "] => "
                                 + method.getMethodName());
                         continue;
                     }
@@ -282,7 +292,7 @@ public class TestCaseService {
                     filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
                     ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
 
-                    logger.info("generate test case using " + probeReplayData.getDataEvents().size() + " events");
+                    logger.warn("generate test case using " + probeReplayData.getDataEvents().size() + " events");
 
 
                 }
@@ -294,7 +304,6 @@ public class TestCaseService {
         }
 
     }
-
 
     /**
      * another attempt at generated test candidates but this one tries to get
@@ -684,8 +693,6 @@ public class TestCaseService {
         return null;
     }
 
-    private Integer[] x;
-
     private Class<?> getClassFromDescriptor(String descriptor) {
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
@@ -737,11 +744,10 @@ public class TestCaseService {
 
 
     public TestSuite generateTestCase(
-            List<String> classNameList,
-            List<ObjectsWithTypeInfo> allObjects
+            List<ObjectWithTypeInfo> allObjects
     ) throws APICallException, IOException {
 
-        Map<Long, List<ObjectsWithTypeInfo>> objectsByType =
+        Map<Long, List<ObjectWithTypeInfo>> objectsByType =
                 allObjects.stream()
                         .collect(Collectors.groupingBy(e -> e.getTypeInfo().getTypeId()));
 
@@ -753,12 +759,9 @@ public class TestCaseService {
         List<TestCaseUnit> testCases = new LinkedList<>();
         for (Long typeId : objectsByType.keySet()) {
 
-            List<ObjectsWithTypeInfo> objectsList = objectsByType.get(typeId);
+            List<ObjectWithTypeInfo> objectsList = objectsByType.get(typeId);
             TypeInfo typeInfo = objectsList.get(0).getTypeInfo();
             String fullClassName = typeInfo.getTypeNameFromClass();
-            if (!classNameList.contains(fullClassName)) {
-                continue;
-            }
             List<String> classNameParts = new LinkedList<>(Arrays.asList(fullClassName.split("\\.")));
             String simpleClassName = classNameParts.get(classNameParts.size() - 1);
             classNameParts.remove(classNameParts.size() - 1);
@@ -766,7 +769,7 @@ public class TestCaseService {
 
             int i = 0;
             int total = objectsList.size();
-            for (ObjectsWithTypeInfo testableObject : objectsList) {
+            for (ObjectWithTypeInfo testableObject : objectsList) {
                 i++;
                 long objectId = testableObject.getObjectInfo().getObjectId();
                 assert objectId != 0;
@@ -831,6 +834,10 @@ public class TestCaseService {
 
 
             checkProgressIndicator(null, "Generate java source for test scenario");
+            if (simpleClassName.contains("$")) {
+                simpleClassName = simpleClassName.split("\\$")[0];
+            }
+
             String generatedTestClassName = "Test" + simpleClassName + "V";
             TypeSpec.Builder typeSpecBuilder = TypeSpec
                     .classBuilder(generatedTestClassName)
@@ -968,7 +975,8 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 500000, PageInfo.Order.ASC);
+        PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
+        pagination.setBufferSize(5000);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
@@ -1146,9 +1154,20 @@ public class TestCaseService {
 
 
         long threadId = -1;
+
+        Map<Integer, Boolean> ignoredProbes = new HashMap<>();
         TypeInfo typeInfo;
+        int by10 = objectEvents.size() / 100;
         for (int eventIndex = 0; eventIndex < objectEvents.size(); eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
+            if (ignoredProbes.containsKey(dataEvent.getDataId() )) {
+                continue;
+            }
+            if (eventIndex % by10 == 0) {
+                logger.warn("completed [" + eventIndex + "/" + objectEvents.size() + "]");
+            }
+
+
             final long eventValue = dataEvent.getValue();
             String eventValueString = String.valueOf(eventValue);
             ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
@@ -1179,11 +1198,11 @@ public class TestCaseService {
 
                     constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
 
-                    if (subjectTypeInfo != null &&
-                            !Objects.equals(subjectTypeInfo.getTypeNameFromClass(),
-                                    constructorOwnerClass)) {
-                        continue;
-                    }
+//                    if (subjectTypeInfo != null &&
+//                            !Objects.equals(subjectTypeInfo.getTypeNameFromClass(),
+//                                    constructorOwnerClass)) {
+//                        continue;
+//                    }
 
                     MethodInfo methodEntryInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
                     if (methodEntryInfo != null) {
@@ -1195,12 +1214,12 @@ public class TestCaseService {
                     if (StringUtil.isEmpty(constructorOwnerClass)) {
                         continue;
                     }
-                    if (subjectTypeInfo != null &&
-                            !Objects.equals(
-                                    subjectTypeInfo.getTypeNameFromClass(),
-                                    constructorOwnerClass)) {
-                        continue;
-                    }
+//                    if (subjectTypeInfo != null &&
+//                            !Objects.equals(
+//                                    subjectTypeInfo.getTypeNameFromClass(),
+//                                    constructorOwnerClass)) {
+//                        continue;
+//                    }
 
                     if (methodInfo.getMethodName().equals("<clinit>")) {
                         continue;
@@ -1222,6 +1241,8 @@ public class TestCaseService {
                             !(String.valueOf(testSubjectParameter.getValue()))
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
+                        logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubjectParameter.getValue());
+                        ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }
 
@@ -1229,10 +1250,11 @@ public class TestCaseService {
                     // we should find a return parameter even if the type of the return
                     // is void, return parameter marks the completion of the method
                     if (newTestCaseMetadata.getReturnParameter() == null) {
-                        logger.debug("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                        logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
                         continue;
                     }
 
+                    logger.warn("created test case candidate: " + methodInfo.getMethodName());
 
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);

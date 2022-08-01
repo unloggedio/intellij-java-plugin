@@ -28,6 +28,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,6 +46,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static com.googlecode.cqengine.query.QueryFactory.in;
+import static com.googlecode.cqengine.query.QueryFactory.startsWith;
 import static com.insidious.plugin.client.DatFileType.*;
 
 public class SessionInstance {
@@ -53,6 +55,7 @@ public class SessionInstance {
     private final ExecutionSession executionSession;
     private final List<File> sessionArchives;
     private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
+    private final Map<String, String> cacheEntries = new HashMap<>();
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex typeIndex;
 
@@ -79,11 +82,15 @@ public class SessionInstance {
                         && e.getName().startsWith("index-"))
                 .collect(Collectors.toList());
         logger.info("found [" + sessionFiles.size() + "] session archives");
+
+        List<File> filesToRemove = new LinkedList<>();
+
         for (int i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
             classWeaveInfo = readClassWeaveInfo(sessionFiles.get(i));
 
             NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i), INDEX_TYPE_DAT_FILE.getFileName());
             if (typeIndexBytes == null) {
+                filesToRemove.add(sessionFiles.get(i));
                 continue;
             }
 
@@ -93,6 +100,7 @@ public class SessionInstance {
                 logger.warn("failed to read archive for types index: " + e.getMessage());
             }
         }
+        sessionFiles.removeAll(filesToRemove);
         return sessionFiles;
     }
 
@@ -306,7 +314,7 @@ public class SessionInstance {
                     "sessionFile [" + sessionFile.getName() + "]");
             return null;
         }
-        logger.warn("Class weave information from " + sessionFile.getName() + " is " + fileBytes.getBytes().length + " bytes");
+//        logger.warn("Class weave information from " + sessionFile.getName() + " is " + fileBytes.getBytes().length + " bytes");
         classWeaveInfo1 = new KaitaiInsidiousClassWeaveParser(
                 new ByteBufferKaitaiStream(fileBytes.getBytes()));
         return classWeaveInfo1;
@@ -474,8 +482,18 @@ public class SessionInstance {
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) {
         logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
+        String cacheKey = sessionFile.getName() + pathName;
+        String cacheFileLocation = this.sessionDirectory + "/cache/" + cacheKey + ".dat";
         ZipInputStream indexArchive = null;
         try {
+
+            if (cacheEntries.containsKey(cacheKey)) {
+                String name = cacheEntries.get(cacheKey);
+                File cacheFile = new File(cacheFileLocation);
+                byte[] bytes = IOUtils.toByteArray(new FileInputStream(cacheFile));
+                return new NameWithBytes(name, bytes);
+            }
+
             FileInputStream sessionFileInputStream = new FileInputStream(sessionFile);
             indexArchive = new ZipInputStream(sessionFileInputStream);
 
@@ -492,19 +510,19 @@ public class SessionInstance {
                 String entryName = entry.getName();
                 logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
                 if (entryName.contains(pathName)) {
-                    String cacheKey = sessionFile.getName() + entryName;
-                    NameWithBytes nameWithBytes = new NameWithBytes(entryName, IOUtils.toByteArray(indexArchive));
+                    byte[] fileBytes = IOUtils.toByteArray(indexArchive);
+
+                    File cacheFile = new File(cacheFileLocation);
+                    FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
+                    cacheEntries.put(cacheKey, entryName);
+
+                    NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
                     logger.warn(pathName + " file from "
                             + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
                     indexArchive.closeEntry();
                     indexArchive.close();
                     sessionFileInputStream.close();
                     return nameWithBytes;
-                }
-                String[] nameParts = entryName.split("@");
-                if (nameParts.length == 2 && filterValueLong > 0) {
-                    int fileThread = Integer.parseInt(nameParts[1].split("\\.")[0].split("-")[2]);
-                    long fileTimeStamp = Long.parseLong(nameParts[0]);
                 }
             }
         } catch (Exception e) {
@@ -546,7 +564,7 @@ public class SessionInstance {
     }
 
 
-    public void queryTracePointsByProbe(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
+    public void queryTracePointsByEventType(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
 
 
         List<DataInfo> probeIds = null;
@@ -563,13 +581,11 @@ public class SessionInstance {
 
 
             if (probeIds.size() > 0) {
-                List<TracePoint> tracePointsByProbeIds = getTracePointsByProbeIds(sessionArchive,
+                getTracePointsByProbeIds(sessionArchive,
                         probeIds.stream().map(DataInfo::getDataId)
-                                .collect(Collectors.toSet()));
-                if (tracePointsByProbeIds.size() != 0) {
-                    tracePointsByProbeIds.forEach(e -> e.setExecutionSession(executionSession));
-                    tracePointsCallback.success(tracePointsByProbeIds);
-                }
+                                .collect(Collectors.toSet()),
+                        tracePointsCallback
+                );
             }
         }
         tracePointsCallback.completed();
@@ -577,8 +593,46 @@ public class SessionInstance {
     }
 
 
-    private List<TracePoint> getTracePointsByProbeIds(File sessionArchive,
-                                                      Set<Integer> probeIds) {
+    public void queryTracePointsByProbeIds(SearchQuery searchQuery,
+                                           ClientCallBack<TracePoint> tracePointsCallback) {
+
+
+        Collection<Integer> probeIds =
+                (Collection<Integer>) searchQuery.getQuery();
+
+        for (File sessionArchive : sessionArchives) {
+            getTracePointsByProbeIds(sessionArchive,
+                    new HashSet<>(probeIds),
+                    tracePointsCallback
+            );
+        }
+        tracePointsCallback.completed();
+
+    }
+
+    public void
+    queryTracePointsByProbeIdsWithoutIndex(
+            SearchQuery searchQuery,
+            ClientCallBack<TracePoint> tracePointsCallback) {
+
+
+        Collection<Integer> probeIds =
+                (Collection<Integer>) searchQuery.getQuery();
+
+        for (File sessionArchive : sessionArchives) {
+            getTracePointsByProbeIdsWithoutIndex(sessionArchive,
+                    new HashSet<>(probeIds),
+                    tracePointsCallback
+            );
+        }
+        tracePointsCallback.completed();
+
+    }
+
+
+    private void getTracePointsByProbeIds(File sessionArchive,
+                                          Set<Integer> probeIds,
+                                          ClientCallBack<TracePoint> tracePointsCallback) {
         logger.info("Query for probeIds [" + probeIds.toString() + "]");
         List<TracePoint> tracePointList = new LinkedList<>();
         NameWithBytes bytes;
@@ -594,7 +648,7 @@ public class SessionInstance {
 
             bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
             if (bytes == null) {
-                return List.of();
+                return;
             }
             eventsIndex = readEventIndex(bytes.getBytes());
 
@@ -709,14 +763,7 @@ public class SessionInstance {
                 }).filter(Objects::nonNull).collect(Collectors.toList());
                 tracePointList.addAll(matchedTracePoints);
 
-                if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                    if (tracePointList.size() > 0) {
-                        ProgressIndicatorProvider.getGlobalProgressIndicator().setText(tracePointList.size() + " matched...");
-                    }
-                    if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                        return tracePointList;
-                    }
-                }
+                checkProgressIndicator(null, tracePointList.size() + " matched...");
 
 
             } catch (IOException ex) {
@@ -725,8 +772,169 @@ public class SessionInstance {
             }
 
         }
+        if (tracePointList.size() != 0) {
+            tracePointList.forEach(e -> e.setExecutionSession(executionSession));
+            tracePointsCallback.success(tracePointList);
+        }
+    }
 
-        return tracePointList;
+
+    private void
+    getTracePointsByProbeIdsWithoutIndex(
+            File sessionArchive,
+            Set<Integer> probeIds,
+            ClientCallBack<TracePoint> tracePointsCallback) {
+        logger.info("Query for probeIds [" + probeIds.toString() + "]");
+        List<TracePoint> tracePointList = new LinkedList<>();
+        NameWithBytes bytes;
+        Integer[] probeIdArray = new Integer[probeIds.size()];
+        int k = 0;
+        for (Integer probeId : probeIds) {
+            probeIdArray[k] = probeId;
+            k++;
+        }
+
+        ArchiveFilesIndex eventsIndex = null;
+        ArchiveIndex objectIndex = null;
+        try {
+            checkProgressIndicator(null, "Loading events index " + sessionArchive.getName() + " to match against " + probeIds.size() + " values");
+
+
+            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
+            if (bytes == null) {
+                return;
+            }
+            eventsIndex = readEventIndex(bytes.getBytes());
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
+
+
+        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
+        AtomicInteger counter = new AtomicInteger();
+        probeIds.forEach(probeId -> {
+            int currentIndex = counter.addAndGet(1);
+
+            List<UploadFile> matchedFilesForString = new LinkedList<>();
+
+            checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
+            try {
+                matchedFilesForString =
+                        listArchiveFiles(sessionArchive).stream()
+                                .filter(e -> e.endsWith("selog"))
+                                .map(e ->
+                                {
+                                    UploadFile uploadFile = new UploadFile(e, 0,
+                                            null, null);
+                                    uploadFile.setProbeIds(probeIdArray);
+                                    return uploadFile;
+                                })
+                                .collect(Collectors.toList());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            for (UploadFile uploadFile : matchedFilesForString) {
+                String filePath = uploadFile.getPath();
+                int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
+                uploadFileToAdd.setProbeIds(new Integer[]{probeId});
+
+                if (matchedFiles.containsKey(filePath)) {
+                    Integer[] existingProbes = matchedFiles.get(filePath).getProbeIds();
+                    ArrayList<Integer> arrayList = new ArrayList<>(Arrays.asList(existingProbes));
+                    if (!arrayList.contains(probeId)) {
+                        arrayList.add(probeId);
+                        matchedFiles.get(filePath).setProbeIds(arrayList.toArray(Integer[]::new));
+                    }
+
+                } else {
+                    matchedFiles.put(filePath, uploadFile);
+                }
+
+            }
+        });
+        logger.info("matched [" + matchedFiles.size() + "] files");
+
+
+        for (UploadFile matchedFile : matchedFiles.values()) {
+            try {
+
+                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
+                String fileName = Path.of(matchedFile.getPath()).getFileName().toString();
+
+                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
+                if (fileBytes == null) {
+                    List<String> fileList = listArchiveFiles(sessionArchive);
+                    logger.error(String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]", fileName, sessionArchive, fileList));
+                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
+                }
+                long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
+                int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
+
+
+                List<DataEventWithSessionId> dataEvents =
+                        getDataEventsFromPathByProbeIds(fileBytes.getBytes(),
+                                matchedFile.getProbeIds());
+
+                checkProgressIndicator(null, "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
+                List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
+
+                    try {
+                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive, Set.of(e1.getDataId()));
+                        logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+
+                        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+                            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                                return null;
+                            }
+                        }
+
+
+                        DataInfo dataInfo = dataInfoList.get(0);
+                        int classId = dataInfo.getClassId();
+                        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
+
+                        ObjectInfo objectInfo = objectInfoMap.get(String.valueOf(e1.getValue()));
+                        String typeName = "<na>";
+                        if (objectInfo != null) {
+                            TypeInfo typeInfo = getTypeInfo((int) objectInfo.getTypeId());
+                            typeName = typeInfo.getTypeNameFromClass();
+                        }
+
+                        TracePoint tracePoint = new TracePoint(
+                                classId, dataInfo.getLine(),
+                                dataInfo.getDataId(), threadId, e1.getValue(),
+                                classInfo.fileName().value(), classInfo.className().value(),
+                                typeName, timestamp, e1.getNanoTime());
+
+                        tracePoint.setExecutionSession(executionSession);
+                        return tracePoint;
+                    } catch (ClassInfoNotFoundException | Exception ex) {
+                        logger.error("failed to get data probe information", ex);
+                    }
+                    return null;
+
+
+                }).filter(Objects::nonNull).collect(Collectors.toList());
+                tracePointList.addAll(matchedTracePoints);
+
+                checkProgressIndicator(null, tracePointList.size() + " matched...");
+
+
+            } catch (IOException ex) {
+                logger.error("exception while creating trace points in file[" + matchedFile.path + "]",
+                        ex);
+            }
+
+        }
+        if (tracePointList.size() != 0) {
+            tracePointList.forEach(e -> e.setExecutionSession(executionSession));
+            tracePointsCallback.success(tracePointList);
+        }
     }
 
 
@@ -739,10 +947,10 @@ public class SessionInstance {
                 .filter(e -> e.magic() == 4 || e.magic() == 7)
                 .filter(e -> {
                     if (e.block() instanceof KaitaiInsidiousEventParser.DataEventBlock) {
-                        return ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
+                        return ids.contains((int) ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
                     }
                     if (e.block() instanceof KaitaiInsidiousEventParser.DetailedEventBlock) {
-                        return ids.contains(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
+                        return ids.contains((int) ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
                     }
                     return false;
                 })
@@ -961,7 +1169,11 @@ public class SessionInstance {
         tracePointsCallback.completed();
     }
 
-    public void getObjectsByType(SearchQuery searchQuery, ClientCallBack<ObjectsWithTypeInfo> clientCallBack) {
+    public void
+    getObjectsByType(
+            SearchQuery searchQuery,
+            ClientCallBack<ObjectWithTypeInfo> clientCallBack
+    ) {
 
         checkProgressIndicator("Looking for objects by class: " + searchQuery.getQuery(), null);
         int rangeLow = -1;
@@ -986,6 +1198,9 @@ public class SessionInstance {
 
             Set<ObjectInfoDocument> objects = queryObjectsByTypeFromSessionArchive(searchQuery,
                     sessionArchive);
+            if (objects.size() == 0) {
+                continue;
+            }
 
             Map<Long, TypeInfo> typesMap = objects.stream()
                     .map(ObjectInfoDocument::getTypeId)
@@ -994,9 +1209,9 @@ public class SessionInstance {
                     .map(this::getTypeInfo)
                     .collect(Collectors.toMap(TypeInfo::getTypeId, typeInfo -> typeInfo));
 
-            Set<ObjectsWithTypeInfo> collect = objects.stream()
+            Set<ObjectWithTypeInfo> collect = objects.stream()
                     .map(e ->
-                            new ObjectsWithTypeInfo(
+                            new ObjectWithTypeInfo(
                                     new ObjectInfo(e.getObjectId(), e.getTypeId(), 0),
                                     typesMap.get((long) e.getTypeId())))
                     .collect(Collectors.toSet());
@@ -1012,27 +1227,16 @@ public class SessionInstance {
 
     }
 
-    private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery,
-                                                                         File sessionArchive) {
+    private Set<ObjectInfoDocument>
+    queryObjectsByTypeFromSessionArchive(
+            SearchQuery searchQuery,
+            File sessionArchive
+    ) {
 
-        checkProgressIndicator(null, "Querying type names from: " + sessionArchive.getName());
-
-
-        Query<TypeInfoDocument> typeQuery = in(TypeInfoDocument.TYPE_NAME
-                , List.of(((String) searchQuery.getQuery()).split(",")));
-        ResultSet<TypeInfoDocument> searchResult = typeIndex.Types().retrieve(typeQuery);
-        Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
-        searchResult.close();
-        logger.info("type query matches [" + typeIds.size() + "] items");
+        checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
 
 
-        checkProgressIndicator(null, "Index: " + sessionArchive.getName() +
-                " matched " + typeIds.size() + " of the total " + typeIndex.Types().size());
-
-
-        if (typeIds.size() == 0) {
-            return Set.of();
-        }
+        Set<Integer> typeIds = queryTypeIdsByName(searchQuery);
 
 
         checkProgressIndicator(null, "Loading matched objects");
@@ -1060,12 +1264,25 @@ public class SessionInstance {
                 .collect(Collectors.toSet());
         typeInfoSearchResult.close();
 
-        checkProgressIndicator(null, "Index: " + sessionArchive.getName() +
+        checkProgressIndicator(null, sessionArchive.getName() +
                 " matched " + objects.size() + " objects of total " + objectIndex.Objects().size());
 
 
-        logger.info("matched [" + objects.size() + "] objects by of the total " + objectIndex.Objects().size());
         return objects;
+    }
+
+    private Set<Integer> queryTypeIdsByName(SearchQuery searchQuery) {
+        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME
+                , (String) searchQuery.getQuery());
+        ResultSet<TypeInfoDocument> searchResult = typeIndex.Types().retrieve(typeQuery);
+        Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
+        searchResult.close();
+        logger.info("type query [" + searchQuery + "] matched [" + typeIds.size() + "] items");
+
+        if (typeIds.size() == 0) {
+            return Set.of();
+        }
+        return typeIds;
     }
 
     public List<String> getArchiveNamesList() {
@@ -1192,13 +1409,13 @@ public class SessionInstance {
             });
         });
 
-        logger.warn("classInfoMap size: " + classInfoMap.size());
-        logger.warn("methodInfoMap size: " + methodInfoMap.size());
-        logger.warn("probeInfoMap size: " + probeInfoMap.size());
+//        logger.warn("classInfoMap size: " + classInfoMap.size());
+//        logger.warn("methodInfoMap size: " + methodInfoMap.size());
+//        logger.warn("probeInfoMap size: " + probeInfoMap.size());
 
 
         final AtomicLong previousEventAt = new AtomicLong(-1);
-        for (File sessionArchive : this.sessionArchives) {
+        for (File sessionArchive : sessionArchivesLocal) {
 
 
             Map<String, UploadFile> matchedFiles = new HashMap<>();
@@ -1381,7 +1598,9 @@ public class SessionInstance {
                                 return null;
                             }).collect(Collectors.toList());
 
-                    logger.warn("adding " + dataEventGroupedList.size() + " objects");
+                    if (dataEventGroupedList.size() > 0) {
+                        logger.info("adding " + dataEventGroupedList.size() + " objects");
+                    }
                     if (remaining < dataEventGroupedList.size()) {
                         dataEventGroupedList = dataEventGroupedList.subList(0, remaining);
                         remaining = 0;
@@ -1458,8 +1677,9 @@ public class SessionInstance {
             Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
             typeInfoMap.putAll(sessionTypeInfo);
 
-
-            checkProgressIndicator(null, "Completed loading");
+            if (remaining == 0) {
+                break;
+            }
 
         }
 
