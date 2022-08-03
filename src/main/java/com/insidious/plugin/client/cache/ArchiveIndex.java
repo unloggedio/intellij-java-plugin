@@ -64,9 +64,18 @@ public class ArchiveIndex {
         Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_ID, objectIds);
         ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
         Stream<ObjectInfoDocument> stream = retrieve.stream();
-        Map<String, ObjectInfo> collect = stream
+
+        Map<String, ObjectInfo> collect = new HashMap<>();
+        stream
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
-                .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
+                .forEach(e -> {
+                    String key = String.valueOf(e.getObjectId());
+//                    if (collect.containsKey(key)) {
+//                        logger
+//                    }
+                    collect.put(key, e);
+                });
+
         retrieve.close();
         return collect;
     }

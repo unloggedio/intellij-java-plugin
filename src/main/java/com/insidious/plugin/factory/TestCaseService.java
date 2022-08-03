@@ -975,7 +975,7 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 5000000, PageInfo.Order.ASC);
+        PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
         pagination.setBufferSize(1000);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
@@ -1093,8 +1093,8 @@ public class TestCaseService {
      * parameters and return value is captured, which serves the bases of the test candidate.
      *
      * @param parameter              the value is the most important part
-     * @param objectRoutineContainer the identifies method calles on this parameter will be added
-     *                               as a parameter to the object routine container
+     * @param objectRoutineContainer the identified method called on this parameter will be added
+     *                                to the object routine container
      * @param objectReplayData       the series of events based on which we are rebuilding the object history
      * @return a name for the target object (which was originally a long id),
      * @throws APICallException this happens when we fail to read the data from the disk or the
@@ -1153,27 +1153,30 @@ public class TestCaseService {
 
         String className = subjectTypeInfo.getTypeNameFromClass();
         long currentTypeId = subjectTypeInfo.getTypeId();
-        while (!typeNameHierarchyList.contains(typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass())) {
-            typeNameHierarchyList.add(typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass());
-            currentTypeId = typeInfoMap.get(String.valueOf(currentTypeId)).getSuperClass();
-            if (currentTypeId == -1) {
-                break;
+        while (currentTypeId != -1) {
+            String typeNameFromClass = typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass();
+            if (typeNameFromClass.contains("$")) {
+                typeNameFromClass = typeNameFromClass.substring(0, typeNameFromClass.indexOf("$"));
             }
+            typeNameHierarchyList.add(typeNameFromClass);
+            currentTypeId = typeInfoMap.get(String.valueOf(currentTypeId)).getSuperClass();
         }
+        assert typeNameHierarchyList.size() != 0;
 
 
         long threadId = -1;
 
         Map<Integer, Boolean> ignoredProbes = new HashMap<>();
         TypeInfo typeInfo;
-        int by10 = objectEvents.size() / 100;
-        for (int eventIndex = 0; eventIndex < objectEvents.size(); eventIndex++) {
+        int totalEventCount = objectEvents.size();
+        int by10 = totalEventCount / 100;
+        for (int eventIndex = 0; eventIndex < totalEventCount; eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
             if (ignoredProbes.containsKey(dataEvent.getDataId() )) {
                 continue;
             }
             if (eventIndex % by10 == 0) {
-                logger.warn("completed [" + eventIndex + "/" + objectEvents.size() + "]");
+                logger.warn("completed [" + eventIndex + "/" + totalEventCount + "]");
             }
 
 
@@ -1202,8 +1205,8 @@ public class TestCaseService {
                     .replaceAll("/", ".");
 
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
-            logger.warn( "[SearchCall] #" + eventIndex +", T=" + dataEvent.getNanoTime() +
-                    ", P=" + dataEvent.getDataId() +
+            logger.warn( "[SearchCall] #" + eventIndex + "/" + totalEventCount +", T=" + dataEvent.getNanoTime() +
+                    ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
                     " [Stack:" + callStack + "]" +
                     " " + String.format("%25s", probeInfo.getEventType())
                     + " in " + String.format("%25s",
@@ -1259,9 +1262,8 @@ public class TestCaseService {
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {
                         // whats happening here, if we were unable to pick a test subject
-                        // parameter then when dont know which variable to invoke this method on
-                        // potentially be a pagination issue also
-
+                        // parameter then we dont know which variable to invoke this method on.
+                        // Potentially be a pagination issue also.
                         // this can also be a super() call
 
 
@@ -1272,7 +1274,7 @@ public class TestCaseService {
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
                         logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue());
-                        ignoredProbes.put(dataEvent.getDataId(), true);
+//                        ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }
 
@@ -1303,7 +1305,7 @@ public class TestCaseService {
                     }
 
                     eventIndex =
-                            objectEvents.size() - newTestCaseMetadata.getReturnParameter().getIndex();
+                            totalEventCount - newTestCaseMetadata.getReturnParameter().getIndex();
 
 
                     callStack += 1;
