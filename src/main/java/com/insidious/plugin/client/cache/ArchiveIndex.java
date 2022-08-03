@@ -115,6 +115,8 @@ public class ArchiveIndex {
                     if (typeInfo.getComponentType() != -1) {
                         superClasses.add(typeInfo.getComponentType());
                     }
+                    if (typeInfo)
+
                     return typeInfo;
                 })
                 .forEach(e -> {
