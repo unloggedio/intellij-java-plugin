@@ -7,9 +7,14 @@ import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.cqengine.ObjectInfoDocument;
 import com.insidious.common.cqengine.StringInfoDocument;
 import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.ObjectInfo;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -89,13 +94,29 @@ public class ArchiveIndex {
         Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_ID, valueIds);
         ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
         final Map<String, TypeInfo> collect = new HashMap<>();
+        HashSet<Integer> superClasses = new HashSet<>();
         retrieve.stream()
-                .map(e -> new TypeInfo("", e.getTypeId(), e.getTypeName(),
-                        "", "", "", ""))
+                .map(e -> {
+                    byte[] typeBytes = e.getTypeBytes();
+                    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(typeBytes));
+                    TypeInfo typeInfo = TypeInfo.fromBytes(typeBytes);
+                    if (typeInfo.getSuperClass() != -1) {
+                        superClasses.add(typeInfo.getSuperClass());
+                    }
+                    if (typeInfo.getComponentType() != -1) {
+                        superClasses.add(typeInfo.getComponentType());
+                    }
+                    return typeInfo;
+                })
                 .forEach(e -> {
                     collect.put(String.valueOf(e.getTypeId()), e);
                 });
         retrieve.close();
+
+        if (superClasses.size() > 0) {
+            Map<String, TypeInfo> superClassesTypes = getTypesById(superClasses);
+            collect.putAll(superClassesTypes);
+        }
         return collect;
 
     }

@@ -98,4 +98,23 @@ public class ReplayData {
     public FilteredDataEventsRequest getFilteredDataEventsRequest() {
         return filteredDataEventsRequest;
     }
+
+    public ReplayData fetchEventsPre(DataEventWithSessionId event, int size) {
+        PageInfo paginationOlder = new PageInfo(0, size, PageInfo.Order.DESC);
+        paginationOlder.setBufferSize(0);
+        FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+        filterRequest.setThreadId(event.getThreadId());
+        filterRequest.setNanotime(event.getNanoTime());
+        filterRequest.setPageInfo(paginationOlder);
+        return client.fetchObjectHistoryByObjectId(filterRequest);
+    }
+    public ReplayData fetchEventsPost(DataEventWithSessionId event,int size) {
+        PageInfo paginationOlder = new PageInfo(0, size, PageInfo.Order.ASC);
+        paginationOlder.setBufferSize(0);
+        FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+        filterRequest.setThreadId(event.getThreadId());
+        filterRequest.setNanotime(event.getNanoTime());
+        filterRequest.setPageInfo(paginationOlder);
+        return client.fetchObjectHistoryByObjectId(filterRequest);
+    }
 }

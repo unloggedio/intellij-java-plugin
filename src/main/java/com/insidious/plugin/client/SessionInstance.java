@@ -388,7 +388,8 @@ public class SessionInstance {
             return result.get(String.valueOf(typeId));
         }
 
-        return new TypeInfo("local", typeId, "unidentified type", "", "", "", "");
+        return new TypeInfo("local", typeId, "unidentified type", "",
+                0, 0, "");
     }
 
 
@@ -427,7 +428,9 @@ public class SessionInstance {
         Path parentPath = path.getParent();
         parentPath.toFile().mkdirs();
 
-        Files.write(path, bytes);
+        if(!path.toFile().exists()) {
+            Files.write(path, bytes);
+        }
 
         if (indexFilterType.equals(INDEX_TYPE_DAT_FILE)) {
             DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence =
@@ -1407,6 +1410,7 @@ public class SessionInstance {
                 probeInfoMap.put(String.valueOf(r.dataId()),
                         KaitaiUtils.toDataInfo(r));
             });
+
         });
 
 //        logger.warn("classInfoMap size: " + classInfoMap.size());
@@ -1546,18 +1550,20 @@ public class SessionInstance {
                                     }
                                 }
 
-                                if (currentFirstEventAt != -1 &&
-                                        Math.abs(currentFirstEventAt - currentEventId)
-                                                < pageInfo.getBufferSize()) {
-                                    return true;
-                                }
-
                                 boolean isRequestedObject =
                                         valueId == objectId || objectId == -1;
 
                                 if (isRequestedObject) {
                                     previousEventAt.set(currentEventId);
                                 }
+
+                                if (currentFirstEventAt != -1 &&
+                                        currentEventId - currentFirstEventAt
+                                                < pageInfo.getBufferSize()) {
+                                    return true;
+                                }
+
+
 
                                 return isRequestedObject;
                             })

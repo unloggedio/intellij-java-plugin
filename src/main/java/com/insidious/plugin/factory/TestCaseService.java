@@ -173,7 +173,7 @@ public class TestCaseService {
             );
 
             TestCandidateMetadata testCandidateMetadata = TestCandidateMetadata.create(
-                    methodInfo, tracePoint.getNanoTime(), probeReplayData
+                    List.of(classInfo.getClassName()), methodInfo, tracePoint.getNanoTime(), probeReplayData
             );
             testCandidate.setMetadata(testCandidateMetadata);
 
@@ -975,8 +975,8 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
-        pagination.setBufferSize(5000);
+        PageInfo pagination = new PageInfo(0, 5000000, PageInfo.Order.ASC);
+        pagination.setBufferSize(1000);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
@@ -1110,14 +1110,11 @@ public class TestCaseService {
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
 
 
-        PageInfo paginationOlder = new PageInfo(0, 100, PageInfo.Order.DESC);
-        DataEventWithSessionId event = objectEvents.get(0);
-        FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
-//        (long) -1, event.getThreadId(), event.getNanoTime(), paginationOlder
-        filterRequest.setThreadId(event.getThreadId());
-        filterRequest.setNanotime(event.getNanoTime());
-        filterRequest.setPageInfo(paginationOlder);
-        ReplayData callContext = client.fetchObjectHistoryByObjectId(filterRequest);
+        ReplayData callContext = objectReplayData.fetchEventsPre(objectEvents.get(0), 100);
+
+
+        logger.warn("build test candidate for [" + parameter.getValue() + "] using " + objectReplayData.getDataEvents().size() + " events");
+        logger.warn("call context added " + callContext.getDataEvents().size() + " events");
 
 
         List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
@@ -1151,6 +1148,18 @@ public class TestCaseService {
                 objectInfoMap.get(String.valueOf(parameter.getValue()));
         final TypeInfo subjectTypeInfo =
                 typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
+
+        LinkedList<String> typeNameHierarchyList = new LinkedList<>();
+
+        String className = subjectTypeInfo.getTypeNameFromClass();
+        long currentTypeId = subjectTypeInfo.getTypeId();
+        while (!typeNameHierarchyList.contains(typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass())) {
+            typeNameHierarchyList.add(typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass());
+            currentTypeId = typeInfoMap.get(String.valueOf(currentTypeId)).getSuperClass();
+            if (currentTypeId == -1) {
+                break;
+            }
+        }
 
 
         long threadId = -1;
@@ -1186,40 +1195,56 @@ public class TestCaseService {
 
             int callStack = 0;
             ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
-            String constructorOwnerClass;
-            constructorOwnerClass = currentClassInfo
+            String ownerClassName;
+            ownerClassName = currentClassInfo
                     .getClassName()
                     .split("\\$")[0]
                     .replaceAll("/", ".");
 
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
+            logger.warn( "[SearchCall] #" + eventIndex +", T=" + dataEvent.getNanoTime() +
+                    ", P=" + dataEvent.getDataId() +
+                    " [Stack:" + callStack + "]" +
+                    " " + String.format("%25s", probeInfo.getEventType())
+                    + " in " + String.format("%25s",
+                    currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") +1) + ".java")
+                    + ":" + probeInfo.getLine()
+                    + " in " + String.format("%20s", methodInfo.getMethodName())
+                    + "  -> "+ probeInfo.getAttributes()
+            );
+
+
+
             switch (probeInfo.getEventType()) {
-                case CALL:
-
-                    constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
-
-//                    if (subjectTypeInfo != null &&
-//                            !Objects.equals(subjectTypeInfo.getTypeNameFromClass(),
-//                                    constructorOwnerClass)) {
+//                case CALL:
+//
+//                    constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
+//
+//                    if (subjectTypeInfo != null
+//                            && !Objects.equals(subjectTypeInfo.getTypeNameFromClass(), constructorOwnerClass)
+//                            && (methodInfo.getMethodName().equals("<init>") || methodInfo.getMethodName().equals("<clinit>"))
+//                    ) {
+//                        logger.warn("subject class mismatch in call, skipping: " + constructorOwnerClass);
 //                        continue;
 //                    }
-
-                    MethodInfo methodEntryInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
-                    if (methodEntryInfo != null) {
-                        methodInfo = methodEntryInfo;
-                    }
+//
+//                    MethodInfo methodEntryInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
+//                    if (methodEntryInfo != null) {
+//                        methodInfo = methodEntryInfo;
+//                    }
 
                 case METHOD_ENTRY:
 
-                    if (StringUtil.isEmpty(constructorOwnerClass)) {
+                    if (StringUtil.isEmpty(ownerClassName)) {
+                        logger.warn("constructorOwnerClass is empty, skipping: " + ownerClassName);
                         continue;
                     }
-//                    if (subjectTypeInfo != null &&
-//                            !Objects.equals(
-//                                    subjectTypeInfo.getTypeNameFromClass(),
-//                                    constructorOwnerClass)) {
-//                        continue;
-//                    }
+                    if (!typeNameHierarchyList.contains(ownerClassName)
+//                            && !methodInfo.getMethodName().equals("<init>")
+                    ) {
+                        logger.warn("subject class mismatch in call, skipping: " + ownerClassName);
+                        continue;
+                    }
 
                     if (methodInfo.getMethodName().equals("<clinit>")) {
                         continue;
@@ -1228,20 +1253,25 @@ public class TestCaseService {
 
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
+                                    typeNameHierarchyList,
                                     methodInfo, dataEvent.getNanoTime(), objectReplayData);
 
-                    Parameter testSubjectParameter = newTestCaseMetadata.getTestSubject();
-                    if (testSubjectParameter == null) {
+                    Parameter testSubject = newTestCaseMetadata.getTestSubject();
+                    if (testSubject == null) {
                         // whats happening here, if we were unable to pick a test subject
                         // parameter then when dont know which variable to invoke this method on
                         // potentially be a pagination issue also
+
+                        // this can also be a super() call
+
+
                         continue;
                     }
-                    if (testSubjectParameter.getValue() == null ||
-                            !(String.valueOf(testSubjectParameter.getValue()))
+                    if (testSubject.getValue() == null ||
+                            !(String.valueOf(testSubject.getValue()))
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
-                        logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubjectParameter.getValue());
+                        logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue());
                         ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }
@@ -1250,7 +1280,7 @@ public class TestCaseService {
                     // we should find a return parameter even if the type of the return
                     // is void, return parameter marks the completion of the method
                     if (newTestCaseMetadata.getReturnParameter() == null) {
-                        logger.warn("skipping method_entry, failed to find call return: " + methodInfo + " -> " + dataEvent);
+                        logger.warn("skipping method_entry, failed to find call return: " + newTestCaseMetadata);
                         continue;
                     }
 
@@ -1268,6 +1298,7 @@ public class TestCaseService {
                             objectRoutineContainer.newRoutine("thread" + currentThreadId);
                             threadId = currentThreadId;
                         }
+                        logger.warn("adding new test case metadata: " + newTestCaseMetadata);
                         objectRoutineContainer.addMetadata(newTestCaseMetadata);
                     }
 

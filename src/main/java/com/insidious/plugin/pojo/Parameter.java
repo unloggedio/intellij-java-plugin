@@ -8,6 +8,18 @@ public class Parameter {
     String name;
     private int index;
 
+    @Override
+    public String toString() {
+        return "Parameter{" +
+                "value=" + value +
+                ", name='" + name + '\'' +
+                ", index=" + index +
+                ", type='" + type + '\'' +
+                ", probeInfo=" + probeInfo +
+                ", prob=" + prob +
+                '}';
+    }
+
     public String getType() {
         return type;
     }
