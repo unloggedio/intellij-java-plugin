@@ -107,7 +107,6 @@ public class ArchiveIndex {
         retrieve.stream()
                 .map(e -> {
                     byte[] typeBytes = e.getTypeBytes();
-                    DataInputStream dis = new DataInputStream(new ByteArrayInputStream(typeBytes));
                     TypeInfo typeInfo = TypeInfo.fromBytes(typeBytes);
                     if (typeInfo.getSuperClass() != -1) {
                         superClasses.add(typeInfo.getSuperClass());
@@ -115,7 +114,13 @@ public class ArchiveIndex {
                     if (typeInfo.getComponentType() != -1) {
                         superClasses.add(typeInfo.getComponentType());
                     }
-                    if (typeInfo)
+                    if (typeInfo.getInterfaces() != null
+                            && typeInfo.getInterfaces().length > 0) {
+                        for (int anInterface : typeInfo.getInterfaces()) {
+                            superClasses.add(anInterface);
+                        }
+
+                    }
 
                     return typeInfo;
                 })
@@ -128,6 +133,7 @@ public class ArchiveIndex {
             Map<String, TypeInfo> superClassesTypes = getTypesById(superClasses);
             collect.putAll(superClassesTypes);
         }
+
         return collect;
 
     }

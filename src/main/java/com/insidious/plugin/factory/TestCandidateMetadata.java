@@ -8,11 +8,9 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -539,6 +537,7 @@ public class TestCandidateMetadata {
         DataInfo probeInfo = replayData.getProbeInfoMap().get(eventProbeIdString);
         ObjectInfo objectInfo = replayData.getObjectInfo().get(eventValueString);
         parameter.setProbeInfo(probeInfo);
+        Set<String> typeHierarchy = new HashSet<>();
         if (objectInfo != null) {
             TypeInfo typeInfo = replayData.getTypeInfo().get(
                     String.valueOf(objectInfo.getTypeId())
@@ -546,10 +545,26 @@ public class TestCandidateMetadata {
             if (typeInfo == null) {
                 logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
             } else {
-                parameter.setType("L" + typeInfo.getTypeNameFromClass().replaceAll("\\.", "/") + ";");
+                parameter.setType(getBasicClassName(typeInfo.getTypeNameFromClass()));
+
+                TypeInfo typeInfoToAdd = typeInfo;
+                while(typeInfoToAdd.getSuperClass() != -1) {
+                    String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
+                    typeHierarchy.add(className);
+                    for (int anInterface : typeInfoToAdd.getInterfaces()) {
+                        TypeInfo interfaceType = replayData.getTypeInfo().get(String.valueOf(anInterface));
+                        String interfaceName =
+                                getBasicClassName(interfaceType.getTypeNameFromClass());
+                        typeHierarchy.add(interfaceName);
+                    }
+
+                    typeInfoToAdd = replayData.getTypeInfo().get(String.valueOf(typeInfoToAdd.getSuperClass()));
+                }
+
             }
 
         }
+        assert  typeHierarchy.size() != 0;
 //
 //        TypeInfo valueTypeInfo;
 //        if (objectInfo != null) {
@@ -622,6 +637,9 @@ public class TestCandidateMetadata {
 
         }
 
+//        String subjectName = replayData.getNameForValue(parameterValueId);
+//        parameter.setName(subjectName);
+
         int callStack = 0;
         for (int i = eventIndex + direction; i < replayData.getDataEvents().size()
                 && i > -1; i += direction) {
@@ -659,6 +677,19 @@ public class TestCandidateMetadata {
                         // which we wonted to get a name for., the return value has no name, and
                         // is being used to invoke another function directly, so we can stop the
                         // search for a name
+
+                        // note 2: if we were looking for a value which was a METHOD_PARAM then
+                        // we also have an option to look ahead for the parameters name where it
+                        // would have been potentially used
+
+                        if (probeInfo.getEventType() == EventType.METHOD_PARAM && direction != -1) {
+                            logger.warn("switching direction of search for a method param name");
+                            i = eventIndex;
+                            direction = -1;
+                            callStackSearchLevel = 0;
+                            continue;
+                        }
+
                         return parameter;
 
                     }
@@ -716,7 +747,7 @@ public class TestCandidateMetadata {
                     // Ljava/lang/Integer (implicite conversion by jvm). removing the if should
                     // be fine because we are also tracing the parameters by index (which was not
                     // there when the type check was initially added)
-                    if (!variableType.startsWith("L") || variableType.equals(parameter.getType())) {
+                    if (!variableType.startsWith("L") || typeHierarchy.contains(variableType)) {
                         String variableName = historyEventProbe.getAttribute("Name", null);
                         parameter.setName(variableName);
                         return parameter;
@@ -745,6 +776,12 @@ public class TestCandidateMetadata {
 
 
         return parameter;
+    }
+
+    @NotNull
+    private static String getBasicClassName(String className) {
+        return "L" + className
+                .replaceAll("\\.", "/") + ";";
     }
 
     private static String createVariableName(String typeNameRaw) {

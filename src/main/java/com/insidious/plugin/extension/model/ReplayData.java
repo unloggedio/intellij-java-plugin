@@ -6,6 +6,8 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +22,7 @@ public class ReplayData {
     Map<String, ObjectInfo> objectInfo;
     Map<String, TypeInfo> typeInfo;
     Map<String, MethodInfo> methodInfoMap;
+    private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
 
     public ReplayData(
             VideobugClientInterface client,

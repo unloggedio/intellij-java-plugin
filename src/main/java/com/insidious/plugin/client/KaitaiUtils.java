@@ -4,6 +4,8 @@ import com.insidious.common.parser.KaitaiInsidiousClassWeaveParser;
 import com.insidious.common.weaver.*;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.stream.Collectors;
+
 public class KaitaiUtils {
 
     @NotNull
@@ -34,13 +36,22 @@ public class KaitaiUtils {
 
     @NotNull
     public static ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
+        String[] interfaceList = classInfo.interfaceNames()
+                .stream()
+                .map(KaitaiInsidiousClassWeaveParser.StrWithLen::value)
+                .collect(Collectors.toList())
+                .toArray(new String[]{});
         return new ClassInfo((int) classInfo.classId(),
                 classInfo.container().value(),
                 classInfo.fileName().value(),
                 classInfo.className().value(),
                 LogLevel.valueOf(classInfo.logLevel().value()),
                 classInfo.hash().value(),
-                classInfo.classLoaderIdentifier().value());
+                classInfo.classLoaderIdentifier().value(),
+                interfaceList,
+                classInfo.superclass().value(),
+                classInfo.signature().value()
+        );
     }
 
     @NotNull

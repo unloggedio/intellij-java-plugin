@@ -976,7 +976,7 @@ public class TestCaseService {
 
 
         PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
-        pagination.setBufferSize(1000);
+        pagination.setBufferSize(10000);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
@@ -1149,17 +1149,27 @@ public class TestCaseService {
         final TypeInfo subjectTypeInfo =
                 typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
 
-        LinkedList<String> typeNameHierarchyList = new LinkedList<>();
+        List<String> typeNameHierarchyList = new LinkedList<>();
 
         String className = subjectTypeInfo.getTypeNameFromClass();
         long currentTypeId = subjectTypeInfo.getTypeId();
         while (currentTypeId != -1) {
-            String typeNameFromClass = typeInfoMap.get(String.valueOf(currentTypeId)).getTypeNameFromClass();
+            TypeInfo typeInfoToAdd = typeInfoMap.get(String.valueOf(currentTypeId));
+            String typeNameFromClass = typeInfoToAdd.getTypeNameFromClass();
             if (typeNameFromClass.contains("$")) {
                 typeNameFromClass = typeNameFromClass.substring(0, typeNameFromClass.indexOf("$"));
             }
             typeNameHierarchyList.add(typeNameFromClass);
-            currentTypeId = typeInfoMap.get(String.valueOf(currentTypeId)).getSuperClass();
+
+            for (int anInterface : typeInfoToAdd.getInterfaces()) {
+                TypeInfo interfaceToAdd = typeInfoMap.get(String.valueOf(currentTypeId));
+                String interfaceName = interfaceToAdd.getTypeNameFromClass();
+                typeNameHierarchyList.add(interfaceName);
+
+            }
+
+
+            currentTypeId = typeInfoToAdd.getSuperClass();
         }
         assert typeNameHierarchyList.size() != 0;
 
@@ -1205,16 +1215,19 @@ public class TestCaseService {
                     .replaceAll("/", ".");
 
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
-            logger.warn( "[SearchCall] #" + eventIndex + "/" + totalEventCount +", T=" + dataEvent.getNanoTime() +
-                    ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
-                    " [Stack:" + callStack + "]" +
-                    " " + String.format("%25s", probeInfo.getEventType())
-                    + " in " + String.format("%25s",
-                    currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") +1) + ".java")
-                    + ":" + probeInfo.getLine()
-                    + " in " + String.format("%20s", methodInfo.getMethodName())
-                    + "  -> "+ probeInfo.getAttributes()
-            );
+
+            if (probeInfo.getEventType() == EventType.METHOD_ENTRY) {
+                logger.warn("[SearchCall] #" + eventIndex + "/" + totalEventCount + ", T=" + dataEvent.getNanoTime() +
+                        ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
+                        " [Stack:" + callStack + "]" +
+                        " " + String.format("%25s", probeInfo.getEventType())
+                        + " in " + String.format("%25s",
+                        currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
+                        + ":" + probeInfo.getLine()
+                        + " in " + String.format("%20s", methodInfo.getMethodName())
+                        + "  -> " + probeInfo.getAttributes()
+                );
+            }
 
 
 

@@ -389,7 +389,7 @@ public class SessionInstance {
         }
 
         return new TypeInfo("local", typeId, "unidentified type", "",
-                0, 0, "");
+                0, 0, "", new int[0]);
     }
 
 
