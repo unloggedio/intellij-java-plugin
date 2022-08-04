@@ -1419,6 +1419,9 @@ public class SessionInstance {
 
 
         final AtomicLong previousEventAt = new AtomicLong(-1);
+
+        Set<Long> remainingObjectIds = new HashSet<>();
+
         for (File sessionArchive : sessionArchivesLocal) {
 
 
@@ -1673,6 +1676,16 @@ public class SessionInstance {
             }
 
             Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
+            if (sessionObjectsInfo.size() != objectIds.size()) {
+                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
+                        "only " + sessionObjectsInfo.size());
+
+                sessionObjectsInfo.values().stream()
+                        .map(ObjectInfo::getObjectId)
+                        .collect(Collectors.toList())
+                        .forEach(objectIds::remove);
+                remainingObjectIds.addAll( objectIds);
+            }
             objectInfoMap.putAll(sessionObjectsInfo);
 
 
@@ -1681,6 +1694,10 @@ public class SessionInstance {
                     .map(Long::intValue).collect(Collectors.toSet());
 
             Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
+            if (sessionTypeInfo.size() < typeIds.size()){
+                logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
+            }
+
             typeInfoMap.putAll(sessionTypeInfo);
 
             if (remaining == 0) {
@@ -1689,7 +1706,57 @@ public class SessionInstance {
 
         }
 
-        return new ReplayData(
+        // we need to go thru the archives again to load the set of object information which we
+        // did not find earlier since the object was probably created earlier
+        if (remainingObjectIds.size() > 0) {
+
+            Set<Long> objectIds = remainingObjectIds;
+            for (File sessionArchive : sessionArchivesLocal) {
+
+                NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+                        INDEX_OBJECT_DAT_FILE.getFileName());
+                assert objectIndexBytes != null;
+                ArchiveIndex objectsIndex = null;
+                try {
+                    objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+                } catch (IOException e) {
+                    logger.error("failed to read object index from session archive", e);
+                    continue;
+                }
+
+
+                Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
+                if (sessionObjectsInfo.size() != objectIds.size()) {
+                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
+
+                    sessionObjectsInfo.values().stream()
+                            .map(ObjectInfo::getObjectId)
+                            .collect(Collectors.toList())
+                            .forEach(objectIds::remove);
+                }
+                objectInfoMap.putAll(sessionObjectsInfo);
+
+
+                Set<Integer> typeIds = objectInfoMap.values()
+                        .stream().map(ObjectInfo::getTypeId)
+                        .map(Long::intValue).collect(Collectors.toSet());
+
+                Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
+                if (sessionTypeInfo.size() < typeIds.size()){
+                    logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
+                }
+                typeInfoMap.putAll(sessionTypeInfo);
+
+
+            }
+
+            if (objectIds.size() > 0) {
+                logger.warn("failed to find object information for: " + objectIds);
+            }
+        }
+
+
+            return new ReplayData(
                 null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap,
                 stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 

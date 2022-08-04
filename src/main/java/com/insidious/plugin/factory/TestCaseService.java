@@ -975,8 +975,8 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 50000, PageInfo.Order.ASC);
-        pagination.setBufferSize(10000);
+        PageInfo pagination = new PageInfo(0, 500000, PageInfo.Order.ASC);
+        pagination.setBufferSize(50000);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
@@ -1258,7 +1258,7 @@ public class TestCaseService {
                     if (!typeNameHierarchyList.contains(ownerClassName)
 //                            && !methodInfo.getMethodName().equals("<init>")
                     ) {
-                        logger.warn("subject class mismatch in call, skipping: " + ownerClassName);
+                        logger.info("subject class mismatch in call, skipping: " + ownerClassName);
                         continue;
                     }
 

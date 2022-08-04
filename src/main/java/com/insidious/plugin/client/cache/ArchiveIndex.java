@@ -130,6 +130,7 @@ public class ArchiveIndex {
         retrieve.close();
 
         if (superClasses.size() > 0) {
+            superClasses.removeAll(valueIds);
             Map<String, TypeInfo> superClassesTypes = getTypesById(superClasses);
             collect.putAll(superClassesTypes);
         }

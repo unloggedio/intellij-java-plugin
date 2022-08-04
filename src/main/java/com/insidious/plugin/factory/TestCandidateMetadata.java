@@ -690,17 +690,20 @@ public class TestCandidateMetadata {
                             continue;
                         }
 
+                    }
+                    if (callStack < 0 && direction == -1) {
                         return parameter;
-
                     }
 
-                    if (callStack == callStackSearchLevel) {
+                    // direction == 1 => going back
+                    if (callStack == callStackSearchLevel && direction == 1) {
 
                         // this happens when we were looking back for a parameter name, but find
                         // ourself inside another call, need to check this out again
 
                         return parameter;
                     }
+                    break ;
                 case METHOD_NORMAL_EXIT:
                     callStack += direction;
                     break;
@@ -744,15 +747,16 @@ public class TestCandidateMetadata {
                     String variableType = historyEventProbe.getAttribute("Type", "V");
 
                     // removing this if condition because this fails in the case of int vs
-                    // Ljava/lang/Integer (implicite conversion by jvm). removing the if should
+                    // Ljava/lang/Integer (implicit conversion by jvm). removing the if should
                     // be fine because we are also tracing the parameters by index (which was not
                     // there when the type check was initially added)
                     if (!variableType.startsWith("L") || typeHierarchy.contains(variableType)) {
                         String variableName = historyEventProbe.getAttribute("Name", null);
                         parameter.setName(variableName);
+                        parameter.setType(variableType);
                         return parameter;
                     }
-//                    break;
+                    break;
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
                 case GET_INSTANCE_FIELD:
@@ -765,12 +769,15 @@ public class TestCandidateMetadata {
                         continue;
                     }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
-//                    if (fieldType.equals(parameter.getType())) {
-                    String variableName1 = historyEventProbe.getAttribute("FieldName", null);
-                    parameter.setName(variableName1);
-                    return parameter;
-//                    }
-//                    break;
+
+
+                    if (!fieldType.startsWith("L") || typeHierarchy.contains(fieldType)) {
+                        String variableName = historyEventProbe.getAttribute("FieldName", null);
+                        parameter.setName(variableName);
+                        parameter.setType(fieldType);
+                        return parameter;
+                    }
+                    break;
             }
         }
 
