@@ -120,4 +120,8 @@ public class ReplayData {
         filterRequest.setPageInfo(paginationOlder);
         return client.fetchObjectHistoryByObjectId(filterRequest);
     }
+
+    public TypeInfo getTypeInfoByName(String type) {
+        return client.getTypeInfoByName(client.getCurrentSession().getSessionId(), type);
+    }
 }

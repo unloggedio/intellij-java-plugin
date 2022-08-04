@@ -315,7 +315,8 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataService");
+//        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataService");
+        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
 

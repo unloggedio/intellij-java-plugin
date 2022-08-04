@@ -2,6 +2,7 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -362,6 +363,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
         this.session.queryTracePointsByProbeIds(searchQuery, tracePointsCallback);
 //        this.session.queryTracePointsByProbeIdsWithoutIndex(searchQuery, tracePointsCallback);
 
+    }
+
+    @Override
+    public TypeInfo getTypeInfoByName(String sessionId, String type) {
+        return this.session.getTypeInfo(type);
     }
 
 }

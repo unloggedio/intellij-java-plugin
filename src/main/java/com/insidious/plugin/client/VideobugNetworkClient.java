@@ -688,5 +688,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     }
 
+    @Override
+    public TypeInfo getTypeInfoByName(String sessionId, String type) {
+        throw new RuntimeException("not implemented yet ");
+    }
+
 
 }

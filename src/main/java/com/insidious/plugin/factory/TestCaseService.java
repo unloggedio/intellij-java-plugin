@@ -201,7 +201,7 @@ public class TestCaseService {
      * @throws InterruptedException // it waits
      */
     public void
-    listTestCandidatesByEnumeratingAllProbes (List<String> classNames)
+    listTestCandidatesByEnumeratingAllProbes(List<String> classNames)
             throws APICallException, IOException, InterruptedException {
 
         List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
@@ -459,6 +459,14 @@ public class TestCaseService {
             objectRoutine.addComment("Test candidate method ["
                     + testCandidateMetadata.getMethodName()
                     + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue() + "ms");
+            objectRoutine.addComment("");
+            for (Parameter parameterValue : testCandidateMetadata.getParameterValues()) {
+                objectRoutine.addComment("Parameter [" + parameterValue.getName() + "] => " +
+                        "Object:" + parameterValue.getValue());
+            }
+            objectRoutine.addComment("");
+            objectRoutine.addComment("");
+
 
             Object returnValueSquareClass = null;
             String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
@@ -1094,7 +1102,7 @@ public class TestCaseService {
      *
      * @param parameter              the value is the most important part
      * @param objectRoutineContainer the identified method called on this parameter will be added
-     *                                to the object routine container
+     *                               to the object routine container
      * @param objectReplayData       the series of events based on which we are rebuilding the object history
      * @return a name for the target object (which was originally a long id),
      * @throws APICallException this happens when we fail to read the data from the disk or the
@@ -1134,9 +1142,21 @@ public class TestCaseService {
 
 
         // we need to identify a name for this object some way by using a variable name or a
-        // paramter name
+        // parameter name
         String subjectName = null;
 
+        TypeInfo subjectTypeInfo = null;
+        if (parameter.getType() != null) {
+
+            if (parameter.getType().contains("javax") ||
+                    parameter.getType().contains("spring") ||
+                    parameter.getType().contains("reactor") ||
+                    parameter.getType().contains("mongo")) {
+                return parameter.getName();
+            }
+
+            subjectTypeInfo = objectReplayData.getTypeInfoByName(parameter.getType());
+        }
 
         final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
         final Map<String, DataInfo> probeInfoMap = objectReplayData.getProbeInfoMap();
@@ -1146,8 +1166,10 @@ public class TestCaseService {
 
         final ObjectInfo subjectObjectInfo =
                 objectInfoMap.get(String.valueOf(parameter.getValue()));
-        final TypeInfo subjectTypeInfo =
-                typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
+        if (subjectTypeInfo == null) {
+            subjectTypeInfo =
+                    typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
+        }
 
         List<String> typeNameHierarchyList = new LinkedList<>();
 
@@ -1162,7 +1184,7 @@ public class TestCaseService {
             typeNameHierarchyList.add(typeNameFromClass);
 
             for (int anInterface : typeInfoToAdd.getInterfaces()) {
-                TypeInfo interfaceToAdd = typeInfoMap.get(String.valueOf(currentTypeId));
+                TypeInfo interfaceToAdd = typeInfoMap.get(String.valueOf(anInterface));
                 String interfaceName = interfaceToAdd.getTypeNameFromClass();
                 typeNameHierarchyList.add(interfaceName);
 
@@ -1182,7 +1204,7 @@ public class TestCaseService {
         int by10 = totalEventCount / 100;
         for (int eventIndex = 0; eventIndex < totalEventCount; eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
-            if (ignoredProbes.containsKey(dataEvent.getDataId() )) {
+            if (ignoredProbes.containsKey(dataEvent.getDataId())) {
                 continue;
             }
             if (eventIndex % by10 == 0) {
@@ -1228,7 +1250,6 @@ public class TestCaseService {
                         + "  -> " + probeInfo.getAttributes()
                 );
             }
-
 
 
             switch (probeInfo.getEventType()) {

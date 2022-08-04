@@ -392,6 +392,17 @@ public class SessionInstance {
                 0, 0, "", new int[0]);
     }
 
+    public TypeInfo getTypeInfo(String name) {
+
+        TypeInfo result = typeIndex.getTypesByName(name);
+        if (result != null ) {
+            return result;
+        }
+
+        return new TypeInfo("local", -1, "unidentified type - " + name, "",
+                0, 0, "", new int[0]);
+    }
+
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         List<String> files = new LinkedList<>();

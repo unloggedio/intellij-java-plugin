@@ -13,8 +13,6 @@ import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -97,6 +95,49 @@ public class ArchiveIndex {
         retrieve.close();
         return collect;
     }
+
+    public TypeInfo getTypesByName(String typeName) {
+        Set<String> typesToSearch = new HashSet<>();
+        if (typeName.startsWith("L")) {
+            typeName = typeName.substring(1);
+        }
+        if (typeName.contains("/")) {
+            typeName = typeName.replace('/', '.');
+        }
+        if (typeName.endsWith(";")) {
+            typeName = typeName.substring(0, typeName.length() - 1);
+        }
+        typesToSearch.add(typeName);
+
+
+        Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_NAME, typesToSearch);
+        ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
+        final Map<String, TypeInfo> collect = new HashMap<>();
+        HashSet<Integer> superClasses = new HashSet<>();
+        Optional<TypeInfo> returnValue = retrieve.stream()
+                .map(e -> {
+                    byte[] typeBytes = e.getTypeBytes();
+                    TypeInfo typeInfo = TypeInfo.fromBytes(typeBytes);
+                    if (typeInfo.getSuperClass() != -1) {
+                        superClasses.add(typeInfo.getSuperClass());
+                    }
+                    if (typeInfo.getComponentType() != -1) {
+                        superClasses.add(typeInfo.getComponentType());
+                    }
+                    if (typeInfo.getInterfaces() != null
+                            && typeInfo.getInterfaces().length > 0) {
+                        for (int anInterface : typeInfo.getInterfaces()) {
+                            superClasses.add(anInterface);
+                        }
+
+                    }
+
+                    return typeInfo;
+                }).findFirst();
+        retrieve.close();
+        return returnValue.get();
+    }
+
 
     public Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
 
