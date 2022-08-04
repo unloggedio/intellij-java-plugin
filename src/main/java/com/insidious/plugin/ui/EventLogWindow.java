@@ -34,7 +34,7 @@ public class EventLogWindow {
     private JPanel filterPanel;
     private JTable eventsTable;
     private JTextField queryTextField;
-    private JButton filterButton;
+    private JButton searchButton;
     private JScrollPane eventsPanel;
     private JPanel containerPanel;
     private JSpinner bufferSize;
@@ -64,7 +64,7 @@ public class EventLogWindow {
             }
         });
 
-        this.filterButton.addActionListener(new ActionListener() {
+        this.searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String newObjectId = queryTextField.getText();
@@ -120,6 +120,7 @@ public class EventLogWindow {
     }
 
     public void loadObject(long objectId) {
+        queryTextField.setText(String.valueOf(objectId));
         try {
             ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
                     service.getProject(), "Unlogged", true
@@ -134,6 +135,7 @@ public class EventLogWindow {
 
                     filterRequest.setPageInfo(pageInfo);
                     ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+                    updateTableData(replayData1);
                     return replayData1;
                 }
             });
@@ -147,7 +149,7 @@ public class EventLogWindow {
     private void updateTableData(ReplayData replayData1) {
         this.replayData = replayData1;
         Vector<Object> columnVector = new Vector<>(List.of(
-                "Event", "#Line", "Value", "Attributes", "Value type", "String"
+                "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
         ));
         Vector<Vector<Object>> dataVector = new Vector<>(replayData.getDataEvents().size());
 
@@ -163,6 +165,7 @@ public class EventLogWindow {
 
 //            rowVector.add(dataEvent.getRecordedAt());
             rowVector.add(eventType);
+            rowVector.add(dataEvent.getNanoTime());
             rowVector.add(probeInfo.getLine());
             rowVector.add(Long.valueOf(dataEvent.getValue()).toString());
             rowVector.add(probeInfo.getAttributes());

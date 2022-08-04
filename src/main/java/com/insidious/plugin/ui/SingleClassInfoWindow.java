@@ -63,7 +63,7 @@ public class SingleClassInfoWindow {
                     return;
                 }
                 final Long objectLongId = Long.valueOf(objectId);
-                resultTextArea.append("Loading object history: " + objectId);
+                resultTextArea.append("Loading object history: " + objectId + "\n");
                 eventHistoryListener.loadEventHistory(objectLongId);
 
             }

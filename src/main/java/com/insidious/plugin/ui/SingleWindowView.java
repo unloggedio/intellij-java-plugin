@@ -134,37 +134,13 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
                 public void loadEventHistory(long objectId) {
 
                     if (eventViewer != null) {
-                        JPanel content = eventViewer.getContent();
-                        eventViewer = null;
-                        eventViewerPanel.remove(content);
+                        eventViewer.loadObject(objectId);
+                        return;
+                    } else {
+                        eventViewer = new EventLogWindow(insidiousService);
+                        eventViewerPanel.add(eventViewer.getContent(), constraints);
+                        eventViewer.loadObject(objectId);
                     }
-
-                    ApplicationManager.getApplication().runReadAction(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-
-                                ProgressManager.getInstance().run(new Task.WithResult<EventLogWindow, Exception>(
-                                        project, "Unlogged", true
-                                ) {
-                                    @Override
-                                    protected EventLogWindow compute(@NotNull ProgressIndicator indicator) throws Exception {
-                                        eventViewer = new EventLogWindow(insidiousService);
-                                        return eventViewer;
-                                    }
-                                });
-
-                                eventViewerPanel.add(eventViewer.getContent(), constraints);
-
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                                InsidiousNotification.notifyMessage(
-                                        "Failed to load object history: " + ex.getMessage(), NotificationType.ERROR);
-                            }
-
-                        }
-                    });
-
 
                 }
             });

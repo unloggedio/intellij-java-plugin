@@ -1573,7 +1573,7 @@ public class SessionInstance {
 
                                 if (currentFirstEventAt != -1 &&
                                         currentEventId - currentFirstEventAt
-                                                < pageInfo.getBufferSize()) {
+                                                <= pageInfo.getBufferSize()) {
                                     return true;
                                 }
 
