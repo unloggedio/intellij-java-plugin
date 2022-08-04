@@ -119,23 +119,15 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
         logger.warn("Tree valueChanged event - " + event.getPath());
         Object selectedNode = event.getPath().getLastPathComponent();
         Class<?> nodeType = selectedNode.getClass();
-
-        if (nodeType.equals(TreeClassInfoModel.class)) {
-            TreeClassInfoModel treeNode = (TreeClassInfoModel) selectedNode;
-
-            if (informationPanel != null) {
-                infoPanel.remove(informationPanel.getContent());
-            }
-
-            informationPanel = new SingleClassInfoWindow(project, insidiousService, treeNode);
+        if (informationPanel == null) {
+            informationPanel = new SingleClassInfoWindow(project, insidiousService);
             informationPanel.addEventHistoryLoadRequestListener(new LoadEventHistoryListener() {
 
                 @Override
                 public void loadEventHistory(long objectId) {
-
+                    logger.info("load object event history: " + objectId);
                     if (eventViewer != null) {
                         eventViewer.loadObject(objectId);
-                        return;
                     } else {
                         eventViewer = new EventLogWindow(insidiousService);
                         eventViewerPanel.add(eventViewer.getContent(), constraints);
@@ -144,13 +136,13 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
 
                 }
             });
-
-            resultPanel.setDividerLocation(0.30d);
-
-            GridConstraints constraints = new GridConstraints();
-            constraints.setFill(GridConstraints.FILL_BOTH);
-
             infoPanel.add(informationPanel.getContent(), constraints);
+        }
+
+
+        if (nodeType.equals(TreeClassInfoModel.class)) {
+            TreeClassInfoModel treeNode = (TreeClassInfoModel) selectedNode;
+            informationPanel.doSearch(treeNode.getClassName().replaceAll("/", "."));
 
         } else if (nodeType.equals(DefaultMutableTreeNode.class)) {
             try {
