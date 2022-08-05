@@ -2,35 +2,23 @@ package com.insidious.plugin.ui;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.ObjectInfo;
+import com.insidious.common.weaver.StringInfo;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
-import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.DataConstants;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.ScrollType;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
-import com.intellij.openapi.fileEditor.FileEditor;
-import com.intellij.openapi.fileEditor.FileEditorManager;
-import com.intellij.openapi.fileEditor.FileEditorState;
-import com.intellij.openapi.fileEditor.impl.text.TextEditorState;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
-import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Vector;
 
@@ -111,37 +99,10 @@ public class EventLogWindow {
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
                 DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(selectedEvent.getDataId()));
 
-                ClassInfo classInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
-                String fileName = classInfo.getFilename();
-
-                String fileLocation = "src/main/java/" + classInfo.getClassName() + ".java";
-
-
-                @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(
-                                Path.of(service.getProject().getBasePath(), fileLocation).toUri().toString());
-
-                if (newFile == null) {
-                    return;
-                }
-
-                FileEditor[] fileEditor = FileEditorManager.getInstance(service.getProject()).openFile(newFile,
-                        true, true);
-
-
-
-                Editor editor =
-                        (Editor) DataManager.getInstance()
-                                .getDataContext(fileEditor[0].getComponent())
-                                .getData(CommonDataKeys.EDITOR);
-
-
-                @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
-                if (probeInfo.getLine() > 0) {
-                    int lineOffsetStart = newDocument.getLineStartOffset(probeInfo.getLine() - 1);
-                    editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
-                    editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
-                }
+                InsidiousUtils.focusProbeLocationInEditor(probeInfo,
+                        replayData.getClassInfoMap().get(
+                                String.valueOf(probeInfo.getClassId())
+                        ).getClassName(), insidiousService);
 
             }
 

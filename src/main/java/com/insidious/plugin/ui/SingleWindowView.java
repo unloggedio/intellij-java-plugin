@@ -152,6 +152,15 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
                         + e.getMessage(), NotificationType.ERROR);
                 throw new RuntimeException(e);
             }
+        }else if (nodeType.equals(ProbeInfoModel.class)) {
+
+            TreeClassInfoModel classInfoModel = (TreeClassInfoModel) event.getPath().getParentPath().getParentPath().getLastPathComponent();
+
+            ProbeInfoModel probeInfo = (ProbeInfoModel) selectedNode;
+                InsidiousUtils.focusProbeLocationInEditor(
+                        probeInfo.getDataInfo(),
+                        classInfoModel.getClassName().replaceAll("\\.", "/"), insidiousService
+                );
         }
 
     }
