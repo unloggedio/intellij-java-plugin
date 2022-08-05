@@ -403,6 +403,10 @@ public class SessionInstance {
                 0, 0, "", new int[0]);
     }
 
+    public List<TypeInfoDocument> getAllTypes() {
+        return new ArrayList<>(typeIndex.Types());
+    }
+
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         List<String> files = new LinkedList<>();

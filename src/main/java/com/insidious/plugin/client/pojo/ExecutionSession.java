@@ -15,16 +15,6 @@ public class ExecutionSession {
     private String sessionId;
     private String hostname;
 
-    private List<TypeInfo> typeInfoList;
-
-    public List<TypeInfo> getTypeInfoList() {
-        return typeInfoList;
-    }
-
-    public void setTypeInfoList(List<TypeInfo> typeInfoList) {
-        this.typeInfoList = typeInfoList;
-    }
-
     public String getSessionId() {
         return sessionId;
     }

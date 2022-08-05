@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
@@ -690,6 +691,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {
+        throw new RuntimeException("not implemented yet ");
+    }
+
+    @Override
+    public List<TypeInfoDocument> getAllTypes(String sessionId) {
         throw new RuntimeException("not implemented yet ");
     }
 

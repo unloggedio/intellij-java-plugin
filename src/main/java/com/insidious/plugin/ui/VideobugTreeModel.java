@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
@@ -114,7 +115,13 @@ public class VideobugTreeModel implements TreeModel {
                                 checkProgressIndicator("Loading session [" + session.getSessionId() + "]", null);
                                 ClassWeaveInfo classWeaveInfo = client.getSessionClassWeave(session.getSessionId());
 
+                                List<TypeInfoDocument> typeInfoList = client.getAllTypes(
+                                        session.getSessionId()
+                                );
+                                typeInfoList.sort(Comparator.comparing(TypeInfoDocument::getTypeName));
+
                                 List<ClassInfo> classInfoList = classWeaveInfo.getClassInfoList();
+
                                 Map<String, PackageInfoModel> packageInfoModelMap = new HashMap<>();
                                 if (classInfoList.size() == 0) {
                                     return null;
@@ -167,9 +174,9 @@ public class VideobugTreeModel implements TreeModel {
                                                         session.getSessionId());
                                             })
                                             .collect(Collectors.toList());
-                                    if (methodList.size() == 0) {
-                                        continue;
-                                    }
+//                                    if (methodList.size() == 0) {
+//                                        continue;
+//                                    }
 
 
                                     String sessionClassMethodKey = session.getSessionId() + "-"
@@ -180,17 +187,47 @@ public class VideobugTreeModel implements TreeModel {
                                     packageInfo.addClassInfo(treeInfoModel);
                                 }
 
-                                sessionPackageMap.put(session.getSessionId(), new ArrayList<>(packageInfoModelMap.values()));
+//                                int i = 0;
+                                for (TypeInfoDocument typeInfo : typeInfoList) {
+                                    i++;
+                                    checkProgressIndicator(null,
+                                            "Loading class [" + i + " of " + classInfoList.size() +
+                                                    "]");
+                                    String className = typeInfo.getTypeName();
+                                    String packageName = ClassNameUtils.getPackageName(className);
+                                    if (!packageInfoModelMap.containsKey(packageName)) {
+                                        PackageInfoModel packageNode = new PackageInfoModel(packageName, session.getSessionId());
+                                        packageInfoModelMap.put(packageName, packageNode);
+                                    }
+                                    PackageInfoModel packageInfo = packageInfoModelMap.get(packageName);
+
+                                    List<MethodInfoModel> methodList = List.of();
+
+                                    String sessionClassMethodKey = session.getSessionId() + "-"
+                                            + className;
+                                    sessionClassMethodMap.put(sessionClassMethodKey, methodList);
+                                    TreeClassInfoModel treeInfoModel = new TreeClassInfoModel(className,
+                                            session.getSessionId());
+                                    packageInfo.addClassInfo(treeInfoModel);
+                                }
+
+                                sessionPackageMap.put(session.getSessionId(), new ArrayList<>(
+                                        packageInfoModelMap.values().stream().sorted(
+                                                Comparator.comparing(PackageInfoModel::getPackageNamePart)
+                                        ).collect(Collectors.toList())
+                                ));
+
                                 for (String packageName : packageInfoModelMap.keySet()) {
                                     PackageInfoModel classList = packageInfoModelMap.get(packageName);
                                     String sessionClassListKey = session.getSessionId() + "-" + packageName;
-                                    sessionPackageClassMap.put(sessionClassListKey, classList.getChildren());
-
+                                    sessionPackageClassMap.put(sessionClassListKey,
+                                            classList.getChildren().stream()
+                                                    .sorted(Comparator.comparing(TreeClassInfoModel::getClassName))
+                                                    .collect(Collectors.toList()));
                                 }
 
-
                                 return classWeaveInfo;
-                            }catch (Throwable th) {
+                            } catch (Throwable th) {
                                 th.printStackTrace();
                                 throw th;
                             }

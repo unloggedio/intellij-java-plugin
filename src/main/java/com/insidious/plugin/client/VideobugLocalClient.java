@@ -1,6 +1,7 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
@@ -368,6 +369,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {
         return this.session.getTypeInfo(type);
+    }
+
+    @Override
+    public List<TypeInfoDocument> getAllTypes(String sessionId) {
+        return this.session.getAllTypes();
     }
 
 }
