@@ -7,11 +7,18 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
+import com.intellij.ide.DataManager;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.actionSystem.DataConstants;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.ScrollType;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
+import com.intellij.openapi.fileEditor.FileEditorState;
+import com.intellij.openapi.fileEditor.impl.text.TextEditorState;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -29,6 +36,7 @@ import java.util.Vector;
 
 public class EventLogWindow {
     private final InsidiousService service;
+    private final int paginationSize = 100;
     private ReplayData replayData;
     private DefaultTableModel tableModel;
     private JPanel filterPanel;
@@ -38,6 +46,13 @@ public class EventLogWindow {
     private JScrollPane eventsPanel;
     private JPanel containerPanel;
     private JSpinner bufferSize;
+    private JButton firstPage;
+    private JButton previousPage;
+    private JButton nextPage;
+    private JPanel infoPanelContainer;
+    private JLabel infoLabel;
+    private int currentPage = 0;
+    private long currentObjectId;
 
     public EventLogWindow(InsidiousService insidiousService) {
 
@@ -106,20 +121,53 @@ public class EventLogWindow {
                         .refreshAndFindFileByUrl(
                                 Path.of(service.getProject().getBasePath(), fileLocation).toUri().toString());
 
+                if (newFile == null) {
+                    return;
+                }
 
                 FileEditor[] fileEditor = FileEditorManager.getInstance(service.getProject()).openFile(newFile,
                         true, true);
 
+
+
+                Editor editor =
+                        (Editor) DataManager.getInstance()
+                                .getDataContext(fileEditor[0].getComponent())
+                                .getData(CommonDataKeys.EDITOR);
+
+
                 @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
-                int lineOffsetStart = newDocument.getLineStartOffset(probeInfo.getLine());
-                newDocument.createRangeMarker(lineOffsetStart, lineOffsetStart + 10);
+                if (probeInfo.getLine() > 0) {
+                    int lineOffsetStart = newDocument.getLineStartOffset(probeInfo.getLine() - 1);
+                    editor.getCaretModel().getCurrentCaret().moveToOffset(lineOffsetStart);
+                    editor.getScrollingModel().scrollToCaret(ScrollType.CENTER);
+                }
 
             }
 
         });
+
+        this.firstPage.addActionListener(e -> {
+            currentPage = 0;
+            loadHistory(currentObjectId, currentPage);
+        });
+        this.previousPage.addActionListener(e -> {
+            currentPage -= 1;
+            if (currentPage < 0) {
+                currentPage = 0;
+            }
+            loadHistory(currentObjectId, currentPage);
+        });
+        this.nextPage.addActionListener(e -> {
+            currentPage += 1;
+            loadHistory(currentObjectId, currentPage);
+        });
     }
 
     public void loadObject(long objectId) {
+        currentPage = 0;
+        currentObjectId = objectId;
+
         queryTextField.setText(String.valueOf(objectId));
         try {
             ProgressManager.getInstance().run(new Task.WithResult<ReplayData, Exception>(
@@ -127,16 +175,7 @@ public class EventLogWindow {
             ) {
                 @Override
                 protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
-                    FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
-                    filterRequest.setObjectId(objectId);
-                    PageInfo pageInfo = new PageInfo(0, 1000, PageInfo.Order.ASC);
-
-                    pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
-
-                    filterRequest.setPageInfo(pageInfo);
-                    ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
-                    updateTableData(replayData1);
-                    return replayData1;
+                    return loadHistory(objectId, currentPage);
                 }
             });
         } catch (Exception e) {
@@ -145,6 +184,21 @@ public class EventLogWindow {
                     NotificationType.ERROR);
         }
 
+    }
+
+    private ReplayData loadHistory(long objectId, int pageNumber) {
+        infoLabel.setText("Loading page: " + (pageNumber + 1));
+        FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+        filterRequest.setObjectId(objectId);
+        PageInfo pageInfo = new PageInfo(pageNumber, paginationSize, PageInfo.Order.ASC);
+
+        pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
+
+        filterRequest.setPageInfo(pageInfo);
+        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+        updateTableData(replayData1);
+        infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData1.getDataEvents().size() + " events]");
+        return replayData1;
     }
 
     private void updateTableData(ReplayData replayData1) {
@@ -195,14 +249,13 @@ public class EventLogWindow {
         eventsTable.setModel(tableModel);
 
 
-        //  "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
-        eventsTable.getColumn("Event").setPreferredWidth(130);
-        eventsTable.getColumn("#Time").setPreferredWidth(25);
-        eventsTable.getColumn("#Line").setPreferredWidth(5);
-        eventsTable.getColumn("Value").setPreferredWidth(40);
-        eventsTable.getColumn("Attributes").setPreferredWidth(200);
-//        eventsTable.getColumn("Value Type").setPreferredWidth(100);
-        eventsTable.getColumn("String").setPreferredWidth(100);
+//        //  "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
+//        eventsTable.getColumn("Event").setPreferredWidth(130);
+//        eventsTable.getColumn("#Time").setPreferredWidth(25);
+//        eventsTable.getColumn("#Line").setPreferredWidth(5);
+//        eventsTable.getColumn("Value").setPreferredWidth(40);
+//        eventsTable.getColumn("Attributes").setPreferredWidth(200);
+//        eventsTable.getColumn("String").setPreferredWidth(100);
 
 
     }
