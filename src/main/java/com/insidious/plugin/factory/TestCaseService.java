@@ -475,6 +475,10 @@ public class TestCaseService {
 
             Object returnValueSquareClass = null;
             String returnParameterType = testCandidateMetadata.getReturnParameter().getType();
+            if (returnParameterType == null) {
+                logger.warn("parameter return type is null: " + testCandidateMetadata);
+                return;
+            }
             if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
 
                 switch (returnParameterType) {
@@ -907,7 +911,11 @@ public class TestCaseService {
                     if (line instanceof StatementCodeLine) {
                         builder.addStatement(line.getLine(), statement.getSecond());
                     } else {
-                        builder.addComment(line.getLine(), statement.getSecond());
+                        String commentLine = line.getLine();
+                        if (commentLine.contains("$")) {
+                            commentLine = commentLine.replace('$', '_');
+                        }
+                        builder.addComment(commentLine, statement.getSecond());
                     }
                 }
                 variableContainer.add(objectRoutineContainer.getName());
@@ -991,7 +999,7 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 500, PageInfo.Order.ASC);
+        PageInfo pagination = new PageInfo(0, 100, PageInfo.Order.ASC);
         pagination.setBufferSize(0);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
@@ -1215,7 +1223,7 @@ public class TestCaseService {
         Map<Integer, Boolean> ignoredProbes = new HashMap<>();
         TypeInfo typeInfo;
         int totalEventCount = objectEvents.size();
-        int by10 = totalEventCount / 100;
+        int by10 = totalEventCount / 10;
         for (int eventIndex = 0; eventIndex < totalEventCount; eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
             if (ignoredProbes.containsKey(dataEvent.getDataId())) {
@@ -1311,6 +1319,8 @@ public class TestCaseService {
                     replayEventsBefore.getProbeInfoMap().putAll(replayEventsAfter.getProbeInfoMap());
                     replayEventsBefore.getMethodInfoMap().putAll(replayEventsAfter.getMethodInfoMap());
                     replayEventsBefore.getStringInfoMap().putAll(replayEventsAfter.getStringInfoMap());
+                    replayEventsBefore.getObjectInfo().putAll(replayEventsAfter.getObjectInfo());
+                    replayEventsBefore.getTypeInfo().putAll(replayEventsAfter.getTypeInfo());
 
                     int matchedProbe = afterEvents.size();
                     // need to go back until we find the method entry since the following method
@@ -1376,7 +1386,8 @@ public class TestCaseService {
                             !(String.valueOf(testSubject.getValue()))
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
-                        logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue());
+                        logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue()
+                        + " for method call " + methodInfo.getMethodName());
 //                        ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }

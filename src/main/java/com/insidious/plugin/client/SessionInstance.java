@@ -1712,8 +1712,8 @@ public class SessionInstance {
 
             Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
             if (sessionObjectsInfo.size() != objectIds.size()) {
-                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
-                        "only " + sessionObjectsInfo.size());
+//                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
+//                        "only " + sessionObjectsInfo.size());
 
                 sessionObjectsInfo.values().stream()
                         .map(ObjectInfo::getObjectId)
