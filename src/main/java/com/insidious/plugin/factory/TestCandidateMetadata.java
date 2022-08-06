@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -105,9 +106,9 @@ public class TestCandidateMetadata {
         metadata.setTestMethodName(testMethodName);
 
         // https://gist.github.com/VijayKrishna/6160036
-        List<String> methodDescription = splitMethodDesc(methodInfo.getMethodDesc());
+        List<String> methodParameterDescriptions = splitMethodDesc(methodInfo.getMethodDesc());
 
-        methodDescription.remove(methodDescription.size() - 1);
+        methodParameterDescriptions.remove(methodParameterDescriptions.size() - 1);
 
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
@@ -203,13 +204,13 @@ public class TestCandidateMetadata {
         metadata.setCallTimeNanoSecond(callTime);
 
         List<Parameter> methodParameters =
-                searchCallParameters(replayDataPage, entryProbeIndex, methodDescription.size());
+                searchCallParameters(replayDataPage, entryProbeIndex, methodParameterDescriptions);
 
         metadata.addAllParameter(methodParameters);
 
 
         logger.warn("create return parameter from event at index: " + callReturnIndex);
-        Parameter returnParameter = createObject(callReturnIndex, replayData, 0);
+        Parameter returnParameter = createObject(callReturnIndex, replayData, 0, null);
 
 //        if (returnParameter)
 
@@ -270,9 +271,9 @@ public class TestCandidateMetadata {
                             }
                             Parameter subjectInstanceParameter;
                             if (eventType == EventType.LOCAL_LOAD) {
-                                subjectInstanceParameter = createObject(i, replayData, 0);
+                                subjectInstanceParameter = createObject(i, replayData, 0, null);
                             } else {
-                                subjectInstanceParameter = createObject(i - 1, replayData, 0);
+                                subjectInstanceParameter = createObject(i - 1, replayData, 0, null);
                             }
 
                             metadata.setTestSubject(subjectInstanceParameter);
@@ -349,9 +350,10 @@ public class TestCandidateMetadata {
             (
                     ReplayData replayData,
                     int entryProbeIndex,
-                    int paramCount
+                    List<String> callParameterDescriptions
             ) {
-        logger.info("searchCallParameters starting from [" + entryProbeIndex + "] -> " + paramCount + " params to be found");
+        logger.info("searchCallParameters starting from [" + entryProbeIndex + "] -> " +
+                callParameterDescriptions.size() + " params to be found");
         DataInfo entryProbeInfo = replayData.getProbeInfoMap().get(
                 String.valueOf(replayData.getDataEvents().get(entryProbeIndex).getDataId())
         );
@@ -365,7 +367,7 @@ public class TestCandidateMetadata {
         // to match the first call_return probe
         List<DataEventWithSessionId> events = replayData.getDataEvents();
         Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
-        int paramIndex = paramCount;
+        int paramIndex = 0;
 
 
         while (callReturnIndex > -1) {
@@ -402,8 +404,10 @@ public class TestCandidateMetadata {
                 );
 
 
-                Parameter parameter = createObject(callReturnIndex, replayData, 0);
+                Parameter parameter = createObject(callReturnIndex, replayData,
+                        0, callParameterDescriptions.get(paramIndex));
                 methodParameterProbes.add(parameter);
+                paramIndex++;
             } else {
                 lookingForParams = false;
             }
@@ -491,7 +495,7 @@ public class TestCandidateMetadata {
             (
                     final int eventIndex,
                     ReplayData replayData,
-                    int paramIndex) {
+                    int paramIndex, String expectedParameterType) {
 
 //        logger.warn("Create object from index [" + eventIndex + "] - ParamIndex" + paramIndex);
         Parameter parameter = new Parameter();
@@ -507,32 +511,53 @@ public class TestCandidateMetadata {
         ObjectInfo objectInfo = replayData.getObjectInfo().get(eventValueString);
         parameter.setProbeInfo(probeInfo);
         Set<String> typeHierarchy = new HashSet<>();
-        if (objectInfo != null) {
-            TypeInfo typeInfo = replayData.getTypeInfo().get(
+
+        TypeInfo typeInfo = null;
+
+        if (expectedParameterType != null) {
+            if (expectedParameterType.startsWith("L")) {
+                expectedParameterType = expectedParameterType.substring(1,
+                        expectedParameterType.length() - 1).replace('/', '.');
+            }
+            String finalExpectedParameterType = expectedParameterType;
+            List<TypeInfo> matchedTypeInfo = replayData.getTypeInfo()
+                    .values()
+                    .stream()
+                    .filter(e -> e.getTypeNameFromClass().equals(finalExpectedParameterType))
+                    .collect(Collectors.toList());
+            assert matchedTypeInfo.size() != 0;
+            typeInfo = matchedTypeInfo.get(0);
+
+        }
+
+        if (objectInfo != null && typeInfo == null) {
+            typeInfo = replayData.getTypeInfo().get(
                     String.valueOf(objectInfo.getTypeId())
             );
-            if (typeInfo == null) {
-                logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
-            } else {
-                parameter.setType(getBasicClassName(typeInfo.getTypeNameFromClass()));
+        }
 
-                TypeInfo typeInfoToAdd = typeInfo;
-                while (typeInfoToAdd.getSuperClass() != -1) {
-                    String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
-                    typeHierarchy.add(className);
-                    for (int anInterface : typeInfoToAdd.getInterfaces()) {
-                        TypeInfo interfaceType = replayData.getTypeInfo().get(String.valueOf(anInterface));
-                        String interfaceName =
-                                getBasicClassName(interfaceType.getTypeNameFromClass());
-                        typeHierarchy.add(interfaceName);
-                    }
+        if (typeInfo == null) {
+            logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
+        } else {
+            parameter.setType(getBasicClassName(typeInfo.getTypeNameFromClass()));
 
-                    typeInfoToAdd = replayData.getTypeInfo().get(String.valueOf(typeInfoToAdd.getSuperClass()));
+            TypeInfo typeInfoToAdd = typeInfo;
+            while (typeInfoToAdd.getSuperClass() != -1) {
+                String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
+                typeHierarchy.add(className);
+                for (int anInterface : typeInfoToAdd.getInterfaces()) {
+                    TypeInfo interfaceType = replayData.getTypeInfo().get(String.valueOf(anInterface));
+                    String interfaceName =
+                            getBasicClassName(interfaceType.getTypeNameFromClass());
+                    typeHierarchy.add(interfaceName);
                 }
 
+                typeInfoToAdd = replayData.getTypeInfo().get(String.valueOf(typeInfoToAdd.getSuperClass()));
             }
 
         }
+
+
         if (typeHierarchy.size() == 0) {
             logger.warn("failed to build type hierarchy for object [" + event + "]");
             return parameter;

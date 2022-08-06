@@ -1275,6 +1275,7 @@ public class TestCaseService {
 
 
             switch (probeInfo.getEventType()) {
+                case METHOD_PARAM:
                 case PUT_INSTANCE_FIELD:
                     continue;
                 default:
