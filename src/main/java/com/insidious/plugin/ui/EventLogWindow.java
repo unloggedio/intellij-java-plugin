@@ -211,12 +211,12 @@ public class EventLogWindow {
 
 
 //        //  "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
-//        eventsTable.getColumn("Event").setPreferredWidth(130);
-//        eventsTable.getColumn("#Time").setPreferredWidth(25);
-//        eventsTable.getColumn("#Line").setPreferredWidth(5);
-//        eventsTable.getColumn("Value").setPreferredWidth(40);
-//        eventsTable.getColumn("Attributes").setPreferredWidth(200);
-//        eventsTable.getColumn("String").setPreferredWidth(100);
+        eventsTable.getColumn("Event").setPreferredWidth(130);
+        eventsTable.getColumn("#Time").setPreferredWidth(25);
+        eventsTable.getColumn("#Line").setPreferredWidth(5);
+        eventsTable.getColumn("Value").setPreferredWidth(40);
+        eventsTable.getColumn("Attributes").setPreferredWidth(200);
+        eventsTable.getColumn("String").setPreferredWidth(100);
 
 
     }

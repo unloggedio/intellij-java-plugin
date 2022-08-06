@@ -459,13 +459,18 @@ public class TestCaseService {
             objectRoutine.addComment("Test candidate method ["
                     + testCandidateMetadata.getMethodName()
                     + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue() + "ms");
-            objectRoutine.addComment("");
-            for (Parameter parameterValue : testCandidateMetadata.getParameterValues()) {
-                objectRoutine.addComment("Parameter [" + parameterValue.getName() + "] => " +
-                        "Object:" + parameterValue.getValue());
+
+            if (testCandidateMetadata.getParameterValues().size() > 0) {
+
+
+                objectRoutine.addComment("");
+                for (Parameter parameterValue : testCandidateMetadata.getParameterValues()) {
+                    objectRoutine.addComment("Parameter [" + parameterValue.getName() + "] => " +
+                            "Object:" + parameterValue.getValue() + " of type " + parameterValue.getType());
+                }
+                objectRoutine.addComment("");
+                objectRoutine.addComment("");
             }
-            objectRoutine.addComment("");
-            objectRoutine.addComment("");
 
 
             Object returnValueSquareClass = null;
@@ -788,8 +793,11 @@ public class TestCaseService {
 
                 Parameter objectParameter = new Parameter();
                 objectParameter.setValue(objectId);
+
                 ObjectRoutineContainer classTestSuite = generateTestCaseFromObjectHistory(
                         objectParameter, Set.of(), variableContainer);
+
+
                 int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
 
 
@@ -983,12 +991,14 @@ public class TestCaseService {
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 500000, PageInfo.Order.ASC);
-        pagination.setBufferSize(50000);
+        PageInfo pagination = new PageInfo(0, 500, PageInfo.Order.ASC);
+        pagination.setBufferSize(0);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         request.setPageInfo(pagination);
         request.setObjectId(Long.valueOf(String.valueOf(parameter.getValue())));
+
+
         ReplayData objectReplayData = client.
                 fetchObjectHistoryByObjectId(request);
 
@@ -1108,7 +1118,8 @@ public class TestCaseService {
      * @throws APICallException this happens when we fail to read the data from the disk or the
      *                          network
      */
-    private String buildTestCandidates(
+    private String
+    buildTestCandidates(
             Parameter parameter,
             ObjectRoutineContainer objectRoutineContainer,
             ReplayData objectReplayData
@@ -1116,23 +1127,26 @@ public class TestCaseService {
 
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
+        if (objectEvents.size() == 0) {
+            return parameter.getName();
+        }
 
 
-        ReplayData callContext = objectReplayData.fetchEventsPre(objectEvents.get(0), 100);
+//        ReplayData callContext = objectReplayData.fetchEventsPre(objectEvents.get(0), 100);
 
 
         logger.warn("build test candidate for [" + parameter.getValue() + "] using " + objectReplayData.getDataEvents().size() + " events");
-        logger.warn("call context added " + callContext.getDataEvents().size() + " events");
+//        logger.warn("call context added " + callContext.getDataEvents().size() + " events");
 
 
-        List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
-        Collections.reverse(contextEvents);
-        contextEvents.remove(contextEvents.size() - 1);
-        objectReplayData.getDataEvents().addAll(0, contextEvents);
+//        List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
+//        Collections.reverse(contextEvents);
+//        contextEvents.remove(contextEvents.size() - 1);
+//        objectReplayData.getDataEvents().addAll(0, contextEvents);
 
-        objectReplayData.getObjectInfo().putAll(callContext.getObjectInfo());
-        objectReplayData.getTypeInfo().putAll(callContext.getTypeInfo());
-        objectReplayData.getStringInfoMap().putAll(callContext.getStringInfoMap());
+//        objectReplayData.getObjectInfo().putAll(callContext.getObjectInfo());
+//        objectReplayData.getTypeInfo().putAll(callContext.getTypeInfo());
+//        objectReplayData.getStringInfoMap().putAll(callContext.getStringInfoMap());
 
 
         List<DataEventWithSessionId> objectEventsReverse =
@@ -1238,7 +1252,7 @@ public class TestCaseService {
 
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
 
-            if (probeInfo.getEventType() == EventType.METHOD_ENTRY) {
+//            if (probeInfo.getEventType() == EventType.METHOD_ENTRY) {
                 logger.warn("[SearchCall] #" + eventIndex + "/" + totalEventCount + ", T=" + dataEvent.getNanoTime() +
                         ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
                         " [Stack:" + callStack + "]" +
@@ -1249,28 +1263,13 @@ public class TestCaseService {
                         + " in " + String.format("%20s", methodInfo.getMethodName())
                         + "  -> " + probeInfo.getAttributes()
                 );
-            }
+//            }
 
 
             switch (probeInfo.getEventType()) {
-//                case CALL:
-//
-//                    constructorOwnerClass = probeInfo.getAttribute("Owner", "").replaceAll("/", ".");
-//
-//                    if (subjectTypeInfo != null
-//                            && !Objects.equals(subjectTypeInfo.getTypeNameFromClass(), constructorOwnerClass)
-//                            && (methodInfo.getMethodName().equals("<init>") || methodInfo.getMethodName().equals("<clinit>"))
-//                    ) {
-//                        logger.warn("subject class mismatch in call, skipping: " + constructorOwnerClass);
-//                        continue;
-//                    }
-//
-//                    MethodInfo methodEntryInfo = getMethodInfo(objectEvents.size() - eventIndex - 1, objectReplayData);
-//                    if (methodEntryInfo != null) {
-//                        methodInfo = methodEntryInfo;
-//                    }
-
-                case METHOD_ENTRY:
+                case PUT_INSTANCE_FIELD:
+                    continue;
+                default:
 
                     if (StringUtil.isEmpty(ownerClassName)) {
                         logger.warn("constructorOwnerClass is empty, skipping: " + ownerClassName);
@@ -1288,10 +1287,80 @@ public class TestCaseService {
                     }
 
 
+                    FilteredDataEventsRequest requestBefore = new FilteredDataEventsRequest();
+                    requestBefore.setThreadId(dataEvent.getThreadId());
+                    requestBefore.setNanotime(dataEvent.getNanoTime());
+                    requestBefore.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.DESC));
+                    ReplayData replayEventsBefore = client.fetchObjectHistoryByObjectId(requestBefore);
+
+
+                    FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
+                    requestAfter.setThreadId(dataEvent.getThreadId());
+                    requestAfter.setNanotime(dataEvent.getNanoTime());
+                    requestAfter.setPageInfo(new PageInfo(0, 50000, PageInfo.Order.ASC));
+                    ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
+                    List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
+                    afterEvents.remove(0);
+                    Collections.reverse(afterEvents);
+
+
+                    List<DataEventWithSessionId> allEvents = replayEventsBefore.getDataEvents();
+                    allEvents.addAll(0, afterEvents);
+
+                    replayEventsBefore.getClassInfoMap().putAll(replayEventsAfter.getClassInfoMap());
+                    replayEventsBefore.getProbeInfoMap().putAll(replayEventsAfter.getProbeInfoMap());
+                    replayEventsBefore.getMethodInfoMap().putAll(replayEventsAfter.getMethodInfoMap());
+                    replayEventsBefore.getStringInfoMap().putAll(replayEventsAfter.getStringInfoMap());
+
+                    int matchedProbe = afterEvents.size();
+                    // need to go back until we find the method entry since the following method
+                    // to create test case metadata is expecting a METHOD_ENTRY probe
+
+
+                    int backCallStack = 0;
+                    while (matchedProbe < allEvents.size()) {
+                        DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
+                        DataInfo backEventProbe = replayEventsBefore.getProbeInfoMap().get(
+                                String.valueOf(backEvent.getDataId())
+                        );
+                        if (backEventProbe.getEventType() == EventType.METHOD_ENTRY
+                        && backCallStack == 0) {
+                            break;
+                        }
+
+                        switch (backEventProbe.getEventType()) {
+                            case METHOD_NORMAL_EXIT:
+                                backCallStack++;
+                                break;
+                            case METHOD_ENTRY:
+                                if (backCallStack > 0) {
+                                    backCallStack--;
+                                    continue;
+                                }
+                                break;
+                        }
+
+                        // going back in search
+                        matchedProbe++;
+                    }
+                    assert matchedProbe != allEvents.size();
+
+
+                    DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
+                    MethodInfo backEventMethodInfo = replayEventsBefore.getMethodInfoMap().get(
+                            String.valueOf(
+                                    replayEventsBefore.getProbeInfoMap().get(
+                                            String.valueOf(backEvent.getDataId())
+                                    ).getMethodId()
+                            )
+                    );
+
+
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
                                     typeNameHierarchyList,
-                                    methodInfo, dataEvent.getNanoTime(), objectReplayData);
+                                    backEventMethodInfo, backEvent.getNanoTime(),
+                                    replayEventsBefore);
 
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {
@@ -1320,7 +1389,7 @@ public class TestCaseService {
                         continue;
                     }
 
-                    logger.warn("created test case candidate: " + methodInfo.getMethodName());
+                    logger.warn("created test case candidate: " + backEventMethodInfo.getMethodName());
 
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
@@ -1338,11 +1407,11 @@ public class TestCaseService {
                         objectRoutineContainer.addMetadata(newTestCaseMetadata);
                     }
 
-                    eventIndex =
-                            totalEventCount - newTestCaseMetadata.getReturnParameter().getIndex();
+//                    eventIndex =
+//                            totalEventCount - newTestCaseMetadata.getReturnParameter().getIndex();
+//
 
-
-                    callStack += 1;
+//                    callStack += 1;
                     break;
 
             }

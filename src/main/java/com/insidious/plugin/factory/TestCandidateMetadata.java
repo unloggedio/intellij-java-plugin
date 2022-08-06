@@ -109,17 +109,19 @@ public class TestCandidateMetadata {
         methodDescription.remove(methodDescription.size() - 1);
 
 
-        List<DataEventWithSessionId> events = replayData.getDataEvents();
+        List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
+
 
 
         int entryProbeIndex = 0;
         // going up matching the first event for our method entry probe
         // up is back in time
-        while (entryProbeIndex < events.size()) {
-            DataEventWithSessionId eventInfo = events.get(entryProbeIndex);
+        while (entryProbeIndex < dataEvents.size()) {
+            DataEventWithSessionId eventInfo = dataEvents.get(entryProbeIndex);
             if (eventInfo.getNanoTime() == entryProbeDataId) break;
             entryProbeIndex++;
         }
+
 
 //        metadata.setEntryProbeIndex(entryProbeIndex);
 //        metadata.setEntryProbe(events.get(entryProbeIndex));
@@ -127,8 +129,19 @@ public class TestCandidateMetadata {
 
         int callReturnIndex = -1;
         ReplayData replayDataPage = replayData;
-        DataInfo entryProbeInfo = probeInfoMap.get(String.valueOf(events.get(entryProbeIndex).getDataId()));
+        DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
+        DataInfo entryProbeInfo = probeInfoMap.get(String.valueOf(entryProbe.getDataId()));
         logger.warn("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
+
+//        ReplayData postEvents = replayData.fetchEventsPost(entryProbe, 5000);
+//        ReplayData preEvents = replayData.fetchEventsPre(entryProbe, 100);
+//
+//        List<DataEventWithSessionId> eventSpan = replayDataPage.getDataEvents();
+//        eventSpan.clear();
+//        eventSpan.addAll(preEvents.getDataEvents());
+//        eventSpan.addAll(postEvents.getDataEvents());
+//        replayDataPage.setDataEvents(eventSpan);
+
         int currentEntryProbeIndex = entryProbeIndex;
         while (true) {
             if (entryProbeInfo.getEventType() == EventType.CALL) {
@@ -186,7 +199,7 @@ public class TestCandidateMetadata {
                     "slice");
             return metadata;
         }
-        long callTime = events.get(callReturnIndex).getRecordedAt() - events.get(entryProbeIndex).getRecordedAt();
+        long callTime = dataEvents.get(callReturnIndex).getRecordedAt() - dataEvents.get(entryProbeIndex).getRecordedAt();
         metadata.setCallTimeNanoSecond(callTime);
 
         List<Parameter> methodParameters =
@@ -214,12 +227,12 @@ public class TestCandidateMetadata {
             subjectNameFound = true;
         } else {
 
-            ReplayData moreHistory = replayData.fetchEventsPre(events.get(entryProbeIndex), 10);
-            events.addAll(entryProbeIndex, moreHistory.getDataEvents());
+            ReplayData moreHistory = replayData.fetchEventsPre(dataEvents.get(entryProbeIndex), 10);
+            dataEvents.addAll(entryProbeIndex, moreHistory.getDataEvents());
 
             int callStack = 0;
-            for (int i = entryProbeIndex; i < events.size(); i += 1) {
-                DataEventWithSessionId event = events.get(i);
+            for (int i = entryProbeIndex; i < dataEvents.size(); i += 1) {
+                DataEventWithSessionId event = dataEvents.get(i);
                 DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
                 ClassInfo currentClassInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
                 MethodInfo methodInfoLocal = replayData.getMethodInfoMap().get(String.valueOf(probeInfo.getMethodId()));
@@ -564,7 +577,10 @@ public class TestCandidateMetadata {
             }
 
         }
-        assert  typeHierarchy.size() != 0;
+        if (typeHierarchy.size() == 0) {
+            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            return parameter;
+        }
 //
 //        TypeInfo valueTypeInfo;
 //        if (objectInfo != null) {
@@ -731,6 +747,7 @@ public class TestCandidateMetadata {
                     String typeNameRaw = typeName.replaceAll("\\.", "/");
                     String newVariableInstanceName = createVariableName(typeNameRaw);
                     if (parameter.getType().contains(typeNameRaw)) {
+                        logger.warn("Found name: " + newVariableInstanceName);
                         parameter.setName(newVariableInstanceName);
                         return parameter;
                     }

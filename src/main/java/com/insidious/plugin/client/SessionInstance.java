@@ -1375,7 +1375,11 @@ public class SessionInstance {
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
 
 
-        return eventsContainer.event().entries();
+        return eventsContainer.event()
+                .entries()
+                .stream()
+                .filter(e -> e.magic() == 4 || e.magic() == 7)
+                .collect(Collectors.toList());
     }
 
 
@@ -1524,6 +1528,22 @@ public class SessionInstance {
 
                     if (pageInfo.isDesc()) {
                         Collections.reverse(eventsSublist);
+                    }
+
+                    KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
+                    KaitaiInsidiousEventParser.Block lastEvent =
+                            eventsSublist.get(eventsSublist.size() -1);
+
+                    if (filteredDataEventsRequest.getNanotime() != -1) {
+                        if (pageInfo.isAsc()) {
+                            if (eventId(lastEvent) < filteredDataEventsRequest.getNanotime()) {
+                                continue;
+                            }
+                        } else {
+                            if (eventId(lastEvent) > filteredDataEventsRequest.getNanotime()) {
+                                continue;
+                            }
+                        }
                     }
 
 
@@ -1742,7 +1762,7 @@ public class SessionInstance {
 
                 Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
                 if (sessionObjectsInfo.size() != objectIds.size()) {
-                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
+//                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
 
                     sessionObjectsInfo.values().stream()
                             .map(ObjectInfo::getObjectId)
@@ -1775,6 +1795,20 @@ public class SessionInstance {
                 null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap,
                 stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
+    }
+
+    private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
+        if (lastEvent.magic() == 4) {
+            KaitaiInsidiousEventParser.DataEventBlock eventBlock
+                    = (KaitaiInsidiousEventParser.DataEventBlock) lastEvent.block();
+            return eventBlock.eventId();
+        }
+        if (lastEvent.magic() == 7) {
+            KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
+                    = (KaitaiInsidiousEventParser.DetailedEventBlock) lastEvent.block();
+            return eventBlock.eventId();
+        }
+        return 0;
     }
 
     private Collection<ObjectInfo> getObjectInfoById(Collection<Long> valueIds) {

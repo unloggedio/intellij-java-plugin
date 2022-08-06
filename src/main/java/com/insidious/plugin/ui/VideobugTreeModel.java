@@ -369,6 +369,9 @@ public class VideobugTreeModel implements TreeModel {
 
     public void refreshSessionList() throws APICallException, IOException {
         this.sessionList = client.fetchProjectSessions();
+        if (this.sessionList.getItems().size() > 0) {
+            init(this.sessionList.getItems().get(0));
+        }
 //        for (TreeModelListener listener : this.listeners) {
 //            listener.
 //        }
