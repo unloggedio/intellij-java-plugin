@@ -1276,7 +1276,10 @@ public class TestCaseService {
 
             switch (probeInfo.getEventType()) {
                 case METHOD_PARAM:
+                case CALL_PARAM:
+                case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
+                case LOCAL_LOAD:
                     continue;
                 default:
 
@@ -1306,7 +1309,7 @@ public class TestCaseService {
                     FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
                     requestAfter.setThreadId(dataEvent.getThreadId());
                     requestAfter.setNanotime(dataEvent.getNanoTime());
-                    requestAfter.setPageInfo(new PageInfo(0, 50000, PageInfo.Order.ASC));
+                    requestAfter.setPageInfo(new PageInfo(0, 20000, PageInfo.Order.ASC));
                     ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
                     List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
                     afterEvents.remove(0);

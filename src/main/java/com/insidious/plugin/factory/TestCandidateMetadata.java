@@ -530,32 +530,24 @@ public class TestCandidateMetadata {
 
         }
 
-        if (objectInfo != null && typeInfo == null) {
-            typeInfo = replayData.getTypeInfo().get(
-                    String.valueOf(objectInfo.getTypeId())
-            );
-        }
-
         if (typeInfo == null) {
             logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
         } else {
             parameter.setType(getBasicClassName(typeInfo.getTypeNameFromClass()));
+            typeHierarchy = buildHierearchyFromType(replayData, typeInfo);
+        }
 
-            TypeInfo typeInfoToAdd = typeInfo;
-            while (typeInfoToAdd.getSuperClass() != -1) {
-                String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
-                typeHierarchy.add(className);
-                for (int anInterface : typeInfoToAdd.getInterfaces()) {
-                    TypeInfo interfaceType = replayData.getTypeInfo().get(String.valueOf(anInterface));
-                    String interfaceName =
-                            getBasicClassName(interfaceType.getTypeNameFromClass());
-                    typeHierarchy.add(interfaceName);
-                }
-
-                typeInfoToAdd = replayData.getTypeInfo().get(String.valueOf(typeInfoToAdd.getSuperClass()));
-            }
+        if (objectInfo != null) {
+            TypeInfo receiverParameterTypeInfo = replayData.getTypeInfo().get(
+                    String.valueOf(objectInfo.getTypeId())
+            );
+            Set<String> typeHierarchyFromReceiverType = buildHierearchyFromType(replayData,
+                    receiverParameterTypeInfo);
+            typeHierarchy.addAll(typeHierarchyFromReceiverType);
 
         }
+
+
 
 
         if (typeHierarchy.size() == 0) {
@@ -802,6 +794,25 @@ public class TestCandidateMetadata {
 
 
         return parameter;
+    }
+
+    private static Set<String> buildHierearchyFromType(ReplayData replayData, TypeInfo typeInfo) {
+        Set<String> typeHierarchy = new HashSet<>();
+        typeHierarchy.add(getBasicClassName(typeInfo.getTypeNameFromClass()));
+        TypeInfo typeInfoToAdd = typeInfo;
+        while (typeInfoToAdd.getSuperClass() != -1) {
+            String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
+            typeHierarchy.add(className);
+            for (int anInterface : typeInfoToAdd.getInterfaces()) {
+                TypeInfo interfaceType = replayData.getTypeInfo().get(String.valueOf(anInterface));
+                String interfaceName =
+                        getBasicClassName(interfaceType.getTypeNameFromClass());
+                typeHierarchy.add(interfaceName);
+            }
+
+            typeInfoToAdd = replayData.getTypeInfo().get(String.valueOf(typeInfoToAdd.getSuperClass()));
+        }
+        return typeHierarchy;
     }
 
     @NotNull

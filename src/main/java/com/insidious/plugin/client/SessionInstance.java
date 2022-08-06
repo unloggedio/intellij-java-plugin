@@ -54,10 +54,12 @@ public class SessionInstance {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final List<File> sessionArchives;
-    private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
     private final Map<String, String> cacheEntries = new HashMap<>();
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex typeIndex;
+    private Map<String, DataInfo> probeInfoMap;
+    private Map<String, ClassInfo> classInfoMap;
+    private Map<String, MethodInfo> methodInfoMap;
 
     public SessionInstance(File sessionDirectory, ExecutionSession executionSession) {
         this.sessionDirectory = sessionDirectory;
@@ -100,6 +102,34 @@ public class SessionInstance {
                 logger.warn("failed to read archive for types index: " + e.getMessage());
             }
         }
+
+
+        probeInfoMap = new HashMap<>();
+        classInfoMap = new HashMap<>();
+        methodInfoMap = new HashMap<>();
+
+        classWeaveInfo.classInfo().forEach(e -> {
+
+            checkProgressIndicator(null, "Loading class: " + e.className());
+
+            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
+            classInfoMap.put(String.valueOf(e.classId()), classInfo);
+
+            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
+
+            e.methodList().forEach(m -> {
+                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.getClassName());
+                methodInfoMap.put(String.valueOf(m.methodId()), methodInfo);
+            });
+
+            e.probeList().forEach(r -> {
+                probeInfoMap.put(String.valueOf(r.dataId()),
+                        KaitaiUtils.toDataInfo(r));
+            });
+
+        });
+
+
         sessionFiles.removeAll(filesToRemove);
         return sessionFiles;
     }
@@ -1386,12 +1416,10 @@ public class SessionInstance {
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
-        Map<String, ClassInfo> classInfoMap = new HashMap<>();
-        Map<String, DataInfo> probeInfoMap = new HashMap<>();
         Map<String, StringInfo> stringInfoMap = new HashMap<>();
         Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
         Map<String, TypeInfo> typeInfoMap = new HashMap<>();
-        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
+
 
         final long objectId = filteredDataEventsRequest.getObjectId();
 
@@ -1411,26 +1439,6 @@ public class SessionInstance {
 
         checkProgressIndicator(null, "Loading class mappings");
 
-        classWeaveInfo.classInfo().forEach(e -> {
-
-            checkProgressIndicator(null, "Loading class: " + e.className());
-
-            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
-            classInfoMap.put(String.valueOf(e.classId()), classInfo);
-
-            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
-
-            e.methodList().forEach(m -> {
-                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.getClassName());
-                methodInfoMap.put(String.valueOf(m.methodId()), methodInfo);
-            });
-
-            e.probeList().forEach(r -> {
-                probeInfoMap.put(String.valueOf(r.dataId()),
-                        KaitaiUtils.toDataInfo(r));
-            });
-
-        });
 
 //        logger.warn("classInfoMap size: " + classInfoMap.size());
 //        logger.warn("methodInfoMap size: " + methodInfoMap.size());
