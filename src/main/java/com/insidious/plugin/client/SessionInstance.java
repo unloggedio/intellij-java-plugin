@@ -1513,6 +1513,8 @@ public class SessionInstance {
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null,
                             "Reading events from  " + archiveFile);
+                    logger.warn("loading next file: " + archiveFile + " need [" + remaining +"] " +
+                            "more events");
 
                     if (remaining == 0) {
                         break;
@@ -1533,11 +1535,6 @@ public class SessionInstance {
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
                             archiveFile);
 
-
-                    if (pageInfo.isDesc()) {
-                        Collections.reverse(eventsSublist);
-                    }
-
                     KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
                     KaitaiInsidiousEventParser.Block lastEvent =
                             eventsSublist.get(eventsSublist.size() -1);
@@ -1548,11 +1545,18 @@ public class SessionInstance {
                                 continue;
                             }
                         } else {
-                            if (eventId(lastEvent) > filteredDataEventsRequest.getNanotime()) {
+                            if (eventId(firstEvent) > filteredDataEventsRequest.getNanotime()) {
                                 continue;
                             }
                         }
                     }
+
+
+                    if (pageInfo.isDesc()) {
+                        Collections.reverse(eventsSublist);
+                    }
+
+
 
 
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist

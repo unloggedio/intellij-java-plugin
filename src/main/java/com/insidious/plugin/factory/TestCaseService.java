@@ -1229,7 +1229,7 @@ public class TestCaseService {
             if (ignoredProbes.containsKey(dataEvent.getDataId())) {
                 continue;
             }
-            if (eventIndex % by10 == 0) {
+            if (by10 != 0 &&  eventIndex % by10 == 0) {
                 logger.warn("completed [" + eventIndex + "/" + totalEventCount + "]");
             }
 
@@ -1337,8 +1337,7 @@ public class TestCaseService {
                         DataInfo backEventProbe = replayEventsBefore.getProbeInfoMap().get(
                                 String.valueOf(backEvent.getDataId())
                         );
-                        if (backEventProbe.getEventType() == EventType.METHOD_ENTRY
-                        && backCallStack == 0) {
+                        if (backEventProbe.getEventType() == EventType.METHOD_ENTRY && backCallStack == 0) {
                             break;
                         }
 

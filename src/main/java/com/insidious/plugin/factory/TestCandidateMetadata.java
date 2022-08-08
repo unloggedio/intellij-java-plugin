@@ -108,7 +108,7 @@ public class TestCandidateMetadata {
         // https://gist.github.com/VijayKrishna/6160036
         List<String> methodParameterDescriptions = splitMethodDesc(methodInfo.getMethodDesc());
 
-        methodParameterDescriptions.remove(methodParameterDescriptions.size() - 1);
+        String returnParameterDescription = methodParameterDescriptions.remove(methodParameterDescriptions.size() - 1);
 
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
@@ -210,7 +210,7 @@ public class TestCandidateMetadata {
 
 
         logger.warn("create return parameter from event at index: " + callReturnIndex);
-        Parameter returnParameter = createObject(callReturnIndex, replayData, 0, null);
+        Parameter returnParameter = createObject(callReturnIndex, replayData, 0, returnParameterDescription);
 
 //        if (returnParameter)
 
@@ -219,7 +219,8 @@ public class TestCandidateMetadata {
 
         String testSubjectInstanceName = lowerInstanceName(unqualifiedClassName);
 
-        int paramsToSkip = methodParameters.size();
+//        int paramsToSkip = methodParameters.size();
+        int paramsToSkip = 0;
         boolean subjectNameFound = false;
 
 
@@ -229,8 +230,8 @@ public class TestCandidateMetadata {
             subjectNameFound = true;
         } else {
 
-            ReplayData moreHistory = replayData.fetchEventsPre(dataEvents.get(entryProbeIndex), 10);
-            dataEvents.addAll(entryProbeIndex, moreHistory.getDataEvents());
+//            ReplayData moreHistory = replayData.fetchEventsPre(dataEvents.get(entryProbeIndex), 10);
+//            dataEvents.addAll(entryProbeIndex, moreHistory.getDataEvents());
 
             int callStack = 0;
             for (int i = entryProbeIndex; i < dataEvents.size(); i += 1) {
@@ -240,8 +241,23 @@ public class TestCandidateMetadata {
                 MethodInfo methodInfoLocal = replayData.getMethodInfoMap().get(String.valueOf(probeInfo.getMethodId()));
                 EventType eventType = probeInfo.getEventType();
 
+                logger.warn("[SearchTestSubject] #" + i + "/" + dataEvents.size() + ", T=" + event.getNanoTime() +
+                        ", P=" + event.getDataId() + ":" + event.getValue() +
+                        " [Stack:" + callStack + "]" +
+                        " " + String.format("%25s", probeInfo.getEventType())
+                        + " in " + String.format("%25s",
+                        currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
+                        + ":" + probeInfo.getLine()
+                        + " in " + String.format("%20s", methodInfoLocal.getMethodName())
+                        + "  -> " + probeInfo.getAttributes()
+                );
 
                 switch (eventType) {
+                    case CALL_PARAM:
+                        if (callStack == -1) {
+                            paramsToSkip++;
+                        }
+                        break;
                     case METHOD_NORMAL_EXIT:
                         callStack++;
                         break;
@@ -251,6 +267,7 @@ public class TestCandidateMetadata {
                     case LOCAL_LOAD:
                     case GET_STATIC_FIELD:
                     case GET_INSTANCE_FIELD:
+                    case NEW_OBJECT_CREATED:
                         if (callStack != -1) {
                             continue;
                         }
@@ -303,7 +320,8 @@ public class TestCandidateMetadata {
         }
 
 
-        if (metadata.getReturnParameter().getName() == null) {
+        if (metadata.getReturnParameter().getName() == null
+        && !methodInfo.getMethodName().equals("<init>")) {
 
             String potentialReturnValueName;
             if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
@@ -405,7 +423,8 @@ public class TestCandidateMetadata {
 
 
                 Parameter parameter = createObject(callReturnIndex, replayData,
-                        0, callParameterDescriptions.get(paramIndex));
+                        callParameterDescriptions.size() - paramIndex - 1,
+                        callParameterDescriptions.get(paramIndex));
                 methodParameterProbes.add(parameter);
                 paramIndex++;
             } else {
@@ -518,20 +537,24 @@ public class TestCandidateMetadata {
             if (expectedParameterType.startsWith("L")) {
                 expectedParameterType = expectedParameterType.substring(1,
                         expectedParameterType.length() - 1).replace('/', '.');
+                String finalExpectedParameterType = expectedParameterType;
+                List<TypeInfo> matchedTypeInfo = replayData.getTypeInfo()
+                        .values()
+                        .stream()
+                        .filter(e -> e.getTypeNameFromClass().equals(finalExpectedParameterType))
+                        .collect(Collectors.toList());
+                assert matchedTypeInfo.size() != 0;
+                typeInfo = matchedTypeInfo.get(0);
+            } else {
+                parameter.setType(expectedParameterType);
+                typeHierarchy.add(expectedParameterType);
             }
-            String finalExpectedParameterType = expectedParameterType;
-            List<TypeInfo> matchedTypeInfo = replayData.getTypeInfo()
-                    .values()
-                    .stream()
-                    .filter(e -> e.getTypeNameFromClass().equals(finalExpectedParameterType))
-                    .collect(Collectors.toList());
-            assert matchedTypeInfo.size() != 0;
-            typeInfo = matchedTypeInfo.get(0);
-
         }
 
         if (typeInfo == null) {
-            logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
+            if (objectInfo != null) {
+                logger.warn("type info is null: " + objectInfo.getObjectId() + ": -> " + objectInfo.getTypeId());
+            }
         } else {
             parameter.setType(getBasicClassName(typeInfo.getTypeNameFromClass()));
             typeHierarchy = buildHierearchyFromType(replayData, typeInfo);
@@ -543,6 +566,7 @@ public class TestCandidateMetadata {
             );
             Set<String> typeHierarchyFromReceiverType = buildHierearchyFromType(replayData,
                     receiverParameterTypeInfo);
+            parameter.setType(getBasicClassName(receiverParameterTypeInfo.getTypeNameFromClass()));
             typeHierarchy.addAll(typeHierarchyFromReceiverType);
 
         }
@@ -602,16 +626,16 @@ public class TestCandidateMetadata {
         int direction = 1;
         if (
                 probeInfo.getEventType() == EventType.CALL_RETURN ||
-
-                        probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED
+                        probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED ||
+                        probeInfo.getEventType() == EventType.METHOD_OBJECT_INITIALIZED
         ) {
             direction = -1; // go forward from current event
-            callStackSearchLevel = 0; // we want something in the current method only
+            callStackSearchLevel = -1; // we want something in the caller method
         } else if (
                 probeInfo.getEventType() == EventType.METHOD_NORMAL_EXIT
         ) {
             direction = -1; // go forward from current event
-            callStackSearchLevel = -1; // we want something in the caller method
+            callStackSearchLevel = 0; // we want something in the current method only
         } else if (
                 probeInfo.getEventType() == EventType.METHOD_PARAM
         ) {
@@ -630,7 +654,9 @@ public class TestCandidateMetadata {
 //        parameter.setName(subjectName);
 
         int callStack = 0;
-        for (int i = eventIndex + direction; i < replayData.getDataEvents().size()
+        List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
+        int dataEventCount = dataEvents.size();
+        for (int i = eventIndex + direction; i < dataEventCount
                 && i > -1; i += direction) {
             DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
             DataInfo historyEventProbe = replayData.getProbeInfoMap().get(
@@ -660,7 +686,9 @@ public class TestCandidateMetadata {
                         // we also have an option to look ahead for the parameters name where it
                         // would have been potentially used
 
-                        if (probeInfo.getEventType() == EventType.METHOD_PARAM && direction != -1) {
+                        if (probeInfo.getEventType() == EventType.METHOD_PARAM
+                                && direction != -1
+                        && (dataEventCount == i + 1)) {
                             logger.warn("switching direction of search for a method param name");
                             i = eventIndex;
                             direction = -1;
@@ -675,19 +703,27 @@ public class TestCandidateMetadata {
                     }
 
                     // direction == 1 => going back
-                    if (callStack == callStackSearchLevel && direction == 1) {
-
-                        // this happens when we were looking back for a parameter name, but find
-                        // ourself inside another call, need to check this out again
-
-                        return parameter;
-                    }
+//                    if (callStack == callStackSearchLevel && direction == 1) {
+//
+//                        // this happens when we were looking back for a parameter name, but find
+//                        // ourself inside another call, need to check this out again
+//
+//                        return parameter;
+//                    }
                     break;
                 case METHOD_NORMAL_EXIT:
                     callStack += direction;
                     break;
 
                 case METHOD_ENTRY:
+                    if (probeInfo.getEventType() == EventType.METHOD_OBJECT_INITIALIZED
+                    && callStack == callStackSearchLevel) {
+
+                        // the scenario where a newly construted objects name was not found
+                        // because it was created by a third party package where we do not have
+                        // probes
+                        return parameter;
+                    }
                     callStack -= direction;
                     break;
 
