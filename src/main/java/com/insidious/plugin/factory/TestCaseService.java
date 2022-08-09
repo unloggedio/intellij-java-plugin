@@ -597,10 +597,15 @@ public class TestCaseService {
                         );
                     } else {
                         if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
-                            if ((long) returnValue == 1) {
-                                returnValue = "true";
-                            } else {
-                                returnValue = "false";
+                            if (returnValue instanceof String) {
+
+                            } else if (returnValue instanceof Long) {
+                                if ((long) returnValue == 1) {
+                                    returnValue = "true";
+                                } else {
+                                    returnValue = "false";
+                                }
+
                             }
                         }
                         objectRoutine.addStatement("$T.assertEquals($L, $L)",
@@ -1229,7 +1234,7 @@ public class TestCaseService {
             if (ignoredProbes.containsKey(dataEvent.getDataId())) {
                 continue;
             }
-            if (by10 != 0 &&  eventIndex % by10 == 0) {
+            if (by10 != 0 && eventIndex % by10 == 0) {
                 logger.warn("completed [" + eventIndex + "/" + totalEventCount + "]");
             }
 
@@ -1261,16 +1266,16 @@ public class TestCaseService {
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
 
 //            if (probeInfo.getEventType() == EventType.METHOD_ENTRY) {
-                logger.warn("[SearchCall] #" + eventIndex + "/" + totalEventCount + ", T=" + dataEvent.getNanoTime() +
-                        ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
-                        " [Stack:" + callStack + "]" +
-                        " " + String.format("%25s", probeInfo.getEventType())
-                        + " in " + String.format("%25s",
-                        currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
-                        + ":" + probeInfo.getLine()
-                        + " in " + String.format("%20s", methodInfo.getMethodName())
-                        + "  -> " + probeInfo.getAttributes()
-                );
+            logger.warn("[SearchCall] #" + eventIndex + "/" + totalEventCount + ", T=" + dataEvent.getNanoTime() +
+                    ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
+                    " [Stack:" + callStack + "]" +
+                    " " + String.format("%25s", probeInfo.getEventType())
+                    + " in " + String.format("%25s",
+                    currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
+                    + ":" + probeInfo.getLine()
+                    + " in " + String.format("%20s", methodInfo.getMethodName())
+                    + "  -> " + probeInfo.getAttributes()
+            );
 //            }
 
 
@@ -1316,6 +1321,7 @@ public class TestCaseService {
                     Collections.reverse(afterEvents);
 
 
+                    int beforeEventsSize = replayEventsBefore.getDataEvents().size();
                     List<DataEventWithSessionId> allEvents = replayEventsBefore.getDataEvents();
                     allEvents.addAll(0, afterEvents);
 
@@ -1348,12 +1354,11 @@ public class TestCaseService {
                             case METHOD_ENTRY:
                                 if (backCallStack > 0) {
                                     backCallStack--;
-                                    continue;
                                 }
                                 break;
                         }
 
-                        // going back in search
+                        // going back in time ?
                         matchedProbe++;
                     }
                     assert matchedProbe != allEvents.size();
@@ -1372,7 +1377,7 @@ public class TestCaseService {
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
                                     typeNameHierarchyList,
-                                    backEventMethodInfo, backEvent.getNanoTime(),
+                                    methodInfo, backEvent.getNanoTime(),
                                     replayEventsBefore);
 
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
@@ -1390,7 +1395,7 @@ public class TestCaseService {
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
                         logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue()
-                        + " for method call " + methodInfo.getMethodName());
+                                + " for method call " + methodInfo.getMethodName());
 //                        ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }
@@ -1403,7 +1408,7 @@ public class TestCaseService {
                         continue;
                     }
 
-                    logger.warn("created test case candidate: " + backEventMethodInfo.getMethodName());
+                    logger.warn("created test case candidate: " + methodInfo.getMethodName());
 
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
