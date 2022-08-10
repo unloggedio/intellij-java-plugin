@@ -77,6 +77,10 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
 
         constraints = new GridConstraints();
         constraints.setFill(GridConstraints.FILL_BOTH);
+
+        eventViewer = new EventLogWindow(insidiousService);
+        eventViewerPanel.add(eventViewer.getContent(), constraints);
+
         refresh();
 
     }

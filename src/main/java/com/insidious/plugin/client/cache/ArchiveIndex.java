@@ -135,6 +135,9 @@ public class ArchiveIndex {
                     return typeInfo;
                 }).findFirst();
         retrieve.close();
+        if (returnValue.isEmpty()){
+            return null;
+        }
         return returnValue.get();
     }
 

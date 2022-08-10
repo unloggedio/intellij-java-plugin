@@ -565,7 +565,7 @@ public class SessionInstance {
                     cacheEntries.put(cacheKey, entryName);
 
                     NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
-                    logger.warn(pathName + " file from "
+                    logger.info(pathName + " file from "
                             + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
                     indexArchive.closeEntry();
                     indexArchive.close();
@@ -1449,6 +1449,8 @@ public class SessionInstance {
 
         Set<Long> remainingObjectIds = new HashSet<>();
 
+        Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap();
+
         for (File sessionArchive : sessionArchivesLocal) {
 
 
@@ -1513,8 +1515,8 @@ public class SessionInstance {
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null,
                             "Reading events from  " + archiveFile);
-                    logger.warn("loading next file: " + archiveFile + " need [" + remaining +"] " +
-                            "more events");
+//                    logger.warn("loading next file: " + archiveFile + " need [" + remaining +"] " +
+//                            "more events");
 
                     if (remaining == 0) {
                         break;
@@ -1523,32 +1525,60 @@ public class SessionInstance {
                     if (!archiveFile.endsWith(".selog")) {
                         continue;
                     }
+
+                    SELogFileMetadata metadata = fileEventIdPairs.get(archiveFile);
+                    List<KaitaiInsidiousEventParser.Block> eventsSublist = null;
+
                     logger.info("Checking file " + archiveFile + " for data");
                     final int fileThreadId = Integer.parseInt(
                             archiveFile.split("\\.")[0].split("-")[2]
                     );
-                    if (filteredDataEventsRequest.getThreadId() != -1
-                            && fileThreadId != filteredDataEventsRequest.getThreadId()) {
-                        continue;
+
+                    if (metadata == null && filteredDataEventsRequest.getNanotime() != -1) {
+
+                        if (filteredDataEventsRequest.getThreadId() != -1
+                                && fileThreadId != filteredDataEventsRequest.getThreadId()) {
+                            continue;
+                        }
+
+                        eventsSublist = getEventsFromFile(sessionArchive,
+                                archiveFile);
+
+                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
+                        KaitaiInsidiousEventParser.Block lastEvent =
+                                eventsSublist.get(eventsSublist.size() -1);
+
+                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent),
+                                fileThreadId);
+                        fileEventIdPairs.put(archiveFile, metadata);
+
+
+
                     }
-
-                    List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
-                            archiveFile);
-
-                    KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
-                    KaitaiInsidiousEventParser.Block lastEvent =
-                            eventsSublist.get(eventsSublist.size() -1);
 
                     if (filteredDataEventsRequest.getNanotime() != -1) {
                         if (pageInfo.isAsc()) {
-                            if (eventId(lastEvent) < filteredDataEventsRequest.getNanotime()) {
+                            if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
                                 continue;
                             }
                         } else {
-                            if (eventId(firstEvent) > filteredDataEventsRequest.getNanotime()) {
+                            if (metadata.getFirstEventId() > filteredDataEventsRequest.getNanotime()) {
                                 continue;
                             }
                         }
+                    }
+
+                    if (eventsSublist == null) {
+                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+
+                        KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
+                        KaitaiInsidiousEventParser.Block lastEvent =
+                                eventsSublist.get(eventsSublist.size() -1);
+
+                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent),
+                                fileThreadId);
+                        fileEventIdPairs.put(archiveFile, metadata);
+
                     }
 
 
@@ -1557,8 +1587,7 @@ public class SessionInstance {
                     }
 
 
-
-
+                    SELogFileMetadata finalMetadata = metadata;
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
                             .stream()
                             .filter(e -> {
@@ -1633,7 +1662,7 @@ public class SessionInstance {
                                     d.setDataId((int) eventBlock.probeId());
                                     d.setNanoTime(eventBlock.eventId());
                                     d.setRecordedAt(eventBlock.timestamp());
-                                    d.setThreadId(fileThreadId);
+                                    d.setThreadId(finalMetadata.getThreadId());
                                     d.setValue(eventBlock.valueId());
                                     return d;
                                 } else if (e.magic() == 7) {
@@ -1643,7 +1672,7 @@ public class SessionInstance {
                                     d.setDataId((int) eventBlock.probeId());
                                     d.setNanoTime(eventBlock.eventId());
                                     d.setRecordedAt(eventBlock.timestamp());
-                                    d.setThreadId(fileThreadId);
+                                    d.setThreadId(finalMetadata.getThreadId());
                                     d.setValue(eventBlock.valueId());
                                     d.setSerializedValue(eventBlock.serializedData());
                                     return d;
@@ -1798,7 +1827,7 @@ public class SessionInstance {
             }
 
             if (objectIds.size() > 0) {
-                logger.warn("failed to find object information for: " + objectIds);
+//                logger.warn("failed to find object information for: " + objectIds);
             }
         }
 

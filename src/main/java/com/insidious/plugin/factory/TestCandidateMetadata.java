@@ -132,7 +132,7 @@ public class TestCandidateMetadata {
         ReplayData replayDataPage = replayData;
         DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
         DataInfo entryProbeInfo = probeInfoMap.get(String.valueOf(entryProbe.getDataId()));
-        logger.warn("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
+        logger.info("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
 
 //        ReplayData postEvents = replayData.fetchEventsPost(entryProbe, 5000);
 //        ReplayData preEvents = replayData.fetchEventsPre(entryProbe, 100);
@@ -241,16 +241,16 @@ public class TestCandidateMetadata {
                 MethodInfo methodInfoLocal = replayData.getMethodInfoMap().get(String.valueOf(probeInfo.getMethodId()));
                 EventType eventType = probeInfo.getEventType();
 
-                logger.warn("[SearchTestSubject] #" + i + "/" + dataEvents.size() + ", T=" + event.getNanoTime() +
+                logger.warn("[SearchSubject] #" + i + ", T=" + event.getNanoTime() +
                         ", P=" + event.getDataId() + ":" + event.getValue() +
                         " [Stack:" + callStack + "]" +
                         " " + String.format("%25s", probeInfo.getEventType())
-                        + " in " + String.format("%25s",
-                        currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
+                        + " in " + String.format("%25s", currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
                         + ":" + probeInfo.getLine()
                         + " in " + String.format("%20s", methodInfoLocal.getMethodName())
                         + "  -> " + probeInfo.getAttributes()
                 );
+
 
                 switch (eventType) {
                     case CALL_PARAM:
@@ -269,7 +269,7 @@ public class TestCandidateMetadata {
                     case GET_INSTANCE_FIELD:
                     case NEW_OBJECT_CREATED:
                         if (callStack != -1) {
-                            continue;
+                            break;
                         }
                         String valueTypeNameWithSlash = probeInfo.getAttribute("Type", "");
                         String valueTypeNameWithDots = "";
@@ -279,6 +279,10 @@ public class TestCandidateMetadata {
                         } else {
                             valueTypeNameWithDots = valueTypeNameWithSlash;
                         }
+                        if (!typeHierarchy.contains(probeInfo.getAttribute("Type", ""))) {
+                            break;
+                        }
+
                         if (paramsToSkip == 0) {
                             String variableName = probeInfo.getAttribute("Name", null);
 
@@ -295,15 +299,6 @@ public class TestCandidateMetadata {
 
                             metadata.setTestSubject(subjectInstanceParameter);
 
-                            logger.warn("[SearchSubject] #" + i + ", T=" + event.getNanoTime() +
-                                    ", P=" + event.getDataId() + ":" + event.getValue() +
-                                    " [Stack:" + callStack + "]" +
-                                    " " + String.format("%25s", probeInfo.getEventType())
-                                    + " in " + String.format("%25s", currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
-                                    + ":" + probeInfo.getLine()
-                                    + " in " + String.format("%20s", methodInfoLocal.getMethodName())
-                                    + "  -> " + probeInfo.getAttributes()
-                            );
 
                             subjectNameFound = true;
                             break;
@@ -312,7 +307,7 @@ public class TestCandidateMetadata {
 
                 }
 
-                if (subjectNameFound) {
+                if (subjectNameFound || callStack < -1) {
                     break;
                 }
 
@@ -411,7 +406,9 @@ public class TestCandidateMetadata {
 
             if (lookingForParams && eventType == EventType.METHOD_PARAM) {
 
-                logger.warn("[SearchCallParameters" + paramIndex + "] #" + callReturnIndex + ", T=" + event.getNanoTime() +
+                logger.warn("[SearchCallParameters] [" + paramIndex + "] #" + callReturnIndex +
+                        "," +
+                        " T=" + event.getNanoTime() +
                         ", P=" + event.getDataId() +
                         " [Stack:" + callStack + "]" +
                         " " + String.format("%25s", probeInfo.getEventType())
@@ -460,8 +457,8 @@ public class TestCandidateMetadata {
                     int entryProbeIndex,
                     List<EventType> eventTypeMatch
             ) {
-        logger.warn("looking for call return index, with entry probe index at: " + entryProbeIndex + " -> " + eventTypeMatch);
-        logger.warn("replay data has: " + replayData.getDataEvents().size() + " events.");
+        logger.info("looking for call return index, with entry probe index at: " + entryProbeIndex + " -> " + eventTypeMatch);
+        logger.info("replay data has: " + replayData.getDataEvents().size() + " events.");
         int direction = -1;
         int callReturnIndex = entryProbeIndex + direction;
 
@@ -976,11 +973,11 @@ public class TestCandidateMetadata {
         return parameter;
     }
 
-    private static Set<String> buildHierearchyFromType(ReplayData replayData, TypeInfo typeInfo) {
+    public static Set<String> buildHierearchyFromType(ReplayData replayData, TypeInfo typeInfo) {
         Set<String> typeHierarchy = new HashSet<>();
         typeHierarchy.add(getBasicClassName(typeInfo.getTypeNameFromClass()));
         TypeInfo typeInfoToAdd = typeInfo;
-        while (typeInfoToAdd.getSuperClass() != -1) {
+        while (typeInfoToAdd != null && typeInfoToAdd.getSuperClass() != -1) {
             String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
             typeHierarchy.add(className);
             for (int anInterface : typeInfoToAdd.getInterfaces()) {

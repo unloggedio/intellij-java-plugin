@@ -39,6 +39,7 @@ public class EventLogWindow {
     private JButton nextPage;
     private JPanel infoPanelContainer;
     private JLabel infoLabel;
+    private JPanel paginationPanel;
     private int currentPage = 0;
     private long currentObjectId;
 
@@ -70,18 +71,60 @@ public class EventLogWindow {
         this.searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String newObjectId = queryTextField.getText();
-                if (newObjectId == null || newObjectId.length() < 1) {
+                String queryString = queryTextField.getText();
+
+                if (!queryString.contains("=")) {
+                    loadObject(Long.parseLong(queryString));
                     return;
                 }
-                long objectId;
-                try {
-                    objectId = Long.parseLong(newObjectId);
-                } catch (Exception e3) {
-                    InsidiousNotification.notifyMessage("Invalid object id to search", NotificationType.ERROR);
-                    return;
+
+                String[] queryStringParts = queryString.split(",");
+                FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
+
+                filterRequest.setPageInfo(new PageInfo(0, 100, PageInfo.Order.ASC));
+
+
+                for (String queryStringPart : queryStringParts) {
+
+                    String[] queryStringPartTriplet = queryStringPart.split(" ");
+
+                    String operator = queryStringPartTriplet[1];
+                    String key = queryStringPartTriplet[0];
+                    String value = queryStringPartTriplet[2];
+
+                    switch (key) {
+                        case "probe":
+                            filterRequest.setProbeId(Integer.parseInt(value));
+                            break;
+                        case "thread":
+                            filterRequest.setThreadId(Long.valueOf(value));
+                            break;
+                        case "time":
+                            filterRequest.setNanotime(Long.parseLong(value));
+
+                            switch (operator) {
+                                case "<":
+                                    filterRequest.setPageInfo(new PageInfo(0, 100, PageInfo.Order.DESC));
+                                    break;
+                                case ">":
+                                    filterRequest.setPageInfo(new PageInfo(0, 100,
+                                            PageInfo.Order.ASC));
+                                    break;
+                            }
+
+                            break;
+                        case "value":
+                            filterRequest.setValueId(List.of(Long.valueOf(value)));
+                            break;
+                        case "object":
+                            filterRequest.setObjectId(Long.valueOf(value));
+                            break;
+
+                    }
+
                 }
-                loadObject(objectId);
+
+                loadHistory(filterRequest);
             }
         });
 
@@ -159,6 +202,21 @@ public class EventLogWindow {
         ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
         updateTableData(replayData1);
         infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData1.getDataEvents().size() + " events]");
+        return replayData1;
+    }
+
+    private ReplayData loadHistory(FilteredDataEventsRequest filterRequest) {
+
+        PageInfo pageInfo = filterRequest.getPageInfo();
+
+        pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
+
+        filterRequest.setPageInfo(pageInfo);
+        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+        updateTableData(replayData1);
+        infoLabel.setText(" [Page " +
+                (filterRequest.getPageInfo().getNumber() + 1) +
+                "] [" + replayData1.getDataEvents().size() + " events]");
         return replayData1;
     }
 
