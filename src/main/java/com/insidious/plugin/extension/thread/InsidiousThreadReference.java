@@ -55,8 +55,8 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
         eventProperties.put("probesCount", replayData.getProbeInfoMap().size());
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
-        eventProperties.put("typesCount", replayData.getTypeInfo().size());
-        eventProperties.put("objectsCount", replayData.getObjectInfo().size());
+        eventProperties.put("typesCount", replayData.getTypeInfoMap().size());
+        eventProperties.put("objectsCount", replayData.getObjectInfoMap().size());
         UsageInsightTracker.getInstance().RecordEvent("ConstructThreadReference", eventProperties);
 
         int i = 0;
@@ -122,10 +122,10 @@ public class InsidiousThreadReference implements ThreadReference {
             DataInfo probeInfo = dataInfoMap.get(dataId);
             int classId = probeInfo.getClassId();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
-            ObjectInfo objectInfo = this.replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo objectInfo = this.replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
             TypeInfo typeInfo = null;
             if (objectInfo != null) {
-                typeInfo = this.replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                typeInfo = this.replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
             }
             long receiverObjectId = 0;
             InsidiousObjectReference receiverObject;
@@ -570,7 +570,7 @@ public class InsidiousThreadReference implements ThreadReference {
             dataValue = stringInfoMap.get(dataValueString);
         } else if (
                 (paramType.startsWith("L")
-                        || replayData.getObjectInfo().containsKey(dataValueString)
+                        || replayData.getObjectInfoMap().containsKey(dataValueString)
                         || objectReferenceMap.containsKey(Long.valueOf(dataValueString))
                 ) && (!paramType.startsWith("Ljava/lang") || paramType.startsWith("Ljava/lang/Object"))
         ) {
@@ -579,10 +579,10 @@ public class InsidiousThreadReference implements ThreadReference {
                 dataValue = objectReferenceMap.get(paramObjectId);
                 return dataValue;
             } else {
-                if (replayData.getObjectInfo().containsKey(dataValueString)) {
+                if (replayData.getObjectInfoMap().containsKey(dataValueString)) {
                     try {
-                        ObjectInfo objectInfo = replayData.getObjectInfo().get(dataValueString);
-                        TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                        ObjectInfo objectInfo = replayData.getObjectInfoMap().get(dataValueString);
+                        TypeInfo typeInfo = replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
                         if (typeInfo != null) {
                             paramType = typeInfo.getTypeNameFromClass();
                         } else {

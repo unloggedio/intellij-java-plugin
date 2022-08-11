@@ -166,9 +166,9 @@ public class TestCaseServiceTest {
                     + classInfo.getClassName().replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +
                     "";
 
-            ObjectInfo valueObjectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo valueObjectInfo = replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
             if (valueObjectInfo != null) {
-                TypeInfo typeObjectInfo = replayData.getTypeInfo().get(String.valueOf(valueObjectInfo.getTypeId()));
+                TypeInfo typeObjectInfo = replayData.getTypeInfoMap().get(String.valueOf(valueObjectInfo.getTypeId()));
                 logLine = logLine + " [" + typeObjectInfo.getTypeNameFromClass() + "]";
                 StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
                 if (stringValue != null) {

@@ -233,7 +233,7 @@ public class EventLogWindow {
             Vector<Object> rowVector = new Vector<>(6);
 
             DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
-            ObjectInfo objectInfo = replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo objectInfo = replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
             String eventType = probeInfo.getEventType().toString();
 
 
@@ -245,7 +245,7 @@ public class EventLogWindow {
             rowVector.add(probeInfo.getAttributes());
 
             if (objectInfo != null) {
-                TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                TypeInfo typeInfo = replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
                 rowVector.add(typeInfo.getTypeNameFromClass());
             }
             if (replayData.getStringInfoMap().containsKey(String.valueOf(dataEvent.getValue()))) {

@@ -706,6 +706,9 @@ public class TestCaseService {
                 return ClassName.bestGuess(returnValueClass.replace("/", "."));
             case '[':
                 String returnValueClass1 = methodReturnValueType.substring(1);
+                if (1 < 2) {
+                    return null;
+                }
                 return ClassName.bestGuess(returnValueClass1.replace("/", ".") + "[]");
 
             default:
@@ -804,7 +807,7 @@ public class TestCaseService {
                 objectParameter.setValue(objectId);
 
                 ObjectRoutineContainer classTestSuite = generateTestCaseFromObjectHistory(
-                        objectParameter, Set.of(), variableContainer);
+                        objectParameter, Set.of(), variableContainer, 0);
 
 
                 int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
@@ -965,12 +968,16 @@ public class TestCaseService {
     (
             Parameter parameter,
             final Set<Long> dependentObjectIdsOriginal,
-            VariableContainer globalVariableContainer
+            VariableContainer globalVariableContainer,
+            Integer buildLevel
     ) throws APICallException,
             IOException {
-        logger.warn("Create test case from object: " + parameter + " -- dependent object ids: " + dependentObjectIdsOriginal);
+        logger.warn( "[" + buildLevel + "] Create test case from object: " + parameter + " -- " +
+                "dependent object" +
+                " ids: " + dependentObjectIdsOriginal);
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
+
 
         // we want to create the objects from java.lang.* namespace using their real values, so
         // in the test case it looks something like
@@ -1002,10 +1009,14 @@ public class TestCaseService {
 
         }
 
+        if (buildLevel > 0) {
+            return objectRoutineContainer;
+        }
+
         Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
 
 
-        PageInfo pagination = new PageInfo(0, 50, PageInfo.Order.ASC);
+        PageInfo pagination = new PageInfo(0, 200, PageInfo.Order.ASC);
         pagination.setBufferSize(0);
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
@@ -1030,9 +1041,12 @@ public class TestCaseService {
             }
 
             VariableContainer variableContainer = globalVariableContainer.clone();
-            processVariables(objectRoutine.getMetadata(), variableContainer);
+            addTestSubjectToVariableContainer(objectRoutine.getMetadata(), variableContainer);
             if (objectRoutine.getRoutineName().equals("<init>")) {
-                globalVariableContainer = variableContainer;
+//                globalVariableContainer = variableContainer;
+                for (String name : variableContainer.getNames()) {
+                    globalVariableContainer.add(variableContainer.getParameterByName(name));
+                }
             }
             objectRoutine.setVariableContainer(variableContainer);
             for (String name : variableContainer.getNames()) {
@@ -1075,6 +1089,9 @@ public class TestCaseService {
             }
             dependentObjectIds.add(parameterValue);
             for (Parameter dependentParameter : dependentParameters) {
+                if (variableContainer.contains(dependentParameter.getName())) {
+                    continue;
+                }
 
                 if (dependentParameter.getName() == null) {
                     continue;
@@ -1095,7 +1112,7 @@ public class TestCaseService {
                 ObjectRoutineContainer dependentObjectCreation =
                         generateTestCaseFromObjectHistory(
                                 dependentParameter,
-                                newPotentialObjects, variableContainer);
+                                newPotentialObjects, variableContainer, buildLevel + 1);
                 variableContainer.add(dependentParameter);
                 if (dependentObjectCreation.getName() != null) {
                     dependentParameter.setName(dependentObjectCreation.getName());
@@ -1156,22 +1173,7 @@ public class TestCaseService {
             return parameter.getName();
         }
 
-
-//        ReplayData callContext = objectReplayData.fetchEventsPre(objectEvents.get(0), 100);
-
-
         logger.warn("build test candidate for [" + parameter.getValue() + "] using " + objectReplayData.getDataEvents().size() + " events");
-//        logger.warn("call context added " + callContext.getDataEvents().size() + " events");
-
-
-//        List<DataEventWithSessionId> contextEvents = callContext.getDataEvents();
-//        Collections.reverse(contextEvents);
-//        contextEvents.remove(contextEvents.size() - 1);
-//        objectReplayData.getDataEvents().addAll(0, contextEvents);
-
-//        objectReplayData.getObjectInfo().putAll(callContext.getObjectInfo());
-//        objectReplayData.getTypeInfo().putAll(callContext.getTypeInfo());
-//        objectReplayData.getStringInfoMap().putAll(callContext.getStringInfoMap());
 
 
         List<DataEventWithSessionId> objectEventsReverse =
@@ -1197,11 +1199,11 @@ public class TestCaseService {
             subjectTypeInfo = objectReplayData.getTypeInfoByName(parameter.getType());
         }
 
-        final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfo();
+        final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfoMap();
         final Map<String, DataInfo> probeInfoMap = objectReplayData.getProbeInfoMap();
         final Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
         final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
-        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfo();
+        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfoMap();
 
         final ObjectInfo subjectObjectInfo =
                 objectInfoMap.get(String.valueOf(parameter.getValue()));
@@ -1215,10 +1217,13 @@ public class TestCaseService {
 
 //        List<String> typeNameHierarchyList = new LinkedList<>();
 
-        Set<String> typeNameHierarchyList = TestCandidateMetadata.buildHierearchyFromType(objectReplayData,
+        Set<String> typeNameHierarchyList = ClassTypeUtils.buildHierarchyFromType(objectReplayData,
                 subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
+        if (!className.startsWith("com.appsmith")) {
+            return parameter.getName();
+        }
         long currentTypeId = subjectTypeInfo.getTypeId();
 
 
@@ -1229,7 +1234,7 @@ public class TestCaseService {
 
         Map<Integer, Boolean> ignoredProbes = new HashMap<>();
         int totalEventCount = objectEvents.size();
-        int by10 = totalEventCount / 10;
+        int by10 = 50;
 
 
 
@@ -1255,7 +1260,11 @@ public class TestCaseService {
                 objectInfoString = "[Object:" + objectInfo.getObjectId() + "]";
                 objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
-            Set<String> objectTypeHirrarchy = TestCandidateMetadata.buildHierearchyFromType(objectReplayData,
+            if (objectTypeInfo == null) {
+                logger.warn("object info not found: " + objectInfo);
+                continue;
+            }
+            Set<String> objectTypeHierarchy = ClassTypeUtils.buildHierarchyFromType(objectReplayData,
                     objectTypeInfo);
 
             DataInfo probeInfo = probeInfoMap.get(String.valueOf(dataEvent.getDataId()));
@@ -1264,13 +1273,13 @@ public class TestCaseService {
             int callStack = 0;
             ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
             String ownerClassName;
-            ownerClassName = "L" + currentClassInfo
-                    .getClassName()
-                    .split("\\$")[0] + ";";
+            ownerClassName = ClassTypeUtils.getDescriptorName(currentClassInfo.getClassName());
 
             MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
 
 //            if (probeInfo.getEventType() == EventType.METHOD_ENTRY) {
+//            }
+
             logger.warn("[SearchCall] #" + eventIndex + "/" + totalEventCount + ", T=" + dataEvent.getNanoTime() +
                     ", P=" + dataEvent.getDataId() + ":" + dataEvent.getValue() +
                     " [Stack:" + callStack + "]" +
@@ -1281,15 +1290,17 @@ public class TestCaseService {
                     + " in " + String.format("%20s", methodInfo.getMethodName())
                     + "  -> " + probeInfo.getAttributes()
             );
-//            }
-
 
             switch (probeInfo.getEventType()) {
                 case METHOD_PARAM:
+                case CALL:
                 case CALL_PARAM:
+                case LOCAL_STORE:
+                case INVOKE_DYNAMIC_PARAM:
                 case CALL_RETURN:
                 case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
+                case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
                 case PUT_INSTANCE_FIELD_VALUE:
                 case METHOD_NORMAL_EXIT:
                 case LOCAL_LOAD:
@@ -1302,7 +1313,7 @@ public class TestCaseService {
                         continue;
                     }
 
-                    Set<String> intersectSet = new HashSet<>(objectTypeHirrarchy);
+                    Set<String> intersectSet = new HashSet<>(objectTypeHierarchy);
                     intersectSet.retainAll(typeNameHierarchyList);
 
                     if (intersectSet.size() == 0) {
@@ -1340,8 +1351,8 @@ public class TestCaseService {
                     replayEventsBefore.getProbeInfoMap().putAll(replayEventsAfter.getProbeInfoMap());
                     replayEventsBefore.getMethodInfoMap().putAll(replayEventsAfter.getMethodInfoMap());
                     replayEventsBefore.getStringInfoMap().putAll(replayEventsAfter.getStringInfoMap());
-                    replayEventsBefore.getObjectInfo().putAll(replayEventsAfter.getObjectInfo());
-                    replayEventsBefore.getTypeInfo().putAll(replayEventsAfter.getTypeInfo());
+                    replayEventsBefore.getObjectInfoMap().putAll(replayEventsAfter.getObjectInfoMap());
+                    replayEventsBefore.getTypeInfoMap().putAll(replayEventsAfter.getTypeInfoMap());
 
                     int matchedProbe = afterEvents.size();
                     // need to go back until we find the method entry since the following method
@@ -1372,7 +1383,10 @@ public class TestCaseService {
                         // going back in time ?
                         matchedProbe++;
                     }
-                    assert matchedProbe != allEvents.size();
+                    if (matchedProbe == allEvents.size()) {
+                        return parameter.getName();
+                    }
+
 
 
                     DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
@@ -1424,7 +1438,8 @@ public class TestCaseService {
                         continue;
                     }
 
-                    logger.warn("created test case candidate: " + methodInfo.getMethodName());
+                    logger.warn("Created test case candidate: " +
+                             className +":" + methodInfo.getMethodName());
 
                     if (methodInfo.getMethodName().equals("<init>")) {
                         objectRoutineContainer.getConstructor().setMetadata(newTestCaseMetadata);
@@ -1480,10 +1495,13 @@ public class TestCaseService {
         constructor.setMetadata(testCandidateMetadata);
     }
 
-    private void processVariables(List<TestCandidateMetadata> metadataList, VariableContainer variableContainer) {
+    private void addTestSubjectToVariableContainer(List<TestCandidateMetadata> metadataList, VariableContainer variableContainer) {
         for (TestCandidateMetadata testCandidateMetadata : metadataList) {
 
             Parameter testSubject = testCandidateMetadata.getTestSubject();
+
+            // metadata from constructor have methodname = <init> and since they are constructors
+            // we should probably not have that in the variable container, so we add it.
             if (testCandidateMetadata.getMethodName().equals("<init>")) {
 
                 if (testSubject.getValue() == null) {
@@ -1503,14 +1521,19 @@ public class TestCaseService {
             }
 
             if (variableContainer.contains(testSubject.getName())) {
-
+                // nothing to do
             } else {
+
+                // else we check if there is a an existing variable with the same value and if
+                // yes we use that variables name as the test subject name
+                // if we do not find a variable by id also, then add the test subject to the
+                // variable container
                 Optional<Parameter> parameterByValue
-                        = variableContainer.getParametersById((String) testSubject.getValue());
+                        = variableContainer.getParametersById(String.valueOf(testSubject.getValue()));
                 if (parameterByValue.isPresent()) {
                     Parameter existingParameter = parameterByValue.get();
                     if (existingParameter.getName() == null && testSubject.getName() != null) {
-                        existingParameter.setName(testSubject.getName());
+                        existingParameter.setName(String.valueOf(testSubject.getName()));
                     } else if (existingParameter.getName() != null && testSubject.getName() == null) {
                         testSubject.setName(existingParameter.getName());
                     }
