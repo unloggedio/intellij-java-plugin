@@ -65,7 +65,7 @@ public class TestCandidateMetadata {
         metadata.setPackageName(packageName);
 
 
-        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
+//        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
 
         metadata.setMethodName(targetMethodName);
 
@@ -100,7 +100,7 @@ public class TestCandidateMetadata {
         int callReturnIndex = -1;
         ReplayData replayDataPage = replayData;
         DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
-        DataInfo entryProbeInfo = probeInfoMap.get(String.valueOf(entryProbe.getDataId()));
+        DataInfo entryProbeInfo = replayData.getProbeInfo(entryProbe.getDataId());
         logger.info("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
 
 //        ReplayData postEvents = replayData.fetchEventsPost(entryProbe, 5000);
@@ -192,9 +192,9 @@ public class TestCandidateMetadata {
             int callStack = 0;
             for (int i = entryProbeIndex; i < dataEvents.size(); i += 1) {
                 DataEventWithSessionId event = dataEvents.get(i);
-                DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
-                ClassInfo currentClassInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
-                MethodInfo methodInfoLocal = replayData.getMethodInfoMap().get(String.valueOf(probeInfo.getMethodId()));
+                DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
+                ClassInfo currentClassInfo = replayData.getClassInfo(probeInfo.getClassId());
+                MethodInfo methodInfoLocal = replayData.getMethodInfo(probeInfo.getMethodId());
                 EventType eventType = probeInfo.getEventType();
 
 
@@ -230,12 +230,9 @@ public class TestCandidateMetadata {
                         }
 
                         if (paramsToSkip == 0) {
-                            String variableName = probeInfo.getAttribute("Name", null);
+                            String variableName = ClassTypeUtils.getVariableNameFromProbe(probeInfo,
+                                    testSubjectInstanceName);
 
-                            if (variableName == null) {
-                                variableName = probeInfo.getAttribute("FieldName",
-                                        testSubjectInstanceName);
-                            }
                             Parameter subjectInstanceParameter;
                             if (eventType == EventType.LOCAL_LOAD) {
                                 subjectInstanceParameter = ParameterFactory.createParameter(i,
@@ -245,15 +242,8 @@ public class TestCandidateMetadata {
                             }
 
                             metadata.setTestSubject(subjectInstanceParameter);
-                            logger.warn("[SearchSubject] #" + i + ", T=" + event.getNanoTime() +
-                                    ", P=" + event.getDataId() + ":" + event.getValue() +
-                                    " [Stack:" + callStack + "]" +
-                                    " " + String.format("%25s", probeInfo.getEventType())
-                                    + " in " + String.format("%25s", currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
-                                    + ":" + probeInfo.getLine()
-                                    + " in " + String.format("%20s", methodInfoLocal.getMethodName())
-                                    + "  -> " + probeInfo.getAttributes()
-                            );
+                            LoggerUtil.logEvent("SearchSubject", callStack, i,
+                                    event, probeInfo, currentClassInfo, methodInfoLocal);
 
 
                             subjectNameFound = true;
@@ -324,24 +314,15 @@ public class TestCandidateMetadata {
             @Override
             public void eventMatched(Integer callReturnIndex) {
                 DataEventWithSessionId event = replayData.getDataEvents().get(callReturnIndex);
-                DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(event.getDataId()));
-                ClassInfo currentClassInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
+                DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
+                ClassInfo currentClassInfo = replayData.getClassInfo(probeInfo.getClassId());
                 MethodInfo methodInfoLocal =
                         replayData.getMethodInfoMap().get(String.valueOf(probeInfo.getMethodId()));
-                logger.warn("[SearchCallParameters] [" + paramIndex + "] #" + callReturnIndex +
-                        "," +
-                        " T=" + event.getNanoTime() +
-                        ", P=" + event.getDataId() +
-                        " " + String.format("%25s", probeInfo.getEventType())
-                        + " in " + String.format("%25s", currentClassInfo.getClassName()
-                        .substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
-                        + ":" + probeInfo.getLine()
-                        + " in " + String.format("%20s", methodInfoLocal.getMethodName())
-                        + "  -> " + probeInfo.getAttributes()
-                );
 
+                LoggerUtil.logEvent("SearchCallParameters", 0, paramIndex,
+                        event, probeInfo, currentClassInfo, methodInfoLocal);
 
-                Parameter parameter = ParameterFactory.createParameter(
+                Parameter parameter = ParameterFactory.createMethodArgumentParameter(
                         callReturnIndex, replayData,
                         callParameterDescriptions.size() - paramIndex - 1,
                         callParameterDescriptions.get(paramIndex));
@@ -371,9 +352,7 @@ public class TestCandidateMetadata {
             searchRequest.matchUntil(typeMatch);
         }
 
-        int callReturnIndex = replayData.eventScan(searchRequest);
-
-        return callReturnIndex;
+        return replayData.eventScan(searchRequest);
     }
 
 

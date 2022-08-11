@@ -6,14 +6,19 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.factory.ClassTypeUtils;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.insidious.plugin.factory.ClassTypeUtils.getBasicClassName;
 
 public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
@@ -206,4 +211,97 @@ public class ReplayData {
     }
 
 
+    public List<String> buildHierarchyFromTypeName(String expectedParameterType) {
+
+        if (expectedParameterType == null) {
+            return List.of();
+        }
+        if (!expectedParameterType.startsWith("L")) {
+            return List.of(expectedParameterType);
+        }
+
+
+        List<String> typeHierarchy = new LinkedList<>();
+
+        TypeInfo typeInfo = null;
+
+        final String expectedParameterTypeDotted =
+                ClassTypeUtils.getDottedClassName(expectedParameterType);
+        List<TypeInfo> matchedTypeInfo = typeInfoMap.values().stream()
+                .filter(e -> e.getTypeNameFromClass().equals(expectedParameterTypeDotted))
+                .collect(Collectors.toList());
+
+        if (matchedTypeInfo.size() == 0) {
+            logger.warn("matched type from suggested nothing [" + expectedParameterType + "]");
+        } else {
+            typeInfo = matchedTypeInfo.get(0);
+            typeHierarchy = buildHierarchyFromType(typeInfo);
+        }
+
+        return typeHierarchy;
+    }
+
+    public List<String> buildHierarchyFromType(TypeInfo typeInfo) {
+        List<String> typeHierarchy = new LinkedList<>();
+        typeHierarchy.add(typeInfo.getTypeNameFromClass());
+        TypeInfo typeInfoToAdd = typeInfo;
+        while (typeInfoToAdd != null && typeInfoToAdd.getSuperClass() != -1) {
+            String className = typeInfoToAdd.getTypeNameFromClass();
+            typeHierarchy.add(className);
+            for (int anInterface : typeInfoToAdd.getInterfaces()) {
+                TypeInfo interfaceType = typeInfoMap.get(String.valueOf(anInterface));
+                String interfaceName = interfaceType.getTypeNameFromClass();
+                typeHierarchy.add(interfaceName);
+            }
+
+            typeInfoToAdd = typeInfoMap.get(String.valueOf(typeInfoToAdd.getSuperClass()));
+        }
+        return typeHierarchy;
+    }
+
+
+    public String
+    getParameterNameFromProbe(int eventIndex,
+                              DataInfo probeInfo
+    ) {
+        if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD_RESULT) {
+            return probeInfoMap
+                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
+                    .getAttribute("FieldName", null);
+        } else if (probeInfo.getEventType() == EventType.GET_STATIC_FIELD) {
+            return probeInfoMap
+                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
+                    .getAttribute("FieldName", null);
+        } else if (probeInfo.getEventType() == EventType.LOCAL_LOAD) {
+            return probeInfoMap
+                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
+                    .getAttribute("Name", null);
+        }
+        return null;
+    }
+
+
+    public DataInfo getProbeInfo(int id) {
+        return probeInfoMap.get(String.valueOf(id));
+    }
+
+    public TypeInfo getTypeInfo(int id) {
+        return typeInfoMap.get(String.valueOf(id));
+    }
+
+    public StringInfo getStringInfo(int id) {
+        return stringInfoMap.get(String.valueOf(id));
+    }
+
+    public ObjectInfo getObjectInfo(int id) {
+        return objectInfoMap.get(String.valueOf(id));
+    }
+
+    public ClassInfo getClassInfo(int id) {
+        return classInfoMap.get(String.valueOf(id));
+    }
+
+    public MethodInfo getMethodInfo(int methodId) {
+        return methodInfoMap.get(String.valueOf(methodId));
+    }
 }

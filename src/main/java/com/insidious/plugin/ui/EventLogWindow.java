@@ -143,9 +143,7 @@ public class EventLogWindow {
                 DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(selectedEvent.getDataId()));
 
                 InsidiousUtils.focusProbeLocationInEditor(probeInfo,
-                        replayData.getClassInfoMap().get(
-                                String.valueOf(probeInfo.getClassId())
-                        ).getClassName(), insidiousService);
+                        replayData.getClassInfo(probeInfo.getClassId()).getClassName(), insidiousService);
 
             }
 

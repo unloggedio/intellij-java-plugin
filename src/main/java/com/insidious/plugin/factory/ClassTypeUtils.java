@@ -1,13 +1,10 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.common.weaver.TypeInfo;
-import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.common.weaver.DataInfo;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,7 +46,8 @@ public class ClassTypeUtils {
     public static String createVariableName(String typeNameRaw) {
         String[] typeNameParts = typeNameRaw.split("/");
         String lastPart = typeNameParts[typeNameParts.length - 1];
-        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
+        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1,
+                lastPart.length() - 1);
         return lastPart;
     }
 
@@ -63,31 +61,22 @@ public class ClassTypeUtils {
     @NotNull
     public static String getDottedClassName(String className) {
         assert className.startsWith("L");
-        return className.substring(1,
+        String dottedName = className.substring(1,
                 className.length() - 1).replace('/', '.');
-    }
-
-    public static Set<String> buildHierarchyFromType(ReplayData replayData, TypeInfo typeInfo) {
-        Set<String> typeHierarchy = new HashSet<>();
-        typeHierarchy.add(getBasicClassName(typeInfo.getTypeNameFromClass()));
-        TypeInfo typeInfoToAdd = typeInfo;
-        while (typeInfoToAdd != null && typeInfoToAdd.getSuperClass() != -1) {
-            String className = getBasicClassName(typeInfoToAdd.getTypeNameFromClass());
-            typeHierarchy.add(className);
-            for (int anInterface : typeInfoToAdd.getInterfaces()) {
-                TypeInfo interfaceType = replayData.getTypeInfoMap().get(String.valueOf(anInterface));
-                String interfaceName =
-                        getBasicClassName(interfaceType.getTypeNameFromClass());
-                typeHierarchy.add(interfaceName);
-            }
-
-            typeInfoToAdd = replayData.getTypeInfoMap().get(String.valueOf(typeInfoToAdd.getSuperClass()));
+        if (dottedName.contains("$")){
+            dottedName = dottedName.substring(0, dottedName.indexOf("$"));
         }
-        return typeHierarchy;
+        return dottedName;
     }
 
 
     public static String getDescriptorName(String className) {
         return "L" + className.split("\\$")[0] + ";";
+    }
+
+    public static String getVariableNameFromProbe(DataInfo historyEventProbe, String defaultValue) {
+        return historyEventProbe.getAttribute(
+                "Name", historyEventProbe.getAttribute(
+                        "FieldName", defaultValue));
     }
 }

@@ -1017,8 +1017,7 @@ public class InsidiousThreadReference implements ThreadReference {
 //        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
-        int currentLineNumber = replayData.getProbeInfoMap().get(
-                String.valueOf(dataEvents.get(position).getDataId())).getLine();
+        int currentLineNumber = replayData.getProbeInfo(dataEvents.get(position).getDataId()).getLine();
 
         List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
         if (size < 0) {
