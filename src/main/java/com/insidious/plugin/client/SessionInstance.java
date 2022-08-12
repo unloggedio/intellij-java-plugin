@@ -1448,6 +1448,7 @@ public class SessionInstance {
         final AtomicLong previousEventAt = new AtomicLong(-1);
 
         Set<Long> remainingObjectIds = new HashSet<>();
+        Set<Long> remainingStringIds = new HashSet<>();
 
         Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap();
 
@@ -1708,6 +1709,9 @@ public class SessionInstance {
                 logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
                 continue;
             }
+            if (dataEventList.size() == 0) {
+                continue;
+            }
 
 
             Set<Integer> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
@@ -1726,8 +1730,19 @@ public class SessionInstance {
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
             }
+            Set<Long> potentialStringIds = valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet());
             Map<String, StringInfo> sessionStringInfo = stringIndex
-                    .getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
+                    .getStringsById(potentialStringIds);
+            if (potentialStringIds.size() != sessionStringInfo.size()) {
+
+                sessionStringInfo.values().stream()
+                        .map(StringInfo::getStringId)
+                        .collect(Collectors.toList())
+                        .forEach(potentialStringIds::remove);
+
+
+                remainingStringIds.addAll(potentialStringIds);
+            }
             stringInfoMap.putAll(sessionStringInfo);
 
             Set<Long> objectIds = dataEventList.stream()
@@ -1760,7 +1775,7 @@ public class SessionInstance {
                         .map(ObjectInfo::getObjectId)
                         .collect(Collectors.toList())
                         .forEach(objectIds::remove);
-                remainingObjectIds.addAll( objectIds);
+                remainingObjectIds.addAll(objectIds);
             }
             objectInfoMap.putAll(sessionObjectsInfo);
 
@@ -1784,7 +1799,7 @@ public class SessionInstance {
 
         // we need to go thru the archives again to load the set of object information which we
         // did not find earlier since the object was probably created earlier
-        if (remainingObjectIds.size() > 0) {
+        if (remainingObjectIds.size() > 0 || remainingStringIds.size() > 0) {
 
             Set<Long> objectIds = remainingObjectIds;
             for (File sessionArchive : sessionArchivesLocal) {
@@ -1811,6 +1826,31 @@ public class SessionInstance {
                             .forEach(objectIds::remove);
                 }
                 objectInfoMap.putAll(sessionObjectsInfo);
+
+
+                NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(
+                        sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+                assert stringsIndexBytes != null;
+
+
+                ArchiveIndex stringIndex = null;
+                try {
+                    stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
+                } catch (IOException e) {
+                    logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
+                    continue;
+                }
+                Map<String, StringInfo> sessionStringInfo = stringIndex
+                        .getStringsById(remainingStringIds);
+                if (remainingStringIds.size() != sessionStringInfo.size()) {
+
+                    sessionStringInfo.values().stream()
+                            .map(StringInfo::getStringId)
+                            .collect(Collectors.toList())
+                            .forEach(remainingStringIds::remove);
+                }
+
+                stringInfoMap.putAll(sessionStringInfo);
 
 
                 Set<Integer> typeIds = objectInfoMap.values()

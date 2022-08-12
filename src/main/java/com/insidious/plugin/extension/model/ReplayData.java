@@ -299,7 +299,7 @@ public class ReplayData {
         return stringInfoMap.get(String.valueOf(id));
     }
 
-    public ObjectInfo getObjectInfo(int id) {
+    public ObjectInfo getObjectInfo(long id) {
         return objectInfoMap.get(String.valueOf(id));
     }
 

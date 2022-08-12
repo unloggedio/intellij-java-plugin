@@ -506,7 +506,7 @@ public class ParameterFactory {
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
         assert probeInfo.getEventType() == EventType.METHOD_PARAM;
 
-        ObjectInfo objectInfo = replayData.getObjectInfoMap().get(eventValueString);
+        ObjectInfo objectInfo = replayData.getObjectInfo(event.getValue());
         parameter.setProbeInfo(probeInfo);
 
         Set<String> typeHierarchy = new HashSet<>(replayData.buildHierarchyFromTypeName(expectedParameterType));
