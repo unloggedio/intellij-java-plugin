@@ -247,11 +247,17 @@ public class ReplayData {
         TypeInfo typeInfoToAdd = typeInfo;
         while (typeInfoToAdd != null && typeInfoToAdd.getSuperClass() != -1) {
             String className = typeInfoToAdd.getTypeNameFromClass();
-            typeHierarchy.add(className);
+
+            if (!typeHierarchy.contains(className)){
+                typeHierarchy.add(className);
+            }
+
             for (int anInterface : typeInfoToAdd.getInterfaces()) {
                 TypeInfo interfaceType = typeInfoMap.get(String.valueOf(anInterface));
                 String interfaceName = interfaceType.getTypeNameFromClass();
-                typeHierarchy.add(interfaceName);
+                if (!typeHierarchy.contains(interfaceName)){
+                    typeHierarchy.add(interfaceName);
+                }
             }
 
             typeInfoToAdd = typeInfoMap.get(String.valueOf(typeInfoToAdd.getSuperClass()));
@@ -285,7 +291,7 @@ public class ReplayData {
         return probeInfoMap.get(String.valueOf(id));
     }
 
-    public TypeInfo getTypeInfo(int id) {
+    public TypeInfo getTypeInfo(long id) {
         return typeInfoMap.get(String.valueOf(id));
     }
 

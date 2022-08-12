@@ -60,7 +60,10 @@ public class ClassTypeUtils {
 
     @NotNull
     public static String getDottedClassName(String className) {
-        assert className.startsWith("L");
+        if (!className.startsWith("L")) {
+            return className;
+        }
+
         String dottedName = className.substring(1,
                 className.length() - 1).replace('/', '.');
         if (dottedName.contains("$")){

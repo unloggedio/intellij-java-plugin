@@ -217,7 +217,8 @@ public class TestCandidateMetadata {
                         if (callStack != -1) {
                             break;
                         }
-                        String valueTypeNameWithSlash = probeInfo.getAttribute("Type", "");
+                        String rawType = probeInfo.getAttribute("Type", "");
+                        String valueTypeNameWithSlash = rawType;
                         String valueTypeNameWithDots = "";
                         if (valueTypeNameWithSlash.startsWith("L")) {
                             valueTypeNameWithDots = valueTypeNameWithSlash.substring(1)
@@ -225,7 +226,7 @@ public class TestCandidateMetadata {
                         } else {
                             valueTypeNameWithDots = valueTypeNameWithSlash;
                         }
-                        if (!typeHierarchy.contains(probeInfo.getAttribute("Type", ""))) {
+                        if (!typeHierarchy.contains(ClassTypeUtils.getDottedClassName(rawType))) {
                             break;
                         }
 

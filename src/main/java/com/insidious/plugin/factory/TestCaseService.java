@@ -1219,8 +1219,8 @@ public class TestCaseService {
 
 //        List<String> typeNameHierarchyList = new LinkedList<>();
 
-        Set<String> typeNameHierarchyList =
-                new HashSet<>(objectReplayData.buildHierarchyFromType(subjectTypeInfo));
+        List<String> typeNameHierarchyList =
+                objectReplayData.buildHierarchyFromType(subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
         if (!className.startsWith("com.appsmith")) {
@@ -1383,7 +1383,7 @@ public class TestCaseService {
 
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
-                                    new ArrayList<>(typeNameHierarchyList),
+                                    typeNameHierarchyList,
                                     methodInfo, backEvent.getNanoTime(),
                                     replayEventsBefore);
 
