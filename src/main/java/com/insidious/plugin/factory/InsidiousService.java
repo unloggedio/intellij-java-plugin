@@ -93,6 +93,7 @@ public class InsidiousService implements Disposable {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final long pluginSessionId = new Date().getTime();
+    private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private ExecutorService threadPool;
@@ -113,7 +114,6 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
-
 
     public InsidiousService(Project project) {
         try {
@@ -140,6 +140,7 @@ public class InsidiousService implements Disposable {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
+            this.testCaseService = new TestCaseService(project, client);
             ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
 
 
@@ -347,7 +348,6 @@ public class InsidiousService implements Disposable {
         this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
     }
 
-
     public boolean isValidEmailAddress(String email) {
         String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
         java.util.regex.Pattern p = java.util.regex.Pattern.compile(ePattern);
@@ -487,13 +487,36 @@ public class InsidiousService implements Disposable {
         });
     }
 
-
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
         this.client.createProject(projectName, newProjectCallback);
     }
 
     public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
         this.client.getProjectToken(projectTokenCallback);
+    }
+
+    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
+
+        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+                "Videobug", true) {
+            @Override
+            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
+                TestSuite testSuite = testCaseService.generateTestCase(List.of(object));
+                return testSuite;
+            }
+        });
+        logger.warn("testsuite: \n" + testSuite.toString());
+
+        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+        if (newFile == null) {
+            logger.warn("Test case generated for [" + object + "] but failed to write");
+            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+        } else {
+            InsidiousNotification.notifyMessage(
+                    "Test case saved at [" + newFile.getCanonicalPath() + "]", NotificationType.INFORMATION
+            );
+        }
+
     }
 
     public void generateTestCases(List<String> targetClasses) throws Exception {
@@ -503,7 +526,6 @@ public class InsidiousService implements Disposable {
             @Override
             protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
 
-                TestCaseService testCaseService = new TestCaseService(project, client);
 
                 List<TestCandidate> testCandidateList = new LinkedList<>();
                 BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
@@ -549,6 +571,17 @@ public class InsidiousService implements Disposable {
             }
         });
 
+        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+        if (newFile == null) {
+            logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
+            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+        }
+
+
+
+    }
+
+    private @Nullable VirtualFile saveTestSuite(TestSuite testSuite) {
         File lastFile = null;
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             String testOutputDirPath =
@@ -572,11 +605,8 @@ public class InsidiousService implements Disposable {
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(
                             Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
-
             if (newFile == null) {
-                logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
-                InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
-                return;
+                return null;
             }
 
 
@@ -586,10 +616,10 @@ public class InsidiousService implements Disposable {
             FileEditorManager.getInstance(project).openFile(newFile, true, true);
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
+            return newFile;
         }
         VirtualFileManager.getInstance().syncRefresh();
-
-
+        return null;
     }
 
     public void doSearch(SearchQuery searchQuery) throws APICallException, IOException {

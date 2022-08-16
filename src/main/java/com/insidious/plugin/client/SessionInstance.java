@@ -1320,8 +1320,14 @@ public class SessionInstance {
     }
 
     private Set<Integer> queryTypeIdsByName(SearchQuery searchQuery) {
-        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME
-                , (String) searchQuery.getQuery());
+        String query = (String) searchQuery.getQuery();
+
+        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query);
+        if (query.endsWith("*")) {
+            typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query.substring(0,
+                    query.length() - 1));
+        }
+
         ResultSet<TypeInfoDocument> searchResult = typeIndex.Types().retrieve(typeQuery);
         Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
         searchResult.close();

@@ -33,6 +33,7 @@ public class SingleClassInfoWindow {
     private static final Vector<?> OBJECT_TABLE_COLUMNS = new Vector<>(
             List.of(
                     "Object Id",
+                    "Type",
                     "Load",
                     "Test"
             )
@@ -200,6 +201,7 @@ public class SingleClassInfoWindow {
 
                     new Vector<>(List.of(
                             tracePoint.getObjectInfo().getObjectId(),
+                            tracePoint.getTypeInfo().getTypeNameFromClass(),
                             "Load",
                             "Test"
                     ))
@@ -227,7 +229,14 @@ public class SingleClassInfoWindow {
         ActionListener actionTestListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-
+                ObjectWithTypeInfo selectedTracePoint = tracePoints.get(objectListTable.getSelectedRow());
+                try {
+                    insidiousService.generateTestCases(
+                            selectedTracePoint
+                    );
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         };
         objectListTable.getColumn("Load").setCellEditor(new ButtonEditor(new JCheckBox(),

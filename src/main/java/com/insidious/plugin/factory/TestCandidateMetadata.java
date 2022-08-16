@@ -317,7 +317,7 @@ public class TestCandidateMetadata {
                     return;
                 }
 
-                if (ownerClass.equals("reactor/core/publisher/Mono")) {
+                if (ownerClass.startsWith("reactor/core")) {
                     return;
                 }
                 if (instruction.equals("INVOKESTATIC")) {

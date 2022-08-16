@@ -320,8 +320,8 @@ public class TestCaseServiceTest {
 
 //        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
 //        List<String> targetClasses = List.of("com.appsmith.server.solutions.ce.UserChangedHandlerCEImpl");
-//        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
-        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
+        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
+//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
 //        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
 //        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
 

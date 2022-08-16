@@ -819,8 +819,7 @@ public class TestCaseService {
                         .collect(Collectors.groupingBy(e -> e.getTypeInfo().getTypeId()));
 
         List<MethodSpec> testCaseScripts = new LinkedList<>();
-        checkProgressIndicator("Generating test cases using " + allObjects.size() + " objects",
-                null);
+        checkProgressIndicator("Generating test cases using " + allObjects.size() + " objects", null);
 
         HashMap<Integer, Boolean> doneSignatures = new HashMap<>();
         List<TestCaseUnit> testCases = new LinkedList<>();
@@ -1044,8 +1043,7 @@ public class TestCaseService {
                 return objectRoutineContainer;
             }
 
-            buildTestCandidateForBaseClass(objectRoutineContainer,
-                    parameter);
+            buildTestCandidateForBaseClass(objectRoutineContainer, parameter);
             return objectRoutineContainer;
 
 
