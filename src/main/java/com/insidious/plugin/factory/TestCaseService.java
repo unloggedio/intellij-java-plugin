@@ -1005,8 +1005,7 @@ public class TestCaseService {
      * @throws IOException
      */
     private ObjectRoutineContainer
-    generateTestCaseFromObjectHistory
-    (
+    generateTestCaseFromObjectHistory (
             Parameter parameter,
             final Set<Long> dependentObjectIdsOriginal,
             VariableContainer globalVariableContainer,
@@ -1049,7 +1048,7 @@ public class TestCaseService {
 
         }
 
-        if (buildLevel > 0) {
+        if (buildLevel > 1) {
             return objectRoutineContainer;
         }
 
@@ -1279,7 +1278,7 @@ public class TestCaseService {
                 objectReplayData.buildHierarchyFromType(subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
-        if (!className.startsWith("com.appsmith")) {
+        if (!className.startsWith("com.zerhusen")) {
             return parameter.getName();
         }
         long currentTypeId = subjectTypeInfo.getTypeId();
