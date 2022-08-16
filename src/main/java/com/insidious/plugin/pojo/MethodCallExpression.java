@@ -4,12 +4,31 @@ import java.util.List;
 
 public class MethodCallExpression {
     private final Parameter subject;
-    private final List<Parameter> argument;
+    private final List<Parameter> arguments;
     private final Parameter returnValue;
+    private final String methodName;
 
-    public MethodCallExpression(Parameter subject, List<Parameter> argument, Parameter returnValue) {
+    public MethodCallExpression(String methodName,
+                                Parameter subject, List<Parameter> arguments, Parameter returnValue) {
+        this.methodName = methodName;
         this.subject = subject;
-        this.argument = argument;
+        this.arguments = arguments;
         this.returnValue = returnValue;
+    }
+
+    public Parameter getSubject() {
+        return subject;
+    }
+
+    public List<Parameter> getArguments() {
+        return arguments;
+    }
+
+    public Parameter getReturnValue() {
+        return returnValue;
+    }
+
+    public String getMethodName() {
+        return methodName;
     }
 }

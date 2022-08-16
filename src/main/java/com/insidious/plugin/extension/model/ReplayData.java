@@ -267,21 +267,16 @@ public class ReplayData {
 
 
     public String
-    getParameterNameFromProbe(int eventIndex,
-                              DataInfo probeInfo
-    ) {
+    getParameterNameFromProbe(int eventIndex, DataInfo probeInfo) {
         if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD_RESULT) {
-            return probeInfoMap
-                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
-                    .getAttribute("FieldName", null);
-        } else if (probeInfo.getEventType() == EventType.GET_STATIC_FIELD) {
-            return probeInfoMap
-                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
+            return probeInfo.getAttribute("FieldName", null);
+        } else if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD) {
+            return probeInfo.getAttribute("FieldName", null);
+        }  else if (probeInfo.getEventType() == EventType.GET_STATIC_FIELD) {
+            return probeInfoMap.get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
                     .getAttribute("FieldName", null);
         } else if (probeInfo.getEventType() == EventType.LOCAL_LOAD) {
-            return probeInfoMap
-                    .get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
-                    .getAttribute("Name", null);
+            return probeInfo.getAttribute("Name", null);
         }
         return null;
     }

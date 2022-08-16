@@ -2,15 +2,18 @@ package com.insidious.plugin.factory;
 
 
 import com.intellij.openapi.util.Pair;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.util.LinkedList;
 import java.util.List;
 
 /**
- * A convienent container for list of ObjectRoutine. we always have one constructor routine for
+ * A convenient container for list of ObjectRoutine. we always have one constructor routine for
  * the object, which is always named &lt;init&gt; and the other methods have proper names. Add
  * statements is redirected to most recently created object routine.
  */
+@AllArgsConstructor
 public class ObjectRoutineContainer {
     public ObjectRoutineContainer(List<ObjectRoutine> constructorRoutine) {
         for (ObjectRoutine objectRoutine : constructorRoutine) {
@@ -44,6 +47,13 @@ public class ObjectRoutineContainer {
     private String name;
 
     public ObjectRoutine newRoutine(String routineName) {
+        for (ObjectRoutine objectRoutine : this.objectRoutines) {
+            if (objectRoutine.getRoutineName().equals(routineName)) {
+                this.currentRoutine = objectRoutine;
+                return objectRoutine;
+            }
+        }
+
         ObjectRoutine newRoutine = new ObjectRoutine(routineName);
         this.objectRoutines.add(newRoutine);
         this.currentRoutine = newRoutine;
@@ -72,6 +82,16 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutine getConstructor() {
         return constructor;
+    }
+
+    public ObjectRoutine getRoutineByName(String name) {
+        for (ObjectRoutine objectRoutine : this.objectRoutines) {
+            if (objectRoutine.getRoutineName().equals(name)) {
+                return objectRoutine;
+            }
+        }
+        return null;
+
     }
 
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {

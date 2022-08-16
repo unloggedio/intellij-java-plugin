@@ -12,15 +12,14 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
     private final List<Parameter> parameters = new LinkedList<>();
+    private final List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
     private String fullyQualifiedClassname;
     private String unqualifiedClassname;
     private String packageName;
@@ -29,6 +28,7 @@ public class TestCandidateMetadata {
     private Parameter returnParameter;
     private long callTimeNanoSecond;
     private String methodName;
+    private List<MethodCallExpression> callsList;
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
@@ -117,12 +117,12 @@ public class TestCandidateMetadata {
 
             if (methodInfo.getMethodName().equals("<init>")) {
                 logger.info("entry probe is of type method entry <init>");
-                callReturnIndex = searchCallReturnIndex(replayDataPage,
+                callReturnIndex = searchMethodExitIndex(replayDataPage,
                         currentEntryProbeIndex,
                         List.of(EventType.METHOD_OBJECT_INITIALIZED));
             } else {
                 logger.info("entry probe is of type method entry " + methodInfo.getMethodName());
-                callReturnIndex = searchCallReturnIndex(replayDataPage,
+                callReturnIndex = searchMethodExitIndex(replayDataPage,
                         currentEntryProbeIndex, List.of(EventType.METHOD_NORMAL_EXIT));
             }
 
@@ -155,18 +155,19 @@ public class TestCandidateMetadata {
         metadata.setCallTimeNanoSecond(callTime);
 
         List<Parameter> methodParameters =
-                searchCallParameters(replayDataPage, entryProbeIndex, methodParameterDescriptions);
+                searchMethodParameters(replayDataPage, entryProbeIndex, methodParameterDescriptions);
 
         List<MethodCallExpression> callsList =
-                searchMethodCallExpressions(replayDataPage, entryProbeIndex,
-                        methodParameterDescriptions);
+                searchMethodCallExpressions(replayDataPage, entryProbeIndex, typeHierarchy);
+
+        metadata.setCallList(callsList);
 
         metadata.addAllParameter(methodParameters);
 
 
 //        logger.warn("create return parameter from event at index: " + callReturnIndex);
-        Parameter returnParameter = ParameterFactory.createParameter(callReturnIndex, replayData, 0,
-                returnParameterDescription);
+        Parameter returnParameter = ParameterFactory.createReturnValueParameter(callReturnIndex,
+                replayData, returnParameterDescription);
 
 //        if (returnParameter)
 
@@ -236,10 +237,11 @@ public class TestCandidateMetadata {
 
                             Parameter subjectInstanceParameter;
                             if (eventType == EventType.LOCAL_LOAD) {
-                                subjectInstanceParameter = ParameterFactory.createParameter(i,
-                                        replayData, 0, null);
+                                subjectInstanceParameter = ParameterFactory.createSubjectParameter(i,
+                                        replayData, 0);
                             } else {
-                                subjectInstanceParameter = ParameterFactory.createParameter(i - 1, replayData, 0, null);
+                                subjectInstanceParameter = ParameterFactory.createSubjectParameter(
+                                        i - 1, replayData, 0);
                             }
 
                             metadata.setTestSubject(subjectInstanceParameter);
@@ -289,19 +291,148 @@ public class TestCandidateMetadata {
 
     private static List<MethodCallExpression>
     searchMethodCallExpressions(
-            ReplayData replayDataPage,
+            ReplayData replayData,
             int entryProbeIndex,
-            List<String> methodParameterDescriptions
-    ) {
-        return null;
+            List<String> typeHierarchy) {
+
+        List<MethodCallExpression> callList = new LinkedList<>();
+        ScanRequest scanRequest = new ScanRequest(entryProbeIndex, 0, DirectionType.FORWARDS);
+
+
+        scanRequest.addListener(EventType.CALL, new EventTypeMatchListener() {
+            @Override
+            public void eventMatched(Integer index) {
+                DataEventWithSessionId event = replayData.getDataEvents().get(index);
+                DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
+                String methodName = probeInfo.getAttribute("Name", null);
+                String methodDescription = probeInfo.getAttribute("Desc", null);
+
+                String ownerClass = probeInfo.getAttribute("Owner", null);
+                String instruction = probeInfo.getAttribute("Instruction", null);
+
+                ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
+                MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
+
+                if (typeHierarchy.contains(ClassTypeUtils.getDottedClassName(ownerClass))) {
+                    return;
+                }
+
+                if (ownerClass.equals("reactor/core/publisher/Mono")) {
+                    return;
+                }
+                if (instruction.equals("INVOKESTATIC")) {
+                    return;
+                }
+                if (methodName.equals("<init>")) {
+                    return;
+                }
+                LoggerUtil.logEvent(
+                        "SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
+                );
+
+                List<String> subjectTypeHierarchy = replayData.buildHierarchyFromTypeName(
+                        "L" + ownerClass + ";");
+
+                logger.warn("potential call: " + probeInfo.getAttributes());
+
+                List<Parameter> callArguments = new LinkedList<>();
+
+                ScanRequest callSubjectScan = new ScanRequest(index, 0, DirectionType.BACKWARDS);
+                AtomicInteger subjectMatchIndex = new AtomicInteger(0);
+                List<Parameter> subjectParameterList = new LinkedList<>();
+                EventTypeMatchListener subjectMatchListener = new EventTypeMatchListener() {
+                    @Override
+                    public void eventMatched(Integer index) {
+
+                        DataEventWithSessionId matchedSubjectEvent =
+                                replayData.getDataEvents().get(index);
+                        DataInfo subjectEventProbe = replayData.getProbeInfo(matchedSubjectEvent.getDataId());
+
+                        String valueType = subjectEventProbe.getAttribute("Type", null);
+
+                        Parameter potentialSubjectParameter;
+
+                        potentialSubjectParameter =
+                                ParameterFactory.createParameter(index, replayData,
+                                        0, valueType);
+
+                        List<String> buildHierarchyFromTypeName = replayData.buildHierarchyFromTypeName(ClassTypeUtils.getDescriptorName(potentialSubjectParameter.getType()));
+                        if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
+                            subjectParameterList.add(potentialSubjectParameter);
+                        }
+                    }
+                };
+                callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
+                callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
+                callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
+                callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
+
+                callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
+                int callSubjectIndex = replayData.eventScan(callSubjectScan);
+
+                Parameter subjectParameter;
+                if (subjectParameterList.size() == 0) {
+                    logger.warn("failed to identify subject for the call: " + methodName +
+                            " at " + probeInfo);
+                    subjectParameter = new Parameter();
+                    subjectParameter.setName("testSubjectFor" + methodName);
+                    subjectParameter.setType(subjectTypeHierarchy.get(0));
+                } else {
+                    subjectParameter = subjectParameterList.get(0);
+                }
+
+
+                ScanRequest callReturnScan = new ScanRequest(index, 0, DirectionType.FORWARDS);
+
+                AtomicInteger lookingForParams = new AtomicInteger(1);
+                callReturnScan.addListener(EventType.CALL_PARAM, new EventTypeMatchListener() {
+                    @Override
+                    public void eventMatched(Integer index) {
+                        if (lookingForParams.get() == 1) {
+                            Parameter callArgumentParameter = ParameterFactory.createCallArgumentParameter(
+                                    index, replayData, 0, null
+                            );
+                            callArguments.add(callArgumentParameter);
+                        }
+                    }
+                });
+                callReturnScan.addListener(EventType.CALL, i -> lookingForParams.set(0));
+
+                List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
+                String returnType = methodDescList.get(methodDescList.size() - 1);
+
+                callReturnScan.matchUntil(EventType.CALL_RETURN);
+
+                int callReturnIndex = replayData.eventScan(callReturnScan);
+                if (callReturnIndex == -1 || callReturnIndex == replayData.getDataEvents().size()) {
+                    logger.warn("call return not found for " + probeInfo);
+                    return;
+                }
+
+                Parameter callReturnParameter =
+                        ParameterFactory.createReturnValueParameter(
+                                callReturnIndex, replayData, returnType);
+
+
+                MethodCallExpression methodCallExpression = new MethodCallExpression(
+                        methodName, subjectParameter, callArguments, callReturnParameter
+                );
+                callList.add(methodCallExpression);
+            }
+        });
+        scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
+        scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
+
+        replayData.eventScan(scanRequest);
+
+        return callList;
     }
 
-    private static List<Parameter> searchCallParameters
-            (
-                    ReplayData replayData,
-                    int entryProbeIndex,
-                    List<String> callParameterDescriptions
-            ) {
+    private static List<Parameter> searchMethodParameters(
+            ReplayData replayData,
+            int entryProbeIndex,
+            List<String> callParameterDescriptions
+    ) {
         logger.info("searchCallParameters starting from [" + entryProbeIndex + "] -> " +
                 callParameterDescriptions.size() + " params to be found");
 
@@ -324,8 +455,7 @@ public class TestCandidateMetadata {
                         event, probeInfo, currentClassInfo, methodInfoLocal);
 
                 Parameter parameter = ParameterFactory.createMethodArgumentParameter(
-                        callReturnIndex, replayData,
-                        callParameterDescriptions.size() - paramIndex - 1,
+                        callReturnIndex, replayData, callParameterDescriptions.size() - paramIndex - 1,
                         callParameterDescriptions.get(paramIndex));
                 methodParameterProbes.add(parameter);
                 paramIndex++;
@@ -338,12 +468,11 @@ public class TestCandidateMetadata {
         return methodParameterProbes;
     }
 
-    private static int searchCallReturnIndex
-            (
-                    ReplayData replayData,
-                    int entryProbeIndex,
-                    List<EventType> eventTypeMatch
-            ) {
+    private static int searchMethodExitIndex(
+            ReplayData replayData,
+            int entryProbeIndex,
+            List<EventType> eventTypeMatch
+    ) {
         logger.info("looking for call return index, with entry probe index at: " + entryProbeIndex + " -> " + eventTypeMatch);
         logger.info("replay data has: " + replayData.getDataEvents().size() + " events.");
 
@@ -356,7 +485,9 @@ public class TestCandidateMetadata {
         return replayData.eventScan(searchRequest);
     }
 
-
+    private void setCallList(List<MethodCallExpression> callsList) {
+        this.callsList = callsList;
+    }
 
     public String getMethodName() {
         return methodName;
@@ -433,6 +564,10 @@ public class TestCandidateMetadata {
 
     public void setCallTimeNanoSecond(long callTimeNanoSecond) {
         this.callTimeNanoSecond = callTimeNanoSecond;
+    }
+
+    public List<MethodCallExpression> getCallsList() {
+        return callsList;
     }
 
     @Override

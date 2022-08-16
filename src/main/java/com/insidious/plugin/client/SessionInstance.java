@@ -1571,6 +1571,9 @@ public class SessionInstance {
 
                     if (eventsSublist == null) {
                         eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+                        if (eventsSublist.size() == 0) {
+                            continue;
+                        }
 
                         KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
                         KaitaiInsidiousEventParser.Block lastEvent =

@@ -46,8 +46,13 @@ public class ClassTypeUtils {
     public static String createVariableName(String typeNameRaw) {
         String[] typeNameParts = typeNameRaw.split("/");
         String lastPart = typeNameParts[typeNameParts.length - 1];
-        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1,
-                lastPart.length() - 1);
+        if (lastPart.contains(".")){
+            lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
+        }
+        if (lastPart.length() < 2) {
+            return lastPart.toLowerCase();
+        }
+        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
         return lastPart;
     }
 
@@ -60,12 +65,14 @@ public class ClassTypeUtils {
 
     @NotNull
     public static String getDottedClassName(String className) {
-        if (!className.startsWith("L")) {
-            return className;
+        if (className.startsWith("L")) {
+            className = className.substring(1);
+        }
+        if (className.endsWith(";")) {
+            className = className.substring(0, className.length() - 1);
         }
 
-        String dottedName = className.substring(1,
-                className.length() - 1).replace('/', '.');
+        String dottedName = className.replace('/', '.');
         if (dottedName.contains("$")){
             dottedName = dottedName.substring(0, dottedName.indexOf("$"));
         }

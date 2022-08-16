@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.intellij.openapi.util.Pair;
+import lombok.AllArgsConstructor;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -12,6 +13,7 @@ import java.util.Map;
  * statements and dependent variables along with their own object routines (the whole hierarchy
  * should be available to recreate this object inside a test case)
  */
+@AllArgsConstructor
 public class ObjectRoutine {
     private final List<Pair<CodeLine, Object[]>> statements = new LinkedList<>();
     private final String routineName;
@@ -24,6 +26,10 @@ public class ObjectRoutine {
 
     public void setVariableContainer(VariableContainer variableContainer) {
         this.variableContainer = variableContainer;
+    }
+
+    public ObjectRoutine() {
+        routineName = "<init>";
     }
 
     private VariableContainer variableContainer = new VariableContainer();

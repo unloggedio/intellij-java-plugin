@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
@@ -18,6 +19,7 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.util.text.Strings;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -445,7 +447,7 @@ public class TestCaseService {
 //
 //    }
 //
-    private void buildTestFromTestMetadataSet(ObjectRoutine objectRoutine) throws IOException {
+    void buildTestFromTestMetadataSet(ObjectRoutine objectRoutine) throws IOException {
         assert objectRoutine.getMetadata().size() != 0;
         List<TestCandidateMetadata> metadataCollection = objectRoutine.getMetadata();
         VariableContainer variableContainer = objectRoutine.getVariableContainer();
@@ -467,6 +469,44 @@ public class TestCaseService {
                 for (Parameter parameterValue : testCandidateMetadata.getParameterValues()) {
                     objectRoutine.addComment("Parameter [" + parameterValue.getName() + "] => " +
                             "Object:" + parameterValue.getValue() + " of type " + parameterValue.getType());
+                }
+                objectRoutine.addComment("");
+                objectRoutine.addComment("");
+            }
+
+
+            if (testCandidateMetadata.getCallsList().size() > 0) {
+
+
+                objectRoutine.addComment("");
+                for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+
+                    String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
+
+                    Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
+                    if (existingVariableById.isPresent()) {
+                        returnValue.setName(existingVariableById.get().getName());
+                    } else {
+                        if (returnValue.getName() == null) {
+                            returnValue.setName(variableName);
+                        }
+                        variableContainer.add(returnValue);
+                    }
+
+
+                    objectRoutine.addComment(
+                            returnValue.getType() + " "
+                                    + returnValue.getName() +
+                                    " = " + methodCallExpression.getSubject().getName() +
+                                    "." +
+                                    methodCallExpression.getMethodName() + "(" +
+                                    StringUtil.join(methodCallExpression.getArguments()
+                                                    .stream().map(Parameter::getName)
+                                                    .collect(Collectors.toList()),
+                                            ", ")
+                                    + "); // ==> "
+                                    + returnValue.getProb().getSerializedValue().length);
                 }
                 objectRoutine.addComment("");
                 objectRoutine.addComment("");
@@ -1063,16 +1103,24 @@ public class TestCaseService {
 
 
             Set<Long> newPotentialObjects = new HashSet<>();
-            List<Parameter> dependentParameters = new LinkedList<>();
 
 
-            dependentParameters.addAll(
-                    objectRoutine
-                            .getMetadata()
-                            .stream()
-                            .map(TestCandidateMetadata::getParameterValues)
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toList()));
+            List<Parameter> dependentParameters = objectRoutine
+                    .getMetadata()
+                    .stream()
+                    .map(TestCandidateMetadata::getParameterValues)
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toCollection(LinkedList::new));
+
+            if (objectRoutine.getRoutineName().equals("<init>")) {
+                for (Parameter dependentParameter : dependentParameters) {
+                    ObjectRoutineContainer dependentObjectMockCreation = createMock(dependentParameter);
+                    dependentObjectMockCreation.setName(dependentParameter.getName());
+                    objectRoutine.addDependent(dependentObjectMockCreation);
+
+                }
+                continue;
+            }
 
 
             newPotentialObjects.addAll(dependentObjectIds);
@@ -1082,14 +1130,17 @@ public class TestCaseService {
                             .map(e -> e.getProb().getValue())
                             .collect(Collectors.toList()));
 
+
+
             Long parameterValue;
             if (parameter.getValue() instanceof Long) {
-
                 parameterValue = (Long) parameter.getValue();
             } else {
                 parameterValue = Long.valueOf(String.valueOf(parameter.getValue()));
             }
             dependentObjectIds.add(parameterValue);
+
+
             for (Parameter dependentParameter : dependentParameters) {
                 if (variableContainer.contains(dependentParameter.getName())) {
                     continue;
@@ -1104,17 +1155,13 @@ public class TestCaseService {
                 }
 
                 DataEventWithSessionId parameterProbe = dependentParameter.getProb();
-//                if (dependentObjectIds.contains(parameterProbe.getValue())) {
-//                    logger.debug("object is already being constructed: " + parameterProbe.getValue());
-//                    continue;
-//                }
-
                 dependentObjectIds.add(parameterProbe.getValue());
 
                 ObjectRoutineContainer dependentObjectCreation =
                         generateTestCaseFromObjectHistory(
-                                dependentParameter,
-                                newPotentialObjects, variableContainer, buildLevel + 1);
+                                dependentParameter, newPotentialObjects, variableContainer, buildLevel + 1);
+
+
                 variableContainer.add(dependentParameter);
                 if (dependentObjectCreation.getName() != null) {
                     dependentParameter.setName(dependentObjectCreation.getName());
@@ -1137,6 +1184,9 @@ public class TestCaseService {
             }
         }
 
+        String containerJson = new ObjectMapper().writeValueAsString(objectRoutineContainer);
+//        logger.warn("Routine: \n " + containerJson);
+
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
             if (objectRoutine.getMetadata().size() == 0) {
                 continue;
@@ -1147,6 +1197,14 @@ public class TestCaseService {
 
         return objectRoutineContainer;
 
+    }
+
+    private ObjectRoutineContainer createMock(Parameter dependentParameter) {
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
+
+
+        buildMockCandidateForBaseClass(objectRoutineContainer, dependentParameter);
+        return objectRoutineContainer;
     }
 
     /**
@@ -1383,9 +1441,8 @@ public class TestCaseService {
 
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
-                                    typeNameHierarchyList,
-                                    methodInfo, backEvent.getNanoTime(),
-                                    replayEventsBefore);
+                                    typeNameHierarchyList, methodInfo,
+                                    backEvent.getNanoTime(), replayEventsBefore);
 
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {
@@ -1430,9 +1487,10 @@ public class TestCaseService {
                             subjectName = newTestCaseMetadata.getTestSubject().getName();
                         }
                         long currentThreadId = dataEvent.getThreadId();
+                        String routineName = "thread" + currentThreadId;
                         if (currentThreadId != threadId) {
                             // this is happening on a different thread
-                            objectRoutineContainer.newRoutine("thread" + currentThreadId);
+                            objectRoutineContainer.newRoutine(routineName);
                             threadId = currentThreadId;
                         }
                         logger.warn("adding new test case metadata: " + newTestCaseMetadata);
@@ -1476,6 +1534,28 @@ public class TestCaseService {
         constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(), parameter.getValue());
         constructor.setMetadata(testCandidateMetadata);
     }
+    private final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
+
+    private void buildMockCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer,
+                                             Parameter parameter) {
+
+        @NotNull String parameterTypeName = ClassTypeUtils.getDottedClassName(parameter.getType());
+        TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+
+        ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
+        testCandidateMetadata.setTestSubject(null);
+        Parameter returnStringParam = new Parameter();
+        testCandidateMetadata.setReturnParameter(returnStringParam);
+        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
+        testCandidateMetadata.setPackageName(targetClassname.packageName());
+        testCandidateMetadata.setTestMethodName("<init>");
+        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
+        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+        constructor.addStatement("$T $L = $T.mock($T.class)", targetClassname, parameter.getName(),
+                mockitoClass, targetClassname);
+        constructor.setMetadata(testCandidateMetadata);
+    }
+
 
     private void addTestSubjectToVariableContainer(
             List<TestCandidateMetadata> metadataList,

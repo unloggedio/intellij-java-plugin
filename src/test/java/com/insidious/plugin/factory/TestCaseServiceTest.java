@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
@@ -13,6 +15,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -315,7 +318,10 @@ public class TestCaseServiceTest {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
-        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
+//        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
+//        List<String> targetClasses = List.of("com.appsmith.server.solutions.ce.UserChangedHandlerCEImpl");
+//        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
+        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
 //        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
 //        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
 
@@ -350,6 +356,38 @@ public class TestCaseServiceTest {
 
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             System.out.println(testCaseScript);
+        }
+
+
+    }
+
+
+    @Test public void testGenerateScript() throws IOException {
+
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+
+
+        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
+        TestCaseService testCaseService = new TestCaseService(project, client);
+
+
+        ObjectRoutineContainer objectRoutineContainer = new ObjectMapper().readValue(
+                this.getClass().getClassLoader().getResourceAsStream("routine-1.json"),
+                ObjectRoutineContainer.class);
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+            if (objectRoutine.getMetadata().size() == 0) {
+                continue;
+            }
+            testCaseService.buildTestFromTestMetadataSet(objectRoutine);
+        }
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+            for (Pair<CodeLine, Object[]> statement : objectRoutine.getStatements()) {
+                System.out.println(statement.getFirst().getLine());
+            }
+
         }
 
 
