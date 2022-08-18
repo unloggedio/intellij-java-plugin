@@ -58,9 +58,11 @@ public class ClassTypeUtils {
 
 
     @NotNull
-    public static String getBasicClassName(String className) {
-        return "L" + className
-                .replaceAll("\\.", "/") + ";";
+    public static String getDescriptorName(String className) {
+        if (className.contains("$")) {
+            className = className.substring(0, className.indexOf('$'));
+        }
+        return "L" + className.replace('.', '/') + ";";
     }
 
     @NotNull
@@ -79,10 +81,6 @@ public class ClassTypeUtils {
         return dottedName;
     }
 
-
-    public static String getDescriptorName(String className) {
-        return "L" + className.split("\\$")[0] + ";";
-    }
 
     public static String getVariableNameFromProbe(DataInfo historyEventProbe, String defaultValue) {
         return historyEventProbe.getAttribute(

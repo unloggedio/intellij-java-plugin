@@ -26,7 +26,7 @@ public class EventLogWindow {
     private final InsidiousService service;
     private final int paginationSize = 100;
     private ReplayData replayData;
-    private DefaultTableModel tableModel;
+    private DefaultTableModel tableModel = null;
     private JPanel filterPanel;
     private JTable eventsTable;
     private JTextField queryTextField;
@@ -73,7 +73,7 @@ public class EventLogWindow {
             public void actionPerformed(ActionEvent e) {
                 String queryString = queryTextField.getText();
 
-                if (!queryString.contains("=")) {
+                if (!queryString.contains("=") && !queryString.contains(" ")) {
                     loadObject(Long.parseLong(queryString));
                     return;
                 }
@@ -257,22 +257,37 @@ public class EventLogWindow {
         }
 
 
-        tableModel = new DefaultTableModel(dataVector, columnVector) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
-        eventsTable.setModel(tableModel);
+        if (tableModel == null) {
+            tableModel = new DefaultTableModel(dataVector, columnVector) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+            eventsTable.setModel(tableModel);
 
 
 //        //  "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
-        eventsTable.getColumn("Event").setPreferredWidth(130);
-        eventsTable.getColumn("#Time").setPreferredWidth(25);
-        eventsTable.getColumn("#Line").setPreferredWidth(5);
-        eventsTable.getColumn("Value").setPreferredWidth(40);
-        eventsTable.getColumn("Attributes").setPreferredWidth(200);
-        eventsTable.getColumn("String").setPreferredWidth(100);
+            eventsTable.getColumn("Event").setPreferredWidth(130);
+            eventsTable.getColumn("#Time").setPreferredWidth(25);
+            eventsTable.getColumn("#Line").setPreferredWidth(5);
+            eventsTable.getColumn("Value").setPreferredWidth(40);
+            eventsTable.getColumn("Attributes").setPreferredWidth(200);
+            eventsTable.getColumn("String").setPreferredWidth(100);
+        } else {
+            int rowCount = tableModel.getRowCount();
+            for (int i = 0; i <rowCount; i++) {
+                tableModel.removeRow(0);
+            }
+
+            for (Vector<Object> objects : dataVector) {
+                tableModel.addRow(objects);
+            }
+
+        }
+
+
+
 
 
     }

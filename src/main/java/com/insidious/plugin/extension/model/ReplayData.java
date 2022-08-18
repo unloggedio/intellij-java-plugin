@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.insidious.plugin.factory.ClassTypeUtils.getBasicClassName;
-
 public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
     private final FilteredDataEventsRequest filteredDataEventsRequest;
@@ -264,23 +262,6 @@ public class ReplayData {
         }
         return typeHierarchy;
     }
-
-
-    public String
-    getParameterNameFromProbe(int eventIndex, DataInfo probeInfo) {
-        if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD_RESULT) {
-            return probeInfo.getAttribute("FieldName", null);
-        } else if (probeInfo.getEventType() == EventType.GET_INSTANCE_FIELD) {
-            return probeInfo.getAttribute("FieldName", null);
-        }  else if (probeInfo.getEventType() == EventType.GET_STATIC_FIELD) {
-            return probeInfoMap.get(String.valueOf(dataEvents.get(eventIndex + 1).getDataId()))
-                    .getAttribute("FieldName", null);
-        } else if (probeInfo.getEventType() == EventType.LOCAL_LOAD) {
-            return probeInfo.getAttribute("Name", null);
-        }
-        return null;
-    }
-
 
     public DataInfo getProbeInfo(int id) {
         return probeInfoMap.get(String.valueOf(id));

@@ -78,6 +78,9 @@ public class TestCandidateMetadata {
                 ClassTypeUtils.splitMethodDesc(methodInfo.getMethodDesc());
 
         String returnParameterDescription = methodParameterDescriptions.remove(methodParameterDescriptions.size() - 1);
+        if (methodInfo.getMethodName().equals("<init>")) {
+            returnParameterDescription = ClassTypeUtils.getDescriptorName(typeHierarchy.get(0));
+        }
 
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
@@ -168,6 +171,9 @@ public class TestCandidateMetadata {
 //        logger.warn("create return parameter from event at index: " + callReturnIndex);
         Parameter returnParameter = ParameterFactory.createReturnValueParameter(callReturnIndex,
                 replayData, returnParameterDescription);
+        if (returnParameter.getName() == null || returnParameter.getName().length() == 1) {
+            returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
+        }
 
 //        if (returnParameter)
 
@@ -306,6 +312,12 @@ public class TestCandidateMetadata {
                 DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
                 String methodName = probeInfo.getAttribute("Name", null);
                 String methodDescription = probeInfo.getAttribute("Desc", null);
+                List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
+                String returnType = methodDescList.get(methodDescList.size() - 1);
+                if (Objects.equals(returnType, "V")) {
+                    return;
+                }
+
 
                 String ownerClass = probeInfo.getAttribute("Owner", null);
                 String instruction = probeInfo.getAttribute("Instruction", null);
@@ -318,6 +330,13 @@ public class TestCandidateMetadata {
                 }
 
                 if (ownerClass.startsWith("reactor/core")) {
+                    return;
+                }
+
+                if (ownerClass.startsWith("java/")) {
+                    return;
+                }
+                if (ownerClass.contains("/slf4j/")) {
                     return;
                 }
                 if (instruction.equals("INVOKESTATIC")) {
@@ -356,14 +375,15 @@ public class TestCandidateMetadata {
                                 ParameterFactory.createParameter(index, replayData,
                                         0, valueType);
 
-                        List<String> buildHierarchyFromTypeName = replayData.buildHierarchyFromTypeName(ClassTypeUtils.getDescriptorName(potentialSubjectParameter.getType()));
+                        List<String> buildHierarchyFromTypeName =
+                                replayData.buildHierarchyFromTypeName(ClassTypeUtils.getDescriptorName(potentialSubjectParameter.getType()));
                         if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
                             subjectParameterList.add(potentialSubjectParameter);
                         }
                     }
                 };
-                callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
-                callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
+//                callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
+//                callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
                 callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
                 callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
 
@@ -398,8 +418,6 @@ public class TestCandidateMetadata {
                 });
                 callReturnScan.addListener(EventType.CALL, i -> lookingForParams.set(0));
 
-                List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
-                String returnType = methodDescList.get(methodDescList.size() - 1);
 
                 callReturnScan.matchUntil(EventType.CALL_RETURN);
 
@@ -410,8 +428,12 @@ public class TestCandidateMetadata {
                 }
 
                 Parameter callReturnParameter =
-                        ParameterFactory.createReturnValueParameter(
-                                callReturnIndex, replayData, returnType);
+                        ParameterFactory.createReturnValueParameter(callReturnIndex, replayData, returnType);
+
+                if (callReturnParameter.getType() == null ||
+                        callReturnParameter.getType().equals("V")) {
+                    return;
+                }
 
 
                 MethodCallExpression methodCallExpression = new MethodCallExpression(

@@ -23,8 +23,7 @@ public class ParameterFactory {
      * - type of the value
      */
     public
-    static Parameter createReturnValueParameter
-    (
+    static Parameter createReturnValueParameter(
             // the value id to be build for it located at this index in the dataEvents
             final int eventIndex,
             ReplayData replayData,
@@ -44,6 +43,10 @@ public class ParameterFactory {
         DataInfo probeInfo = replayData.getProbeInfoMap().get(eventProbeIdString);
         ObjectInfo objectInfo = replayData.getObjectInfoMap().get(eventValueString);
         parameter.setProbeInfo(probeInfo);
+        Object probeValue = replayData.getValueByObjectId(parameter.getProb());
+        parameter.setValue(probeValue);
+
+
         Set<String> typeHierarchy = new HashSet<>();
 
         TypeInfo typeInfo = null;
@@ -75,7 +78,7 @@ public class ParameterFactory {
         } else {
             List<String> typeHierarchyList = replayData.buildHierarchyFromType(typeInfo);
             assert typeHierarchyList.size() != 0;
-            if (parameter.getType() == null) {
+            if (parameter.getType() == null || parameter.getType().equals("V")) {
                 parameter.setType(typeHierarchyList.get(0));
             }
         }
@@ -95,14 +98,15 @@ public class ParameterFactory {
         }
 
 
+        String newVariableInstanceName = ClassTypeUtils.createVariableName(parameter.getType());
+
+        parameter.setName(newVariableInstanceName);
+
+
         if (typeHierarchy.size() == 0) {
             logger.warn("failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
-
-
-        Object probeValue = replayData.getValueByObjectId(parameter.getProb());
-        parameter.setValue(probeValue);
 
 
         if (objectInfo == null) {
@@ -114,7 +118,7 @@ public class ParameterFactory {
             }
         }
 
-        String paramName = replayData.getParameterNameFromProbe(eventIndex, probeInfo);
+        String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
         if (paramName != null) {
             parameter.setName(paramName);
             return parameter;
@@ -179,35 +183,13 @@ public class ParameterFactory {
                     callStack -= direction;
                     break;
 
-                case NEW_OBJECT_CREATED:
-                    if (callStack != callStackSearchLevel) {
-                        continue;
-                    }
-
-                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(String.valueOf(historyEvent.getValue()));
-                    if (oInfo == null) {
-                        logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
-                                "check");
-                        break;
-                    }
-                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
-                    String typeName = oTypeInfo.getTypeNameFromClass();
-                    String typeNameRaw = typeName.replaceAll("\\.", "/");
-                    String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
-
-
-                    if (parameter.getType().contains(typeNameRaw)) {
-                        LoggerUtil.logEvent("SearchObjectName", callStack, i,
-                                historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
-                        parameter.setName(newVariableInstanceName);
-                        return parameter;
-                    }
-                    break;
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
+                case GET_INSTANCE_FIELD_RESULT:
                 case GET_INSTANCE_FIELD:
+                case PUT_INSTANCE_FIELD_VALUE:
                 case PUT_INSTANCE_FIELD:
-                    if (callStack != callStackSearchLevel) {
+                    if (callStack > callStackSearchLevel) {
                         continue;
                     }
 
@@ -217,12 +199,12 @@ public class ParameterFactory {
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 
 
-                    if (!fieldType.startsWith("L") || typeHierarchy.contains(fieldType)) {
+                    if (!fieldType.startsWith("L") || typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
 
                         LoggerUtil.logEvent("SearchObjectName3", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
 
-                        String variableName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
+                        String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
                         parameter.setName(variableName);
                         parameter.setType(fieldType);
                         return parameter;
@@ -296,7 +278,7 @@ public class ParameterFactory {
             }
         }
 
-        String paramName = replayData.getParameterNameFromProbe(eventIndex, probeInfo);
+        String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
         if (paramName != null) {
             parameter.setName(paramName);
             return parameter;
@@ -305,10 +287,9 @@ public class ParameterFactory {
         int callStackSearchLevel = 0;
 
         int direction = 1;
-        if (
-                probeInfo.getEventType() == EventType.CALL_RETURN ||
-                        probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED ||
-                        probeInfo.getEventType() == EventType.METHOD_OBJECT_INITIALIZED
+        if (probeInfo.getEventType() == EventType.CALL_RETURN ||
+                probeInfo.getEventType() == EventType.NEW_OBJECT_CREATED ||
+                probeInfo.getEventType() == EventType.METHOD_OBJECT_INITIALIZED
         ) {
             direction = -1; // go forward from current event
             callStackSearchLevel = -1; // we want something in the caller method
@@ -536,7 +517,7 @@ public class ParameterFactory {
             }
         }
 
-        String paramName = replayData.getParameterNameFromProbe(eventIndex, probeInfo);
+        String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
         if (paramName != null) {
             parameter.setName(paramName);
             return parameter;
@@ -810,7 +791,7 @@ public class ParameterFactory {
                     }
                     TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
                     String typeName = oTypeInfo.getTypeNameFromClass();
-                    String typeNameRaw = ClassTypeUtils.getBasicClassName(typeName);
+                    String typeNameRaw = ClassTypeUtils.getDescriptorName(typeName);
                     String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
 
 
@@ -1071,7 +1052,7 @@ public class ParameterFactory {
                     }
                     TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
                     String typeName = oTypeInfo.getTypeNameFromClass();
-                    String typeNameRaw = ClassTypeUtils.getBasicClassName(typeName);
+                    String typeNameRaw = ClassTypeUtils.getDescriptorName(typeName);
                     String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
 
 

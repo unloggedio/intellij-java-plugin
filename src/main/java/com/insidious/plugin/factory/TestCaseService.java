@@ -982,7 +982,11 @@ public class TestCaseService {
                     if (line instanceof StatementCodeLine) {
                         builder.addStatement(line.getLine(), statement.getSecond());
                     } else {
-                        builder.addComment(line.getLine(), statement.getSecond());
+                        String line1 = line.getLine();
+                        if (line1.contains("$")) {
+                            line1 = line1.replace('$', '_');
+                        }
+                        builder.addComment(line1, statement.getSecond());
                     }
 
                 }
@@ -1109,9 +1113,18 @@ public class TestCaseService {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toCollection(LinkedList::new));
 
-            if (objectRoutine.getRoutineName().equals("<init>")) {
+            if (objectRoutine.getRoutineName().equals("<init>") && buildLevel == 0) {
                 for (Parameter dependentParameter : dependentParameters) {
-                    ObjectRoutineContainer dependentObjectMockCreation = createMock(dependentParameter);
+
+                    ObjectRoutineContainer dependentObjectMockCreation;
+                    if (dependentParameter.getType().startsWith("Ljava/")) {
+                        dependentObjectMockCreation = generateTestCaseFromObjectHistory(
+                                dependentParameter, newPotentialObjects, variableContainer,
+                                buildLevel + 1);
+                    } else {
+                        dependentObjectMockCreation = createMock(dependentParameter);
+                    }
+
                     dependentObjectMockCreation.setName(dependentParameter.getName());
                     objectRoutine.addDependent(dependentObjectMockCreation);
 
@@ -1278,9 +1291,9 @@ public class TestCaseService {
                 objectReplayData.buildHierarchyFromType(subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
-        if (!className.startsWith("com.zerhusen")) {
-            return parameter.getName();
-        }
+//        if (!className.startsWith("org.zerhusen")) {
+//            return parameter.getName();
+//        }
         long currentTypeId = subjectTypeInfo.getTypeId();
 
 
@@ -1314,7 +1327,7 @@ public class TestCaseService {
                 objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
             if (objectTypeInfo == null) {
-                logger.warn("object info not found: " + objectInfo);
+                logger.warn("["+eventValueString+"] object info not found: " + objectInfo );
                 continue;
             }
             Set<String> objectTypeHierarchy =
@@ -1339,6 +1352,7 @@ public class TestCaseService {
                 case CALL_PARAM:
                 case LOCAL_STORE:
                 case INVOKE_DYNAMIC_PARAM:
+                case INVOKE_DYNAMIC_RESULT:
                 case CALL_RETURN:
                 case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
@@ -1367,6 +1381,7 @@ public class TestCaseService {
                         continue;
                     }
 
+                    checkProgressIndicator("Building test candidate from [ " + eventIndex + " / " + totalEventCount + " ]", null);
 
                     FilteredDataEventsRequest requestBefore = new FilteredDataEventsRequest();
                     requestBefore.setThreadId(dataEvent.getThreadId());

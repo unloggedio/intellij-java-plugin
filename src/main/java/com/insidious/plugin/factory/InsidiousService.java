@@ -142,6 +142,7 @@ public class InsidiousService implements Disposable {
             this.client = new VideobugLocalClient(pathToSessions);
             this.testCaseService = new TestCaseService(project, client);
             ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
+            ReadAction.run(this::initiateUI);
 
 
         } catch (ServiceNotReadyException snre) {
@@ -816,6 +817,9 @@ public class InsidiousService implements Disposable {
     private void initiateUI() {
         logger.info("initiate ui");
         ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        if (this.toolWindow == null) {
+            return;
+        }
 
         ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {

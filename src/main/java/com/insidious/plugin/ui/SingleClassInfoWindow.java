@@ -52,7 +52,7 @@ public class SingleClassInfoWindow {
     private JTable objectListTable;
     private JScrollPane resultContainerPanel;
     private LoadEventHistoryListener eventHistoryListener;
-    private TableModel tableDataModel;
+    private DefaultTableModel tableDataModel;
 
     public SingleClassInfoWindow(
             Project project,
@@ -66,6 +66,8 @@ public class SingleClassInfoWindow {
                 new Vector<>(0),
                 OBJECT_TABLE_COLUMNS
         );
+
+        objectListTable.setModel(tableDataModel);
 
         searchTypeButton.addActionListener(new ActionListener() {
             @Override
@@ -131,9 +133,8 @@ public class SingleClassInfoWindow {
         try {
             String finalSearchRange = searchRange;
             objectResultList.clear();
-            ProgressManager.getInstance().run(new Task.WithResult<Object, Exception>(
-                    project, "Unlogged", true
-            ) {
+            ProgressManager.getInstance().run(
+                    new Task.WithResult<Object, Exception>(project, "Unlogged", true) {
                 @Override
                 protected Object compute(@NotNull ProgressIndicator indicator) throws Exception {
 
@@ -189,6 +190,10 @@ public class SingleClassInfoWindow {
     }
 
     private void setRows(List<ObjectWithTypeInfo> tracePoints) {
+        if (tracePoints.size() == 0) {
+            tableDataModel.setRowCount(0);
+            return;
+        }
         Vector<Vector<Object>> tracePointRowVectors = new Vector<>(tracePoints.size());
         for (ObjectWithTypeInfo tracePoint : tracePoints) {
 //            JButton loadObjectButton = new JButton();
@@ -208,15 +213,13 @@ public class SingleClassInfoWindow {
             );
         }
 
-        tableDataModel = new DefaultTableModel(tracePointRowVectors, OBJECT_TABLE_COLUMNS);
 
 
-        objectListTable.setPreferredScrollableViewportSize(
-                objectListTable.getPreferredSize());
+        objectListTable.setPreferredScrollableViewportSize(objectListTable.getPreferredSize());
         //thanks mKorbel +1 http://stackoverflow.com/questions/10551995/how-to-set-jscrollpane-layout-to-be-the-same-as-jtable
 
 
-        objectListTable.setModel(tableDataModel);
+//        objectListTable.setModel(tableDataModel);
         objectListTable.getColumn("Load").setCellRenderer(new ButtonRenderer());
         ActionListener actionLoadListener = new ActionListener() {
             @Override
