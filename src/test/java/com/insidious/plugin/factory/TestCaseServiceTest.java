@@ -331,8 +331,8 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
 //        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
 //        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
-//        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
-        List<String> targetClasses = List.of("jenkins.org.apache.commons.validator.routines.RegexValidator");
+        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
+//        List<String> targetClasses = List.of("jenkins.org.apache.commons.validator.routines.RegexValidator");
 //        List<String> targetClasses = List.of("org.zerhusen.security.UserModelDetailsService");
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);

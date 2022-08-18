@@ -17,7 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -52,7 +51,7 @@ public class SingleClassInfoWindow {
     private JTable objectListTable;
     private JScrollPane resultContainerPanel;
     private LoadEventHistoryListener eventHistoryListener;
-    private DefaultTableModel tableDataModel;
+    private final DefaultTableModel tableDataModel;
 
     public SingleClassInfoWindow(
             Project project,
@@ -111,7 +110,7 @@ public class SingleClassInfoWindow {
     }
 
     public void doSearch(String searchQuery) {
-        setRows(List.of());
+        tableDataModel.setRowCount(0);
         searchQueryTextField.setText(searchQuery);
 
 
@@ -135,48 +134,48 @@ public class SingleClassInfoWindow {
             objectResultList.clear();
             ProgressManager.getInstance().run(
                     new Task.WithResult<Object, Exception>(project, "Unlogged", true) {
-                @Override
-                protected Object compute(@NotNull ProgressIndicator indicator) throws Exception {
+                        @Override
+                        protected Object compute(@NotNull ProgressIndicator indicator) throws Exception {
 
-                    BlockingQueue<Boolean> sync = new ArrayBlockingQueue<>(1);
-                    SearchQuery searchQuery = SearchQuery
-                            .ByType(List.of(
-                                    fullyClassifiedClassName
-                            ));
-                    searchQuery.setRange(finalSearchRange);
-                    insidiousService.getClient().getObjectsByType(
-                            searchQuery,
-                            insidiousService.getClient().getCurrentSession().getSessionId(),
-                            new ClientCallBack<>() {
-                                @Override
-                                public void error(ExceptionResponse errorResponse) {
+                            BlockingQueue<Boolean> sync = new ArrayBlockingQueue<>(1);
+                            SearchQuery searchQuery = SearchQuery
+                                    .ByType(List.of(
+                                            fullyClassifiedClassName
+                                    ));
+                            searchQuery.setRange(finalSearchRange);
+                            insidiousService.getClient().getObjectsByType(
+                                    searchQuery,
+                                    insidiousService.getClient().getCurrentSession().getSessionId(),
+                                    new ClientCallBack<>() {
+                                        @Override
+                                        public void error(ExceptionResponse errorResponse) {
 
-                                    InsidiousNotification.notifyMessage(
-                                            "Failed to search by type - " + errorResponse.getMessage(),
-                                            NotificationType.ERROR
-                                    );
+                                            InsidiousNotification.notifyMessage(
+                                                    "Failed to search by type - " + errorResponse.getMessage(),
+                                                    NotificationType.ERROR
+                                            );
 
-                                }
+                                        }
 
-                                @Override
-                                public void success(Collection<ObjectWithTypeInfo> tracePoints) {
-                                    addTracePointsToTable(tracePoints);
+                                        @Override
+                                        public void success(Collection<ObjectWithTypeInfo> tracePoints) {
+                                            addTracePointsToTable(tracePoints);
 
 
-                                }
+                                        }
 
-                                @Override
-                                public void completed() {
-                                    sync.offer(true);
-                                }
-                            }
-                    );
-                    sync.take();
+                                        @Override
+                                        public void completed() {
+                                            sync.offer(true);
+                                        }
+                                    }
+                            );
+                            sync.take();
 //                    resultTextArea.append("Finished searching\n");
 
-                    return "ok";
-                }
-            });
+                            return "ok";
+                        }
+                    });
         } catch (Exception ex) {
             ex.printStackTrace();
 //            resultTextArea.append("Failed to search: " + ex.getMessage() + "\n");
@@ -185,25 +184,14 @@ public class SingleClassInfoWindow {
 
     private void addTracePointsToTable(Collection<ObjectWithTypeInfo> tracePoints) {
         objectResultList.addAll(tracePoints);
-        setRows(objectResultList);
+        addRows(tracePoints);
 
     }
 
-    private void setRows(List<ObjectWithTypeInfo> tracePoints) {
-        if (tracePoints.size() == 0) {
-            tableDataModel.setRowCount(0);
-            return;
-        }
-        Vector<Vector<Object>> tracePointRowVectors = new Vector<>(tracePoints.size());
+    private void addRows(Collection<ObjectWithTypeInfo> tracePoints) {
+//        Vector<Vector<Object>> tracePointRowVectors = new Vector<>(tracePoints.size());
         for (ObjectWithTypeInfo tracePoint : tracePoints) {
-//            JButton loadObjectButton = new JButton();
-//            loadObjectButton.addActionListener(e -> eventHistoryListener
-//                    .loadEventHistory(
-//                            tracePoint.getObjectInfo().getObjectId()
-//                    )
-//            );
-            tracePointRowVectors.add(
-
+            tableDataModel.addRow(
                     new Vector<>(List.of(
                             tracePoint.getObjectInfo().getObjectId(),
                             tracePoint.getTypeInfo().getTypeNameFromClass(),
@@ -212,7 +200,6 @@ public class SingleClassInfoWindow {
                     ))
             );
         }
-
 
 
         objectListTable.setPreferredScrollableViewportSize(objectListTable.getPreferredSize());
@@ -224,19 +211,21 @@ public class SingleClassInfoWindow {
         ActionListener actionLoadListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                int selectedRow = objectListTable.getSelectedRow();
+                if (selectedRow >= objectResultList.size()) {
+                    return;
+                }
                 eventHistoryListener.loadEventHistory(
-                        tracePoints.get(objectListTable.getSelectedRow()).getObjectInfo().getObjectId()
+                        objectResultList.get(selectedRow).getObjectInfo().getObjectId()
                 );
             }
         };
         ActionListener actionTestListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ObjectWithTypeInfo selectedTracePoint = tracePoints.get(objectListTable.getSelectedRow());
+                ObjectWithTypeInfo selectedTracePoint = objectResultList.get(objectListTable.getSelectedRow());
                 try {
-                    insidiousService.generateTestCases(
-                            selectedTracePoint
-                    );
+                    insidiousService.generateTestCases(selectedTracePoint);
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }

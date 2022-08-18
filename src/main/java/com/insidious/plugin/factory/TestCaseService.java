@@ -19,7 +19,6 @@ import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -37,6 +36,7 @@ public class TestCaseService {
     private final VideobugClientInterface client;
     final private int MAX_TEST_CASE_LINES = 1000;
     private final CompareMode MODE = CompareMode.SERIALIZED_JSON;
+    private final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
     private Integer[] x;
 
     public TestCaseService(Project project, VideobugClientInterface client) {
@@ -460,7 +460,7 @@ public class TestCaseService {
             objectRoutine.addComment("");
             objectRoutine.addComment("Test candidate method ["
                     + testCandidateMetadata.getMethodName()
-                    + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / 1000).intValue() + "ms");
+                    + "] - took " + Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
 
             if (testCandidateMetadata.getParameterValues().size() > 0) {
 
@@ -597,7 +597,7 @@ public class TestCaseService {
                     String serializedValue = "";
                     if (serializedBytes.length > 0) {
                         serializedValue = new String(serializedBytes);
-                        objectRoutine.addComment("Serialized value: " + serializedValue);
+//                        objectRoutine.addComment("Serialized value: " + serializedValue);
                     }
 
                     // reconstruct object from the serialized form to an object instance in the
@@ -794,7 +794,6 @@ public class TestCaseService {
         return methodName.substring(0, 1).toLowerCase() + methodName.substring(1);
     }
 
-
     private void checkProgressIndicator(String text1, String text2) {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
@@ -808,7 +807,6 @@ public class TestCaseService {
             }
         }
     }
-
 
     public TestSuite generateTestCase(
             List<ObjectWithTypeInfo> allObjects
@@ -1009,7 +1007,7 @@ public class TestCaseService {
      * @throws IOException
      */
     private ObjectRoutineContainer
-    generateTestCaseFromObjectHistory (
+    generateTestCaseFromObjectHistory(
             Parameter parameter,
             final Set<Long> dependentObjectIdsOriginal,
             VariableContainer globalVariableContainer,
@@ -1071,7 +1069,8 @@ public class TestCaseService {
                 fetchObjectHistoryByObjectId(request);
 
 
-        String subjectName = buildTestCandidates(parameter, objectRoutineContainer, objectReplayData);
+        String subjectName = buildTestCandidates(parameter, objectRoutineContainer,
+                objectReplayData, buildLevel);
 
         if (subjectName != null) {
             objectRoutineContainer.setName(subjectName);
@@ -1139,7 +1138,6 @@ public class TestCaseService {
                             .stream()
                             .map(e -> e.getProb().getValue())
                             .collect(Collectors.toList()));
-
 
 
             Long parameterValue;
@@ -1226,6 +1224,7 @@ public class TestCaseService {
      * @param objectRoutineContainer the identified method called on this parameter will be added
      *                               to the object routine container
      * @param objectReplayData       the series of events based on which we are rebuilding the object history
+     * @param buildLevel
      * @return a name for the target object (which was originally a long id),
      * @throws APICallException this happens when we fail to read the data from the disk or the
      *                          network
@@ -1234,8 +1233,8 @@ public class TestCaseService {
     buildTestCandidates(
             final Parameter parameter,
             ObjectRoutineContainer objectRoutineContainer,
-            ReplayData objectReplayData
-    ) throws APICallException {
+            ReplayData objectReplayData,
+            Integer buildLevel) throws APICallException {
 
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
@@ -1327,7 +1326,7 @@ public class TestCaseService {
                 objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
             if (objectTypeInfo == null) {
-                logger.warn("["+eventValueString+"] object info not found: " + objectInfo );
+                logger.warn("[" + eventValueString + "] object info not found: " + objectInfo);
                 continue;
             }
             Set<String> objectTypeHierarchy =
@@ -1378,6 +1377,12 @@ public class TestCaseService {
                     }
 
                     if (methodInfo.getMethodName().equals("<clinit>")) {
+                        continue;
+                    }
+
+                    if (!methodInfo.getMethodName().equals("<init>") && buildLevel > 0) {
+                        logger.info("skip method [" + methodInfo.getMethodName() + "] on build " +
+                                "level [" + buildLevel + "] for class [" + ownerClassName + "]");
                         continue;
                     }
 
@@ -1543,13 +1548,17 @@ public class TestCaseService {
         testCandidateMetadata.setTestMethodName("<init>");
         testCandidateMetadata.setUnqualifiedClassname(javaClassName);
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-        constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(), parameter.getValue());
+        if (parameter.getProb().getSerializedValue().length > 0) {
+            constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(),
+                    new String(parameter.getProb().getSerializedValue()));
+        } else {
+            constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(), parameter.getValue());
+        }
         constructor.setMetadata(testCandidateMetadata);
     }
-    private final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
 
     private void buildMockCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer,
-                                             Parameter parameter) {
+                                                Parameter parameter) {
 
         @NotNull String parameterTypeName = ClassTypeUtils.getDottedClassName(parameter.getType());
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
@@ -1613,6 +1622,8 @@ public class TestCaseService {
                         existingParameter.setName(String.valueOf(testSubject.getName()));
                     } else if (existingParameter.getName() != null && testSubject.getName() == null) {
                         testSubject.setName(existingParameter.getName());
+                    } else if (!existingParameter.getName().equals(testSubject.getName())) {
+                        existingParameter.setName(testSubject.getName());
                     }
                 } else {
                     variableContainer.add(testSubject);

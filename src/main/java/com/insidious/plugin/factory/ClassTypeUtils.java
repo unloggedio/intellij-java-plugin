@@ -44,10 +44,10 @@ public class ClassTypeUtils {
 
 
     public static String createVariableName(String typeNameRaw) {
-        String[] typeNameParts = typeNameRaw.split("/");
-        String lastPart = typeNameParts[typeNameParts.length - 1];
-        if (lastPart.contains(".")){
-            lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
+        String lastPart = typeNameRaw.substring(typeNameRaw.lastIndexOf('/') + 1);
+        lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
+        if (lastPart.endsWith(";")) {
+            lastPart = lastPart.substring(0, lastPart.length() - 1);
         }
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
@@ -75,7 +75,7 @@ public class ClassTypeUtils {
         }
 
         String dottedName = className.replace('/', '.');
-        if (dottedName.contains("$")){
+        if (dottedName.contains("$")) {
             dottedName = dottedName.substring(0, dottedName.indexOf("$"));
         }
         return dottedName;

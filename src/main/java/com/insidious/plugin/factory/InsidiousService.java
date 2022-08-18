@@ -579,7 +579,6 @@ public class InsidiousService implements Disposable {
         }
 
 
-
     }
 
     private @Nullable VirtualFile saveTestSuite(TestSuite testSuite) {

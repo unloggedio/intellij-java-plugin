@@ -163,36 +163,26 @@ public class ParameterFactory {
                     // but if this is a call to a third party sdk, then we dont know the
                     // argument name
 
-                    if (callStack < 0 && direction == -1) {
-                        return parameter;
-                    }
+//                    if (callStack < 0 && direction == -1) {
+//                        return parameter;
+//                    }
                     break;
                 case METHOD_NORMAL_EXIT:
                     callStack += direction;
                     break;
 
                 case METHOD_ENTRY:
-                    if (probeInfo.getEventType() == EventType.METHOD_OBJECT_INITIALIZED
-                            && callStack == callStackSearchLevel) {
-
-                        // the scenario where a newly constructed objects name was not found
-                        // because it was created by a third party package where we do not have
-                        // probes
-                        return parameter;
-                    }
                     callStack -= direction;
                     break;
 
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
+                case LOCAL_LOAD:
+                case LOCAL_STORE:
                 case GET_INSTANCE_FIELD_RESULT:
                 case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD_VALUE:
                 case PUT_INSTANCE_FIELD:
-                    if (callStack > callStackSearchLevel) {
-                        continue;
-                    }
-
                     if (historyEvent.getValue() != event.getValue()) {
                         continue;
                     }
@@ -800,7 +790,7 @@ public class ParameterFactory {
                         LoggerUtil.logEvent("SearchObjectName", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         parameter.setName(newVariableInstanceName);
-                        return parameter;
+//                        return parameter;
                     }
                     break;
                 case LOCAL_LOAD:
@@ -816,9 +806,9 @@ public class ParameterFactory {
                         paramIndex -= 1;
                         continue;
                     }
-                    if (historyEvent.getValue() != event.getValue()) {
-                        continue;
-                    }
+//                    if (historyEvent.getValue() != event.getValue()) {
+//                        continue;
+//                    }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 
 
@@ -831,6 +821,9 @@ public class ParameterFactory {
                         return parameter;
                     }
                     break;
+            }
+            if (parameter.getName() != null) {
+                break;
             }
         }
 
@@ -907,7 +900,8 @@ public class ParameterFactory {
                         LoggerUtil.logEvent("SearchObjectName6", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
 
-                        String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
+                        String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe,
+                                parameter.getName());
                         parameter.setName(variableName);
                         parameter.setType(fieldType);
                         return parameter;
