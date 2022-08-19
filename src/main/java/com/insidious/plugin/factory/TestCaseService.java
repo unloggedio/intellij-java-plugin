@@ -482,6 +482,10 @@ public class TestCaseService {
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                     Parameter returnValue = methodCallExpression.getReturnValue();
 
+
+                    String callArgumentsString =
+                            createMethodParametersString(methodCallExpression.getArguments());
+
                     String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
 
                     Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
@@ -508,6 +512,41 @@ public class TestCaseService {
                                     + "); // ==> "
                                     + returnValue.getProb().getSerializedValue().length);
                 }
+
+
+                for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+
+
+                    String callArgumentsString =
+                            createMethodParametersString(methodCallExpression.getArguments());
+
+                    String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
+
+                    Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
+                    Optional<Parameter> subjectVariable = variableContainer.getParametersById((String) methodCallExpression.getSubject().getValue());
+                    if (existingVariableById.isPresent()) {
+                        returnValue.setName(existingVariableById.get().getName());
+                    } else {
+                        if (returnValue.getName() == null) {
+                            returnValue.setName(variableName);
+                        }
+//                        variableContainer.add(returnValue);
+                    }
+
+                    ClassName returnTypeClass = ClassName.bestGuess(
+                            methodCallExpression.getReturnValue().getType());
+//                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
+                    objectRoutine.addStatement(
+                            "$T.when($L.$L($L)).thenReturn(gson" +
+                                    ".fromJson($S, $T.class))",
+                            mockitoClass, methodCallExpression.getSubject().getName(),
+                            methodCallExpression.getMethodName(), callArgumentsString,
+                            new String(methodCallExpression.getReturnValue().getProb().getSerializedValue()),
+                            returnTypeClass
+                    );
+                }
+
                 objectRoutine.addComment("");
                 objectRoutine.addComment("");
             }
@@ -539,7 +578,7 @@ public class TestCaseService {
             }
 
 
-            String parameterString = createMethodParametersString(testCandidateMetadata);
+            String parameterString = createMethodParametersString(testCandidateMetadata.getParameterValues());
 
             // return type == V ==> void return type => no return value
             Parameter testSubject = testCandidateMetadata.getTestSubject();
@@ -666,10 +705,9 @@ public class TestCaseService {
     }
 
     @NotNull
-    private String createMethodParametersString(TestCandidateMetadata testCandidateMetadata) throws IOException {
+    private String createMethodParametersString(List<Parameter> parameterValues) throws IOException {
         StringBuilder parameterStringBuilder = new StringBuilder();
 
-        List<Parameter> parameterValues = testCandidateMetadata.getParameterValues();
         for (int i = 0; i < parameterValues.size(); i++) {
             Parameter parameterValue = parameterValues.get(i);
 
@@ -1024,7 +1062,7 @@ public class TestCaseService {
         // we want to create the objects from java.lang.* namespace using their real values, so
         // in the test case it looks something like
         // Integer varName = value;
-        if (parameter.getType() != null && parameter.getType().startsWith("L" + "java/lang/")) {
+        if (parameter.getType() != null && parameter.getType().startsWith("java.lang")) {
 
             if (globalVariableContainer.contains(parameter.getName())) {
                 logger.warn("variable already exists: " + parameter.getName());
@@ -1541,7 +1579,7 @@ public class TestCaseService {
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
-        ClassName targetClassname = ClassName.get("java.lang", javaClassName);
+        ClassName targetClassname = ClassName.bestGuess(javaClassName);
         testCandidateMetadata.setTestSubject(null);
         Parameter returnStringParam = new Parameter();
         testCandidateMetadata.setReturnParameter(returnStringParam);

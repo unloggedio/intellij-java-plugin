@@ -196,7 +196,7 @@ public class ParameterFactory {
 
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
                         parameter.setName(variableName);
-                        parameter.setType(fieldType);
+                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                         return parameter;
                     }
                     break;
@@ -821,7 +821,7 @@ public class ParameterFactory {
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
                         parameter.setName(variableName);
-                        parameter.setType(fieldType);
+                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                         return parameter;
                     }
                     break;
@@ -907,7 +907,7 @@ public class ParameterFactory {
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe,
                                 parameter.getName());
                         parameter.setName(variableName);
-                        parameter.setType(fieldType);
+                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                         return parameter;
                     }
                     break;

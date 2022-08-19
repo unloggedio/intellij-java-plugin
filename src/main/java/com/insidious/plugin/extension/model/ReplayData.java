@@ -174,12 +174,11 @@ public class ReplayData {
             }
 
             if (eventType == EventType.METHOD_ENTRY) {
-                callStack += 1;
-            } else if (callStack > 0 && (eventType == EventType.METHOD_NORMAL_EXIT ||
-                    eventType == EventType.METHOD_EXCEPTIONAL_EXIT)) {
-                callStack -= 1;
-                callReturnIndex += direction;
-                continue;
+                callStack += direction;
+            } else if (
+                    eventType == EventType.METHOD_NORMAL_EXIT ||
+                            eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                callStack -= direction;
             }
 
             callReturnIndex += direction;
