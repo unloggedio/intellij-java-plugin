@@ -170,7 +170,7 @@ public class ReplayData {
 
             scanRequest.onEvent(callStack, eventType, callReturnIndex);
             if (callStack == searchRequestCallStack && matchUntilEvent.contains(eventType)) {
-                break;
+                return callReturnIndex;
             }
 
             if (eventType == EventType.METHOD_ENTRY) {
@@ -185,7 +185,6 @@ public class ReplayData {
             callReturnIndex += direction;
 
         }
-
         // when not found
         return callReturnIndex;
 

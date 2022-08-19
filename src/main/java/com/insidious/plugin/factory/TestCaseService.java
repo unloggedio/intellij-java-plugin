@@ -1358,6 +1358,8 @@ public class TestCaseService {
                 case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
                 case PUT_INSTANCE_FIELD_VALUE:
                 case METHOD_NORMAL_EXIT:
+                case NEW_OBJECT_CREATED:
+                case NEW_OBJECT:
                 case LOCAL_LOAD:
                 case GET_INSTANCE_FIELD_RESULT:
                     continue;
@@ -1398,7 +1400,7 @@ public class TestCaseService {
                     FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
                     requestAfter.setThreadId(dataEvent.getThreadId());
                     requestAfter.setNanotime(dataEvent.getNanoTime());
-                    requestAfter.setPageInfo(new PageInfo(0, 500, PageInfo.Order.ASC));
+                    requestAfter.setPageInfo(new PageInfo(0, 2000, PageInfo.Order.ASC));
                     ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
                     List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
                     afterEvents.remove(0);
@@ -1560,8 +1562,16 @@ public class TestCaseService {
     private void buildMockCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer,
                                                 Parameter parameter) {
 
-        @NotNull String parameterTypeName = ClassTypeUtils.getDottedClassName(parameter.getType());
+        boolean isArray = false;
+        String parameterTypeName = parameter.getType();
+        if (parameterTypeName.startsWith("[")) {
+            isArray = true;
+            parameterTypeName = parameterTypeName.substring(1);
+        }
+
+        parameterTypeName = ClassTypeUtils.getDottedClassName(parameterTypeName);
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+
 
         ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
         testCandidateMetadata.setTestSubject(null);
@@ -1569,6 +1579,7 @@ public class TestCaseService {
         testCandidateMetadata.setReturnParameter(returnStringParam);
         testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
         testCandidateMetadata.setPackageName(targetClassname.packageName());
+        testCandidateMetadata.setIsArray(isArray);
         testCandidateMetadata.setTestMethodName("<init>");
         testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();

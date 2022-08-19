@@ -810,9 +810,13 @@ public class ParameterFactory {
 //                        continue;
 //                    }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
+                    if (fieldType.startsWith("[")) {
+                        fieldType = fieldType.substring(1);
+                    }
 
 
-                    if (!fieldType.startsWith("L") || typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
+                    if (!fieldType.startsWith("L") ||
+                            typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
                         LoggerUtil.logEvent("SearchObjectName3", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);

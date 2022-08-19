@@ -29,6 +29,7 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private String methodName;
     private List<MethodCallExpression> callsList;
+    private boolean isArray;
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
@@ -160,8 +161,14 @@ public class TestCandidateMetadata {
         List<Parameter> methodParameters =
                 searchMethodParameters(replayDataPage, entryProbeIndex, methodParameterDescriptions);
 
+        VariableContainer variableContainer = new VariableContainer();
+        for (Parameter methodParameter : methodParameters) {
+            variableContainer.add(methodParameter);
+        }
+
+
         List<MethodCallExpression> callsList =
-                searchMethodCallExpressions(replayDataPage, entryProbeIndex, typeHierarchy);
+                searchMethodCallExpressions(replayDataPage, entryProbeIndex, typeHierarchy, variableContainer);
 
         metadata.setCallList(callsList);
 
@@ -299,16 +306,37 @@ public class TestCandidateMetadata {
     searchMethodCallExpressions(
             ReplayData replayData,
             int entryProbeIndex,
-            List<String> typeHierarchy) {
+            List<String> typeHierarchy,
+            /*
+            variableContainer keeping a track of local variables and method arguments here so
+            that we dont
+            record/mock calls on these objects
+             */
+            VariableContainer variableContainer
+    ) {
 
         List<MethodCallExpression> callList = new LinkedList<>();
         ScanRequest scanRequest = new ScanRequest(entryProbeIndex, 0, DirectionType.FORWARDS);
 
+        scanRequest.addListener(EventType.LOCAL_LOAD, new EventTypeMatchListener() {
+            @Override
+            public void eventMatched(Integer index) {
+                Parameter potentialParameter = ParameterFactory.createParameter(
+                        index, replayData, 0, null
+                );
+                variableContainer.add(potentialParameter);
+            }
+        });
 
         scanRequest.addListener(EventType.CALL, new EventTypeMatchListener() {
             @Override
             public void eventMatched(Integer index) {
                 DataEventWithSessionId event = replayData.getDataEvents().get(index);
+                Optional<Parameter> existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
+                if (existingVariable.isPresent()) {
+                    return;
+                }
+
                 DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
                 String methodName = probeInfo.getAttribute("Name", null);
                 String methodDescription = probeInfo.getAttribute("Desc", null);
@@ -603,5 +631,9 @@ public class TestCandidateMetadata {
                 ", callTimeNanoSecond=" + callTimeNanoSecond +
                 ", methodName='" + methodName + '\'' +
                 '}';
+    }
+
+    public void setIsArray(boolean isArray) {
+        this.isArray = isArray;
     }
 }
