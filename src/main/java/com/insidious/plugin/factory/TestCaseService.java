@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.esotericsoftware.asm.Opcodes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
@@ -1426,6 +1427,11 @@ public class TestCaseService {
                         continue;
                     }
 
+                    int methodAccess = methodInfo.getAccess();
+                    if (!((methodAccess & Opcodes.ACC_PUBLIC) == 1)) {
+                        continue;
+                    }
+
                     checkProgressIndicator("Building test candidate from [ " + eventIndex + " / " + totalEventCount + " ]", null);
 
                     FilteredDataEventsRequest requestBefore = new FilteredDataEventsRequest();
@@ -1438,7 +1444,7 @@ public class TestCaseService {
                     FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
                     requestAfter.setThreadId(dataEvent.getThreadId());
                     requestAfter.setNanotime(dataEvent.getNanoTime());
-                    requestAfter.setPageInfo(new PageInfo(0, 2000, PageInfo.Order.ASC));
+                    requestAfter.setPageInfo(new PageInfo(0, 20000, PageInfo.Order.ASC));
                     ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
                     List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
                     afterEvents.remove(0);
