@@ -8,6 +8,15 @@ import java.util.stream.Collectors;
 public class VariableContainer {
     private final List<Parameter> parameterList = new LinkedList<>();
 
+    private static String upperInstanceName(String methodName) {
+        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
+    }
+
+    private static String lowerInstanceName(String methodName) {
+        int lowerIndex = 1;
+        return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
+    }
+
     public VariableContainer clone() {
         VariableContainer newContainer = new VariableContainer();
         for (Parameter parameter : this.parameterList) {
@@ -16,9 +25,23 @@ public class VariableContainer {
         return newContainer;
     }
 
-
     public void add(Parameter parameter) {
-        this.parameterList.add(parameter);
+        Optional<Parameter> byId = getParametersById(String.valueOf(parameter.getValue()));
+        if (byId.isEmpty()) {
+            this.parameterList.add(parameter);
+        } else {
+            byte[] newSerializedValue = parameter.getProb().getSerializedValue();
+            if (newSerializedValue == null || newSerializedValue.length == 0) {
+                return;
+            }
+            Parameter existing = byId.get();
+            byte[] existingSerializedValue = existing.getProb().getSerializedValue();
+            if (existingSerializedValue == null || existingSerializedValue.length == 0) {
+                existing.setProb(parameter.getProb());
+            } else if (existing.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
+                existing.setProb(parameter.getProb());
+            }
+        }
     }
 
     public Parameter getParameterByName(String name) {
@@ -65,15 +88,6 @@ public class VariableContainer {
             }
         }
         throw new RuntimeException("could not generate name for the variable");
-    }
-
-    private static String upperInstanceName(String methodName) {
-        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
-    }
-
-    private static String lowerInstanceName(String methodName) {
-        int lowerIndex = 1;
-        return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
     }
 
     public Collection<String> getNames() {

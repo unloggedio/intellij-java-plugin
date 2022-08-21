@@ -1441,28 +1441,18 @@ public class TestCaseService {
                     ReplayData replayEventsBefore = client.fetchObjectHistoryByObjectId(requestBefore);
 
 
+                    List<DataEventWithSessionId> allEvents = replayEventsBefore.getDataEvents();
+
                     FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
                     requestAfter.setThreadId(dataEvent.getThreadId());
                     requestAfter.setNanotime(dataEvent.getNanoTime());
-                    requestAfter.setPageInfo(new PageInfo(0, 20000, PageInfo.Order.ASC));
+                    requestAfter.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.ASC));
                     ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
-                    List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
-                    afterEvents.remove(0);
-                    Collections.reverse(afterEvents);
 
 
-                    int beforeEventsSize = replayEventsBefore.getDataEvents().size();
-                    List<DataEventWithSessionId> allEvents = replayEventsBefore.getDataEvents();
-                    allEvents.addAll(0, afterEvents);
+                    replayEventsBefore.mergeReplayData(replayEventsAfter);
 
-                    replayEventsBefore.getClassInfoMap().putAll(replayEventsAfter.getClassInfoMap());
-                    replayEventsBefore.getProbeInfoMap().putAll(replayEventsAfter.getProbeInfoMap());
-                    replayEventsBefore.getMethodInfoMap().putAll(replayEventsAfter.getMethodInfoMap());
-                    replayEventsBefore.getStringInfoMap().putAll(replayEventsAfter.getStringInfoMap());
-                    replayEventsBefore.getObjectInfoMap().putAll(replayEventsAfter.getObjectInfoMap());
-                    replayEventsBefore.getTypeInfoMap().putAll(replayEventsAfter.getTypeInfoMap());
-
-                    int matchedProbe = afterEvents.size();
+                    int matchedProbe = replayEventsAfter.getDataEvents().size();
                     // need to go back until we find the method entry since the following method
                     // to create test case metadata is expecting a METHOD_ENTRY probe
 

@@ -56,15 +56,7 @@ public class ParameterFactory {
                 expectedParameterType = expectedParameterType.substring(1,
                         expectedParameterType.length() - 1).replace('/', '.');
                 String finalExpectedParameterType = expectedParameterType;
-                List<TypeInfo> matchedTypeInfo = replayData.getTypeInfoMap()
-                        .values().stream()
-                        .filter(e -> e.getTypeNameFromClass().equals(finalExpectedParameterType))
-                        .collect(Collectors.toList());
-                if (matchedTypeInfo.size() == 0) {
-                    logger.warn("matched type from suggested nothing [" + finalExpectedParameterType + "]");
-                } else {
-                    typeInfo = matchedTypeInfo.get(0);
-                }
+                typeInfo = replayData.getTypeInfoByName(finalExpectedParameterType);
             } else {
                 parameter.setType(expectedParameterType);
                 typeHierarchy.add(expectedParameterType);
@@ -449,15 +441,7 @@ public class ParameterFactory {
             if (expectedParameterType.startsWith("L")) {
                 expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
                 String finalExpectedParameterType = expectedParameterType;
-                List<TypeInfo> matchedTypeInfo = replayData.getTypeInfoMap()
-                        .values().stream()
-                        .filter(e -> e.getTypeNameFromClass().equals(finalExpectedParameterType))
-                        .collect(Collectors.toList());
-                if (matchedTypeInfo.size() == 0) {
-                    logger.warn("matched type from suggested nothing [" + finalExpectedParameterType + "]");
-                } else {
-                    typeInfo = matchedTypeInfo.get(0);
-                }
+                typeInfo = replayData.getTypeInfoByName(finalExpectedParameterType);
             } else {
                 parameter.setType(expectedParameterType);
                 typeHierarchy.add(expectedParameterType);

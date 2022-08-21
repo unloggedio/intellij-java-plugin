@@ -39,7 +39,6 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
     private JSplitPane resultPanel;
     private JScrollPane treePanel;
     private JPanel infoPanelContainer;
-    private JTextField textField1;
     private JPanel infoPanel;
     private JSplitPane infoPanelSplit;
     private JPanel eventViewerPanel;

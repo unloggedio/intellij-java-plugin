@@ -14,6 +14,7 @@ public class ScanRequest {
     // whatever we are searching for, if we match any event which has listeners, the listner gets
     // a callback with the index of the matched probe
     private final Map<EventType, List<EventTypeMatchListener>> eventListeners = new HashMap<>();
+    private int startStack = 0;
 
     public void matchUntil(EventType eventType) {
         matchUntilEvent.add(eventType);
@@ -77,8 +78,16 @@ public class ScanRequest {
     }
 
     public void onEvent(int callStack, EventType eventType, int callReturnIndex) {
-        if (callStack == this.callStack && eventListeners.containsKey(eventType)) {
+        if ((this.callStack == 9999 || callStack == this.callStack) && eventListeners.containsKey(eventType)) {
             eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex));
         }
+    }
+
+    public int getStartStack() {
+        return startStack;
+    }
+
+    public void setStartStack(int startStack) {
+        this.startStack = startStack;
     }
 }

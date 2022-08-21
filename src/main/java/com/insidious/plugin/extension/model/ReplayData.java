@@ -12,10 +12,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ReplayData {
@@ -135,7 +132,7 @@ public class ReplayData {
     // direction. the scanner should callback any event listners on matching events. the scan
     // stops when matchUntil events are hit, the index where the first matchUntil event was
     // matched will be returned
-    public int eventScan(ScanRequest scanRequest) {
+    public ScanResult eventScan(ScanRequest scanRequest) {
 
         int direction = 1;
 
@@ -157,7 +154,7 @@ public class ReplayData {
         int entryProbeIndex = scanRequest.getStartIndex();
         int callReturnIndex = entryProbeIndex + direction;
 
-        int callStack = 0;
+        int callStack = scanRequest.getStartStack();
 
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
@@ -169,8 +166,8 @@ public class ReplayData {
             EventType eventType = probeInfo.getEventType();
 
             scanRequest.onEvent(callStack, eventType, callReturnIndex);
-            if (callStack == searchRequestCallStack && matchUntilEvent.contains(eventType)) {
-                return callReturnIndex;
+            if (callStack == 0 && matchUntilEvent.contains(eventType)) {
+                return new ScanResult(callReturnIndex, callStack);
             }
 
             if (eventType == EventType.METHOD_ENTRY) {
@@ -185,7 +182,7 @@ public class ReplayData {
 
         }
         // when not found
-        return callReturnIndex;
+        return new ScanResult(callReturnIndex, callStack);
 
     }
 
@@ -283,5 +280,51 @@ public class ReplayData {
 
     public MethodInfo getMethodInfo(int methodId) {
         return methodInfoMap.get(String.valueOf(methodId));
+    }
+
+    public void mergeReplayData(ReplayData replayEventsAfter) {
+        List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
+
+
+        if (this.filteredDataEventsRequest.getPageInfo().isDesc()) {
+
+
+            if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isAsc()) {
+                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
+                afterEvents.remove(0);
+                Collections.reverse(afterEvents);
+                this.dataEvents.addAll(0, afterEvents);
+            } else if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isDesc()) {
+                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
+                afterEvents.remove(0);
+                Collections.reverse(afterEvents);
+                this.dataEvents.addAll(0, afterEvents);
+
+            }
+
+        } else if (this.filteredDataEventsRequest.getPageInfo().isAsc()) {
+
+            if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isAsc()) {
+                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
+                afterEvents.remove(0);
+                Collections.reverse(afterEvents);
+                this.dataEvents.addAll(0, afterEvents);
+            } else if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isDesc()) {
+                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
+                afterEvents.remove(0);
+                Collections.reverse(afterEvents);
+                this.dataEvents.addAll(0, afterEvents);
+
+            }
+
+        }
+
+
+        this.classInfoMap.putAll(replayEventsAfter.getClassInfoMap());
+        this.probeInfoMap.putAll(replayEventsAfter.getProbeInfoMap());
+        this.methodInfoMap.putAll(replayEventsAfter.getMethodInfoMap());
+        this.stringInfoMap.putAll(replayEventsAfter.getStringInfoMap());
+        this.objectInfoMap.putAll(replayEventsAfter.getObjectInfoMap());
+        this.typeInfoMap.putAll(replayEventsAfter.getTypeInfoMap());
     }
 }
