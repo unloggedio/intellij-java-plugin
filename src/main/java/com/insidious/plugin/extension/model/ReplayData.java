@@ -151,10 +151,10 @@ public class ReplayData {
         }
 
 
-        int entryProbeIndex = scanRequest.getStartIndex();
-        int callReturnIndex = entryProbeIndex + direction;
+        ScanResult entryProbeIndex = scanRequest.getStartIndex();
+        int callReturnIndex = entryProbeIndex.getIndex() + direction;
 
-        int callStack = scanRequest.getStartStack();
+        int callStack = entryProbeIndex.getCallStack();
 
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
@@ -171,14 +171,14 @@ public class ReplayData {
             ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
             boolean stackMatch = callStack == 0;
 
-            if (scanRequest.getCallStack() == ScanRequest.CURRENT_CLASS) {
+            if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                 if (firstClass.getClassId() != classInfo.getClassId()) {
                     stackMatch = false;
                 }
             }
 
-            scanRequest.onEvent(callStack, eventType, callReturnIndex);
-            if (stackMatch && matchUntilEvent.contains(eventType)) {
+            scanRequest.onEvent(stackMatch, eventType, callReturnIndex);
+            if (callStack == 0 && matchUntilEvent.contains(eventType)) {
                 return new ScanResult(callReturnIndex, callStack);
             }
 

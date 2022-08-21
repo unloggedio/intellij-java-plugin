@@ -102,7 +102,6 @@ public class TestCandidateMetadata {
 //        metadata.setEntryProbe(events.get(entryProbeIndex));
 
 
-        ReplayData replayDataPage = replayData;
         DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
         DataInfo entryProbeInfo = replayData.getProbeInfo(entryProbe.getDataId());
         logger.info("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
@@ -122,12 +121,12 @@ public class TestCandidateMetadata {
 
             if (methodInfo.getMethodName().equals("<init>")) {
                 logger.info("entry probe is of type method entry <init>");
-                callReturnScanResult = searchMethodExitIndex(replayDataPage,
+                callReturnScanResult = searchMethodExitIndex(replayData,
                         callReturnScanResult,
                         List.of(EventType.METHOD_OBJECT_INITIALIZED));
             } else {
                 logger.info("entry probe is of type method entry " + methodInfo.getMethodName());
-                callReturnScanResult = searchMethodExitIndex(replayDataPage,
+                callReturnScanResult = searchMethodExitIndex(replayData,
                         callReturnScanResult, List.of(EventType.METHOD_NORMAL_EXIT));
             }
 
@@ -136,7 +135,7 @@ public class TestCandidateMetadata {
                 break;
             }
             logger.warn("return probe not found, fetching next page: " +
-                    replayDataPage.getFilteredDataEventsRequest().getPageInfo());
+                    replayData.getFilteredDataEventsRequest().getPageInfo());
 //            FilteredDataEventsRequest filterRequest = replayData.getFilteredDataEventsRequest();
 //            filterRequest.setObjectId(-1L);
 //            filterRequest.setNanotime(replayDataPage.getDataEvents().get(0).getNanoTime());
@@ -145,19 +144,18 @@ public class TestCandidateMetadata {
 //            if (replayDataPage.getDataEvents().size() == 0) {
 //                break;
 //            }
-            DataEventWithSessionId lastEvent = replayDataPage.getDataEvents().get(0);
-            if (Objects.equals(replayDataPage.getFilteredDataEventsRequest().getSortOrder(), "ASC")) {
-                lastEvent =
-                        replayDataPage.getDataEvents().get(replayDataPage.getDataEvents().size() - 1);
+            DataEventWithSessionId lastEvent = replayData.getDataEvents().get(0);
+            if (Objects.equals(replayData.getFilteredDataEventsRequest().getSortOrder(), "ASC")) {
+                lastEvent = replayData.getDataEvents().get(replayData.getDataEvents().size() - 1);
             }
-            ReplayData nextPage = replayDataPage.fetchEventsPost(lastEvent, 1000);
+            ReplayData nextPage = replayData.fetchEventsPost(lastEvent, 1000);
             if (nextPage.getDataEvents().size() < 2) {
                 break;
             }
-            callReturnScanResult = new ScanResult(nextPage.getDataEvents().size(),
+            callReturnScanResult = new ScanResult(nextPage.getDataEvents().size() - 1,
                     callReturnScanResult.getCallStack());
 
-            replayDataPage.mergeReplayData(nextPage);
+            replayData.mergeReplayData(nextPage);
         }
 
         // we are going to do this again, since the index might have shifted from the added pages
@@ -188,7 +186,7 @@ public class TestCandidateMetadata {
         metadata.setCallTimeNanoSecond(callTime);
 
         List<Parameter> methodParameters =
-                searchMethodParameters(replayDataPage, entryProbeIndex, methodParameterDescriptions);
+                searchMethodParameters(replayData, entryProbeIndex, methodParameterDescriptions);
 
         VariableContainer variableContainer = new VariableContainer();
         for (Parameter methodParameter : methodParameters) {
@@ -197,7 +195,7 @@ public class TestCandidateMetadata {
 
 
         List<MethodCallExpression> callsList =
-                searchMethodCallExpressions(replayDataPage, entryProbeIndex, typeHierarchy, variableContainer);
+                searchMethodCallExpressions(replayData, entryProbeIndex, typeHierarchy, variableContainer);
 
         metadata.setCallList(callsList);
 
@@ -342,7 +340,8 @@ public class TestCandidateMetadata {
     ) {
 
         List<MethodCallExpression> callList = new LinkedList<>();
-        ScanRequest scanRequest = new ScanRequest(entryProbeIndex, ScanRequest.CURRENT_CLASS,
+        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
+                ScanRequest.CURRENT_CLASS,
                 DirectionType.FORWARDS);
 
         scanRequest.addListener(EventType.LOCAL_LOAD, new EventTypeMatchListener() {
@@ -411,7 +410,8 @@ public class TestCandidateMetadata {
 
                 List<Parameter> callArguments = new LinkedList<>();
 
-                ScanRequest callSubjectScan = new ScanRequest(index, 0, DirectionType.BACKWARDS);
+                ScanRequest callSubjectScan = new ScanRequest(new ScanResult(index, 0), 0,
+                        DirectionType.BACKWARDS);
                 AtomicInteger subjectMatchIndex = new AtomicInteger(0);
                 List<Parameter> subjectParameterList = new LinkedList<>();
                 EventTypeMatchListener subjectMatchListener = new EventTypeMatchListener() {
@@ -457,7 +457,8 @@ public class TestCandidateMetadata {
                 }
 
 
-                ScanRequest callReturnScan = new ScanRequest(index, 0, DirectionType.FORWARDS);
+                ScanRequest callReturnScan = new ScanRequest(new ScanResult(index, 0), 0,
+                        DirectionType.FORWARDS);
 
                 AtomicInteger lookingForParams = new AtomicInteger(1);
                 callReturnScan.addListener(EventType.CALL_PARAM, new EventTypeMatchListener() {
@@ -517,7 +518,8 @@ public class TestCandidateMetadata {
                 callParameterDescriptions.size() + " params to be found");
 
         List<Parameter> methodParameterProbes = new LinkedList<>();
-        ScanRequest searchRequest = new ScanRequest(entryProbeIndex, 0, DirectionType.FORWARDS);
+        ScanRequest searchRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0), 0,
+                DirectionType.FORWARDS);
         searchRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
         searchRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
         searchRequest.addListener(EventType.METHOD_PARAM, new EventTypeMatchListener() {
@@ -557,8 +559,8 @@ public class TestCandidateMetadata {
         logger.info("replay data has: " + replayData.getDataEvents().size() + " events.");
 
 
-        ScanRequest searchRequest = new ScanRequest(entryProbeIndex.getIndex(),
-                entryProbeIndex.getCallStack(), DirectionType.FORWARDS);
+        ScanRequest searchRequest = new ScanRequest(entryProbeIndex, 0,
+                DirectionType.FORWARDS);
         for (EventType typeMatch : eventTypeMatch) {
             searchRequest.matchUntil(typeMatch);
         }

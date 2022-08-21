@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.extension.model.DirectionType;
+import com.insidious.plugin.extension.model.ScanResult;
 
 import java.util.*;
 
@@ -20,7 +21,7 @@ public class ScanRequest {
     // todo: maintain stack of actual ids of object ownership to track calls to current owner
 //    public static final int CURRENT_OWNER = 7777;
     private final Integer callStack;
-    private final Integer startIndex;
+    private final ScanResult startIndex;
     private final DirectionType direction;
     private final Set<EventType> matchUntilEvent = new HashSet<>();
     // whatever we are searching for, if we match any event which has listeners, the listner gets
@@ -34,7 +35,7 @@ public class ScanRequest {
 
     public ScanRequest(
             // where the search begins
-            Integer startIndex,
+            ScanResult startIndex,
             // this defines which call stack level should the value be matched in
             // call stack is defined by method_entry and method_exit event types
             Integer callStack,
@@ -77,7 +78,7 @@ public class ScanRequest {
         return callStack;
     }
 
-    public Integer getStartIndex() {
+    public ScanResult getStartIndex() {
         return startIndex;
     }
 
@@ -89,8 +90,8 @@ public class ScanRequest {
         return matchUntilEvent;
     }
 
-    public void onEvent(int callStack, EventType eventType, int callReturnIndex) {
-        if ((this.callStack == ANY_STACK || callStack == this.callStack) && eventListeners.containsKey(eventType)) {
+    public void onEvent(boolean stackMatch, EventType eventType, int callReturnIndex) {
+        if (stackMatch && eventListeners.containsKey(eventType)) {
             eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex));
         }
     }

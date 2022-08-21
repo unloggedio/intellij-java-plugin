@@ -4,6 +4,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
@@ -825,7 +826,8 @@ public class ParameterFactory {
         // would have been potentially used
 
 
-        ScanRequest scanRequest = new ScanRequest(eventIndex, 0, DirectionType.FORWARDS);
+        ScanRequest scanRequest = new ScanRequest(new ScanResult( eventIndex, 0), 0,
+                DirectionType.FORWARDS);
         replayData.eventScan(scanRequest);
 
         logger.warn("switching direction of search for a method param name");
@@ -977,11 +979,7 @@ public class ParameterFactory {
 
 
         int callStackSearchLevel = 0;
-
         int direction = 1;
-
-        direction = 1; // go backward from current event
-        callStackSearchLevel = -1; // we want something in the caller method
 
 
         int callStack = 0;
