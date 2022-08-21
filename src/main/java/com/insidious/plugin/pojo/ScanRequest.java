@@ -7,6 +7,18 @@ import java.util.*;
 
 public class ScanRequest {
 
+    public static final int ANY_STACK = 9999;
+
+    // match true when the current probe class matches the first probe class, this is needed so
+    // we can track all calls from a particular class
+    public static final int CURRENT_CLASS = 8888;
+
+    // match true when the current probe caller owner  value matches the first probes caller
+    // owner value, so we can track all calls on a particular instance (or object)
+    // impossible to track for now, since we are not tracking actual object ownership thru the
+    // event sequence (call stack count itself is much easier)
+    // todo: maintain stack of actual ids of object ownership to track calls to current owner
+//    public static final int CURRENT_OWNER = 7777;
     private final Integer callStack;
     private final Integer startIndex;
     private final DirectionType direction;
@@ -78,7 +90,7 @@ public class ScanRequest {
     }
 
     public void onEvent(int callStack, EventType eventType, int callReturnIndex) {
-        if ((this.callStack == 9999 || callStack == this.callStack) && eventListeners.containsKey(eventType)) {
+        if ((this.callStack == ANY_STACK || callStack == this.callStack) && eventListeners.containsKey(eventType)) {
             eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex));
         }
     }

@@ -342,7 +342,8 @@ public class TestCandidateMetadata {
     ) {
 
         List<MethodCallExpression> callList = new LinkedList<>();
-        ScanRequest scanRequest = new ScanRequest(entryProbeIndex, 9999, DirectionType.FORWARDS);
+        ScanRequest scanRequest = new ScanRequest(entryProbeIndex, ScanRequest.CURRENT_CLASS,
+                DirectionType.FORWARDS);
 
         scanRequest.addListener(EventType.LOCAL_LOAD, new EventTypeMatchListener() {
             @Override

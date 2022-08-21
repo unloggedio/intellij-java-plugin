@@ -158,15 +158,27 @@ public class ReplayData {
 
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
+        DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
+        DataInfo probeInfo = probeInfoMap.get(String.valueOf(firstEvent.getDataId()));
+        ClassInfo firstClass = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+
 
         Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
         while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
             DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-            DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+            probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
             EventType eventType = probeInfo.getEventType();
+            ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+            boolean stackMatch = callStack == 0;
+
+            if (scanRequest.getCallStack() == ScanRequest.CURRENT_CLASS) {
+                if (firstClass.getClassId() != classInfo.getClassId()) {
+                    stackMatch = false;
+                }
+            }
 
             scanRequest.onEvent(callStack, eventType, callReturnIndex);
-            if (callStack == 0 && matchUntilEvent.contains(eventType)) {
+            if (stackMatch && matchUntilEvent.contains(eventType)) {
                 return new ScanResult(callReturnIndex, callStack);
             }
 
