@@ -516,7 +516,8 @@ public class TestCaseService {
 
 
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    Parameter methodCallReturnValue = methodCallExpression.getReturnValue();
+                    Parameter returnValue = methodCallReturnValue;
 
 
                     String callArgumentsString =
@@ -536,16 +537,33 @@ public class TestCaseService {
                     }
 
                     ClassName returnTypeClass = ClassName.bestGuess(
-                            methodCallExpression.getReturnValue().getType());
+                            methodCallReturnValue.getType());
 //                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
-                    objectRoutine.addStatement(
-                            "$T.when($L.$L($L)).thenReturn(gson" +
-                                    ".fromJson($S, $T.class))",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
-                            new String(methodCallExpression.getReturnValue().getProb().getSerializedValue()),
-                            returnTypeClass
-                    );
+
+                    if (methodCallReturnValue.getName() == null) {
+                        objectRoutine.addStatement(
+                                "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
+                                mockitoClass, methodCallExpression.getSubject().getName(),
+                                methodCallExpression.getMethodName(), callArgumentsString,
+                                new String(methodCallReturnValue.getProb().getSerializedValue()),
+                                returnTypeClass
+                        );
+                    } else {
+                        objectRoutine.addStatement(
+                                "$T $L = gson.fromJson($S, $T.class)",
+                                returnTypeClass, methodCallReturnValue.getName(),
+                                new String(methodCallReturnValue.getProb().getSerializedValue()), returnTypeClass
+
+                        );
+                        objectRoutine.addStatement(
+                                "$T.when($L.$L($L)).thenReturn($L)",
+                                mockitoClass, methodCallExpression.getSubject().getName(),
+                                methodCallExpression.getMethodName(), callArgumentsString,
+                                methodCallReturnValue.getName()
+                        );
+                        variableContainer.add(methodCallReturnValue);
+
+                    }
                 }
 
                 objectRoutine.addComment("");

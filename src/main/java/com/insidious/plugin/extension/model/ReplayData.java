@@ -172,9 +172,10 @@ public class ReplayData {
             boolean stackMatch = callStack == 0;
 
             if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
-                if (firstClass.getClassId() != classInfo.getClassId()) {
-                    stackMatch = false;
-                }
+                stackMatch = firstClass.getClassId() == classInfo.getClassId();
+//                if (firstClass.getClassId() != classInfo.getClassId()) {
+//                    stackMatch = false;
+//                }
             }
 
             scanRequest.onEvent(stackMatch, eventType, callReturnIndex);

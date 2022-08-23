@@ -98,22 +98,9 @@ public class TestCandidateMetadata {
         }
 
 
-//        metadata.setEntryProbeIndex(entryProbeIndex);
-//        metadata.setEntryProbe(events.get(entryProbeIndex));
-
-
         DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
         DataInfo entryProbeInfo = replayData.getProbeInfo(entryProbe.getDataId());
         logger.info("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
-
-//        ReplayData postEvents = replayData.fetchEventsPost(entryProbe, 5000);
-//        ReplayData preEvents = replayData.fetchEventsPre(entryProbe, 100);
-//
-//        List<DataEventWithSessionId> eventSpan = replayDataPage.getDataEvents();
-//        eventSpan.clear();
-//        eventSpan.addAll(preEvents.getDataEvents());
-//        eventSpan.addAll(postEvents.getDataEvents());
-//        replayDataPage.setDataEvents(eventSpan);
 
         int currentEntryProbeIndex = entryProbeIndex;
         ScanResult callReturnScanResult = new ScanResult(currentEntryProbeIndex, 0);
@@ -136,15 +123,8 @@ public class TestCandidateMetadata {
             }
             logger.warn("return probe not found, fetching next page: " +
                     replayData.getFilteredDataEventsRequest().getPageInfo());
-//            FilteredDataEventsRequest filterRequest = replayData.getFilteredDataEventsRequest();
-//            filterRequest.setObjectId(-1L);
-//            filterRequest.setNanotime(replayDataPage.getDataEvents().get(0).getNanoTime());
-//            filterRequest.setThreadId(replayDataPage.getDataEvents().get(0).getThreadId());
-//            filterRequest.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.ASC));
-//            if (replayDataPage.getDataEvents().size() == 0) {
-//                break;
-//            }
-            DataEventWithSessionId lastEvent = replayData.getDataEvents().get(0);
+
+       DataEventWithSessionId lastEvent = replayData.getDataEvents().get(0);
             if (Objects.equals(replayData.getFilteredDataEventsRequest().getSortOrder(), "ASC")) {
                 lastEvent = replayData.getDataEvents().get(replayData.getDataEvents().size() - 1);
             }
@@ -333,13 +313,12 @@ public class TestCandidateMetadata {
             List<String> typeHierarchy,
             /*
             variableContainer keeping a track of local variables and method arguments here so
-            that we dont
-            record/mock calls on these objects
+            that we dont record/mock calls on these objects
              */
             VariableContainer variableContainer
     ) {
 
-        List<MethodCallExpression> callList = new LinkedList<>();
+
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
                 ScanRequest.CURRENT_CLASS,
                 DirectionType.FORWARDS);
@@ -354,159 +333,16 @@ public class TestCandidateMetadata {
             }
         });
 
-        scanRequest.addListener(EventType.CALL, new EventTypeMatchListener() {
-            @Override
-            public void eventMatched(Integer index) {
-                DataEventWithSessionId event = replayData.getDataEvents().get(index);
-                Optional<Parameter> existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
-                if (existingVariable.isPresent()) {
-                    return;
-                }
-
-                DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
-                String methodName = probeInfo.getAttribute("Name", null);
-                String methodDescription = probeInfo.getAttribute("Desc", null);
-                List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
-                String returnType = methodDescList.get(methodDescList.size() - 1);
-                if (Objects.equals(returnType, "V")) {
-                    return;
-                }
-
-
-                String ownerClass = probeInfo.getAttribute("Owner", null);
-                String instruction = probeInfo.getAttribute("Instruction", null);
-
-                ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
-                MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
-
-                if (typeHierarchy.contains(ClassTypeUtils.getDottedClassName(ownerClass))) {
-                    return;
-                }
-
-                if (ownerClass.startsWith("reactor/core")) {
-                    return;
-                }
-
-                if (ownerClass.startsWith("java/")) {
-                    return;
-                }
-                if (ownerClass.contains("/slf4j/")) {
-                    return;
-                }
-                if (instruction.equals("INVOKESTATIC")) {
-                    return;
-                }
-                if (methodName.equals("<init>")) {
-                    return;
-                }
-                LoggerUtil.logEvent(
-                        "SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
-                );
-
-                List<String> subjectTypeHierarchy = replayData.buildHierarchyFromTypeName(
-                        "L" + ownerClass + ";");
-
-                logger.warn("potential call: " + probeInfo.getAttributes());
-
-                List<Parameter> callArguments = new LinkedList<>();
-
-                ScanRequest callSubjectScan = new ScanRequest(new ScanResult(index, 0), 0,
-                        DirectionType.BACKWARDS);
-                AtomicInteger subjectMatchIndex = new AtomicInteger(0);
-                List<Parameter> subjectParameterList = new LinkedList<>();
-                EventTypeMatchListener subjectMatchListener = new EventTypeMatchListener() {
-                    @Override
-                    public void eventMatched(Integer index) {
-
-                        DataEventWithSessionId matchedSubjectEvent =
-                                replayData.getDataEvents().get(index);
-                        DataInfo subjectEventProbe = replayData.getProbeInfo(matchedSubjectEvent.getDataId());
-
-                        String valueType = subjectEventProbe.getAttribute("Type", null);
-
-                        Parameter potentialSubjectParameter;
-
-                        potentialSubjectParameter =
-                                ParameterFactory.createParameter(index, replayData,
-                                        0, valueType);
-
-                        List<String> buildHierarchyFromTypeName =
-                                replayData.buildHierarchyFromTypeName(ClassTypeUtils.getDescriptorName(potentialSubjectParameter.getType()));
-                        if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
-                            subjectParameterList.add(potentialSubjectParameter);
-                        }
-                    }
-                };
-//                callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
-//                callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
-                callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
-                callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
-
-                callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
-                replayData.eventScan(callSubjectScan);
-
-                Parameter subjectParameter;
-                if (subjectParameterList.size() == 0) {
-                    logger.warn("failed to identify subject for the call: " + methodName +
-                            " at " + probeInfo);
-                    subjectParameter = new Parameter();
-                    subjectParameter.setName("testSubjectFor" + methodName);
-                    subjectParameter.setType(subjectTypeHierarchy.get(0));
-                } else {
-                    subjectParameter = subjectParameterList.get(0);
-                }
-
-
-                ScanRequest callReturnScan = new ScanRequest(new ScanResult(index, 0), 0,
-                        DirectionType.FORWARDS);
-
-                AtomicInteger lookingForParams = new AtomicInteger(1);
-                callReturnScan.addListener(EventType.CALL_PARAM, new EventTypeMatchListener() {
-                    @Override
-                    public void eventMatched(Integer index) {
-                        if (lookingForParams.get() == 1) {
-                            Parameter callArgumentParameter = ParameterFactory.createCallArgumentParameter(
-                                    index, replayData, callArguments.size(), null
-                            );
-                            callArguments.add(callArgumentParameter);
-                        }
-                    }
-                });
-                callReturnScan.addListener(EventType.CALL, i -> lookingForParams.set(0));
-                callReturnScan.addListener(EventType.METHOD_ENTRY, i -> lookingForParams.set(0));
-
-
-                callReturnScan.matchUntil(EventType.CALL_RETURN);
-
-                ScanResult callReturnScanResult = replayData.eventScan(callReturnScan);
-                if (callReturnScanResult.getIndex() == -1 ||
-                        callReturnScanResult.getIndex() == replayData.getDataEvents().size()) {
-                    logger.warn("call return not found for " + probeInfo);
-                    return;
-                }
-
-                Parameter callReturnParameter =
-                        ParameterFactory.createReturnValueParameter(
-                                callReturnScanResult.getIndex(), replayData, returnType);
-
-                if (callReturnParameter.getType() == null ||
-                        callReturnParameter.getType().equals("V")) {
-                    return;
-                }
-
-
-                MethodCallExpression methodCallExpression = new MethodCallExpression(
-                        methodName, subjectParameter, callArguments, callReturnParameter
-                );
-                callList.add(methodCallExpression);
-            }
-        });
+        MethodCallExtractor methodCallExtractor = new MethodCallExtractor(
+                replayData, variableContainer, typeHierarchy
+        );
+        scanRequest.addListener(EventType.CALL, methodCallExtractor);
         scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
         scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
 
         replayData.eventScan(scanRequest);
 
-        return callList;
+        return methodCallExtractor.getCallList();
     }
 
     private static List<Parameter> searchMethodParameters(
@@ -522,6 +358,8 @@ public class TestCandidateMetadata {
                 DirectionType.FORWARDS);
         searchRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
         searchRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
+        searchRequest.matchUntil(EventType.LABEL);
+        searchRequest.matchUntil(EventType.LINE_NUMBER);
         searchRequest.addListener(EventType.METHOD_PARAM, new EventTypeMatchListener() {
             private int paramIndex = 0;
 
