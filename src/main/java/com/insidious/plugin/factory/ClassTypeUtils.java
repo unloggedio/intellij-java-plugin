@@ -1,6 +1,8 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.common.weaver.DataInfo;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
@@ -86,5 +88,32 @@ public class ClassTypeUtils {
         return historyEventProbe.getAttribute(
                 "Name", historyEventProbe.getAttribute(
                         "FieldName", defaultValue));
+    }
+
+    public static TypeName getActualClassNameForBasicType(String typeName) {
+
+        switch (typeName) {
+            case "Z":
+                return ClassName.BOOLEAN;
+            case "B":
+                return ClassName.BYTE;
+            case "C":
+                return ClassName.CHAR;
+            case "S":
+                return ClassName.SHORT;
+            case "I":
+                return ClassName.INT;
+            case "J":
+                return ClassName.LONG;
+            case "F":
+                return ClassName.FLOAT;
+            case "D":
+                return ClassName.DOUBLE;
+            default:
+            case "V":
+                return ClassName.VOID;
+        }
+
+
     }
 }

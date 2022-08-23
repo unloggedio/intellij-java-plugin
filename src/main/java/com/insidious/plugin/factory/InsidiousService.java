@@ -502,7 +502,10 @@ public class InsidiousService implements Disposable {
                 "Videobug", true) {
             @Override
             protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
-                TestSuite testSuite = testCaseService.generateTestCase(List.of(object));
+                TestCaseRequest testCaseRequest = new TestCaseRequest(
+                        List.of(object), List.of(), Set.of()
+                );
+                TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);
                 return testSuite;
             }
         });
@@ -566,7 +569,10 @@ public class InsidiousService implements Disposable {
                             NotificationType.WARNING);
                 }
 
-                TestSuite testSuite = testCaseService.generateTestCase(allObjects);
+                TestCaseRequest testRequest = new TestCaseRequest(
+                        allObjects, List.of(), Set.of()
+                );
+                TestSuite testSuite = testCaseService.generateTestCase(testRequest);
                 return testSuite;
 
             }

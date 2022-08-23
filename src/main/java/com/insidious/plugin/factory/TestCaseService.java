@@ -79,120 +79,120 @@ public class TestCaseService {
                 session.getSessionId(), tracePointsCallback);
     }
 
-    /**
-     * this is the third attempt to generate test candidates, by using the
-     * complete class weave information of a session loaded instead of trying
-     * to rebuild the pieces one by one. here we are going to have
-     * classInfoList, methodInfoList and also probeInfoList to do *our*
-     * processing and then return actually usable results
-     *
-     * @param clientCallBack callback to stream the results to
-     */
-    public void
-
-    getTestCandidates(
-
-            ClientCallBack<TestCandidate> clientCallBack
-
-    )
-
-
-            throws APICallException, IOException, InterruptedException {
-
-        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
-
-        if (sessions.size() == 0) {
-            clientCallBack.completed();
-            return;
-        }
-
-        ExecutionSession session = sessions.get(0);
-        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
-//                EventType.METHOD_EXCEPTIONAL_EXIT,
-//                EventType.METHOD_OBJECT_INITIALIZED,
-//                EventType.METHOD_PARAM,
-//                EventType.METHOD_THROW,
-//                EventType.METHOD_NORMAL_EXIT,
-                        EventType.METHOD_ENTRY
-                )
-        );
-
-        BlockingQueue<String> tracePointLock = new ArrayBlockingQueue<>(1);
-
-        List<TracePoint> tracePointList = new LinkedList<>();
-        this.client.queryTracePointsByEventType(searchQuery,
-                session.getSessionId(), new ClientCallBack<TracePoint>() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(Collection<TracePoint> tracePoints) {
-                        tracePointList.addAll(tracePoints);
-
-                    }
-
-                    @Override
-                    public void completed() {
-                        tracePointLock.offer("new ExecutionSession()");
-                    }
-                });
-
-        tracePointLock.take();
-
-        if (tracePointList.size() == 0) {
-            logger.warn("no trace point found for method_entry event");
-            clientCallBack.completed();
-            return;
-        }
-
-        ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
-
-        HashMap<String, Integer> candidateCountMap = new HashMap<>();
-        for (TracePoint tracePoint : tracePointList) {
-
-            DataInfo probeInfo = classWeaveInfo.getProbeById(tracePoint.getDataId());
-            MethodInfo methodInfo = classWeaveInfo.getMethodInfoById(probeInfo.getMethodId());
-            ClassInfo classInfo = classWeaveInfo.getClassInfoById(methodInfo.getClassId());
-            String targetName = classInfo.getClassName() + ":" + methodInfo.getMethodName();
-            if (!candidateCountMap.containsKey(targetName)) {
-                candidateCountMap.put(targetName, 0);
-            }
-
-            int newCount = candidateCountMap.get(targetName) + 1;
-            if (newCount > 10) {
-                continue;
-            }
-            candidateCountMap.put(targetName, newCount);
-
-            FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
-
-            ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
-
-            TestCandidate testCandidate = new TestCandidate(
-                    methodInfo, classInfo,
-                    tracePoint.getNanoTime(), classWeaveInfo
-            );
-
-            TestCandidateMetadata testCandidateMetadata = TestCandidateMetadata.create(
-                    List.of(classInfo.getClassName()), methodInfo, tracePoint.getNanoTime(), probeReplayData
-            );
-            testCandidate.setMetadata(testCandidateMetadata);
-
-
-            clientCallBack.success(List.of(testCandidate));
-
-            logger.warn("generate test case for ["
-                    + classInfo.getClassName() + ":" + methodInfo.getMethodName()
-                    + "] using " + probeReplayData.getDataEvents().size() +
-                    " events");
-        }
-
-        clientCallBack.completed();
-
-
-    }
+//    /**
+//     * this is the third attempt to generate test candidates, by using the
+//     * complete class weave information of a session loaded instead of trying
+//     * to rebuild the pieces one by one. here we are going to have
+//     * classInfoList, methodInfoList and also probeInfoList to do *our*
+//     * processing and then return actually usable results
+//     *
+//     * @param clientCallBack callback to stream the results to
+//     */
+//    public void
+//
+//    getTestCandidates(
+//
+//            ClientCallBack<TestCandidate> clientCallBack
+//
+//    )
+//
+//
+//            throws APICallException, IOException, InterruptedException {
+//
+//        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
+//
+//        if (sessions.size() == 0) {
+//            clientCallBack.completed();
+//            return;
+//        }
+//
+//        ExecutionSession session = sessions.get(0);
+//        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
+////                EventType.METHOD_EXCEPTIONAL_EXIT,
+////                EventType.METHOD_OBJECT_INITIALIZED,
+////                EventType.METHOD_PARAM,
+////                EventType.METHOD_THROW,
+////                EventType.METHOD_NORMAL_EXIT,
+//                        EventType.METHOD_ENTRY
+//                )
+//        );
+//
+//        BlockingQueue<String> tracePointLock = new ArrayBlockingQueue<>(1);
+//
+//        List<TracePoint> tracePointList = new LinkedList<>();
+//        this.client.queryTracePointsByEventType(searchQuery,
+//                session.getSessionId(), new ClientCallBack<TracePoint>() {
+//                    @Override
+//                    public void error(ExceptionResponse errorResponse) {
+//
+//                    }
+//
+//                    @Override
+//                    public void success(Collection<TracePoint> tracePoints) {
+//                        tracePointList.addAll(tracePoints);
+//
+//                    }
+//
+//                    @Override
+//                    public void completed() {
+//                        tracePointLock.offer("new ExecutionSession()");
+//                    }
+//                });
+//
+//        tracePointLock.take();
+//
+//        if (tracePointList.size() == 0) {
+//            logger.warn("no trace point found for method_entry event");
+//            clientCallBack.completed();
+//            return;
+//        }
+//
+//        ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
+//
+//        HashMap<String, Integer> candidateCountMap = new HashMap<>();
+//        for (TracePoint tracePoint : tracePointList) {
+//
+//            DataInfo probeInfo = classWeaveInfo.getProbeById(tracePoint.getDataId());
+//            MethodInfo methodInfo = classWeaveInfo.getMethodInfoById(probeInfo.getMethodId());
+//            ClassInfo classInfo = classWeaveInfo.getClassInfoById(methodInfo.getClassId());
+//            String targetName = classInfo.getClassName() + ":" + methodInfo.getMethodName();
+//            if (!candidateCountMap.containsKey(targetName)) {
+//                candidateCountMap.put(targetName, 0);
+//            }
+//
+//            int newCount = candidateCountMap.get(targetName) + 1;
+//            if (newCount > 10) {
+//                continue;
+//            }
+//            candidateCountMap.put(targetName, newCount);
+//
+//            FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+//
+//            ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+//
+//            TestCandidate testCandidate = new TestCandidate(
+//                    methodInfo, classInfo,
+//                    tracePoint.getNanoTime(), classWeaveInfo
+//            );
+//
+//            TestCandidateMetadata testCandidateMetadata = TestCandidateMetadata.create(
+//                    List.of(classInfo.getClassName()), methodInfo, tracePoint.getNanoTime(), probeReplayData,
+//                    testCaseRequest);
+//            testCandidate.setMetadata(testCandidateMetadata);
+//
+//
+//            clientCallBack.success(List.of(testCandidate));
+//
+//            logger.warn("generate test case for ["
+//                    + classInfo.getClassName() + ":" + methodInfo.getMethodName()
+//                    + "] using " + probeReplayData.getDataEvents().size() +
+//                    " events");
+//        }
+//
+//        clientCallBack.completed();
+//
+//
+//    }
 
     /**
      * If the name doesnt give enough meaning, this will iterate thru all the classes, their
@@ -308,41 +308,41 @@ public class TestCaseService {
 
     }
 
-    /**
-     * another attempt at generated test candidates but this one tries to get
-     * a list of all methods in the session and then expects the user to do
-     * their own filtering/sorting. probably not going to be used calling the
-     * results as test candidates is misleading
-     *
-     * @param tracePointsCallback callback to stream results to
-     * @throws APICallException from session related operations
-     * @throws IOException      every thing is on the files
-     */
-    public void listTestCandidatesByMethods(
-            int typeId,
-            ClientCallBack<TestCandidate> tracePointsCallback) throws APICallException, IOException {
-
-        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
-
-        if (sessions.size() == 0) {
-            tracePointsCallback.completed();
-            return;
-        }
-
-        ExecutionSession session = sessions.get(0);
-
-//        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
-////                EventType.METHOD_EXCEPTIONAL_EXIT,
-////                EventType.METHOD_OBJECT_INITIALIZED,
-////                EventType.METHOD_PARAM,
-////                EventType.METHOD_THROW,
-////                EventType.METHOD_NORMAL_EXIT,
-//                        EventType.METHOD_ENTRY
-//                )
-//        );
-
-        this.client.getMethods(session.getSessionId(), typeId, tracePointsCallback);
-    }
+//    /**
+//     * another attempt at generated test candidates but this one tries to get
+//     * a list of all methods in the session and then expects the user to do
+//     * their own filtering/sorting. probably not going to be used calling the
+//     * results as test candidates is misleading
+//     *
+//     * @param tracePointsCallback callback to stream results to
+//     * @throws APICallException from session related operations
+//     * @throws IOException      every thing is on the files
+//     */
+//    public void listTestCandidatesByMethods(
+//            int typeId,
+//            ClientCallBack<TestCandidate> tracePointsCallback) throws APICallException, IOException {
+//
+//        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
+//
+//        if (sessions.size() == 0) {
+//            tracePointsCallback.completed();
+//            return;
+//        }
+//
+//        ExecutionSession session = sessions.get(0);
+//
+////        SearchQuery searchQuery = SearchQuery.ByEvent(List.of(
+//////                EventType.METHOD_EXCEPTIONAL_EXIT,
+//////                EventType.METHOD_OBJECT_INITIALIZED,
+//////                EventType.METHOD_PARAM,
+//////                EventType.METHOD_THROW,
+//////                EventType.METHOD_NORMAL_EXIT,
+////                        EventType.METHOD_ENTRY
+////                )
+////        );
+//
+//        this.client.getMethods(session.getSessionId(), typeId, tracePointsCallback);
+//    }
 
     @NotNull
     private TracePoint dummyTracePoint() {
@@ -536,34 +536,104 @@ public class TestCaseService {
 //                        variableContainer.add(returnValue);
                     }
 
-                    ClassName returnTypeClass = ClassName.bestGuess(
-                            methodCallReturnValue.getType());
+                    ClassName returnTypeClass = ClassName.bestGuess(methodCallReturnValue.getType());
 //                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
+                    if (methodCallReturnValue.getType().length() < 2) {
 
-                    if (methodCallReturnValue.getName() == null) {
-                        objectRoutine.addStatement(
-                                "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
-                                mockitoClass, methodCallExpression.getSubject().getName(),
-                                methodCallExpression.getMethodName(), callArgumentsString,
-                                new String(methodCallReturnValue.getProb().getSerializedValue()),
-                                returnTypeClass
-                        );
+                        TypeName returnType = ClassTypeUtils.getActualClassNameForBasicType(methodCallReturnValue.getType());
+
+                        switch (methodCallReturnValue.getType()) {
+                            default:
+
+                                Object callReturnValue =
+                                        methodCallReturnValue.getValue();
+                                if (callReturnValue.equals("0")) {
+                                    callReturnValue = "false";
+                                } else {
+                                    callReturnValue = "true";
+                                }
+                                if (methodCallReturnValue.getName() == null) {
+                                    objectRoutine.addStatement(
+                                            "$T.when($L.$L($L)).thenReturn($L)",
+                                            mockitoClass, methodCallExpression.getSubject().getName(),
+                                            methodCallExpression.getMethodName(), callArgumentsString,
+                                            callReturnValue
+                                    );
+                                } else {
+                                    objectRoutine.addStatement(
+                                            "$T $L = $L",
+                                            returnType, methodCallReturnValue.getName(),
+                                            callReturnValue
+
+                                    );
+                                    objectRoutine.addStatement(
+                                            "$T.when($L.$L($L)).thenReturn($L)",
+                                            mockitoClass, methodCallExpression.getSubject().getName(),
+                                            methodCallExpression.getMethodName(), callArgumentsString,
+                                            methodCallReturnValue.getName()
+                                    );
+                                    variableContainer.add(methodCallReturnValue);
+
+                                }
+
+
+                                break;
+
+                        }
+
+                    } else if (methodCallReturnValue.getType().equals("java.lang.String")) {
+                        if (methodCallReturnValue.getName() == null) {
+                            objectRoutine.addStatement(
+                                    "$T.when($L.$L($L)).thenReturn($L)",
+                                    mockitoClass, methodCallExpression.getSubject().getName(),
+                                    methodCallExpression.getMethodName(), callArgumentsString,
+                                    new String(methodCallReturnValue.getProb().getSerializedValue())
+                            );
+                        } else {
+                            objectRoutine.addStatement(
+                                    "$T $L = $L",
+                                    returnTypeClass, methodCallReturnValue.getName(),
+                                    new String(methodCallReturnValue.getProb().getSerializedValue())
+
+                            );
+                            objectRoutine.addStatement(
+                                    "$T.when($L.$L($L)).thenReturn($L)",
+                                    mockitoClass, methodCallExpression.getSubject().getName(),
+                                    methodCallExpression.getMethodName(), callArgumentsString,
+                                    methodCallReturnValue.getName()
+                            );
+                            variableContainer.add(methodCallReturnValue);
+
+                        }
+
                     } else {
-                        objectRoutine.addStatement(
-                                "$T $L = gson.fromJson($S, $T.class)",
-                                returnTypeClass, methodCallReturnValue.getName(),
-                                new String(methodCallReturnValue.getProb().getSerializedValue()), returnTypeClass
+                        if (methodCallReturnValue.getName() == null) {
+                            objectRoutine.addStatement(
+                                    "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
+                                    mockitoClass, methodCallExpression.getSubject().getName(),
+                                    methodCallExpression.getMethodName(), callArgumentsString,
+                                    new String(methodCallReturnValue.getProb().getSerializedValue()),
+                                    returnTypeClass
+                            );
+                        } else {
+                            objectRoutine.addStatement(
+                                    "$T $L = gson.fromJson($S, $T.class)",
+                                    returnTypeClass, methodCallReturnValue.getName(),
+                                    new String(methodCallReturnValue.getProb().getSerializedValue()), returnTypeClass
 
-                        );
-                        objectRoutine.addStatement(
-                                "$T.when($L.$L($L)).thenReturn($L)",
-                                mockitoClass, methodCallExpression.getSubject().getName(),
-                                methodCallExpression.getMethodName(), callArgumentsString,
-                                methodCallReturnValue.getName()
-                        );
-                        variableContainer.add(methodCallReturnValue);
+                            );
+                            objectRoutine.addStatement(
+                                    "$T.when($L.$L($L)).thenReturn($L)",
+                                    mockitoClass, methodCallExpression.getSubject().getName(),
+                                    methodCallExpression.getMethodName(), callArgumentsString,
+                                    methodCallReturnValue.getName()
+                            );
+                            variableContainer.add(methodCallReturnValue);
+
+                        }
 
                     }
+
                 }
 
                 objectRoutine.addComment("");
@@ -866,12 +936,15 @@ public class TestCaseService {
     }
 
     public TestSuite generateTestCase(
-            List<ObjectWithTypeInfo> allObjects
+            TestCaseRequest testCaseRequest
     ) throws APICallException, IOException {
+
+        List<ObjectWithTypeInfo> allObjects = testCaseRequest.getTargetObjectList();
 
         Map<Long, List<ObjectWithTypeInfo>> objectsByType =
                 allObjects.stream()
-                        .collect(Collectors.groupingBy(e -> e.getTypeInfo().getTypeId()));
+                        .collect(Collectors.groupingBy(
+                                e -> e.getTypeInfo().getTypeId()));
 
         List<MethodSpec> testCaseScripts = new LinkedList<>();
         checkProgressIndicator("Generating test cases using " + allObjects.size() + " objects", null);
@@ -903,7 +976,7 @@ public class TestCaseService {
                 objectParameter.setValue(objectId);
 
                 ObjectRoutineContainer classTestSuite = generateTestCaseFromObjectHistory(
-                        objectParameter, Set.of(), variableContainer, 0);
+                        objectParameter, testCaseRequest, variableContainer);
 
 
                 int testHash = Arrays.hashCode(classTestSuite.getStatements().toArray());
@@ -933,9 +1006,7 @@ public class TestCaseService {
 
                     ObjectRoutineContainer e1 =
                             new ObjectRoutineContainer(List.of(constructorRoutine, objectRoutine));
-//                    e1.getObjectRoutines().clear();
-//                    e1.getObjectRoutines().add(constructorRoutine);
-//                    e1.getObjectRoutines().add(objectRoutine);
+
                     addRoutinesToMethodBuilder(builder, List.of(e1), new LinkedList<>());
 
 
@@ -1056,24 +1127,29 @@ public class TestCaseService {
     /**
      * this is our main man in the team
      *
-     * @param parameter
-     * @param dependentObjectIdsOriginal
-     * @param globalVariableContainer
-     * @return
-     * @throws APICallException
-     * @throws IOException
+     * @param parameter               the parameter for which the routine is going to be generated
+     * @param testCaseRequest         the configuration we need to generate a test case. primarily need
+     *                                to hold the list of classes which we do not want to mock, but more
+     *                                to come here, in terms of flavor of the test case generated, maybe
+     *                                even language level things
+     * @param globalVariableContainer carries the list of variables which have been identified
+     *                                and created (so that we dont initialize them multiple times)
+     * @return returns the routine for the object, each routine has a test case metadata and set
+     * of associated test script in the form of statements
+     * @throws APICallException when something fails in the data access network layer
+     * @throws IOException      when something fails in the data access storage layer
      */
     private ObjectRoutineContainer
     generateTestCaseFromObjectHistory(
             Parameter parameter,
-            final Set<Long> dependentObjectIdsOriginal,
-            VariableContainer globalVariableContainer,
-            Integer buildLevel
+            TestCaseRequest testCaseRequest,
+            VariableContainer globalVariableContainer
     ) throws APICallException,
             IOException {
-        logger.warn("[" + buildLevel + "] Create test case from object: " + parameter + " -- " +
+        logger.warn("[" + testCaseRequest.getBuildLevel() + "] Create test case from object: " + parameter +
+                " -- " +
                 "dependent object" +
-                " ids: " + dependentObjectIdsOriginal);
+                " ids: " + testCaseRequest.getDependentObjectList());
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
 
@@ -1107,11 +1183,11 @@ public class TestCaseService {
 
         }
 
-        if (buildLevel > 1) {
+        if (testCaseRequest.getBuildLevel() > 1) {
             return objectRoutineContainer;
         }
 
-        Set<Long> dependentObjectIds = new HashSet<>(dependentObjectIdsOriginal);
+        Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
 
 
         PageInfo pagination = new PageInfo(0, 200, PageInfo.Order.ASC);
@@ -1126,8 +1202,9 @@ public class TestCaseService {
                 fetchObjectHistoryByObjectId(request);
 
 
-        String subjectName = buildTestCandidates(parameter, objectRoutineContainer,
-                objectReplayData, buildLevel);
+        testCaseRequest.setTargetParameter(parameter);
+        String subjectName = buildTestCandidates(testCaseRequest, objectRoutineContainer,
+                objectReplayData, testCaseRequest.getBuildLevel());
 
         if (subjectName != null) {
             objectRoutineContainer.setName(subjectName);
@@ -1152,9 +1229,7 @@ public class TestCaseService {
                 Parameter localVariable = variableContainer.getParameterByName(name);
                 if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
                     Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
-                    if (byId.isPresent()) {
-                        byId.get().setName(localVariable.getName());
-                    }
+                    byId.ifPresent(value -> value.setName(localVariable.getName()));
                 }
             }
 
@@ -1169,14 +1244,15 @@ public class TestCaseService {
                     .flatMap(Collection::stream)
                     .collect(Collectors.toCollection(LinkedList::new));
 
-            if (objectRoutine.getRoutineName().equals("<init>") && buildLevel == 0) {
+            if (objectRoutine.getRoutineName().equals("<init>")
+                    && testCaseRequest.getBuildLevel() == 0) {
                 for (Parameter dependentParameter : dependentParameters) {
 
                     ObjectRoutineContainer dependentObjectMockCreation;
                     if (dependentParameter.getType().startsWith("Ljava/")) {
                         dependentObjectMockCreation = generateTestCaseFromObjectHistory(
-                                dependentParameter, newPotentialObjects, variableContainer,
-                                buildLevel + 1);
+                                dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
+                                variableContainer);
                     } else {
                         dependentObjectMockCreation = createMock(dependentParameter);
                     }
@@ -1224,7 +1300,8 @@ public class TestCaseService {
 
                 ObjectRoutineContainer dependentObjectCreation =
                         generateTestCaseFromObjectHistory(
-                                dependentParameter, newPotentialObjects, variableContainer, buildLevel + 1);
+                                dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
+                                variableContainer);
 
 
                 variableContainer.add(dependentParameter);
@@ -1277,22 +1354,23 @@ public class TestCaseService {
      * replayData parameter. Any matching CALL or METHOD_ENTRY is a potential call and its
      * parameters and return value is captured, which serves the bases of the test candidate.
      *
-     * @param parameter              the value is the most important part
+     * @param testCaseRequest        the value of the parameter is required to work
      * @param objectRoutineContainer the identified method called on this parameter will be added
      *                               to the object routine container
      * @param objectReplayData       the series of events based on which we are rebuilding the object history
-     * @param buildLevel
+     * @param buildLevel             buildLevel is how deep we have gone for building dependent objects
      * @return a name for the target object (which was originally a long id),
      * @throws APICallException this happens when we fail to read the data from the disk or the
      *                          network
      */
     private String
     buildTestCandidates(
-            final Parameter parameter,
+            final TestCaseRequest testCaseRequest,
             ObjectRoutineContainer objectRoutineContainer,
             ReplayData objectReplayData,
             Integer buildLevel) throws APICallException {
 
+        Parameter parameter = testCaseRequest.getTargetParameter();
 
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
         if (objectEvents.size() == 0) {
@@ -1513,7 +1591,8 @@ public class TestCaseService {
                     TestCandidateMetadata newTestCaseMetadata =
                             TestCandidateMetadata.create(
                                     typeNameHierarchyList, methodInfo,
-                                    backEvent.getNanoTime(), replayEventsBefore);
+                                    backEvent.getNanoTime(), replayEventsBefore,
+                                    testCaseRequest);
 
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {

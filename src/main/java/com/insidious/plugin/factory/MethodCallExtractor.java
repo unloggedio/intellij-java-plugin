@@ -28,20 +28,22 @@ public class MethodCallExtractor implements EventTypeMatchListener {
     private final VariableContainer variableContainer;
     private final List<String> typeHierarchy;
     private final Logger logger = LoggerUtil.getInstance(MethodCallExtractor.class);
+    private List<String> noMockClassList;
     private List<MethodCallExpression> callList = new LinkedList<>();
-
-    public List<MethodCallExpression> getCallList() {
-        return callList;
-    }
 
     public MethodCallExtractor(
             ReplayData replayData,
             VariableContainer variableContainer,
-            List<String> typeHierarchy
-    ) {
+            List<String> typeHierarchy,
+            List<String> noMockClassList) {
         this.replayData = replayData;
         this.variableContainer = variableContainer;
         this.typeHierarchy = typeHierarchy;
+        this.noMockClassList = noMockClassList;
+    }
+
+    public List<MethodCallExpression> getCallList() {
+        return callList;
     }
 
     @Override
@@ -68,8 +70,18 @@ public class MethodCallExtractor implements EventTypeMatchListener {
         ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
         MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
 
-        if (typeHierarchy.contains(ClassTypeUtils.getDottedClassName(ownerClass))) {
+        String dottedClassName = ClassTypeUtils.getDottedClassName(ownerClass);
+
+        if (typeHierarchy.contains(dottedClassName)) {
             return;
+        }
+
+        if (noMockClassList.size() > 0) {
+            for (String noMock : noMockClassList) {
+                if (dottedClassName.startsWith(noMock)) {
+                    return;
+                }
+            }
         }
 
         if (ownerClass.startsWith("reactor/core")) {

@@ -15,7 +15,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -36,8 +35,8 @@ public class TestCandidateMetadata {
             List<String> typeHierarchy,
             MethodInfo methodInfo,
             long entryProbeDataId,
-            ReplayData replayData
-    ) throws APICallException {
+            ReplayData replayData,
+            TestCaseRequest testCaseRequest) throws APICallException {
         logger.warn("[" + methodInfo.getMethodName() + "] " +
                 "create test case metadata for types [" + entryProbeDataId + "] -> entry probe " +
                 " types  " + typeHierarchy);
@@ -175,7 +174,8 @@ public class TestCandidateMetadata {
 
 
         List<MethodCallExpression> callsList =
-                searchMethodCallExpressions(replayData, entryProbeIndex, typeHierarchy, variableContainer);
+                searchMethodCallExpressions(replayData, entryProbeIndex, typeHierarchy,
+                        variableContainer, testCaseRequest.getNoMockClassList());
 
         metadata.setCallList(callsList);
 
@@ -315,8 +315,8 @@ public class TestCandidateMetadata {
             variableContainer keeping a track of local variables and method arguments here so
             that we dont record/mock calls on these objects
              */
-            VariableContainer variableContainer
-    ) {
+            VariableContainer variableContainer,
+            List<String> noMockClassList) {
 
 
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
@@ -334,7 +334,7 @@ public class TestCandidateMetadata {
         });
 
         MethodCallExtractor methodCallExtractor = new MethodCallExtractor(
-                replayData, variableContainer, typeHierarchy
+                replayData, variableContainer, typeHierarchy, noMockClassList
         );
         scanRequest.addListener(EventType.CALL, methodCallExtractor);
         scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);

@@ -1,6 +1,5 @@
 package com.insidious.plugin.factory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
@@ -20,10 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
@@ -335,8 +331,8 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("org.zerhusen.security.UserModelDetailsService");
 
 
-        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+//        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
+        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
@@ -366,7 +362,12 @@ public class TestCaseServiceTest {
         );
         waiter.take();
 
-        TestSuite testSuite = testCaseService.generateTestCase(allObjects);
+        TestCaseRequest testCaseRequest = new TestCaseRequest(
+                allObjects,
+                List.of("com.fasterxml"),
+                Set.of()
+        );
+        TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);
 
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             System.out.println(testCaseScript);
