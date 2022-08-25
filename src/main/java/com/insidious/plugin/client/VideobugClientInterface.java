@@ -4,6 +4,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -59,7 +60,7 @@ public interface VideobugClientInterface {
 
     ReplayData fetchObjectHistoryByObjectId(
             FilteredDataEventsRequest request
-    );
+    ) throws SessionNotSelectedException;
 
     void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
                                  ClientCallBack<TracePoint> getProjectSessionErrorsCallback);

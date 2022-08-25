@@ -6,6 +6,7 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -42,6 +43,7 @@ public class EventLogWindow {
     private JPanel paginationPanel;
     private int currentPage = 0;
     private long currentObjectId;
+    private ReplayData replayData1;
 
     public EventLogWindow(InsidiousService insidiousService) {
 
@@ -70,7 +72,7 @@ public class EventLogWindow {
 
         this.searchButton.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent event) {
                 String queryString = queryTextField.getText();
 
                 if (!queryString.contains("=") && !queryString.contains(" ")) {
@@ -124,7 +126,12 @@ public class EventLogWindow {
 
                 }
 
-                loadHistory(filterRequest);
+                try {
+                    loadHistory(filterRequest);
+                } catch (SessionNotSelectedException ex) {
+                    InsidiousNotification.notifyMessage("Failed to fetch events: " + ex.getMessage(),
+                            NotificationType.ERROR);
+                }
             }
         });
 
@@ -150,19 +157,34 @@ public class EventLogWindow {
         });
 
         this.firstPage.addActionListener(e -> {
-            currentPage = 0;
-            loadHistory(currentObjectId, currentPage);
+            try {
+                replayData = replayData.getPage(0);
+            } catch (SessionNotSelectedException ex) {
+                InsidiousNotification.notifyMessage("Failed to load events: " + ex.getMessage(),
+                        NotificationType.ERROR);
+                return;
+            }
+            updateTableData(replayData);
         });
         this.previousPage.addActionListener(e -> {
-            currentPage -= 1;
-            if (currentPage < 0) {
-                currentPage = 0;
+            try {
+                replayData = replayData.getPreviousPage();
+            } catch (SessionNotSelectedException ex) {
+                InsidiousNotification.notifyMessage("Failed to load events: " + ex.getMessage(),
+                        NotificationType.ERROR);
+                return;
             }
-            loadHistory(currentObjectId, currentPage);
+            updateTableData(replayData);
         });
         this.nextPage.addActionListener(e -> {
-            currentPage += 1;
-            loadHistory(currentObjectId, currentPage);
+            try {
+                replayData = replayData.getNextPage();
+            } catch (SessionNotSelectedException ex) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to load events: " + ex.getMessage(), NotificationType.ERROR);
+                return;
+            }
+            updateTableData(replayData);
         });
     }
 
@@ -177,7 +199,13 @@ public class EventLogWindow {
             ) {
                 @Override
                 protected ReplayData compute(@NotNull ProgressIndicator indicator) throws Exception {
-                    return loadHistory(objectId, currentPage);
+                    try {
+                        return loadHistory(objectId, currentPage);
+                    } catch (SessionNotSelectedException e) {
+                        InsidiousNotification.notifyMessage("Failed to fetch events: " + e.getMessage(),
+                                NotificationType.ERROR);
+                    }
+                    return null;
                 }
             });
         } catch (Exception e) {
@@ -188,7 +216,7 @@ public class EventLogWindow {
 
     }
 
-    private ReplayData loadHistory(long objectId, int pageNumber) {
+    private ReplayData loadHistory(long objectId, int pageNumber) throws SessionNotSelectedException {
         infoLabel.setText("Loading page: " + (pageNumber + 1));
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
         filterRequest.setObjectId(objectId);
@@ -197,13 +225,14 @@ public class EventLogWindow {
         pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
 
         filterRequest.setPageInfo(pageInfo);
-        ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
-        updateTableData(replayData1);
-        infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData1.getDataEvents().size() + " events]");
-        return replayData1;
+        ReplayData replayData = null;
+        replayData = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
+        updateTableData(replayData);
+        infoLabel.setText("[Page " + (pageNumber + 1) + "] [" + replayData.getDataEvents().size() + " events]");
+        return replayData;
     }
 
-    private ReplayData loadHistory(FilteredDataEventsRequest filterRequest) {
+    private ReplayData loadHistory(FilteredDataEventsRequest filterRequest) throws SessionNotSelectedException {
 
         PageInfo pageInfo = filterRequest.getPageInfo();
 
@@ -261,22 +290,21 @@ public class EventLogWindow {
             tableModel = new DefaultTableModel(dataVector, columnVector) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
-                    return false;
+                    return true;
                 }
             };
+
             eventsTable.setModel(tableModel);
 
-
-//        //  "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
-            eventsTable.getColumn("Event").setPreferredWidth(130);
-            eventsTable.getColumn("#Time").setPreferredWidth(25);
-            eventsTable.getColumn("#Line").setPreferredWidth(5);
-            eventsTable.getColumn("Value").setPreferredWidth(40);
-            eventsTable.getColumn("Attributes").setPreferredWidth(200);
-            eventsTable.getColumn("String").setPreferredWidth(100);
+            eventsTable.getColumn(0).setPreferredWidth(130);
+            eventsTable.getColumn(1).setPreferredWidth(25);
+            eventsTable.getColumn(2).setPreferredWidth(5);
+            eventsTable.getColumn(3).setPreferredWidth(40);
+            eventsTable.getColumn(4).setPreferredWidth(200);
+            eventsTable.getColumn(5).setPreferredWidth(100);
         } else {
             int rowCount = tableModel.getRowCount();
-            for (int i = 0; i <rowCount; i++) {
+            for (int i = 0; i < rowCount; i++) {
                 tableModel.removeRow(0);
             }
 
@@ -285,9 +313,6 @@ public class EventLogWindow {
             }
 
         }
-
-
-
 
 
     }

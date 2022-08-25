@@ -156,7 +156,7 @@ public class ParameterFactory {
                     // but if this is a call to a third party sdk, then we dont know the
                     // argument name
 
-//                    if (callStack < 0 && direction == -1) {
+//                    if (callStack == 0 && direction == -1) {
 //                        return parameter;
 //                    }
                     break;
@@ -182,15 +182,18 @@ public class ParameterFactory {
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 
 
-                    if (!fieldType.startsWith("L") || typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
+                    String simpleClassName = ClassTypeUtils.getDottedClassName(fieldType);
+                    if (typeHierarchy.contains(simpleClassName)) {
 
                         LoggerUtil.logEvent("SearchObjectName3", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
 
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
                         parameter.setName(variableName);
-                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                        parameter.setType(simpleClassName);
                         return parameter;
+                    } else {
+                        logger.info("");
                     }
                     break;
             }

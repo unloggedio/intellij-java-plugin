@@ -6,6 +6,7 @@ import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -505,10 +506,20 @@ public class InsidiousService implements Disposable {
                 TestCaseRequest testCaseRequest = new TestCaseRequest(
                         List.of(object), List.of(), Set.of()
                 );
-                TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);
+                TestSuite testSuite = null;
+                try {
+                    testSuite = testCaseService.generateTestCase(testCaseRequest);
+                } catch (SessionNotSelectedException e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+                    );
+                }
                 return testSuite;
             }
         });
+        if (testSuite == null) {
+            return;
+        }
         logger.warn("testsuite: \n" + testSuite.toString());
 
         @Nullable VirtualFile newFile = saveTestSuite(testSuite);
@@ -572,11 +583,22 @@ public class InsidiousService implements Disposable {
                 TestCaseRequest testRequest = new TestCaseRequest(
                         allObjects, List.of(), Set.of()
                 );
-                TestSuite testSuite = testCaseService.generateTestCase(testRequest);
+                TestSuite testSuite = null;
+                try {
+                    testSuite = testCaseService.generateTestCase(testRequest);
+                } catch (SessionNotSelectedException e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+                    );
+                    return null;
+                }
                 return testSuite;
 
             }
         });
+        if (testSuite == null) {
+            return;
+        }
 
         @Nullable VirtualFile newFile = saveTestSuite(testSuite);
         if (newFile == null) {

@@ -108,6 +108,10 @@ public class MethodCallExtractor implements EventTypeMatchListener {
                 "L" + ownerClass + ";");
 
         logger.warn("potential call: " + probeInfo.getAttributes());
+        String callOwner = probeInfo.getAttribute("Owner", null);
+        if (callOwner == null) {
+            return;
+        }
 
         List<Parameter> callArguments = new LinkedList<>();
 

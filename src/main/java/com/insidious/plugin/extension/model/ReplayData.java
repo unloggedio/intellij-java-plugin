@@ -4,8 +4,8 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.factory.ClassTypeUtils;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
@@ -69,7 +69,7 @@ public class ReplayData {
         this.dataEvents = objectEventsReverse;
     }
 
-    public ReplayData getNextPage() throws APICallException {
+    public ReplayData getNextPage() throws SessionNotSelectedException {
         FilteredDataEventsRequest filteredDataEventsRequestClone =
                 FilteredDataEventsRequest.copyOf(filteredDataEventsRequest);
 
@@ -103,7 +103,7 @@ public class ReplayData {
         return filteredDataEventsRequest;
     }
 
-    public ReplayData fetchEventsPre(DataEventWithSessionId event, int size) {
+    public ReplayData fetchEventsPre(DataEventWithSessionId event, int size) throws SessionNotSelectedException {
         PageInfo paginationOlder = new PageInfo(0, size, PageInfo.Order.DESC);
         paginationOlder.setBufferSize(0);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
@@ -113,7 +113,8 @@ public class ReplayData {
         return client.fetchObjectHistoryByObjectId(filterRequest);
     }
 
-    public ReplayData fetchEventsPost(DataEventWithSessionId event, int size) {
+    public ReplayData fetchEventsPost(DataEventWithSessionId event, int size) throws SessionNotSelectedException {
+        assert client.getCurrentSession() != null;
         PageInfo paginationOlder = new PageInfo(0, size, PageInfo.Order.ASC);
         paginationOlder.setBufferSize(0);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
@@ -254,14 +255,14 @@ public class ReplayData {
         while (typeInfoToAdd != null && typeInfoToAdd.getSuperClass() != -1) {
             String className = typeInfoToAdd.getTypeNameFromClass();
 
-            if (!typeHierarchy.contains(className)){
+            if (!typeHierarchy.contains(className)) {
                 typeHierarchy.add(className);
             }
 
             for (int anInterface : typeInfoToAdd.getInterfaces()) {
                 TypeInfo interfaceType = typeInfoMap.get(String.valueOf(anInterface));
                 String interfaceName = interfaceType.getTypeNameFromClass();
-                if (!typeHierarchy.contains(interfaceName)){
+                if (!typeHierarchy.contains(interfaceName)) {
                     typeHierarchy.add(interfaceName);
                 }
             }
@@ -339,5 +340,38 @@ public class ReplayData {
         this.stringInfoMap.putAll(replayEventsAfter.getStringInfoMap());
         this.objectInfoMap.putAll(replayEventsAfter.getObjectInfoMap());
         this.typeInfoMap.putAll(replayEventsAfter.getTypeInfoMap());
+    }
+
+    public ReplayData getPreviousPage() throws SessionNotSelectedException {
+        FilteredDataEventsRequest filteredDataEventsRequestClone =
+                FilteredDataEventsRequest.copyOf(filteredDataEventsRequest);
+
+        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
+        PageInfo.Order pageOrder = pageInfo.isAsc() ? PageInfo.Order.ASC : PageInfo.Order.DESC;
+        int newPageNumber = pageInfo.getNumber() - 1;
+        if (newPageNumber < 0) {
+            newPageNumber = 0;
+        }
+        pageInfo = new PageInfo(newPageNumber, pageInfo.getSize(), pageOrder);
+
+        filteredDataEventsRequestClone.setPageInfo(pageInfo);
+        return client.fetchObjectHistoryByObjectId(
+                filteredDataEventsRequestClone
+        );
+    }
+
+    public ReplayData getPage(int newPageNumber) throws SessionNotSelectedException {
+        FilteredDataEventsRequest filteredDataEventsRequestClone =
+                FilteredDataEventsRequest.copyOf(filteredDataEventsRequest);
+
+        PageInfo pageInfo = filteredDataEventsRequest.getPageInfo();
+        PageInfo.Order pageOrder = pageInfo.isAsc() ? PageInfo.Order.ASC : PageInfo.Order.DESC;
+
+        pageInfo = new PageInfo(newPageNumber, pageInfo.getSize(), pageOrder);
+
+        filteredDataEventsRequestClone.setPageInfo(pageInfo);
+        return client.fetchObjectHistoryByObjectId(
+                filteredDataEventsRequestClone
+        );
     }
 }

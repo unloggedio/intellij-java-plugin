@@ -1,6 +1,10 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.EventType;
+import com.insidious.common.weaver.MethodInfo;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
@@ -14,7 +18,9 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -36,7 +42,7 @@ public class TestCandidateMetadata {
             MethodInfo methodInfo,
             long entryProbeDataId,
             ReplayData replayData,
-            TestCaseRequest testCaseRequest) throws APICallException {
+            TestCaseRequest testCaseRequest) throws APICallException, SessionNotSelectedException {
         logger.warn("[" + methodInfo.getMethodName() + "] " +
                 "create test case metadata for types [" + entryProbeDataId + "] -> entry probe " +
                 " types  " + typeHierarchy);
@@ -123,7 +129,7 @@ public class TestCandidateMetadata {
             logger.warn("return probe not found, fetching next page: " +
                     replayData.getFilteredDataEventsRequest().getPageInfo());
 
-       DataEventWithSessionId lastEvent = replayData.getDataEvents().get(0);
+            DataEventWithSessionId lastEvent = replayData.getDataEvents().get(0);
             if (Objects.equals(replayData.getFilteredDataEventsRequest().getSortOrder(), "ASC")) {
                 lastEvent = replayData.getDataEvents().get(replayData.getDataEvents().size() - 1);
             }
@@ -147,7 +153,6 @@ public class TestCandidateMetadata {
             if (eventInfo.getNanoTime() == entryProbeDataId) break;
             entryProbeIndex++;
         }
-
 
 
 //        metadata.setExitProbeIndex(callReturnIndex);
@@ -306,8 +311,7 @@ public class TestCandidateMetadata {
         return metadata;
     }
 
-    private static List<MethodCallExpression>
-    searchMethodCallExpressions(
+    private static List<MethodCallExpression> searchMethodCallExpressions(
             ReplayData replayData,
             int entryProbeIndex,
             List<String> typeHierarchy,

@@ -54,6 +54,9 @@ public class ClassTypeUtils {
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
         }
+        if (lastPart.contains("$")) {
+            lastPart = lastPart.replace('$', 'S');
+        }
         lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
         return lastPart;
     }
@@ -77,9 +80,10 @@ public class ClassTypeUtils {
         }
 
         String dottedName = className.replace('/', '.');
-        if (dottedName.contains("$")) {
-            dottedName = dottedName.substring(0, dottedName.indexOf("$"));
+        if (dottedName.contains("$$")) {
+            dottedName = dottedName.substring(0, dottedName.indexOf("$$"));
         }
+//        dottedName = dottedName.replace('$', '.');
         return dottedName;
     }
 

@@ -6,6 +6,7 @@ import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
@@ -74,7 +75,7 @@ public class TestCaseServiceTest {
 
 
     @Test
-    void testPrintObjectHistory() {
+    void testPrintObjectHistory() throws SessionNotSelectedException {
 
         Long objectId = Long.valueOf(909497978);
 //        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
@@ -121,7 +122,7 @@ public class TestCaseServiceTest {
 
     }
 
-    private void printObjectHistory(Long objectId) {
+    private void printObjectHistory(Long objectId) throws SessionNotSelectedException {
 
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
@@ -184,7 +185,7 @@ public class TestCaseServiceTest {
 
 
     @Test
-    void testPrintObjectsByType() throws InterruptedException {
+    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException {
 
         Long objectId;
         List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
@@ -306,7 +307,7 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    void testGenerateByObjects() throws InterruptedException, APICallException, IOException {
+    void testGenerateByObjects() throws InterruptedException, APICallException, IOException, SessionNotSelectedException {
 
 
         Project project = Mockito.mock(Project.class);
@@ -364,7 +365,10 @@ public class TestCaseServiceTest {
 
         TestCaseRequest testCaseRequest = new TestCaseRequest(
                 allObjects,
-                List.of("com.fasterxml"),
+                List.of(
+                        "com.fasterxml",
+                        "com.google"
+                ),
                 Set.of()
         );
         TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);

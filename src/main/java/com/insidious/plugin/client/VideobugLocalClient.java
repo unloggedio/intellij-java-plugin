@@ -6,6 +6,7 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.cache.ArchiveIndex;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
@@ -169,10 +170,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchObjectHistoryByObjectId(
             FilteredDataEventsRequest filteredDataEventsRequest
-    ) {
+    ) throws SessionNotSelectedException {
 
         if (filteredDataEventsRequest.getSessionId() != null) {
             checkSession(filteredDataEventsRequest.getSessionId());
+        }
+        if (this.session == null) {
+            throw new SessionNotSelectedException();
         }
         ReplayData replayData = this.session.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
         replayData.setClient(this);
