@@ -182,6 +182,7 @@ public class MethodCallExtractor implements EventTypeMatchListener {
 
 
         callReturnScan.matchUntil(EventType.CALL_RETURN);
+        callReturnScan.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
 
         ScanResult callReturnScanResult = replayData.eventScan(callReturnScan);
         if (callReturnScanResult.getIndex() == -1 ||

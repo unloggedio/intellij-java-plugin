@@ -427,7 +427,13 @@ public class TestCaseService {
 //                        variableContainer.add(returnValue);
                     }
 
-                    ClassName returnTypeClass = ClassName.bestGuess(methodCallReturnValue.getType().replace('$', '.'));
+                    String returnTypeValue = methodCallReturnValue.getType().replace('$', '.');
+                    boolean isArray = false;
+                    if (returnTypeValue.startsWith("[")) {
+                        returnTypeValue = returnTypeValue.substring(1);
+                        isArray = true;
+                    }
+                    ClassName returnTypeClass = ClassName.bestGuess(returnTypeValue);
 //                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
                     if (methodCallReturnValue.getType().length() < 2) {
 
@@ -688,7 +694,10 @@ public class TestCaseService {
         }
     }
 
-    private void addVariableToScript(Parameter methodCallReturnValue, ObjectRoutine objectRoutine) {
+    private void addVariableToScript(
+            Parameter methodCallReturnValue,
+            ObjectRoutine objectRoutine
+    ) {
         if (methodCallReturnValue.getType() == null) {
             return;
         }
@@ -699,11 +708,21 @@ public class TestCaseService {
                 ClassTypeUtils.getDottedClassName(methodCallReturnValue.getType().replace('$', '.'))
         );
 
-        objectRoutine.addStatement(
-                "$T $L = gson.fromJson($S, $T.class)",
-                returnTypeClass, methodCallReturnValue.getName(),
-                methodCallReturnValue.getProb().getSerializedValue(), returnTypeClass
-        );
+        if (methodCallReturnValue.getType().startsWith("java.lang")) {
+            objectRoutine.addStatement(
+                    "$T $L = $L",
+                    returnTypeClass, methodCallReturnValue.getName(),
+                    new String(methodCallReturnValue.getProb().getSerializedValue())
+            );
+
+        } else {
+
+            objectRoutine.addStatement(
+                    "$T $L = gson.fromJson($S, $T.class)",
+                    returnTypeClass, methodCallReturnValue.getName(),
+                    methodCallReturnValue.getProb().getSerializedValue(), returnTypeClass
+            );
+        }
 
     }
 
@@ -918,15 +937,23 @@ public class TestCaseService {
                 fieldInjectorMethod.addParameter(String.class, "name");
                 fieldInjectorMethod.addParameter(Object.class, "targetObject");
 
-                fieldInjectorMethod.addCode(CodeBlock.of("" +
-                        "$T targetField = targetInstance.getClass().getDeclaredField(name);\n" +
-                        "targetField.setAccessible(true);\n" +
-                        "targetField.set(targetInstance, targetObject);\n",
+                fieldInjectorMethod.addCode(CodeBlock.of("        Class<?> aClass = targetInstance.getClass();\n" +
+                                "\n" +
+                                "        while (!aClass.equals(Object.class)) {\n" +
+                                "            try {\n" +
+                                "                $T targetField = aClass.getDeclaredField(name);" +
+                                "\n" +
+                                "                targetField.setAccessible(true);\n" +
+                                "                targetField.set(targetInstance, targetObject);\n" +
+                                "            } catch (NoSuchFieldException nsfe) {\n" +
+                                "                // nothing to set\n" +
+                                "            }\n" +
+                                "            aClass = aClass.getSuperclass();\n" +
+                                "        }\n",
                         ClassName.bestGuess("java.lang.reflect.Field")));
 
                 MethodSpec injectorMethod = fieldInjectorMethod.build();
                 testCaseScripts.add(injectorMethod);
-
 
 
                 for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
@@ -1045,6 +1072,7 @@ public class TestCaseService {
                 for (Pair<CodeLine, Object[]> statement : objectRoutine.getStatements()) {
                     CodeLine line = statement.getFirst();
                     if (line instanceof StatementCodeLine) {
+                        logger.warn("Add statement: [" + line.getLine() + "]");
                         builder.addStatement(line.getLine(), statement.getSecond());
                     } else {
                         String line1 = line.getLine();

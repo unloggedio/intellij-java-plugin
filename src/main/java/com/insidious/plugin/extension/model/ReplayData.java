@@ -190,6 +190,10 @@ public class ReplayData {
                     eventType == EventType.METHOD_NORMAL_EXIT ||
                             eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
                 callStack -= direction;
+                if (eventType == EventType.METHOD_EXCEPTIONAL_EXIT &&
+                        matchUntilEvent.contains(EventType.METHOD_EXCEPTIONAL_EXIT) && callStack == 0) {
+                    return new ScanResult(callReturnIndex, callStack);
+                }
             }
 
             callReturnIndex += direction;

@@ -703,7 +703,7 @@ public class ParameterFactory {
 
         if (objectInfo == null) {
             String variableTypeName = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
-            parameter.setType(variableTypeName);
+            parameter.setType(ClassTypeUtils.getDottedClassName(variableTypeName));
             if (Objects.equals(variableTypeName, "V")) {
                 parameter.setValue(null);
                 return parameter;
@@ -787,6 +787,7 @@ public class ParameterFactory {
                 case PUT_STATIC_FIELD:
                 case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
+                case OBJECT_CONSTANT_LOAD:
                     if (callStack != callStackSearchLevel) {
                         continue;
                     }
@@ -794,9 +795,9 @@ public class ParameterFactory {
                         paramIndex -= 1;
                         continue;
                     }
-//                    if (historyEvent.getValue() != event.getValue()) {
-//                        continue;
-//                    }
+                    if (historyEvent.getValue() != event.getValue()) {
+                        continue;
+                    }
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
                     if (fieldType.startsWith("[")) {
                         fieldType = fieldType.substring(1);
@@ -808,9 +809,13 @@ public class ParameterFactory {
                         LoggerUtil.logEvent("SearchObjectName3", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
-                        parameter.setName(variableName);
-                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                        return parameter;
+                        if (variableName != null) {
+                            parameter.setName(variableName);
+                            parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                            return parameter;
+                        } else {
+                            break;
+                        }
                     }
                     break;
             }
@@ -882,12 +887,16 @@ public class ParameterFactory {
                 case PUT_STATIC_FIELD:
                 case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
+                case OBJECT_CONSTANT_LOAD:
                     if (callStack != callStackSearchLevel) {
                         continue;
                     }
 
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 
+                    if (historyEvent.getValue() != event.getValue()) {
+                        continue;
+                    }
 
                     if (!fieldType.startsWith("L") || typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
                         LoggerUtil.logEvent("SearchObjectName6", callStack, i,
@@ -1071,7 +1080,7 @@ public class ParameterFactory {
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);
                         parameter.setName(variableName);
-                        parameter.setType(fieldType);
+                        parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                         return parameter;
                     }
                     break;
