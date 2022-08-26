@@ -421,6 +421,7 @@ public class ParameterFactory {
             // information to identify the position of the argument, else we will capture the
             // first variable of matching type and end up using the same value
             int paramIndex,
+            // preferably dotted type name, like com.package.name, instead of Lcom/package/name;;
             String expectedParameterType
     ) {
 
@@ -786,7 +787,9 @@ public class ParameterFactory {
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
                 case GET_INSTANCE_FIELD:
-                case PUT_INSTANCE_FIELD:
+                case GET_INSTANCE_FIELD_RESULT:
+//                case PUT_INSTANCE_FIELD:
+//                case PUT_INSTANCE_FIELD_VALUE:
                 case OBJECT_CONSTANT_LOAD:
                     if (callStack != callStackSearchLevel) {
                         continue;

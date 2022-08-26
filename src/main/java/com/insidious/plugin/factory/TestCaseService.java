@@ -9,7 +9,6 @@ import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -25,10 +24,7 @@ import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
@@ -195,119 +191,113 @@ public class TestCaseService {
 //
 //    }
 
-    /**
-     * If the name doesnt give enough meaning, this will iterate thru all the classes, their
-     * methods, and query for each single method_entry probe entry one by one.
-     * it is very slow
-     *
-     * @throws APICallException     it tries to use client
-     * @throws IOException          // if something on the disk fails
-     * @throws InterruptedException // it waits
-     */
-    public void
-    listTestCandidatesByEnumeratingAllProbes(List<String> classNames)
-            throws APICallException, IOException, InterruptedException {
-
-        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
-
-        if (sessions.size() == 0) {
-            return;
-        }
-
-
-        ExecutionSession session = sessions.get(0);
-        ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
-
-        for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
-
-            if (!classNames.contains(classInfo.getClassName())) {
-                continue;
-            }
-            List<MethodInfo> methods =
-                    classWeaveInfo.getMethodInfoByClassId(classInfo.getClassId());
-
-            for (MethodInfo method : methods) {
-
-
-                // test can be generated for public methods
-                if (Modifier.isPublic(method.getAccess())) {
-
-                    String methodDescriptor = method.getMethodDesc();
-                    List<DataInfo> methodProbes = classWeaveInfo.getProbesByMethodId(method.getMethodId());
-
-                    if (methodProbes.size() == 0) {
-                        logger.warn("method [" +
-                                classInfo.getClassName() + ":" + method.getMethodName()
-                                + "] has no probes");
-                        continue;
-                    }
-
-                    Optional<DataInfo> methodEntryProbeOption =
-                            methodProbes.stream()
-                                    .filter(p -> p.getEventType() == EventType.METHOD_OBJECT_INITIALIZED)
-                                    .findFirst();
-
-                    Set<DataInfo> methodParamProbes = methodProbes.stream()
-                            .filter(p -> p.getEventType() == EventType.METHOD_PARAM)
-                            .collect(Collectors.toSet());
-
-                    if (methodEntryProbeOption.isEmpty()) {
-                        continue;
-                    }
-
-                    assert methodEntryProbeOption.isPresent();
-
-                    DataInfo methodEntryProbe = methodEntryProbeOption.get();
-
-                    BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
-
-                    List<TracePoint> tracePoints = new LinkedList<>();
-                    client.queryTracePointsByProbeIds(
-                            SearchQuery.ByProbe(List.of(methodEntryProbe.getDataId())),
-                            session.getSessionId(), new ClientCallBack<TracePoint>() {
-                                @Override
-                                public void error(ExceptionResponse errorResponse) {
-                                    assert false;
-                                }
-
-                                @Override
-                                public void success(Collection<TracePoint> tracePointList) {
-                                    tracePoints.addAll(tracePointList);
-                                }
-
-                                @Override
-                                public void completed() {
-                                    blockingQueue.offer(new ExecutionSession());
-                                }
-                            });
-
-                    blockingQueue.take();
-
-                    if (tracePoints.size() == 0) {
-                        logger.warn("no trace point found for probe["
-                                + methodEntryProbe.getDataId() + "] => [" + classInfo.getClassName() + "] => "
-                                + method.getMethodName());
-                        continue;
-                    }
-
-                    TracePoint tracePoint = tracePoints.get(0);
-
-                    FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
-                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
-                    ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
-
-                    logger.warn("generate test case using " + probeReplayData.getDataEvents().size() + " events");
-
-
-                }
-
-
-            }
-
-
-        }
-
-    }
+//    /**
+//     * If the name doesnt give enough meaning, this will iterate thru all the classes, their
+//     * methods, and query for each single method_entry probe entry one by one.
+//     * it is very slow
+//     *
+//     * @throws APICallException     it tries to use client
+//     * @throws IOException          // if something on the disk fails
+//     * @throws InterruptedException // it waits
+//     */
+//    public void
+//    listTestCandidatesByEnumeratingAllProbes(List<String> classNames)
+//            throws APICallException, IOException, InterruptedException {
+//
+//        List<ExecutionSession> sessions = this.client.fetchProjectSessions().getItems();
+//
+//        if (sessions.size() == 0) {
+//            return;
+//        }
+//
+//
+//        ExecutionSession session = sessions.get(0);
+//        ClassWeaveInfo classWeaveInfo = this.client.getSessionClassWeave(session.getSessionId());
+//
+//        for (ClassInfo classInfo : classWeaveInfo.getClassInfoList()) {
+//
+//            if (!classNames.contains(classInfo.getClassName())) {
+//                continue;
+//            }
+//            List<MethodInfo> methods =
+//                    classWeaveInfo.getMethodInfoByClassId(classInfo.getClassId());
+//
+//            for (MethodInfo method : methods) {
+//
+//
+//                // test can be generated for public methods
+//                if (Modifier.isPublic(method.getAccess())) {
+//
+//                    String methodDescriptor = method.getMethodDesc();
+//                    List<DataInfo> methodProbes = classWeaveInfo.getProbesByMethodId(method.getMethodId());
+//
+//                    if (methodProbes.size() == 0) {
+//                        logger.warn("method [" +
+//                                classInfo.getClassName() + ":" + method.getMethodName()
+//                                + "] has no probes");
+//                        continue;
+//                    }
+//
+//                    Optional<DataInfo> methodEntryProbeOption =
+//                            methodProbes.stream()
+//                                    .filter(p -> p.getEventType() == EventType.METHOD_OBJECT_INITIALIZED)
+//                                    .findFirst();
+//
+//                    Set<DataInfo> methodParamProbes = methodProbes.stream()
+//                            .filter(p -> p.getEventType() == EventType.METHOD_PARAM)
+//                            .collect(Collectors.toSet());
+//
+//                    if (methodEntryProbeOption.isEmpty()) {
+//                        continue;
+//                    }
+//
+//                    assert methodEntryProbeOption.isPresent();
+//
+//                    DataInfo methodEntryProbe = methodEntryProbeOption.get();
+//
+//                    BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
+//
+//                    List<TracePoint> tracePoints = new LinkedList<>();
+//                    client.queryTracePointsByProbeIds(
+//                            SearchQuery.ByProbe(List.of(methodEntryProbe.getDataId())),
+//                            session.getSessionId(), new ClientCallBack<TracePoint>() {
+//                                @Override
+//                                public void error(ExceptionResponse errorResponse) {
+//                                    assert false;
+//                                }
+//
+//                                @Override
+//                                public void success(Collection<TracePoint> tracePointList) {
+//                                    tracePoints.addAll(tracePointList);
+//                                }
+//
+//                                @Override
+//                                public void completed() {
+//                                    blockingQueue.offer(new ExecutionSession());
+//                                }
+//                            });
+//
+//                    blockingQueue.take();
+//
+//                    if (tracePoints.size() == 0) {
+//                        logger.warn("no trace point found for probe["
+//                                + methodEntryProbe.getDataId() + "] => [" + classInfo.getClassName() + "] => "
+//                                + method.getMethodName());
+//                        continue;
+//                    }
+//
+//                    TracePoint tracePoint = tracePoints.get(0);
+//
+//                    FilteredDataEventsRequest filterDataEventsRequest = tracePoint.toFilterDataEventRequest();
+//                    filterDataEventsRequest.setProbeId(methodEntryProbe.getDataId());
+//                    ReplayData probeReplayData = client.fetchDataEvents(filterDataEventsRequest);
+//
+//                    logger.warn("generate test case using " + probeReplayData.getDataEvents().size() + " events");
+//
+//                }
+//            }
+//        }
+//    }
 
     @NotNull
     private TracePoint dummyTracePoint() {
@@ -321,6 +311,7 @@ public class TestCaseService {
                 1234,
                 1235);
     }
+    private final ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
 
     void buildTestFromTestMetadataSet(ObjectRoutine objectRoutine) throws IOException {
         assert objectRoutine.getMetadata().size() != 0;
@@ -329,7 +320,6 @@ public class TestCaseService {
         VariableContainer createdVariableContainer = new VariableContainer();
 
 
-        ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
 
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
 
@@ -339,11 +329,11 @@ public class TestCaseService {
                     + "] [ " + testCandidateMetadata.getReturnParameter().getProb().getNanoTime() + "] - took " +
                     Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
 
-            if (testCandidateMetadata.getParameterValues().size() > 0) {
+            if (testCandidateMetadata.getMethodArguments().count() > 0) {
 
 
                 objectRoutine.addComment("");
-                for (Parameter parameter : testCandidateMetadata.getParameterValues()) {
+                for (Parameter parameter : testCandidateMetadata.getMethodArguments().all()) {
                     Object parameterValue = parameter.getValue();
                     if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
                         String serializedValue = new String(parameter.getProb().getSerializedValue());
@@ -366,174 +356,211 @@ public class TestCaseService {
                 objectRoutine.addComment("");
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                     Parameter returnValue = methodCallExpression.getReturnValue();
+                    Parameter exception = methodCallExpression.getException();
+                    String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
 
+                    if (returnValue != null) {
 
-                    String callArgumentsString =
-                            createMethodParametersString(methodCallExpression.getArguments());
+                        String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
 
-                    String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
-
-                    Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
-                    if (existingVariableById.isPresent()) {
-                        returnValue.setName(existingVariableById.get().getName());
-                    } else {
-                        if (returnValue.getName() == null) {
-                            returnValue.setName(variableName);
+                        Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
+                        if (existingVariableById.isPresent()) {
+                            returnValue.setName(existingVariableById.get().getName());
+                        } else {
+                            if (returnValue.getName() == null) {
+                                returnValue.setName(variableName);
+                            }
+                            variableContainer.add(returnValue);
                         }
-                        variableContainer.add(returnValue);
+
+
+                        objectRoutine.addComment(
+                                returnValue.getType() + " "
+                                        + returnValue.getName() +
+                                        " = " + methodCallExpression.getSubject().getName() +
+                                        "." +
+                                        methodCallExpression.getMethodName() + "(" +
+                                        StringUtil.join(methodCallExpression.getArguments()
+                                                        .all()
+                                                        .stream().map(Parameter::getName)
+                                                        .collect(Collectors.toList()),
+                                                ", ")
+                                        + "); // ==> "
+                                        + returnValue.getProb().getSerializedValue().length);
+                    } else if ( exception  != null ) {
+                        objectRoutine.addComment(
+                                 methodCallExpression.getSubject().getName() +
+                                        "." +
+                                        methodCallExpression.getMethodName() + "(" +
+                                        StringUtil.join(methodCallExpression.getArguments()
+                                                        .all()
+                                                        .stream().map(Parameter::getName)
+                                                        .collect(Collectors.toList()),
+                                                ", ")
+                                        + "); // ==>  throws exception " + exception.getType() +
+                                         " -- "
+                                        + exception.getProb().getSerializedValue().length);
                     }
 
 
-                    objectRoutine.addComment(
-                            returnValue.getType() + " "
-                                    + returnValue.getName() +
-                                    " = " + methodCallExpression.getSubject().getName() +
-                                    "." +
-                                    methodCallExpression.getMethodName() + "(" +
-                                    StringUtil.join(methodCallExpression.getArguments()
-                                                    .stream().map(Parameter::getName)
-                                                    .collect(Collectors.toList()),
-                                            ", ")
-                                    + "); // ==> "
-                                    + returnValue.getProb().getSerializedValue().length);
+
                 }
 
 
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    Parameter methodCallReturnValue = methodCallExpression.getReturnValue();
-                    Parameter returnValue = methodCallReturnValue;
-
-                    for (Parameter argument : methodCallExpression.getArguments()) {
-                        if (variableContainer.getParameterByName(argument.getName()) == null) {
-                            addVariableToScript(argument, objectRoutine);
-                            variableContainer.add(argument);
-                        }
-                    }
 
 
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    Parameter exceptionValue = methodCallExpression.getException();
                     String callArgumentsString =
                             createMethodParametersString(methodCallExpression.getArguments());
 
-                    String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
+                    if (returnValue != null) {
 
-                    Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
-                    Optional<Parameter> subjectVariable = variableContainer.getParametersById((String) methodCallExpression.getSubject().getValue());
-                    if (existingVariableById.isPresent()) {
-                        returnValue.setName(existingVariableById.get().getName());
-                    } else {
-                        if (returnValue.getName() == null) {
-                            returnValue.setName(variableName);
+                        for (Parameter argument : methodCallExpression.getArguments().all()) {
+                            if (variableContainer.getParameterByName(argument.getName()) == null) {
+                                addVariableToScript(argument, objectRoutine);
+                                variableContainer.add(argument);
+                            }
                         }
+
+
+
+                        String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
+
+                        Optional<Parameter> existingVariableById =
+                                variableContainer.getParametersById((String) returnValue.getValue());
+
+                        Optional<Parameter> subjectVariable = variableContainer.getParametersById(
+                                (String) methodCallExpression.getSubject().getValue());
+
+                        if (existingVariableById.isPresent()) {
+                            returnValue.setName(existingVariableById.get().getName());
+                        } else {
+                            if (returnValue.getName() == null) {
+                                returnValue.setName(variableName);
+                            }
 //                        variableContainer.add(returnValue);
-                    }
+                        }
 
-                    String returnTypeValue = methodCallReturnValue.getType().replace('$', '.');
-                    boolean isArray = false;
-                    if (returnTypeValue.startsWith("[")) {
-                        returnTypeValue = returnTypeValue.substring(1);
-                        isArray = true;
-                    }
-                    ClassName returnTypeClass = ClassName.bestGuess(returnTypeValue);
+                        String returnTypeValue = returnValue.getType().replace('$', '.');
+                        boolean isArray = false;
+                        if (returnTypeValue.startsWith("[")) {
+                            returnTypeValue = returnTypeValue.substring(1);
+                            isArray = true;
+                        }
+                        ClassName returnTypeClass = ClassName.bestGuess(returnTypeValue);
 //                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
-                    if (methodCallReturnValue.getType().length() < 2) {
+                        if (returnValue.getType().length() < 2) {
 
-                        TypeName returnType = ClassTypeUtils.getActualClassNameForBasicType(methodCallReturnValue.getType());
+                            TypeName returnType = ClassTypeUtils.getActualClassNameForBasicType(returnValue.getType());
 
-                        Object callReturnValue =
-                                methodCallReturnValue.getValue();
-                        if (callReturnValue.equals("0")) {
-                            callReturnValue = "false";
-                        } else {
-                            callReturnValue = "true";
-                        }
-                        if (methodCallReturnValue.getName() == null) {
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn($L)",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    callReturnValue
-                            );
-                        } else {
-                            if (createdVariableContainer.getParameterByName(methodCallReturnValue.getName()) == null) {
+                            Object callReturnValue =
+                                    returnValue.getValue();
+                            if (callReturnValue.equals("0")) {
+                                callReturnValue = "false";
+                            } else {
+                                callReturnValue = "true";
+                            }
+                            if (returnValue.getName() == null) {
                                 objectRoutine.addStatement(
-                                        "$T $L = $L",
-                                        returnType, methodCallReturnValue.getName(),
+                                        "$T.when($L.$L($L)).thenReturn($L)",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
                                         callReturnValue
-
                                 );
-                                createdVariableContainer.add(methodCallReturnValue);
-                            }
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn($L)",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    methodCallReturnValue.getName()
-                            );
-                            variableContainer.add(methodCallReturnValue);
+                            } else {
+                                if (createdVariableContainer.getParameterByName(returnValue.getName()) == null) {
+                                    objectRoutine.addStatement(
+                                            "$T $L = $L",
+                                            returnType, returnValue.getName(),
+                                            callReturnValue
 
-                        }
-
-
-                    } else if (methodCallReturnValue.getType().equals("java.lang.String")) {
-                        if (methodCallReturnValue.getName() == null) {
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn($L)",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    new String(methodCallReturnValue.getProb().getSerializedValue())
-                            );
-                        } else {
-                            if (createdVariableContainer.getParameterByName(methodCallReturnValue.getName()) == null) {
-
+                                    );
+                                    createdVariableContainer.add(returnValue);
+                                }
                                 objectRoutine.addStatement(
-                                        "$T $L = $L",
-                                        returnTypeClass, methodCallReturnValue.getName(),
-                                        new String(methodCallReturnValue.getProb().getSerializedValue())
-
+                                        "$T.when($L.$L($L)).thenReturn($L)",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
+                                        returnValue.getName()
                                 );
-                                createdVariableContainer.add(methodCallReturnValue);
+                                variableContainer.add(returnValue);
+
                             }
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn($L)",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    methodCallReturnValue.getName()
-                            );
-                            variableContainer.add(methodCallReturnValue);
 
-                        }
 
-                    } else {
-                        if (methodCallReturnValue.getName() == null) {
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    new String(methodCallReturnValue.getProb().getSerializedValue()),
-                                    returnTypeClass
-                            );
-                        } else {
-                            if (createdVariableContainer.getParameterByName(methodCallReturnValue.getName()) == null) {
-
+                        } else if (returnValue.getType().equals("java.lang.String")) {
+                            if (returnValue.getName() == null) {
                                 objectRoutine.addStatement(
-                                        "$T $L = gson.fromJson($S, $T.class)",
-                                        returnTypeClass, methodCallReturnValue.getName(),
-                                        new String(methodCallReturnValue.getProb().getSerializedValue()), returnTypeClass
-
+                                        "$T.when($L.$L($L)).thenReturn($L)",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
+                                        new String(returnValue.getProb().getSerializedValue())
                                 );
-                                createdVariableContainer.add(methodCallReturnValue);
+                            } else {
+                                if (createdVariableContainer.getParameterByName(returnValue.getName()) == null) {
+
+                                    objectRoutine.addStatement(
+                                            "$T $L = $L",
+                                            returnTypeClass, returnValue.getName(),
+                                            new String(returnValue.getProb().getSerializedValue())
+
+                                    );
+                                    createdVariableContainer.add(returnValue);
+                                }
+                                objectRoutine.addStatement(
+                                        "$T.when($L.$L($L)).thenReturn($L)",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
+                                        returnValue.getName()
+                                );
+                                variableContainer.add(returnValue);
+
                             }
-                            objectRoutine.addStatement(
-                                    "$T.when($L.$L($L)).thenReturn($L)",
-                                    mockitoClass, methodCallExpression.getSubject().getName(),
-                                    methodCallExpression.getMethodName(), callArgumentsString,
-                                    methodCallReturnValue.getName()
-                            );
-                            variableContainer.add(methodCallReturnValue);
+
+                        } else {
+                            if (returnValue.getName() == null) {
+                                objectRoutine.addStatement(
+                                        "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
+                                        new String(returnValue.getProb().getSerializedValue()),
+                                        returnTypeClass
+                                );
+                            } else {
+                                if (createdVariableContainer.getParameterByName(returnValue.getName()) == null) {
+
+                                    objectRoutine.addStatement(
+                                            "$T $L = gson.fromJson($S, $T.class)",
+                                            returnTypeClass, returnValue.getName(),
+                                            new String(returnValue.getProb().getSerializedValue()), returnTypeClass
+
+                                    );
+                                    createdVariableContainer.add(returnValue);
+                                }
+                                objectRoutine.addStatement(
+                                        "$T.when($L.$L($L)).thenReturn($L)",
+                                        mockitoClass, methodCallExpression.getSubject().getName(),
+                                        methodCallExpression.getMethodName(), callArgumentsString,
+                                        returnValue.getName()
+                                );
+                                variableContainer.add(returnValue);
+
+                            }
 
                         }
 
+
+                    } else if (exceptionValue != null ) {
+                        objectRoutine.addStatement(
+                                "$T.when($L.$L($L)).thenThrow($T.class)",
+                                mockitoClass, methodCallExpression.getSubject().getName(),
+                                methodCallExpression.getMethodName(), callArgumentsString,
+                                ClassName.bestGuess(exceptionValue.getType())
+                        );
                     }
+
 
                 }
 
@@ -568,7 +595,7 @@ public class TestCaseService {
             }
 
 
-            String parameterString = createMethodParametersString(testCandidateMetadata.getParameterValues());
+            String parameterString = createMethodParametersString(testCandidateMetadata.getMethodArguments());
 
             // return type == V ==> void return type => no return value
             Parameter testSubject = testCandidateMetadata.getTestSubject();
@@ -727,17 +754,19 @@ public class TestCaseService {
     }
 
     @NotNull
-    private String createMethodParametersString(List<Parameter> parameterValues) throws IOException {
+    private String createMethodParametersString(VariableContainer variableContainer) {
         StringBuilder parameterStringBuilder = new StringBuilder();
 
-        for (int i = 0; i < parameterValues.size(); i++) {
-            Parameter parameter = parameterValues.get(i);
+        for (int i = 0; i < variableContainer.count(); i++) {
+            Parameter parameter = variableContainer.get(i);
 
             if (i > 0) {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameter.getName() != null) {
+            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+                parameterStringBuilder.append("any()");
+            } else if (parameter.getName() != null) {
                 parameterStringBuilder.append(parameter.getName());
             } else {
                 Object parameterValue;
@@ -763,7 +792,8 @@ public class TestCaseService {
                         .addStatement("/**")
                         .addStatement("$S", "Testing method: " + metadata.getMethodName())
                         .addStatement("$S", "In class: " + metadata.getFullyQualifiedClassname())
-                        .addStatement("$S", "Method has " + metadata.getParameterValues().size() + " " +
+                        .addStatement("$S", "Method has " + metadata.getMethodArguments().count() +
+                                " " +
                                 "parameters.");
 
 
@@ -1220,7 +1250,8 @@ public class TestCaseService {
             List<Parameter> dependentParameters = objectRoutine
                     .getMetadata()
                     .stream()
-                    .map(TestCandidateMetadata::getParameterValues)
+                    .map(TestCandidateMetadata::getMethodArguments)
+                    .map(VariableContainer::all)
                     .flatMap(Collection::stream)
                     .collect(Collectors.toCollection(LinkedList::new));
 
@@ -1446,11 +1477,17 @@ public class TestCaseService {
         int totalEventCount = objectEvents.size();
         int by10 = 100;
 
+        long nanoIndex = 0;
 
         for (int eventIndex = 0; eventIndex < totalEventCount; eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
             if (eventIndex % by10 == 0) {
                 logger.warn("completed [" + eventIndex + "/" + totalEventCount + "]");
+            }
+
+
+            if (dataEvent.getNanoTime() < nanoIndex) {
+                continue;
             }
 
 
@@ -1487,6 +1524,8 @@ public class TestCaseService {
 
 
             switch (probeInfo.getEventType()) {
+
+
                 case METHOD_PARAM:
                 case CALL:
                 case CALL_PARAM:
@@ -1494,8 +1533,8 @@ public class TestCaseService {
                 case INVOKE_DYNAMIC_PARAM:
                 case INVOKE_DYNAMIC_RESULT:
                 case CALL_RETURN:
-                case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD:
+                case GET_INSTANCE_FIELD:
                 case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
                 case PUT_INSTANCE_FIELD_VALUE:
                 case METHOD_NORMAL_EXIT:
@@ -1504,6 +1543,8 @@ public class TestCaseService {
                 case LOCAL_LOAD:
                 case GET_INSTANCE_FIELD_RESULT:
                     continue;
+                case METHOD_OBJECT_INITIALIZED:
+                case METHOD_ENTRY:
                 default:
 
                     if (StringUtil.isEmpty(ownerClassName)) {
@@ -1651,13 +1692,9 @@ public class TestCaseService {
                         }
                         logger.warn("adding new test case metadata: " + newTestCaseMetadata);
                         objectRoutineContainer.addMetadata(newTestCaseMetadata);
+                        nanoIndex =
+                                newTestCaseMetadata.getReturnParameter().getProb().getNanoTime();
                     }
-
-//                    eventIndex =
-//                            totalEventCount - newTestCaseMetadata.getReturnParameter().getIndex();
-//
-
-//                    callStack += 1;
                     break;
 
             }

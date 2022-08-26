@@ -1,9 +1,6 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.EventType;
-import com.insidious.common.weaver.MethodInfo;
+import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
@@ -91,12 +88,15 @@ public class MethodCallExtractor implements EventTypeMatchListener {
         if (ownerClass.startsWith("java/")) {
             return;
         }
+
+        // this should be in some config
         if (ownerClass.contains("/slf4j/")) {
             return;
         }
         if (instruction.equals("INVOKESTATIC")) {
             return;
         }
+
         if (methodName.equals("<init>")) {
             return;
         }
@@ -191,19 +191,40 @@ public class MethodCallExtractor implements EventTypeMatchListener {
             return;
         }
 
-        Parameter callReturnParameter =
-                ParameterFactory.createReturnValueParameter(
-                        callReturnScanResult.getIndex(), replayData, returnType);
+        DataInfo exitProbeInfo = replayData.getProbeInfo(replayData.getDataEvents().get(callReturnScanResult.getIndex()).getDataId());
+        Parameter callReturnParameter = null;
+        Parameter exception = null;
 
-        if (callReturnParameter.getType() == null ||
-                callReturnParameter.getType().equals("V")) {
-            return;
+
+        if (exitProbeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+
+            DataEventWithSessionId extEvent = replayData.getDataEvents().get(callReturnScanResult.getIndex());
+            ObjectInfo exitValueObjectInfo = replayData.getObjectInfo(extEvent.getValue());
+            TypeInfo exceptionTypeInfo = replayData.getTypeInfo(exitValueObjectInfo.getTypeId());
+
+            exception = new Parameter();
+            exception.setType(ClassTypeUtils.getDottedClassName(exceptionTypeInfo.getTypeNameFromClass()));
+            exception.setValue(extEvent.getValue());
+            exception.setProb(extEvent);
+            exception.setProbeInfo(exitProbeInfo);
+
+        } else if (exitProbeInfo.getEventType() == EventType.CALL_RETURN) {
+            callReturnParameter = ParameterFactory.createReturnValueParameter(
+                    callReturnScanResult.getIndex(), replayData, returnType);
+
+            if (callReturnParameter.getType() == null ||
+                    callReturnParameter.getType().equals("V")) {
+                return;
+            }
+
+        } else {
+            logger.error("what kind of exit");
         }
 
 
         MethodCallExpression methodCallExpression = new MethodCallExpression(
-                methodName, subjectParameter, callArguments, callReturnParameter
-        );
+                methodName, subjectParameter, VariableContainer.from(callArguments),
+                callReturnParameter, exception);
         callList.add(methodCallExpression);
     }
 

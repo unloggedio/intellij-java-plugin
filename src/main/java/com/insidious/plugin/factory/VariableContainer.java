@@ -17,6 +17,12 @@ public class VariableContainer {
         return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
     }
 
+    public static VariableContainer from(List<Parameter> callArguments) {
+        VariableContainer variableContainer = new VariableContainer();
+        callArguments.forEach(variableContainer::add);
+        return variableContainer;
+    }
+
     public VariableContainer clone() {
         VariableContainer newContainer = new VariableContainer();
         for (Parameter parameter : this.parameterList) {
@@ -92,5 +98,17 @@ public class VariableContainer {
 
     public Collection<String> getNames() {
         return parameterList.stream().map(Parameter::getName).collect(Collectors.toList());
+    }
+
+    public int count() {
+        return parameterList.size();
+    }
+
+    public Collection<? extends Parameter> all() {
+        return parameterList;
+    }
+
+    public Parameter get(int i) {
+        return parameterList.get(i);
     }
 }

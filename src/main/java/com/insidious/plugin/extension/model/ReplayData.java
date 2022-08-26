@@ -13,7 +13,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
@@ -238,16 +237,9 @@ public class ReplayData {
 
         final String expectedParameterTypeDotted =
                 ClassTypeUtils.getDottedClassName(expectedParameterType);
-        List<TypeInfo> matchedTypeInfo = typeInfoMap.values().stream()
-                .filter(e -> e.getTypeNameFromClass().equals(expectedParameterTypeDotted))
-                .collect(Collectors.toList());
 
-        if (matchedTypeInfo.size() == 0) {
-            logger.warn("matched type from suggested nothing [" + expectedParameterType + "]");
-        } else {
-            typeInfo = matchedTypeInfo.get(0);
-            typeHierarchy = buildHierarchyFromType(typeInfo);
-        }
+        typeInfo = getTypeInfoByName(expectedParameterTypeDotted);
+        typeHierarchy = buildHierarchyFromType(typeInfo);
 
         return typeHierarchy;
     }

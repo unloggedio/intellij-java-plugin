@@ -1,26 +1,33 @@
 package com.insidious.plugin.pojo;
 
-import java.util.List;
+import com.insidious.plugin.factory.VariableContainer;
 
 public class MethodCallExpression {
     private final Parameter subject;
-    private final List<Parameter> arguments;
+    private final VariableContainer arguments;
     private final Parameter returnValue;
     private final String methodName;
+    private final Parameter exception;
 
-    public MethodCallExpression(String methodName,
-                                Parameter subject, List<Parameter> arguments, Parameter returnValue) {
+    public MethodCallExpression(
+            String methodName,
+            Parameter subject,
+            VariableContainer arguments,
+            Parameter returnValue,
+            Parameter exception
+    ) {
         this.methodName = methodName;
         this.subject = subject;
         this.arguments = arguments;
         this.returnValue = returnValue;
+        this.exception = exception;
     }
 
     public Parameter getSubject() {
         return subject;
     }
 
-    public List<Parameter> getArguments() {
+    public VariableContainer getArguments() {
         return arguments;
     }
 
@@ -30,5 +37,9 @@ public class MethodCallExpression {
 
     public String getMethodName() {
         return methodName;
+    }
+
+    public Parameter getException() {
+        return exception;
     }
 }

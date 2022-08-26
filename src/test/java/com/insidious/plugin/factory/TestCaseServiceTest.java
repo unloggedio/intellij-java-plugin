@@ -100,27 +100,28 @@ public class TestCaseServiceTest {
 
 //        client.fetchDataEvents()
 
+        Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
     }
 
-    @Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-
-
-        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
-        TestCaseService testCaseService = new TestCaseService(project, client);
-
-
-        List<String> targetClasses = List.of("com/appsmith/server/services/ce" +
-                "/UserDataServiceCEImpl");
-
-        testCaseService.listTestCandidatesByEnumeratingAllProbes(targetClasses);
-
-
-    }
+//    @Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+//
+//
+//        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
+//        TestCaseService testCaseService = new TestCaseService(project, client);
+//
+//
+//        List<String> targetClasses = List.of("com/appsmith/server/services/ce" +
+//                "/UserDataServiceCEImpl");
+//
+//        testCaseService.listTestCandidatesByEnumeratingAllProbes(targetClasses);
+//
+//
+//    }
 
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException {
 
