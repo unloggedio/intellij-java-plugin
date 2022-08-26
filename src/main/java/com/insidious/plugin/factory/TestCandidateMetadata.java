@@ -24,34 +24,15 @@ import java.util.Objects;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
-    private final VariableContainer methodArguments = new VariableContainer();
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
-    private List<Parameter> fields = new LinkedList<>();
-
-    public List<Parameter> getFields() {
-        return fields;
-    }
-
-    public void setFields(List<Parameter> fields) {
-        this.fields = fields;
-    }
-
-    public boolean isArray() {
-        return isArray;
-    }
-
-    public void setArray(boolean array) {
-        isArray = array;
-    }
-
+    private VariableContainer fields = new VariableContainer();
+    private MethodCallExpression mainMethod;
     private String fullyQualifiedClassname;
     private String unqualifiedClassname;
     private String packageName;
     private String testMethodName;
     private Parameter testSubject;
-    private Parameter returnParameter;
     private long callTimeNanoSecond;
-    private String methodName;
     private boolean isArray;
 
     public static TestCandidateMetadata create(
@@ -64,6 +45,7 @@ public class TestCandidateMetadata {
                 "create test case metadata for types [" + entryProbeDataId + "] -> entry probe " +
                 " types  " + typeHierarchy);
         TestCandidateMetadata metadata = new TestCandidateMetadata();
+
 
 //        final String className = methodInfo.getClassName();
         String targetMethodName = methodInfo.getMethodName();
@@ -90,8 +72,6 @@ public class TestCandidateMetadata {
 
 
 //        Map<String, DataInfo> probeInfoMap = replayData.getProbeInfoMap();
-
-        metadata.setMethodName(targetMethodName);
 
 
         String testMethodName = "test" + ClassTypeUtils.upperInstanceName(targetMethodName);
@@ -201,8 +181,7 @@ public class TestCandidateMetadata {
                         variableContainer, testCaseRequest.getNoMockClassList());
 
         metadata.setCallList(callsList);
-
-        metadata.addAllArguments(methodArguments);
+        metadata.addAllFields(fieldsContainer);
 
 
 //        logger.warn("create return parameter from event at index: " + callReturnIndex);
@@ -212,9 +191,10 @@ public class TestCandidateMetadata {
             returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
         }
 
-//        if (returnParameter)
-
-        metadata.setReturnParameter(returnParameter);
+        MethodCallExpression mainMethodExpression = new MethodCallExpression(
+                targetMethodName, metadata.getTestSubject(),
+                methodArguments, returnParameter, null
+        );
 
 
         String testSubjectInstanceName = ClassTypeUtils.lowerInstanceName(unqualifiedClassName);
@@ -304,7 +284,7 @@ public class TestCandidateMetadata {
         }
 
 
-        if (metadata.getReturnParameter().getName() == null
+        if (mainMethodExpression.getReturnValue().getName() == null
                 && !methodInfo.getMethodName().equals("<init>")) {
 
             String potentialReturnValueName;
@@ -322,9 +302,10 @@ public class TestCandidateMetadata {
                 }
             }
 
-            metadata.getReturnParameter().setName(potentialReturnValueName);
+            mainMethodExpression.getReturnValue().setName(potentialReturnValueName);
         }
 
+        metadata.setMainMethod(mainMethodExpression);
 
         return metadata;
     }
@@ -333,22 +314,19 @@ public class TestCandidateMetadata {
             ReplayData replayData,
             int entryProbeIndex
     ) {
-        VariableContainer variableContainer  = new VariableContainer();
+        VariableContainer variableContainer = new VariableContainer();
 
 
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
                 ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS);
 
-        scanRequest.addListener(EventType.GET_INSTANCE_FIELD, new EventTypeMatchListener() {
-            @Override
-            public void eventMatched(Integer index) {
-                DataEventWithSessionId event = replayData.getDataEvents().get(index);
-                DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
+        scanRequest.addListener(EventType.GET_INSTANCE_FIELD, index -> {
+            DataEventWithSessionId event = replayData.getDataEvents().get(index);
+            DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
 
-                String fieldType = probeInfo.getAttribute("Type", "V");
-                Parameter fieldParameter = ParameterFactory.createParameter(index, replayData, 0, fieldType);
-                variableContainer.add(fieldParameter);
-            }
+            String fieldType = probeInfo.getAttribute("Type", "V");
+            Parameter fieldParameter = ParameterFactory.createParameter(index, replayData, 0, fieldType);
+            variableContainer.add(fieldParameter);
         });
 
 
@@ -377,14 +355,11 @@ public class TestCandidateMetadata {
                 ScanRequest.CURRENT_CLASS,
                 DirectionType.FORWARDS);
 
-        scanRequest.addListener(EventType.LOCAL_LOAD, new EventTypeMatchListener() {
-            @Override
-            public void eventMatched(Integer index) {
-                Parameter potentialParameter = ParameterFactory.createParameter(
-                        index, replayData, 0, null
-                );
-                variableContainer.add(potentialParameter);
-            }
+        scanRequest.addListener(EventType.LOCAL_LOAD, index -> {
+            Parameter potentialParameter = ParameterFactory.createParameter(
+                    index, replayData, 0, null
+            );
+            variableContainer.add(potentialParameter);
         });
 
         MethodCallExtractor methodCallExtractor = new MethodCallExtractor(
@@ -460,16 +435,36 @@ public class TestCandidateMetadata {
         return replayData.eventScan(searchRequest);
     }
 
+    public MethodCallExpression getMainMethod() {
+        return mainMethod;
+    }
+
+    public void setMainMethod(MethodCallExpression mainMethod) {
+        this.mainMethod = mainMethod;
+    }
+
+    public VariableContainer getFields() {
+        return fields;
+    }
+
+    public void setFields(VariableContainer fields) {
+        this.fields = fields;
+    }
+
+    public boolean isArray() {
+        return isArray;
+    }
+
+    public void setArray(boolean array) {
+        isArray = array;
+    }
+
+    private void addAllFields(VariableContainer fieldsContainer) {
+        fieldsContainer.all().forEach(this.fields::add);
+    }
+
     private void setCallList(List<MethodCallExpression> callsList) {
         this.methodCallExpressions = callsList;
-    }
-
-    public String getMethodName() {
-        return methodName;
-    }
-
-    private void setMethodName(String methodName) {
-        this.methodName = methodName;
     }
 
     public String getFullyQualifiedClassname() {
@@ -513,29 +508,6 @@ public class TestCandidateMetadata {
     }
 
 
-    public void addMethodArgument(Parameter parameter) {
-        this.methodArguments.add(parameter);
-    }
-
-    public void addAllArguments(VariableContainer variableContainer) {
-        for (String parameterName : variableContainer.getNames()) {
-            this.methodArguments.add(variableContainer.getParameterByName(parameterName));
-        }
-
-    }
-
-    public VariableContainer getMethodArguments() {
-        return this.methodArguments;
-    }
-
-    public Parameter getReturnParameter() {
-        return returnParameter;
-    }
-
-    public void setReturnParameter(Parameter returnParameter) {
-        this.returnParameter = returnParameter;
-    }
-
     public long getCallTimeNanoSecond() {
         return callTimeNanoSecond;
     }
@@ -551,12 +523,9 @@ public class TestCandidateMetadata {
     @Override
     public String toString() {
         return "TestCandidateMetadata{" +
-                "parameters=" + methodArguments +
-                ", methodName='" + methodName + '\'' +
                 ", fullyQualifiedClassname='" + fullyQualifiedClassname + '\'' +
                 ", testMethodName='" + testMethodName + '\'' +
                 ", testSubject=" + testSubject +
-                ", returnParameter=" + returnParameter +
                 ", callTimeNanoSecond=" + callTimeNanoSecond +
                 '}';
     }

@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.pojo.Parameter;
 import com.intellij.openapi.util.Pair;
 import lombok.AllArgsConstructor;
 
@@ -80,5 +81,11 @@ public class ObjectRoutine {
         }
         this.dependentList.add(dependentObjectCreation);
         this.dependentMap.put(dependentObjectCreation.getName(), dependentObjectCreation);
+    }
+
+    public void addParameterComment(Parameter parameter) {
+        addComment("Parameter [" + parameter.getName() + "] => " +
+                "Object:" + parameter.getValue() + " of type " + parameter.getType());
+
     }
 }
