@@ -23,6 +23,7 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -418,36 +419,9 @@ public class TestCaseService {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
 
-
-        // we want to create the objects from java.lang.* namespace using their real values, so
-        // in the test case it looks something like
-        // Integer varName = value;
-        if (targetParameter.getType() != null && targetParameter.getType().startsWith("java.lang")) {
-
-            TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(targetParameter);
-            ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-            in(constructor).assignVariable(targetParameter).fromRecordedValue().endStatement();
-            constructor.setMetadata(testCaseMetadata);
-            return objectRoutineContainer;
-
-        }
-
-        if (targetParameter.getType() != null && targetParameter.getType().length() == 1) {
-
-            TestCandidateMetadata testCandidateMetadata = buildTestCandidateForBaseClass(targetParameter);
-            ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-            in(constructor).assignVariable(targetParameter).fromRecordedValue().endStatement();
-            constructor.setMetadata(testCandidateMetadata);
-            return objectRoutineContainer;
-
-
-        }
-
         if (testCaseRequest.getBuildLevel() > 1) {
             return objectRoutineContainer;
         }
-
-        Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
 
 
         PageInfo pagination = new PageInfo(0, 200, PageInfo.Order.ASC);
@@ -468,11 +442,43 @@ public class TestCaseService {
 
         // part 1 ends here
 
-        // this is part 2
         if (subjectName != null) {
             objectRoutineContainer.setName(subjectName);
         }
 
+
+        ObjectRoutineContainer objectRoutineContainer2 = postProcessObjectRoutine(
+                testCaseRequest, globalVariableContainer, objectRoutineContainer);
+
+        if (objectRoutineContainer2 != null) return objectRoutineContainer2;
+
+        // and this is a third thing
+        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
+            if (objectRoutine.getMetadata().size() == 0) {
+                continue;
+            }
+            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
+                buildTestFromTestMetadataSet(metadatum, objectRoutine);
+            }
+
+        }
+
+
+        return objectRoutineContainer;
+
+    }
+
+    @Nullable
+    private ObjectRoutineContainer
+    postProcessObjectRoutine(
+            TestCaseRequest testCaseRequest,
+            VariableContainer globalVariableContainer,
+            ObjectRoutineContainer objectRoutineContainer
+    )
+            throws APICallException, SessionNotSelectedException {
+        // this is part 2
+        Parameter targetParameter = testCaseRequest.getTargetParameter();
+        Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
 
         VariableContainer callSubjects = VariableContainer.from(
                 objectRoutineContainer
@@ -528,10 +534,18 @@ public class TestCaseService {
                 for (Parameter dependentParameter : dependentParameters) {
 
                     ObjectRoutineContainer dependentObjectMockCreation;
-                    if (dependentParameter.getType().startsWith("java.")) {
-                        dependentObjectMockCreation = generateTestCaseFromObjectHistory(
-                                dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
-                                variableContainer);
+
+                    // we want to create the objects from java.lang.* namespace using their real values, so
+                    // in the test case it looks something like
+                    // Integer varName = value;
+                    if (dependentParameter.getType() != null && dependentParameter.getType().startsWith("java.lang")) {
+
+                        TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(dependentParameter);
+                        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+                        in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
+                        constructor.setMetadata(testCaseMetadata);
+                        return objectRoutineContainer;
+
                     } else {
                         dependentObjectMockCreation = createMock(dependentParameter);
                     }
@@ -551,9 +565,14 @@ public class TestCaseService {
                 if (subjectVariable == null) {
 
                     if (callSubject.getType().startsWith("java.")) {
-                        dependentObjectMockCreation = generateTestCaseFromObjectHistory(
-                                callSubject, TestCaseRequest.nextLevel(testCaseRequest),
-                                variableContainer);
+                        // we want to create the objects from java.lang.* namespace using their real values, so
+                        // in the test case it looks something like
+                        // Integer varName = value;
+                        TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(callSubject);
+                        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+                        in(constructor).assignVariable(callSubject).fromRecordedValue().endStatement();
+                        constructor.setMetadata(testCaseMetadata);
+                        dependentObjectMockCreation = objectRoutineContainer;
                     } else {
                         dependentObjectMockCreation = createMock(callSubject);
                     }
@@ -604,10 +623,33 @@ public class TestCaseService {
                 DataEventWithSessionId parameterProbe = dependentParameter.getProb();
                 dependentObjectIds.add(parameterProbe.getValue());
 
-                ObjectRoutineContainer dependentObjectCreation =
-                        generateTestCaseFromObjectHistory(
-                                dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
-                                variableContainer);
+                // we want to create the objects from java.lang.* namespace using their real values, so
+                // in the test case it looks something like
+                // Integer varName = value;
+                ObjectRoutineContainer dependentObjectCreation;
+                if (dependentParameter.getType() != null && dependentParameter.getType().startsWith("java.lang")) {
+
+                    ObjectRoutineContainer objectRoutineContainer1 = new ObjectRoutineContainer();
+                    TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(dependentParameter);
+                    ObjectRoutine constructor = objectRoutineContainer1.getConstructor();
+                    in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
+                    constructor.setMetadata(testCaseMetadata);
+                    dependentObjectCreation = objectRoutineContainer1;
+
+                } else if (dependentParameter.getType() != null && dependentParameter.getType().length() == 1) {
+
+                    ObjectRoutineContainer objectRoutineContainer1 = new ObjectRoutineContainer();
+                    TestCandidateMetadata testCandidateMetadata = buildTestCandidateForBaseClass(dependentParameter);
+                    ObjectRoutine constructor = objectRoutineContainer1.getConstructor();
+                    in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
+                    constructor.setMetadata(testCandidateMetadata);
+                    dependentObjectCreation = objectRoutineContainer1;
+
+                } else {
+                    dependentObjectCreation = generateTestCaseFromObjectHistory(
+                            dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
+                            variableContainer);
+                }
 
 
                 variableContainer.add(dependentParameter);
@@ -638,21 +680,7 @@ public class TestCaseService {
                 objectRoutine.addDependent(dependentObjectCreation);
             }
         }
-
-        // and this is a third thing
-        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-            if (objectRoutine.getMetadata().size() == 0) {
-                continue;
-            }
-            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
-                buildTestFromTestMetadataSet(metadatum, objectRoutine);
-            }
-
-        }
-
-
-        return objectRoutineContainer;
-
+        return null;
     }
 
     private ObjectRoutineContainer createMock(Parameter dependentParameter) {
