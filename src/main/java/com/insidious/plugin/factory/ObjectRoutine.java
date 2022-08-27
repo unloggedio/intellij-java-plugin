@@ -34,6 +34,7 @@ public class ObjectRoutine {
     }
 
     private VariableContainer variableContainer = new VariableContainer();
+    private VariableContainer createdVariables = new VariableContainer();
     private List<TestCandidateMetadata> metadata = new LinkedList<>();
 
     public ObjectRoutine(String routineName) {
@@ -43,6 +44,17 @@ public class ObjectRoutine {
     public void addStatement(String s,
                              Object... args) {
         statements.add(Pair.create(new StatementCodeLine(s), args));
+    }
+
+    public void addStatement(String s,
+                             List<?> args) {
+        Object[] objects = new Object[args.size()];
+        for (int i = 0; i < args.size(); i++) {
+            Object arg = args.get(i);
+            objects[i] = arg;
+        }
+
+        statements.add(Pair.create(new StatementCodeLine(s), objects));
     }
 
     public List<Pair<CodeLine, Object[]>> getStatements() {
@@ -87,5 +99,18 @@ public class ObjectRoutine {
         addComment("Parameter [" + parameter.getName() + "] => " +
                 "Object:" + parameter.getValue() + " of type " + parameter.getType());
 
+    }
+
+    public PendingStatement assignVariable(Parameter testSubject) {
+        PendingStatement pendingAssignment = new PendingStatement(this, testSubject);
+        return pendingAssignment;
+    }
+
+    public VariableContainer getCreatedVariables() {
+        return createdVariables;
+    }
+
+    public void setCreatedVariables(VariableContainer createdVariables) {
+        this.createdVariables = createdVariables;
     }
 }

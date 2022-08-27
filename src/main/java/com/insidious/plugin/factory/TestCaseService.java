@@ -58,24 +58,24 @@ public class TestCaseService {
         assert objectRoutine.getMetadata().size() != 0;
         List<TestCandidateMetadata> metadataCollection = objectRoutine.getMetadata();
         VariableContainer variableContainer = objectRoutine.getVariableContainer();
-        VariableContainer createdVariableContainer = new VariableContainer();
+        VariableContainer createdVariableContainer = objectRoutine.getCreatedVariables();
 
 
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
 
-            MethodCallExpression mainMethodExpression = testCandidateMetadata.getMainMethod();
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
             objectRoutine.addComment("");
             objectRoutine.addComment("Test candidate method ["
-                    + mainMethodExpression.getMethodName()
-                    + "] [ " + mainMethodExpression.getReturnValue().getProb().getNanoTime() + "] - took " +
+                    + mainMethod.getMethodName()
+                    + "] [ " + mainMethod.getReturnValue().getProb().getNanoTime() + "] - took " +
                     Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
 
-            if (mainMethodExpression.getArguments().count() > 0) {
+            if (mainMethod.getArguments().count() > 0) {
 
 
                 objectRoutine.addComment("");
-                for (Parameter parameter : mainMethodExpression.getArguments().all()) {
+                for (Parameter parameter : mainMethod.getArguments().all()) {
                     if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
                         String serializedValue = new String(parameter.getProb().getSerializedValue());
                         if (parameter.getType().equals("java.lang.String")) {
@@ -100,7 +100,7 @@ public class TestCaseService {
                 }
 
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    TestCaseWriter.createMethodCall(objectRoutine, variableContainer, createdVariableContainer, methodCallExpression);
+                    TestCaseWriter.createMethodCallMock(objectRoutine, createdVariableContainer, methodCallExpression);
                 }
 
                 objectRoutine.addComment("");
@@ -109,7 +109,7 @@ public class TestCaseService {
 
 
             TypeName returnValueSquareClass = null;
-            String returnParameterType = mainMethodExpression.getReturnValue().getType();
+            String returnParameterType = mainMethod.getReturnValue().getType();
             if (returnParameterType == null) {
                 logger.warn("parameter return type is null: " + testCandidateMetadata);
                 return;
@@ -120,25 +120,27 @@ public class TestCaseService {
             //////////////////////// FUNCTION CALL ////////////////////////
 
             String parameterString =
-                    TestCaseWriter.createMethodParametersString(mainMethodExpression.getArguments());
+                    TestCaseWriter.createMethodParametersString(mainMethod.getArguments());
 
             // return type == V ==> void return type => no return value
             Parameter testSubject = testCandidateMetadata.getTestSubject();
-            if (mainMethodExpression.getMethodName().equals("<init>")) {
+            if (mainMethod.getMethodName().equals("<init>")) {
 
 
                 ClassName squareClassName = ClassName.get(testCandidateMetadata.getPackageName(),
                         testCandidateMetadata.getUnqualifiedClassname());
 
 
-                objectRoutine.addStatement("$T $L = new $T(" + parameterString + ")",
-                        squareClassName,
-                        testSubject.getName(),
-                        squareClassName);
+                in(objectRoutine).assignVariable(testSubject).writeExpression(mainMethod).endStatement();
+
+//                objectRoutine.addStatement("$T $L = new $T(" + parameterString + ")",
+//                        squareClassName,
+//                        testSubject.getName(),
+//                        squareClassName);
 
 
             } else {
-                Parameter returnParameter = mainMethodExpression.getReturnValue();
+                Parameter returnParameter = mainMethod.getReturnValue();
                 testSubject = testCandidateMetadata.getTestSubject();
                 String testSubjectName = testSubject.getName();
 
@@ -146,25 +148,25 @@ public class TestCaseService {
                 if (returnParameter.getType().equals("V")) {
 
                     objectRoutine.addStatement("$L.$L(" + parameterString + ")",
-                            testSubjectName, mainMethodExpression.getMethodName());
+                            testSubjectName, mainMethod.getMethodName());
 
                 } else {
                     Object returnValue = returnParameter.getValue();
 
                     String returnSubjectInstanceName = returnParameter.getName();
 
-                    if (variableContainer.contains(returnSubjectInstanceName)) {
+                    if (createdVariableContainer.contains(returnSubjectInstanceName)) {
                         objectRoutine.addStatement("$L = $L.$L(" + parameterString + ")",
                                 returnSubjectInstanceName,
                                 testSubjectName,
-                                mainMethodExpression.getMethodName());
+                                mainMethod.getMethodName());
 
                     } else {
                         objectRoutine.addStatement("$T $L = $L.$L(" + parameterString + ")",
                                 returnValueSquareClass, returnSubjectInstanceName,
                                 testSubjectName,
-                                mainMethodExpression.getMethodName());
-                        variableContainer.add(returnParameter);
+                                mainMethod.getMethodName());
+                        createdVariableContainer.add(returnParameter);
                     }
 
 
@@ -250,6 +252,10 @@ public class TestCaseService {
         }
     }
 
+    private PendingStatement in(ObjectRoutine objectRoutine) {
+        return new PendingStatement(objectRoutine);
+    }
+
     @Nullable
     private TypeName createTypeFromName(String returnParameterType) {
         TypeName returnValueSquareClass;
@@ -272,7 +278,7 @@ public class TestCaseService {
 //                    return TypeName.LONG;
 //                break;
 //                default:
-                    return constructClassName(returnParameterType);
+            return constructClassName(returnParameterType);
 //            }
 
         } else if (returnParameterType.contains(".")) {

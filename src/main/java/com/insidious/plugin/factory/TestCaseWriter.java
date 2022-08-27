@@ -90,19 +90,23 @@ public class TestCaseWriter {
 
 
 
-    public static void createMethodCall(ObjectRoutine objectRoutine,
-                                    VariableContainer variableContainer, VariableContainer createdVariableContainer, MethodCallExpression methodCallExpression) {
+    public static void createMethodCallMock(ObjectRoutine objectRoutine,
+                                            VariableContainer createdVariableContainer,
+                                            MethodCallExpression methodCallExpression) {
         Parameter returnValue = methodCallExpression.getReturnValue();
         Parameter exceptionValue = methodCallExpression.getException();
+        VariableContainer variableContainer = objectRoutine.getVariableContainer();
+
         String callArgumentsString =
                 TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
 
         if (returnValue != null) {
 
             for (Parameter argument : methodCallExpression.getArguments().all()) {
-                if (variableContainer.getParameterByName(argument.getName()) == null) {
-                    addVariableToScript(argument, objectRoutine);
-                    variableContainer.add(argument);
+                if (argument.getName() != null) {
+                    in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+//                    addVariableToScript(argument, objectRoutine);
+//                    variableContainer.add(argument);
                 }
             }
 
@@ -112,26 +116,23 @@ public class TestCaseWriter {
             Optional<Parameter> existingVariableById =
                     variableContainer.getParametersById((String) returnValue.getValue());
 
-            Optional<Parameter> subjectVariable = variableContainer.getParametersById(
-                    (String) methodCallExpression.getSubject().getValue());
-
             if (existingVariableById.isPresent()) {
                 returnValue.setName(existingVariableById.get().getName());
             } else {
                 if (returnValue.getName() == null) {
                     returnValue.setName(variableName);
                 }
-//                        variableContainer.add(returnValue);
             }
 
-            String returnTypeValue = returnValue.getType().replace('$', '.');
+            String returnTypeValue = returnValue.getType();
+
             boolean isArray = false;
             if (returnTypeValue.startsWith("[")) {
                 returnTypeValue = returnTypeValue.substring(1);
                 isArray = true;
             }
             ClassName returnTypeClass = ClassName.bestGuess(returnTypeValue);
-//                    objectRoutine.addStatement("Class returnType = $T.class", returnTypeClass);
+
             if (returnValue.getType().length() < 2) {
 
                 TypeName returnType = ClassTypeUtils.getActualClassNameForBasicType(returnValue.getType());
@@ -275,5 +276,10 @@ public class TestCaseWriter {
         }
 
     }
+
+    private static PendingStatement in(ObjectRoutine objectRoutine) {
+        return new PendingStatement(objectRoutine);
+    }
+
 
 }
