@@ -1,5 +1,12 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.writer;
 
+import com.insidious.plugin.factory.ClassTypeUtils;
+import com.insidious.plugin.factory.ObjectRoutine;
+import com.insidious.plugin.factory.VariableContainer;
+import com.insidious.plugin.factory.expression.Expression;
+import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.expression.PlainValueExpression;
+import com.insidious.plugin.factory.expression.StringExpression;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
@@ -65,16 +72,19 @@ public class PendingStatement {
                     assert i == 0;
                     statementBuilder.append("new $T(").append(parameterString).append(")");
                     statementParameters.add(ClassName.bestGuess(methodCallExpression.getReturnValue().getType()));
-                } else if (methodCallExpression.getSubject() != null) {
-                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
-                    statementParameters.add(methodCallExpression.getSubject().getName());
-                    statementParameters.add(methodCallExpression.getMethodName());
-                } else if (methodCallExpression.getSubject() == null) {
-                    if (i > 0) {
-                        statementBuilder.append(".");
+                } else {
+                    Parameter callExpressionSubject = methodCallExpression.getSubject();
+                    if (callExpressionSubject != null) {
+                        statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                        statementParameters.add(callExpressionSubject.getName());
+                        statementParameters.add(methodCallExpression.getMethodName());
+                    } else {
+                        if (i > 0) {
+                            statementBuilder.append(".");
+                        }
+                        statementBuilder.append("$L(").append(parameterString).append(")");
+                        statementParameters.add(methodCallExpression.getMethodName());
                     }
-                    statementBuilder.append("$L(").append(parameterString).append(")");
-                    statementParameters.add(methodCallExpression.getMethodName());
                 }
 
             } else if (expression instanceof StringExpression) {
@@ -87,10 +97,14 @@ public class PendingStatement {
         }
 
 
-        objectRoutine.addStatement(statementBuilder.toString(), statementParameters);
+        String statement = statementBuilder.toString();
+        objectRoutine.addStatement(statement, statementParameters);
     }
 
     public PendingStatement fromRecordedValue() {
+        if (lhsExpression == null) {
+            return this;
+        }
         String targetClassname = lhsExpression.getType();
 
         if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
@@ -125,18 +139,9 @@ public class PendingStatement {
 
         } else {
 
-            Parameter gson = new Parameter();
-            gson.setName("gson");
             Parameter parameterValue = new Parameter();
             parameterValue.setValue(new String(lhsExpression.getProb().getSerializedValue()));
-            Parameter parameterType = new Parameter();
-
-
-            parameterType.setValue(targetClassname);
-            this.expressionList.add(new MethodCallExpression(
-                    "fromJson", gson, VariableContainer.from(List.of(parameterValue, parameterType)),
-                    this.lhsExpression, null
-            ));
+            this.expressionList.add(MethodCallExpressionFactory.FromJson(parameterValue));
 
         }
 

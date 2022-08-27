@@ -1,5 +1,7 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.expression;
 
+import com.insidious.plugin.factory.VariableContainer;
+import com.insidious.plugin.factory.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.ConstructorType;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -87,13 +89,22 @@ public class MethodCallExpressionFactory {
 //        return parameter;
     }
 
+    public static Expression MockitoThenThrow(Parameter exceptionValue) {
+
+        return new MethodCallExpression(
+                "thenThrow", null,
+                VariableContainer.from(List.of(exceptionValue)),
+                null, null);
+
+//        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
+//        return parameter;
+    }
+
     public static Expression ToJson(Parameter object) {
         return new MethodCallExpression(
-                "toJson", GsonClass, VariableContainer.from(
-                List.of(
-                        object
-                )
-        ), null, null);
+                "toJson", GsonClass,
+                VariableContainer.from(List.of(object)),
+                null, null);
     }
 
     public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
@@ -109,11 +120,9 @@ public class MethodCallExpressionFactory {
         Parameter returnTypeParameter = new Parameter();
         returnTypeParameter.setValue(object.getType() + ".class");
         return new MethodCallExpression(
-                "fromJson", GsonClass, VariableContainer.from(
-                List.of(
-                        object, returnTypeParameter
-                )
-        ), null, null);
+                "fromJson", GsonClass,
+                VariableContainer.from(List.of(object, returnTypeParameter)
+                ), null, null);
 
     }
 }

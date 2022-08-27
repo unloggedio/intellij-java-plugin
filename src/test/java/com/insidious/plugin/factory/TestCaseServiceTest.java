@@ -390,7 +390,6 @@ public class TestCaseServiceTest {
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
 
 
-        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
         TestCaseService testCaseService = new TestCaseService(project, client);
 
 
@@ -401,7 +400,10 @@ public class TestCaseServiceTest {
             if (objectRoutine.getMetadata().size() == 0) {
                 continue;
             }
-            testCaseService.buildTestFromTestMetadataSet(objectRoutine);
+            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
+                testCaseService.buildTestFromTestMetadataSet(metadatum, objectRoutine);
+            }
+
         }
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
             for (Pair<CodeLine, Object[]> statement : objectRoutine.getStatements()) {

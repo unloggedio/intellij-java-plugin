@@ -9,6 +9,10 @@ import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.expression.StringExpression;
+import com.insidious.plugin.factory.writer.PendingStatement;
+import com.insidious.plugin.factory.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -20,7 +24,6 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,113 +53,107 @@ public class TestCaseService {
                 1235);
     }
 
-    void buildTestFromTestMetadataSet(ObjectRoutine objectRoutine) {
-        assert objectRoutine.getMetadata().size() != 0;
-        List<TestCandidateMetadata> metadataCollection = objectRoutine.getMetadata();
+    void
+    buildTestFromTestMetadataSet(
+            TestCandidateMetadata testCandidateMetadata,
+            ObjectRoutine objectRoutine) {
 
+        MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
-        for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
+        objectRoutine.addComment("");
+        Parameter mainMethodReturnValue = mainMethod.getReturnValue();
+        objectRoutine.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
+                "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
+                Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
 
-            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
+        if (mainMethod.getArguments().count() > 0) {
+
 
             objectRoutine.addComment("");
-            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
-            objectRoutine.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
-                    "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
-                    Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
-
-            if (mainMethod.getArguments().count() > 0) {
-
-
-                objectRoutine.addComment("");
-                for (Parameter parameter : mainMethod.getArguments().all()) {
-                    if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
-                        String serializedValue = new String(parameter.getProb().getSerializedValue());
-                        if (parameter.getType().equals("java.lang.String")) {
-                            serializedValue = '"' + serializedValue + '"';
-                        }
-                        parameter.setValue(serializedValue);
+            for (Parameter parameter : mainMethod.getArguments().all()) {
+                if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
+                    String serializedValue = new String(parameter.getProb().getSerializedValue());
+                    if (parameter.getType().equals("java.lang.String")) {
+                        serializedValue = '"' + serializedValue + '"';
                     }
-                    objectRoutine.addParameterComment(parameter);
+                    parameter.setValue(serializedValue);
                 }
-                objectRoutine.addComment("");
-                objectRoutine.addComment("");
+                objectRoutine.addParameterComment(parameter);
             }
+            objectRoutine.addComment("");
+            objectRoutine.addComment("");
+        }
 
 
-            if (testCandidateMetadata.getCallsList().size() > 0) {
+        if (testCandidateMetadata.getCallsList().size() > 0) {
 
-                objectRoutine.addComment("");
-                for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    TestCaseWriter.createMethodCallComment(objectRoutine, methodCallExpression);
-                    TestCaseWriter.createMethodCallMock(objectRoutine, methodCallExpression);
-                }
-                objectRoutine.addComment("");
-                objectRoutine.addComment("");
+            objectRoutine.addComment("");
+            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                TestCaseWriter.createMethodCallComment(objectRoutine, methodCallExpression);
+                TestCaseWriter.createMethodCallMock(objectRoutine, methodCallExpression);
             }
+            objectRoutine.addComment("");
+            objectRoutine.addComment("");
+        }
 
 
-            //////////////////////// FUNCTION CALL ////////////////////////
+        //////////////////////// FUNCTION CALL ////////////////////////
 
-            // return type == V ==> void return type => no return value
-            in(objectRoutine).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
-
-
-            if (mainMethod.getMethodName().equals("<init>")) {
-                // there is no verification required (?) after calling constructors
-                continue;
-            }
-            String returnSubjectInstanceName = mainMethodReturnValue.getName();
+        // return type == V ==> void return type => no return value
+        in(objectRoutine).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
 
 
-            //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
+        if (mainMethod.getMethodName().equals("<init>")) {
+            // there is no verification required (?) after calling constructors
+            return;
+        }
+        String returnSubjectInstanceName = mainMethodReturnValue.getName();
 
 
-            // deserialize and compare objects
-            byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
-            if (serializedBytes == null) {
-                serializedBytes = new byte[0];
-            }
-            String serializedValue = "";
-            if (serializedBytes.length > 0) {
-                serializedValue = new String(serializedBytes);
-            }
-
-            // reconstruct object from the serialized form to an object instance in the
-            // test method to compare it with the new object, or do it the other way
-            // round ? Maybe serializing the object and then comparing the serialized
-            // string forms would be more readable ? string comparison would fail if the
-            // serialization has fields serialized in random order
-            Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
-
-            Parameter returnSubjectExpectedJsonString = null;
-            if (serializedBytes.length > 0) {
-
-                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
-
-                in(objectRoutine)
-                        .assignVariable(returnSubjectJsonString)
-                        .writeExpression(
-                                MethodCallExpressionFactory.ToJson(mainMethodReturnValue)
-                        ).endStatement();
+        //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
 
 
-                in(objectRoutine)
-                        .assignVariable(returnSubjectExpectedJsonString).writeExpression(
-                                new StringExpression(serializedValue)
-                        ).endStatement();
-            }
+        // deserialize and compare objects
+        byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
+        if (serializedBytes == null) {
+            serializedBytes = new byte[0];
+        }
+        String serializedValue = "";
+        if (serializedBytes.length > 0) {
+            serializedValue = new String(serializedBytes);
+        }
+
+        // reconstruct object from the serialized form to an object instance in the
+        // test method to compare it with the new object, or do it the other way
+        // round ? Maybe serializing the object and then comparing the serialized
+        // string forms would be more readable ? string comparison would fail if the
+        // serialization has fields serialized in random order
+        Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
+        in(objectRoutine)
+                .assignVariable(returnSubjectJsonString)
+                .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
+                .endStatement();
+
+
+        Parameter returnSubjectExpectedJsonString = null;
+        if (serializedBytes.length > 0) {
+
+            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
 
             in(objectRoutine)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockitoAssert(returnSubjectJsonString,
-                                    returnSubjectExpectedJsonString))
+                    .assignVariable(returnSubjectExpectedJsonString)
+                    .writeExpression(new StringExpression(serializedValue))
                     .endStatement();
-
-
-            objectRoutine.addComment("");
-
         }
+
+        in(objectRoutine)
+                .writeExpression(MethodCallExpressionFactory
+                        .MockitoAssert(returnSubjectJsonString, returnSubjectExpectedJsonString))
+                .endStatement();
+
+
+        objectRoutine.addComment("");
+
     }
 
     private PendingStatement in(ObjectRoutine objectRoutine) {
@@ -179,7 +176,7 @@ public class TestCaseService {
 
     public TestSuite generateTestCase(
             TestCaseRequest testCaseRequest
-    ) throws APICallException, IOException, SessionNotSelectedException {
+    ) throws APICallException, SessionNotSelectedException {
 
         List<ObjectWithTypeInfo> allObjects = testCaseRequest.getTargetObjectList();
 
@@ -432,25 +429,20 @@ public class TestCaseService {
         // Integer varName = value;
         if (targetParameter.getType() != null && targetParameter.getType().startsWith("java.lang")) {
 
-            if (globalVariableContainer.contains(targetParameter.getName())) {
-                logger.warn("variable already exists: " + targetParameter.getName());
-                return objectRoutineContainer;
-            }
-
-
-            buildTestCandidateForBaseClass(objectRoutineContainer, targetParameter);
+            TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(targetParameter);
+            ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+            in(constructor).assignVariable(targetParameter).fromRecordedValue().endStatement();
+            constructor.setMetadata(testCaseMetadata);
             return objectRoutineContainer;
 
         }
 
         if (targetParameter.getType() != null && targetParameter.getType().length() == 1) {
 
-            if (globalVariableContainer.contains(targetParameter.getName())) {
-                logger.warn("variable already exists: " + targetParameter.getName());
-                return objectRoutineContainer;
-            }
-
-            buildTestCandidateForBaseClass(objectRoutineContainer, targetParameter);
+            TestCandidateMetadata testCandidateMetadata = buildTestCandidateForBaseClass(targetParameter);
+            ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+            in(constructor).assignVariable(targetParameter).fromRecordedValue().endStatement();
+            constructor.setMetadata(testCandidateMetadata);
             return objectRoutineContainer;
 
 
@@ -474,25 +466,29 @@ public class TestCaseService {
         ReplayData objectReplayData = client.fetchObjectHistoryByObjectId(request);
 
 
+        // this is part 1
         testCaseRequest.setTargetParameter(targetParameter);
         String subjectName = buildTestCandidates(testCaseRequest, objectRoutineContainer,
                 objectReplayData, testCaseRequest.getBuildLevel());
 
+        // part 1 ends here
+
+        // this is part 2
         if (subjectName != null) {
             objectRoutineContainer.setName(subjectName);
         }
 
-        ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
 
-
-        List<Parameter> callSubjects = objectRoutineContainer
-                .getObjectRoutines().stream()
-                .map(ObjectRoutine::getMetadata)
-                .flatMap(Collection::stream)
-                .map(TestCandidateMetadata::getCallsList)
-                .flatMap(Collection::stream)
-                .map(MethodCallExpression::getSubject)
-                .collect(Collectors.toList());
+        VariableContainer callSubjects = VariableContainer.from(
+                objectRoutineContainer
+                        .getObjectRoutines().stream()
+                        .map(ObjectRoutine::getMetadata)
+                        .flatMap(Collection::stream)
+                        .map(TestCandidateMetadata::getCallsList)
+                        .flatMap(Collection::stream)
+                        .map(MethodCallExpression::getSubject)
+                        .collect(Collectors.toList())
+        );
 
 
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
@@ -553,7 +549,8 @@ public class TestCaseService {
             }
 
 
-            for (Parameter callSubject : callSubjects) {
+            // gotta mock'em all
+            for (Parameter callSubject : callSubjects.all()) {
                 ObjectRoutineContainer dependentObjectMockCreation;
                 Parameter subjectVariable = globalVariableContainer.getParameterByName(callSubject.getName());
                 if (subjectVariable == null) {
@@ -579,7 +576,7 @@ public class TestCaseService {
             }
 
 
-            for (Parameter callSubject : callSubjects) {
+            for (Parameter callSubject : callSubjects.all()) {
                 Parameter subjectVariable = globalVariableContainer.getParameterByName(callSubject.getName());
                 if (subjectVariable == null) {
                     globalVariableContainer.add(callSubject);
@@ -619,6 +616,13 @@ public class TestCaseService {
 
 
                 variableContainer.add(dependentParameter);
+
+                for (ObjectRoutine routine : dependentObjectCreation.getObjectRoutines()) {
+                    VariableContainer createdVariablesContainer = routine.getCreatedVariables();
+                    createdVariablesContainer.all().forEach(variableContainer::add);
+                }
+
+
                 if (dependentObjectCreation.getName() != null) {
                     dependentParameter.setName(dependentObjectCreation.getName());
                 } else {
@@ -640,11 +644,15 @@ public class TestCaseService {
             }
         }
 
+        // and this is a third thing
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
             if (objectRoutine.getMetadata().size() == 0) {
                 continue;
             }
-            buildTestFromTestMetadataSet(objectRoutine);
+            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
+                buildTestFromTestMetadataSet(metadatum, objectRoutine);
+            }
+
         }
 
 
@@ -656,7 +664,20 @@ public class TestCaseService {
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
 
 
-        buildMockCandidateForBaseClass(objectRoutineContainer, dependentParameter);
+        TestCandidateMetadata testcaseMetadata = buildMockCandidateForBaseClass(
+                dependentParameter.getType());
+
+        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+
+        in(constructor)
+                .assignVariable(dependentParameter)
+                .writeExpression(MethodCallExpressionFactory.MockClass(
+                        ClassName.bestGuess(testcaseMetadata.getFullyQualifiedClassname())
+                ))
+                .endStatement();
+        constructor.setMetadata(testcaseMetadata);
+
+
         return objectRoutineContainer;
     }
 
@@ -736,10 +757,6 @@ public class TestCaseService {
                 objectReplayData.buildHierarchyFromType(subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
-//        if (!className.startsWith("org.zerhusen")) {
-//            return parameter.getName();
-//        }
-        long currentTypeId = subjectTypeInfo.getTypeId();
 
 
         assert typeNameHierarchyList.size() != 0;
@@ -769,12 +786,9 @@ public class TestCaseService {
             String eventValueString = String.valueOf(eventValue);
             ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
 
-            String objectInfoString = "";
             TypeInfo objectTypeInfo = null;
             if (objectInfo != null) {
                 long objectTypeId = objectInfo.getTypeId();
-                objectTypeInfo = typeInfoMap.get(String.valueOf(objectTypeId));
-                objectInfoString = "[Object:" + objectInfo.getObjectId() + "]";
                 objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
             if (objectTypeInfo == null) {
@@ -977,7 +991,9 @@ public class TestCaseService {
         return subjectName;
     }
 
-    private void buildTestCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer, Parameter parameter) {
+    private TestCandidateMetadata
+    buildTestCandidateForBaseClass(
+            Parameter parameter) {
 
         String javaClassName;
         if (parameter.getType().length() > 1) {
@@ -989,7 +1005,6 @@ public class TestCaseService {
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
-        ClassName targetClassname = ClassName.bestGuess(javaClassName);
         testCandidateMetadata.setTestSubject(null);
         Parameter returnStringParam = new Parameter();
 
@@ -1004,20 +1019,14 @@ public class TestCaseService {
                         "<init>", null, new VariableContainer(), returnStringParam, null
                 )
         );
-
-        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-        in(constructor).assignVariable(parameter).fromRecordedValue().endStatement();
-
-        constructor.setMetadata(testCandidateMetadata);
+        return testCandidateMetadata;
     }
 
-    private void buildMockCandidateForBaseClass(
-            ObjectRoutineContainer objectRoutineContainer,
-            Parameter parameter
+    private TestCandidateMetadata buildMockCandidateForBaseClass(
+            String parameterTypeName
     ) {
 
         boolean isArray = false;
-        String parameterTypeName = parameter.getType();
         if (parameterTypeName.startsWith("[")) {
             isArray = true;
             parameterTypeName = parameterTypeName.substring(1);
@@ -1044,13 +1053,8 @@ public class TestCaseService {
         );
 
         testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
-        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
 
-        in(objectRoutineContainer.getConstructor())
-                .assignVariable(parameter)
-                .writeExpression(MethodCallExpressionFactory.MockClass(targetClassname))
-                .endStatement();
-        constructor.setMetadata(testCandidateMetadata);
+        return testCandidateMetadata;
     }
 
 

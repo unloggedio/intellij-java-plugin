@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.expression;
 
 public class StringExpression implements Expression {
 

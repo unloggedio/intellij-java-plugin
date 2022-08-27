@@ -1,6 +1,6 @@
 package com.insidious.plugin.pojo;
 
-import com.insidious.plugin.factory.Expression;
+import com.insidious.plugin.factory.expression.Expression;
 import com.insidious.plugin.factory.VariableContainer;
 
 public class MethodCallExpression implements Expression {

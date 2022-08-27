@@ -95,33 +95,6 @@ public class ClassTypeUtils {
                         "FieldName", defaultValue));
     }
 
-    public static TypeName getActualClassNameForBasicType(String typeName) {
-
-        switch (typeName) {
-            case "Z":
-                return ClassName.BOOLEAN;
-            case "B":
-                return ClassName.BYTE;
-            case "C":
-                return ClassName.CHAR;
-            case "S":
-                return ClassName.SHORT;
-            case "I":
-                return ClassName.INT;
-            case "J":
-                return ClassName.LONG;
-            case "F":
-                return ClassName.FLOAT;
-            case "D":
-                return ClassName.DOUBLE;
-            default:
-            case "V":
-                return ClassName.VOID;
-        }
-
-
-    }
-
     @Nullable
     public static TypeName createTypeFromName(String returnParameterType) {
         TypeName returnValueSquareClass;
