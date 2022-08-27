@@ -1095,4 +1095,10 @@ public class ParameterFactory {
     }
 
 
+    public static Parameter createStringByName(String s) {
+        Parameter parameter = new Parameter();
+        parameter.setName(s);
+        parameter.setType("java.lang.String");
+        return parameter;
+    }
 }

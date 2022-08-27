@@ -1,7 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.esotericsoftware.asm.Opcodes;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
@@ -142,28 +141,24 @@ public class TestCaseService {
             // string forms would be more readable ? string comparison would fail if the
             // serialization has fields serialized in random order
             if (serializedBytes.length > 0) {
-                if (MODE == CompareMode.OBJECT) {
-                    objectRoutine.addStatement("$T $L = gson.fromJson($S, $T.class)",
-                            returnValueSquareClass,
-                            returnSubjectInstanceName + "Expected",
-                            serializedValue,
-                            returnValueSquareClass
-                    );
-                    returnValue = returnSubjectInstanceName + "Expected";
-                } else if (MODE == CompareMode.SERIALIZED_JSON) {
-                    objectRoutine.addStatement("$T $L = gson.toJson($L)",
-                            String.class,
-                            returnSubjectInstanceName + "Json",
-                            returnSubjectInstanceName
-                    );
-                    objectRoutine.addStatement("$T $L = $S",
-                            String.class,
-                            returnSubjectInstanceName + "ExpectedJson",
-                            serializedValue
-                    );
-                    returnValue = returnSubjectInstanceName + "ExpectedJson";
-                    returnSubjectInstanceName = returnSubjectInstanceName + "Json";
-                }
+
+                Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
+                Parameter returnSubjectExpectedJsonString =
+                        ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+
+                in(objectRoutine)
+                        .assignVariable(returnSubjectJsonString).writeExpression(
+                                MethodCallExpressionFactory.ToJson(mainMethodReturnValue)
+                        ).endStatement();
+
+
+                in(objectRoutine)
+                        .assignVariable(returnSubjectExpectedJsonString).writeExpression(
+                                new StringExpression(serializedValue)
+                        ).endStatement();
+
+                returnValue = returnSubjectInstanceName + "ExpectedJson";
+                returnSubjectInstanceName = returnSubjectInstanceName + "Json";
             }
 
 

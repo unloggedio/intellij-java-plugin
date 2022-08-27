@@ -37,9 +37,6 @@ public class PendingStatement {
 
     public void endStatement() {
 
-        assert this.expressionList != null;
-
-
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new LinkedList<>();
 
@@ -80,6 +77,9 @@ public class PendingStatement {
                     statementParameters.add(methodCallExpression.getMethodName());
                 }
 
+            } else if (expression instanceof StringExpression) {
+                statementBuilder.append("$S");
+                statementParameters.add(expression.toString());
             } else {
                 statementBuilder.append(expression.toString());
             }

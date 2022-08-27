@@ -10,14 +10,20 @@ import java.util.List;
 public class MethodCallExpressionFactory {
 
     private static final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
-    private static Parameter MockitoClass;
+    private static final Parameter MockitoClass;
+    private static final Parameter GsonClass;
 
     static {
-        MockitoClass = new Parameter();
+        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito", ConstructorType.SINGLETON);
+        GsonClass = makeParameter("gson", "com.google.gson.Gson", ConstructorType.INIT);
+    }
 
-        MockitoClass.setName("Mockito");
-        MockitoClass.setType("org.mockito.Mockito");
-        MockitoClass.setConstructorType(ConstructorType.SINGLETON);
+    private static Parameter makeParameter(String name, String type, ConstructorType constructorType) {
+        Parameter param = new Parameter();
+        param.setName(name);
+        param.setType(type);
+        param.setConstructorType(constructorType);
+        return param;
     }
 
     public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression) {
@@ -75,5 +81,16 @@ public class MethodCallExpressionFactory {
     public static Expression MockitoThen(Parameter returnValue) {
         PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + returnValue.getName() + ")");
         return parameter;
+    }
+
+    public static Expression ToJson(Parameter object) {
+        Expression expression = new MethodCallExpression(
+                "toJson", GsonClass, VariableContainer.from(
+                        List.of(
+                                object
+                        )
+        ), null, null
+        );
+        return expression;
     }
 }
