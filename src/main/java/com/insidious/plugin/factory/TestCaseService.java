@@ -56,8 +56,6 @@ public class TestCaseService {
     void buildTestFromTestMetadataSet(ObjectRoutine objectRoutine) {
         assert objectRoutine.getMetadata().size() != 0;
         List<TestCandidateMetadata> metadataCollection = objectRoutine.getMetadata();
-        VariableContainer variableContainer = objectRoutine.getVariableContainer();
-        VariableContainer createdVariableContainer = objectRoutine.getCreatedVariables();
 
 
         for (TestCandidateMetadata testCandidateMetadata : metadataCollection) {
@@ -65,9 +63,9 @@ public class TestCaseService {
             MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
             objectRoutine.addComment("");
-            objectRoutine.addComment("Test candidate method ["
-                    + mainMethod.getMethodName()
-                    + "] [ " + mainMethod.getReturnValue().getProb().getNanoTime() + "] - took " +
+            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
+            objectRoutine.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
+                    "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
                     Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
 
             if (mainMethod.getArguments().count() > 0) {
@@ -102,7 +100,7 @@ public class TestCaseService {
 
 
             TypeName returnValueSquareClass = null;
-            String returnParameterType = mainMethod.getReturnValue().getType();
+            String returnParameterType = mainMethodReturnValue.getType();
 
             returnValueSquareClass = ClassTypeUtils.createTypeFromName(returnParameterType);
 
@@ -110,8 +108,7 @@ public class TestCaseService {
             //////////////////////// FUNCTION CALL ////////////////////////
 
             // return type == V ==> void return type => no return value
-            Parameter testSubject = testCandidateMetadata.getMainMethod().getReturnValue();
-            in(objectRoutine).assignVariable(testSubject).writeExpression(mainMethod).endStatement();
+            in(objectRoutine).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
 
 
             if (mainMethod.getMethodName().equals("<init>")) {
@@ -119,20 +116,18 @@ public class TestCaseService {
                 continue;
             }
 
-            Parameter returnParameter = mainMethod.getReturnValue();
+            Object returnValue = mainMethodReturnValue.getValue();
 
-            Object returnValue = returnParameter.getValue();
+            String returnSubjectInstanceName = mainMethodReturnValue.getName();
 
-            String returnSubjectInstanceName = returnParameter.getName();
-
-            String returnType = returnParameter.getType();
+            String returnType = mainMethodReturnValue.getType();
 
 
             //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
 
 
             // deserialize and compare objects
-            byte[] serializedBytes = returnParameter.getProb().getSerializedValue();
+            byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
             if (serializedBytes == null) {
                 serializedBytes = new byte[0];
             }
@@ -172,10 +167,10 @@ public class TestCaseService {
             }
 
 
-            if (returnType.equals("Ljava/lang/String;") && returnParameter.getName() == null) {
+            if (returnType.equals("Ljava/lang/String;") && mainMethodReturnValue.getName() == null) {
                 objectRoutine.addStatement("$T.assertEquals($L, $L)",
                         assertClass,
-                        returnParameter.getValue(),
+                        mainMethodReturnValue.getValue(),
                         returnSubjectInstanceName
                 );
             } else {
@@ -206,15 +201,6 @@ public class TestCaseService {
 
     private PendingStatement in(ObjectRoutine objectRoutine) {
         return new PendingStatement(objectRoutine);
-    }
-
-
-    @NotNull
-    private MethodSpec.Builder buildJUnitTestCaseSkeleton(String testMethodName) {
-        return MethodSpec.methodBuilder(testMethodName)
-                .addModifiers(javax.lang.model.element.Modifier.PUBLIC)
-                .returns(void.class)
-                .addAnnotation(JUNIT_CLASS_NAME);
     }
 
 
@@ -601,7 +587,7 @@ public class TestCaseService {
                 for (Parameter dependentParameter : dependentParameters) {
 
                     ObjectRoutineContainer dependentObjectMockCreation;
-                    if (dependentParameter.getType().startsWith("Ljava/")) {
+                    if (dependentParameter.getType().startsWith("java.")) {
                         dependentObjectMockCreation = generateTestCaseFromObjectHistory(
                                 dependentParameter, TestCaseRequest.nextLevel(testCaseRequest),
                                 variableContainer);
@@ -703,9 +689,6 @@ public class TestCaseService {
                 objectRoutine.addDependent(dependentObjectCreation);
             }
         }
-
-        String containerJson = new ObjectMapper().writeValueAsString(objectRoutineContainer);
-//        logger.warn("Routine: \n " + containerJson);
 
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
             if (objectRoutine.getMetadata().size() == 0) {
@@ -1073,17 +1056,15 @@ public class TestCaseService {
         );
 
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-        if (parameter.getProb().getSerializedValue().length > 0) {
-            constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(),
-                    new String(parameter.getProb().getSerializedValue()));
-        } else {
-            constructor.addStatement("$T $L = $L", targetClassname, parameter.getName(), parameter.getValue());
-        }
+        in(constructor).assignVariable(parameter).fromRecordedValue().endStatement();
+
         constructor.setMetadata(testCandidateMetadata);
     }
 
-    private void buildMockCandidateForBaseClass(ObjectRoutineContainer objectRoutineContainer,
-                                                Parameter parameter) {
+    private void buildMockCandidateForBaseClass(
+            ObjectRoutineContainer objectRoutineContainer,
+            Parameter parameter
+    ) {
 
         boolean isArray = false;
         String parameterTypeName = parameter.getType();
@@ -1112,10 +1093,13 @@ public class TestCaseService {
                 )
         );
 
-
         testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-        constructor.addStatement("$T $L = $T.mock($T.class)", targetClassname, parameter.getName(), mockitoClass, targetClassname);
+
+        in(objectRoutineContainer.getConstructor())
+                .assignVariable(parameter)
+                .writeExpression(MethodCallExpressionFactory.MockClass(targetClassname))
+                .endStatement();
         constructor.setMetadata(testCandidateMetadata);
     }
 

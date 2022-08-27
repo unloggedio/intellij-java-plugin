@@ -22,6 +22,7 @@ public class Parameter {
     DataEventWithSessionId prob;
     private int index;
     private DataInfo probeInfo;
+    private ConstructorType constructorType;
 
     @Override
     public String toString() {
@@ -81,5 +82,13 @@ public class Parameter {
 
     public void setProbeInfo(DataInfo probeInfo) {
         this.probeInfo = probeInfo;
+    }
+
+    public ConstructorType getConstructorType() {
+        return constructorType;
+    }
+
+    public void setConstructorType(ConstructorType constructorType) {
+        this.constructorType = constructorType;
     }
 }

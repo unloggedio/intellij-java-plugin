@@ -91,24 +91,23 @@ public class TestCaseWriter {
 
     public static void createMethodCallMock(
             ObjectRoutine objectRoutine,
-            MethodCallExpression methodCallExpression
+            MethodCallExpression callExpressionToMock
     ) {
         VariableContainer createdVariableContainer = objectRoutine.getCreatedVariables();
         VariableContainer variableContainer = objectRoutine.getVariableContainer();
 
-        Parameter returnValue = methodCallExpression.getReturnValue();
-        Parameter exceptionValue = methodCallExpression.getException();
+        Parameter returnValue = callExpressionToMock.getReturnValue();
+        Parameter exceptionValue = callExpressionToMock.getException();
 
         String callArgumentsString =
-                TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
+                TestCaseWriter.createMethodParametersString(callExpressionToMock.getArguments());
 
+        String methodNameToMock = callExpressionToMock.getMethodName();
         if (returnValue != null) {
 
-            for (Parameter argument : methodCallExpression.getArguments().all()) {
+            for (Parameter argument : callExpressionToMock.getArguments().all()) {
                 if (argument.getName() != null) {
                     in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
-//                    addVariableToScript(argument, objectRoutine);
-//                    variableContainer.add(argument);
                 }
             }
 
@@ -147,29 +146,20 @@ public class TestCaseWriter {
                     callReturnValue = "true";
                 }
                 if (returnValue.getName() == null) {
+
                     objectRoutine.addStatement(
                             "$T.when($L.$L($L)).thenReturn($L)",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
+                            mockitoClass, callExpressionToMock.getSubject().getName(),
+                            methodNameToMock, callArgumentsString,
                             callReturnValue
                     );
                 } else {
-                    if (createdVariableContainer.getParameterByName(returnValue.getName()) == null) {
-                        objectRoutine.addStatement(
-                                "$T $L = $L",
-                                returnType, returnValue.getName(),
-                                callReturnValue
+                    in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
 
-                        );
-                        createdVariableContainer.add(returnValue);
-                    }
-                    objectRoutine.addStatement(
-                            "$T.when($L.$L($L)).thenReturn($L)",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
-                            returnValue.getName()
-                    );
-                    variableContainer.add(returnValue);
+                    in(objectRoutine)
+                            .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
+                            .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
+                            .endStatement();
 
                 }
 
@@ -178,8 +168,8 @@ public class TestCaseWriter {
                 if (returnValue.getName() == null) {
                     objectRoutine.addStatement(
                             "$T.when($L.$L($L)).thenReturn($L)",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
+                            mockitoClass, callExpressionToMock.getSubject().getName(),
+                            methodNameToMock, callArgumentsString,
                             new String(returnValue.getProb().getSerializedValue())
                     );
                 } else {
@@ -195,8 +185,8 @@ public class TestCaseWriter {
                     }
                     objectRoutine.addStatement(
                             "$T.when($L.$L($L)).thenReturn($L)",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
+                            mockitoClass, callExpressionToMock.getSubject().getName(),
+                            methodNameToMock, callArgumentsString,
                             returnValue.getName()
                     );
                     variableContainer.add(returnValue);
@@ -207,8 +197,8 @@ public class TestCaseWriter {
                 if (returnValue.getName() == null) {
                     objectRoutine.addStatement(
                             "$T.when($L.$L($L)).thenReturn(gson.fromJson($S, $T.class))",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
+                            mockitoClass, callExpressionToMock.getSubject().getName(),
+                            methodNameToMock, callArgumentsString,
                             new String(returnValue.getProb().getSerializedValue()),
                             returnTypeClass
                     );
@@ -225,8 +215,8 @@ public class TestCaseWriter {
                     }
                     objectRoutine.addStatement(
                             "$T.when($L.$L($L)).thenReturn($L)",
-                            mockitoClass, methodCallExpression.getSubject().getName(),
-                            methodCallExpression.getMethodName(), callArgumentsString,
+                            mockitoClass, callExpressionToMock.getSubject().getName(),
+                            methodNameToMock, callArgumentsString,
                             returnValue.getName()
                     );
                     variableContainer.add(returnValue);
@@ -239,44 +229,11 @@ public class TestCaseWriter {
         } else if (exceptionValue != null) {
             objectRoutine.addStatement(
                     "$T.when($L.$L($L)).thenThrow($T.class)",
-                    mockitoClass, methodCallExpression.getSubject().getName(),
-                    methodCallExpression.getMethodName(), callArgumentsString,
+                    mockitoClass, callExpressionToMock.getSubject().getName(),
+                    methodNameToMock, callArgumentsString,
                     ClassName.bestGuess(exceptionValue.getType())
             );
         }
-    }
-
-
-    private static void addVariableToScript(
-            Parameter methodCallReturnValue,
-            ObjectRoutine objectRoutine
-    ) {
-        if (methodCallReturnValue.getType() == null) {
-            return;
-        }
-        if (methodCallReturnValue.getName() == null) {
-            return;
-        }
-        ClassName returnTypeClass = ClassName.bestGuess(
-                ClassTypeUtils.getDottedClassName(methodCallReturnValue.getType().replace('$', '.'))
-        );
-
-        if (methodCallReturnValue.getType().startsWith("java.lang")) {
-            objectRoutine.addStatement(
-                    "$T $L = $L",
-                    returnTypeClass, methodCallReturnValue.getName(),
-                    new String(methodCallReturnValue.getProb().getSerializedValue())
-            );
-
-        } else {
-
-            objectRoutine.addStatement(
-                    "$T $L = gson.fromJson($S, $T.class)",
-                    returnTypeClass, methodCallReturnValue.getName(),
-                    methodCallReturnValue.getProb().getSerializedValue(), returnTypeClass
-            );
-        }
-
     }
 
     private static PendingStatement in(ObjectRoutine objectRoutine) {
