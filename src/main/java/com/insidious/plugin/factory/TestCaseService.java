@@ -30,9 +30,7 @@ public class TestCaseService {
     private final Project project;
     private final VideobugClientInterface client;
     final private int MAX_TEST_CASE_LINES = 1000;
-    private final CompareMode MODE = CompareMode.SERIALIZED_JSON;
-    private final ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
-    private final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
+
 
     public TestCaseService(Project project, VideobugClientInterface client) {
         this.project = project;
@@ -98,12 +96,6 @@ public class TestCaseService {
             }
 
 
-            TypeName returnValueSquareClass = null;
-            String returnParameterType = mainMethodReturnValue.getType();
-
-            returnValueSquareClass = ClassTypeUtils.createTypeFromName(returnParameterType);
-
-
             //////////////////////// FUNCTION CALL ////////////////////////
 
             // return type == V ==> void return type => no return value
@@ -114,12 +106,7 @@ public class TestCaseService {
                 // there is no verification required (?) after calling constructors
                 continue;
             }
-
-            Object returnValue = mainMethodReturnValue.getValue();
-
             String returnSubjectInstanceName = mainMethodReturnValue.getName();
-
-            String returnType = mainMethodReturnValue.getType();
 
 
             //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
@@ -140,14 +127,16 @@ public class TestCaseService {
             // round ? Maybe serializing the object and then comparing the serialized
             // string forms would be more readable ? string comparison would fail if the
             // serialization has fields serialized in random order
+            Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
+
+            Parameter returnSubjectExpectedJsonString = null;
             if (serializedBytes.length > 0) {
 
-                Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
-                Parameter returnSubjectExpectedJsonString =
-                        ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
 
                 in(objectRoutine)
-                        .assignVariable(returnSubjectJsonString).writeExpression(
+                        .assignVariable(returnSubjectJsonString)
+                        .writeExpression(
                                 MethodCallExpressionFactory.ToJson(mainMethodReturnValue)
                         ).endStatement();
 
@@ -156,37 +145,13 @@ public class TestCaseService {
                         .assignVariable(returnSubjectExpectedJsonString).writeExpression(
                                 new StringExpression(serializedValue)
                         ).endStatement();
-
-                returnValue = returnSubjectInstanceName + "ExpectedJson";
-                returnSubjectInstanceName = returnSubjectInstanceName + "Json";
             }
 
-
-            if (returnType.equals("Ljava/lang/String;") && mainMethodReturnValue.getName() == null) {
-                objectRoutine.addStatement("$T.assertEquals($L, $L)",
-                        assertClass,
-                        mainMethodReturnValue.getValue(),
-                        returnSubjectInstanceName
-                );
-            } else {
-                if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
-                    if (returnValue instanceof String) {
-
-                    } else if (returnValue instanceof Long) {
-                        if ((long) returnValue == 1) {
-                            returnValue = "true";
-                        } else {
-                            returnValue = "false";
-                        }
-
-                    }
-                }
-                objectRoutine.addStatement("$T.assertEquals($L, $L)",
-                        assertClass,
-                        returnValue,
-                        returnSubjectInstanceName
-                );
-            }
+            in(objectRoutine)
+                    .writeExpression(
+                            MethodCallExpressionFactory.MockitoAssert(returnSubjectJsonString,
+                                    returnSubjectExpectedJsonString))
+                    .endStatement();
 
 
             objectRoutine.addComment("");
@@ -196,15 +161,6 @@ public class TestCaseService {
 
     private PendingStatement in(ObjectRoutine objectRoutine) {
         return new PendingStatement(objectRoutine);
-    }
-
-
-    private String upperInstanceName(String methodName) {
-        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
-    }
-
-    private String lowerInstanceName(String methodName) {
-        return methodName.substring(0, 1).toLowerCase() + methodName.substring(1);
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -316,7 +272,7 @@ public class TestCaseService {
                     }
 
                     MethodSpec.Builder builder = MethodSpec.methodBuilder(
-                            "testAsInstance" + upperInstanceName(objectRoutine.getRoutineName()));
+                            "testAsInstance" + ClassTypeUtils.upperInstanceName(objectRoutine.getRoutineName()));
 
                     builder.addModifiers(javax.lang.model.element.Modifier.PUBLIC);
                     builder.addException(Exception.class);
@@ -455,7 +411,6 @@ public class TestCaseService {
      * @return returns the routine for the object, each routine has a test case metadata and set
      * of associated test script in the form of statements
      * @throws APICallException when something fails in the data access network layer
-     * @throws IOException      when something fails in the data access storage layer
      */
     private ObjectRoutineContainer
     generateTestCaseFromObjectHistory(
@@ -463,7 +418,7 @@ public class TestCaseService {
             TestCaseRequest testCaseRequest,
             VariableContainer globalVariableContainer
     ) throws APICallException,
-            IOException, SessionNotSelectedException {
+            SessionNotSelectedException {
         logger.warn("[" + testCaseRequest.getBuildLevel() + "] Create test case from object: " + targetParameter +
                 " -- " +
                 "dependent object" +

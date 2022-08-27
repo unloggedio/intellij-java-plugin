@@ -9,12 +9,13 @@ import java.util.List;
 
 public class MethodCallExpressionFactory {
 
-    private static final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
     private static final Parameter MockitoClass;
+    private static final Parameter AssertClass;
     private static final Parameter GsonClass;
 
     static {
         MockitoClass = makeParameter("Mockito", "org.mockito.Mockito", ConstructorType.SINGLETON);
+        AssertClass = makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON);
         GsonClass = makeParameter("gson", "com.google.gson.Gson", ConstructorType.INIT);
     }
 
@@ -67,30 +68,52 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
 
-        MethodCallExpression mockitoWhenCall = new MethodCallExpression(
+
+        return new MethodCallExpression(
                 "mock", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
         );
 
-
-        return mockitoWhenCall;
-
     }
 
     public static Expression MockitoThen(Parameter returnValue) {
-        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + returnValue.getName() + ")");
-        return parameter;
+        return new MethodCallExpression("thenReturn", null,
+                VariableContainer.from(
+                        List.of(returnValue)
+                ), null, null);
+
+//        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
+//        return parameter;
     }
 
     public static Expression ToJson(Parameter object) {
-        Expression expression = new MethodCallExpression(
+        return new MethodCallExpression(
                 "toJson", GsonClass, VariableContainer.from(
-                        List.of(
-                                object
-                        )
-        ), null, null
+                List.of(
+                        object
+                )
+        ), null, null);
+    }
+
+    public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
+        return new MethodCallExpression(
+                "assertEquals", AssertClass,
+                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
+                null, null
         );
-        return expression;
+    }
+
+    public static Expression FromJson(Parameter object) {
+
+        Parameter returnTypeParameter = new Parameter();
+        returnTypeParameter.setValue(object.getType() + ".class");
+        return new MethodCallExpression(
+                "fromJson", GsonClass, VariableContainer.from(
+                List.of(
+                        object, returnTypeParameter
+                )
+        ), null, null);
+
     }
 }

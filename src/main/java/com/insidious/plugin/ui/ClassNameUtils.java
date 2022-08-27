@@ -19,4 +19,5 @@ public class ClassNameUtils {
         List<String> partsList = Arrays.asList(parts).subList(0, parts.length - 1);
         return StringUtil.join(partsList, ".");
     }
+
 }

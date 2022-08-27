@@ -1101,4 +1101,10 @@ public class ParameterFactory {
         parameter.setType("java.lang.String");
         return parameter;
     }
+
+    public static Parameter createStringByType(String s) {
+        Parameter parameter = new Parameter();
+        parameter.setType(s);
+        return parameter;
+    }
 }
