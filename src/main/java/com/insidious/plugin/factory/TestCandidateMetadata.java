@@ -191,10 +191,7 @@ public class TestCandidateMetadata {
             returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
         }
 
-        MethodCallExpression mainMethodExpression = new MethodCallExpression(
-                targetMethodName, metadata.getTestSubject(),
-                methodArguments, returnParameter, null
-        );
+
 
 
         String testSubjectInstanceName = ClassTypeUtils.lowerInstanceName(unqualifiedClassName);
@@ -283,6 +280,10 @@ public class TestCandidateMetadata {
             }
         }
 
+        MethodCallExpression mainMethodExpression = new MethodCallExpression(
+                targetMethodName, metadata.getTestSubject(),
+                methodArguments, returnParameter, null
+        );
 
         if (mainMethodExpression.getReturnValue().getName() == null
                 && !methodInfo.getMethodName().equals("<init>")) {
@@ -304,6 +305,7 @@ public class TestCandidateMetadata {
 
             mainMethodExpression.getReturnValue().setName(potentialReturnValueName);
         }
+
 
         metadata.setMainMethod(mainMethodExpression);
 
@@ -505,6 +507,9 @@ public class TestCandidateMetadata {
 
     public void setTestSubject(Parameter testSubject) {
         this.testSubject = testSubject;
+        if (this.mainMethod != null) {
+            this.mainMethod.setSubject(testSubject);
+        }
     }
 
 

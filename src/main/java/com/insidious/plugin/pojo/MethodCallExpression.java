@@ -4,7 +4,7 @@ import com.insidious.plugin.factory.Expression;
 import com.insidious.plugin.factory.VariableContainer;
 
 public class MethodCallExpression implements Expression {
-    private final Parameter subject;
+    private Parameter subject;
     private final VariableContainer arguments;
     private final Parameter returnValue;
     private final String methodName;
@@ -42,5 +42,9 @@ public class MethodCallExpression implements Expression {
 
     public Parameter getException() {
         return exception;
+    }
+
+    public void setSubject(Parameter testSubject) {
+        this.subject = testSubject;
     }
 }

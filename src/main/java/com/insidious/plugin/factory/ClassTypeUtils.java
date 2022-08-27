@@ -4,6 +4,7 @@ import com.insidious.common.weaver.DataInfo;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -120,4 +121,79 @@ public class ClassTypeUtils {
 
 
     }
+
+    @Nullable
+    public static TypeName createTypeFromName(String returnParameterType) {
+        TypeName returnValueSquareClass;
+        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
+            return constructClassName(returnParameterType);
+        } else if (returnParameterType.contains(".")) {
+            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
+        } else {
+            returnValueSquareClass = getClassFromDescriptor(returnParameterType);
+        }
+        return returnValueSquareClass;
+    }
+    private static ClassName constructClassName(String methodReturnValueType) {
+        char firstChar = methodReturnValueType.charAt(0);
+        switch (firstChar) {
+            case 'V':
+                return ClassName.get(void.class);
+            case 'Z':
+                return ClassName.get(boolean.class);
+            case 'B':
+                return ClassName.get(byte.class);
+            case 'C':
+                return ClassName.get(char.class);
+            case 'S':
+                return ClassName.get(short.class);
+            case 'I':
+                return ClassName.get(int.class);
+            case 'J':
+                return ClassName.get(long.class);
+            case 'F':
+                return ClassName.get(float.class);
+            case 'D':
+                return ClassName.get(double.class);
+            case 'L':
+                String returnValueClass = methodReturnValueType.substring(1).split(";")[0];
+                return ClassName.bestGuess(returnValueClass.replace("/", "."));
+            case '[':
+                String returnValueClass1 = methodReturnValueType.substring(1);
+                return ClassName.bestGuess(returnValueClass1.replace("/", ".") + "[]");
+
+            default:
+                assert false;
+
+        }
+        return null;
+    }
+
+    private static TypeName getClassFromDescriptor(String descriptor) {
+        char firstChar = descriptor.charAt(0);
+        switch (firstChar) {
+            case 'V':
+                return TypeName.VOID;
+            case 'Z':
+                return TypeName.BOOLEAN;
+            case 'B':
+                return TypeName.BYTE;
+            case 'C':
+                return TypeName.CHAR;
+            case 'S':
+                return TypeName.SHORT;
+            case 'I':
+                return TypeName.INT;
+            case 'J':
+                return TypeName.LONG;
+            case 'F':
+                return TypeName.FLOAT;
+            case 'D':
+                return TypeName.DOUBLE;
+        }
+        return null;
+
+    }
+
+
 }

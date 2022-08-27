@@ -92,17 +92,11 @@ public class TestCaseService {
 
             if (testCandidateMetadata.getCallsList().size() > 0) {
 
-
                 objectRoutine.addComment("");
                 for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    TestCaseWriter.createMethodCallComment(objectRoutine, variableContainer,
-                            methodCallExpression);
+                    TestCaseWriter.createMethodCallComment(objectRoutine, methodCallExpression);
+                    TestCaseWriter.createMethodCallMock(objectRoutine, methodCallExpression);
                 }
-
-                for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                    TestCaseWriter.createMethodCallMock(objectRoutine, createdVariableContainer, methodCallExpression);
-                }
-
                 objectRoutine.addComment("");
                 objectRoutine.addComment("");
             }
@@ -114,7 +108,8 @@ public class TestCaseService {
                 logger.warn("parameter return type is null: " + testCandidateMetadata);
                 return;
             }
-            returnValueSquareClass = createTypeFromName(returnParameterType);
+
+            returnValueSquareClass = ClassTypeUtils.createTypeFromName(returnParameterType);
 
 
             //////////////////////// FUNCTION CALL ////////////////////////
@@ -127,8 +122,8 @@ public class TestCaseService {
             if (mainMethod.getMethodName().equals("<init>")) {
 
 
-                ClassName squareClassName = ClassName.get(testCandidateMetadata.getPackageName(),
-                        testCandidateMetadata.getUnqualifiedClassname());
+//                ClassName squareClassName = ClassName.get(testCandidateMetadata.getPackageName(),
+//                        testCandidateMetadata.getUnqualifiedClassname());
 
 
                 in(objectRoutine).assignVariable(testSubject).writeExpression(mainMethod).endStatement();
@@ -144,30 +139,32 @@ public class TestCaseService {
                 testSubject = testCandidateMetadata.getTestSubject();
                 String testSubjectName = testSubject.getName();
 
+                in(objectRoutine).assignVariable(returnParameter).writeExpression(mainMethod).endStatement();
 
                 if (returnParameter.getType().equals("V")) {
 
-                    objectRoutine.addStatement("$L.$L(" + parameterString + ")",
-                            testSubjectName, mainMethod.getMethodName());
+
+//                    objectRoutine.addStatement("$L.$L(" + parameterString + ")",
+//                            testSubjectName, mainMethod.getMethodName());
 
                 } else {
                     Object returnValue = returnParameter.getValue();
 
                     String returnSubjectInstanceName = returnParameter.getName();
 
-                    if (createdVariableContainer.contains(returnSubjectInstanceName)) {
-                        objectRoutine.addStatement("$L = $L.$L(" + parameterString + ")",
-                                returnSubjectInstanceName,
-                                testSubjectName,
-                                mainMethod.getMethodName());
-
-                    } else {
-                        objectRoutine.addStatement("$T $L = $L.$L(" + parameterString + ")",
-                                returnValueSquareClass, returnSubjectInstanceName,
-                                testSubjectName,
-                                mainMethod.getMethodName());
-                        createdVariableContainer.add(returnParameter);
-                    }
+//                    if (createdVariableContainer.contains(returnSubjectInstanceName)) {
+//                        objectRoutine.addStatement("$L = $L.$L(" + parameterString + ")",
+//                                returnSubjectInstanceName,
+//                                testSubjectName,
+//                                mainMethod.getMethodName());
+//
+//                    } else {
+//                        objectRoutine.addStatement("$T $L = $L.$L(" + parameterString + ")",
+//                                returnValueSquareClass, returnSubjectInstanceName,
+//                                testSubjectName,
+//                                mainMethod.getMethodName());
+//                        createdVariableContainer.add(returnParameter);
+//                    }
 
 
                     String returnType = returnParameter.getType();
@@ -256,38 +253,6 @@ public class TestCaseService {
         return new PendingStatement(objectRoutine);
     }
 
-    @Nullable
-    private TypeName createTypeFromName(String returnParameterType) {
-        TypeName returnValueSquareClass;
-        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
-
-//            switch (returnParameterType) {
-//                case "Ljava/lang/Integer;":
-//                    return TypeName.INT;
-//                break;
-//                case "Ljava/lang/Long;":
-//                    return TypeName.LONG;
-//                break;
-//                case "Ljava/lang/Short;":
-//                    return TypeName.LONG;
-//                break;
-//                case "Ljava/lang/Char;":
-//                    return TypeName.LONG;
-//                break;
-//                case "Ljava/lang/Long;":
-//                    return TypeName.LONG;
-//                break;
-//                default:
-            return constructClassName(returnParameterType);
-//            }
-
-        } else if (returnParameterType.contains(".")) {
-            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
-        } else {
-            returnValueSquareClass = getClassFromDescriptor(returnParameterType);
-        }
-        return returnValueSquareClass;
-    }
 
     @NotNull
     private MethodSpec.Builder buildJUnitTestCaseSkeleton(String testMethodName) {
@@ -297,66 +262,6 @@ public class TestCaseService {
                 .addAnnotation(JUNIT_CLASS_NAME);
     }
 
-    private ClassName constructClassName(String methodReturnValueType) {
-        char firstChar = methodReturnValueType.charAt(0);
-        switch (firstChar) {
-            case 'V':
-                return ClassName.get(void.class);
-            case 'Z':
-                return ClassName.get(boolean.class);
-            case 'B':
-                return ClassName.get(byte.class);
-            case 'C':
-                return ClassName.get(char.class);
-            case 'S':
-                return ClassName.get(short.class);
-            case 'I':
-                return ClassName.get(int.class);
-            case 'J':
-                return ClassName.get(long.class);
-            case 'F':
-                return ClassName.get(float.class);
-            case 'D':
-                return ClassName.get(double.class);
-            case 'L':
-                String returnValueClass = methodReturnValueType.substring(1).split(";")[0];
-                return ClassName.bestGuess(returnValueClass.replace("/", "."));
-            case '[':
-                String returnValueClass1 = methodReturnValueType.substring(1);
-                return ClassName.bestGuess(returnValueClass1.replace("/", ".") + "[]");
-
-            default:
-                assert false;
-
-        }
-        return null;
-    }
-
-    private TypeName getClassFromDescriptor(String descriptor) {
-        char firstChar = descriptor.charAt(0);
-        switch (firstChar) {
-            case 'V':
-                return TypeName.VOID;
-            case 'Z':
-                return TypeName.BOOLEAN;
-            case 'B':
-                return TypeName.BYTE;
-            case 'C':
-                return TypeName.CHAR;
-            case 'S':
-                return TypeName.SHORT;
-            case 'I':
-                return TypeName.INT;
-            case 'J':
-                return TypeName.LONG;
-            case 'F':
-                return TypeName.FLOAT;
-            case 'D':
-                return TypeName.DOUBLE;
-        }
-        return null;
-
-    }
 
     private String upperInstanceName(String methodName) {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);

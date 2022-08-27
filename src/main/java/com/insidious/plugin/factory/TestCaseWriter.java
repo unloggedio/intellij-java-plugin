@@ -17,9 +17,9 @@ public class TestCaseWriter {
 
     public static void createMethodCallComment(
             ObjectRoutine objectRoutine,
-            VariableContainer variableContainer,
             MethodCallExpression methodCallExpression
     ) {
+        VariableContainer variableContainer = objectRoutine.getVariableContainer();
         Parameter returnValue = methodCallExpression.getReturnValue();
         Parameter exception = methodCallExpression.getException();
         String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
@@ -89,13 +89,15 @@ public class TestCaseWriter {
     }
 
 
+    public static void createMethodCallMock(
+            ObjectRoutine objectRoutine,
+            MethodCallExpression methodCallExpression
+    ) {
+        VariableContainer createdVariableContainer = objectRoutine.getCreatedVariables();
+        VariableContainer variableContainer = objectRoutine.getVariableContainer();
 
-    public static void createMethodCallMock(ObjectRoutine objectRoutine,
-                                            VariableContainer createdVariableContainer,
-                                            MethodCallExpression methodCallExpression) {
         Parameter returnValue = methodCallExpression.getReturnValue();
         Parameter exceptionValue = methodCallExpression.getException();
-        VariableContainer variableContainer = objectRoutine.getVariableContainer();
 
         String callArgumentsString =
                 TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());

@@ -42,7 +42,7 @@ public class PendingStatement {
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new LinkedList<>();
 
-        if (lhsExpression != null) {
+        if (lhsExpression != null && !lhsExpression.getType().equals("V")) {
 
             ClassName squareClassName = ClassName.bestGuess(lhsExpression.getType());
 
