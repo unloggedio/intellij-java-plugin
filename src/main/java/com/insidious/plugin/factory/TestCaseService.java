@@ -20,7 +20,6 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.*;
@@ -104,148 +103,104 @@ public class TestCaseService {
 
             TypeName returnValueSquareClass = null;
             String returnParameterType = mainMethod.getReturnValue().getType();
-            if (returnParameterType == null) {
-                logger.warn("parameter return type is null: " + testCandidateMetadata);
-                return;
-            }
 
             returnValueSquareClass = ClassTypeUtils.createTypeFromName(returnParameterType);
 
 
             //////////////////////// FUNCTION CALL ////////////////////////
 
-            String parameterString =
-                    TestCaseWriter.createMethodParametersString(mainMethod.getArguments());
-
             // return type == V ==> void return type => no return value
-            Parameter testSubject = testCandidateMetadata.getTestSubject();
+            Parameter testSubject = testCandidateMetadata.getMainMethod().getReturnValue();
+            in(objectRoutine).assignVariable(testSubject).writeExpression(mainMethod).endStatement();
+
+
             if (mainMethod.getMethodName().equals("<init>")) {
+                // there is no verification required (?) after calling constructors
+                continue;
+            }
+
+            Parameter returnParameter = mainMethod.getReturnValue();
+
+            Object returnValue = returnParameter.getValue();
+
+            String returnSubjectInstanceName = returnParameter.getName();
+
+            String returnType = returnParameter.getType();
 
 
-//                ClassName squareClassName = ClassName.get(testCandidateMetadata.getPackageName(),
-//                        testCandidateMetadata.getUnqualifiedClassname());
+            //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
 
 
-                in(objectRoutine).assignVariable(testSubject).writeExpression(mainMethod).endStatement();
+            // deserialize and compare objects
+            byte[] serializedBytes = returnParameter.getProb().getSerializedValue();
+            if (serializedBytes == null) {
+                serializedBytes = new byte[0];
+            }
+            String serializedValue = "";
+            if (serializedBytes.length > 0) {
+                serializedValue = new String(serializedBytes);
+            }
 
-//                objectRoutine.addStatement("$T $L = new $T(" + parameterString + ")",
-//                        squareClassName,
-//                        testSubject.getName(),
-//                        squareClassName);
-
-
-            } else {
-                Parameter returnParameter = mainMethod.getReturnValue();
-                testSubject = testCandidateMetadata.getTestSubject();
-                String testSubjectName = testSubject.getName();
-
-                in(objectRoutine).assignVariable(returnParameter).writeExpression(mainMethod).endStatement();
-
-                if (returnParameter.getType().equals("V")) {
-
-
-//                    objectRoutine.addStatement("$L.$L(" + parameterString + ")",
-//                            testSubjectName, mainMethod.getMethodName());
-
-                } else {
-                    Object returnValue = returnParameter.getValue();
-
-                    String returnSubjectInstanceName = returnParameter.getName();
-
-//                    if (createdVariableContainer.contains(returnSubjectInstanceName)) {
-//                        objectRoutine.addStatement("$L = $L.$L(" + parameterString + ")",
-//                                returnSubjectInstanceName,
-//                                testSubjectName,
-//                                mainMethod.getMethodName());
-//
-//                    } else {
-//                        objectRoutine.addStatement("$T $L = $L.$L(" + parameterString + ")",
-//                                returnValueSquareClass, returnSubjectInstanceName,
-//                                testSubjectName,
-//                                mainMethod.getMethodName());
-//                        createdVariableContainer.add(returnParameter);
-//                    }
-
-
-                    String returnType = returnParameter.getType();
-
-
-                    //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
-
-
-                    // deserialize and compare objects
-                    byte[] serializedBytes = returnParameter.getProb().getSerializedValue();
-                    if (serializedBytes == null) {
-                        serializedBytes = new byte[0];
-                    }
-                    String serializedValue = "";
-                    if (serializedBytes.length > 0) {
-                        serializedValue = new String(serializedBytes);
-//                        objectRoutine.addComment("Serialized value: " + serializedValue);
-                    }
-
-                    // reconstruct object from the serialized form to an object instance in the
-                    // test method to compare it with the new object, or do it the other way
-                    // round ? Maybe serializing the object and then comparing the serialized
-                    // string forms would be more readable ? string comparison would fail if the
-                    // serialization has fields serialized in random order
-                    if (serializedBytes.length > 0) {
-                        if (MODE == CompareMode.OBJECT) {
-                            objectRoutine.addStatement("$T $L = gson.fromJson($S, $T.class)",
-                                    returnValueSquareClass,
-                                    returnSubjectInstanceName + "Expected",
-                                    serializedValue,
-                                    returnValueSquareClass
-                            );
-                            returnValue = returnSubjectInstanceName + "Expected";
-                        } else if (MODE == CompareMode.SERIALIZED_JSON) {
-                            objectRoutine.addStatement("$T $L = gson.toJson($L)",
-                                    String.class,
-                                    returnSubjectInstanceName + "Json",
-                                    returnSubjectInstanceName
-                            );
-                            objectRoutine.addStatement("$T $L = $S",
-                                    String.class,
-                                    returnSubjectInstanceName + "ExpectedJson",
-                                    serializedValue
-                            );
-                            returnValue = returnSubjectInstanceName + "ExpectedJson";
-                            returnSubjectInstanceName = returnSubjectInstanceName + "Json";
-                        }
-                    }
-
-
-                    if (returnType.equals("Ljava/lang/String;") && returnParameter.getName() == null) {
-                        objectRoutine.addStatement("$T.assertEquals($L, $L)",
-                                assertClass,
-                                returnParameter.getValue(),
-                                returnSubjectInstanceName
-                        );
-                    } else {
-                        if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
-                            if (returnValue instanceof String) {
-
-                            } else if (returnValue instanceof Long) {
-                                if ((long) returnValue == 1) {
-                                    returnValue = "true";
-                                } else {
-                                    returnValue = "false";
-                                }
-
-                            }
-                        }
-                        objectRoutine.addStatement("$T.assertEquals($L, $L)",
-                                assertClass,
-                                returnValue,
-                                returnSubjectInstanceName
-                        );
-                    }
-
-
-                    objectRoutine.addComment("");
-
+            // reconstruct object from the serialized form to an object instance in the
+            // test method to compare it with the new object, or do it the other way
+            // round ? Maybe serializing the object and then comparing the serialized
+            // string forms would be more readable ? string comparison would fail if the
+            // serialization has fields serialized in random order
+            if (serializedBytes.length > 0) {
+                if (MODE == CompareMode.OBJECT) {
+                    objectRoutine.addStatement("$T $L = gson.fromJson($S, $T.class)",
+                            returnValueSquareClass,
+                            returnSubjectInstanceName + "Expected",
+                            serializedValue,
+                            returnValueSquareClass
+                    );
+                    returnValue = returnSubjectInstanceName + "Expected";
+                } else if (MODE == CompareMode.SERIALIZED_JSON) {
+                    objectRoutine.addStatement("$T $L = gson.toJson($L)",
+                            String.class,
+                            returnSubjectInstanceName + "Json",
+                            returnSubjectInstanceName
+                    );
+                    objectRoutine.addStatement("$T $L = $S",
+                            String.class,
+                            returnSubjectInstanceName + "ExpectedJson",
+                            serializedValue
+                    );
+                    returnValue = returnSubjectInstanceName + "ExpectedJson";
+                    returnSubjectInstanceName = returnSubjectInstanceName + "Json";
                 }
             }
+
+
+            if (returnType.equals("Ljava/lang/String;") && returnParameter.getName() == null) {
+                objectRoutine.addStatement("$T.assertEquals($L, $L)",
+                        assertClass,
+                        returnParameter.getValue(),
+                        returnSubjectInstanceName
+                );
+            } else {
+                if (returnType.equals("Ljava.lang.Boolean;") || returnType.equals("Z")) {
+                    if (returnValue instanceof String) {
+
+                    } else if (returnValue instanceof Long) {
+                        if ((long) returnValue == 1) {
+                            returnValue = "true";
+                        } else {
+                            returnValue = "false";
+                        }
+
+                    }
+                }
+                objectRoutine.addStatement("$T.assertEquals($L, $L)",
+                        assertClass,
+                        returnValue,
+                        returnSubjectInstanceName
+                );
+            }
+
+
+            objectRoutine.addComment("");
+
         }
     }
 
