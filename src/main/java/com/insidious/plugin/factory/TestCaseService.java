@@ -115,13 +115,19 @@ public class TestCaseService {
 
         // deserialize and compare objects
         byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
-        if (serializedBytes == null) {
-            serializedBytes = new byte[0];
-        }
-        String serializedValue = "";
+
+
+        Parameter returnSubjectExpectedJsonString = null;
         if (serializedBytes.length > 0) {
-            serializedValue = new String(serializedBytes);
+
+            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+
+            in(objectRoutine)
+                    .assignVariable(returnSubjectExpectedJsonString)
+                    .writeExpression(new StringExpression(new String(serializedBytes)))
+                    .endStatement();
         }
+
 
         // reconstruct object from the serialized form to an object instance in the
         // test method to compare it with the new object, or do it the other way
@@ -134,17 +140,6 @@ public class TestCaseService {
                 .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
                 .endStatement();
 
-
-        Parameter returnSubjectExpectedJsonString = null;
-        if (serializedBytes.length > 0) {
-
-            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
-
-            in(objectRoutine)
-                    .assignVariable(returnSubjectExpectedJsonString)
-                    .writeExpression(new StringExpression(serializedValue))
-                    .endStatement();
-        }
 
         in(objectRoutine)
                 .writeExpression(MethodCallExpressionFactory

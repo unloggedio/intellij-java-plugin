@@ -119,9 +119,11 @@ public class MethodCallExpressionFactory {
 
         Parameter returnTypeParameter = new Parameter();
         returnTypeParameter.setValue(object.getType() + ".class");
+        Parameter jsonValue = new Parameter();
+        jsonValue.setValue('"' + new String(object.getProb().getSerializedValue()) + '"');
         return new MethodCallExpression(
                 "fromJson", GsonClass,
-                VariableContainer.from(List.of(object, returnTypeParameter)
+                VariableContainer.from(List.of(jsonValue, returnTypeParameter)
                 ), null, null);
 
     }

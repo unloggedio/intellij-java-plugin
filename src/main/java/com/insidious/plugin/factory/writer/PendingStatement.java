@@ -139,9 +139,10 @@ public class PendingStatement {
 
         } else {
 
-            Parameter parameterValue = new Parameter();
-            parameterValue.setValue(new String(lhsExpression.getProb().getSerializedValue()));
-            this.expressionList.add(MethodCallExpressionFactory.FromJson(parameterValue));
+//            Parameter parameterValue = new Parameter();
+//            parameterValue.setValue(new String(lhsExpression.getProb().getSerializedValue()));
+//            parameterValue.setType(lhsExpression.getType());
+            this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
 
         }
 
