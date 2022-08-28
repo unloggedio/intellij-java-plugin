@@ -401,7 +401,7 @@ public class TestCaseServiceTest {
                 continue;
             }
             for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
-                testCaseService.buildTestFromTestMetadataSet(metadatum, objectRoutine);
+                testCaseService.generateTestScriptFromTestMetadataSet(metadatum, objectRoutine);
             }
 
         }

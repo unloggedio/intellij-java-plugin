@@ -36,7 +36,7 @@ public class VariableContainer {
         Optional<Parameter> byId = getParametersById(String.valueOf(value));
         if (Objects.equals(value, "0") || byId.isEmpty()) {
             this.parameterList.add(parameter);
-        } else {
+        } else if (parameter.getProb() != null) {
             byte[] newSerializedValue = parameter.getProb().getSerializedValue();
             if (newSerializedValue == null || newSerializedValue.length == 0) {
                 return;

@@ -23,7 +23,6 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -55,7 +54,7 @@ public class TestCaseService {
     }
 
     void
-    buildTestFromTestMetadataSet(
+    generateTestScriptFromTestMetadataSet(
             TestCandidateMetadata testCandidateMetadata,
             ObjectRoutine objectRoutine) {
 
@@ -63,6 +62,9 @@ public class TestCaseService {
 
         objectRoutine.addComment("");
         Parameter mainMethodReturnValue = mainMethod.getReturnValue();
+
+
+
         objectRoutine.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
                 "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
                 Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
@@ -95,6 +97,12 @@ public class TestCaseService {
             }
             objectRoutine.addComment("");
             objectRoutine.addComment("");
+        }
+
+        for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
+            for (Parameter parameter : metadatum.getMainMethod().getArguments().all()) {
+                objectRoutine.getCreatedVariables().add(parameter);
+            }
         }
 
 
@@ -273,6 +281,7 @@ public class TestCaseService {
                     ObjectRoutineContainer e1 =
                             new ObjectRoutineContainer(List.of(constructorRoutine, objectRoutine));
 
+//                    constructorRoutine.getCreatedVariables().all().forEach(objectRoutine.getCreatedVariables()::add);
                     addRoutinesToMethodBuilder(builder, List.of(e1), new LinkedList<>());
 
 
@@ -309,6 +318,7 @@ public class TestCaseService {
 
             ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
 
+
             typeSpecBuilder
                     .addField(FieldSpec
                             .builder(gsonClass,
@@ -321,6 +331,7 @@ public class TestCaseService {
 
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
                     .build();
+
 
             TestCaseUnit testCaseUnit = new TestCaseUnit(
                     javaFile.toString(), packageName, generatedTestClassName);
@@ -437,28 +448,26 @@ public class TestCaseService {
 
         // this is part 1
         testCaseRequest.setTargetParameter(targetParameter);
-        String subjectName = buildTestCandidates(testCaseRequest, objectRoutineContainer,
-                objectReplayData, testCaseRequest.getBuildLevel());
 
+        if (targetParameter.getName() != null) {
+            objectRoutineContainer.setName(targetParameter.getName());
+        }
+        buildTestCandidates(testCaseRequest, objectRoutineContainer,
+                objectReplayData, testCaseRequest.getBuildLevel());
         // part 1 ends here
 
-        if (subjectName != null) {
-            objectRoutineContainer.setName(subjectName);
-        }
+
+        // part 2
+        postProcessObjectRoutine(testCaseRequest, globalVariableContainer, objectRoutineContainer);
 
 
-        ObjectRoutineContainer objectRoutineContainer2 = postProcessObjectRoutine(
-                testCaseRequest, globalVariableContainer, objectRoutineContainer);
-
-        if (objectRoutineContainer2 != null) return objectRoutineContainer2;
-
-        // and this is a third thing
+        // part 3
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
             if (objectRoutine.getMetadata().size() == 0) {
                 continue;
             }
             for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
-                buildTestFromTestMetadataSet(metadatum, objectRoutine);
+                generateTestScriptFromTestMetadataSet(metadatum, objectRoutine);
             }
 
         }
@@ -468,14 +477,23 @@ public class TestCaseService {
 
     }
 
-    @Nullable
-    private ObjectRoutineContainer
+    /**
+     * this needs a better name, and need to be split
+     * @param testCaseRequest has the target parameter for which we are generating test case
+     * @param globalVariableContainer is going to keep track of all variables from other routines
+     *                               as well ?
+     * @param objectRoutineContainer this is the sink and the result will be statements in the
+     *                               routine
+     * @return
+     * @throws APICallException
+     * @throws SessionNotSelectedException
+     */
+    private void
     postProcessObjectRoutine(
             TestCaseRequest testCaseRequest,
             VariableContainer globalVariableContainer,
             ObjectRoutineContainer objectRoutineContainer
-    )
-            throws APICallException, SessionNotSelectedException {
+    ) throws APICallException, SessionNotSelectedException {
         // this is part 2
         Parameter targetParameter = testCaseRequest.getTargetParameter();
         Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
@@ -544,7 +562,7 @@ public class TestCaseService {
                         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
                         in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
                         constructor.setMetadata(testCaseMetadata);
-                        return objectRoutineContainer;
+                        return;
 
                     } else {
                         dependentObjectMockCreation = createMock(dependentParameter);
@@ -629,21 +647,19 @@ public class TestCaseService {
                 ObjectRoutineContainer dependentObjectCreation;
                 if (dependentParameter.getType() != null && dependentParameter.getType().startsWith("java.lang")) {
 
-                    ObjectRoutineContainer objectRoutineContainer1 = new ObjectRoutineContainer();
+                    dependentObjectCreation = new ObjectRoutineContainer();
                     TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(dependentParameter);
-                    ObjectRoutine constructor = objectRoutineContainer1.getConstructor();
+                    ObjectRoutine constructor = dependentObjectCreation.getConstructor();
                     in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
                     constructor.setMetadata(testCaseMetadata);
-                    dependentObjectCreation = objectRoutineContainer1;
 
                 } else if (dependentParameter.getType() != null && dependentParameter.getType().length() == 1) {
 
-                    ObjectRoutineContainer objectRoutineContainer1 = new ObjectRoutineContainer();
+                    dependentObjectCreation = new ObjectRoutineContainer();
                     TestCandidateMetadata testCandidateMetadata = buildTestCandidateForBaseClass(dependentParameter);
-                    ObjectRoutine constructor = objectRoutineContainer1.getConstructor();
+                    ObjectRoutine constructor = dependentObjectCreation.getConstructor();
                     in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
                     constructor.setMetadata(testCandidateMetadata);
-                    dependentObjectCreation = objectRoutineContainer1;
 
                 } else {
                     dependentObjectCreation = generateTestCaseFromObjectHistory(
@@ -680,7 +696,7 @@ public class TestCaseService {
                 objectRoutine.addDependent(dependentObjectCreation);
             }
         }
-        return null;
+
     }
 
     private ObjectRoutineContainer createMock(Parameter dependentParameter) {
@@ -718,18 +734,20 @@ public class TestCaseService {
      * @throws APICallException this happens when we fail to read the data from the disk or the
      *                          network
      */
-    private String
+    private void
     buildTestCandidates(
             final TestCaseRequest testCaseRequest,
             ObjectRoutineContainer objectRoutineContainer,
             ReplayData objectReplayData,
-            Integer buildLevel) throws APICallException, SessionNotSelectedException {
+            Integer buildLevel
+    ) throws APICallException, SessionNotSelectedException {
 
         Parameter parameter = testCaseRequest.getTargetParameter();
 
+
         List<DataEventWithSessionId> objectEvents = objectReplayData.getDataEvents();
         if (objectEvents.size() == 0) {
-            return parameter.getName();
+            return;
         }
 
         logger.warn("build test candidate for [" + parameter.getValue() + "] using " + objectReplayData.getDataEvents().size() + " events");
@@ -752,7 +770,7 @@ public class TestCaseService {
                     parameter.getType().contains("spring") ||
                     parameter.getType().contains("reactor") ||
                     parameter.getType().contains("mongo")) {
-                return parameter.getName();
+                return;
             }
 
             subjectTypeInfo = objectReplayData.getTypeInfoByName(parameter.getType());
@@ -771,7 +789,8 @@ public class TestCaseService {
                     typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
         }
         if (subjectTypeInfo == null) {
-            return parameter.getName();
+//            objectRoutineContainer.setName(parameter.getName());
+            return;
         }
 
 //        List<String> typeNameHierarchyList = new LinkedList<>();
@@ -811,7 +830,6 @@ public class TestCaseService {
 
             TypeInfo objectTypeInfo = null;
             if (objectInfo != null) {
-                long objectTypeId = objectInfo.getTypeId();
                 objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
             }
             if (objectTypeInfo == null) {
@@ -936,7 +954,8 @@ public class TestCaseService {
                         matchedProbe++;
                     }
                     if (matchedProbe == allEvents.size()) {
-                        return parameter.getName();
+//                        objectRoutineContainer.setName(parameter.getName());
+                        return;
                     }
 
 
@@ -993,6 +1012,7 @@ public class TestCaseService {
                     } else {
                         if (subjectName == null) {
                             subjectName = newTestCaseMetadata.getTestSubject().getName();
+                            objectRoutineContainer.setName(subjectName);
                         }
                         long currentThreadId = dataEvent.getThreadId();
                         String routineName = "thread" + currentThreadId;
@@ -1011,7 +1031,7 @@ public class TestCaseService {
             }
 
         }
-        return subjectName;
+        objectRoutineContainer.setName(subjectName);
     }
 
     private TestCandidateMetadata

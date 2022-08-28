@@ -67,6 +67,13 @@ public class PendingStatement {
         for (Expression expression : this.expressionList) {
             if (expression instanceof MethodCallExpression) {
                 MethodCallExpression methodCallExpression = (MethodCallExpression) expression;
+
+//                for (Parameter parameter : methodCallExpression.getArguments().all()) {
+//                    objectRoutine.getCreatedVariables().add(parameter);
+//
+//                }
+
+
                 String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
                 if (methodCallExpression.getMethodName().equals("<init>")) {
                     assert i == 0;
@@ -75,9 +82,18 @@ public class PendingStatement {
                 } else {
                     Parameter callExpressionSubject = methodCallExpression.getSubject();
                     if (callExpressionSubject != null) {
-                        statementBuilder.append("$L.$L(").append(parameterString).append(")");
-                        statementParameters.add(callExpressionSubject.getName());
-                        statementParameters.add(methodCallExpression.getMethodName());
+
+                        if (Objects.equals(callExpressionSubject.getName(), "Mockito")
+                        || Objects.equals(callExpressionSubject.getName(), "Assert")) {
+                            statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                            statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                            statementParameters.add(methodCallExpression.getMethodName());
+                        } else {
+                            statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                            statementParameters.add(callExpressionSubject.getName());
+                            statementParameters.add(methodCallExpression.getMethodName());
+
+                        }
                     } else {
                         if (i > 0) {
                             statementBuilder.append(".");

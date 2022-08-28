@@ -475,6 +475,18 @@ public class ParameterFactory {
 
         }
 
+        if (typeHierarchy.size() == 0) {
+            String typeFromProbe = probeInfo.getAttribute("Type", null);
+            if (typeFromProbe != null) {
+                expectedParameterType = ClassTypeUtils.getDottedClassName(typeFromProbe);
+                typeInfo = replayData.getTypeInfoByName(expectedParameterType);
+                List<String> typeHierarchyList = replayData.buildHierarchyFromType(typeInfo);
+                assert typeHierarchyList.size() != 0;
+                typeHierarchy.addAll(typeHierarchyList);
+
+            }
+        }
+
 
         if (typeHierarchy.size() == 0) {
             logger.warn("failed to build type hierarchy for object [" + event + "]");

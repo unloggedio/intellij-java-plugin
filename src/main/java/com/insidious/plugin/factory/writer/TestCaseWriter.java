@@ -36,9 +36,21 @@ public class TestCaseWriter {
 
             String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
 
-            Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) returnValue.getValue());
+            Object value = returnValue.getValue();
+            boolean overrideName = true;
+            if (value instanceof String) {
+                String valueString = (String) value;
+                if (valueString.equals("1") || valueString.equals("0")) {
+                    overrideName = false;
+                }
+            }
+
+
+            Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) value);
             if (existingVariableById.isPresent()) {
-                returnValue.setName(existingVariableById.get().getName());
+                if (overrideName) {
+                    returnValue.setName(existingVariableById.get().getName());
+                }
             } else {
                 if (returnValue.getName() == null) {
                     returnValue.setName(variableName);
