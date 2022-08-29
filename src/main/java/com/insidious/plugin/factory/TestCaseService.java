@@ -64,7 +64,6 @@ public class TestCaseService {
         Parameter mainMethodReturnValue = mainMethod.getReturnValue();
 
 
-
         objectRoutine.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
                 "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
                 Long.valueOf(testCandidateMetadata.getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
@@ -88,12 +87,18 @@ public class TestCaseService {
         }
 
 
+
+        Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
         if (testCandidateMetadata.getCallsList().size() > 0) {
 
             objectRoutine.addComment("");
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                if (mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                    continue;
+                }
                 TestCaseWriter.createMethodCallComment(objectRoutine, methodCallExpression);
                 TestCaseWriter.createMethodCallMock(objectRoutine, methodCallExpression);
+                mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);
             }
             objectRoutine.addComment("");
             objectRoutine.addComment("");
@@ -480,11 +485,12 @@ public class TestCaseService {
 
     /**
      * this needs a better name, and need to be split
-     * @param testCaseRequest has the target parameter for which we are generating test case
+     *
+     * @param testCaseRequest         has the target parameter for which we are generating test case
      * @param globalVariableContainer is going to keep track of all variables from other routines
-     *                               as well ?
-     * @param objectRoutineContainer this is the sink and the result will be statements in the
-     *                               routine
+     *                                as well ?
+     * @param objectRoutineContainer  this is the sink and the result will be statements in the
+     *                                routine
      * @return
      * @throws APICallException
      * @throws SessionNotSelectedException
@@ -509,6 +515,17 @@ public class TestCaseService {
                         .map(MethodCallExpression::getSubject)
                         .collect(Collectors.toList())
         );
+
+        List<? extends Parameter> fields = objectRoutineContainer
+                .getObjectRoutines().stream()
+                .map(ObjectRoutine::getMetadata)
+                .flatMap(Collection::stream)
+                .map(TestCandidateMetadata::getFields)
+                .map(VariableContainer::all)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
+        fields.forEach(callSubjects::add);
 
 
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
@@ -577,8 +594,6 @@ public class TestCaseService {
             }
 
 
-
-
             // gotta mock'em all
             for (Parameter callSubject : callSubjects.all()) {
                 ObjectRoutineContainer dependentObjectMockCreation;
@@ -593,13 +608,28 @@ public class TestCaseService {
                         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
                         in(constructor).assignVariable(callSubject).fromRecordedValue().endStatement();
                         constructor.setMetadata(testCaseMetadata);
+                        globalVariableContainer.add(callSubject);
                     } else {
-                        dependentObjectMockCreation = createMock(callSubject);
+                        if (callSubject.getType().equals("com.fasterxml.jackson.databind" +
+                                ".ObjectMapper")) {
+                            dependentObjectMockCreation = createUsingNoArgsConstructor(callSubject);
+                        } else {
+                            dependentObjectMockCreation = createMock(callSubject);
+                        }
 
                         dependentObjectMockCreation.setName(callSubject.getName());
                         objectRoutine.addComment(" inject parameter " + callSubject + "]");
-                        objectRoutine.addStatement("injectField($L, $S, $L)",
-                                targetParameter.getName(), callSubject.getName(), callSubject.getName());
+
+                        in(objectRoutine).writeExpression(
+                                new MethodCallExpression("injectField", null,
+                                        VariableContainer.from(List.of(
+                                                targetParameter, callSubject
+                                        )),
+                                        null, null)).endStatement();
+
+//                        objectRoutine.addStatement("injectField($L, $S, $L)",
+//                                targetParameter.getName(), callSubject.getName(), callSubject.getName());
+
                         objectRoutine.addDependent(dependentObjectMockCreation);
 
                         globalVariableContainer.add(callSubject);
@@ -715,6 +745,25 @@ public class TestCaseService {
                 .writeExpression(MethodCallExpressionFactory.MockClass(
                         ClassName.bestGuess(testcaseMetadata.getFullyQualifiedClassname())
                 ))
+                .endStatement();
+        constructor.setMetadata(testcaseMetadata);
+
+
+        return objectRoutineContainer;
+    }
+
+    private ObjectRoutineContainer createUsingNoArgsConstructor(Parameter dependentParameter) {
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
+
+
+        TestCandidateMetadata testcaseMetadata = buildMockCandidateForBaseClass(dependentParameter.getType());
+
+        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+
+        in(constructor)
+                .assignVariable(dependentParameter)
+                .writeExpression(MethodCallExpressionFactory
+                        .InitNoArgsConstructor(dependentParameter))
                 .endStatement();
         constructor.setMetadata(testcaseMetadata);
 

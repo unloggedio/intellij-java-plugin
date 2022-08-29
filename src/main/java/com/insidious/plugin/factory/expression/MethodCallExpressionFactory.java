@@ -11,8 +11,8 @@ import java.util.List;
 
 public class MethodCallExpressionFactory {
 
-    public  static final Parameter MockitoClass;
-    public  static final Parameter AssertClass;
+    public static final Parameter MockitoClass;
+    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
 
     static {
@@ -75,6 +75,17 @@ public class MethodCallExpressionFactory {
                 "mock", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
+        );
+
+    }
+
+    public static MethodCallExpression InitNoArgsConstructor(Parameter targetClassname) {
+
+        // new $T()
+
+        return new MethodCallExpression(
+                "<init>", null,
+                VariableContainer.from(List.of()), targetClassname, null
         );
 
     }

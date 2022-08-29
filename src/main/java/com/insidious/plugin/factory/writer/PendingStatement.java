@@ -90,6 +90,17 @@ public class PendingStatement {
                     statementParameters.add(variables.get(0).getValue());
                     statementParameters.add(ClassName.bestGuess((String) variables.get(1).getValue()));
 
+                }  else if (methodCallExpression.getMethodName().equals("injectField")
+                        && methodCallExpression.getSubject() == null) {
+
+
+                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+
+                    statementBuilder.append("injectField($L, $S, $L)");
+                    statementParameters.add(variables.get(0).getName());
+                    statementParameters.add(variables.get(1).getName());
+                    statementParameters.add(variables.get(1).getName());
+
                 }  else if (methodCallExpression.getMethodName().equals("thenThrow")
                         && methodCallExpression.getSubject() == null) {
 

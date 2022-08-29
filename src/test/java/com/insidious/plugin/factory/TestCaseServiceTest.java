@@ -380,38 +380,4 @@ public class TestCaseServiceTest {
 
 
     }
-
-
-    @Test public void testGenerateScript() throws IOException {
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-
-
-        TestCaseService testCaseService = new TestCaseService(project, client);
-
-
-        ObjectRoutineContainer objectRoutineContainer = new ObjectMapper().readValue(
-                this.getClass().getClassLoader().getResourceAsStream("routine-1.json"),
-                ObjectRoutineContainer.class);
-        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-            if (objectRoutine.getMetadata().size() == 0) {
-                continue;
-            }
-            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
-                testCaseService.generateTestScriptFromTestMetadataSet(metadatum, objectRoutine);
-            }
-
-        }
-        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-            for (Pair<CodeLine, Object[]> statement : objectRoutine.getStatements()) {
-                System.out.println(statement.getFirst().getLine());
-            }
-
-        }
-
-
-    }
 }
