@@ -101,7 +101,7 @@ public class ClassTypeUtils {
         if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
             return constructClassName(returnParameterType);
         } else if (returnParameterType.contains(".")) {
-            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
+            returnValueSquareClass = ClassName.bestGuess(returnParameterType.replace('$', '.'));
         } else {
             returnValueSquareClass = getClassFromDescriptor(returnParameterType);
         }

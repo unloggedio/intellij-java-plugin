@@ -322,7 +322,7 @@ public class TestCandidateMetadata {
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
                 ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS);
 
-        scanRequest.addListener(EventType.GET_INSTANCE_FIELD, index -> {
+        scanRequest.addListener(EventType.GET_INSTANCE_FIELD_RESULT, index -> {
             DataEventWithSessionId event = replayData.getDataEvents().get(index);
             DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
 

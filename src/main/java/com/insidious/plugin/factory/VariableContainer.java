@@ -105,7 +105,7 @@ public class VariableContainer {
         return parameterList.size();
     }
 
-    public Collection<? extends Parameter> all() {
+    public List<? extends Parameter> all() {
         return parameterList;
     }
 

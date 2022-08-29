@@ -15,9 +15,6 @@ import java.util.stream.Collectors;
 
 public class TestCaseWriter {
 
-    private static final ClassName mockitoClass = ClassName.bestGuess("org.mockito.Mockito");
-    private static final ClassName assertClass = ClassName.bestGuess("org.junit.Assert");
-
     public static void createMethodCallComment(
             ObjectRoutine objectRoutine,
             MethodCallExpression methodCallExpression
@@ -27,11 +24,11 @@ public class TestCaseWriter {
         Parameter exception = methodCallExpression.getException();
         String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
 
-        String callParametersCommaSeparated = StringUtil.join(methodCallExpression.getArguments()
-                        .all()
-                        .stream().map(Parameter::getName)
-                        .collect(Collectors.toList()),
-                ", ");
+//        String callParametersCommaSeparated = StringUtil.join(methodCallExpression.getArguments()
+//                        .all()
+//                        .stream().map(Parameter::getName)
+//                        .collect(Collectors.toList()),
+//                ", ");
         if (returnValue != null) {
 
             String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
@@ -62,13 +59,13 @@ public class TestCaseWriter {
             objectRoutine.addComment(
                     returnValue.getType() + " " + returnValue.getName() + " = " +
                             methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
-                            "(" + callParametersCommaSeparated + "); // ==> "
+                            "(" + callArgumentsString + "); // ==> "
                             + returnValue.getProb().getSerializedValue().length);
         } else if (exception != null) {
             objectRoutine.addComment(
                     methodCallExpression.getSubject().getName() + "." +
                             methodCallExpression.getMethodName() +
-                            "(" + callParametersCommaSeparated + ");" +
+                            "(" + callArgumentsString + ");" +
                             " // ==>  throws exception " + exception.getType());
         }
     }
@@ -110,9 +107,7 @@ public class TestCaseWriter {
     ) {
 
         Parameter returnValue = callExpressionToMock.getReturnValue();
-        if (returnValue == null) {
-            returnValue = callExpressionToMock.getException();
-        }
+
 
 
         for (Parameter argument : callExpressionToMock.getArguments().all()) {
@@ -121,12 +116,23 @@ public class TestCaseWriter {
             }
         }
 
-        in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+        if (returnValue == null) {
+            Parameter exceptionValue = callExpressionToMock.getException();
+            in(objectRoutine)
+                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
+                    .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(exceptionValue))
+                    .endStatement();
 
-        in(objectRoutine)
-                .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
-                .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
-                .endStatement();
+        } else {
+            in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+
+            in(objectRoutine)
+                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
+                    .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
+                    .endStatement();
+        }
+
+
 
 
     }

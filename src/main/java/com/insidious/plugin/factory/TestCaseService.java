@@ -330,6 +330,7 @@ public class TestCaseService {
             TypeSpec helloWorld = typeSpecBuilder.build();
 
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
+                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "any")
                     .build();
 
 
@@ -576,6 +577,8 @@ public class TestCaseService {
             }
 
 
+
+
             // gotta mock'em all
             for (Parameter callSubject : callSubjects.all()) {
                 ObjectRoutineContainer dependentObjectMockCreation;
@@ -590,18 +593,17 @@ public class TestCaseService {
                         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
                         in(constructor).assignVariable(callSubject).fromRecordedValue().endStatement();
                         constructor.setMetadata(testCaseMetadata);
-                        dependentObjectMockCreation = objectRoutineContainer;
                     } else {
                         dependentObjectMockCreation = createMock(callSubject);
+
+                        dependentObjectMockCreation.setName(callSubject.getName());
+                        objectRoutine.addComment(" inject parameter " + callSubject + "]");
+                        objectRoutine.addStatement("injectField($L, $S, $L)",
+                                targetParameter.getName(), callSubject.getName(), callSubject.getName());
+                        objectRoutine.addDependent(dependentObjectMockCreation);
+
+                        globalVariableContainer.add(callSubject);
                     }
-
-                    dependentObjectMockCreation.setName(callSubject.getName());
-                    objectRoutine.addComment(" inject parameter " + callSubject + "]");
-                    objectRoutine.addStatement("injectField($L, $S, $L)",
-                            targetParameter.getName(), callSubject.getName(), callSubject.getName());
-                    objectRoutine.addDependent(dependentObjectMockCreation);
-
-                    globalVariableContainer.add(callSubject);
                 }
 
 

@@ -11,9 +11,9 @@ import java.util.List;
 
 public class MethodCallExpressionFactory {
 
-    private static final Parameter MockitoClass;
-    private static final Parameter AssertClass;
-    private static final Parameter GsonClass;
+    public  static final Parameter MockitoClass;
+    public  static final Parameter AssertClass;
+    public static final Parameter GsonClass;
 
     static {
         MockitoClass = makeParameter("Mockito", "org.mockito.Mockito", ConstructorType.SINGLETON);
@@ -118,9 +118,9 @@ public class MethodCallExpressionFactory {
     public static Expression FromJson(Parameter object) {
 
         Parameter returnTypeParameter = new Parameter();
-        returnTypeParameter.setValue(object.getType() + ".class");
+        returnTypeParameter.setValue(object.getType().replace('$', '.'));
         Parameter jsonValue = new Parameter();
-        jsonValue.setValue('"' + new String(object.getProb().getSerializedValue()) + '"');
+        jsonValue.setValue(new String(object.getProb().getSerializedValue()));
         return new MethodCallExpression(
                 "fromJson", GsonClass,
                 VariableContainer.from(List.of(jsonValue, returnTypeParameter)

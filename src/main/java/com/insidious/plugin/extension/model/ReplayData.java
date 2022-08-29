@@ -161,6 +161,8 @@ public class ReplayData {
         DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
         DataInfo probeInfo = probeInfoMap.get(String.valueOf(firstEvent.getDataId()));
         ClassInfo firstClass = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+        TypeInfo typeInfo = getTypeInfoByName(firstClass.getClassName());
+        List<String> typeLadder = buildHierarchyFromType(typeInfo);
 
 
         Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
@@ -173,9 +175,12 @@ public class ReplayData {
 
             if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
                 stackMatch = firstClass.getClassId() == classInfo.getClassId();
-//                if (firstClass.getClassId() != classInfo.getClassId()) {
-//                    stackMatch = false;
-//                }
+                if (!stackMatch) {
+                    if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                        stackMatch = true;
+                    }
+                }
+
             }
 
             scanRequest.onEvent(stackMatch, eventType, callReturnIndex);

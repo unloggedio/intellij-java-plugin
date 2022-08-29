@@ -2,7 +2,6 @@ package com.insidious.plugin.factory.writer;
 
 import com.insidious.plugin.factory.ClassTypeUtils;
 import com.insidious.plugin.factory.ObjectRoutine;
-import com.insidious.plugin.factory.VariableContainer;
 import com.insidious.plugin.factory.expression.Expression;
 import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.expression.PlainValueExpression;
@@ -79,12 +78,34 @@ public class PendingStatement {
                     assert i == 0;
                     statementBuilder.append("new $T(").append(parameterString).append(")");
                     statementParameters.add(ClassName.bestGuess(methodCallExpression.getReturnValue().getType()));
+                } else if (methodCallExpression.getMethodName().equals("fromJson")
+                        && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
+
+
+                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+
+                    statementBuilder.append("$L.$L($S, $T.class)");
+                    statementParameters.add(methodCallExpression.getSubject().getName());
+                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(variables.get(0).getValue());
+                    statementParameters.add(ClassName.bestGuess((String) variables.get(1).getValue()));
+
+                }  else if (methodCallExpression.getMethodName().equals("thenThrow")
+                        && methodCallExpression.getSubject() == null) {
+
+
+                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+
+                    statementBuilder.append(".$L($T.class)");
+                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(ClassName.bestGuess(variables.get(0).getType()));
+
                 } else {
                     Parameter callExpressionSubject = methodCallExpression.getSubject();
                     if (callExpressionSubject != null) {
 
                         if (Objects.equals(callExpressionSubject.getName(), "Mockito")
-                        || Objects.equals(callExpressionSubject.getName(), "Assert")) {
+                                || Objects.equals(callExpressionSubject.getName(), "Assert")) {
                             statementBuilder.append("$T.$L(").append(parameterString).append(")");
                             statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
                             statementParameters.add(methodCallExpression.getMethodName());
