@@ -87,7 +87,6 @@ public class TestCaseService {
         }
 
 
-
         Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
         if (testCandidateMetadata.getCallsList().size() > 0) {
 
@@ -242,31 +241,8 @@ public class TestCaseService {
                 ObjectRoutine constructorRoutine = classTestSuite.getConstructor();
 
 
-                MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("injectField");
-                fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
-                fieldInjectorMethod.addException(Exception.class);
-
-                fieldInjectorMethod.addParameter(Object.class, "targetInstance");
-                fieldInjectorMethod.addParameter(String.class, "name");
-                fieldInjectorMethod.addParameter(Object.class, "targetObject");
-
-                fieldInjectorMethod.addCode(CodeBlock.of("        Class<?> aClass = targetInstance.getClass();\n" +
-                                "\n" +
-                                "        while (!aClass.equals(Object.class)) {\n" +
-                                "            try {\n" +
-                                "                $T targetField = aClass.getDeclaredField(name);" +
-                                "\n" +
-                                "                targetField.setAccessible(true);\n" +
-                                "                targetField.set(targetInstance, targetObject);\n" +
-                                "            } catch (NoSuchFieldException nsfe) {\n" +
-                                "                // nothing to set\n" +
-                                "            }\n" +
-                                "            aClass = aClass.getSuperclass();\n" +
-                                "        }\n",
-                        ClassName.bestGuess("java.lang.reflect.Field")));
-
-                MethodSpec injectorMethod = fieldInjectorMethod.build();
-                testCaseScripts.add(injectorMethod);
+                testCaseScripts.add(createInjectFieldMethod());
+                testCaseScripts.add(createOkHttpMockCreator());
 
 
                 for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
@@ -351,6 +327,58 @@ public class TestCaseService {
         return new TestSuite(testCases);
 
 
+    }
+
+    private MethodSpec createInjectFieldMethod() {
+        MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("injectField");
+        fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
+        fieldInjectorMethod.addException(Exception.class);
+
+        fieldInjectorMethod.addParameter(Object.class, "targetInstance");
+        fieldInjectorMethod.addParameter(String.class, "name");
+        fieldInjectorMethod.addParameter(Object.class, "targetObject");
+
+        fieldInjectorMethod.addCode(CodeBlock.of("        Class<?> aClass = targetInstance.getClass();\n" +
+                        "\n" +
+                        "        while (!aClass.equals(Object.class)) {\n" +
+                        "            try {\n" +
+                        "                $T targetField = aClass.getDeclaredField(name);" +
+                        "\n" +
+                        "                targetField.setAccessible(true);\n" +
+                        "                targetField.set(targetInstance, targetObject);\n" +
+                        "            } catch (NoSuchFieldException nsfe) {\n" +
+                        "                // nothing to set\n" +
+                        "            }\n" +
+                        "            aClass = aClass.getSuperclass();\n" +
+                        "        }\n",
+                ClassName.bestGuess("java.lang.reflect.Field")));
+
+        MethodSpec injectorMethod = fieldInjectorMethod.build();
+        return injectorMethod;
+    }
+
+    private MethodSpec createOkHttpMockCreator() {
+        MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("buildOkHttpResponseFromString");
+        fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
+
+        fieldInjectorMethod.addParameter(String.class, "responseBodyString");
+        fieldInjectorMethod.addException(Exception.class);
+
+        fieldInjectorMethod.addCode(CodeBlock.of("        $T response;\n" +
+                        "        response = $T.mock($T.class);\n" +
+                        "        $T responseBody = Mockito.mock(ResponseBody.class);\n" +
+                        "        Mockito.when(responseBody.string()).thenReturn(responseBodyString);\n" +
+                        "        Mockito.when(response.body()).thenReturn(responseBody);\n" +
+                        "        return response;\n",
+                ClassName.bestGuess("okhttp3.Response"),
+                ClassName.bestGuess("org.mockito.Mockito"),
+                ClassName.bestGuess("okhttp3.Response"),
+                ClassName.bestGuess("okhttp3.ResponseBody")
+        ));
+
+        fieldInjectorMethod.returns(ClassName.bestGuess("okhttp3.Response"));
+
+        return fieldInjectorMethod.build();
     }
 
     private void addRoutinesToMethodBuilder(
@@ -1022,6 +1050,7 @@ public class TestCaseService {
                                     backEvent.getNanoTime(), replayEventsBefore,
                                     testCaseRequest);
 
+
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {
                         // whats happening here, if we were unable to pick a test subject
@@ -1034,8 +1063,6 @@ public class TestCaseService {
                         } else {
                             continue;
                         }
-
-
                     }
                     if (testSubject.getValue() == null ||
                             !(String.valueOf(testSubject.getValue()))
@@ -1043,7 +1070,6 @@ public class TestCaseService {
                     ) {
                         logger.warn("subject not matched: " + parameter.getValue() + " vs " + testSubject.getValue()
                                 + " for method call " + methodInfo.getMethodName());
-//                        ignoredProbes.put(dataEvent.getDataId(), true);
                         continue;
                     }
 
@@ -1054,6 +1080,24 @@ public class TestCaseService {
                         logger.warn("skipping method_entry, failed to find call return: " + newTestCaseMetadata);
                         continue;
                     }
+
+
+                    // capture extra data for okhttp/libraries whose return objects we were not able to
+                    // serialize and they need to be reconstructed
+
+
+                    for (MethodCallExpression methodCallExpression : newTestCaseMetadata.getCallsList()) {
+                        Parameter returnValue = methodCallExpression.getReturnValue();
+                        if (returnValue != null &&
+                                returnValue.getType() != null &&
+                                returnValue.getType().length() > 1 &&
+                                returnValue.getProb().getSerializedValue().length == 0) {
+                            MethodCallExpression createrExpression =
+                                    TestCandidateMetadata.buildObject(replayEventsBefore, returnValue);
+                            returnValue.setCreator(createrExpression);
+                        }
+                    }
+
 
                     logger.warn("Created test case candidate: " +
                             className + ":" + methodInfo.getMethodName());

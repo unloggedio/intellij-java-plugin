@@ -504,8 +504,11 @@ public class InsidiousService implements Disposable {
             @Override
             protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
                 TestCaseRequest testCaseRequest = new TestCaseRequest(
-                        List.of(object), List.of(), Set.of()
-                );
+                        List.of(object), List.of(
+                        "com.fasterxml",
+                        "com.google"
+                ), Set.of());
+
                 TestSuite testSuite = null;
                 try {
                     testSuite = testCaseService.generateTestCase(testCaseRequest);
@@ -581,7 +584,10 @@ public class InsidiousService implements Disposable {
                 }
 
                 TestCaseRequest testRequest = new TestCaseRequest(
-                        allObjects, List.of(), Set.of()
+                        allObjects, List.of(
+                        "com.fasterxml",
+                        "com.google"
+                ), Set.of()
                 );
                 TestSuite testSuite = null;
                 try {

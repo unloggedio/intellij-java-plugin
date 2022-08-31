@@ -107,11 +107,12 @@ public class MethodCallExtractor implements EventTypeMatchListener {
         List<String> subjectTypeHierarchy = replayData.buildHierarchyFromTypeName(
                 "L" + ownerClass + ";");
 
-        logger.warn("potential call: " + probeInfo.getAttributes());
         String callOwner = probeInfo.getAttribute("Owner", null);
         if (callOwner == null) {
             return;
         }
+
+        logger.warn("[MethodCall] " + ownerClass + "." + methodName + " : " + methodDescription);
 
         List<Parameter> callArguments = new LinkedList<>();
 
@@ -212,8 +213,7 @@ public class MethodCallExtractor implements EventTypeMatchListener {
             callReturnParameter = ParameterFactory.createReturnValueParameter(
                     callReturnScanResult.getIndex(), replayData, returnType);
 
-            if (callReturnParameter.getType() == null ||
-                    callReturnParameter.getType().equals("V")) {
+            if (callReturnParameter.getType() == null || callReturnParameter.getType().equals("V")) {
                 return;
             }
 

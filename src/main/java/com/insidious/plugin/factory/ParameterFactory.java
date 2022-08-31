@@ -97,7 +97,7 @@ public class ParameterFactory {
 
 
         if (typeHierarchy.size() == 0) {
-            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            logger.warn("[1] failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
 
@@ -246,7 +246,7 @@ public class ParameterFactory {
 
 
         if (typeHierarchy.size() == 0) {
-            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            logger.warn("[2] failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
 
@@ -489,7 +489,7 @@ public class ParameterFactory {
 
 
         if (typeHierarchy.size() == 0) {
-            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            logger.warn("[3] failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
         parameter.setType(typeHierarchy.get(0));
@@ -705,7 +705,7 @@ public class ParameterFactory {
 
 
         if (typeHierarchy.size() == 0) {
-            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            logger.warn("[4] failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
 
@@ -986,7 +986,7 @@ public class ParameterFactory {
 
 
         if (typeHierarchy.size() == 0) {
-            logger.warn("failed to build type hierarchy for object [" + event + "]");
+            logger.warn("[5] failed to build type hierarchy for object [" + event + "]");
             return parameter;
         }
 

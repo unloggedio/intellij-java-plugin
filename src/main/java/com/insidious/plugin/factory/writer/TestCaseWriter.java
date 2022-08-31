@@ -6,12 +6,9 @@ import com.insidious.plugin.factory.VariableContainer;
 import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.intellij.openapi.util.text.StringUtil;
-import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class TestCaseWriter {
 
@@ -109,7 +106,6 @@ public class TestCaseWriter {
         Parameter returnValue = callExpressionToMock.getReturnValue();
 
 
-
         for (Parameter argument : callExpressionToMock.getArguments().all()) {
             if (argument.getName() != null) {
                 in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
@@ -124,15 +120,31 @@ public class TestCaseWriter {
                     .endStatement();
 
         } else {
-            in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+            if (returnValue.getCreaterExpression() == null) {
+                in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+            } else {
+                MethodCallExpression createrExpression = returnValue.getCreaterExpression();
+
+                VariableContainer arguments = createrExpression.getArguments();
+                for (Parameter parameter : arguments.all()) {
+                    in(objectRoutine)
+                            .assignVariable(parameter)
+                            .fromRecordedValue()
+                            .endStatement();
+                }
+
+
+                in(objectRoutine)
+                        .assignVariable(createrExpression.getReturnValue())
+                        .writeExpression(createrExpression)
+                        .endStatement();
+            }
 
             in(objectRoutine)
                     .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
                     .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
                     .endStatement();
         }
-
-
 
 
     }

@@ -296,12 +296,12 @@ public class EventLogWindow {
 
             eventsTable.setModel(tableModel);
 
-            eventsTable.getColumn(0).setPreferredWidth(130);
-            eventsTable.getColumn(1).setPreferredWidth(25);
-            eventsTable.getColumn(2).setPreferredWidth(5);
-            eventsTable.getColumn(3).setPreferredWidth(40);
-            eventsTable.getColumn(4).setPreferredWidth(200);
-            eventsTable.getColumn(5).setPreferredWidth(100);
+            eventsTable.getColumn("Event").setPreferredWidth(130);
+            eventsTable.getColumn("#Time").setPreferredWidth(25);
+            eventsTable.getColumn("#Line").setPreferredWidth(5);
+            eventsTable.getColumn("Value").setPreferredWidth(40);
+            eventsTable.getColumn("Attributes").setPreferredWidth(200);
+            eventsTable.getColumn("Value type").setPreferredWidth(100);
         } else {
             int rowCount = tableModel.getRowCount();
             for (int i = 0; i < rowCount; i++) {

@@ -17,10 +17,12 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -192,8 +194,6 @@ public class TestCandidateMetadata {
         }
 
 
-
-
         String testSubjectInstanceName = ClassTypeUtils.lowerInstanceName(unqualifiedClassName);
 
 //        int paramsToSkip = methodParameters.size();
@@ -310,6 +310,108 @@ public class TestCandidateMetadata {
         metadata.setMainMethod(mainMethodExpression);
 
         return metadata;
+    }
+
+    public static MethodCallExpression buildObject(ReplayData replayData,
+                                                   final Parameter targetParameter) {
+        logger.warn("reconstruct object: " + targetParameter);
+
+        switch (targetParameter.getType()) {
+            case "okhttp3.Response":
+
+                AtomicReference<Parameter> responseBodyProbe = new AtomicReference<>();
+                AtomicReference<Parameter> responseBodyStringProbe = new AtomicReference<>();
+
+                ScanRequest scanRequest = new ScanRequest(
+                        new ScanResult(targetParameter.getIndex(), 0), 0, DirectionType.FORWARDS);
+
+                scanRequest.addListener(EventType.CALL_RETURN, index -> {
+
+
+                    DataEventWithSessionId callReturnEvent = replayData.getDataEvents().get(index);
+                    int callEventIndex = replayData.getPreviousProbeIndex(index);
+                    DataEventWithSessionId callEvent = replayData.getDataEvents().get(callEventIndex);
+                    DataInfo callEventProbe = replayData.getProbeInfo(callEvent.getDataId());
+                    if (callEventProbe.getEventType() != EventType.CALL) {
+                        return;
+                    }
+
+
+                    DataInfo callReturnProbeInfo =
+                            replayData.getProbeInfo(callReturnEvent.getDataId());
+
+                    @NotNull String returnType = ClassTypeUtils.getDottedClassName(
+                            callReturnProbeInfo.getAttribute("Type", "V")
+                    );
+
+                    String callOwner = ClassTypeUtils.getDottedClassName(callEventProbe.getAttribute("Owner", ""));
+                    String methodName = callEventProbe.getAttribute("Name", null);
+                    assert methodName != null;
+
+
+                    switch (returnType) {
+                        case "java.lang.String":
+                            if (!methodName.equals("string")) {
+                                return;
+                            }
+                            if (responseBodyProbe.get() == null) {
+                                logger.warn("body probe is still missing so this cannot be the " +
+                                        "string we are looking for");
+                            }
+                            Parameter responseBodyProbeInstance = responseBodyProbe.get();
+                            if (responseBodyProbeInstance.getProb().getValue() != callEvent.getValue()) {
+                                logger.warn("this is not the response body string from the object" +
+                                        " we are building: " + callEvent + " -- " + callEventProbe);
+                                return;
+                            }
+                            responseBodyStringProbe.set(ParameterFactory.createReturnValueParameter(
+                                    index, replayData, targetParameter.getType()
+                            ));
+                            break;
+                        case "okhttp3.ResponseBody":
+                            if (!methodName.equals("body")) {
+                                return;
+                            }
+                            if (callEvent.getValue() != targetParameter.getProb().getValue()) {
+                                logger.warn("this is not the response body from the object we are" +
+                                        " building: " + callEvent + " -- " + callEventProbe);
+                                return;
+                            }
+                            if (responseBodyProbe.get() != null) {
+                                return;
+                            }
+                            responseBodyProbe.set(ParameterFactory.createReturnValueParameter(
+                                    index, replayData, targetParameter.getType()
+                            ));
+                            break;
+                    }
+
+                });
+
+                scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
+                scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
+
+                replayData.eventScan(scanRequest);
+
+                if (responseBodyStringProbe.get() == null) {
+                    logger.warn("response body string value not found for okhttp.Response: " + targetParameter);
+                }
+
+                if (responseBodyProbe.get() == null) {
+                    logger.warn("response body object value not found for okhttp.Response: " + targetParameter);
+                }
+
+                VariableContainer variableContainer = VariableContainer.from(
+                        List.of(responseBodyStringProbe.get())
+                );
+
+                return new MethodCallExpression(
+                        "buildOkHttpResponseFromString", null, variableContainer,
+                        targetParameter, null);
+            default:
+                break;
+        }
+        return null;
     }
 
     private static VariableContainer searchMethodFieldsAccessed(

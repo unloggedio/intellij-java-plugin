@@ -375,4 +375,20 @@ public class ReplayData {
                 filteredDataEventsRequestClone
         );
     }
+
+    public int getNextProbeIndex(Integer probeIndex) {
+        if (filteredDataEventsRequest.getPageInfo().isAsc()) {
+            return probeIndex + 1;
+        } else {
+            return probeIndex - 1;
+        }
+    }
+
+    public int getPreviousProbeIndex(Integer probeIndex) {
+        if (filteredDataEventsRequest.getPageInfo().isAsc()) {
+            return probeIndex - 1;
+        } else {
+            return probeIndex + 1;
+        }
+    }
 }

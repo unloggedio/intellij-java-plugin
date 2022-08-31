@@ -227,6 +227,7 @@ public class SingleClassInfoWindow {
                 try {
                     insidiousService.generateTestCases(selectedTracePoint);
                 } catch (Exception ex) {
+                    ex.printStackTrace();
                     throw new RuntimeException(ex);
                 }
             }

@@ -23,6 +23,7 @@ public class Parameter {
     private int index;
     private DataInfo probeInfo;
     private ConstructorType constructorType;
+    private MethodCallExpression createrExpression;
 
     @Override
     public String toString() {
@@ -90,5 +91,14 @@ public class Parameter {
 
     public void setConstructorType(ConstructorType constructorType) {
         this.constructorType = constructorType;
+    }
+
+    public MethodCallExpression getCreaterExpression() {
+        return createrExpression;
+    }
+
+    public void setCreator(MethodCallExpression createrExpression) {
+
+        this.createrExpression = createrExpression;
     }
 }
