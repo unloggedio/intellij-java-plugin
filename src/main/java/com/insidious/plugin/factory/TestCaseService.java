@@ -92,7 +92,8 @@ public class TestCaseService {
 
             objectRoutine.addComment("");
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-                if (mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                if (methodCallExpression.getException() != null &&
+                        mockedCalls.containsKey(methodCallExpression.getMethodName())) {
                     continue;
                 }
                 TestCaseWriter.createMethodCallComment(objectRoutine, methodCallExpression);
@@ -311,7 +312,8 @@ public class TestCaseService {
             TypeSpec helloWorld = typeSpecBuilder.build();
 
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
-                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "any")
+                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"),
+                            "any", "matches")
                     .build();
 
 
@@ -364,16 +366,22 @@ public class TestCaseService {
         fieldInjectorMethod.addParameter(String.class, "responseBodyString");
         fieldInjectorMethod.addException(Exception.class);
 
-        fieldInjectorMethod.addCode(CodeBlock.of("        $T response;\n" +
-                        "        response = $T.mock($T.class);\n" +
-                        "        $T responseBody = Mockito.mock(ResponseBody.class);\n" +
-                        "        Mockito.when(responseBody.string()).thenReturn(responseBodyString);\n" +
-                        "        Mockito.when(response.body()).thenReturn(responseBody);\n" +
-                        "        return response;\n",
-                ClassName.bestGuess("okhttp3.Response"),
-                ClassName.bestGuess("org.mockito.Mockito"),
-                ClassName.bestGuess("okhttp3.Response"),
-                ClassName.bestGuess("okhttp3.ResponseBody")
+        fieldInjectorMethod.addCode(CodeBlock.of("" +
+                        "        $T responseBody = $T.create($T.parse" +
+                        "(\"application/json\"), responseBodyString);\n" +
+                        "        $T request = new Request.Builder().url(\"http://example.com\").build();\n" +
+                        "        return new Response.Builder()\n" +
+                        "                .request(request)\n" +
+                        "                .protocol($T.HTTP_2)\n" +
+                        "                .body(responseBody)\n" +
+                        "                .code(200)\n" +
+                        "                .message(\"message ?\")\n" +
+                        "                .build();\n",
+                ClassName.bestGuess("okhttp3.ResponseBody"),
+                ClassName.bestGuess("okhttp3.ResponseBody"),
+                ClassName.bestGuess("okhttp3.MediaType"),
+                ClassName.bestGuess("okhttp3.Request"),
+                ClassName.bestGuess("okhttp3.Protocol")
         ));
 
         fieldInjectorMethod.returns(ClassName.bestGuess("okhttp3.Response"));
