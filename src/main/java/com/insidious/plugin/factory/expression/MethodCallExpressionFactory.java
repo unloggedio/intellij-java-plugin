@@ -45,7 +45,7 @@ public class MethodCallExpressionFactory {
 
         String param1 =
                 methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
-                        "(" + TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments()) + ")";
+                        "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
 
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);

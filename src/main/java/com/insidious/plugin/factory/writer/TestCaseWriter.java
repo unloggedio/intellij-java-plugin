@@ -53,17 +53,17 @@ public class TestCaseWriter {
             }
 
 
-            objectRoutine.addComment(
-                    returnValue.getType() + " " + returnValue.getName() + " = " +
-                            methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
-                            "(" + callArgumentsString + "); // ==> "
-                            + returnValue.getProb().getSerializedValue().length);
+//            objectRoutine.addComment(
+//                    returnValue.getType() + " " + returnValue.getName() + " = " +
+//                            methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
+//                            "(" + callArgumentsString + "); // ==> "
+//                            + returnValue.getProb().getSerializedValue().length);
         } else if (exception != null) {
-            objectRoutine.addComment(
-                    methodCallExpression.getSubject().getName() + "." +
-                            methodCallExpression.getMethodName() +
-                            "(" + callArgumentsString + ");" +
-                            " // ==>  throws exception " + exception.getType());
+//            objectRoutine.addComment(
+//                    methodCallExpression.getSubject().getName() + "." +
+//                            methodCallExpression.getMethodName() +
+//                            "(" + callArgumentsString + ");" +
+//                            " // ==>  throws exception " + exception.getType());
         }
     }
 
@@ -87,6 +87,44 @@ public class TestCaseWriter {
                 Object parameterValue;
                 parameterValue = parameter.getValue();
                 parameterStringBuilder.append(parameterValue);
+            }
+
+
+        }
+
+
+        @NotNull String parameterString = parameterStringBuilder.toString();
+        return parameterString;
+    }
+
+
+    @NotNull
+    public static String createMethodParametersStringMock(VariableContainer variableContainer) {
+        StringBuilder parameterStringBuilder = new StringBuilder();
+
+        for (int i = 0; i < variableContainer.count(); i++) {
+            Parameter parameter = variableContainer.get(i);
+
+            if (i > 0) {
+                parameterStringBuilder.append(", ");
+            }
+
+            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+                parameterStringBuilder.append("any()");
+            } else if (parameter.getName() != null) {
+                if (parameter.getType().equals("java.lang.String")) {
+                    parameterStringBuilder.append("matches(" + parameter.getName() + ")");
+                } else {
+                    parameterStringBuilder.append("any()");
+                }
+            } else {
+                Object parameterValue;
+                parameterValue = parameter.getValue();
+                if (parameterValue != null && parameter.getType().equals("java.lang.String")) {
+                    parameterStringBuilder.append("matches(" + parameterValue + ")");
+                } else {
+                    parameterStringBuilder.append("any()");
+                }
             }
 
 

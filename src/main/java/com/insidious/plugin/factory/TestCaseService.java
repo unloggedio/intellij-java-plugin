@@ -654,7 +654,7 @@ public class TestCaseService {
                         }
 
                         dependentObjectMockCreation.setName(callSubject.getName());
-                        objectRoutine.addComment(" inject parameter " + callSubject + "]");
+//                        objectRoutine.addComment(" inject parameter " + callSubject + "]");
 
                         in(objectRoutine).writeExpression(
                                 new MethodCallExpression("injectField", null,

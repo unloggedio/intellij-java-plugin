@@ -180,9 +180,13 @@ public class PendingStatement {
                 }
 
             } else if (parameter.getProb().getSerializedValue().length > 0) {
-                this.expressionList.add(new PlainValueExpression(new String(parameter.getProb().getSerializedValue())));
+                String stringValue = new String(parameter.getProb().getSerializedValue());
+                stringValue = stringValue.replaceAll("\\$", "\\$\\$");
+
+                this.expressionList.add(new PlainValueExpression(stringValue));
             } else {
-                this.expressionList.add(new PlainValueExpression(String.valueOf(parameter.getValue())));
+                String stringValue = String.valueOf(parameter.getValue());
+                this.expressionList.add(new PlainValueExpression(stringValue));
             }
 
         } else {

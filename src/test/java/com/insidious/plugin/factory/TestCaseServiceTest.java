@@ -333,8 +333,10 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("org.zerhusen.security.UserModelDetailsService");
 
 
+//        List<String> targetClasses = List.of("com.repyute.service.pocket.PocketService");
+        List<String> targetClasses = List.of("com.repyute.helper.pocket.PocketHelper");
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);

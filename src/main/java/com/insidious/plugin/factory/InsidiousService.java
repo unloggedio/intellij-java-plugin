@@ -865,12 +865,15 @@ public class InsidiousService implements Disposable {
             searchByTypesWindow = new SearchByTypesWindow(project, this);
             searchByValueWindow = new SearchByValueWindow(project, this);
             singleWindowView = new SingleWindowView(project, this);
+            LiveViewWindow liveViewWindow = new LiveViewWindow(project, this);
             aboutUsWindow = new AboutUsWindow();
 
             // create the windows
             Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
             Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+            Content liveWindowContent =
+                    contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
             Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(),
                     "About",
                     false);
@@ -887,6 +890,10 @@ public class InsidiousService implements Disposable {
             Content rawViewContent2 = contentManager.findContent("Raw");
             if (rawViewContent2 == null) {
                 contentManager.addContent(singleWindowContent);
+            }
+            Content liveWindowContent2 = contentManager.findContent("Live");
+            if (liveWindowContent2 == null) {
+                contentManager.addContent(liveWindowContent);
             }
             Content aboutVideobug = contentManager.findContent("About");
             if (aboutVideobug == null) {
