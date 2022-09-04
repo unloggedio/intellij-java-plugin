@@ -119,7 +119,7 @@ public class TestCaseService {
                     continue;
                 }
                 // part 2
-                postProcessObjectRoutine(testCaseRequest, variableContainer, classTestSuite);
+                postProcessObjectRoutine(variableContainer, classTestSuite);
 
                 processFields(classTestSuite, variableContainer);
 
@@ -127,6 +127,9 @@ public class TestCaseService {
                 // part 3
                 for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
                     if (objectRoutine.getMetadata().size() == 0) {
+                        continue;
+                    }
+                    if (objectRoutine.getRoutineName().equals("<init>")) {
                         continue;
                     }
 
@@ -180,7 +183,7 @@ public class TestCaseService {
                                     variableContainer);
 
                             // part 2
-                            postProcessObjectRoutine(testCaseRequest, variableContainer, dependentObjectCreation);
+                            postProcessObjectRoutine(variableContainer, dependentObjectCreation);
 
 
                             processFields(dependentObjectCreation, variableContainer);
@@ -280,6 +283,8 @@ public class TestCaseService {
                 MethodCallExpression mainSubjectConstructorExpression =
                         (MethodCallExpression) firstTestMetadata.getMainMethod();
                 Parameter mainSubject = mainSubjectConstructorExpression.getSubject();
+                Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
+                constructorRoutine.getCreatedVariables().add(mainSubject);
 
 
                 scriptFields.add(
@@ -289,6 +294,7 @@ public class TestCaseService {
                         ).build()
                 );
                 constructorRoutine.getCreatedVariables().add(mainSubject);
+                in(constructorRoutine).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
 
                 for (Parameter parameter : allFields) {
                     scriptFields.add(
@@ -298,6 +304,7 @@ public class TestCaseService {
                             ).build()
                     );
 
+                    constructorRoutine.getCreatedVariables().add(parameter);
                     in(constructorRoutine).assignVariable(parameter).writeExpression(
                             MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
                     ).endStatement();
@@ -524,6 +531,7 @@ public class TestCaseService {
             if (variableContainer.contains(objectRoutineContainer.getName())) {
                 // variable has already been initialized
             } else {
+                variableContainer.add(objectRoutineContainer.getName());
                 ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
                 addRoutinesToMethodBuilder(builder, constructorRoutine.getDependentList(), variableContainer);
 
@@ -645,8 +653,6 @@ public class TestCaseService {
      * run through all the identified variables and identify a unique name for them across
      * multiple choices
      *
-     * @param testCaseRequest         identifies the target parameter for which test case is going to be
-     *                                generated
      * @param globalVariableContainer set of already identified variables, might be with or
      *                                without names, also acts as the sink for all the identified
      *                                new parameters in the routines
@@ -654,12 +660,11 @@ public class TestCaseService {
      */
     private void
     postProcessObjectRoutine(
-            TestCaseRequest testCaseRequest,
             VariableContainer globalVariableContainer,
             ObjectRoutineContainer objectRoutineContainer
     ) {
         // this is part 2
-        Parameter targetParameter = testCaseRequest.getTargetParameter();
+//        Parameter targetParameter = testCaseRequest.getTargetParameter();
 //        Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
 
 
@@ -673,9 +678,12 @@ public class TestCaseService {
             addTestSubjectToVariableContainer(objectRoutine.getMetadata(), variableContainer);
             if (objectRoutine.getRoutineName().equals("<init>")) {
 
-                for (String name : variableContainer.getNames()) {
-                    globalVariableContainer.add(variableContainer.getParameterByName(name));
+                Collection<String> variableNames = variableContainer.getNames();
+                for (String name : variableNames) {
+                    Parameter parameterByName = variableContainer.getParameterByName(name);
+                    globalVariableContainer.add(parameterByName);
                 }
+                variableContainer = globalVariableContainer;
             }
 
 
@@ -693,38 +701,31 @@ public class TestCaseService {
 
             List<Parameter> dependentParameters = getDependentParameters(objectRoutine);
 
-            if (objectRoutine.getRoutineName().equals("<init>") && testCaseRequest.getBuildLevel() == 0) {
+//            if (objectRoutine.getRoutineName().equals("<init>")) {
 
-                for (Parameter dependentParameter : dependentParameters) {
+            for (Parameter dependentParameter : dependentParameters) {
 
-                    ObjectRoutineContainer dependentObjectMockCreation;
 
-                    // we want to create the objects from java.lang.* namespace using their real values, so
-                    // in the test case it looks something like
-                    // Integer varName = value;
-                    if (dependentParameter.getType() != null && dependentParameter.getType().startsWith("java.lang")) {
+                // we want to create the objects from java.lang.* namespace using their real values, so
+                // in the test case it looks something like
+                // Integer varName = value;
+                ObjectRoutineContainer dependentContainer;
+                if (dependentParameter.getType() != null && dependentParameter.getType().startsWith("java.lang")) {
+                    dependentContainer = new ObjectRoutineContainer();
 
-                        TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(dependentParameter);
-                        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-//                        in(constructor).assignVariable(dependentParameter).fromRecordedValue().endStatement();
-                        constructor.getMetadata().add(testCaseMetadata);
-//                        return;
-                        continue;
-
-                    } else {
-                        dependentObjectMockCreation = createMock(dependentParameter);
-                    }
-
-                    dependentObjectMockCreation.setName(dependentParameter.getName());
-                    objectRoutine.addDependent(dependentObjectMockCreation);
-
+                    dependentContainer.setName(dependentParameter.getName());
+                    TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(dependentParameter);
+                    ObjectRoutine constructor = dependentContainer.getConstructor();
+                    constructor.getMetadata().add(testCaseMetadata);
+                    constructor.addDependent(dependentContainer);
+                } else {
+                    dependentContainer = createMock(dependentParameter);
+                    dependentContainer.setName(dependentParameter.getName());
                 }
-                continue;
+                objectRoutine.addDependent(dependentContainer);
             }
-
-
+//            }
         }
-
     }
 
     private ObjectRoutineContainer createFieldMock(
