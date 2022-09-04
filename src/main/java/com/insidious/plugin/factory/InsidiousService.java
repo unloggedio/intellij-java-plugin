@@ -875,8 +875,7 @@ public class InsidiousService implements Disposable {
             Content liveWindowContent =
                     contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
             Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(),
-                    "About",
-                    false);
+                    "About", false);
 
 
             Content content = contentManager.findContent("Exceptions");
@@ -893,7 +892,7 @@ public class InsidiousService implements Disposable {
             }
             Content liveWindowContent2 = contentManager.findContent("Live");
             if (liveWindowContent2 == null) {
-                contentManager.addContent(liveWindowContent);
+//                contentManager.addContent(liveWindowContent);
             }
             Content aboutVideobug = contentManager.findContent("About");
             if (aboutVideobug == null) {

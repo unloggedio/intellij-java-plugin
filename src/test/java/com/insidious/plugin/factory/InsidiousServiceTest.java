@@ -1,7 +1,10 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.pojo.ObjectWithTypeInfo;
+import com.intellij.openapi.project.Project;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.Arrays;
 import java.util.List;
@@ -11,8 +14,14 @@ public class InsidiousServiceTest {
     @Test
     public void addAgentToRunConfig() {
 
-//        Project project = Mockito.mock(Project.class);
-//        InsidiousService insidiousService = new InsidiousService(project);
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("D:\\workspace\\code\\insidious\\plugin");
+        InsidiousService insidiousService = new InsidiousService(project);
+
+
+
+//        insidiousService.generateTestCases(List.of());
+//        insidiousService.generateTestCases(new ObjectWithTypeInfo());
 //
         String[] vmParams = new String[]{"no", "param"};
 

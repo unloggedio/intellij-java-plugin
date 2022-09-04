@@ -21,6 +21,16 @@ public class ObjectRoutine {
     private final String routineName;
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
+    private VariableContainer variableContainer = new VariableContainer();
+    private VariableContainer createdVariables = new VariableContainer();
+    private List<TestCandidateMetadata> metadata = new LinkedList<>();
+
+    public ObjectRoutine() {
+        routineName = "<init>";
+    }
+    public ObjectRoutine(String routineName) {
+        this.routineName = routineName;
+    }
 
     public VariableContainer getVariableContainer() {
         return variableContainer;
@@ -30,25 +40,11 @@ public class ObjectRoutine {
         this.variableContainer = variableContainer;
     }
 
-    public ObjectRoutine() {
-        routineName = "<init>";
-    }
-
-    private VariableContainer variableContainer = new VariableContainer();
-    private VariableContainer createdVariables = new VariableContainer();
-    private List<TestCandidateMetadata> metadata = new LinkedList<>();
-
-    public ObjectRoutine(String routineName) {
-        this.routineName = routineName;
-    }
-
-    public void addStatement(String s,
-                             Object... args) {
+    public void addStatement(String s, Object... args) {
         statements.add(Pair.create(new StatementCodeLine(s), args));
     }
 
-    public void addStatement(String s,
-                             List<?> args) {
+    public void addStatement(String s, List<?> args) {
         Object[] objects = new Object[args.size()];
         for (int i = 0; i < args.size(); i++) {
             Object arg = args.get(i);
@@ -66,16 +62,27 @@ public class ObjectRoutine {
         statements.add(Pair.create(new CommentCodeLine(s), args));
     }
 
-    public void setMetadata(TestCandidateMetadata metadata) {
-        this.metadata = new LinkedList<>(List.of(metadata));
-    }
+//    public void setMetadata(TestCandidateMetadata metadata) {
+//        this.metadata = new LinkedList<>(List.of(metadata));
+//    }
 
     public List<TestCandidateMetadata> getMetadata() {
         return metadata;
     }
 
+    public void setMetadata(TestCandidateMetadata newTestCaseMetadata) {
+        List<TestCandidateMetadata> testCandidateMetadata = new java.util.ArrayList<>();
+        testCandidateMetadata.add(newTestCaseMetadata);
+        this.metadata = new LinkedList<>(testCandidateMetadata);
+    }
+
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        this.metadata.add(newTestCaseMetadata);
+        if (this.metadata == null) {
+            this.metadata = new LinkedList<>();
+        }
+        if (!this.metadata.contains(newTestCaseMetadata)) {
+            this.metadata.add(newTestCaseMetadata);
+        }
     }
 
     public String getRoutineName() {
@@ -85,7 +92,6 @@ public class ObjectRoutine {
     public List<ObjectRoutineContainer> getDependentList() {
         return dependentList;
     }
-
 
     public void addDependent(ObjectRoutineContainer dependentObjectCreation) {
         if (this.dependentMap.containsKey(dependentObjectCreation.getName())) {

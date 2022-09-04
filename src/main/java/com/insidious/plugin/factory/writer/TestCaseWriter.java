@@ -21,11 +21,7 @@ public class TestCaseWriter {
         Parameter exception = methodCallExpression.getException();
         String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
 
-//        String callParametersCommaSeparated = StringUtil.join(methodCallExpression.getArguments()
-//                        .all()
-//                        .stream().map(Parameter::getName)
-//                        .collect(Collectors.toList()),
-//                ", ");
+
         if (returnValue != null) {
 
             String variableName = ClassTypeUtils.createVariableName(returnValue.getType());

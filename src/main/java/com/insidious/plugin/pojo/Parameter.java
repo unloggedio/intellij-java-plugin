@@ -101,4 +101,24 @@ public class Parameter {
 
         this.createrExpression = createrExpression;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Parameter parameter = (Parameter) o;
+
+        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
+        if (name != null ? !name.equals(parameter.name) : parameter.name != null) return false;
+        return type != null ? type.equals(parameter.type) : parameter.type == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = value != null ? value.hashCode() : 0;
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (type != null ? type.hashCode() : 0);
+        return result;
+    }
 }

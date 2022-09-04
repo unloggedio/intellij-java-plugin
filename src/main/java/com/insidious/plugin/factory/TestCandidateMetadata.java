@@ -10,6 +10,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
+import com.insidious.plugin.factory.expression.Expression;
 import com.insidious.plugin.pojo.EventTypeMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -28,7 +29,7 @@ public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
     private VariableContainer fields = new VariableContainer();
-    private MethodCallExpression mainMethod;
+    private Expression mainMethod;
     private String fullyQualifiedClassname;
     private String unqualifiedClassname;
     private String packageName;
@@ -36,6 +37,11 @@ public class TestCandidateMetadata {
     private Parameter testSubject;
     private long callTimeNanoSecond;
     private boolean isArray;
+
+    public TestCandidateMetadata() {
+        int x = 1;
+        int y = x + 1;
+    }
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
@@ -539,11 +545,11 @@ public class TestCandidateMetadata {
         return replayData.eventScan(searchRequest);
     }
 
-    public MethodCallExpression getMainMethod() {
+    public Expression getMainMethod() {
         return mainMethod;
     }
 
-    public void setMainMethod(MethodCallExpression mainMethod) {
+    public void setMainMethod(Expression mainMethod) {
         this.mainMethod = mainMethod;
     }
 
@@ -609,8 +615,9 @@ public class TestCandidateMetadata {
 
     public void setTestSubject(Parameter testSubject) {
         this.testSubject = testSubject;
-        if (this.mainMethod != null) {
-            this.mainMethod.setSubject(testSubject);
+        if (this.mainMethod != null && this.mainMethod instanceof MethodCallExpression) {
+            MethodCallExpression mce = (MethodCallExpression) this.mainMethod;
+            mce.setSubject(testSubject);
         }
     }
 
