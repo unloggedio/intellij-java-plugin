@@ -833,17 +833,17 @@ public class InsidiousService implements Disposable {
 
         List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class).getAllSettings();
 
-        for (RunnerAndConfigurationSettings runSetting : allSettings) {
-            logger.info("runner config - " + runSetting.getName());
-
-            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-                String currentVMParams = applicationConfiguration.getVMParameters();
-                String newVmOptions = currentVMParams;
-                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
-                applicationConfiguration.setVMParameters(newVmOptions.trim());
-            }
-        }
+//        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+//            logger.info("runner config - " + runSetting.getName());
+//
+//            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+//                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+//                String currentVMParams = applicationConfiguration.getVMParameters();
+//                String newVmOptions = currentVMParams;
+//                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+//                applicationConfiguration.setVMParameters(newVmOptions.trim());
+//            }
+//        }
     }
 
 

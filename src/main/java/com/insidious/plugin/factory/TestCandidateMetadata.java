@@ -196,7 +196,9 @@ public class TestCandidateMetadata {
         Parameter returnParameter = ParameterFactory.createReturnValueParameter(callReturnScanResult.getIndex(),
                 replayData, returnParameterDescription);
         if (returnParameter.getName() == null || returnParameter.getName().length() == 1) {
-            returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
+            if (methodInfo.getMethodName().equals("<init>")) {
+                returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
+            }
         }
 
 
@@ -241,16 +243,11 @@ public class TestCandidateMetadata {
                         if (callStack != -1) {
                             break;
                         }
-                        String rawType = probeInfo.getAttribute("Type", "");
-                        String valueTypeNameWithSlash = rawType;
-                        String valueTypeNameWithDots = "";
-                        if (valueTypeNameWithSlash.startsWith("L")) {
-                            valueTypeNameWithDots = valueTypeNameWithSlash.substring(1)
-                                    .split(";")[0].replace("/", ".");
-                        } else {
-                            valueTypeNameWithDots = valueTypeNameWithSlash;
-                        }
-                        if (!typeHierarchy.contains(ClassTypeUtils.getDottedClassName(rawType))) {
+                        String rawType = ClassTypeUtils.getDottedClassName(
+                                probeInfo.getAttribute("Type", "V"));
+
+                        if (!typeHierarchy.contains(rawType)) {
+                            paramsToSkip = paramsToSkip - 1;
                             break;
                         }
 
@@ -260,11 +257,11 @@ public class TestCandidateMetadata {
 
                             Parameter subjectInstanceParameter;
                             if (eventType == EventType.LOCAL_LOAD) {
-                                subjectInstanceParameter = ParameterFactory.createSubjectParameter(i,
-                                        replayData, 0);
+                                subjectInstanceParameter = ParameterFactory.createParameter(i,
+                                        replayData, 0, null);
                             } else {
-                                subjectInstanceParameter = ParameterFactory.createSubjectParameter(
-                                        i - 1, replayData, 0);
+                                subjectInstanceParameter = ParameterFactory.createParameter(
+                                        i - 1, replayData, 0, null);
                             }
 
                             metadata.setTestSubject(subjectInstanceParameter);
