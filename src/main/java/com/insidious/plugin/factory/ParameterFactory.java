@@ -39,7 +39,7 @@ public class ParameterFactory {
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
         final EventType eventType = probeInfo.getEventType();
 
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData);
+        Parameter parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
         if (parameter.getType().equals("V")) {
             return parameter;
         }
@@ -142,172 +142,23 @@ public class ParameterFactory {
      * - name of the valueId
      * - type of the value
      */
-    public
-    static Parameter createSubjectParameter(
-            // the value id to be build for it located at this index in the dataEvents
-            final int eventIndex,
-            ReplayData replayData,
-            int paramIndex) {
-//        logger.warn("Create object from index [" + eventIndex + "] - ParamIndex" + paramIndex);
-        DataEventWithSessionId event = replayData.getDataEvents().get(eventIndex);
-        DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
-        final EventType eventType = probeInfo.getEventType();
-
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData);
-        if (parameter.getType().equals("V")) {
-            return parameter;
-        }
-
-        List<String> typeHierarchy = replayData.buildHierarchyFromTypeName(parameter.getType());
-
-
-        int callStackSearchLevel = 0;
-
-        int direction = 1;
-        if (eventType == EventType.CALL_RETURN ||
-                eventType == EventType.NEW_OBJECT_CREATED ||
-                eventType == EventType.METHOD_OBJECT_INITIALIZED
-        ) {
-            direction = -1; // go forward from current event
-            callStackSearchLevel = -1; // we want something in the caller method
-        } else if (
-                eventType == EventType.METHOD_NORMAL_EXIT
-        ) {
-            direction = -1; // go forward from current event
-            callStackSearchLevel = 0; // we want something in the current method only
-        } else if (
-                eventType == EventType.CALL
-        ) {
-            direction = 1; // go backward from current event
-            callStackSearchLevel = -1; // we want something in the caller method
-        }
-
-
-        int callStack = 0;
-        List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
-        int dataEventCount = dataEvents.size();
-        for (int i = eventIndex + direction; i < dataEventCount
-                && i > -1; i += direction) {
-            DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
-            DataInfo historyEventProbe = replayData.getProbeInfoMap().get(
-                    String.valueOf(historyEvent.getDataId())
-            );
-            ClassInfo currentClassInfo =
-                    replayData.getClassInfo(historyEventProbe.getClassId());
-            MethodInfo methodInfoLocal = replayData.getMethodInfo(historyEventProbe.getMethodId());
-
-
-            switch (historyEventProbe.getEventType()) {
-                case CALL:
-                    // this value has no name in this direction, maybe we can use the name of the
-                    // argument it is passed as
-
-                    // but if this is a call to a third party sdk, then we dont know the
-                    // argument name
-
-                    if (callStack < 0 && direction == -1) {
-                        return parameter;
-                    }
-
-                    // direction == 1 => going back
-//                    if (callStack == callStackSearchLevel && direction == 1) {
-//
-//                        // this happens when we were looking back for a parameter name, but find
-//                        // ourself inside another call, need to check this out again
-//
-//                        return parameter;
-//                    }
-                    break;
-                case METHOD_NORMAL_EXIT:
-                    callStack += direction;
-                    break;
-
-                case METHOD_ENTRY:
-                    if (eventType == EventType.METHOD_OBJECT_INITIALIZED
-                            && callStack == callStackSearchLevel) {
-
-                        // the scenario where a newly construted objects name was not found
-                        // because it was created by a third party package where we do not have
-                        // probes
-                        return parameter;
-                    }
-                    callStack -= direction;
-                    break;
-
-                case NEW_OBJECT_CREATED:
-                    if (callStack != callStackSearchLevel) {
-                        continue;
-                    }
-                    if (paramIndex > 0) {
-                        paramIndex -= 1;
-                        continue;
-                    }
-                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(String.valueOf(historyEvent.getValue()));
-                    if (oInfo == null) {
-                        logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
-                                "check");
-                        break;
-                    }
-                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
-                    String typeName = oTypeInfo.getTypeNameFromClass();
-                    String typeNameRaw = typeName.replaceAll("\\.", "/");
-                    String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
-
-
-                    if (parameter.getType().contains(typeNameRaw)) {
-                        LoggerUtil.logEvent("SearchObjectName", callStack, i,
-                                historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
-                        parameter.setName(newVariableInstanceName);
-                        return parameter;
-                    }
-                    break;
-                case GET_STATIC_FIELD:
-                case PUT_STATIC_FIELD:
-                case GET_INSTANCE_FIELD:
-                case PUT_INSTANCE_FIELD:
-                    if (callStack != callStackSearchLevel) {
-                        continue;
-                    }
-                    if (paramIndex > 0) {
-                        paramIndex -= 1;
-                        continue;
-                    }
-                    if (historyEvent.getValue() != event.getValue()) {
-                        continue;
-                    }
-                    String fieldType = historyEventProbe.getAttribute("Type", "V");
-
-
-                    if (!fieldType.startsWith("L") || typeHierarchy.contains(fieldType)) {
-
-                        LoggerUtil.logEvent("SearchObjectName3", callStack, i,
-                                historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
-
-                        String variableName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
-                        parameter.setName(variableName);
-                        parameter.setType(fieldType);
-                        return parameter;
-                    }
-                    break;
-            }
-        }
-
-
-        return parameter;
-    }
 
     private static Parameter createParameterInternal(
             DataEventWithSessionId event,
             int eventIndex,
-            ReplayData replayData
+            ReplayData replayData,
+            String expectedParameterType
     ) {
+        if (expectedParameterType != null) {
+            expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
+        }
 
 
         String eventProbeIdString = String.valueOf(event.getDataId());
         String eventValueString = String.valueOf(event.getValue());
         DataInfo probeInfo = replayData.getProbeInfoMap().get(eventProbeIdString);
         ObjectInfo objectInfo = replayData.getObjectInfoMap().get(eventValueString);
-        Set<String> typeHierarchy = new HashSet<>();
+//        Set<String> typeHierarchy = new HashSet<>();
 
 
         Parameter parameter = new Parameter();
@@ -322,21 +173,30 @@ public class ParameterFactory {
                     receiverParameterTypeInfo);
             assert typeHierarchyFromReceiverTypeList.size() != 0;
             parameter.setType(typeHierarchyFromReceiverTypeList.get(0));
-            typeHierarchy.addAll(typeHierarchyFromReceiverTypeList);
+//            typeHierarchy.addAll(typeHierarchyFromReceiverTypeList);
 
         }
 
         String finalIdentifiedType = getTypeForValueAtProbeIndex(event, eventIndex, replayData, probeInfo);
 
-        if (typeHierarchy.size() == 0) {
-            typeHierarchy = new HashSet<>(replayData.buildHierarchyFromTypeName(finalIdentifiedType));
+        parameter.setType(finalIdentifiedType);
+
+        if (expectedParameterType != null) {
+            if (finalIdentifiedType == null) {
+                parameter.setType(ClassTypeUtils.getDottedClassName(expectedParameterType));
+            } else if (!expectedParameterType.equals(finalIdentifiedType)) {
+                logger.warn("final type does not matched expected type: " + expectedParameterType + " - " + finalIdentifiedType);
+            }
         }
 
-
-        if (typeHierarchy.size() == 0) {
-            logger.warn("[2] failed to build type hierarchy for object [" + event + "]");
-            return parameter;
-        }
+//        if (typeHierarchy.size() == 0) {
+//            typeHierarchy = new HashSet<>(replayData.buildHierarchyFromTypeName(finalIdentifiedType));
+//        }
+//
+//
+//        if (typeHierarchy.size() == 0) {
+//            logger.warn("[2] failed to build type hierarchy for object [" + event + "]");
+//        }
 
 
         Object probeValue = replayData.getValueByObjectId(parameter.getProb());
@@ -434,16 +294,8 @@ public class ParameterFactory {
 
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData);
+        Parameter parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
 
-        if (parameter.getType() == null) {
-            if (expectedParameterType != null) {
-                parameter.setType(ClassTypeUtils.getDottedClassName(expectedParameterType));
-            } else {
-                logger.warn("failed to identify type for parameter: " + parameter);
-                return parameter;
-            }
-        }
 
         if (parameter.getType().equals("V")) {
             return parameter;
@@ -614,18 +466,10 @@ public class ParameterFactory {
 
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData);
+        Parameter parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
 
-        if (parameter.getType() == null) {
-            if (expectedParameterType != null) {
-                parameter.setType(ClassTypeUtils.getDottedClassName(expectedParameterType));
-            } else {
-                logger.warn("failed to identify type for parameter: " + parameter);
-                return parameter;
-            }
-        }
 
-        if (parameter.getType().equals("V")) {
+        if (parameter.getType() == null || parameter.getType().equals("V")) {
             return parameter;
         }
 
@@ -858,7 +702,7 @@ public class ParameterFactory {
 
 //        logger.warn("Create object from index [" + eventIndex + "] - ParamIndex" + paramIndex);
         DataEventWithSessionId event = replayData.getDataEvents().get(eventIndex);
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData);
+        Parameter parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
 
         if (parameter.getType() == null) {
             logger.warn("failed to identify type of parameter: " + parameter);

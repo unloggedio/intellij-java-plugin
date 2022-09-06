@@ -6,7 +6,6 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.intellij.openapi.util.Pair;
 import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -107,30 +106,30 @@ public class ObjectRoutineContainer {
 
 
         List<Parameter> dependentImports = new LinkedList<>();
+        ObjectRoutineContainer orc = this;
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
 
 
-            dependentImports = objectRoutine.getDependentList().stream().map(
-                    e -> e.getVariablesOfType(className)
-            ).flatMap(Collection::stream).collect(Collectors.toList());
+            dependentImports = objectRoutine.getDependentList()
+                    .stream()
+                    .filter(e -> e != orc)
+                    .map(e ->  e.getVariablesOfType(className))
+                    .flatMap(Collection::stream).collect(Collectors.toList());
 
             for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
                 Expression mainMethod = metadatum.getMainMethod();
                 if (mainMethod instanceof MethodCallExpression) {
-                    MethodCallExpression mce = (MethodCallExpression) mainMethod;
-                    if (mce.getSubject() != null && mce.getSubject().getType() != null && mce.getSubject().getType().startsWith(className)) {
-                        dependentImports.add(mce.getSubject());
-                    }
-                    if (mce.getReturnValue() != null && mce.getReturnValue().getType() != null && mce.getReturnValue().getType().startsWith(className)) {
-                        dependentImports.add(mce.getSubject());
-                    }
-                    for (Parameter parameter : mce.getArguments().all()) {
-                        if (parameter.getType().startsWith(className)) {
-                            dependentImports.add(parameter);
-                        }
-                    }
-
+                    List<Parameter> variables = extractVariableOfType(className, (MethodCallExpression) mainMethod);
+                    dependentImports.addAll(variables);
                 }
+
+                for (MethodCallExpression methodCallExpression : metadatum.getCallsList()) {
+                    if (mainMethod instanceof MethodCallExpression) {
+                        List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
+                        dependentImports.addAll(variables);
+                    }
+                }
+
             }
 
 
@@ -139,5 +138,24 @@ public class ObjectRoutineContainer {
         return dependentImports;
 
 
+    }
+
+    private List<Parameter> extractVariableOfType(String className, MethodCallExpression mainMethod) {
+        List<Parameter> dependentImports = new LinkedList<>();
+        MethodCallExpression mce = mainMethod;
+        if (mce.getSubject() != null && mce.getSubject().getType() != null && mce.getSubject().getType().startsWith(className)) {
+            dependentImports.add(mce.getSubject());
+        }
+        if (mce.getReturnValue() != null && mce.getReturnValue().getType() != null && mce.getReturnValue().getType().startsWith(className)) {
+            dependentImports.add(mce.getSubject());
+        }
+        for (Parameter parameter : mce.getArguments().all()) {
+            if (parameter.getType().startsWith(className)) {
+                dependentImports.add(parameter);
+            }
+        }
+
+
+        return dependentImports;
     }
 }

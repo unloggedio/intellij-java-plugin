@@ -114,6 +114,7 @@ public class TestCandidateMetadata {
 
         int currentEntryProbeIndex = entryProbeIndex;
         ScanResult callReturnScanResult = new ScanResult(currentEntryProbeIndex, 0);
+        int pageSize = 1000;
         while (true) {
 
             if (methodInfo.getMethodName().equals("<init>")) {
@@ -138,7 +139,11 @@ public class TestCandidateMetadata {
             if (Objects.equals(replayData.getFilteredDataEventsRequest().getSortOrder(), "ASC")) {
                 lastEvent = replayData.getDataEvents().get(replayData.getDataEvents().size() - 1);
             }
-            ReplayData nextPage = replayData.fetchEventsPost(lastEvent, 1000);
+            ReplayData nextPage = replayData.fetchEventsPost(lastEvent, pageSize);
+            pageSize = pageSize * 2;
+            if (pageSize > 100000) {
+                pageSize = 100000;
+            }
             if (nextPage.getDataEvents().size() < 2) {
                 break;
             }
@@ -193,8 +198,8 @@ public class TestCandidateMetadata {
 
 
 //        logger.warn("create return parameter from event at index: " + callReturnIndex);
-        Parameter returnParameter = ParameterFactory.createReturnValueParameter(callReturnScanResult.getIndex(),
-                replayData, returnParameterDescription);
+        Parameter returnParameter = ParameterFactory.createMethodArgumentParameter(callReturnScanResult.getIndex(),
+                replayData, 0, returnParameterDescription);
         if (returnParameter.getName() == null || returnParameter.getName().length() == 1) {
             if (methodInfo.getMethodName().equals("<init>")) {
                 returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
@@ -367,8 +372,8 @@ public class TestCandidateMetadata {
                                         " we are building: " + callEvent + " -- " + callEventProbe);
                                 return;
                             }
-                            responseBodyStringProbe.set(ParameterFactory.createReturnValueParameter(
-                                    index, replayData, targetParameter.getType()
+                            responseBodyStringProbe.set(ParameterFactory.createMethodArgumentParameter(
+                                    index, replayData, 0, "java.lang.String"
                             ));
                             break;
                         case "okhttp3.ResponseBody":
@@ -383,8 +388,8 @@ public class TestCandidateMetadata {
                             if (responseBodyProbe.get() != null) {
                                 return;
                             }
-                            responseBodyProbe.set(ParameterFactory.createReturnValueParameter(
-                                    index, replayData, targetParameter.getType()
+                            responseBodyProbe.set(ParameterFactory.createMethodArgumentParameter(
+                                    index, replayData, 0, "okhttp3.ResponseBody"
                             ));
                             break;
                     }

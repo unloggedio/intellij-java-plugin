@@ -354,7 +354,7 @@ public class TestCaseService {
 
                 testCaseScripts.add(createInjectFieldMethod());
 
-                List<Parameter> okHttpVariables = classTestSuite.getVariablesOfType("okhttp3.*");
+                List<Parameter> okHttpVariables = classTestSuite.getVariablesOfType("okhttp3.");
 
                 if (okHttpVariables.size() > 0) {
                     testCaseScripts.add(createOkHttpMockCreator());

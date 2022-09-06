@@ -217,8 +217,8 @@ public class MethodCallExtractor implements EventMatchListener {
             exception.setProbeInfo(exitProbeInfo);
 
         } else if (exitProbeInfo.getEventType() == EventType.CALL_RETURN) {
-            callReturnParameter = ParameterFactory.createReturnValueParameter(
-                    callReturnScanResult.getIndex(), replayData, returnType);
+            callReturnParameter = ParameterFactory.createMethodArgumentParameter(
+                    callReturnScanResult.getIndex(), replayData, 0, returnType);
 
             if (callReturnParameter.getType() == null || callReturnParameter.getType().equals("V")) {
                 return;
