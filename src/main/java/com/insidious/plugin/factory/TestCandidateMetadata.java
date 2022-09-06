@@ -11,7 +11,7 @@ import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.factory.expression.Expression;
-import com.insidious.plugin.pojo.EventTypeMatchListener;
+import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
@@ -499,7 +499,7 @@ public class TestCandidateMetadata {
         searchRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
         searchRequest.matchUntil(EventType.LABEL);
         searchRequest.matchUntil(EventType.LINE_NUMBER);
-        searchRequest.addListener(EventType.METHOD_PARAM, new EventTypeMatchListener() {
+        searchRequest.addListener(EventType.METHOD_PARAM, new EventMatchListener() {
             private int paramIndex = 0;
 
             @Override
@@ -513,9 +513,10 @@ public class TestCandidateMetadata {
                 LoggerUtil.logEvent("SearchCallParameters", 0, paramIndex,
                         event, probeInfo, currentClassInfo, methodInfoLocal);
 
+                String expectedParameterType = callParameterDescriptions.get(paramIndex);
                 Parameter parameter = ParameterFactory.createMethodArgumentParameter(
                         callReturnIndex, replayData, callParameterDescriptions.size() - paramIndex - 1,
-                        callParameterDescriptions.get(paramIndex));
+                        expectedParameterType);
                 methodParameterProbes.add(parameter);
                 paramIndex++;
             }

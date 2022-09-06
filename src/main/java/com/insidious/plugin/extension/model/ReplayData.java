@@ -184,6 +184,8 @@ public class ReplayData {
             }
 
             scanRequest.onEvent(stackMatch, eventType, callReturnIndex);
+            scanRequest.onValue(stackMatch, event.getValue(), callReturnIndex);
+
             if (callStack == 0 && matchUntilEvent.contains(eventType)) {
                 return new ScanResult(callReturnIndex, callStack);
             }
@@ -231,20 +233,13 @@ public class ReplayData {
         if (expectedParameterType == null) {
             return List.of();
         }
-        if (!expectedParameterType.startsWith("L")) {
-            return List.of(expectedParameterType);
+
+        if (expectedParameterType.startsWith("L")) {
+            expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
         }
 
-
-        List<String> typeHierarchy = new LinkedList<>();
-
-        TypeInfo typeInfo = null;
-
-        final String expectedParameterTypeDotted =
-                ClassTypeUtils.getDottedClassName(expectedParameterType);
-
-        typeInfo = getTypeInfoByName(expectedParameterTypeDotted);
-        typeHierarchy = buildHierarchyFromType(typeInfo);
+        TypeInfo typeInfo = getTypeInfoByName(expectedParameterType);
+        List<String> typeHierarchy = buildHierarchyFromType(typeInfo);
 
         return typeHierarchy;
     }

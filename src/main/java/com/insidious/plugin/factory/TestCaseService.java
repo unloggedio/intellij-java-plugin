@@ -257,10 +257,6 @@ public class TestCaseService {
                 ObjectRoutine constructorRoutine = classTestSuite.getConstructor();
 
 
-                testCaseScripts.add(createInjectFieldMethod());
-                testCaseScripts.add(createOkHttpMockCreator());
-
-
                 MethodSpec.Builder builder = MethodSpec.methodBuilder(
                         "setup");
 
@@ -354,6 +350,18 @@ public class TestCaseService {
 
 
                 }
+
+
+                testCaseScripts.add(createInjectFieldMethod());
+
+                List<Parameter> okHttpVariables = classTestSuite.getVariablesOfType("okhttp3.*");
+
+                if (okHttpVariables.size() > 0) {
+                    testCaseScripts.add(createOkHttpMockCreator());
+                }
+
+
+
 
 
             }

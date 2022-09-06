@@ -1,5 +1,5 @@
 package com.insidious.plugin.pojo;
 
-public interface EventTypeMatchListener {
+public interface EventMatchListener {
     void eventMatched(Integer index);
 }

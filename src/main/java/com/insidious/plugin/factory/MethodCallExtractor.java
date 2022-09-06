@@ -5,7 +5,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.pojo.EventTypeMatchListener;
+import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
@@ -18,7 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MethodCallExtractor implements EventTypeMatchListener {
+public class MethodCallExtractor implements EventMatchListener {
 
 
     private final ReplayData replayData;
@@ -85,6 +85,10 @@ public class MethodCallExtractor implements EventTypeMatchListener {
             return;
         }
 
+        if (ownerClass.startsWith("org/apache/commons")) {
+            return;
+        }
+
         if (ownerClass.startsWith("java/")) {
             return;
         }
@@ -94,6 +98,9 @@ public class MethodCallExtractor implements EventTypeMatchListener {
             return;
         }
         if (instruction.equals("INVOKESTATIC")) {
+            LoggerUtil.logEvent(
+                    "STATICCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
+            );
             return;
         }
 
@@ -120,7 +127,7 @@ public class MethodCallExtractor implements EventTypeMatchListener {
                 DirectionType.BACKWARDS);
         AtomicInteger subjectMatchIndex = new AtomicInteger(0);
         List<Parameter> subjectParameterList = new LinkedList<>();
-        EventTypeMatchListener subjectMatchListener = new EventTypeMatchListener() {
+        EventMatchListener subjectMatchListener = new EventMatchListener() {
             @Override
             public void eventMatched(Integer index) {
 
@@ -167,11 +174,11 @@ public class MethodCallExtractor implements EventTypeMatchListener {
                 DirectionType.FORWARDS);
 
         AtomicInteger lookingForParams = new AtomicInteger(1);
-        callReturnScan.addListener(EventType.CALL_PARAM, new EventTypeMatchListener() {
+        callReturnScan.addListener(EventType.CALL_PARAM, new EventMatchListener() {
             @Override
             public void eventMatched(Integer index) {
                 if (lookingForParams.get() == 1) {
-                    Parameter callArgumentParameter = ParameterFactory.createCallArgumentParameter(
+                    Parameter callArgumentParameter = ParameterFactory.createParameterByCallArgument(
                             index, replayData, callArguments.size(), null
                     );
                     callArguments.add(callArgumentParameter);

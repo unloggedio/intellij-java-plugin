@@ -1,6 +1,7 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ScanResult;
 
@@ -26,7 +27,8 @@ public class ScanRequest {
     private final Set<EventType> matchUntilEvent = new HashSet<>();
     // whatever we are searching for, if we match any event which has listeners, the listner gets
     // a callback with the index of the matched probe
-    private final Map<EventType, List<EventTypeMatchListener>> eventListeners = new HashMap<>();
+    private final Map<EventType, List<EventMatchListener>> eventListeners = new HashMap<>();
+    private final Map<Long, List<EventMatchListener>> valueEventListeners = new HashMap<>();
     private int startStack = 0;
 
     public void matchUntil(EventType eventType) {
@@ -49,9 +51,9 @@ public class ScanRequest {
     }
     public void addListener(
             EventType eventType,
-            EventTypeMatchListener eventTypeMatchListener
+            EventMatchListener eventTypeMatchListener
     ) {
-        List<EventTypeMatchListener> listenerList = this.eventListeners.get(eventType);
+        List<EventMatchListener> listenerList = this.eventListeners.get(eventType);
         if (listenerList == null) {
             synchronized (this) {
                 listenerList = this.eventListeners.computeIfAbsent(eventType, k -> new LinkedList<>());
@@ -62,9 +64,9 @@ public class ScanRequest {
 
     public void removeListener(
             EventType eventType,
-            EventTypeMatchListener eventTypeMatchListener
+            EventMatchListener eventTypeMatchListener
     ) {
-        List<EventTypeMatchListener> listenerList = this.eventListeners.get(eventType);
+        List<EventMatchListener> listenerList = this.eventListeners.get(eventType);
         if (listenerList == null) {
             synchronized (this) {
                 listenerList = this.eventListeners.computeIfAbsent(eventType, k -> new LinkedList<>());
@@ -95,6 +97,11 @@ public class ScanRequest {
             eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex));
         }
     }
+    public void onValue(boolean stackMatch, Long valueId, int callReturnIndex) {
+        if (stackMatch && valueEventListeners.containsKey(valueId)) {
+            valueEventListeners.get(valueId).forEach(e -> e.eventMatched(callReturnIndex));
+        }
+    }
 
     public int getStartStack() {
         return startStack;
@@ -102,5 +109,11 @@ public class ScanRequest {
 
     public void setStartStack(int startStack) {
         this.startStack = startStack;
+    }
+
+    public void addListener(long value, EventMatchListener eventTypeMatchListener) {
+        List<EventMatchListener> existingList = valueEventListeners
+                .computeIfAbsent(value, k -> new LinkedList<>());
+        existingList.add(eventTypeMatchListener);
     }
 }
