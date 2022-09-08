@@ -4,7 +4,7 @@ public class StringExpression implements Expression {
 
     private final String value;
 
-    public StringExpression(String value) {
+    StringExpression(String value) {
         this.value = value;
     }
 

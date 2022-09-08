@@ -6,7 +6,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -114,12 +114,12 @@ public class ReplayData {
 
     public ReplayData fetchEventsPost(DataEventWithSessionId event, int size) throws SessionNotSelectedException {
         assert client.getCurrentSession() != null;
-        PageInfo paginationOlder = new PageInfo(0, size, PageInfo.Order.ASC);
-        paginationOlder.setBufferSize(0);
+        PageInfo pageNext = new PageInfo(0, size, PageInfo.Order.ASC);
+        pageNext.setBufferSize(0);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
         filterRequest.setThreadId(event.getThreadId());
         filterRequest.setNanotime(event.getNanoTime());
-        filterRequest.setPageInfo(paginationOlder);
+        filterRequest.setPageInfo(pageNext);
         return client.fetchObjectHistoryByObjectId(filterRequest);
     }
 
@@ -152,7 +152,7 @@ public class ReplayData {
 
 
         ScanResult entryProbeIndex = scanRequest.getStartIndex();
-        int callReturnIndex = entryProbeIndex.getIndex() + direction;
+        int callReturnIndex = entryProbeIndex.getIndex();
 
         int callStack = entryProbeIndex.getCallStack();
 

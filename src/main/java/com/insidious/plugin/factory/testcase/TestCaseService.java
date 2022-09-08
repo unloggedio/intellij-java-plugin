@@ -8,10 +8,12 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
+import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.candidate.TestCandidateMetadata;
+import com.insidious.plugin.extension.model.ScanResult;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
@@ -28,11 +30,8 @@ import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 
-import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
 
 public class TestCaseService {
     public static final ClassName JUNIT_CLASS_NAME = ClassName.get("org.junit", "Test");
@@ -79,18 +78,13 @@ public class TestCaseService {
     ) throws APICallException, SessionNotSelectedException {
 
         List<ObjectWithTypeInfo> allObjects = testCaseRequest.getTargetObjectList();
+        List<TestCaseUnit> testCases = new LinkedList<>();
 
         checkProgressIndicator("Generating test cases using " + allObjects.size() + " objects", null);
 
-        HashMap<Integer, Boolean> doneSignatures = new HashMap<>();
-        List<TestCaseUnit> testCases = new LinkedList<>();
-        List<FieldSpec> fieldSpecs = new LinkedList<>();
-        List<MethodSpec> methodSpecs = new LinkedList<>();
 
-//        TypeInfo typeInfo = allObjects.get(0).getTypeInfo();
 
-        List<ObjectWithTypeInfo> objectsList = testCaseRequest.getTargetObjectList();
-        TypeInfo typeInfo = objectsList.get(0).getTypeInfo();
+        TypeInfo typeInfo = allObjects.get(0).getTypeInfo();
         String fullClassName = typeInfo.getTypeNameFromClass();
         List<String> classNameParts = new LinkedList<>(Arrays.asList(fullClassName.split("\\.")));
         String simpleClassName = classNameParts.get(classNameParts.size() - 1);
@@ -98,8 +92,10 @@ public class TestCaseService {
         @NotNull String packageName = StringUtil.join(classNameParts, ".");
 
         int i = 0;
-        int total = objectsList.size();
-        for (ObjectWithTypeInfo testableObject : objectsList) {
+        int total = allObjects.size();
+        for (ObjectWithTypeInfo testableObject : allObjects) {
+
+
             i++;
             long objectId = testableObject.getObjectInfo().getObjectId();
             assert objectId != 0;
@@ -123,206 +119,59 @@ public class TestCaseService {
             // part 3
             createDependentRoutines(testCaseRequest, variableContainer, classTestSuite);
 
-//            for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
-//                for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
-//                    ObjectRoutineScript objectRoutineScript =
-//                            TestScriptWriter.generateTestScriptFromTestMetadataSet(metadatum, objectRoutine);
-//                    objectRoutineScriptContainer.getStatements().addAll(objectRoutineScript.getStatements());
-//                }
-//            }
+            ObjectRoutineScriptContainer testCaseScript = classTestSuite.toRoutineScript();
+
+            List<MethodSpec> methodSpecs = new LinkedList<>(testCaseScript.getMethodSpecList());
+            List<FieldSpec> fieldSpecs = new LinkedList<>(testCaseScript.getFieldSpecList());
 
 
-//            int testHash = Arrays.hashCode(objectRoutineScriptContainer.getStatements().toArray());
+            checkProgressIndicator(null, "Generate java source for test scenario");
+            if (simpleClassName.contains("$")) {
+                simpleClassName = simpleClassName.split("\\$")[0];
+            }
+
+            String generatedTestClassName =
+                    "Test" + simpleClassName + "V" + testableObject.getObjectInfo().getObjectId();
+            TypeSpec.Builder typeSpecBuilder = TypeSpec
+                    .classBuilder(generatedTestClassName)
+                    .addModifiers(
+                            javax.lang.model.element.Modifier.PUBLIC,
+                            javax.lang.model.element.Modifier.FINAL)
+                    .addFields(fieldSpecs)
+                    .addMethods(methodSpecs);
+
+            ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
 
 
-            // dropping some kind of duplicates
-//            if (doneSignatures.containsKey(testHash)) {
-//                continue;
-//            }
-//            doneSignatures.put(testHash, true);
+            typeSpecBuilder
+                    .addField(FieldSpec
+                            .builder(gsonClass,
+                                    "gson", javax.lang.model.element.Modifier.PRIVATE)
+                            .initializer("new $T()", gsonClass)
+                            .build());
 
-            ObjectRoutineScriptContainer testCaseScript = writeTestCase(classTestSuite);
 
-            methodSpecs.addAll(testCaseScript.getMethodSpecList());
-            fieldSpecs.addAll(testCaseScript.toFieldSpecsList());
-//            finalTestCaseScript.getMethodSpecs().addAll(testCaseScript.getMethodSpecs());
-//            finalTestCaseScript.getFieldsSpecs().addAll(testCaseScript.getFieldsSpecs());
+            TypeSpec helloWorld = typeSpecBuilder.build();
+
+            JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
+                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"),
+                            "any", "matches")
+                    .build();
+
+
+            TestCaseUnit testCaseUnit = new TestCaseUnit(
+                    javaFile.toString(), packageName, generatedTestClassName);
+
+            testCases.add(testCaseUnit);
 
 
         }
-
-//            if (testCaseScripts.size() > MAX_TEST_CASE_LINES) {
-//                logger.warn("have more than " + MAX_TEST_CASE_LINES + " lines in the script, dropping some");
-//                testCaseScripts = testCaseScripts.subList(0, MAX_TEST_CASE_LINES);
-//            }
-
-
-        checkProgressIndicator(null, "Generate java source for test scenario");
-        if (simpleClassName.contains("$")) {
-            simpleClassName = simpleClassName.split("\\$")[0];
-        }
-
-        String generatedTestClassName = "Test" + simpleClassName + "V";
-        TypeSpec.Builder typeSpecBuilder = TypeSpec
-                .classBuilder(generatedTestClassName)
-                .addModifiers(
-                        javax.lang.model.element.Modifier.PUBLIC,
-                        javax.lang.model.element.Modifier.FINAL)
-                .addFields(fieldSpecs)
-                .addMethods(methodSpecs);
-
-        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
-
-
-        typeSpecBuilder
-                .addField(FieldSpec
-                        .builder(gsonClass,
-                                "gson", javax.lang.model.element.Modifier.PRIVATE)
-                        .initializer("new $T()", gsonClass)
-                        .build());
-
-
-        TypeSpec helloWorld = typeSpecBuilder.build();
-
-        JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
-                .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"),
-                        "any", "matches")
-                .build();
-
-
-        TestCaseUnit testCaseUnit = new TestCaseUnit(
-                javaFile.toString(), packageName, generatedTestClassName);
-
-        testCases.add(testCaseUnit);
 
 
         checkProgressIndicator(null, "Generated" + testCases.size() + " test cases");
         return new TestSuite(testCases);
 
 
-    }
-
-    private ObjectRoutineScriptContainer writeTestCase(
-            ObjectRoutineContainer classTestSuite
-    ) {
-
-
-        ObjectRoutineScriptContainer routineScriptContainer = createBuilderMethod(classTestSuite);
-
-        //        routineScriptContainer = createBuilderMethod(classTestSuite);
-        //        routineScriptContainer.getObjectRoutines().add(builderMethodScript);
-
-
-        MethodSpec.Builder methodTestScript = MethodSpec.methodBuilder("setup");
-        routineScriptContainer.getObjectRoutines().get(0).writeToMethodSpecBuilder(methodTestScript);
-
-
-
-        List<MethodSpec> methodSpecList = new LinkedList<>();
-        List<FieldSpec> fieldSpecList = new LinkedList<>();
-        methodSpecList.add(methodTestScript.build());
-
-        for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
-
-
-            if (objectRoutine.getRoutineName().equals("<init>")) {
-                continue;
-            }
-
-
-            MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(
-                    "testAsInstance" + ClassTypeUtils.upperInstanceName(objectRoutine.getRoutineName()));
-
-            methodBuilder.addModifiers(Modifier.PUBLIC);
-            methodBuilder.addException(Exception.class);
-
-//            ObjectRoutineContainer container =
-//                    new ObjectRoutineContainer(List.of(objectRoutine));
-
-            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(new LinkedList<>());
-//            ObjectRoutineScriptContainer script =
-//                    container.toRoutineScriptContainer(objectRoutine.getVariableContainer());
-
-            objectScript.writeToMethodSpecBuilder(methodBuilder);
-//            script.writeAsCode(methodBuilder);
-            methodBuilder.addAnnotation(JUNIT_CLASS_NAME);
-            MethodSpec testMethodSpec = methodBuilder.build();
-
-            methodSpecList.add(testMethodSpec);
-
-
-        }
-
-
-        methodSpecList.add(createInjectFieldMethod());
-
-        List<Parameter> okHttpVariables = classTestSuite.getVariablesOfType("okhttp3.");
-
-        if (okHttpVariables.size() > 0) {
-            methodSpecList.add(createOkHttpMockCreator());
-        }
-        return new ObjectRoutineScriptContainer(fieldSpecList, methodSpecList);
-    }
-
-    private ObjectRoutineScriptContainer createBuilderMethod(ObjectRoutineContainer classTestSuite) {
-        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer();
-        ObjectRoutineScript builderMethodScript = container.getConstructor();
-
-        ObjectRoutine constructorRoutine = classTestSuite.getConstructor();
-
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("setup");
-
-        builder.addModifiers(Modifier.PUBLIC);
-        builder.addAnnotation(ClassName.bestGuess("org.junit.Before"));
-        builder.addException(Exception.class);
-
-
-        Set<? extends Parameter> allFields = classTestSuite.getObjectRoutines().stream()
-                .map(ObjectRoutine::getTestCandidateList)
-                .flatMap(Collection::stream)
-                .map(e -> e.getFields().all())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
-
-        TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
-        MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
-        Parameter mainSubject = mainSubjectConstructorExpression.getSubject();
-        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
-        builderMethodScript.getCreatedVariables().add(mainSubject);
-
-//
-//        fieldSpecList.add(
-//                FieldSpec.builder(
-//                        ClassName.bestGuess(mainSubject.getType()),
-//                        mainSubject.getName(), Modifier.PRIVATE
-//                ).build()
-//        );
-
-        in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
-
-
-        for (Parameter parameter : allFields) {
-//            fieldSpecList.add(
-//                    FieldSpec.builder(
-//                            ClassName.bestGuess(parameter.getType()),
-//                            parameter.getName(), Modifier.PRIVATE
-//                    ).build()
-//            );
-
-            builderMethodScript.getCreatedVariables().add(parameter);
-            in(builderMethodScript).assignVariable(parameter).writeExpression(
-                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
-            ).endStatement();
-
-            in(builderMethodScript).writeExpression(
-                    new MethodCallExpression("injectField", null,
-                            VariableContainer.from(List.of(
-                                    mainSubject, parameter
-                            )), null, null)).endStatement();
-
-        }
-
-        return container;
     }
 
     private void createDependentRoutines(
@@ -363,7 +212,8 @@ public class TestCaseService {
     private ObjectRoutineContainer createDependentRoutine(
             TestCaseRequest testCaseRequest,
             VariableContainer variableContainer,
-            Parameter dependentParameter) throws APICallException, SessionNotSelectedException {
+            Parameter dependentParameter
+    ) throws APICallException, SessionNotSelectedException {
 
         // we want to create the objects from java.lang.* namespace using their real values, so
         // in the test case it looks something like
@@ -377,7 +227,9 @@ public class TestCaseService {
 
         if (ClassTypeUtils.IsBasicType(dependentParameterType)) {
 
-            dependentObjectCreation = new ObjectRoutineContainer();
+            dependentObjectCreation =
+                    new ObjectRoutineContainer(
+                            ClassName.bestGuess(dependentParameterType).packageName());
             testCandidateMetadata = MockFactory.createParameterMock(dependentParameter);
             dependentObjectCreation.getConstructor().addMetadata(testCandidateMetadata);
 
@@ -483,63 +335,6 @@ public class TestCaseService {
         }
 
 
-    }
-
-    private MethodSpec createInjectFieldMethod() {
-        MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("injectField");
-        fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
-        fieldInjectorMethod.addException(Exception.class);
-
-        fieldInjectorMethod.addParameter(Object.class, "targetInstance");
-        fieldInjectorMethod.addParameter(String.class, "name");
-        fieldInjectorMethod.addParameter(Object.class, "targetObject");
-
-        fieldInjectorMethod.addCode(CodeBlock.of("        Class<?> aClass = targetInstance.getClass();\n" +
-                        "\n" +
-                        "        while (!aClass.equals(Object.class)) {\n" +
-                        "            try {\n" +
-                        "                $T targetField = aClass.getDeclaredField(name);" +
-                        "\n" +
-                        "                targetField.setAccessible(true);\n" +
-                        "                targetField.set(targetInstance, targetObject);\n" +
-                        "            } catch (NoSuchFieldException nsfe) {\n" +
-                        "                // nothing to set\n" +
-                        "            }\n" +
-                        "            aClass = aClass.getSuperclass();\n" +
-                        "        }\n",
-                ClassName.bestGuess("java.lang.reflect.Field")));
-
-        return fieldInjectorMethod.build();
-    }
-
-    private MethodSpec createOkHttpMockCreator() {
-        MethodSpec.Builder fieldInjectorMethod = MethodSpec.methodBuilder("buildOkHttpResponseFromString");
-        fieldInjectorMethod.addModifiers(javax.lang.model.element.Modifier.PRIVATE);
-
-        fieldInjectorMethod.addParameter(String.class, "responseBodyString");
-        fieldInjectorMethod.addException(Exception.class);
-
-        fieldInjectorMethod.addCode(CodeBlock.of("" +
-                        "        $T responseBody = $T.create($T.parse" +
-                        "(\"application/json\"), responseBodyString);\n" +
-                        "        $T request = new Request.Builder().url(\"http://example.com\").build();\n" +
-                        "        return new Response.Builder()\n" +
-                        "                .request(request)\n" +
-                        "                .protocol($T.HTTP_2)\n" +
-                        "                .body(responseBody)\n" +
-                        "                .code(200)\n" +
-                        "                .message(\"message ?\")\n" +
-                        "                .build();\n",
-                ClassName.bestGuess("okhttp3.ResponseBody"),
-                ClassName.bestGuess("okhttp3.ResponseBody"),
-                ClassName.bestGuess("okhttp3.MediaType"),
-                ClassName.bestGuess("okhttp3.Request"),
-                ClassName.bestGuess("okhttp3.Protocol")
-        ));
-
-        fieldInjectorMethod.returns(ClassName.bestGuess("okhttp3.Response"));
-
-        return fieldInjectorMethod.build();
     }
 
 
@@ -656,7 +451,9 @@ public class TestCaseService {
                 // we want to create the objects from java.lang.* namespace using their real values, so
                 // in the test case it looks something like
                 // Integer varName = value;
-                ObjectRoutineContainer dependentContainer = new ObjectRoutineContainer();
+                ObjectRoutineContainer dependentContainer = new ObjectRoutineContainer(
+                        ClassName.bestGuess(dependentParameter.getType()).packageName()
+                );
                 TestCandidateMetadata testCandidate = MockFactory.createParameterMock(dependentParameter);
                 dependentContainer.getConstructor().addMetadata(testCandidate);
                 dependentContainer.setName(dependentParameter.getName());
@@ -706,7 +503,9 @@ public class TestCaseService {
         Parameter parameter = testCaseRequest.getTargetParameter();
 
 
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer();
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(
+                null
+        );
         if (parameter.getName() != null) {
             objectRoutineContainer.setName(parameter.getName());
         }
@@ -766,6 +565,8 @@ public class TestCaseService {
                 objectReplayData.buildHierarchyFromType(subjectTypeInfo);
 
         String className = subjectTypeInfo.getTypeNameFromClass();
+
+        objectRoutineContainer.setPackageName(ClassName.bestGuess(className).packageName());
 
 
         assert typeNameHierarchyList.size() != 0;
@@ -878,58 +679,34 @@ public class TestCaseService {
                     requestBefore.setNanotime(dataEvent.getNanoTime());
                     requestBefore.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.DESC));
                     ReplayData replayEventsBefore = client.fetchObjectHistoryByObjectId(requestBefore);
-
+                    ReplayData replayEventsAfter = replayEventsBefore.fetchEventsPost(dataEvent, 1000);
 
                     List<DataEventWithSessionId> allEvents = replayEventsBefore.getDataEvents();
 
-                    FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
-                    requestAfter.setThreadId(dataEvent.getThreadId());
-                    requestAfter.setNanotime(dataEvent.getNanoTime());
-                    requestAfter.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.ASC));
-                    ReplayData replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
-
+//                    FilteredDataEventsRequest requestAfter = new FilteredDataEventsRequest();
+//                    requestAfter.setThreadId(dataEvent.getThreadId());
+//                    requestAfter.setNanotime(dataEvent.getNanoTime());
+//                    requestAfter.setPageInfo(new PageInfo(0, 1000, PageInfo.Order.ASC));
+//                    replayEventsAfter = client.fetchObjectHistoryByObjectId(requestAfter);
 
                     replayEventsBefore.mergeReplayData(replayEventsAfter);
 
                     int matchedProbe = replayEventsAfter.getDataEvents().size();
+
                     // need to go back until we find the method entry since the following method
                     // to create test case metadata is expecting a METHOD_ENTRY probe
+                    ScanRequest scanRequest = new ScanRequest(new ScanResult(matchedProbe, 0), 0,
+                            DirectionType.BACKWARDS);
+                    scanRequest.matchUntil(EventType.METHOD_ENTRY);
+                    ScanResult methodEntryProbeIndex = replayEventsBefore.eventScan(scanRequest);
 
-
-                    int backCallStack = 0;
-                    while (matchedProbe < allEvents.size()) {
-                        DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
-                        DataInfo backEventProbe = replayEventsBefore.getProbeInfoMap().get(
-                                String.valueOf(backEvent.getDataId())
-                        );
-                        if (backEventProbe.getEventType() == EventType.METHOD_ENTRY && backCallStack == 0) {
-                            break;
-                        }
-
-                        switch (backEventProbe.getEventType()) {
-                            case METHOD_NORMAL_EXIT:
-                                backCallStack++;
-                                break;
-                            case METHOD_ENTRY:
-                                if (backCallStack > 0) {
-                                    backCallStack--;
-                                }
-                                break;
-                        }
-
-                        // going back in time ?
-                        matchedProbe++;
-                    }
+                    matchedProbe = methodEntryProbeIndex.getIndex();
                     if (matchedProbe == allEvents.size()) {
 //                        objectRoutineContainer.setName(parameter.getName());
                         return objectRoutineContainer;
                     }
 
-
                     DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
-//                    MethodInfo backEventMethodInfo = replayEventsBefore.getMethodInfo(
-//                            replayEventsBefore.getProbeInfo(backEvent.getDataId()).getMethodId()
-//                    );
 
 
                     TestCandidateMetadata newTestCaseMetadata =
@@ -1004,8 +781,7 @@ public class TestCaseService {
                         }
                         logger.warn("adding new test case metadata: " + newTestCaseMetadata);
                         objectRoutineContainer.addMetadata(newTestCaseMetadata);
-                        nanoIndex =
-                                mainMethodExpression.getReturnValue().getProb().getNanoTime();
+                        nanoIndex = mainMethodExpression.getReturnValue().getProb().getNanoTime();
                     }
                     break;
 

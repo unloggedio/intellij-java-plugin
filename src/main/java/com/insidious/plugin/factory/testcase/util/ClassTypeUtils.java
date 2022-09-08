@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory.testcase;
+package com.insidious.plugin.factory.testcase.util;
 
 import com.insidious.common.weaver.DataInfo;
 import com.squareup.javapoet.ClassName;

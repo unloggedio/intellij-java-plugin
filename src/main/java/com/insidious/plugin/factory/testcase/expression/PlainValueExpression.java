@@ -5,7 +5,7 @@ public class PlainValueExpression implements Expression {
 
     private final String value;
 
-    public PlainValueExpression(String value) {
+    PlainValueExpression(String value) {
         this.value = value;
     }
 

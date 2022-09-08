@@ -1,6 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.pojo.MethodCallExpression;

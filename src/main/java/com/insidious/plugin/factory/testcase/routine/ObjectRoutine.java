@@ -1,13 +1,10 @@
 package com.insidious.plugin.factory.testcase.routine;
 
-import com.insidious.plugin.factory.CodeLine;
-import com.insidious.plugin.factory.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.StatementCodeLine;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.Pair;
 import lombok.AllArgsConstructor;
 
 import java.util.HashMap;

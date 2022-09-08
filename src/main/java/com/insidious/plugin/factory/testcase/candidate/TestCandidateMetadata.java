@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory.candidate;
+package com.insidious.plugin.factory.testcase.candidate;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -10,14 +10,13 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.expression.ExpressionFactory;
 import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.expression.StringExpression;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.EventMatchListener;
@@ -406,7 +405,7 @@ public class TestCandidateMetadata {
                         List.of(responseBodyStringProbe.get())
                 );
 
-                return new MethodCallExpression(
+                return ExpressionFactory.MethodCallExpression(
                         "buildOkHttpResponseFromString", null, variableContainer,
                         targetParameter, null);
             default:
@@ -745,14 +744,14 @@ public class TestCandidateMetadata {
                 returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
                 in(objectRoutineScript)
                         .assignVariable(returnSubjectExpectedJsonString)
-                        .writeExpression(new StringExpression(new String(serializedBytes)))
+                        .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
                         .endStatement();
             } else {
                 returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
 
                 in(objectRoutineScript)
                         .assignVariable(returnSubjectExpectedJsonString)
-                        .writeExpression(new StringExpression(new String(serializedBytes)))
+                        .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
                         .endStatement();
             }
 

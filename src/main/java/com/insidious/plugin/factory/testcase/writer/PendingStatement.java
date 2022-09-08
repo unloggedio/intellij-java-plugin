@@ -1,10 +1,7 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.testcase.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.expression.PlainValueExpression;
-import com.insidious.plugin.factory.testcase.expression.StringExpression;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
@@ -167,13 +164,13 @@ public class PendingStatement {
                     } else {
                         returnValue = "true";
                     }
-                    this.expressionList.add(new PlainValueExpression((String) returnValue));
+                    this.expressionList.add(ExpressionFactory.PlainValueExpression((String) returnValue));
 
                 } else if (returnValue instanceof Long) {
                     if ((long) returnValue == 1) {
-                        this.expressionList.add(new PlainValueExpression("true"));
+                        this.expressionList.add(ExpressionFactory.PlainValueExpression("true"));
                     } else {
-                        this.expressionList.add(new PlainValueExpression("false"));
+                        this.expressionList.add(ExpressionFactory.PlainValueExpression("false"));
                     }
 
                 }
@@ -182,10 +179,10 @@ public class PendingStatement {
                 String stringValue = new String(parameter.getProb().getSerializedValue());
                 stringValue = stringValue.replaceAll("\\$", "\\$\\$");
 
-                this.expressionList.add(new PlainValueExpression(stringValue));
+                this.expressionList.add(ExpressionFactory.PlainValueExpression(stringValue));
             } else {
                 String stringValue = String.valueOf(parameter.getValue());
-                this.expressionList.add(new PlainValueExpression(stringValue));
+                this.expressionList.add(ExpressionFactory.PlainValueExpression(stringValue));
             }
 
         } else {

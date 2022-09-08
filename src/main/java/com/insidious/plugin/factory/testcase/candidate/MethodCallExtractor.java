@@ -1,11 +1,12 @@
-package com.insidious.plugin.factory.candidate;
+package com.insidious.plugin.factory.testcase.candidate;
 
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.expression.ExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.EventMatchListener;
@@ -239,7 +240,7 @@ public class MethodCallExtractor implements EventMatchListener {
         }
 
 
-        MethodCallExpression methodCallExpression = new MethodCallExpression(
+        MethodCallExpression methodCallExpression = ExpressionFactory.MethodCallExpression(
                 methodName, subjectParameter, VariableContainer.from(callArguments),
                 callReturnParameter, exception);
         callList.add(methodCallExpression);

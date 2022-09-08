@@ -1,18 +1,26 @@
 package com.insidious.plugin.factory.testcase.routine;
 
 
-import com.insidious.plugin.factory.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.MethodSpec;
 import lombok.AllArgsConstructor;
 
+import javax.lang.model.element.Modifier;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
 
 /**
  * A convenient container for list of ObjectRoutine. we always have one constructor routine for
@@ -21,17 +29,7 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 public class ObjectRoutineContainer {
-    public ObjectRoutineContainer(List<ObjectRoutine> constructorRoutine) {
-        for (ObjectRoutine objectRoutine : constructorRoutine) {
-            if (objectRoutine.getRoutineName().equals("<init>")) {
-                this.constructor = objectRoutine;
-            }
-        }
-        this.objectRoutines.clear();
-        this.objectRoutines.addAll(constructorRoutine);
-        this.currentRoutine = constructorRoutine.get(constructorRoutine.size() - 1);
-
-    }
+    private String packageName;
 
     public String getName() {
         return name;
@@ -66,7 +64,8 @@ public class ObjectRoutineContainer {
         return newRoutine;
     }
 
-    public ObjectRoutineContainer() {
+    public ObjectRoutineContainer(String packageName) {
+        this.packageName =packageName;
     }
 
 
@@ -148,6 +147,71 @@ public class ObjectRoutineContainer {
 
 
         return dependentImports;
+    }
+
+    public ObjectRoutineScriptContainer toRoutineScript() {
+        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName);
+        ObjectRoutineScript builderMethodScript = container.getConstructor();
+
+        ObjectRoutine constructorRoutine = getConstructor();
+
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("setup");
+
+        builder.addModifiers(Modifier.PUBLIC);
+        builder.addAnnotation(ClassName.bestGuess("org.junit.Before"));
+        builder.addException(Exception.class);
+
+
+        Set<? extends Parameter> allFields = getObjectRoutines().stream()
+                .map(ObjectRoutine::getTestCandidateList)
+                .flatMap(Collection::stream)
+                .map(e -> e.getFields().all())
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
+
+        TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
+        MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
+        Parameter mainSubject = mainSubjectConstructorExpression.getSubject();
+        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
+        builderMethodScript.getCreatedVariables().add(mainSubject);
+
+//
+//        fieldSpecList.add(
+//                FieldSpec.builder(
+//                        ClassName.bestGuess(mainSubject.getType()),
+//                        mainSubject.getName(), Modifier.PRIVATE
+//                ).build()
+//        );
+
+        in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
+
+
+        for (Parameter parameter : allFields) {
+//            fieldSpecList.add(
+//                    FieldSpec.builder(
+//                            ClassName.bestGuess(parameter.getType()),
+//                            parameter.getName(), Modifier.PRIVATE
+//                    ).build()
+//            );
+
+            builderMethodScript.getCreatedVariables().add(parameter);
+            in(builderMethodScript).assignVariable(parameter).writeExpression(
+                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
+            ).endStatement();
+
+            in(builderMethodScript).writeExpression(
+                    new MethodCallExpression("injectField", null,
+                            VariableContainer.from(List.of(
+                                    mainSubject, parameter
+                            )), null, null)).endStatement();
+
+        }
+
+        return container;
+    }
+
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
     }
 
 

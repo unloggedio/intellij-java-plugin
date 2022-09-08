@@ -50,14 +50,12 @@ public class MethodCallExpressionFactory {
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
 
-        MethodCallExpression mockitoWhenCall = new MethodCallExpression(
+
+        return ExpressionFactory.MethodCallExpression(
                 "when", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
         );
-
-
-        return mockitoWhenCall;
 
     }
 
@@ -91,7 +89,7 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression MockitoThen(Parameter returnValue) {
-        return new MethodCallExpression("thenReturn", null,
+        return ExpressionFactory.MethodCallExpression("thenReturn", null,
                 VariableContainer.from(
                         List.of(returnValue)
                 ), null, null);
@@ -102,7 +100,7 @@ public class MethodCallExpressionFactory {
 
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
-        return new MethodCallExpression(
+        return ExpressionFactory.MethodCallExpression(
                 "thenThrow", null,
                 VariableContainer.from(List.of(exceptionValue)),
                 null, null);
@@ -112,14 +110,14 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression ToJson(Parameter object) {
-        return new MethodCallExpression(
+        return ExpressionFactory.MethodCallExpression(
                 "toJson", GsonClass,
                 VariableContainer.from(List.of(object)),
                 null, null);
     }
 
     public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
-        return new MethodCallExpression(
+        return ExpressionFactory.MethodCallExpression(
                 "assertEquals", AssertClass,
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
                 null, null
@@ -132,7 +130,7 @@ public class MethodCallExpressionFactory {
         returnTypeParameter.setValue(object.getType().replace('$', '.'));
         Parameter jsonValue = new Parameter();
         jsonValue.setValue(new String(object.getProb().getSerializedValue()));
-        return new MethodCallExpression(
+        return ExpressionFactory.MethodCallExpression(
                 "fromJson", GsonClass,
                 VariableContainer.from(List.of(jsonValue, returnTypeParameter)
                 ), null, null);
