@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory.expression;
+package com.insidious.plugin.factory.testcase.expression;
 
 public class PlainValueExpression implements Expression {
 

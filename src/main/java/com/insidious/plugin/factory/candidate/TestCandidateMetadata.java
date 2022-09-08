@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.candidate;
 
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -10,7 +10,16 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.factory.expression.Expression;
+import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.TestCaseRequest;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.testcase.expression.StringExpression;
+import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -20,10 +29,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -37,11 +46,6 @@ public class TestCandidateMetadata {
     private Parameter testSubject;
     private long callTimeNanoSecond;
     private boolean isArray;
-
-    public TestCandidateMetadata() {
-        int x = 1;
-        int y = x + 1;
-    }
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
@@ -296,20 +300,9 @@ public class TestCandidateMetadata {
         if (mainMethodExpression.getReturnValue().getName() == null
                 && !methodInfo.getMethodName().equals("<init>")) {
 
-            String potentialReturnValueName;
-            if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
-                if (targetMethodName.length() > 3) {
-                    potentialReturnValueName = ClassTypeUtils.lowerInstanceName(targetMethodName.substring(3)) + "Value";
-                } else {
-                    potentialReturnValueName = "value";
-                }
-            } else {
-                if (targetMethodName.equals("<init>")) {
-                    potentialReturnValueName = ClassTypeUtils.createVariableName(metadata.getUnqualifiedClassname());
-                } else {
-                    potentialReturnValueName = targetMethodName + "Result";
-                }
-            }
+            String potentialReturnValueName =
+                    ClassTypeUtils.createVariableNameFromMethodName(methodInfo.getMethodName(),
+                            metadata.getFullyQualifiedClassname());
 
             mainMethodExpression.getReturnValue().setName(potentialReturnValueName);
         }
@@ -649,5 +642,149 @@ public class TestCandidateMetadata {
 
     public void setIsArray(boolean isArray) {
         this.isArray = isArray;
+    }
+
+    public ObjectRoutineScript toObjectScript() {
+        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript();
+
+        if (getMainMethod() instanceof MethodCallExpression) {
+
+
+            MethodCallExpression mainMethod = (MethodCallExpression) getMainMethod();
+
+            objectRoutineScript.addComment("");
+            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
+
+
+            DataEventWithSessionId mainMethodReturnValueProbe = mainMethodReturnValue.getProb();
+            if (mainMethodReturnValueProbe == null) {
+                return objectRoutineScript;
+            }
+            objectRoutineScript.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
+                    "[ " + mainMethodReturnValueProbe.getNanoTime() + "] - took " +
+                    Long.valueOf(getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
+
+            VariableContainer arguments = mainMethod.getArguments();
+            if (arguments.count() > 0) {
+
+
+                objectRoutineScript.addComment("");
+                for (Parameter parameter : arguments.all()) {
+                    if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
+                        String serializedValue = new String(parameter.getProb().getSerializedValue());
+                        if (parameter.getType().equals("java.lang.String")) {
+                            serializedValue = '"' + serializedValue + '"';
+                        }
+                        parameter.setValue(serializedValue);
+                    }
+                    objectRoutineScript.addParameterComment(parameter);
+                }
+                objectRoutineScript.addComment("");
+                objectRoutineScript.addComment("");
+
+                for (Parameter parameter : arguments.all()) {
+//                    if (!objectRoutine.getCreatedVariables().contains(parameter.getName())) {
+                    in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+//                    }
+                }
+
+            }
+
+
+            Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
+            if (getCallsList().size() > 0) {
+
+                objectRoutineScript.addComment("");
+                for (MethodCallExpression methodCallExpression : getCallsList()) {
+                    if (methodCallExpression.getException() != null &&
+                            mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                        continue;
+                    }
+                    TestCaseWriter.createMethodCallComment(objectRoutineScript, methodCallExpression);
+                    TestCaseWriter.createMethodCallMock(objectRoutineScript, methodCallExpression);
+                    mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);
+                }
+                objectRoutineScript.addComment("");
+                objectRoutineScript.addComment("");
+            }
+//
+            Expression testCandidateMainMethod = getMainMethod();
+            if (testCandidateMainMethod instanceof MethodCallExpression) {
+                MethodCallExpression mainMethodExpression = (MethodCallExpression) testCandidateMainMethod;
+                for (Parameter parameter : mainMethodExpression.getArguments().all()) {
+//                objectRoutine.getCreatedVariables().add(parameter);
+                    if (!objectRoutineScript.getCreatedVariables().contains(parameter.getName())) {
+                        in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+                    }
+                }
+            }
+//
+
+            //////////////////////// FUNCTION CALL ////////////////////////
+
+            // return type == V ==> void return type => no return value
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
+
+
+            if (mainMethod.getMethodName().equals("<init>")) {
+                // there is no verification required (?) after calling constructors
+                return objectRoutineScript;
+            }
+            String returnSubjectInstanceName = mainMethodReturnValue.getName();
+
+
+            //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
+
+
+            // deserialize and compare objects
+            byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
+
+
+            Parameter returnSubjectExpectedJsonString = null;
+            if (serializedBytes.length > 0) {
+                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+                in(objectRoutineScript)
+                        .assignVariable(returnSubjectExpectedJsonString)
+                        .writeExpression(new StringExpression(new String(serializedBytes)))
+                        .endStatement();
+            } else {
+                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+
+                in(objectRoutineScript)
+                        .assignVariable(returnSubjectExpectedJsonString)
+                        .writeExpression(new StringExpression(new String(serializedBytes)))
+                        .endStatement();
+            }
+
+
+            // reconstruct object from the serialized form to an object instance in the
+            // test method to compare it with the new object, or do it the other way
+            // round ? Maybe serializing the object and then comparing the serialized
+            // string forms would be more readable ? string comparison would fail if the
+            // serialization has fields serialized in random order
+            Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
+            in(objectRoutineScript)
+                    .assignVariable(returnSubjectJsonString)
+                    .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
+                    .endStatement();
+
+
+            in(objectRoutineScript)
+                    .writeExpression(MethodCallExpressionFactory
+                            .MockitoAssert(returnSubjectJsonString, returnSubjectExpectedJsonString))
+                    .endStatement();
+
+        } else {
+            Expression plainValueExpression = getMainMethod();
+            logger.warn("PVE: " + plainValueExpression);
+//            in(objectRoutine)
+//                    .assignVariable()
+//                    .writeExpression(MethodCallExpressionFactory
+//                            .MockitoAssert(returnSubjectJsonString, returnSubjectExpectedJsonString))
+//                    .endStatement();
+        }
+        objectRoutineScript.addComment("");
+        return objectRoutineScript;
+
     }
 }

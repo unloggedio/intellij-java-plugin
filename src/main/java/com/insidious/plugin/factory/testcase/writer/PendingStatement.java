@@ -1,11 +1,10 @@
-package com.insidious.plugin.factory.writer;
+package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.ClassTypeUtils;
-import com.insidious.plugin.factory.ObjectRoutine;
-import com.insidious.plugin.factory.expression.Expression;
-import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.expression.PlainValueExpression;
-import com.insidious.plugin.factory.expression.StringExpression;
+import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.testcase.expression.PlainValueExpression;
+import com.insidious.plugin.factory.testcase.expression.StringExpression;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
@@ -17,17 +16,17 @@ import java.util.List;
 import java.util.Objects;
 
 public class PendingStatement {
-    private final ObjectRoutine objectRoutine;
+    private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new LinkedList<>();
     private Parameter lhsExpression;
 
-    public PendingStatement(ObjectRoutine objectRoutine, Parameter testSubject) {
+    public PendingStatement(ObjectRoutineScript objectRoutine, Parameter testSubject) {
 
         this.objectRoutine = objectRoutine;
         this.lhsExpression = testSubject;
     }
 
-    public PendingStatement(ObjectRoutine objectRoutine) {
+    public PendingStatement(ObjectRoutineScript objectRoutine) {
         this.objectRoutine = objectRoutine;
     }
 

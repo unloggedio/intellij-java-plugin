@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase.parameter;
 
 import com.insidious.plugin.pojo.Parameter;
 
@@ -111,5 +111,15 @@ public class VariableContainer {
 
     public Parameter get(int i) {
         return parameterList.get(i);
+    }
+
+    public void normalize(VariableContainer globalVariableContainer) {
+        for (String name : getNames()) {
+            Parameter localVariable = getParameterByName(name);
+            if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
+                Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
+                byId.ifPresent(value -> value.setName(localVariable.getName()));
+            }
+        }
     }
 }

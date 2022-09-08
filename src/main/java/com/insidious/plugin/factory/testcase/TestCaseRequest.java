@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase;
 
 import com.insidious.plugin.pojo.ObjectWithTypeInfo;
 import com.insidious.plugin.pojo.Parameter;
@@ -11,6 +11,7 @@ public class TestCaseRequest {
     private final List<String> noMockClassList;
     private final Set<Long> dependentObjectList;
     private final List<ObjectWithTypeInfo> targetObjectList;
+    private Parameter targetParameter;
     private int buildLevel = 0;
 
     public TestCaseRequest(
@@ -30,11 +31,11 @@ public class TestCaseRequest {
         this.targetParameter = targetParameter;
     }
 
-    private Parameter targetParameter;
 
     public static TestCaseRequest nextLevel(TestCaseRequest testCaseRequest) {
         TestCaseRequest testCaseRequest1 = new TestCaseRequest(testCaseRequest.getTargetObjectList(),
                 testCaseRequest.getNoMockClassList(), testCaseRequest.getDependentObjectList());
+        testCaseRequest1.setTargetParameter(testCaseRequest.getTargetParameter());
         testCaseRequest1.buildLevel += 1;
         return testCaseRequest1;
     }

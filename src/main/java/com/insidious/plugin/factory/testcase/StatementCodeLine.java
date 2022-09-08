@@ -1,4 +1,6 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase;
+
+import com.insidious.plugin.factory.CodeLine;
 
 public class StatementCodeLine implements CodeLine {
     private final String statement;

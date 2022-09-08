@@ -1,8 +1,17 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.writer.PendingStatement;
+import com.insidious.plugin.callbacks.AgentDownloadUrlCallback;
+import com.insidious.plugin.factory.CodeLine;
+import com.insidious.plugin.factory.CommentCodeLine;
+import com.insidious.plugin.factory.testcase.StatementCodeLine;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
+import com.squareup.javapoet.MethodSpec;
 import lombok.AllArgsConstructor;
 
 import java.util.HashMap;
@@ -15,30 +24,19 @@ import java.util.Map;
  * statements and dependent variables along with their own object routines (the whole hierarchy
  * should be available to recreate this object inside a test case)
  */
-@AllArgsConstructor
-public class ObjectRoutine {
+public class ObjectRoutineScript {
     private final List<Pair<CodeLine, Object[]>> statements = new LinkedList<>();
     private final String routineName;
-    private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
-    private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
-    private VariableContainer variableContainer = new VariableContainer();
     private VariableContainer createdVariables = new VariableContainer();
-    private List<TestCandidateMetadata> metadata = new LinkedList<>();
+    private static final Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
 
-    public ObjectRoutine() {
+    public ObjectRoutineScript() {
         routineName = "<init>";
     }
-    public ObjectRoutine(String routineName) {
+    public ObjectRoutineScript(String routineName) {
         this.routineName = routineName;
     }
 
-    public VariableContainer getVariableContainer() {
-        return variableContainer;
-    }
-
-    public void setVariableContainer(VariableContainer variableContainer) {
-        this.variableContainer = variableContainer;
-    }
 
     public void addStatement(String s, Object... args) {
         statements.add(Pair.create(new StatementCodeLine(s), args));
@@ -62,45 +60,10 @@ public class ObjectRoutine {
         statements.add(Pair.create(new CommentCodeLine(s), args));
     }
 
-//    public void setMetadata(TestCandidateMetadata metadata) {
-//        this.metadata = new LinkedList<>(List.of(metadata));
-//    }
-
-    public List<TestCandidateMetadata> getMetadata() {
-        return metadata;
-    }
-
-    public void setMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        List<TestCandidateMetadata> testCandidateMetadata = new java.util.ArrayList<>();
-        testCandidateMetadata.add(newTestCaseMetadata);
-        this.metadata = new LinkedList<>(testCandidateMetadata);
-    }
-
-    public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        if (this.metadata == null) {
-            this.metadata = new LinkedList<>();
-        }
-        if (!this.metadata.contains(newTestCaseMetadata)) {
-            this.metadata.add(newTestCaseMetadata);
-        }
-    }
-
     public String getRoutineName() {
         return routineName;
     }
 
-    public List<ObjectRoutineContainer> getDependentList() {
-        return dependentList;
-    }
-
-    public void addDependent(ObjectRoutineContainer dependentObjectCreation) {
-        if (this.dependentMap.containsKey(dependentObjectCreation.getName())) {
-            // throw new RuntimeException("dependent already exists");
-            return;
-        }
-        this.dependentList.add(dependentObjectCreation);
-        this.dependentMap.put(dependentObjectCreation.getName(), dependentObjectCreation);
-    }
 
     public void addParameterComment(Parameter parameter) {
         addComment("Parameter [" + parameter.getName() + "] => " +
@@ -119,5 +82,22 @@ public class ObjectRoutine {
 
     public void setCreatedVariables(VariableContainer createdVariables) {
         this.createdVariables = createdVariables;
+    }
+
+    public String getName() {
+        return routineName;
+    }
+
+    public void writeToMethodSpecBuilder(MethodSpec.Builder methodBuilder) {
+        for (Pair<CodeLine, Object[]> statement : getStatements()) {
+            CodeLine line = statement.getFirst();
+            if (line instanceof CommentCodeLine) {
+                methodBuilder.addComment(line.getLine(), statement.getSecond());
+            } else if (line instanceof StatementCodeLine) {
+                methodBuilder.addCode(line.getLine(), statement.getSecond());
+            } else {
+                logger.error("unknown code line: " + line);
+            }
+        }
     }
 }

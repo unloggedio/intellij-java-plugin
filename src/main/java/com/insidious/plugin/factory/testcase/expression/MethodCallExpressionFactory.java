@@ -1,7 +1,7 @@
-package com.insidious.plugin.factory.expression;
+package com.insidious.plugin.factory.testcase.expression;
 
-import com.insidious.plugin.factory.VariableContainer;
-import com.insidious.plugin.factory.writer.TestCaseWriter;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.ConstructorType;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;

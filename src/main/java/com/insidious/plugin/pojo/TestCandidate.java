@@ -1,9 +1,8 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.factory.TestCandidateMetadata;
+import com.insidious.plugin.factory.candidate.TestCandidateMetadata;
 
 public class TestCandidate {
     private final MethodInfo methodInfo;

@@ -1,11 +1,11 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase.parameter;
 
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.pojo.EventMatchListener;
+import com.insidious.plugin.factory.testcase.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;

@@ -1,9 +1,8 @@
-package com.insidious.plugin.factory.writer;
+package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.ClassTypeUtils;
-import com.insidious.plugin.factory.ObjectRoutine;
-import com.insidious.plugin.factory.VariableContainer;
-import com.insidious.plugin.factory.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
@@ -13,10 +12,10 @@ import java.util.Optional;
 public class TestCaseWriter {
 
     public static void createMethodCallComment(
-            ObjectRoutine objectRoutine,
+            ObjectRoutineScript objectRoutine,
             MethodCallExpression methodCallExpression
     ) {
-        VariableContainer variableContainer = objectRoutine.getVariableContainer();
+        VariableContainer variableContainer = objectRoutine.getCreatedVariables();
         Parameter returnValue = methodCallExpression.getReturnValue();
         Parameter exception = methodCallExpression.getException();
         String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
@@ -38,7 +37,7 @@ public class TestCaseWriter {
 
             Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) value);
             if (existingVariableById.isPresent()) {
-                if (overrideName) {
+                if (overrideName && !returnValue.getName().equals(existingVariableById.get().getName())) {
                     returnValue.setName(existingVariableById.get().getName());
                 }
             } else {
@@ -133,7 +132,7 @@ public class TestCaseWriter {
 
 
     public static void createMethodCallMock(
-            ObjectRoutine objectRoutine,
+            ObjectRoutineScript objectRoutine,
             MethodCallExpression callExpressionToMock
     ) {
 
@@ -183,7 +182,7 @@ public class TestCaseWriter {
 
     }
 
-    private static PendingStatement in(ObjectRoutine objectRoutine) {
+    private static PendingStatement in(ObjectRoutineScript objectRoutine) {
         return new PendingStatement(objectRoutine);
     }
 

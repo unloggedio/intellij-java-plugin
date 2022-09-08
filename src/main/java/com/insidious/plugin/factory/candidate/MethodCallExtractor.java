@@ -1,10 +1,13 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.candidate;
 
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
+import com.insidious.plugin.factory.testcase.ClassTypeUtils;
+import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -25,8 +28,8 @@ public class MethodCallExtractor implements EventMatchListener {
     private final VariableContainer variableContainer;
     private final List<String> typeHierarchy;
     private final Logger logger = LoggerUtil.getInstance(MethodCallExtractor.class);
-    private List<String> noMockClassList;
-    private List<MethodCallExpression> callList = new LinkedList<>();
+    private final List<String> noMockClassList;
+    private final List<MethodCallExpression> callList = new LinkedList<>();
 
     public MethodCallExtractor(
             ReplayData replayData,
@@ -217,8 +220,15 @@ public class MethodCallExtractor implements EventMatchListener {
             exception.setProbeInfo(exitProbeInfo);
 
         } else if (exitProbeInfo.getEventType() == EventType.CALL_RETURN) {
-            callReturnParameter = ParameterFactory.createMethodArgumentParameter(
-                    callReturnScanResult.getIndex(), replayData, 0, returnType);
+            callReturnParameter = ParameterFactory.createReturnValueParameter(
+                    callReturnScanResult.getIndex(), replayData, returnType);
+
+            if (callReturnParameter.getName() == null) {
+                callReturnParameter.setName(
+                        ClassTypeUtils.createVariableNameFromMethodName(methodName,
+                                callReturnParameter.getType())
+                );
+            }
 
             if (callReturnParameter.getType() == null || callReturnParameter.getType().equals("V")) {
                 return;

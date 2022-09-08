@@ -1,10 +1,12 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase.routine;
 
 
-import com.insidious.plugin.factory.expression.Expression;
+import com.insidious.plugin.factory.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.intellij.openapi.util.Pair;
 import lombok.AllArgsConstructor;
 
 import java.util.Collection;
@@ -67,21 +69,9 @@ public class ObjectRoutineContainer {
     public ObjectRoutineContainer() {
     }
 
-    public void addStatement(String s,
-                             Object... args) {
-        currentRoutine.addStatement(s, args);
-    }
 
     public List<ObjectRoutine> getObjectRoutines() {
         return objectRoutines;
-    }
-
-    public List<Pair<CodeLine, Object[]>> getStatements() {
-        return currentRoutine.getStatements();
-    }
-
-    public void addComment(String s) {
-        currentRoutine.addComment(s);
     }
 
     public ObjectRoutine getConstructor() {
@@ -114,9 +104,10 @@ public class ObjectRoutineContainer {
                     .stream()
                     .filter(e -> e != orc)
                     .map(e ->  e.getVariablesOfType(className))
-                    .flatMap(Collection::stream).collect(Collectors.toList());
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
 
-            for (TestCandidateMetadata metadatum : objectRoutine.getMetadata()) {
+            for (TestCandidateMetadata metadatum : objectRoutine.getTestCandidateList()) {
                 Expression mainMethod = metadatum.getMainMethod();
                 if (mainMethod instanceof MethodCallExpression) {
                     List<Parameter> variables = extractVariableOfType(className, (MethodCallExpression) mainMethod);
@@ -150,7 +141,7 @@ public class ObjectRoutineContainer {
             dependentImports.add(mce.getSubject());
         }
         for (Parameter parameter : mce.getArguments().all()) {
-            if (parameter.getType().startsWith(className)) {
+            if (parameter.getType() != null && parameter.getType().startsWith(className)) {
                 dependentImports.add(parameter);
             }
         }
@@ -158,4 +149,13 @@ public class ObjectRoutineContainer {
 
         return dependentImports;
     }
+
+
+//    public ObjectRoutineScriptContainer toRoutineScriptContainer(VariableContainer variableContainer) {
+//        ObjectRoutineScriptContainer orsc = new ObjectRoutineScriptContainer();
+//
+//        orsc.addScriptsFromRoutineContainer(this, variableContainer);
+//
+//        return orsc;
+//    }
 }

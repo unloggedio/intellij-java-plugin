@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.factory.testcase;
 
 import com.insidious.common.weaver.DataInfo;
 import com.squareup.javapoet.ClassName;
@@ -47,11 +47,8 @@ public class ClassTypeUtils {
 
 
     public static String createVariableName(String typeNameRaw) {
-        String lastPart = typeNameRaw.substring(typeNameRaw.lastIndexOf('/') + 1);
+        String lastPart = ClassTypeUtils.getDottedClassName(typeNameRaw);
         lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
-        if (lastPart.endsWith(";")) {
-            lastPart = lastPart.substring(0, lastPart.length() - 1);
-        }
         if (lastPart.length() < 2) {
             return lastPart.toLowerCase();
         }
@@ -107,6 +104,7 @@ public class ClassTypeUtils {
         }
         return returnValueSquareClass;
     }
+
     private static ClassName constructClassName(String methodReturnValueType) {
         char firstChar = methodReturnValueType.charAt(0);
         switch (firstChar) {
@@ -168,5 +166,31 @@ public class ClassTypeUtils {
 
     }
 
+
+    public static String createVariableNameFromMethodName(String targetMethodName,
+                                                          String className) {
+
+        String potentialReturnValueName = targetMethodName + "Result";
+
+        if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
+            if (targetMethodName.length() > 3) {
+                potentialReturnValueName = ClassTypeUtils.lowerInstanceName(targetMethodName.substring(3));
+            } else {
+                potentialReturnValueName = null;
+            }
+        } else {
+            if (targetMethodName.equals("<init>")) {
+                potentialReturnValueName = ClassTypeUtils.createVariableName(className);
+            } else {
+                potentialReturnValueName = targetMethodName + "Result";
+            }
+        }
+        return potentialReturnValueName;
+
+    }
+
+    public static boolean IsBasicType(String dependentParameterType) {
+        return dependentParameterType.startsWith("java.lang") || dependentParameterType.length() == 1;
+    }
 
 }
