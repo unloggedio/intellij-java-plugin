@@ -31,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
 
 public class TestCandidateMetadata {
     private final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -655,9 +654,6 @@ public class TestCandidateMetadata {
             Parameter mainMethodReturnValue = mainMethod.getReturnValue();
 
 
-            objectRoutineScript.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
-                    "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
-                    Long.valueOf(getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
             if (getCallsList().size() > 0) {
 

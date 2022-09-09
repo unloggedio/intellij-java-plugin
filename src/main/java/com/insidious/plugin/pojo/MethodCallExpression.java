@@ -8,13 +8,9 @@ import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
+import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-
-import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
 
 public class MethodCallExpression implements Expression {
     private final VariableContainer arguments;
@@ -35,6 +31,10 @@ public class MethodCallExpression implements Expression {
         this.arguments = arguments;
         this.returnValue = returnValue;
         this.exception = exception;
+    }
+
+    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
+        return new PendingStatement(objectRoutine);
     }
 
     public Parameter getSubject() {
@@ -73,6 +73,12 @@ public class MethodCallExpression implements Expression {
             in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
             return;
         }
+
+
+        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
+                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
+                Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
+
 
         objectRoutineScript.addComment("");
 
@@ -265,4 +271,5 @@ public class MethodCallExpression implements Expression {
         }
 
     }
+
 }

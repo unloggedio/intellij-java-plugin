@@ -21,8 +21,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
-
 /**
  * A convenient container for list of ObjectRoutine. we always have one constructor routine for
  * the object, which is always named &lt;init&gt; and the other methods have proper names. Add
@@ -196,7 +194,7 @@ public class ObjectRoutineContainer {
 //                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
 //            ).endStatement();
 
-            in(builderMethodScript).writeExpression(
+            MethodCallExpression.in(builderMethodScript).writeExpression(
                     new MethodCallExpression("injectField", null,
                             VariableContainer.from(List.of(
                                     mainSubject, parameter
