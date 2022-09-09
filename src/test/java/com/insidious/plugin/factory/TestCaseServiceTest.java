@@ -338,9 +338,9 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
+        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
 
 

@@ -75,9 +75,6 @@ public class MethodCallExpression implements Expression {
         }
 
 
-        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
-                Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
 
 
         objectRoutineScript.addComment("");
@@ -130,6 +127,12 @@ public class MethodCallExpression implements Expression {
             // there is no verification required (?) after calling constructors
             return;
         }
+
+        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
+                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
+                Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
+
+
         String returnSubjectInstanceName = mainMethodReturnValue.getName();
 
 

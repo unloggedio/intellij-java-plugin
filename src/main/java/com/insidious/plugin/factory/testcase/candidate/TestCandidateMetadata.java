@@ -671,6 +671,9 @@ public class TestCandidateMetadata {
                 objectRoutineScript.addComment("");
                 objectRoutineScript.addComment("");
             }
+            if (mainMethod.getMethodName().equals("<init>")) {
+                objectRoutineScript.getCreatedVariables().add(mainMethod.getReturnValue());
+            }
 
             mainMethod.writeTo(objectRoutineScript);
 

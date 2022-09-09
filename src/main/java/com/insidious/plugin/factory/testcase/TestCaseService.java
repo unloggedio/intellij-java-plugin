@@ -138,10 +138,13 @@ public class TestCaseService {
 
 
             for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-
+                if (objectRoutine.getName().equals("<init>")) {
+                    continue;
+                }
                 MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
                 typeSpecBuilder.addMethod(methodSpec);
             }
+
             typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
             if (classTestSuite.getVariablesOfType("okhttp3.").size() > 0) {
@@ -400,9 +403,8 @@ public class TestCaseService {
     ) {
         VariableContainer globalVariableContainer = new VariableContainer();
 
-        // this is part 2
-//        Parameter targetParameter = testCaseRequest.getTargetParameter();
-//        Set<Long> dependentObjectIds = testCaseRequest.getDependentObjectList();
+        globalVariableContainer.add(objectRoutineContainer.getConstructor().getTestCandidateList().get(0).getTestSubject());
+
 
 
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
