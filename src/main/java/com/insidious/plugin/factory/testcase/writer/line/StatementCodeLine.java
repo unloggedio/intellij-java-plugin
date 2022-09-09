@@ -16,6 +16,6 @@ public class StatementCodeLine implements CodeLine {
 
     @Override
     public void writeTo(MethodSpec.Builder methodBuilder, Object[] arguments) {
-        methodBuilder.addCode(statement, arguments);
+        methodBuilder.addStatement(statement, arguments);
     }
 }

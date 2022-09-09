@@ -2,6 +2,7 @@ package com.insidious.plugin.factory.testcase.writer;
 
 
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
@@ -21,17 +22,16 @@ import java.util.List;
 @AllArgsConstructor
 public class ObjectRoutineScriptContainer {
 
-    private final String packageName;
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
+    private final String packageName;
     private final List<ObjectRoutineScript> objectRoutines = new LinkedList<>();
-    private List<FieldSpec> fieldSpecList = new LinkedList<>();
-    private List<MethodSpec> methodSpecList = new LinkedList<>();
     private ObjectRoutineScript currentRoutine;
     private ObjectRoutineScript constructor = newRoutine("<init>");
     /**
      * Name for variable for this particular object
      */
     private String name;
+    private List<Parameter> fields = new LinkedList<>();
 
 
     public ObjectRoutineScriptContainer(String packageName) {
@@ -51,8 +51,8 @@ public class ObjectRoutineScriptContainer {
     }
 
 
-    public void addField(FieldSpec field) {
-        this.fieldSpecList.add(field);
+    public void addField(Parameter field) {
+        this.fields.add(field);
     }
 
     public ObjectRoutineScript newRoutine(String routineName) {
@@ -80,11 +80,7 @@ public class ObjectRoutineScriptContainer {
         return constructor;
     }
 
-    public List<MethodSpec> getMethodSpecList() {
-        return this.methodSpecList;
-    }
-
-    public Collection<FieldSpec> getFieldSpecList() {
-        return this.fieldSpecList;
+    public List<Parameter> getFields() {
+        return this.fields;
     }
 }

@@ -152,7 +152,7 @@ public class ReplayData {
 
 
         ScanResult entryProbeIndex = scanRequest.getStartIndex();
-        int callReturnIndex = entryProbeIndex.getIndex();
+        int callReturnIndex = entryProbeIndex.getIndex() + direction;
 
         int callStack = entryProbeIndex.getCallStack();
 

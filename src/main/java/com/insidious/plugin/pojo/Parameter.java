@@ -2,6 +2,10 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+
+import javax.lang.model.element.Modifier;
 
 /**
  * Parameter is a value (long id or string) with a name and type information (class name). It could
@@ -120,5 +124,12 @@ public class Parameter {
         result = 31 * result + (name != null ? name.hashCode() : 0);
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
+    }
+
+    public FieldSpec.Builder toFieldSpec() {
+        return FieldSpec.builder(
+                ClassName.bestGuess(getType()),
+                getName(), Modifier.PRIVATE
+        );
     }
 }

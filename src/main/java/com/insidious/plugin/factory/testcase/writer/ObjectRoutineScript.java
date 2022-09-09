@@ -3,16 +3,18 @@ package com.insidious.plugin.factory.testcase.writer;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
-import com.insidious.plugin.factory.testcase.writer.line.CommentCodeLine;
-import com.insidious.plugin.factory.testcase.writer.line.StatementCodeLine;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
+import com.squareup.javapoet.AnnotationSpec;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
 
-import java.util.LinkedList;
-import java.util.List;
+import javax.lang.model.element.Modifier;
+import java.lang.reflect.Type;
+import java.util.*;
 
 /**
  * ObjectRoutine is representing a block of code, close to a method, containing all the
@@ -22,7 +24,10 @@ import java.util.List;
 public class ObjectRoutineScript {
     private static final Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
     private final List<Pair<CodeLine, Object[]>> statements = new LinkedList<>();
-    private final String routineName;
+    private final Set<TypeName> exceptions = new LinkedHashSet<>();
+    private final List<AnnotationSpec> annotations = new LinkedList<>();
+    private final List<Modifier> modifiers = new LinkedList<>();
+    private String routineName;
     private VariableContainer createdVariables = new VariableContainer();
 
     public ObjectRoutineScript() {
@@ -33,6 +38,9 @@ public class ObjectRoutineScript {
         this.routineName = routineName;
     }
 
+    public ObjectRoutineScript(VariableContainer createdVariables) {
+        this.createdVariables = createdVariables;
+    }
 
     public void addStatement(String s, Object... args) {
         statements.add(Pair.create(CodeLineFactory.StatementCodeLine(s), args));
@@ -60,6 +68,9 @@ public class ObjectRoutineScript {
         return routineName;
     }
 
+    public void setRoutineName(String routineName) {
+        this.routineName = routineName;
+    }
 
     public void addParameterComment(Parameter parameter) {
         addComment("Parameter [" + parameter.getName() + "] => " +
@@ -72,14 +83,6 @@ public class ObjectRoutineScript {
         return pendingAssignment;
     }
 
-    public VariableContainer getCreatedVariables() {
-        return createdVariables;
-    }
-
-    public void setCreatedVariables(VariableContainer createdVariables) {
-        this.createdVariables = createdVariables;
-    }
-
     public String getName() {
         return routineName;
     }
@@ -88,5 +91,42 @@ public class ObjectRoutineScript {
         for (Pair<CodeLine, Object[]> statement : getStatements()) {
             statement.getFirst().writeTo(methodBuilder, statement.getSecond());
         }
+    }
+
+    public MethodSpec.Builder toMethodSpec() {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(this.routineName);
+
+        methodBuilder.addExceptions(this.exceptions);
+        methodBuilder.addAnnotations(this.annotations);
+
+        for (Pair<CodeLine, Object[]> statement : getStatements()) {
+            statement.getFirst().writeTo(methodBuilder, statement.getSecond());
+        }
+        return methodBuilder;
+    }
+
+    public VariableContainer getCreatedVariables() {
+        return createdVariables;
+    }
+
+    public void addAnnotation(ClassName annotation) {
+        this.annotations.add(AnnotationSpec.builder(annotation).build());
+    }
+
+    public void addAnnotation(Class<?> annotation) {
+        addAnnotation(ClassName.get(annotation));
+    }
+
+
+    public void addException(TypeName exception) {
+        this.exceptions.add(exception);
+    }
+
+    public void addException(Type exception) {
+        addException(TypeName.get(exception));
+    }
+
+    public void addModifiers(Modifier aPublic) {
+        this.modifiers.add(aPublic);
     }
 }

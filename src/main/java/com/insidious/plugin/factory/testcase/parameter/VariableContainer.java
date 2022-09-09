@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 public class VariableContainer {
     private final List<Parameter> parameterList = new LinkedList<>();
 
-    private static String upperInstanceName(String methodName) {
+    public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
     }
 
-    private static String lowerInstanceName(String methodName) {
+    public  static String lowerInstanceName(String methodName) {
         int lowerIndex = 1;
         return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
     }

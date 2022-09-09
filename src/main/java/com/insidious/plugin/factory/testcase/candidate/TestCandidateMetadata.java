@@ -643,8 +643,10 @@ public class TestCandidateMetadata {
         this.isArray = isArray;
     }
 
-    public ObjectRoutineScript toObjectScript() {
-        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript();
+    public ObjectRoutineScript toObjectScript(VariableContainer createdVariables) {
+        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(createdVariables);
+
+
 
         if (getMainMethod() instanceof MethodCallExpression) {
 
@@ -711,10 +713,7 @@ public class TestCandidateMetadata {
             if (testCandidateMainMethod instanceof MethodCallExpression) {
                 MethodCallExpression mainMethodExpression = (MethodCallExpression) testCandidateMainMethod;
                 for (Parameter parameter : mainMethodExpression.getArguments().all()) {
-//                objectRoutine.getCreatedVariables().add(parameter);
-                    if (!objectRoutineScript.getCreatedVariables().contains(parameter.getName())) {
-                        in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
-                    }
+                    in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
                 }
             }
 //

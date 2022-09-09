@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.MethodSpec;
 import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.util.Collection;
@@ -29,7 +30,17 @@ import static com.insidious.plugin.factory.testcase.writer.TestScriptWriter.in;
  */
 @AllArgsConstructor
 public class ObjectRoutineContainer {
+    private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
     private String packageName;
+    private ObjectRoutine currentRoutine;
+    private ObjectRoutine constructor = newRoutine("<init>");
+    /**
+     * Name for variable for this particular object
+     */
+    private String name;
+    public ObjectRoutineContainer(String packageName) {
+        this.packageName = packageName;
+    }
 
     public String getName() {
         return name;
@@ -38,17 +49,6 @@ public class ObjectRoutineContainer {
     public void setName(String name) {
         this.name = name;
     }
-
-    private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
-
-
-    private ObjectRoutine constructor = newRoutine("<init>");
-    private ObjectRoutine currentRoutine;
-
-    /**
-     * Name for variable for this particular object
-     */
-    private String name;
 
     public ObjectRoutine newRoutine(String routineName) {
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
@@ -63,11 +63,6 @@ public class ObjectRoutineContainer {
         this.currentRoutine = newRoutine;
         return newRoutine;
     }
-
-    public ObjectRoutineContainer(String packageName) {
-        this.packageName =packageName;
-    }
-
 
     public List<ObjectRoutine> getObjectRoutines() {
         return objectRoutines;
@@ -102,7 +97,7 @@ public class ObjectRoutineContainer {
             dependentImports = objectRoutine.getDependentList()
                     .stream()
                     .filter(e -> e != orc)
-                    .map(e ->  e.getVariablesOfType(className))
+                    .map(e -> e.getVariablesOfType(className))
                     .flatMap(Collection::stream)
                     .collect(Collectors.toList());
 
@@ -151,50 +146,43 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutineScriptContainer toRoutineScript() {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName);
+
         ObjectRoutineScript builderMethodScript = container.getConstructor();
 
         ObjectRoutine constructorRoutine = getConstructor();
 
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("setup");
+        builderMethodScript.setRoutineName("setup");
+        builderMethodScript.addAnnotation(ClassName.bestGuess("org.junit.Before"));
+        builderMethodScript.addException(Exception.class);
+        builderMethodScript.addModifiers(Modifier.PUBLIC);
 
-        builder.addModifiers(Modifier.PUBLIC);
-        builder.addAnnotation(ClassName.bestGuess("org.junit.Before"));
-        builder.addException(Exception.class);
+
+//        MethodSpec.Builder builder = MethodSpec.methodBuilder("setup");
+//
+//        builder.addModifiers(Modifier.PUBLIC);
+//        builder.addAnnotation(ClassName.bestGuess("org.junit.Before"));
+//        builder.addException(Exception.class);
 
 
-        Set<? extends Parameter> allFields = getObjectRoutines().stream()
-                .map(ObjectRoutine::getTestCandidateList)
-                .flatMap(Collection::stream)
-                .map(e -> e.getFields().all())
-                .flatMap(Collection::stream)
-                .collect(Collectors.toSet());
+        Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
         TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
         MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
         Parameter mainSubject = mainSubjectConstructorExpression.getSubject();
         Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
-        builderMethodScript.getCreatedVariables().add(mainSubject);
+        VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
+        classVariableContainer.add(mainSubject);
+        container.addField(returnValue);
 
-//
-//        fieldSpecList.add(
-//                FieldSpec.builder(
-//                        ClassName.bestGuess(mainSubject.getType()),
-//                        mainSubject.getName(), Modifier.PRIVATE
-//                ).build()
-//        );
 
         in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
 
 
         for (Parameter parameter : allFields) {
-//            fieldSpecList.add(
-//                    FieldSpec.builder(
-//                            ClassName.bestGuess(parameter.getType()),
-//                            parameter.getName(), Modifier.PRIVATE
-//                    ).build()
-//            );
 
-            builderMethodScript.getCreatedVariables().add(parameter);
+            container.addField(parameter);
+
+            classVariableContainer.add(parameter);
             in(builderMethodScript).assignVariable(parameter).writeExpression(
                     MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
             ).endStatement();
@@ -207,7 +195,28 @@ public class ObjectRoutineContainer {
 
         }
 
+        for (ObjectRoutine objectRoutine : this.objectRoutines) {
+            if (objectRoutine.getRoutineName().equals("<init>")) {
+                continue;
+            }
+
+            ObjectRoutineScript objectScript =
+                    objectRoutine.toObjectScript(classVariableContainer.clone());
+            container.getObjectRoutines().add(objectScript);
+        }
+
+
         return container;
+    }
+
+    @NotNull
+    private Set<? extends Parameter> collectFieldsFromRoutines() {
+        return getObjectRoutines().stream()
+                .map(ObjectRoutine::getTestCandidateList)
+                .flatMap(Collection::stream)
+                .map(e -> e.getFields().all())
+                .flatMap(Collection::stream)
+                .collect(Collectors.toSet());
     }
 
     public void setPackageName(String packageName) {

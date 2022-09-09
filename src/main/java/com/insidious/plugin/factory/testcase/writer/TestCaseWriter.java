@@ -23,7 +23,10 @@ public class TestCaseWriter {
 
         if (returnValue != null) {
 
-            String variableName = ClassTypeUtils.createVariableName(returnValue.getType());
+            String variableName =
+                    ClassTypeUtils.createVariableNameFromMethodName(
+                            methodCallExpression.getMethodName(),
+                            methodCallExpression.getReturnValue().getType());
 
             Object value = returnValue.getValue();
             boolean overrideName = true;
@@ -44,7 +47,7 @@ public class TestCaseWriter {
                 if (returnValue.getName() == null) {
                     returnValue.setName(variableName);
                 }
-                variableContainer.add(returnValue);
+//                variableContainer.add(returnValue);
             }
 
 
