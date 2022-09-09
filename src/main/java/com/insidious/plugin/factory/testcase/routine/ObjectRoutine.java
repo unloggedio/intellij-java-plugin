@@ -10,10 +10,7 @@ import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 
 import javax.lang.model.element.Modifier;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * ObjectRoutine is representing a block of code, close to a method, containing all the
@@ -26,36 +23,20 @@ public class ObjectRoutine {
     private final String routineName;
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
-    private VariableContainer variableContainer = new VariableContainer();
     private List<TestCandidateMetadata> testCandidateList = new LinkedList<>();
-
-    public ObjectRoutine() {
-        routineName = "<init>";
-    }
+    private VariableContainer variableContainer = new VariableContainer();
 
     public ObjectRoutine(String routineName) {
         this.routineName = routineName;
     }
 
-    public VariableContainer getVariableContainer() {
-        return variableContainer;
-    }
-
-    public void setVariableContainer(VariableContainer variableContainer) {
-        this.variableContainer = variableContainer;
-    }
-
-
-//    public void setMetadata(TestCandidateMetadata metadata) {
-//        this.metadata = new LinkedList<>(List.of(metadata));
-//    }
 
     public List<TestCandidateMetadata> getTestCandidateList() {
         return testCandidateList;
     }
 
     public void setTestCandidateList(TestCandidateMetadata newTestCaseMetadata) {
-        List<TestCandidateMetadata> testCandidateMetadata = new java.util.ArrayList<>();
+        List<TestCandidateMetadata> testCandidateMetadata = new ArrayList<>();
         testCandidateMetadata.add(newTestCaseMetadata);
         this.testCandidateList = new LinkedList<>(testCandidateMetadata);
     }
@@ -94,16 +75,19 @@ public class ObjectRoutine {
                 "testAs" + VariableContainer.upperInstanceName(routineName)
         );
 
+        scriptContainer.setCreatedVariables(createdVariables.clone());
+
+        List<ClassName> annotations = List.of(ClassName.bestGuess("org.junit.Test"));
         if (getRoutineName().equals("<init>")) {
-            return scriptContainer;
+            annotations = List.of(ClassName.bestGuess("org.junit.Before"));
         }
-        scriptContainer.addAnnotation(ClassName.bestGuess("org.junit.Test"));
+        annotations.forEach(scriptContainer::addAnnotation);
+
         scriptContainer.addException(Exception.class);
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
-//        VariableContainer createdVariables = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
-            ObjectRoutineScript script = testCandidateMetadata.toObjectScript(createdVariables);
+            ObjectRoutineScript script = testCandidateMetadata.toObjectScript(scriptContainer.getCreatedVariables());
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 
@@ -111,4 +95,11 @@ public class ObjectRoutine {
 
     }
 
+    public VariableContainer getVariableContainer() {
+        return variableContainer;
+    }
+
+    public void setVariableContainer(VariableContainer variableContainer) {
+        this.variableContainer = variableContainer;
+    }
 }

@@ -24,9 +24,9 @@ import java.util.*;
 public class ObjectRoutineScript {
     private static final Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
     private final List<Pair<CodeLine, Object[]>> statements = new LinkedList<>();
-    private final Set<TypeName> exceptions = new LinkedHashSet<>();
-    private final List<AnnotationSpec> annotations = new LinkedList<>();
-    private final List<Modifier> modifiers = new LinkedList<>();
+    private final Set<TypeName> exceptions = new HashSet<>();
+    private final Set<AnnotationSpec> annotations = new HashSet<>();
+    private final Set<Modifier> modifiers = new HashSet<>();
     private String routineName;
     private VariableContainer createdVariables = new VariableContainer();
 
@@ -110,6 +110,10 @@ public class ObjectRoutineScript {
         return createdVariables;
     }
 
+    public void setCreatedVariables(VariableContainer clone) {
+        this.createdVariables = clone;
+    }
+
     public void addAnnotation(ClassName annotation) {
         this.annotations.add(AnnotationSpec.builder(annotation).build());
     }
@@ -117,7 +121,6 @@ public class ObjectRoutineScript {
     public void addAnnotation(Class<?> annotation) {
         addAnnotation(ClassName.get(annotation));
     }
-
 
     public void addException(TypeName exception) {
         this.exceptions.add(exception);

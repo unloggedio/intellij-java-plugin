@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.expression;
 
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.ConstructorType;
@@ -67,6 +68,8 @@ public class MethodCallExpressionFactory {
 
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
+        whenExpression.setType("java.lang.Class");
+        whenExpression.setProb(new DataEventWithSessionId());
 
 
         return new MethodCallExpression(
@@ -132,8 +135,7 @@ public class MethodCallExpressionFactory {
         jsonValue.setValue(new String(object.getProb().getSerializedValue()));
         return ExpressionFactory.MethodCallExpression(
                 "fromJson", GsonClass,
-                VariableContainer.from(List.of(jsonValue, returnTypeParameter)
-                ), null, null);
-
+                VariableContainer.from(List.of(jsonValue, returnTypeParameter)),
+                null, null);
     }
 }

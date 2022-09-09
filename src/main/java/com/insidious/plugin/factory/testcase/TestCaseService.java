@@ -8,9 +8,7 @@ import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.expression.Expression;
@@ -210,7 +208,7 @@ public class TestCaseService {
             return;
         }
 
-        @NotNull LinkedList<Parameter> dependentParameters = getDependentParameters(objectRoutine);
+        @NotNull LinkedList<Parameter> dependentParameters = collectMainMethodArguments(objectRoutine);
         for (Parameter dependentParameter : dependentParameters) {
 
             ObjectRoutineContainer dependentObjectCreation =
@@ -434,7 +432,7 @@ public class TestCaseService {
 
             // dependent parameters need to be created before the routine can be invoked
             // need to create them, so they will be mocked or created
-            List<Parameter> dependentParameters = getDependentParameters(objectRoutine);
+            List<Parameter> dependentParameters = collectMainMethodArguments(objectRoutine);
 
             for (Parameter dependentParameter : dependentParameters) {
 
@@ -456,7 +454,7 @@ public class TestCaseService {
 
 
     @NotNull
-    private LinkedList<Parameter> getDependentParameters(ObjectRoutine objectRoutine) {
+    private LinkedList<Parameter> collectMainMethodArguments(ObjectRoutine objectRoutine) {
         return objectRoutine
                 .getTestCandidateList()
                 .stream()

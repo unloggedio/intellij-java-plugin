@@ -16,7 +16,7 @@ public class DataEventWithSessionId {
 
     private long value;
     private String sessionId;
-    private byte[] serializedValue;
+    private byte[] serializedValue =  new byte[0];
 
     public long getThreadId() {
         return threadId;

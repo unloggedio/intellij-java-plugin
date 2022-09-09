@@ -9,6 +9,8 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
 
+import java.util.List;
+
 public class MockFactory {
 
     public static TestCandidateMetadata createParameterMock(Parameter callSubject) {
@@ -24,7 +26,8 @@ public class MockFactory {
             if (callSubject.getType().equals("com.fasterxml.jackson.databind.ObjectMapper")) {
                 return createUsingNoArgsConstructor(callSubject);
             } else {
-                return buildMockCandidateForBaseClass(callSubject.getType());
+                TestCandidateMetadata testCandidateMetadata = buildMockCandidateForBaseClass(callSubject);
+                return testCandidateMetadata;
             }
         }
     }
@@ -60,9 +63,10 @@ public class MockFactory {
 
 
     private static TestCandidateMetadata buildMockCandidateForBaseClass(
-            String parameterTypeName
+            Parameter parameter
     ) {
 
+        String parameterTypeName = parameter.getType();
         boolean isArray = false;
         if (parameterTypeName.startsWith("[")) {
             isArray = true;
@@ -75,7 +79,6 @@ public class MockFactory {
 
         ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
         testCandidateMetadata.setTestSubject(null);
-        Parameter returnStringParam = new Parameter();
 
         testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
         testCandidateMetadata.setPackageName(targetClassname.packageName());
@@ -83,11 +86,12 @@ public class MockFactory {
         testCandidateMetadata.setTestMethodName("<init>");
 
 
-        testCandidateMetadata.setMainMethod(
-                new MethodCallExpression(
-                        "<init>", null, new VariableContainer(), returnStringParam, null
-                )
+        MethodCallExpression mainMethod = MethodCallExpressionFactory.MockClass(
+                ClassName.bestGuess(targetClassname.canonicalName())
         );
+        mainMethod.setReturnValue(parameter);
+        testCandidateMetadata.setMainMethod(mainMethod);
+
 
         testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
 
@@ -121,7 +125,8 @@ public class MockFactory {
 
 
         testCandidateMetadata.setMainMethod(
-                MethodCallExpressionFactory.MockClass(ClassName.bestGuess(targetClassname.canonicalName())));
+                new MethodCallExpression("<init>", dependentParameter, new VariableContainer(),
+                        dependentParameter, null));
 
         testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
 

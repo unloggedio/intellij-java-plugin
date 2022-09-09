@@ -652,9 +652,13 @@ public class TestCandidateMetadata {
 
 
             MethodCallExpression mainMethod = (MethodCallExpression) getMainMethod();
+            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
+            if (mainMethod.getMethodName().equals("mock")) {
+                in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
+                return objectRoutineScript;
+            }
 
             objectRoutineScript.addComment("");
-            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
 
 
             DataEventWithSessionId mainMethodReturnValueProbe = mainMethodReturnValue.getProb();
@@ -671,7 +675,7 @@ public class TestCandidateMetadata {
 
                 objectRoutineScript.addComment("");
                 for (Parameter parameter : arguments.all()) {
-                    if (parameter.getName() == null && parameter.getProb().getSerializedValue().length > 0) {
+                    if (parameter.getName() == null && parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0) {
                         String serializedValue = new String(parameter.getProb().getSerializedValue());
                         if (parameter.getType().equals("java.lang.String")) {
                             serializedValue = '"' + serializedValue + '"';
@@ -684,9 +688,9 @@ public class TestCandidateMetadata {
                 objectRoutineScript.addComment("");
 
                 for (Parameter parameter : arguments.all()) {
-//                    if (!objectRoutine.getCreatedVariables().contains(parameter.getName())) {
-                    in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
-//                    }
+                    if (parameter.getName() != null) {
+                       in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+                    }
                 }
 
             }

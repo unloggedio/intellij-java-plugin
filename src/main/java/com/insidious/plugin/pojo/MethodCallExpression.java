@@ -6,7 +6,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 public class MethodCallExpression implements Expression {
     private Parameter subject;
     private final VariableContainer arguments;
-    private final Parameter returnValue;
+    private Parameter returnValue;
     private final String methodName;
     private final Parameter exception;
 
@@ -42,6 +42,10 @@ public class MethodCallExpression implements Expression {
 
     public Parameter getException() {
         return exception;
+    }
+
+    public void setReturnValue(Parameter returnValue) {
+        this.returnValue = returnValue;
     }
 
     public void setSubject(Parameter testSubject) {

@@ -147,7 +147,16 @@ public class ObjectRoutineContainer {
     public ObjectRoutineScriptContainer toRoutineScript() {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName);
 
-        ObjectRoutineScript builderMethodScript = container.getConstructor();
+
+        VariableContainer variableContainer = new VariableContainer();
+
+        for (Parameter parameter : this.collectFieldsFromRoutines()) {
+            variableContainer.add(parameter);
+        }
+
+
+        ObjectRoutineScript builderMethodScript = getConstructor().toObjectScript(variableContainer);
+        container.getObjectRoutines().add(builderMethodScript);
 
         ObjectRoutine constructorRoutine = getConstructor();
 
@@ -175,7 +184,7 @@ public class ObjectRoutineContainer {
         container.addField(returnValue);
 
 
-        in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
+//        in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
 
 
         for (Parameter parameter : allFields) {
@@ -183,9 +192,9 @@ public class ObjectRoutineContainer {
             container.addField(parameter);
 
             classVariableContainer.add(parameter);
-            in(builderMethodScript).assignVariable(parameter).writeExpression(
-                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
-            ).endStatement();
+//            in(builderMethodScript).assignVariable(parameter).writeExpression(
+//                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
+//            ).endStatement();
 
             in(builderMethodScript).writeExpression(
                     new MethodCallExpression("injectField", null,
