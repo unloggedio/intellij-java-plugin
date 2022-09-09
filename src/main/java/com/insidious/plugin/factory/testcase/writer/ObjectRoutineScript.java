@@ -98,6 +98,7 @@ public class ObjectRoutineScript {
 
         methodBuilder.addExceptions(this.exceptions);
         methodBuilder.addAnnotations(this.annotations);
+        methodBuilder.addModifiers(this.modifiers);
 
         for (Pair<CodeLine, Object[]> statement : getStatements()) {
             statement.getFirst().writeTo(methodBuilder, statement.getSecond());

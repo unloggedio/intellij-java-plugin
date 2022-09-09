@@ -9,6 +9,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 
+import javax.lang.model.element.Modifier;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -98,6 +99,7 @@ public class ObjectRoutine {
         }
         scriptContainer.addAnnotation(ClassName.bestGuess("org.junit.Test"));
         scriptContainer.addException(Exception.class);
+        scriptContainer.addModifiers(Modifier.PUBLIC);
 
 //        VariableContainer createdVariables = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
