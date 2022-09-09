@@ -653,137 +653,35 @@ public class TestCandidateMetadata {
 
             MethodCallExpression mainMethod = (MethodCallExpression) getMainMethod();
             Parameter mainMethodReturnValue = mainMethod.getReturnValue();
-            if (mainMethod.getMethodName().equals("mock")) {
-                in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
-                return objectRoutineScript;
-            }
-
-            objectRoutineScript.addComment("");
 
 
-            DataEventWithSessionId mainMethodReturnValueProbe = mainMethodReturnValue.getProb();
-            if (mainMethodReturnValueProbe == null) {
-                return objectRoutineScript;
-            }
             objectRoutineScript.addComment("Test candidate method [" + mainMethod.getMethodName() + "] " +
-                    "[ " + mainMethodReturnValueProbe.getNanoTime() + "] - took " +
+                    "[ " + mainMethodReturnValue.getProb().getNanoTime() + "] - took " +
                     Long.valueOf(getCallTimeNanoSecond() / (1000000)).intValue() + "ms");
-
-            VariableContainer arguments = mainMethod.getArguments();
-            if (arguments.count() > 0) {
-
-
-                objectRoutineScript.addComment("");
-                for (Parameter parameter : arguments.all()) {
-                    if (parameter.getName() == null && parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0) {
-                        String serializedValue = new String(parameter.getProb().getSerializedValue());
-                        if (parameter.getType().equals("java.lang.String")) {
-                            serializedValue = '"' + serializedValue + '"';
-                        }
-                        parameter.setValue(serializedValue);
-                    }
-                    objectRoutineScript.addParameterComment(parameter);
-                }
-                objectRoutineScript.addComment("");
-                objectRoutineScript.addComment("");
-
-                for (Parameter parameter : arguments.all()) {
-                    if (parameter.getName() != null) {
-                       in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
-                    }
-                }
-
-            }
-
-
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
             if (getCallsList().size() > 0) {
 
                 objectRoutineScript.addComment("");
                 for (MethodCallExpression methodCallExpression : getCallsList()) {
-                    if (methodCallExpression.getException() != null &&
-                            mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                    if (mainMethod.getException() != null && mockedCalls.containsKey(mainMethod.getMethodName())) {
                         continue;
                     }
-                    TestCaseWriter.createMethodCallComment(objectRoutineScript, methodCallExpression);
-                    TestCaseWriter.createMethodCallMock(objectRoutineScript, methodCallExpression);
-                    mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);
+                    methodCallExpression.writeCommentTo(objectRoutineScript);
+                    methodCallExpression.writeMockTo(objectRoutineScript);
+//                    TestCaseWriter.createMethodCallComment(objectRoutineScript, methodCallExpression);
+//                    TestCaseWriter.createMethodCallMock(objectRoutineScript, methodCallExpression);
+                    mockedCalls.put(mainMethod.getMethodName(), methodCallExpression);
                 }
                 objectRoutineScript.addComment("");
                 objectRoutineScript.addComment("");
             }
-//
-            Expression testCandidateMainMethod = getMainMethod();
-            if (testCandidateMainMethod instanceof MethodCallExpression) {
-                MethodCallExpression mainMethodExpression = (MethodCallExpression) testCandidateMainMethod;
-                for (Parameter parameter : mainMethodExpression.getArguments().all()) {
-                    in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
-                }
-            }
-//
 
-            //////////////////////// FUNCTION CALL ////////////////////////
-
-            // return type == V ==> void return type => no return value
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(mainMethod).endStatement();
+            mainMethod.writeTo(objectRoutineScript);
 
 
-            if (mainMethod.getMethodName().equals("<init>")) {
-                // there is no verification required (?) after calling constructors
-                return objectRoutineScript;
-            }
-            String returnSubjectInstanceName = mainMethodReturnValue.getName();
-
-
-            //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
-
-
-            // deserialize and compare objects
-            byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
-
-
-            Parameter returnSubjectExpectedJsonString = null;
-            if (serializedBytes.length > 0) {
-                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
-                in(objectRoutineScript)
-                        .assignVariable(returnSubjectExpectedJsonString)
-                        .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
-                        .endStatement();
-            } else {
-                returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
-
-                in(objectRoutineScript)
-                        .assignVariable(returnSubjectExpectedJsonString)
-                        .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
-                        .endStatement();
-            }
-
-
-            // reconstruct object from the serialized form to an object instance in the
-            // test method to compare it with the new object, or do it the other way
-            // round ? Maybe serializing the object and then comparing the serialized
-            // string forms would be more readable ? string comparison would fail if the
-            // serialization has fields serialized in random order
-            Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
-            in(objectRoutineScript)
-                    .assignVariable(returnSubjectJsonString)
-                    .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
-                    .endStatement();
-
-
-            in(objectRoutineScript)
-                    .writeExpression(MethodCallExpressionFactory
-                            .MockitoAssert(returnSubjectJsonString, returnSubjectExpectedJsonString))
-                    .endStatement();
 
         } else {
-            Expression plainValueExpression = getMainMethod();
-            logger.warn("PVE: " + plainValueExpression);
-//            in(objectRoutine)
-//                    .assignVariable()
-//                    .writeExpression(MethodCallExpressionFactory
-//                            .MockitoAssert(returnSubjectJsonString, returnSubjectExpectedJsonString))
-//                    .endStatement();
+            getMainMethod().writeTo(objectRoutineScript);
         }
         objectRoutineScript.addComment("");
         return objectRoutineScript;

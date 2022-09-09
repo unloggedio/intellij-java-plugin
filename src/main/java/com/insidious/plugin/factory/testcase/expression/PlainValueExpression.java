@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory.testcase.expression;
 
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+
 public class PlainValueExpression implements Expression {
 
 
@@ -12,5 +14,10 @@ public class PlainValueExpression implements Expression {
     @Override
     public String toString() {
         return value;
+    }
+
+    @Override
+    public void writeTo(ObjectRoutineScript objectRoutineScript) {
+
     }
 }
