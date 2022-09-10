@@ -11,7 +11,6 @@ import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.expression.ExpressionFactory;
 import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
@@ -29,6 +28,7 @@ import com.intellij.openapi.util.text.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 
@@ -404,9 +404,110 @@ public class TestCandidateMetadata {
                         List.of(responseBodyStringProbe.get())
                 );
 
-                return ExpressionFactory.MethodCallExpression(
+                return MethodCallExpressionFactory.MethodCallExpression(
                         "buildOkHttpResponseFromString", null, variableContainer,
                         targetParameter, null);
+            case "java.util.List":
+
+
+                ScanRequest identifyIteratorScanRequest = new ScanRequest(
+                        new ScanResult(targetParameter.getIndex(), 0), ScanRequest.CURRENT_CLASS,
+                        DirectionType.FORWARDS
+                );
+
+                AtomicInteger iteratorProbe = new AtomicInteger(-1);
+                AtomicInteger nextValueProbe = new AtomicInteger(-1);
+                AtomicReference<Parameter> containedParameterIterator = new AtomicReference<>();
+                AtomicReference<Parameter> nextValueParameter = new AtomicReference<>();
+                identifyIteratorScanRequest.addListener(targetParameter.getProb().getValue(),
+
+                        new EventMatchListener() {
+                            @Override
+                            public void eventMatched(Integer index) {
+                                DataEventWithSessionId event = replayData.getDataEvents().get(index);
+                                DataInfo probeInfo = replayData.getProbeInfo(
+                                        event.getDataId()
+                                );
+                                if (probeInfo.getEventType() == EventType.CALL) {
+                                    String methodName = probeInfo.getAttribute("Name", null);
+                                    Parameter containedParameter;
+                                    DataInfo callReturnProbeInfo;
+
+                                    switch (methodName) {
+                                        case "iterator":
+                                            if (iteratorProbe.get() != -1) {
+                                                return;
+                                            }
+                                            assert methodName != null;
+
+
+                                            int nextProbeIndex = replayData.getNextProbeIndex(index);
+                                            DataEventWithSessionId callReturnProbe = replayData
+                                                    .getDataEvents()
+                                                    .get(nextProbeIndex);
+                                            callReturnProbeInfo = replayData.getProbeInfo(callReturnProbe.getDataId());
+                                            assert callReturnProbeInfo.getEventType() == EventType.CALL_RETURN;
+                                            nextValueProbe.set(index);
+
+                                            Parameter returnParam = ParameterFactory.createMethodArgumentParameter(
+                                                    nextProbeIndex, replayData, 0, null);
+                                            containedParameterIterator.set(returnParam);
+
+                                            identifyIteratorScanRequest.addListener(returnParam.getProb().getValue()
+                                                    , this);
+                                            iteratorProbe.set(index);
+
+                                            break;
+                                        case "next":
+                                            if (iteratorProbe.get() == -1) {
+                                                return;
+                                            }
+                                            if (event.getValue() == containedParameterIterator.get().getProb().getValue()) {
+                                                int nextProbeIndex1 = replayData.getNextProbeIndex(index);
+                                                callReturnProbe = replayData.getDataEvents()
+                                                        .get(nextProbeIndex1);
+                                                callReturnProbeInfo = replayData.getProbeInfo(callReturnProbe.getDataId());
+                                                assert callReturnProbeInfo.getEventType() == EventType.CALL_RETURN;
+                                                nextValueProbe.set(index);
+
+                                                containedParameter = ParameterFactory.createMethodArgumentParameter(
+                                                        nextProbeIndex1, replayData, 0,null
+                                                );
+                                                identifyIteratorScanRequest.addListener(callReturnProbe.getValue(), this);
+                                                nextValueParameter.set(containedParameter);
+
+                                            }
+                                    }
+                                } else if (probeInfo.getEventType() == EventType.LOCAL_STORE || probeInfo.getEventType() == EventType.LOCAL_LOAD) {
+                                    if (nextValueParameter.get() == null) {
+                                        return;
+                                    }
+                                    if (event.getValue() != nextValueParameter.get().getProb().getValue()) {
+                                        return;
+                                    }
+                                    Parameter paramWithNameAndType = ParameterFactory.createMethodArgumentParameter(
+                                            index, replayData, 0, null
+                                    );
+                                    if (paramWithNameAndType.getName().startsWith("\\(")) {
+                                        return;
+                                    }
+                                    if (paramWithNameAndType.getType() != null) {
+                                        Parameter existingValue = nextValueParameter.get();
+                                        paramWithNameAndType.getProb().setSerializedValue(
+                                                existingValue.getProb().getSerializedValue()
+                                        );
+                                        nextValueParameter.set(paramWithNameAndType);
+                                        identifyIteratorScanRequest.abort();
+                                    }
+                                }
+                            }
+                        });
+
+                replayData.eventScan(identifyIteratorScanRequest);
+                Parameter nextValueParam = nextValueParameter.get();
+                targetParameter.setTemplateParameter("E", nextValueParam);
+
+                return null;
             default:
                 break;
         }
@@ -646,7 +747,6 @@ public class TestCandidateMetadata {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(createdVariables);
 
 
-
         if (getMainMethod() instanceof MethodCallExpression) {
 
 
@@ -676,7 +776,6 @@ public class TestCandidateMetadata {
             }
 
             mainMethod.writeTo(objectRoutineScript);
-
 
 
         } else {

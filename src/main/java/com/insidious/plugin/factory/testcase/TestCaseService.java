@@ -767,9 +767,7 @@ public class TestCaseService {
                     // serialize and they need to be reconstructed
                     for (MethodCallExpression methodCallExpression : newTestCaseMetadata.getCallsList()) {
                         Parameter returnValue = methodCallExpression.getReturnValue();
-                        if (returnValue != null && returnValue.getType() != null &&
-                                returnValue.getType().length() > 1 &&
-                                returnValue.getProb().getSerializedValue().length == 0) {
+                        if (returnValue.getType() != null && returnValue.getType().length() > 1) {
                             MethodCallExpression createrExpression =
                                     TestCandidateMetadata.buildObject(replayEventsBefore, returnValue);
                             returnValue.setCreator(createrExpression);

@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Objects;
 
 public class PendingStatement {
+    public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
+    public static final ClassName LIST_CLASS = ClassName.bestGuess("java.util.List");
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new LinkedList<>();
     private Parameter lhsExpression;
@@ -80,11 +82,31 @@ public class PendingStatement {
 
                     List<? extends Parameter> variables = methodCallExpression.getArguments().all();
 
-                    statementBuilder.append("$L.$L($S, $T.class)");
-                    statementParameters.add(methodCallExpression.getSubject().getName());
-                    statementParameters.add(methodCallExpression.getMethodName());
-                    statementParameters.add(variables.get(0).getValue());
-                    statementParameters.add(ClassName.bestGuess((String) variables.get(1).getValue()));
+                    Parameter objectToDeserialize = variables.get(0);
+
+                    if (objectToDeserialize.isContainer()) {
+
+                        statementBuilder.append("$L.$L($S, new $T<$T<$T>>(){}.getType())");
+                        statementParameters.add(methodCallExpression.getSubject().getName());
+                        statementParameters.add(methodCallExpression.getMethodName());
+
+                        statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+
+                        statementParameters.add(TYPE_TOKEN_CLASS);
+                        statementParameters.add(LIST_CLASS);
+
+                        statementParameters.add(ClassName.bestGuess(objectToDeserialize.getTemplateMap().get("E").getType()));
+
+
+                    } else {
+                        statementBuilder.append("$L.$L($S, $T.class)");
+                        statementParameters.add(methodCallExpression.getSubject().getName());
+                        statementParameters.add(methodCallExpression.getMethodName());
+
+                        statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                        statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType()));
+
+                    }
 
                 }  else if (methodCallExpression.getMethodName().equals("injectField")
                         && methodCallExpression.getSubject() == null) {
@@ -164,13 +186,13 @@ public class PendingStatement {
                     } else {
                         returnValue = "true";
                     }
-                    this.expressionList.add(ExpressionFactory.PlainValueExpression((String) returnValue));
+                    this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression((String) returnValue));
 
                 } else if (returnValue instanceof Long) {
                     if ((long) returnValue == 1) {
-                        this.expressionList.add(ExpressionFactory.PlainValueExpression("true"));
+                        this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("true"));
                     } else {
-                        this.expressionList.add(ExpressionFactory.PlainValueExpression("false"));
+                        this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
                     }
 
                 }
@@ -179,10 +201,10 @@ public class PendingStatement {
                 String stringValue = new String(parameter.getProb().getSerializedValue());
                 stringValue = stringValue.replaceAll("\\$", "\\$\\$");
 
-                this.expressionList.add(ExpressionFactory.PlainValueExpression(stringValue));
+                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
             } else {
                 String stringValue = String.valueOf(parameter.getValue());
-                this.expressionList.add(ExpressionFactory.PlainValueExpression(stringValue));
+                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
             }
 
         } else {

@@ -2,7 +2,6 @@ package com.insidious.plugin.factory.testcase.mock;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.expression.ExpressionFactory;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -56,7 +55,7 @@ public class MockFactory {
         testCandidateMetadata.setUnqualifiedClassname(javaClassName);
 
         testCandidateMetadata.setMainMethod(
-                ExpressionFactory.PlainValueExpression((String) parameter.getValue())
+                MethodCallExpressionFactory.PlainValueExpression((String) parameter.getValue())
         );
         return testCandidateMetadata;
     }

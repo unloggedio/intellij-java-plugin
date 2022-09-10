@@ -2,7 +2,6 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.expression.ExpressionFactory;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -148,14 +147,14 @@ public class MethodCallExpression implements Expression {
             returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedJsonString)
-                    .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
+                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
                     .endStatement();
         } else {
             returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
 
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedJsonString)
-                    .writeExpression(ExpressionFactory.StringExpression(new String(serializedBytes)))
+                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
                     .endStatement();
         }
 
@@ -247,10 +246,10 @@ public class MethodCallExpression implements Expression {
                     .endStatement();
 
         } else {
-            if (returnValue.getCreaterExpression() == null) {
+            if (returnValue.getCreatorExpression() == null) {
                 in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
             } else {
-                MethodCallExpression createrExpression = returnValue.getCreaterExpression();
+                MethodCallExpression createrExpression = returnValue.getCreatorExpression();
 
                 VariableContainer arguments = createrExpression.getArguments();
                 for (Parameter parameter : arguments.all()) {

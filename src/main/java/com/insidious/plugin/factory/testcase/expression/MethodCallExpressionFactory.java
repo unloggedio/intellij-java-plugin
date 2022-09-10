@@ -30,18 +30,21 @@ public class MethodCallExpressionFactory {
         return param;
     }
 
+
+    public static MethodCallExpression MethodCallExpression(String methodName, Parameter subjectParameter,
+                                                            VariableContainer from, Parameter callReturnParameter, Parameter exception) {
+        return new MethodCallExpression(
+                methodName, subjectParameter, from, callReturnParameter, exception
+        );
+    }
+    public static Expression PlainValueExpression(String value) {
+        return new PlainValueExpression(value);
+    }
+    public static Expression StringExpression(String s) {
+        return new StringExpression(s);
+    }
+
     public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression) {
-
-
-        /**
-         *
-         * objectRoutine.addStatement(
-         *                             "$T.when($L.$L($L)).thenReturn($L)",
-         *                             mockitoClass, methodCallExpression.getSubject().getName(),
-         *                             methodCallExpression.getMethodName(), callArgumentsString,
-         *                             callReturnValue
-         *                     );
-         */
 
 
         String param1 =
@@ -52,7 +55,7 @@ public class MethodCallExpressionFactory {
         whenExpression.setValue(param1);
 
 
-        return ExpressionFactory.MethodCallExpression(
+        return MethodCallExpression(
                 "when", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
@@ -92,7 +95,7 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression MockitoThen(Parameter returnValue) {
-        return ExpressionFactory.MethodCallExpression("thenReturn", null,
+        return MethodCallExpression("thenReturn", null,
                 VariableContainer.from(
                         List.of(returnValue)
                 ), null, null);
@@ -103,7 +106,7 @@ public class MethodCallExpressionFactory {
 
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
-        return ExpressionFactory.MethodCallExpression(
+        return MethodCallExpression(
                 "thenThrow", null,
                 VariableContainer.from(List.of(exceptionValue)),
                 null, null);
@@ -113,29 +116,60 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression ToJson(Parameter object) {
-        return ExpressionFactory.MethodCallExpression(
+        return MethodCallExpression(
                 "toJson", GsonClass,
                 VariableContainer.from(List.of(object)),
                 null, null);
     }
 
     public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
-        return ExpressionFactory.MethodCallExpression(
+        return MethodCallExpression(
                 "assertEquals", AssertClass,
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
                 null, null
         );
     }
 
-    public static Expression FromJson(Parameter object) {
+    public static MethodCallExpression FromJson(Parameter object) {
 
-        Parameter returnTypeParameter = new Parameter();
-        returnTypeParameter.setValue(object.getType().replace('$', '.'));
-        Parameter jsonValue = new Parameter();
-        jsonValue.setValue(new String(object.getProb().getSerializedValue()));
-        return ExpressionFactory.MethodCallExpression(
-                "fromJson", GsonClass,
-                VariableContainer.from(List.of(jsonValue, returnTypeParameter)),
-                null, null);
+//        Parameter returnTypeParameter = new Parameter();
+
+//        returnTypeParameter.setValue(object.getType().replace('$', '.'));
+
+//        returnTypeParameter.setCreator(
+//                newTypeTokenConstructor(object.getTemplateMap().get("E"))
+//        );
+
+//        Parameter jsonValue = new Parameter();
+//        jsonValue.setValue(new String(object.getProb().getSerializedValue()));
+//        MethodCallExpression methodCallExpression;
+//
+//        if (object.isContainer()) {
+//            /**
+//             * new TypeToken<List<Country>>(){}.getType()
+//             */
+//
+//            methodCallExpression = MethodCallExpression(
+//                    "fromJson", GsonClass,
+//                    VariableContainer.from(List.of(object)),
+//                    null, null);
+//
+//
+//        } else {
+            return MethodCallExpression(
+                    "fromJson", GsonClass,
+                    VariableContainer.from(List.of(object)),
+                    null, null);
+//        }
+//        return methodCallExpression;
     }
+
+//    /**
+//     * new TypeToken<List<Country>>(){}.getType()
+//     * @param ofType
+//     * @return
+//     */
+//    private static MethodCallExpression newTypeTokenConstructor(Parameter ofType) {
+//        return new MethodCallExpression("<init>", null, );
+//    }
 }

@@ -1,7 +1,6 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.EventType;
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ScanResult;
 
@@ -30,6 +29,11 @@ public class ScanRequest {
     private final Map<EventType, List<EventMatchListener>> eventListeners = new HashMap<>();
     private final Map<Long, List<EventMatchListener>> valueEventListeners = new HashMap<>();
     private int startStack = 0;
+    private boolean aborted = false;
+
+    public boolean isAborted() {
+        return aborted;
+    }
 
     public void matchUntil(EventType eventType) {
         matchUntilEvent.add(eventType);
@@ -98,9 +102,11 @@ public class ScanRequest {
         }
     }
     public void onValue(boolean stackMatch, Long valueId, int callReturnIndex) {
+        Set<EventMatchListener> listenersToBeInvoked =  new HashSet<>();
         if (stackMatch && valueEventListeners.containsKey(valueId)) {
-            valueEventListeners.get(valueId).forEach(e -> e.eventMatched(callReturnIndex));
+            listenersToBeInvoked = new HashSet<>(valueEventListeners.get(valueId));
         }
+        listenersToBeInvoked.forEach(e -> e.eventMatched(callReturnIndex));
     }
 
     public int getStartStack() {
@@ -115,5 +121,9 @@ public class ScanRequest {
         List<EventMatchListener> existingList = valueEventListeners
                 .computeIfAbsent(value, k -> new LinkedList<>());
         existingList.add(eventTypeMatchListener);
+    }
+
+    public void abort() {
+        this.aborted = true;
     }
 }

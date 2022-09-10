@@ -186,7 +186,7 @@ public class ReplayData {
             scanRequest.onEvent(stackMatch, eventType, callReturnIndex);
             scanRequest.onValue(stackMatch, event.getValue(), callReturnIndex);
 
-            if (callStack == 0 && matchUntilEvent.contains(eventType)) {
+            if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
                 return new ScanResult(callReturnIndex, callStack);
             }
 

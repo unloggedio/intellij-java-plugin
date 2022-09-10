@@ -6,6 +6,8 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 
 import javax.lang.model.element.Modifier;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Parameter is a value (long id or string) with a name and type information (class name). It could
@@ -27,7 +29,18 @@ public class Parameter {
     private int index;
     private DataInfo probeInfo;
     private ConstructorType constructorType;
-    private MethodCallExpression createrExpression;
+    private MethodCallExpression creatorExpression;
+
+    public boolean isContainer() {
+        return isContainer;
+    }
+
+    public Map<String, Parameter> getTemplateMap() {
+        return templateMap;
+    }
+
+    private final Map<String, Parameter> templateMap = new HashMap<>();
+    private boolean isContainer = false;
 
     @Override
     public String toString() {
@@ -97,13 +110,13 @@ public class Parameter {
         this.constructorType = constructorType;
     }
 
-    public MethodCallExpression getCreaterExpression() {
-        return createrExpression;
+    public MethodCallExpression getCreatorExpression() {
+        return creatorExpression;
     }
 
     public void setCreator(MethodCallExpression createrExpression) {
 
-        this.createrExpression = createrExpression;
+        this.creatorExpression = createrExpression;
     }
 
     @Override
@@ -131,5 +144,10 @@ public class Parameter {
                 ClassName.bestGuess(getType()),
                 getName(), Modifier.PRIVATE
         );
+    }
+
+    public void setTemplateParameter(String e, Parameter nextValueParam) {
+        isContainer = true;
+        this.templateMap.put(e, nextValueParam);
     }
 }

@@ -211,7 +211,13 @@ public class ParameterFactory {
                 return parameter;
             }
         }
-        String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
+
+        if (isContainerType(parameter)) {
+
+        }
+
+
+            String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
         if (paramName != null) {
             parameter.setName(paramName);
             return parameter;
@@ -221,8 +227,13 @@ public class ParameterFactory {
             logger.warn("cannot identify parameter type: " + parameter);
         }
 
+
         return parameter;
 
+    }
+
+    private static boolean isContainerType(Parameter parameter) {
+        return parameter.getType() != null && parameter.getType().equals("java.util.List");
     }
 
     private static String getTypeForValueAtProbeIndex(
