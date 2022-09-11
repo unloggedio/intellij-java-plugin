@@ -11,13 +11,11 @@ import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -44,21 +42,25 @@ public class TestCandidateMetadata {
     private Parameter testSubject;
     private long callTimeNanoSecond;
     private boolean isArray;
+    private int entryProbeIndex;
+    private int exitProbeIndex;
+    private VariableContainer variables;
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
             MethodInfo methodInfo,
             long entryProbeDataId,
-            ReplayData replayData,
-            TestCaseRequest testCaseRequest) throws APICallException, SessionNotSelectedException {
-        logger.warn("[" + methodInfo.getMethodName() + "] " +
+            ReplayData replayData
+    ) throws APICallException, SessionNotSelectedException {
+        final String methodName = methodInfo.getMethodName();
+        logger.warn("[" + methodName + "] " +
                 "create test case metadata for types [" + entryProbeDataId + "] -> entry probe " +
                 " types  " + typeHierarchy);
         TestCandidateMetadata metadata = new TestCandidateMetadata();
 
 
 //        final String className = methodInfo.getClassName();
-        String targetMethodName = methodInfo.getMethodName();
+        String targetMethodName = methodName;
 
         if (targetMethodName.startsWith("lambda$")) {
             // this function is a transformation of the original user function by jvm and the
@@ -92,7 +94,7 @@ public class TestCandidateMetadata {
                 ClassTypeUtils.splitMethodDesc(methodInfo.getMethodDesc());
 
         String returnParameterDescription = methodParameterDescriptions.remove(methodParameterDescriptions.size() - 1);
-        if (methodInfo.getMethodName().equals("<init>")) {
+        if (methodName.equals("<init>")) {
             returnParameterDescription = ClassTypeUtils.getDescriptorName(typeHierarchy.get(0));
         }
 
@@ -109,6 +111,8 @@ public class TestCandidateMetadata {
             entryProbeIndex++;
         }
 
+        metadata.setEntryProbeIndex(entryProbeIndex);
+
 
         DataEventWithSessionId entryProbe = dataEvents.get(entryProbeIndex);
         DataInfo entryProbeInfo = replayData.getProbeInfo(entryProbe.getDataId());
@@ -119,13 +123,13 @@ public class TestCandidateMetadata {
         int pageSize = 1000;
         while (true) {
 
-            if (methodInfo.getMethodName().equals("<init>")) {
+            if (methodName.equals("<init>")) {
                 logger.info("entry probe is of type method entry <init>");
                 callReturnScanResult = searchMethodExitIndex(replayData,
                         callReturnScanResult,
                         List.of(EventType.METHOD_OBJECT_INITIALIZED));
             } else {
-                logger.info("entry probe is of type method entry " + methodInfo.getMethodName());
+                logger.info("entry probe is of type method entry " + methodName);
                 callReturnScanResult = searchMethodExitIndex(replayData,
                         callReturnScanResult, List.of(EventType.METHOD_NORMAL_EXIT));
             }
@@ -166,6 +170,9 @@ public class TestCandidateMetadata {
             entryProbeIndex++;
         }
 
+        metadata.setEntryProbeIndex(entryProbeIndex);
+        metadata.setExitProbeIndex(callReturnScanResult.getIndex());
+
 
 //        metadata.setExitProbeIndex(callReturnIndex);
         logger.info("entry probe matched at event: " + entryProbeIndex +
@@ -189,13 +196,9 @@ public class TestCandidateMetadata {
         for (Parameter methodParameter : methodArguments.all()) {
             variableContainer.add(methodParameter);
         }
+        metadata.setVariables(variableContainer);
 
 
-        List<MethodCallExpression> callsList =
-                searchMethodCallExpressions(replayData, entryProbeIndex, typeHierarchy,
-                        variableContainer, testCaseRequest.getNoMockClassList());
-
-        metadata.setCallList(callsList);
         metadata.addAllFields(fieldsContainer);
 
 
@@ -203,8 +206,8 @@ public class TestCandidateMetadata {
         Parameter returnParameter = ParameterFactory.createMethodArgumentParameter(callReturnScanResult.getIndex(),
                 replayData, 0, returnParameterDescription);
         if (returnParameter.getName() == null || returnParameter.getName().length() == 1) {
-            if (methodInfo.getMethodName().equals("<init>")) {
-                returnParameter.setName(ClassTypeUtils.createVariableName(methodInfo.getMethodName()));
+            if (methodName.equals("<init>")) {
+                returnParameter.setName(ClassTypeUtils.createVariableName(methodName));
             }
         }
 
@@ -217,7 +220,7 @@ public class TestCandidateMetadata {
 
 
         // identify the variable name on which this method is called
-        if (methodInfo.getMethodName().equals("<init>")) {
+        if (methodName.equals("<init>")) {
             metadata.setTestSubject(returnParameter);
             subjectNameFound = true;
         } else {
@@ -296,10 +299,10 @@ public class TestCandidateMetadata {
         );
 
         if (mainMethodExpression.getReturnValue().getName() == null
-                && !methodInfo.getMethodName().equals("<init>")) {
+                && !methodName.equals("<init>")) {
 
             String potentialReturnValueName =
-                    ClassTypeUtils.createVariableNameFromMethodName(methodInfo.getMethodName(),
+                    ClassTypeUtils.createVariableNameFromMethodName(methodName,
                             metadata.getFullyQualifiedClassname());
 
             mainMethodExpression.getReturnValue().setName(potentialReturnValueName);
@@ -324,7 +327,7 @@ public class TestCandidateMetadata {
                 ScanRequest scanRequest = new ScanRequest(
                         new ScanResult(targetParameter.getIndex(), 0), 0, DirectionType.FORWARDS);
 
-                scanRequest.addListener(EventType.CALL_RETURN, index -> {
+                scanRequest.addListener(EventType.CALL_RETURN, (index, matchedStack) -> {
 
 
                     DataEventWithSessionId callReturnEvent = replayData.getDataEvents().get(index);
@@ -423,7 +426,7 @@ public class TestCandidateMetadata {
 
                         new EventMatchListener() {
                             @Override
-                            public void eventMatched(Integer index) {
+                            public void eventMatched(Integer index, int matchedStack) {
                                 DataEventWithSessionId event = replayData.getDataEvents().get(index);
                                 DataInfo probeInfo = replayData.getProbeInfo(
                                         event.getDataId()
@@ -471,7 +474,7 @@ public class TestCandidateMetadata {
                                                 nextValueProbe.set(index);
 
                                                 containedParameter = ParameterFactory.createMethodArgumentParameter(
-                                                        nextProbeIndex1, replayData, 0,null
+                                                        nextProbeIndex1, replayData, 0, null
                                                 );
                                                 identifyIteratorScanRequest.addListener(callReturnProbe.getValue(), this);
                                                 nextValueParameter.set(containedParameter);
@@ -524,7 +527,7 @@ public class TestCandidateMetadata {
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
                 ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS);
 
-        scanRequest.addListener(EventType.GET_INSTANCE_FIELD_RESULT, index -> {
+        scanRequest.addListener(EventType.GET_INSTANCE_FIELD_RESULT, (index, matchedStack) -> {
             DataEventWithSessionId event = replayData.getDataEvents().get(index);
             DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
 
@@ -543,7 +546,8 @@ public class TestCandidateMetadata {
 
     }
 
-    private static List<MethodCallExpression> searchMethodCallExpressions(
+    public static List<MethodCallExpression>
+    searchMethodCallExpressions(
             ReplayData replayData,
             int entryProbeIndex,
             List<String> typeHierarchy,
@@ -552,14 +556,15 @@ public class TestCandidateMetadata {
             that we dont record/mock calls on these objects
              */
             VariableContainer variableContainer,
-            List<String> noMockClassList) {
+            List<String> noMockClassList
+    ) {
 
 
         ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
-                ScanRequest.CURRENT_CLASS,
+                ScanRequest.ANY_STACK,
                 DirectionType.FORWARDS);
 
-        scanRequest.addListener(EventType.LOCAL_LOAD, index -> {
+        scanRequest.addListener(EventType.LOCAL_LOAD, (index, matchedStack) -> {
             Parameter potentialParameter = ParameterFactory.createParameter(
                     index, replayData, 0, null
             );
@@ -597,7 +602,7 @@ public class TestCandidateMetadata {
             private int paramIndex = 0;
 
             @Override
-            public void eventMatched(Integer callReturnIndex) {
+            public void eventMatched(Integer callReturnIndex, int matchedStack) {
                 DataEventWithSessionId event = replayData.getDataEvents().get(callReturnIndex);
                 DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
                 ClassInfo currentClassInfo = replayData.getClassInfo(probeInfo.getClassId());
@@ -640,6 +645,14 @@ public class TestCandidateMetadata {
         return replayData.eventScan(searchRequest);
     }
 
+    public int getExitProbeIndex() {
+        return exitProbeIndex;
+    }
+
+    public void setExitProbeIndex(int exitProbeIndex) {
+        this.exitProbeIndex = exitProbeIndex;
+    }
+
     public Expression getMainMethod() {
         return mainMethod;
     }
@@ -668,7 +681,7 @@ public class TestCandidateMetadata {
         fieldsContainer.all().forEach(this.fields::add);
     }
 
-    private void setCallList(List<MethodCallExpression> callsList) {
+    public void setCallList(List<MethodCallExpression> callsList) {
         this.methodCallExpressions = callsList;
     }
 
@@ -784,5 +797,21 @@ public class TestCandidateMetadata {
         objectRoutineScript.addComment("");
         return objectRoutineScript;
 
+    }
+
+    public int getEntryProbeIndex() {
+        return entryProbeIndex;
+    }
+
+    public void setEntryProbeIndex(int entryProbeIndex) {
+        this.entryProbeIndex = entryProbeIndex;
+    }
+
+    public void setVariables(VariableContainer variables) {
+        this.variables = variables;
+    }
+
+    public VariableContainer getVariables() {
+        return variables;
     }
 }

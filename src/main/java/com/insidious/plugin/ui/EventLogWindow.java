@@ -19,7 +19,11 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
+import java.io.*;
 import java.util.List;
 import java.util.Vector;
 
@@ -154,6 +158,25 @@ public class EventLogWindow {
 
             }
 
+        });
+
+        eventsTable.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.isControlDown() && (e.getKeyCode() == 'c' || e.getKeyCode() == 'C')) {
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    toExcel(eventsTable, outputStream);
+
+                    StringSelection selection = new StringSelection(
+                            outputStream.toString()
+                    );
+                    Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                            selection, selection
+                    );
+                } else {
+                    super.keyPressed(e);
+                }
+            }
         });
 
         this.firstPage.addActionListener(e -> {
@@ -319,6 +342,35 @@ public class EventLogWindow {
 
     public JPanel getContent() {
         return containerPanel;
+    }
+
+
+    public void toExcel(JTable table, OutputStream excel) {
+        try {
+            TableModel model = table.getModel();
+
+            for (int i = 0; i < model.getColumnCount(); i++) {
+                excel.write((model.getColumnName(i).toString() + "\t").getBytes());
+            }
+
+            excel.write("\n".getBytes());
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                for (int j = 0; j < model.getColumnCount(); j++) {
+                    Object valueAt = model.getValueAt(i, j);
+                    String valueString = "";
+                    if (valueAt != null) {
+                        valueString = valueAt.toString();
+                    }
+                    excel.write((valueString + "\t").getBytes());
+                }
+                excel.write("\n".getBytes());
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            // should never happen
+        }
     }
 
 }

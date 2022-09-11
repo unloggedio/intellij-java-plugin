@@ -31,14 +31,6 @@ public class ScanRequest {
     private int startStack = 0;
     private boolean aborted = false;
 
-    public boolean isAborted() {
-        return aborted;
-    }
-
-    public void matchUntil(EventType eventType) {
-        matchUntilEvent.add(eventType);
-    }
-
     public ScanRequest(
             // where the search begins
             ScanResult startIndex,
@@ -53,6 +45,15 @@ public class ScanRequest {
         this.startIndex = startIndex;
         this.direction = direction;
     }
+
+    public boolean isAborted() {
+        return aborted;
+    }
+
+    public void matchUntil(EventType eventType) {
+        matchUntilEvent.add(eventType);
+    }
+
     public void addListener(
             EventType eventType,
             EventMatchListener eventTypeMatchListener
@@ -96,17 +97,25 @@ public class ScanRequest {
         return matchUntilEvent;
     }
 
-    public void onEvent(boolean stackMatch, EventType eventType, int callReturnIndex) {
+    public void onEvent(
+            final boolean stackMatch,
+            final int matchedStack, EventType eventType,
+            int callReturnIndex) {
         if (stackMatch && eventListeners.containsKey(eventType)) {
-            eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex));
+            eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex, matchedStack));
         }
     }
-    public void onValue(boolean stackMatch, Long valueId, int callReturnIndex) {
-        Set<EventMatchListener> listenersToBeInvoked =  new HashSet<>();
+
+    public void onValue(
+            final boolean stackMatch,
+            final int matchedStack,
+            final Long valueId,
+            final int callReturnIndex) {
+        Set<EventMatchListener> listenersToBeInvoked = new HashSet<>();
         if (stackMatch && valueEventListeners.containsKey(valueId)) {
             listenersToBeInvoked = new HashSet<>(valueEventListeners.get(valueId));
         }
-        listenersToBeInvoked.forEach(e -> e.eventMatched(callReturnIndex));
+        listenersToBeInvoked.forEach(e -> e.eventMatched(callReturnIndex, matchedStack));
     }
 
     public int getStartStack() {

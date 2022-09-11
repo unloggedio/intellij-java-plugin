@@ -180,11 +180,12 @@ public class ReplayData {
                         stackMatch = true;
                     }
                 }
-
+            } else if (searchRequestCallStack == ScanRequest.ANY_STACK) {
+                stackMatch = true;
             }
 
-            scanRequest.onEvent(stackMatch, eventType, callReturnIndex);
-            scanRequest.onValue(stackMatch, event.getValue(), callReturnIndex);
+            scanRequest.onEvent(stackMatch, callStack, eventType, callReturnIndex);
+            scanRequest.onValue(stackMatch, callStack, event.getValue(), callReturnIndex);
 
             if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
                 return new ScanResult(callReturnIndex, callStack);

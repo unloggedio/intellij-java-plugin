@@ -725,10 +725,20 @@ public class TestCaseService {
 
 
                     TestCandidateMetadata newTestCaseMetadata =
-                            TestCandidateMetadata.create(
-                                    typeNameHierarchyList, methodInfo,
-                                    backEvent.getNanoTime(), replayEventsBefore,
-                                    testCaseRequest);
+                            TestCandidateMetadata.create(typeNameHierarchyList, methodInfo,
+                                    backEvent.getNanoTime(), replayEventsBefore);
+
+                    List<MethodCallExpression> callsList =
+                            TestCandidateMetadata.searchMethodCallExpressions(
+                                    replayEventsBefore,
+                                    newTestCaseMetadata.getEntryProbeIndex(),
+                                    typeNameHierarchyList,
+                                    newTestCaseMetadata.getVariables(),
+                                    testCaseRequest.getNoMockClassList()
+                            );
+
+                    newTestCaseMetadata.setCallList(callsList);
+
 
 
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();

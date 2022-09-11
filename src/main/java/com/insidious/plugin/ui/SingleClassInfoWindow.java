@@ -40,6 +40,7 @@ public class SingleClassInfoWindow {
     private final Project project;
     private final InsidiousService insidiousService;
     private final List<ObjectWithTypeInfo> objectResultList = new LinkedList<>();
+    private final DefaultTableModel tableDataModel;
     private JPanel containerPanel;
     private JLabel headingLabel;
     private JPanel controlPanel;
@@ -51,7 +52,6 @@ public class SingleClassInfoWindow {
     private JTable objectListTable;
     private JScrollPane resultContainerPanel;
     private LoadEventHistoryListener eventHistoryListener;
-    private final DefaultTableModel tableDataModel;
 
     public SingleClassInfoWindow(
             Project project,
@@ -110,7 +110,7 @@ public class SingleClassInfoWindow {
     }
 
     public void doSearch(String searchQuery) {
-        tableDataModel.setRowCount(0);
+        clearResults();
         searchQueryTextField.setText(searchQuery);
 
 
@@ -160,8 +160,6 @@ public class SingleClassInfoWindow {
                                         @Override
                                         public void success(Collection<ObjectWithTypeInfo> tracePoints) {
                                             addTracePointsToTable(tracePoints);
-
-
                                         }
 
                                         @Override
@@ -180,6 +178,15 @@ public class SingleClassInfoWindow {
             ex.printStackTrace();
 //            resultTextArea.append("Failed to search: " + ex.getMessage() + "\n");
         }
+    }
+
+    private void clearResults() {
+        objectResultList.clear();
+        int rowCount = tableDataModel.getRowCount();
+        for (int i = 0; i < rowCount; i++) {
+            tableDataModel.removeRow(0);
+        }
+        tableDataModel.setRowCount(0);
     }
 
     private void addTracePointsToTable(Collection<ObjectWithTypeInfo> tracePoints) {
@@ -220,16 +227,13 @@ public class SingleClassInfoWindow {
                 );
             }
         };
-        ActionListener actionTestListener = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ObjectWithTypeInfo selectedTracePoint = objectResultList.get(objectListTable.getSelectedRow());
-                try {
-                    insidiousService.generateTestCases(selectedTracePoint);
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    throw new RuntimeException(ex);
-                }
+        ActionListener actionTestListener = e -> {
+            ObjectWithTypeInfo selectedTracePoint = objectResultList.get(objectListTable.getSelectedRow());
+            try {
+                insidiousService.generateTestCases(selectedTracePoint);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                throw new RuntimeException(ex);
             }
         };
         objectListTable.getColumn("Load").setCellEditor(new ButtonEditor(new JCheckBox(),

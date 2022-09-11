@@ -250,7 +250,7 @@ public class ParameterFactory {
         }
 
         AtomicReference<String> identifiedType = new AtomicReference<>();
-        scanRequest.addListener(event.getValue(), index -> {
+        scanRequest.addListener(event.getValue(), (index, matchedStack) -> {
             DataEventWithSessionId matchedEvent = replayData.getDataEvents().get(index);
             DataInfo matchedEventProbe = replayData.getProbeInfo(matchedEvent.getDataId());
             switch (matchedEventProbe.getEventType()) {

@@ -1,25 +1,22 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
 import com.insidious.common.weaver.*;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
+import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.pojo.EventMatchListener;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.pojo.ScanRequest;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MethodCallExtractor implements EventMatchListener {
@@ -48,11 +45,11 @@ public class MethodCallExtractor implements EventMatchListener {
     }
 
     @Override
-    public void eventMatched(Integer index) {
+    public void eventMatched(Integer index, int matchedStack) {
         DataEventWithSessionId event = replayData.getDataEvents().get(index);
-        Optional<Parameter> existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
-        if (existingVariable.isPresent()) {
-            return;
+        Optional<Parameter> existingVariable = Optional.empty();
+        if (event.getValue() != 0) {
+            existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
         }
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
@@ -60,9 +57,6 @@ public class MethodCallExtractor implements EventMatchListener {
         String methodDescription = probeInfo.getAttribute("Desc", null);
         List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
         String returnType = methodDescList.get(methodDescList.size() - 1);
-        if (Objects.equals(returnType, "V")) {
-            return;
-        }
 
 
         String ownerClass = probeInfo.getAttribute("Owner", null);
@@ -71,15 +65,30 @@ public class MethodCallExtractor implements EventMatchListener {
         ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
         MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
 
-        String dottedClassName = ClassTypeUtils.getDottedClassName(ownerClass);
+        String ownerClassName = ClassTypeUtils.getDottedClassName(ownerClass);
 
-        if (typeHierarchy.contains(dottedClassName)) {
+
+        LoggerUtil.logEvent(
+                "SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
+        );
+
+
+        if (existingVariable.isPresent()) {
+            return;
+        }
+
+        if (Objects.equals(returnType, "V")) {
+            return;
+        }
+
+
+        if (typeHierarchy.contains(ownerClassName)) {
             return;
         }
 
         if (noMockClassList.size() > 0) {
             for (String noMock : noMockClassList) {
-                if (dottedClassName.startsWith(noMock)) {
+                if (ownerClassName.startsWith(noMock)) {
                     return;
                 }
             }
@@ -105,15 +114,22 @@ public class MethodCallExtractor implements EventMatchListener {
             LoggerUtil.logEvent(
                     "STATICCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
             );
+
+
+            try {
+                TestCandidateMetadata candidate = TestCandidateMetadata.create(
+                        typeHierarchy, methodInfo, index, replayData
+                );
+            } catch (APICallException | SessionNotSelectedException e) {
+                logger.warn("failed to extract calls for static call: " + methodInfo);
+//                throw new RuntimeException(e);
+            }
             return;
         }
 
         if (methodName.equals("<init>")) {
             return;
         }
-        LoggerUtil.logEvent(
-                "SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
-        );
 
         List<String> subjectTypeHierarchy = replayData.buildHierarchyFromTypeName(
                 "L" + ownerClass + ";");
@@ -133,22 +149,23 @@ public class MethodCallExtractor implements EventMatchListener {
         List<Parameter> subjectParameterList = new LinkedList<>();
         EventMatchListener subjectMatchListener = new EventMatchListener() {
             @Override
-            public void eventMatched(Integer index) {
+            public void eventMatched(Integer index, int matchedStack) {
 
-                DataEventWithSessionId matchedSubjectEvent =
-                        replayData.getDataEvents().get(index);
+                DataEventWithSessionId matchedSubjectEvent = replayData.getDataEvents().get(index);
                 DataInfo subjectEventProbe = replayData.getProbeInfo(matchedSubjectEvent.getDataId());
 
-                String valueType = subjectEventProbe.getAttribute("Type", null);
+                String parameterClassType = subjectEventProbe.getAttribute("Type", null);
 
                 Parameter potentialSubjectParameter;
 
                 potentialSubjectParameter =
-                        ParameterFactory.createParameter(index, replayData,
-                                0, valueType);
+                        ParameterFactory.createParameter(index, replayData, 0, parameterClassType);
 
                 List<String> buildHierarchyFromTypeName =
-                        replayData.buildHierarchyFromTypeName(ClassTypeUtils.getDescriptorName(potentialSubjectParameter.getType()));
+                        replayData.buildHierarchyFromTypeName(
+                                ClassTypeUtils.getDescriptorName(
+                                        potentialSubjectParameter.getType()));
+
                 if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
                     subjectParameterList.add(potentialSubjectParameter);
                 }
@@ -180,7 +197,7 @@ public class MethodCallExtractor implements EventMatchListener {
         AtomicInteger lookingForParams = new AtomicInteger(1);
         callReturnScan.addListener(EventType.CALL_PARAM, new EventMatchListener() {
             @Override
-            public void eventMatched(Integer index) {
+            public void eventMatched(Integer index, int matchedStack) {
                 if (lookingForParams.get() == 1) {
                     Parameter callArgumentParameter = ParameterFactory.createParameterByCallArgument(
                             index, replayData, callArguments.size(), null
@@ -189,8 +206,8 @@ public class MethodCallExtractor implements EventMatchListener {
                 }
             }
         });
-        callReturnScan.addListener(EventType.CALL, i -> lookingForParams.set(0));
-        callReturnScan.addListener(EventType.METHOD_ENTRY, i -> lookingForParams.set(0));
+        callReturnScan.addListener(EventType.CALL, (i, s) -> lookingForParams.set(0));
+        callReturnScan.addListener(EventType.METHOD_ENTRY, (i, s) -> lookingForParams.set(0));
 
 
         callReturnScan.matchUntil(EventType.CALL_RETURN);
