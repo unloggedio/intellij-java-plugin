@@ -46,6 +46,10 @@ public class PendingStatement {
 
         if (lhsExpression != null && !lhsExpression.getType().equals("V")) {
 
+            if (lhsExpression.getName() == null) {
+                lhsExpression.setName(generateNameForReturnParameter());
+            }
+
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
             if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
                 objectRoutine.getCreatedVariables().add(lhsExpression);
@@ -108,18 +112,26 @@ public class PendingStatement {
 
                     }
 
-                }  else if (methodCallExpression.getMethodName().equals("injectField")
+                } else if (methodCallExpression.getMethodName().equals("injectField")
                         && methodCallExpression.getSubject() == null) {
 
 
                     List<? extends Parameter> variables = methodCallExpression.getArguments().all();
 
-                    statementBuilder.append("injectField($L, $S, $L)");
-                    statementParameters.add(variables.get(0).getName());
+
+                    Parameter injectionTarget = variables.get(0);
+                    if (injectionTarget.getName() != null) {
+                        statementBuilder.append("injectField($L, $S, $L)");
+                        statementParameters.add(injectionTarget.getName());
+                    } else  if (injectionTarget.getType() != null) {
+                        statementBuilder.append("injectField($T.class, $S, $L)");
+                        statementParameters.add(ClassName.bestGuess(injectionTarget.getType()));
+                    }
+
                     statementParameters.add(variables.get(1).getName());
                     statementParameters.add(variables.get(1).getName());
 
-                }  else if (methodCallExpression.getMethodName().equals("thenThrow")
+                } else if (methodCallExpression.getMethodName().equals("thenThrow")
                         && methodCallExpression.getSubject() == null) {
 
 
@@ -165,6 +177,16 @@ public class PendingStatement {
 
         String statement = statementBuilder.toString();
         objectRoutine.addStatement(statement, statementParameters);
+    }
+
+    private String generateNameForReturnParameter() {
+        String variableName = "var";
+        for (int i = 0; i < 100; i++) {
+            if (!objectRoutine.getCreatedVariables().contains(variableName + i)) {
+                return variableName + i;
+            }
+        }
+        return null;
     }
 
     public PendingStatement fromRecordedValue() {

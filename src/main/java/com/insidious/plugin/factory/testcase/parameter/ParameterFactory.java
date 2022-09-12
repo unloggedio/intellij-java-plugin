@@ -149,8 +149,10 @@ public class ParameterFactory {
             ReplayData replayData,
             String expectedParameterType
     ) {
+        String expectedType = null;
         if (expectedParameterType != null) {
-            expectedParameterType = ClassTypeUtils.getDottedClassName(expectedParameterType);
+            expectedType = ClassTypeUtils.getDottedClassName(expectedParameterType);
+            expectedParameterType = expectedType;
         }
 
 
@@ -167,9 +169,10 @@ public class ParameterFactory {
 
         parameter.setProbeInfo(probeInfo);
 
+        List<String> typeHierarchyFromReceiverTypeList = new LinkedList<>();
         if (objectInfo != null) {
             TypeInfo receiverParameterTypeInfo = replayData.getTypeInfo(objectInfo.getTypeId());
-            List<String> typeHierarchyFromReceiverTypeList = replayData.buildHierarchyFromType(
+            typeHierarchyFromReceiverTypeList = replayData.buildHierarchyFromType(
                     receiverParameterTypeInfo);
             assert typeHierarchyFromReceiverTypeList.size() != 0;
             parameter.setType(typeHierarchyFromReceiverTypeList.get(0));
@@ -179,11 +182,16 @@ public class ParameterFactory {
 
         String finalIdentifiedType = getTypeForValueAtProbeIndex(event, eventIndex, replayData, probeInfo);
 
-        parameter.setType(finalIdentifiedType);
+        if (finalIdentifiedType != null &&
+                !finalIdentifiedType.contains(".Object")
+                && parameter.getType() == null) {
+            parameter.setType(finalIdentifiedType);
+        }
 
         if (expectedParameterType != null) {
-            if (finalIdentifiedType == null) {
-                parameter.setType(ClassTypeUtils.getDottedClassName(expectedParameterType));
+            if (finalIdentifiedType == null &&
+                    !parameter.getType().equals(expectedType)) {
+                parameter.setType(expectedType);
             } else if (!expectedParameterType.equals(finalIdentifiedType)) {
                 logger.warn("final type does not matched expected type: " + expectedParameterType + " - " + finalIdentifiedType);
             }
@@ -217,7 +225,7 @@ public class ParameterFactory {
         }
 
 
-            String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
+        String paramName = ClassTypeUtils.getVariableNameFromProbe(probeInfo, null);
         if (paramName != null) {
             parameter.setName(paramName);
             return parameter;
@@ -242,7 +250,7 @@ public class ParameterFactory {
             ReplayData replayData,
             DataInfo probeInfo) {
         ScanRequest scanRequest = new ScanRequest(
-                new ScanResult(eventIndex, 0), ScanRequest.ANY_STACK, DirectionType.FORWARDS);
+                new ScanResult(eventIndex, 0, false), ScanRequest.ANY_STACK, DirectionType.FORWARDS);
 
         String typeFromProbe = probeInfo.getAttribute("Type", null);
         if (typeFromProbe != null) {
@@ -477,7 +485,27 @@ public class ParameterFactory {
 
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
-        Parameter parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
+
+        Parameter parameter;
+        if (probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+
+
+            DataEventWithSessionId extEvent =
+                    replayData.getDataEvents().get(eventIndex);
+            DataInfo exitProbeInfo = replayData.getProbeInfo(extEvent.getDataId());
+            ObjectInfo exitValueObjectInfo = replayData.getObjectInfo(extEvent.getValue());
+            TypeInfo exceptionTypeInfo = replayData.getTypeInfo(exitValueObjectInfo.getTypeId());
+
+            parameter = new Parameter();
+            parameter.setType(ClassTypeUtils.getDottedClassName(exceptionTypeInfo.getTypeNameFromClass()));
+            parameter.setValue(extEvent.getValue());
+            parameter.setProb(extEvent);
+            parameter.setProbeInfo(exitProbeInfo);
+
+
+        } else {
+            parameter = createParameterInternal(event, eventIndex, replayData, expectedParameterType);
+        }
 
 
         if (parameter.getType() == null || parameter.getType().equals("V")) {
@@ -611,7 +639,7 @@ public class ParameterFactory {
         // would have been potentially used
 
 
-        ScanRequest scanRequest = new ScanRequest(new ScanResult(eventIndex, 0), 0,
+        ScanRequest scanRequest = new ScanRequest(new ScanResult(eventIndex, 0, false), 0,
                 DirectionType.FORWARDS);
         replayData.eventScan(scanRequest);
 

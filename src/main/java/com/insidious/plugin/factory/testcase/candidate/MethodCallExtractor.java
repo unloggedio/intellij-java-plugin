@@ -1,13 +1,10 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
 import com.insidious.common.weaver.*;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
@@ -15,6 +12,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -114,16 +112,6 @@ public class MethodCallExtractor implements EventMatchListener {
             LoggerUtil.logEvent(
                     "STATICCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
             );
-
-
-            try {
-                TestCandidateMetadata candidate = TestCandidateMetadata.create(
-                        typeHierarchy, methodInfo, index, replayData
-                );
-            } catch (APICallException | SessionNotSelectedException e) {
-                logger.warn("failed to extract calls for static call: " + methodInfo);
-//                throw new RuntimeException(e);
-            }
             return;
         }
 
@@ -131,135 +119,8 @@ public class MethodCallExtractor implements EventMatchListener {
             return;
         }
 
-        List<String> subjectTypeHierarchy = replayData.buildHierarchyFromTypeName(
-                "L" + ownerClass + ";");
-
-        String callOwner = probeInfo.getAttribute("Owner", null);
-        if (callOwner == null) {
-            return;
-        }
-
-        logger.warn("[MethodCall] " + ownerClass + "." + methodName + " : " + methodDescription);
-
-        List<Parameter> callArguments = new LinkedList<>();
-
-        ScanRequest callSubjectScan = new ScanRequest(new ScanResult(index, 0), 0,
-                DirectionType.BACKWARDS);
-        AtomicInteger subjectMatchIndex = new AtomicInteger(0);
-        List<Parameter> subjectParameterList = new LinkedList<>();
-        EventMatchListener subjectMatchListener = new EventMatchListener() {
-            @Override
-            public void eventMatched(Integer index, int matchedStack) {
-
-                DataEventWithSessionId matchedSubjectEvent = replayData.getDataEvents().get(index);
-                DataInfo subjectEventProbe = replayData.getProbeInfo(matchedSubjectEvent.getDataId());
-
-                String parameterClassType = subjectEventProbe.getAttribute("Type", null);
-
-                Parameter potentialSubjectParameter;
-
-                potentialSubjectParameter =
-                        ParameterFactory.createParameter(index, replayData, 0, parameterClassType);
-
-                List<String> buildHierarchyFromTypeName =
-                        replayData.buildHierarchyFromTypeName(
-                                ClassTypeUtils.getDescriptorName(
-                                        potentialSubjectParameter.getType()));
-
-                if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
-                    subjectParameterList.add(potentialSubjectParameter);
-                }
-            }
-        };
-//                callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
-//                callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
-        callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
-        callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
-
-        callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
-        replayData.eventScan(callSubjectScan);
-
-        Parameter subjectParameter;
-        if (subjectParameterList.size() == 0) {
-            logger.warn("failed to identify subject for the call: " + methodName + " at " + probeInfo);
-            return;
-//                    subjectParameter = new Parameter();
-//                    subjectParameter.setName("testSubjectFor" + methodName);
-//                    subjectParameter.setType(subjectTypeHierarchy.get(0));
-        } else {
-            subjectParameter = subjectParameterList.get(0);
-        }
-
-
-        ScanRequest callReturnScan = new ScanRequest(new ScanResult(index, 0), 0,
-                DirectionType.FORWARDS);
-
-        AtomicInteger lookingForParams = new AtomicInteger(1);
-        callReturnScan.addListener(EventType.CALL_PARAM, new EventMatchListener() {
-            @Override
-            public void eventMatched(Integer index, int matchedStack) {
-                if (lookingForParams.get() == 1) {
-                    Parameter callArgumentParameter = ParameterFactory.createParameterByCallArgument(
-                            index, replayData, callArguments.size(), null
-                    );
-                    callArguments.add(callArgumentParameter);
-                }
-            }
-        });
-        callReturnScan.addListener(EventType.CALL, (i, s) -> lookingForParams.set(0));
-        callReturnScan.addListener(EventType.METHOD_ENTRY, (i, s) -> lookingForParams.set(0));
-
-
-        callReturnScan.matchUntil(EventType.CALL_RETURN);
-        callReturnScan.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
-
-        ScanResult callReturnScanResult = replayData.eventScan(callReturnScan);
-        if (callReturnScanResult.getIndex() == -1 ||
-                callReturnScanResult.getIndex() == replayData.getDataEvents().size()) {
-            logger.warn("call return not found for " + probeInfo);
-            return;
-        }
-
-        DataInfo exitProbeInfo = replayData.getProbeInfo(replayData.getDataEvents().get(callReturnScanResult.getIndex()).getDataId());
-        Parameter callReturnParameter = null;
-        Parameter exception = null;
-
-
-        if (exitProbeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-
-            DataEventWithSessionId extEvent = replayData.getDataEvents().get(callReturnScanResult.getIndex());
-            ObjectInfo exitValueObjectInfo = replayData.getObjectInfo(extEvent.getValue());
-            TypeInfo exceptionTypeInfo = replayData.getTypeInfo(exitValueObjectInfo.getTypeId());
-
-            exception = new Parameter();
-            exception.setType(ClassTypeUtils.getDottedClassName(exceptionTypeInfo.getTypeNameFromClass()));
-            exception.setValue(extEvent.getValue());
-            exception.setProb(extEvent);
-            exception.setProbeInfo(exitProbeInfo);
-
-        } else if (exitProbeInfo.getEventType() == EventType.CALL_RETURN) {
-            callReturnParameter = ParameterFactory.createReturnValueParameter(
-                    callReturnScanResult.getIndex(), replayData, returnType);
-
-            if (callReturnParameter.getName() == null) {
-                callReturnParameter.setName(
-                        ClassTypeUtils.createVariableNameFromMethodName(methodName,
-                                callReturnParameter.getType())
-                );
-            }
-
-            if (callReturnParameter.getType() == null || callReturnParameter.getType().equals("V")) {
-                return;
-            }
-
-        } else {
-            logger.error("what kind of exit");
-        }
-
-
-        MethodCallExpression methodCallExpression = MethodCallExpressionFactory.MethodCallExpression(
-                methodName, subjectParameter, VariableContainer.from(callArguments),
-                callReturnParameter, exception);
+        MethodCallExpression methodCallExpression = replayData.extractMethodCall(index);
+        if (methodCallExpression == null) return;
         callList.add(methodCallExpression);
     }
 

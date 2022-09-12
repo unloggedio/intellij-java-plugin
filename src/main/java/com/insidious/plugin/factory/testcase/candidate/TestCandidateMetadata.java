@@ -23,11 +23,14 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
+import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 
 public class TestCandidateMetadata {
@@ -45,6 +48,7 @@ public class TestCandidateMetadata {
     private int entryProbeIndex;
     private int exitProbeIndex;
     private VariableContainer variables;
+    private List<MethodCallExpression> staticCalls;
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,
@@ -119,7 +123,7 @@ public class TestCandidateMetadata {
         logger.info("located entry probe at: " + entryProbeIndex + " -- " + entryProbeInfo);
 
         int currentEntryProbeIndex = entryProbeIndex;
-        ScanResult callReturnScanResult = new ScanResult(currentEntryProbeIndex, 0);
+        ScanResult callReturnScanResult = new ScanResult(currentEntryProbeIndex, 0, false);
         int pageSize = 1000;
         while (true) {
 
@@ -130,8 +134,13 @@ public class TestCandidateMetadata {
                         List.of(EventType.METHOD_OBJECT_INITIALIZED));
             } else {
                 logger.info("entry probe is of type method entry " + methodName);
-                callReturnScanResult = searchMethodExitIndex(replayData,
-                        callReturnScanResult, List.of(EventType.METHOD_NORMAL_EXIT));
+                callReturnScanResult =
+                        searchMethodExitIndex(replayData,
+                                callReturnScanResult,
+                                List.of(
+                                        EventType.METHOD_NORMAL_EXIT,
+                                        EventType.METHOD_EXCEPTIONAL_EXIT
+                                ));
             }
 
 
@@ -154,7 +163,7 @@ public class TestCandidateMetadata {
                 break;
             }
             callReturnScanResult = new ScanResult(nextPage.getDataEvents().size() - 1,
-                    callReturnScanResult.getCallStack());
+                    callReturnScanResult.getCallStack(), false);
 
             replayData.mergeReplayData(nextPage);
         }
@@ -325,7 +334,7 @@ public class TestCandidateMetadata {
                 AtomicReference<Parameter> responseBodyStringProbe = new AtomicReference<>();
 
                 ScanRequest scanRequest = new ScanRequest(
-                        new ScanResult(targetParameter.getIndex(), 0), 0, DirectionType.FORWARDS);
+                        new ScanResult(targetParameter.getIndex(), 0, false), 0, DirectionType.FORWARDS);
 
                 scanRequest.addListener(EventType.CALL_RETURN, (index, matchedStack) -> {
 
@@ -414,7 +423,7 @@ public class TestCandidateMetadata {
 
 
                 ScanRequest identifyIteratorScanRequest = new ScanRequest(
-                        new ScanResult(targetParameter.getIndex(), 0), ScanRequest.CURRENT_CLASS,
+                        new ScanResult(targetParameter.getIndex(), 0, false), ScanRequest.CURRENT_CLASS,
                         DirectionType.FORWARDS
                 );
 
@@ -524,7 +533,7 @@ public class TestCandidateMetadata {
         VariableContainer variableContainer = new VariableContainer();
 
 
-        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
+        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0, false),
                 ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS);
 
         scanRequest.addListener(EventType.GET_INSTANCE_FIELD_RESULT, (index, matchedStack) -> {
@@ -560,9 +569,8 @@ public class TestCandidateMetadata {
     ) {
 
 
-        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0),
-                ScanRequest.ANY_STACK,
-                DirectionType.FORWARDS);
+        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0, false),
+                ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS);
 
         scanRequest.addListener(EventType.LOCAL_LOAD, (index, matchedStack) -> {
             Parameter potentialParameter = ParameterFactory.createParameter(
@@ -592,7 +600,7 @@ public class TestCandidateMetadata {
                 callParameterDescriptions.size() + " params to be found");
 
         List<Parameter> methodParameterProbes = new LinkedList<>();
-        ScanRequest searchRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0), 0,
+        ScanRequest searchRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0, false), 0,
                 DirectionType.FORWARDS);
         searchRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
         searchRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
@@ -643,6 +651,38 @@ public class TestCandidateMetadata {
         }
 
         return replayData.eventScan(searchRequest);
+    }
+
+    public static List<MethodCallExpression>
+    searchStaticMethodCallExpression(
+            ReplayData replayData,
+            int entryProbeIndex,
+            List<String> typeHierarchy,
+            VariableContainer variableContainer,
+            List<String> noMockClassList
+    ) {
+        ScanRequest scanRequest = new ScanRequest(new ScanResult(entryProbeIndex, 0, false),
+                ScanRequest.ANY_STACK,
+                DirectionType.FORWARDS);
+
+        scanRequest.addListener(EventType.LOCAL_LOAD, (index, matchedStack) -> {
+            Parameter potentialParameter = ParameterFactory.createParameter(
+                    index, replayData, 0, null
+            );
+            variableContainer.add(potentialParameter);
+        });
+
+        StaticMethodCallExtractor methodCallExtractor = new StaticMethodCallExtractor(
+                replayData, variableContainer, typeHierarchy, noMockClassList
+        );
+        scanRequest.addListener(EventType.CALL, methodCallExtractor);
+        scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
+        scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
+        scanRequest.matchUntil(EventType.METHOD_OBJECT_INITIALIZED);
+
+        replayData.eventScan(scanRequest);
+
+        return methodCallExtractor.getCallList();
     }
 
     public int getExitProbeIndex() {
@@ -764,14 +804,15 @@ public class TestCandidateMetadata {
 
 
             MethodCallExpression mainMethod = (MethodCallExpression) getMainMethod();
-            Parameter mainMethodReturnValue = mainMethod.getReturnValue();
 
 
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
-            if (getCallsList().size() > 0) {
+            List<MethodCallExpression> callToMock = getCallsList();
+
+            if (callToMock.size() > 0) {
 
                 objectRoutineScript.addComment("");
-                for (MethodCallExpression methodCallExpression : getCallsList()) {
+                for (MethodCallExpression methodCallExpression : callToMock) {
                     if (mainMethod.getException() != null && mockedCalls.containsKey(mainMethod.getMethodName())) {
                         continue;
                     }
@@ -784,6 +825,59 @@ public class TestCandidateMetadata {
                 objectRoutineScript.addComment("");
                 objectRoutineScript.addComment("");
             }
+
+
+            List<MethodCallExpression> staticCallsList = getStaticCalls();
+
+            if (staticCallsList != null && staticCallsList.size() > 0) {
+
+                Map<String, Boolean> doneMap = new HashMap<>();
+
+                for (MethodCallExpression methodCallExpression : staticCallsList) {
+
+                    Parameter subject = methodCallExpression.getSubject();
+
+                    String mockedFieldsKey = subject.getName();
+
+                    if (doneMap.containsKey(mockedFieldsKey)) {
+                        continue;
+                    }
+
+                    if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
+                        in(objectRoutineScript)
+                                .assignVariable(subject)
+                                .writeExpression(MethodCallExpressionFactory
+                                        .MockClass(ClassName.bestGuess(subject.getType())))
+                                .endStatement();
+                    }
+                    doneMap.put(mockedFieldsKey, true);
+                    objectRoutineScript.addComment("Add mock for call on field from static call: " + methodCallExpression);
+                    methodCallExpression.writeMockTo(objectRoutineScript);
+
+                    String owner = subject.getProbeInfo().getAttribute("Owner", null);
+                    assert owner.length() > 2;
+                    String subjectOwner = ClassTypeUtils.getDottedClassName(
+                            "L" + owner + ";"
+                    );
+                    Parameter parentParameter = new Parameter();
+                    parentParameter.setType(subjectOwner);
+
+                    MethodCallExpression
+                            .in(objectRoutineScript)
+                            .writeExpression(
+                                    new MethodCallExpression("injectField", null,
+                                            VariableContainer.from(
+                                                    List.of(parentParameter, subject
+                                                    )), null, null))
+                            .endStatement();
+
+                    objectRoutineScript.addComment("");
+
+                }
+
+
+            }
+
             if (mainMethod.getMethodName().equals("<init>")) {
                 objectRoutineScript.getCreatedVariables().add(mainMethod.getReturnValue());
             }
@@ -807,11 +901,19 @@ public class TestCandidateMetadata {
         this.entryProbeIndex = entryProbeIndex;
     }
 
+    public VariableContainer getVariables() {
+        return variables;
+    }
+
     public void setVariables(VariableContainer variables) {
         this.variables = variables;
     }
 
-    public VariableContainer getVariables() {
-        return variables;
+    public List<MethodCallExpression> getStaticCalls() {
+        return staticCalls;
+    }
+
+    public void setStaticCalls(List<MethodCallExpression> staticCalls) {
+        this.staticCalls = staticCalls;
     }
 }

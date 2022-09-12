@@ -37,9 +37,11 @@ public class MethodCallExpressionFactory {
                 methodName, subjectParameter, from, callReturnParameter, exception
         );
     }
+
     public static Expression PlainValueExpression(String value) {
         return new PlainValueExpression(value);
     }
+
     public static Expression StringExpression(String s) {
         return new StringExpression(s);
     }
@@ -131,45 +133,20 @@ public class MethodCallExpressionFactory {
     }
 
     public static MethodCallExpression FromJson(Parameter object) {
-
-//        Parameter returnTypeParameter = new Parameter();
-
-//        returnTypeParameter.setValue(object.getType().replace('$', '.'));
-
-//        returnTypeParameter.setCreator(
-//                newTypeTokenConstructor(object.getTemplateMap().get("E"))
-//        );
-
-//        Parameter jsonValue = new Parameter();
-//        jsonValue.setValue(new String(object.getProb().getSerializedValue()));
-//        MethodCallExpression methodCallExpression;
-//
-//        if (object.isContainer()) {
-//            /**
-//             * new TypeToken<List<Country>>(){}.getType()
-//             */
-//
-//            methodCallExpression = MethodCallExpression(
-//                    "fromJson", GsonClass,
-//                    VariableContainer.from(List.of(object)),
-//                    null, null);
-//
-//
-//        } else {
-            return MethodCallExpression(
-                    "fromJson", GsonClass,
-                    VariableContainer.from(List.of(object)),
-                    null, null);
-//        }
-//        return methodCallExpression;
+        return MethodCallExpression(
+                "fromJson", GsonClass,
+                VariableContainer.from(List.of(object)),
+                null, null);
     }
 
-//    /**
-//     * new TypeToken<List<Country>>(){}.getType()
-//     * @param ofType
-//     * @return
-//     */
-//    private static MethodCallExpression newTypeTokenConstructor(Parameter ofType) {
-//        return new MethodCallExpression("<init>", null, );
-//    }
+    public static MethodCallExpression
+    StaticMethodCallExpression(
+            String methodName,
+            VariableContainer variableContainer,
+            Parameter callReturnParameter,
+            Parameter exception) {
+        return new MethodCallExpression(
+                methodName, null, variableContainer, callReturnParameter, exception
+        );
+    }
 }

@@ -99,7 +99,8 @@ public class ScanRequest {
 
     public void onEvent(
             final boolean stackMatch,
-            final int matchedStack, EventType eventType,
+            final int matchedStack,
+            EventType eventType,
             int callReturnIndex) {
         if (stackMatch && eventListeners.containsKey(eventType)) {
             eventListeners.get(eventType).forEach(e -> e.eventMatched(callReturnIndex, matchedStack));

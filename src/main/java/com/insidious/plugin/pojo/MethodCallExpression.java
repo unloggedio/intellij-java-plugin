@@ -74,8 +74,6 @@ public class MethodCallExpression implements Expression {
         }
 
 
-
-
         objectRoutineScript.addComment("");
 
 
@@ -89,7 +87,8 @@ public class MethodCallExpression implements Expression {
 
             objectRoutineScript.addComment("");
             for (Parameter parameter : arguments.all()) {
-                if (parameter.getName() == null && parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0) {
+                if (parameter.getName() == null && parameter.getProb() != null
+                        && parameter.getProb().getSerializedValue().length > 0) {
                     String serializedValue = new String(parameter.getProb().getSerializedValue());
                     if (parameter.getType().equals("java.lang.String")) {
                         serializedValue = '"' + serializedValue + '"';
@@ -100,12 +99,6 @@ public class MethodCallExpression implements Expression {
             }
             objectRoutineScript.addComment("");
             objectRoutineScript.addComment("");
-
-            for (Parameter parameter : arguments.all()) {
-                if (parameter.getName() != null) {
-                    in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
-                }
-            }
 
         }
 
@@ -227,6 +220,19 @@ public class MethodCallExpression implements Expression {
 //                            "(" + callArgumentsString + ");" +
 //                            " // ==>  throws exception " + exception.getType());
         }
+    }
+
+    @Override
+    public String toString() {
+
+        String owner = "<n/a>";
+        if (subject != null && subject.getProbeInfo() != null) {
+            owner = subject.getProbeInfo().getAttribute("Owner", null);
+        }
+        return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null) ?
+                "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
+                "[" + subject.getName() + "." + methodName + "(" + arguments + ")" + "]" +
+                (exception == null ? "" : " throws " + exception.getType());
     }
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {

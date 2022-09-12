@@ -12,7 +12,7 @@ public class VariableContainer {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
     }
 
-    public  static String lowerInstanceName(String methodName) {
+    public static String lowerInstanceName(String methodName) {
         int lowerIndex = 1;
         return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
     }
@@ -74,10 +74,10 @@ public class VariableContainer {
                 .findFirst();
     }
 
-    public boolean contains(String returnSubjectInstanceName) {
-        return this.parameterList
-                .stream()
-                .anyMatch(e -> e.getName() != null && e.getName().equals(returnSubjectInstanceName));
+    public boolean contains(String variableName) {
+        return this.parameterList.stream()
+                .anyMatch(e -> e.getName() != null &&
+                        e.getName().equals(variableName));
     }
 
     public String createVariableName(String className) {
@@ -121,5 +121,10 @@ public class VariableContainer {
                 byId.ifPresent(value -> value.setName(localVariable.getName()));
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return parameterList.size() + " Variables in {" + '}';
     }
 }

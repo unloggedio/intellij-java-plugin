@@ -730,14 +730,21 @@ public class TestCaseService {
 
                     List<MethodCallExpression> callsList =
                             TestCandidateMetadata.searchMethodCallExpressions(
-                                    replayEventsBefore,
-                                    newTestCaseMetadata.getEntryProbeIndex(),
-                                    typeNameHierarchyList,
-                                    newTestCaseMetadata.getVariables(),
+                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
+                                    testCaseRequest.getNoMockClassList()
+                            );
+
+
+                    List<MethodCallExpression> staticMethodCallList =
+                            TestCandidateMetadata.searchStaticMethodCallExpression(
+                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
                                     testCaseRequest.getNoMockClassList()
                             );
 
                     newTestCaseMetadata.setCallList(callsList);
+                    newTestCaseMetadata.setStaticCalls(staticMethodCallList);
 
 
 

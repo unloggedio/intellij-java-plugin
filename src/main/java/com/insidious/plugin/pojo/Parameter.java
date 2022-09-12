@@ -44,11 +44,9 @@ public class Parameter {
 
     @Override
     public String toString() {
-        return "Parameter{" +
+        return "[Name="+ name +"][Type="+type+"]{" +
                 "value=" + value +
-                ", name='" + name + '\'' +
                 ", index=" + index +
-                ", type='" + type + '\'' +
                 ", probeInfo=" + probeInfo +
                 ", prob=" + prob +
                 '}';
