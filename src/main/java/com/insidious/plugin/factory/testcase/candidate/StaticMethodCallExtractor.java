@@ -130,22 +130,27 @@ public class StaticMethodCallExtractor implements EventMatchListener {
 
 
         ScanRequest callsInsideStaticMethodCall = new ScanRequest(
-                new ScanResult(index, 0), ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS
+                new ScanResult(methodEntryScanMatch.getIndex(), 0), ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS
         );
 
         callsInsideStaticMethodCall.addListener(EventType.CALL, new EventMatchListener() {
             @Override
             public void eventMatched(Integer index, int matchedStack) {
                 MethodCallExpression methodCall = replayData.extractMethodCall(index);
-                if (methodCall == null)  {
+                if (methodCall == null || methodCall.getMethodName().equals("<init>"))  {
                     return;
                 }
                 Parameter callSubject = methodCall.getSubject();
                 String subjectType = callSubject.getType();
                 if (subjectType.contains("slf4j") ||
                         subjectType.contains("google") ||
+                        subjectType.contains("logback") ||
                         subjectType.contains("hibernate") ||
-                        subjectType.startsWith("javax.")) {
+                        subjectType.startsWith("javax.")
+                ) {
+                    return;
+                }
+                if (callSubject.getName() != null && callSubject.getName().contains("$")) {
                     return;
                 }
                 if (callSubject.getProbeInfo().getEventType() == EventType.GET_STATIC_FIELD) {
@@ -153,6 +158,8 @@ public class StaticMethodCallExtractor implements EventMatchListener {
                 }
             }
         });
+        callsInsideStaticMethodCall.matchUntil(EventType.METHOD_NORMAL_EXIT);
+        callsInsideStaticMethodCall.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
         replayData.eventScan(callsInsideStaticMethodCall);
     }
 

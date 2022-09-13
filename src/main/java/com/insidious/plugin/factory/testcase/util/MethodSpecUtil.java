@@ -51,7 +51,7 @@ public class MethodSpecUtil {
                         "        Class<?> aClass;\n" +
                         "        if (targetInstance instanceof Class) {\n" +
                         "            aClass = (Class) targetInstance;\n" +
-                        "            while (!targetInstance.equals(Object.class)) {\n" +
+                        "            while (!aClass.equals(Object.class)) {\n" +
                         "                try {\n" +
                         "                    $T targetField = aClass.getDeclaredField(name);\n" +
                         "                    targetField.setAccessible(true);\n" +

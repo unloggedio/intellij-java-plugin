@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -44,35 +45,37 @@ public class PendingStatement {
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new LinkedList<>();
 
+        boolean isExceptionExcepted = false;
+
         if (lhsExpression != null && !lhsExpression.getType().equals("V")) {
 
             if (lhsExpression.getName() == null) {
-                lhsExpression.setName(generateNameForReturnParameter());
+                lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
-            if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
-                objectRoutine.getCreatedVariables().add(lhsExpression);
-                statementBuilder.append("$T $L");
-                statementParameters.add(lhsTypeName);
-                statementParameters.add(lhsExpression.getName());
+            if (lhsExpression.getProbeInfo() != null && lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                isExceptionExcepted = true;
             } else {
-                statementBuilder.append("$L");
-                statementParameters.add(lhsExpression.getName());
-            }
-            statementBuilder.append(" = ");
 
+
+                @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
+                if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
+                    objectRoutine.getCreatedVariables().add(lhsExpression);
+                    statementBuilder.append("$T $L");
+                    statementParameters.add(lhsTypeName);
+                    statementParameters.add(lhsExpression.getName());
+                } else {
+                    statementBuilder.append("$L");
+                    statementParameters.add(lhsExpression.getName());
+                }
+                statementBuilder.append(" = ");
+            }
         }
 
         int i = 0;
         for (Expression expression : this.expressionList) {
             if (expression instanceof MethodCallExpression) {
                 MethodCallExpression methodCallExpression = (MethodCallExpression) expression;
-
-//                for (Parameter parameter : methodCallExpression.getArguments().all()) {
-//                    objectRoutine.getCreatedVariables().add(parameter);
-//
-//                }
 
 
                 String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
@@ -123,7 +126,7 @@ public class PendingStatement {
                     if (injectionTarget.getName() != null) {
                         statementBuilder.append("injectField($L, $S, $L)");
                         statementParameters.add(injectionTarget.getName());
-                    } else  if (injectionTarget.getType() != null) {
+                    } else if (injectionTarget.getType() != null) {
                         statementBuilder.append("injectField($T.class, $S, $L)");
                         statementParameters.add(ClassName.bestGuess(injectionTarget.getType()));
                     }
@@ -174,13 +177,29 @@ public class PendingStatement {
             i++;
         }
 
+        if (isExceptionExcepted) {
+            StringBuilder tryCatchEnclosure = new StringBuilder();
+            tryCatchEnclosure
+                    .append("        try {\n")
+                    .append("            ").append("// this is going to throw exception <>\n")
+                    .append("            ").append(statementBuilder)
+                    .append("        } catch ($T e) {\n")
+                    .append("            \n")
+                    .append("        }\n");
+            statementParameters.add(ClassName.bestGuess(lhsExpression.getType()));
+            statementBuilder = tryCatchEnclosure;
+        }
+
 
         String statement = statementBuilder.toString();
         objectRoutine.addStatement(statement, statementParameters);
     }
 
-    private String generateNameForReturnParameter() {
+    private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
+        if (lhsExpression != null && lhsExpression.getType() != null) {
+            variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
+        }
         for (int i = 0; i < 100; i++) {
             if (!objectRoutine.getCreatedVariables().contains(variableName + i)) {
                 return variableName + i;

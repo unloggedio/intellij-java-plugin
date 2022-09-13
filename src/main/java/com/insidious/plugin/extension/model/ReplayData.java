@@ -411,8 +411,8 @@ public class ReplayData {
         List<String> subjectTypeHierarchy = buildHierarchyFromTypeName(
                 "L" + ownerClass + ";");
 
-        String callOwner = probeInfo.getAttribute("Owner", null);
-        if (callOwner == null) {
+        String callOwnerClassType = probeInfo.getAttribute("Owner", null);
+        if (callOwnerClassType == null) {
             return null;
         }
 
@@ -447,15 +447,18 @@ public class ReplayData {
                                 ClassTypeUtils.getDescriptorName(
                                         potentialSubjectParameter.getType()));
 
-                if (buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
-                    subjectParameterList.add(potentialSubjectParameter);
+                if (!buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
+                    logger.warn("type hierarchy mismatch for subject: " + subjectTypeHierarchy +
+                            " vs " + buildHierarchyFromTypeName  +  " for parameter: " + potentialSubjectParameter);
                 }
+                subjectParameterList.add(potentialSubjectParameter);
                 callSubjectScan.abort();
             }
         };
         callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
         callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
         callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
+        callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
 
         callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
         eventScan(callSubjectScan);
