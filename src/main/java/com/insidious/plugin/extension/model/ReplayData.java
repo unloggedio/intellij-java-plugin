@@ -463,10 +463,16 @@ public class ReplayData {
         callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
         eventScan(callSubjectScan);
 
-        Parameter subjectParameter;
+        Parameter subjectParameter ;
         if (subjectParameterList.size() == 0) {
             logger.warn("failed to identify subject for the call: " + methodName + " at " + probeInfo);
-            return null;
+            subjectParameter = new Parameter();
+            subjectParameter.setType(subjectTypeHierarchy.get(0));
+            subjectParameter.setProb(callEvent);
+            subjectParameter.setProbeInfo(probeInfo);
+            subjectParameter.setName(subjectParameter.getType().substring(
+                    subjectParameter.getType().lastIndexOf('.')
+            ));
         } else {
             subjectParameter = subjectParameterList.get(0);
         }

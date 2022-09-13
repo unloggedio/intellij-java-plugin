@@ -64,6 +64,15 @@ public class MethodCallExtractor implements EventMatchListener {
         MethodInfo methodInfo = replayData.getMethodInfo(probeInfo.getMethodId());
 
         String ownerClassName = ClassTypeUtils.getDottedClassName(ownerClass);
+        String returnClassName = ClassTypeUtils.getDottedClassName(returnType);
+        if (ownerClassName.equals(returnClassName)) {
+            // highly likely that this is a builder call
+            // so we want to avoid this object in future as well
+            Parameter builderParameter = new Parameter();
+            builderParameter.setValue(String.valueOf(event.getValue()));
+            variableContainer.add(builderParameter);
+            return;
+        }
 
 
         LoggerUtil.logEvent(

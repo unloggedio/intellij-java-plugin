@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -113,10 +114,12 @@ public class MethodCallExpression implements Expression {
 
         // return type == V ==> void return type => no return value
         in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
+        boolean isException = mainMethodReturnValue.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
 
 
-        if (getMethodName().equals("<init>")) {
-            // there is no verification required (?) after calling constructors
+        if (getMethodName().equals("<init>") || isException) {
+            // there is no verification required (?) after calling constructors or methods which
+            // throw an exception
             return;
         }
 
@@ -229,9 +232,13 @@ public class MethodCallExpression implements Expression {
         if (subject != null && subject.getProbeInfo() != null) {
             owner = subject.getProbeInfo().getAttribute("Owner", null);
         }
+        String name = "";
+        if (subject != null) {
+            name = subject.getName() + ".";
+        }
         return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null) ?
                 "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
-                "[" + subject.getName() + "." + methodName + "(" + arguments + ")" + "]" +
+                "[" + name + methodName + "(" + arguments + ")" + "]" +
                 (exception == null ? "" : " throws " + exception.getType());
     }
 

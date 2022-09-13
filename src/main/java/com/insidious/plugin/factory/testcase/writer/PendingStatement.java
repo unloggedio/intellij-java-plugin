@@ -53,7 +53,8 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            if (lhsExpression.getProbeInfo() != null && lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+            if (lhsExpression.getProbeInfo() != null &&
+                    lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
                 isExceptionExcepted = true;
             } else {
 
@@ -61,13 +62,23 @@ public class PendingStatement {
                 @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
                 if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
                     objectRoutine.getCreatedVariables().add(lhsExpression);
-                    statementBuilder.append("$T $L");
-                    statementParameters.add(lhsTypeName);
-                    statementParameters.add(lhsExpression.getName());
-                } else {
-                    statementBuilder.append("$L");
-                    statementParameters.add(lhsExpression.getName());
+                    if (lhsExpression.isContainer()) {
+                        statementBuilder.append("$T<$T>").append(" ");
+                        statementParameters.add(lhsTypeName);
+                        statementParameters.add(
+                                ClassName.bestGuess(
+                                        lhsExpression.getTemplateMap().get("E").getType()
+                                )
+                        );
+                    } else {
+                        statementBuilder.append("$T").append(" ");
+                        statementParameters.add(lhsTypeName);
+                    }
+
                 }
+                statementBuilder.append("$L");
+                statementParameters.add(lhsExpression.getName());
+
                 statementBuilder.append(" = ");
             }
         }
@@ -182,7 +193,7 @@ public class PendingStatement {
             tryCatchEnclosure
                     .append("        try {\n")
                     .append("            ").append("// this is going to throw exception <>\n")
-                    .append("            ").append(statementBuilder)
+                    .append("            ").append(statementBuilder).append(";\n")
                     .append("        } catch ($T e) {\n")
                     .append("            \n")
                     .append("        }\n");

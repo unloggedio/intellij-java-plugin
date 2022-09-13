@@ -690,7 +690,7 @@ public class ParameterFactory {
                 case LOCAL_STORE:
                 case GET_STATIC_FIELD:
                 case PUT_STATIC_FIELD:
-                case GET_INSTANCE_FIELD:
+                case GET_INSTANCE_FIELD_RESULT:
                 case PUT_INSTANCE_FIELD:
                 case OBJECT_CONSTANT_LOAD:
                     if (callStack != callStackSearchLevel) {
@@ -868,5 +868,9 @@ public class ParameterFactory {
         Parameter parameter = new Parameter();
         parameter.setType(s);
         return parameter;
+    }
+
+    public static Parameter copyParameter(Parameter subject) {
+        return null;
     }
 }

@@ -124,23 +124,27 @@ public class TestCandidateMetadata {
 
         int currentEntryProbeIndex = entryProbeIndex;
         ScanResult callReturnScanResult = new ScanResult(currentEntryProbeIndex, 0, false);
-        int pageSize = 1000;
+        int pageSize = 3000;
         while (true) {
 
             if (methodName.equals("<init>")) {
                 logger.info("entry probe is of type method entry <init>");
-                callReturnScanResult = searchMethodExitIndex(replayData,
+                callReturnScanResult = searchMethodExitIndex(
+                        replayData,
                         callReturnScanResult,
-                        List.of(EventType.METHOD_OBJECT_INITIALIZED));
+                        List.of(EventType.METHOD_OBJECT_INITIALIZED)
+                );
             } else {
                 logger.info("entry probe is of type method entry " + methodName);
                 callReturnScanResult =
-                        searchMethodExitIndex(replayData,
+                        searchMethodExitIndex(
+                                replayData,
                                 callReturnScanResult,
                                 List.of(
                                         EventType.METHOD_NORMAL_EXIT,
                                         EventType.METHOD_EXCEPTIONAL_EXIT
-                                ));
+                                )
+                        );
             }
 
 
@@ -837,41 +841,52 @@ public class TestCandidateMetadata {
 
                     Parameter subject = methodCallExpression.getSubject();
 
-                    String mockedFieldsKey = subject.getName();
+                    String mockedFieldsKey =
+                            subject.getName() + "." + methodCallExpression.getMethodName();
 
-                    if (doneMap.containsKey(mockedFieldsKey)) {
-                        continue;
+                    if (!doneMap.containsKey(mockedFieldsKey)) {
+                        if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
+                            subject.setContainer(true);
+                            Parameter childParameter = new Parameter();
+                            childParameter.setType(subject.getType());
+                            subject.setType("org.mockito.MockedStatic");
+                            subject.getTemplateMap().put("E", childParameter);
+                            in(objectRoutineScript)
+                                    .assignVariable(subject)
+                                    .writeExpression(MethodCallExpressionFactory
+                                            .MockStaticClass(ClassName.bestGuess(childParameter.getType())))
+                                    .endStatement();
+                        }
+
+                        doneMap.put(mockedFieldsKey, true);
+
                     }
 
-                    if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
-                        in(objectRoutineScript)
-                                .assignVariable(subject)
-                                .writeExpression(MethodCallExpressionFactory
-                                        .MockClass(ClassName.bestGuess(subject.getType())))
-                                .endStatement();
+
+                    objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
+                    if (!methodCallExpression.getReturnValue().getType().equals("V")) {
+                        methodCallExpression.writeMockTo(objectRoutineScript);
                     }
-                    doneMap.put(mockedFieldsKey, true);
-                    objectRoutineScript.addComment("Add mock for call on field from static call: " + methodCallExpression);
-                    methodCallExpression.writeMockTo(objectRoutineScript);
-
-                    String owner = subject.getProbeInfo().getAttribute("Owner", null);
-                    assert owner.length() > 2;
-                    String subjectOwner = ClassTypeUtils.getDottedClassName(
-                            "L" + owner + ";"
-                    );
-                    Parameter parentParameter = new Parameter();
-                    parentParameter.setType(subjectOwner);
-
-                    MethodCallExpression
-                            .in(objectRoutineScript)
-                            .writeExpression(
-                                    new MethodCallExpression("injectField", null,
-                                            VariableContainer.from(
-                                                    List.of(parentParameter, subject
-                                                    )), null, null))
-                            .endStatement();
-
-                    objectRoutineScript.addComment("");
+//
+//                    objectRoutineScript.addComment("Add mock for call on field from static call: " + methodCallExpression);
+//                    methodCallExpression.writeMockTo(objectRoutineScript);
+//
+//                    String owner = subject.getProbeInfo().getAttribute("Owner", null);
+//                    assert owner.length() > 2;
+//                    String subjectOwner = ClassTypeUtils.getDottedClassName("L" + owner + ";");
+//                    Parameter parentParameter = new Parameter();
+//                    parentParameter.setType(subjectOwner);
+//
+//                    MethodCallExpression
+//                            .in(objectRoutineScript)
+//                            .writeExpression(
+//                                    new MethodCallExpression("injectField", null,
+//                                            VariableContainer.from(
+//                                                    List.of(parentParameter, subject
+//                                                    )), null, null))
+//                            .endStatement();
+//
+//                    objectRoutineScript.addComment("");
 
                 }
 

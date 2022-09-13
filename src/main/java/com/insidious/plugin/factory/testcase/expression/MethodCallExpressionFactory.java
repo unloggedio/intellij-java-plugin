@@ -48,17 +48,34 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression) {
 
+        String callType = methodCallExpression.getSubject()
+                .getProbeInfo().getAttribute("CallType", null);
+        boolean isStatic = false;
 
-        String param1 =
-                methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
-                        "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
+        String param1;
+        if (callType != null && callType.equals("Static")) {
+            isStatic = true;
+            String owner = methodCallExpression.getSubject()
+                    .getProbeInfo().getAttribute("Owner", null);
+            String classSimpleName = owner.substring(owner.lastIndexOf('/') + 1);
+            //         amazonUtils.when(() -> AmazonUtils.getQueueNameFor(any())).thenReturn(queueName);
+            param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
+                    "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
+        } else {
+            param1 = methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
+                    "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
+        }
 
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
 
 
+        Parameter callSubject = MockitoClass;
+        if (isStatic) {
+            callSubject = methodCallExpression.getSubject();
+        }
         return MethodCallExpression(
-                "when", MockitoClass,
+                "when", callSubject,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
         );
@@ -66,8 +83,6 @@ public class MethodCallExpressionFactory {
     }
 
     public static MethodCallExpression MockClass(ClassName targetClassname) {
-
-        // $T.mock($T.class)
 
         String param1 = targetClassname.simpleName() + ".class";
 
@@ -79,6 +94,24 @@ public class MethodCallExpressionFactory {
 
         return new MethodCallExpression(
                 "mock", MockitoClass,
+                VariableContainer.from(List.of(whenExpression)),
+                null, null
+        );
+
+    }
+
+    public static MethodCallExpression MockStaticClass(ClassName targetClassname) {
+
+        String param1 = targetClassname.simpleName() + ".class";
+
+        Parameter whenExpression = new Parameter();
+        whenExpression.setValue(param1);
+        whenExpression.setType("java.lang.Class");
+        whenExpression.setProb(new DataEventWithSessionId());
+
+
+        return new MethodCallExpression(
+                "mockStatic", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
                 null, null
         );

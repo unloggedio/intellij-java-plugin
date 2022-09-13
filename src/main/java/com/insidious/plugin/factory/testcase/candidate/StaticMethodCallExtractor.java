@@ -110,6 +110,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
 
         logger.warn("[StaticMethodCall] " + ownerClass + "." + methodName + " : " + methodDescription);
 
+
         List<Parameter> callArguments = new LinkedList<>();
 
         ScanRequest methodEntryPointScan = new ScanRequest(
@@ -132,12 +133,13 @@ public class StaticMethodCallExtractor implements EventMatchListener {
         ScanRequest callsInsideStaticMethodCall = new ScanRequest(
                 new ScanResult(methodEntryScanMatch.getIndex(), 0), ScanRequest.CURRENT_CLASS, DirectionType.FORWARDS
         );
+        LinkedList<MethodCallExpression> callsList = new LinkedList<>();
 
         callsInsideStaticMethodCall.addListener(EventType.CALL, new EventMatchListener() {
             @Override
             public void eventMatched(Integer index, int matchedStack) {
                 MethodCallExpression methodCall = replayData.extractMethodCall(index);
-                if (methodCall == null || methodCall.getMethodName().equals("<init>"))  {
+                if (methodCall == null || methodCall.getMethodName().equals("<init>")) {
                     return;
                 }
                 Parameter callSubject = methodCall.getSubject();
@@ -154,13 +156,29 @@ public class StaticMethodCallExtractor implements EventMatchListener {
                     return;
                 }
                 if (callSubject.getProbeInfo().getEventType() == EventType.GET_STATIC_FIELD) {
-                    callsToMock.add(methodCall);
+                    callsList.add(methodCall);
                 }
             }
         });
         callsInsideStaticMethodCall.matchUntil(EventType.METHOD_NORMAL_EXIT);
         callsInsideStaticMethodCall.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
         replayData.eventScan(callsInsideStaticMethodCall);
+
+        if (callsList.size() > 0) {
+            // at this point we know that this static method call uses some fields which were not
+            // injected,
+            MethodCallExpression methodCallExpression = replayData.extractMethodCall(index);
+            Parameter staticParameter = new Parameter();
+            staticParameter.setType(ownerClassName);
+            staticParameter.setName(
+                    ClassTypeUtils.createVariableName(ownerClassName)
+            );
+            staticParameter.setProb(event);
+            staticParameter.setProbeInfo(probeInfo);
+            methodCallExpression.setSubject(staticParameter);
+            callsToMock.add(methodCallExpression);
+
+        }
     }
 
 }

@@ -31,6 +31,10 @@ public class Parameter {
     private ConstructorType constructorType;
     private MethodCallExpression creatorExpression;
 
+    public void setContainer(boolean container) {
+        isContainer = container;
+    }
+
     public boolean isContainer() {
         return isContainer;
     }
@@ -57,6 +61,9 @@ public class Parameter {
     }
 
     public void setType(String type) {
+        if (type.contains("$")) {
+            type = type.replace('$', '.');
+        }
         this.type = type;
     }
 
