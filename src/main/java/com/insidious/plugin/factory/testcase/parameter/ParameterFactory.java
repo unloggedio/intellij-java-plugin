@@ -169,6 +169,8 @@ public class ParameterFactory {
 
         parameter.setProbeInfo(probeInfo);
 
+
+        // this type identification part needs its own space
         List<String> typeHierarchyFromReceiverTypeList = new LinkedList<>();
         if (objectInfo != null) {
             TypeInfo receiverParameterTypeInfo = replayData.getTypeInfo(objectInfo.getTypeId());
@@ -176,8 +178,6 @@ public class ParameterFactory {
                     receiverParameterTypeInfo);
             assert typeHierarchyFromReceiverTypeList.size() != 0;
             parameter.setType(typeHierarchyFromReceiverTypeList.get(0));
-//            typeHierarchy.addAll(typeHierarchyFromReceiverTypeList);
-
         }
 
         String finalIdentifiedType = getTypeForValueAtProbeIndex(event, eventIndex, replayData, probeInfo);
@@ -190,21 +190,12 @@ public class ParameterFactory {
 
         if (expectedParameterType != null) {
             if (finalIdentifiedType == null &&
-                    !parameter.getType().equals(expectedType)) {
+                    (parameter.getType() == null || !parameter.getType().equals(expectedType))) {
                 parameter.setType(expectedType);
             } else if (!expectedParameterType.equals(finalIdentifiedType)) {
                 logger.warn("final type does not matched expected type: " + expectedParameterType + " - " + finalIdentifiedType);
             }
         }
-
-//        if (typeHierarchy.size() == 0) {
-//            typeHierarchy = new HashSet<>(replayData.buildHierarchyFromTypeName(finalIdentifiedType));
-//        }
-//
-//
-//        if (typeHierarchy.size() == 0) {
-//            logger.warn("[2] failed to build type hierarchy for object [" + event + "]");
-//        }
 
 
         Object probeValue = replayData.getValueByObjectId(parameter.getProb());
@@ -840,7 +831,7 @@ public class ParameterFactory {
                     String fieldType = historyEventProbe.getAttribute("Type", "V");
 
 
-                    if (!fieldType.startsWith("L") || typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
+                    if (typeHierarchy.contains(ClassTypeUtils.getDottedClassName(fieldType))) {
                         LoggerUtil.logEvent("SearchObjectName3", callStack, i,
                                 historyEvent, historyEventProbe, currentClassInfo, methodInfoLocal);
                         String variableName = ClassTypeUtils.getVariableNameFromProbe(historyEventProbe, null);

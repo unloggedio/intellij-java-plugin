@@ -26,7 +26,7 @@
               <component id="eeb44" class="javax.swing.JTable" binding="bugsTable">
                 <constraints/>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <intercellSpacing width="2" height="4"/>
                   <minimumSize width="30" height="48"/>
                   <rowHeight value="24"/>
@@ -42,7 +42,7 @@
               <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <font name="JetBrains Mono" size="16" style="0"/>
+              <font/>
               <icon value="icons/icon-16x16.png"/>
               <text value="Play Selected Execution"/>
             </properties>
@@ -73,7 +73,7 @@
               <component id="b0c8c" class="javax.swing.JTable" binding="searchQueryHistoryTable">
                 <constraints/>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <intercellSpacing width="2" height="4"/>
                   <rowHeight value="24"/>
                   <selectionBackground color="-1033939"/>
@@ -110,7 +110,7 @@
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <icon value="actions/search.png"/>
                   <text value="Search"/>
                 </properties>

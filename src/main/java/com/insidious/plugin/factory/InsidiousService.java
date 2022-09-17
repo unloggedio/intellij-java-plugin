@@ -151,6 +151,7 @@ public class InsidiousService implements Disposable {
             logger.info("service not ready exception -> " + snre.getMessage());
         } catch (ProcessCanceledException pce) {
         } catch (Throwable e) {
+            e.printStackTrace();
             logger.error("exception in videobug service init", e);
         }
     }
@@ -858,9 +859,23 @@ public class InsidiousService implements Disposable {
         ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {
             credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            contentManager.addContent(credentialContent);
+//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+//            contentManager.addContent(credentialContent);
+
+            singleWindowView = new SingleWindowView(project, this);
+            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+            contentManager.addContent(singleWindowContent);
+            setupProject();
+            return;
         }
+
+//        Content rawViewContent2 = contentManager.findContent("Raw");
+//        if (rawViewContent2 == null) {
+//        Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+//            contentManager.addContent(singleWindowContent);
+//        }
+
+
         if (isLoggedIn() && searchByTypesWindow == null) {
 
             searchByTypesWindow = new SearchByTypesWindow(project, this);
@@ -872,11 +887,8 @@ public class InsidiousService implements Disposable {
             // create the windows
             Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
-            Content liveWindowContent =
-                    contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
-            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(),
-                    "About", false);
+            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(), "About", false);
 
 
             Content content = contentManager.findContent("Exceptions");
@@ -887,10 +899,9 @@ public class InsidiousService implements Disposable {
             if (traceContent2 == null) {
                 contentManager.addContent(traceContent);
             }
-            Content rawViewContent2 = contentManager.findContent("Raw");
-            if (rawViewContent2 == null) {
-                contentManager.addContent(singleWindowContent);
-            }
+
+
+
             Content liveWindowContent2 = contentManager.findContent("Live");
             if (liveWindowContent2 == null) {
 //                contentManager.addContent(liveWindowContent);

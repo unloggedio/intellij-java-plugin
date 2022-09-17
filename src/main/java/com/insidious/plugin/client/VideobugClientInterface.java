@@ -105,4 +105,6 @@ public interface VideobugClientInterface {
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
     List<TypeInfoDocument> getAllTypes(String sessionId);
+
+    SessionInstance getSessionInstance();
 }

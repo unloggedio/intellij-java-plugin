@@ -266,7 +266,8 @@ public class ReplayData {
             }
 
             for (int anInterface : typeInfoToAdd.getInterfaces()) {
-                TypeInfo interfaceType = typeInfoMap.get(String.valueOf(anInterface));
+                TypeInfo interfaceType = client.getSessionInstance().getTypeInfo(anInterface);
+//                TypeInfo interfaceType = typeInfoMap.get(String.valueOf(anInterface));
                 String interfaceName = interfaceType.getTypeNameFromClass();
                 if (!typeHierarchy.contains(interfaceName)) {
                     typeHierarchy.add(interfaceName);
@@ -407,14 +408,12 @@ public class ReplayData {
 
 
         String ownerClass = probeInfo.getAttribute("Owner", null);
-
-        List<String> subjectTypeHierarchy = buildHierarchyFromTypeName(
-                "L" + ownerClass + ";");
-
-        String callOwnerClassType = probeInfo.getAttribute("Owner", null);
-        if (callOwnerClassType == null) {
+        if (ownerClass == null) {
             return null;
         }
+
+        List<String> subjectTypeHierarchy = buildHierarchyFromTypeName("L" + ownerClass + ";");
+
 
         logger.warn("[MethodCall] " + ownerClass + "." + methodName + " : " + methodDescription);
 

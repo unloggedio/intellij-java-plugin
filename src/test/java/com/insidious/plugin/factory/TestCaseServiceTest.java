@@ -314,7 +314,7 @@ public class TestCaseServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
 //        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
 
         TestCaseService testCaseService = new TestCaseService(project, client);
@@ -339,9 +339,10 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
 //        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
-        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
+//        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
+        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
 
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);

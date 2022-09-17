@@ -1,13 +1,8 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.Optional;
 
 public class TestCaseWriter {
 
@@ -97,7 +92,8 @@ public class TestCaseWriter {
 
 
     @NotNull
-    public static String createMethodParametersStringMock(VariableContainer variableContainer) {
+    public static String
+    createMethodParametersStringMock(VariableContainer variableContainer) {
         StringBuilder parameterStringBuilder = new StringBuilder();
 
         for (int i = 0; i < variableContainer.count(); i++) {
@@ -107,22 +103,33 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
+            Object compareAgainst = "";
             if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
-                parameterStringBuilder.append("any()");
+                compareAgainst = "";
             } else if (parameter.getName() != null) {
-                if (parameter.getType().equals("java.lang.String")) {
-                    parameterStringBuilder.append("matches(" + parameter.getName() + ")");
-                } else {
-                    parameterStringBuilder.append("any()");
-                }
+                compareAgainst = parameter.getName();
             } else {
-                Object parameterValue;
-                parameterValue = parameter.getValue();
-                if (parameterValue != null && parameter.getType().equals("java.lang.String")) {
-                    parameterStringBuilder.append("matches(" + parameterValue + ")");
-                } else {
-                    parameterStringBuilder.append("any()");
+                compareAgainst = parameter.getValue();
+            }
+
+            if (compareAgainst != null && parameter.getType().equals("java.lang.String")) {
+                parameterStringBuilder.append("matches(" + compareAgainst + ")");
+            } else if (compareAgainst != null
+                    && (parameter.getType().length() == 1 || parameter.getType().startsWith("java.lang.")
+                    && !parameter.getType().contains(".Object"))
+            ) {
+
+                if ((parameter.getType().equals("Z") || parameter.getType().equals("java.lang.Boolean")) && parameter.getName() == null) {
+                    if (compareAgainst.equals("0")) {
+                        compareAgainst = "false";
+                    } else {
+                        compareAgainst = "true";
+                    }
                 }
+
+                parameterStringBuilder.append("eq(" + compareAgainst + ")");
+            } else {
+                parameterStringBuilder.append("any()");
             }
 
 

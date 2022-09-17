@@ -48,12 +48,14 @@ public class Parameter {
 
     @Override
     public String toString() {
-        return "[Name="+ name +"][Type="+type+"]{" +
-                "value=" + value +
-                ", index=" + index +
-                ", probeInfo=" + probeInfo +
-                ", prob=" + prob +
-                '}';
+        return
+                name +
+                        (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
+                        "{" + "value=" + value +
+                        ", index=" + index +
+                        ", probeInfo=" + probeInfo +
+                        ", prob=" + prob +
+                        '}';
     }
 
     public String getType() {

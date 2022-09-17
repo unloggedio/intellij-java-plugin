@@ -1,8 +1,10 @@
 package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
+import com.insidious.plugin.factory.testcase.expression.StringExpression;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
@@ -62,14 +64,12 @@ public class PendingStatement {
                 @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
                 if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
                     objectRoutine.getCreatedVariables().add(lhsExpression);
-                    if (lhsExpression.isContainer()) {
+                    if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
                         statementBuilder.append("$T<$T>").append(" ");
                         statementParameters.add(lhsTypeName);
-                        statementParameters.add(
-                                ClassName.bestGuess(
-                                        lhsExpression.getTemplateMap().get("E").getType()
-                                )
-                        );
+                        Parameter templateParameter = lhsExpression.getTemplateMap().get("E");
+                        String templateType = templateParameter.getType();
+                        statementParameters.add(ClassName.bestGuess(templateType));
                     } else {
                         statementBuilder.append("$T").append(" ");
                         statementParameters.add(lhsTypeName);
@@ -102,7 +102,7 @@ public class PendingStatement {
 
                     Parameter objectToDeserialize = variables.get(0);
 
-                    if (objectToDeserialize.isContainer()) {
+                    if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap().get("E") != null) {
 
                         statementBuilder.append("$L.$L($S, new $T<$T<$T>>(){}.getType())");
                         statementParameters.add(methodCallExpression.getSubject().getName());
@@ -113,7 +113,10 @@ public class PendingStatement {
                         statementParameters.add(TYPE_TOKEN_CLASS);
                         statementParameters.add(LIST_CLASS);
 
-                        statementParameters.add(ClassName.bestGuess(objectToDeserialize.getTemplateMap().get("E").getType()));
+                        Parameter templateParameter = objectToDeserialize.getTemplateMap().get("E");
+                        String templateParameterType = templateParameter.getType();
+                        ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
+                        statementParameters.add(parameterClassName);
 
 
                     } else {
@@ -224,6 +227,29 @@ public class PendingStatement {
             return this;
         }
         String targetClassname = lhsExpression.getType();
+
+        Parameter variableExistingParameter = objectRoutine
+                .getCreatedVariables()
+                .getParameterByName(lhsExpression.getName());
+
+        if (variableExistingParameter != null) {
+
+            Object existingValue = variableExistingParameter.getValue();
+            Object newValue = lhsExpression.getValue();
+
+            if (variableExistingParameter.getProb().getSerializedValue() != null
+                    && variableExistingParameter.getProb().getSerializedValue().length > 0) {
+                existingValue = new String(variableExistingParameter.getProb().getSerializedValue());
+                newValue = new String(lhsExpression.getProb().getSerializedValue());
+            }
+
+            if (Objects.equals(existingValue, newValue)) {
+                this.lhsExpression = null;
+                this.expressionList.clear();
+                return this;
+            }
+
+        }
 
         if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
 

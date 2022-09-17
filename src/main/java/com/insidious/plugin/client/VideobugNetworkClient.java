@@ -699,5 +699,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         throw new RuntimeException("not implemented yet ");
     }
 
+    @Override
+    public SessionInstance getSessionInstance() {
+        return null;
+    }
+
 
 }

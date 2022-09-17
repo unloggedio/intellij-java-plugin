@@ -245,9 +245,23 @@ public class MethodCallExpression implements Expression {
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
         Parameter returnValue = getReturnValue();
 
+        // we don't want to write a mock call if the return value is null
+        // since mocked classes return null by default and this mocking just adds noise to the generated test case
+        if (returnValue != null && returnValue.getProb() != null) {
+            if (new String(returnValue.getProb().getSerializedValue()).equals("null")) {
+                return;
+            }
+        }
+
         for (Parameter argument : getArguments().all()) {
             if (argument.getName() != null) {
-                in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+
+                if (
+                        (argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
+                                && !argument.getType().contains(".Object")
+                ) {
+                    in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+                }
             }
         }
 

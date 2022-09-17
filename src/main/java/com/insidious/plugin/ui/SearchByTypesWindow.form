@@ -32,7 +32,7 @@
               <component id="81c31" class="javax.swing.JTable" binding="resultsTable">
                 <constraints/>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <intercellSpacing width="2" height="4"/>
                   <maximumSize width="2147483647" height="40"/>
                   <minimumSize width="30" height="40"/>
@@ -59,7 +59,7 @@
                   </grid>
                 </constraints>
                 <properties>
-                  <font name="JetBrains Mono" size="16" style="0"/>
+                  <font/>
                   <icon value="actions/search.png"/>
                   <inheritsPopupMenu value="true"/>
                   <margin top="0" left="0" bottom="0" right="0"/>
@@ -74,7 +74,7 @@
                   </grid>
                 </constraints>
                 <properties>
-                  <font name="JetBrains Mono" size="16" style="0"/>
+                  <font/>
                   <hideActionText value="false"/>
                   <horizontalAlignment value="0"/>
                   <icon value="actions/lightning.png"/>
@@ -109,7 +109,7 @@
               <component id="547b8" class="javax.swing.JTable" binding="classTypeListTable">
                 <constraints/>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <intercellSpacing width="2" height="4"/>
                   <maximumSize width="30" height="32"/>
                   <rowHeight value="24"/>
@@ -145,7 +145,7 @@
                   <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
-                  <font name="Fira Code" size="16" style="0"/>
+                  <font/>
                   <icon value="general/add.png"/>
                   <inheritsPopupMenu value="true"/>
                   <text value="Add class"/>

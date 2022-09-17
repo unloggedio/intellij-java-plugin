@@ -166,8 +166,7 @@ public class TestCaseService {
             TypeSpec helloWorld = typeSpecBuilder.build();
 
             JavaFile javaFile = JavaFile.builder(packageName, helloWorld)
-                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"),
-                            "any", "matches")
+                    .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
                     .build();
 
 

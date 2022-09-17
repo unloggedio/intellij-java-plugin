@@ -58,7 +58,6 @@ public class MethodCallExpressionFactory {
             String owner = methodCallExpression.getSubject()
                     .getProbeInfo().getAttribute("Owner", null);
             String classSimpleName = owner.substring(owner.lastIndexOf('/') + 1);
-            //         amazonUtils.when(() -> AmazonUtils.getQueueNameFor(any())).thenReturn(queueName);
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
                     "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
         } else {
@@ -131,9 +130,8 @@ public class MethodCallExpressionFactory {
 
     public static Expression MockitoThen(Parameter returnValue) {
         return MethodCallExpression("thenReturn", null,
-                VariableContainer.from(
-                        List.of(returnValue)
-                ), null, null);
+                VariableContainer.from(List.of(returnValue)),
+                null, null);
 
 //        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
 //        return parameter;

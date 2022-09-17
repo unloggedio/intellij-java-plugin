@@ -226,7 +226,7 @@ public class SessionInstance {
                 matchedFilesForString = finalEventsIndex.querySessionFilesByValueId(valueId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
-                    int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                    int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                     uploadFileToAdd.setValueIds(new Long[]{valueId});
                     matchedFiles.put(filePath, uploadFile);
@@ -724,7 +724,7 @@ public class SessionInstance {
                         finalEventsIndex.querySessionFilesByProbeId(probeId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
-                    int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                    int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                     uploadFileToAdd.setProbeIds(new Integer[]{probeId});
 
@@ -887,7 +887,7 @@ public class SessionInstance {
             }
             for (UploadFile uploadFile : matchedFilesForString) {
                 String filePath = uploadFile.getPath();
-                int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
                 UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                 uploadFileToAdd.setProbeIds(new Integer[]{probeId});
 
@@ -1473,7 +1473,7 @@ public class SessionInstance {
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
 //                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
-                    int threadId = Integer.parseInt(Path.of(filePath).getFileName().toString().split("\\.")[0].split("-")[2]);
+                    int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                     uploadFileToAdd.setValueIds(new Long[]{objectId});
                     matchedFiles.put(filePath, uploadFile);
@@ -1520,8 +1520,7 @@ public class SessionInstance {
 
 
                 for (String archiveFile : archiveFiles) {
-                    checkProgressIndicator(null,
-                            "Reading events from  " + archiveFile);
+                    checkProgressIndicator(null, "Reading events from  " + archiveFile);
 //                    logger.warn("loading next file: " + archiveFile + " need [" + remaining +"] " +
 //                            "more events");
 
@@ -1537,9 +1536,7 @@ public class SessionInstance {
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = null;
 
                     logger.info("Checking file " + archiveFile + " for data");
-                    final int fileThreadId = Integer.parseInt(
-                            archiveFile.split("\\.")[0].split("-")[2]
-                    );
+                    final int fileThreadId = getThreadIdFromFileName(archiveFile);
 
                     if (metadata == null && filteredDataEventsRequest.getNanotime() != -1) {
 
@@ -1885,6 +1882,10 @@ public class SessionInstance {
                 null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap,
                 stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
+    }
+
+    private static int getThreadIdFromFileName(String archiveFile) {
+        return Integer.parseInt(archiveFile.split("\\.")[0].split("-")[2]);
     }
 
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {

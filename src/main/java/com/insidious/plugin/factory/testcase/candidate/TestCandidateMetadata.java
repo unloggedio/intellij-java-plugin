@@ -841,8 +841,17 @@ public class TestCandidateMetadata {
 
                     Parameter subject = methodCallExpression.getSubject();
 
-                    String mockedFieldsKey =
-                            subject.getName() + "." + methodCallExpression.getMethodName();
+                    StringBuilder callBuilder = new StringBuilder();
+                    callBuilder.append(subject.getName())
+                            .append(".")
+                            .append(methodCallExpression.getMethodName());
+
+                    for (Parameter parameter : methodCallExpression.getArguments().all()) {
+                        callBuilder.append(parameter.getValue());
+                    }
+
+
+                    String mockedFieldsKey = callBuilder.toString();
 
                     if (!doneMap.containsKey(mockedFieldsKey)) {
                         if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
@@ -867,26 +876,7 @@ public class TestCandidateMetadata {
                     if (!methodCallExpression.getReturnValue().getType().equals("V")) {
                         methodCallExpression.writeMockTo(objectRoutineScript);
                     }
-//
-//                    objectRoutineScript.addComment("Add mock for call on field from static call: " + methodCallExpression);
-//                    methodCallExpression.writeMockTo(objectRoutineScript);
-//
-//                    String owner = subject.getProbeInfo().getAttribute("Owner", null);
-//                    assert owner.length() > 2;
-//                    String subjectOwner = ClassTypeUtils.getDottedClassName("L" + owner + ";");
-//                    Parameter parentParameter = new Parameter();
-//                    parentParameter.setType(subjectOwner);
-//
-//                    MethodCallExpression
-//                            .in(objectRoutineScript)
-//                            .writeExpression(
-//                                    new MethodCallExpression("injectField", null,
-//                                            VariableContainer.from(
-//                                                    List.of(parentParameter, subject
-//                                                    )), null, null))
-//                            .endStatement();
-//
-//                    objectRoutineScript.addComment("");
+
 
                 }
 

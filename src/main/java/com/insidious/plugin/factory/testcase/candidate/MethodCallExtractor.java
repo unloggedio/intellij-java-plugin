@@ -75,9 +75,6 @@ public class MethodCallExtractor implements EventMatchListener {
         }
 
 
-        LoggerUtil.logEvent(
-                "SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo
-        );
 
 
         if (existingVariable.isPresent()) {
@@ -130,6 +127,10 @@ public class MethodCallExtractor implements EventMatchListener {
 
         MethodCallExpression methodCallExpression = replayData.extractMethodCall(index);
         if (methodCallExpression == null) return;
+
+        // happens when the function call is on the return value of another function call
+        if (methodCallExpression.getSubject().getName()  == null) return;
+        LoggerUtil.logEvent("SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo);
         callList.add(methodCallExpression);
     }
 

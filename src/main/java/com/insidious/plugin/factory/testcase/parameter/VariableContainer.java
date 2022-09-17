@@ -33,21 +33,44 @@ public class VariableContainer {
 
     public void add(Parameter parameter) {
         Object value = parameter.getValue();
-        Optional<Parameter> byId = getParametersById(String.valueOf(value));
-        if (Objects.equals(value, "0") || byId.isEmpty()) {
+        Optional<Parameter> byValue = getParametersById(String.valueOf(value));
+        if (Objects.equals(value, "0") || byValue.isEmpty()) {
             this.parameterList.add(parameter);
         } else if (parameter.getProb() != null) {
-            byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-            if (newSerializedValue == null || newSerializedValue.length == 0) {
-                return;
+
+            Parameter existing = byValue.get();
+
+            if (existing.getName() != null && existing.getName().equals(parameter.getName())) {
+                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
+                if (newSerializedValue == null || newSerializedValue.length == 0) {
+                    return;
+                }
+                byte[] existingSerializedValue = existing.getProb().getSerializedValue();
+                if (existingSerializedValue == null || existingSerializedValue.length == 0) {
+                    existing.setProb(parameter.getProb());
+                } else if (existing.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
+                    existing.setProb(parameter.getProb());
+                }
+            } else {
+
+
+
+                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
+                byte[] existingSerializedValue = existing.getProb().getSerializedValue();
+                String existingValueString = new String(existingSerializedValue);
+                String newValueString = new String(newSerializedValue);
+                if (existingValueString.length() > 0 &&
+                        newValueString.length() > 0 &&
+                        existingValueString.equals(newValueString)
+                ) {
+                    // existing value matches new value
+                } else {
+                    this.parameterList.add(parameter);
+                }
+
             }
-            Parameter existing = byId.get();
-            byte[] existingSerializedValue = existing.getProb().getSerializedValue();
-            if (existingSerializedValue == null || existingSerializedValue.length == 0) {
-                existing.setProb(parameter.getProb());
-            } else if (existing.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
-                existing.setProb(parameter.getProb());
-            }
+
+
         }
     }
 

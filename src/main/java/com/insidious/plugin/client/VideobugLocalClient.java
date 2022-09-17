@@ -380,6 +380,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return this.session.getAllTypes();
     }
 
+    @Override
+    public SessionInstance getSessionInstance() {
+        return session;
+    }
+
     public String getRootDirectory() {
         return this.pathToSessions;
     }
