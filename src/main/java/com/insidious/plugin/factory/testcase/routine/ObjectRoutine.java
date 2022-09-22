@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.routine;
 
+import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -87,7 +88,7 @@ public class ObjectRoutine {
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
-            ObjectRoutineScript script = testCandidateMetadata.toObjectScript(scriptContainer.getCreatedVariables());
+            ObjectRoutineScript script = CandidateMetadataFactory.toObjectScript(testCandidateMetadata, scriptContainer.getCreatedVariables());
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 

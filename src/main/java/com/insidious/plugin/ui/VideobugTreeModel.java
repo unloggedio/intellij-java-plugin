@@ -13,6 +13,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.progress.*;
+import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.TreeModelListener;
@@ -35,10 +36,12 @@ public class VideobugTreeModel implements TreeModel {
     private final Map<String, List<ProbeInfoModel>> sessionMethodProbeMap = new HashMap<>();
     private final List<TreeModelListener> listeners = new LinkedList<>();
     private DataResponse<ExecutionSession> sessionList;
+    private Project project;
 
     public VideobugTreeModel(InsidiousService insidiousService) {
         String sessionNodeLabel = "Sessions";
         this.service = insidiousService;
+        this.project = insidiousService.getProject();
         this.client = this.service.getClient();
         try {
             this.sessionList = client.fetchProjectSessions();
@@ -102,8 +105,7 @@ public class VideobugTreeModel implements TreeModel {
         try {
             classWeaveInfo = ProgressManager.getInstance().run(
                     new Task.WithResult
-                            <ClassWeaveInfo, Exception>
-                            (service.getDebugProcess().getProject(),
+                            <ClassWeaveInfo, Exception>(project,
                                     "Loading session [" + session.getSessionId() + "]",
                                     false) {
                         @Override

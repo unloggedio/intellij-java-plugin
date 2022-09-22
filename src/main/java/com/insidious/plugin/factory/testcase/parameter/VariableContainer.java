@@ -1,12 +1,31 @@
 package com.insidious.plugin.factory.testcase.parameter;
 
 import com.insidious.plugin.pojo.Parameter;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@DatabaseTable(tableName = "variable_container")
 public class VariableContainer {
-    private final List<Parameter> parameterList = new LinkedList<>();
+    @DatabaseField
+    final List<Parameter> parameterList = new LinkedList<>();
+
+    public long getVariableContainerId() {
+        return variableContainerId;
+    }
+
+    public void setVariableContainerId(long variableContainerId) {
+        this.variableContainerId = variableContainerId;
+    }
+
+    @DatabaseField(id = true)
+    private long variableContainerId;
+
+    public List<Parameter> getParameterList() {
+        return parameterList;
+    }
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
@@ -33,8 +52,8 @@ public class VariableContainer {
 
     public void add(Parameter parameter) {
         Object value = parameter.getValue();
-        Optional<Parameter> byValue = getParametersById(String.valueOf(value));
-        if (Objects.equals(value, "0") || byValue.isEmpty()) {
+        Optional<Parameter> byValue = getParametersById(value);
+        if (Objects.equals(value, 0) || byValue.isEmpty()) {
             this.parameterList.add(parameter);
         } else if (parameter.getProb() != null) {
 
@@ -52,7 +71,6 @@ public class VariableContainer {
                     existing.setProb(parameter.getProb());
                 }
             } else {
-
 
 
                 byte[] newSerializedValue = parameter.getProb().getSerializedValue();
@@ -76,7 +94,7 @@ public class VariableContainer {
 
     public Parameter getParameterByName(String name) {
         for (Parameter parameter : this.parameterList) {
-            if (Objects.equals(parameter.getName(), name)) {
+            if (parameter.hasName(name)) {
                 return parameter;
             }
         }
@@ -90,10 +108,10 @@ public class VariableContainer {
                 .collect(Collectors.toList());
     }
 
-    public Optional<Parameter> getParametersById(String id) {
+    public Optional<Parameter> getParametersById(Object value) {
         return this.parameterList
                 .stream()
-                .filter(e -> e.getValue() != null && e.getValue().equals(id))
+                .filter(e -> e.getValue() != null && e.getValue().equals(value))
                 .findFirst();
     }
 
@@ -128,7 +146,7 @@ public class VariableContainer {
         return parameterList.size();
     }
 
-    public List<? extends Parameter> all() {
+    public List<Parameter> all() {
         return parameterList;
     }
 
@@ -140,8 +158,9 @@ public class VariableContainer {
         for (String name : getNames()) {
             Parameter localVariable = getParameterByName(name);
             if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
-                Optional<Parameter> byId = globalVariableContainer.getParametersById(localVariable.getType());
-                byId.ifPresent(value -> value.setName(localVariable.getName()));
+                List<Parameter> byId = globalVariableContainer.getParametersByType(localVariable.getType());
+                byId.forEach(e -> e.setName(localVariable.getName()));
+//                byId.ifPresent(value -> value.setName(localVariable.getName()));
             }
         }
     }

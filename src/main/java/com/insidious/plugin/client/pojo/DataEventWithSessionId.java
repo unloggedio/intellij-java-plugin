@@ -1,22 +1,34 @@
 package com.insidious.plugin.client.pojo;
 
 
-import java.util.Date;
+import com.j256.ormlite.field.DataType;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
+
+import java.io.Serializable;
 
 /**
  * This object is to record attributes of a data ID but also serializes the session id in response
  */
-public class DataEventWithSessionId {
 
+@DatabaseTable(tableName = "data_event")
+public class DataEventWithSessionId implements Serializable {
+
+    @DatabaseField
     private long threadId;
+    @DatabaseField(id = true)
     private long nanoTime;
+    @DatabaseField
     private long recordedAt;
 
-    private int dataId;
+    @DatabaseField
+    private long dataId;
 
+    @DatabaseField
     private long value;
     private String sessionId;
-    private byte[] serializedValue =  new byte[0];
+    @DatabaseField(dataType = DataType.BYTE_ARRAY)
+    private byte[] serializedValue = new byte[0];
 
     public long getThreadId() {
         return threadId;
@@ -42,11 +54,11 @@ public class DataEventWithSessionId {
         this.recordedAt = recordedAt;
     }
 
-    public int getDataId() {
+    public long getDataId() {
         return dataId;
     }
 
-    public void setDataId(int dataId) {
+    public void setDataId(long dataId) {
         this.dataId = dataId;
     }
 
@@ -64,6 +76,13 @@ public class DataEventWithSessionId {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
+    }
+
+    public DataEventWithSessionId(long threadId) {
+        this.threadId = threadId;
+    }
+
+    public DataEventWithSessionId() {
     }
 
     @Override

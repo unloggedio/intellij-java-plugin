@@ -1,18 +1,16 @@
-package com.insidious.plugin.pojo;
+package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.pojo.dao.ProbeInfo;
+import com.insidious.plugin.pojo.ConstructorType;
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 
 import javax.lang.model.element.Modifier;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,36 +19,65 @@ import java.util.Map;
  * test subject or the return value from the function. Store the corresponding probeInfo and
  * event also from where the information was identified
  */
+@DatabaseTable(tableName = "parameter")
 public class Parameter {
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
+    @DatabaseField(id = true)
     Long value;
     /**
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
+    @DatabaseField
     String type;
-    private final List<String> names = new LinkedList<>();
+    @DatabaseField(dataType = DataType.SERIALIZABLE)
+    private final String[] names = new String[0];
+    @DatabaseField
     private String stringValue;
+
+
+    @DatabaseField
+    boolean exception;
+    @DatabaseField(foreign = true)
+    DataEventWithSessionId prob;
+    @DatabaseField
+    private int index;
+    @DatabaseField(foreign = true)
+    private ProbeInfo probeInfo;
+    private ConstructorType constructorType;
+    @DatabaseField(foreign = true)
+    private MethodCallExpression creatorExpression;
+
+    public static Parameter fromParameter(com.insidious.plugin.pojo.Parameter e) {
+        if (e == null) {
+            return null;
+        }
+        Parameter newParam = new Parameter();
+        newParam.setContainer(e.isContainer());
+        newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
+        newParam.setException(e.getException());
+        newParam.setProb(e.getProb());
+        newParam.setType(e.getType());
+        Map<String, com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
+        Map<String, Parameter> transformedTemplateMap = new HashMap<>();
+        for (String s : templateMap1.keySet()) {
+            com.insidious.plugin.pojo.Parameter param = templateMap1.get(s);
+        }
+
+        newParam.setTemplateMap(transformedTemplateMap);
+        newParam.setConstructorType(e.getConstructorType());
+        newParam.setProbeInfo(e.getProbeInfo());
+        newParam.setValue((long) e.getValue());
+        return newParam;
+    }
 
     public boolean getException() {
         return exception;
     }
 
-    boolean exception;
-    DataEventWithSessionId prob;
-    private int index;
-    private DataInfo dataInfo;
-    private ConstructorType constructorType;
-    private MethodCallExpression creatorExpression;
-    private final VariableContainer variableContainer = new VariableContainer();
-
-    public void addField(Parameter parameter) {
-        this.variableContainer.add(parameter);
-    }
-
-    public VariableContainer getFields() {
-        return this.variableContainer;
+    public void setException(boolean exception) {
+        this.exception = exception;
     }
 
     public void setContainer(boolean container) {
@@ -65,17 +92,21 @@ public class Parameter {
         return templateMap;
     }
 
-    private final Map<String, Parameter> templateMap = new HashMap<>();
+    public void setTemplateMap(Map<String, Parameter> templateMap) {
+        this.templateMap = templateMap;
+    }
+
+    private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
 
     @Override
     public String toString() {
         return
-                names.stream().findFirst() +
-                        (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
+                (names.length > 0 ? names[0] : "") +
+                        (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
-                        ", probeInfo=" + dataInfo +
+                        ", probeInfo=" + probeInfo +
                         ", prob=" + prob +
                         '}';
     }
@@ -85,22 +116,19 @@ public class Parameter {
     }
 
     public void setType(String type) {
-        if (type.contains("$")) {
+        if (type != null && type.contains("$")) {
             type = type.replace('$', '.');
         }
         this.type = type;
     }
 
     public String getName() {
-        if (names.size() == 0) {
+        if (names.length == 0) {
             return null;
         }
-        return names.get(0);
+        return names[0];
     }
 
-    public void setName(String name) {
-        this.names.add(0, name);
-    }
 
     public Object getValue() {
         return stringValue == null ? value : stringValue;
@@ -133,16 +161,12 @@ public class Parameter {
         this.index = index;
     }
 
-    public DataInfo getProbeInfo() {
-        return dataInfo;
+    public ProbeInfo getProbeInfo() {
+        return probeInfo;
     }
 
     public void setProbeInfo(DataInfo probeInfo) {
-        this.dataInfo = probeInfo;
-        if (probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-            this.exception = true;
-        }
-
+        this.probeInfo = ProbeInfo.FromProbeInfo(probeInfo);
     }
 
     public ConstructorType getConstructorType() {
@@ -192,11 +216,5 @@ public class Parameter {
         this.templateMap.put(e, nextValueParam);
     }
 
-    public void addName(String nameForParameter) {
-        this.names.add(nameForParameter);
-    }
 
-    public boolean hasName(String name) {
-        return this.names.contains(name);
-    }
 }

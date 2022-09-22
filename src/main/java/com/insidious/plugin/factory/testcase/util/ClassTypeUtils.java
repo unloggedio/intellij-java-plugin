@@ -70,11 +70,16 @@ public class ClassTypeUtils {
 
     @NotNull
     public static String getDottedClassName(String className) {
-        if (className.startsWith("L")) {
-            className = className.substring(1);
-        }
+
         if (className.endsWith(";")) {
             className = className.substring(0, className.length() - 1);
+        }
+
+        while(className.startsWith("[")) {
+            className = className.substring(1) + "[]";
+        }
+        if (className.startsWith("L")) {
+            className = className.substring(1);
         }
 
         String dottedName = className.replace('/', '.');

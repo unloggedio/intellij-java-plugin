@@ -132,24 +132,24 @@ public class InsidiousService implements Disposable {
                 logger.info("current module - " + currentModule.getName());
             }
 
-            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
-
-            ReadAction.run(this::getProjectPackageName);
-            threadPool.submit(this::startDebugSession);
-
-            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
             this.testCaseService = new TestCaseService(project, client);
+            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+
+            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
+
+            ReadAction.run(this::getProjectPackageName);
+//            threadPool.submit(this::startDebugSession);
+
             ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
             ReadAction.run(this::initiateUI);
 
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
-        } catch (ProcessCanceledException pce) {
+        } catch (ProcessCanceledException ignored) {
         } catch (Throwable e) {
             e.printStackTrace();
             logger.error("exception in videobug service init", e);
@@ -754,6 +754,9 @@ public class InsidiousService implements Disposable {
 
     private synchronized void startDebugSession() {
         logger.info("start debug session");
+        if (true) {
+            return;
+        }
 
         debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
@@ -822,7 +825,7 @@ public class InsidiousService implements Disposable {
                 if (traceContent != null) {
                     toolWindow.getContentManager().removeContent(traceContent, true);
                 }
-                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                 ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                 Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(), "Credentials", false);
                 toolWindow.getContentManager().addContent(credentialContent);
@@ -851,7 +854,7 @@ public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }

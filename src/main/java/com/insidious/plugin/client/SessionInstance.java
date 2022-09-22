@@ -21,11 +21,20 @@ import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.j256.ormlite.dao.Dao;
+import com.j256.ormlite.dao.DaoManager;
+import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.support.ConnectionSource;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
@@ -33,11 +42,10 @@ import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -57,9 +65,9 @@ public class SessionInstance {
     private final Map<String, String> cacheEntries = new HashMap<>();
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex typeIndex;
-    private Map<String, DataInfo> probeInfoMap;
-    private Map<String, ClassInfo> classInfoMap;
-    private Map<String, MethodInfo> methodInfoMap;
+    private Map<Long, DataInfo> probeInfoMap;
+    private Map<Long, ClassInfo> classInfoMap;
+    private Map<Long, MethodInfo> methodInfoMap;
 
     public SessionInstance(File sessionDirectory, ExecutionSession executionSession) {
         this.sessionDirectory = sessionDirectory;
@@ -113,18 +121,17 @@ public class SessionInstance {
             checkProgressIndicator(null, "Loading class: " + e.className());
 
             ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
-            classInfoMap.put(String.valueOf(e.classId()), classInfo);
+            classInfoMap.put(e.classId(), classInfo);
 
             checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
 
             e.methodList().forEach(m -> {
                 MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.getClassName());
-                methodInfoMap.put(String.valueOf(m.methodId()), methodInfo);
+                methodInfoMap.put(m.methodId(), methodInfo);
             });
 
             e.probeList().forEach(r -> {
-                probeInfoMap.put(String.valueOf(r.dataId()),
-                        KaitaiUtils.toDataInfo(r));
+                probeInfoMap.put(r.dataId(), KaitaiUtils.toDataInfo(r));
             });
 
         });
@@ -322,13 +329,13 @@ public class SessionInstance {
     }
 
 
-    private List<DataInfo> getProbeInfo(File sessionFile, Set<Integer> dataId) throws IOException {
+    private List<DataInfo> getProbeInfo(File sessionFile, Set<Long> dataId) throws IOException {
 
 
         return classWeaveInfo.classInfo().stream()
                 .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
                 .flatMap(Collection::stream)
-                .filter(e -> dataId.contains(Math.toIntExact(e.dataId())))
+                .filter(e -> dataId.contains(e.dataId()))
                 .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
 
     }
@@ -510,9 +517,7 @@ public class SessionInstance {
                     new KaitaiInsidiousClassWeaveParser(new ByteBufferKaitaiStream(bytes));
 
             for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
-                classInfoMap.put(classInfo.className().value(),
-                        KaitaiUtils.toClassInfo(classInfo)
-                );
+                classInfoMap.put(classInfo.classId(), KaitaiUtils.toClassInfo(classInfo));
             }
         }
 
@@ -1098,8 +1103,8 @@ public class SessionInstance {
         Collections.reverse(dataEventList);
 
 
-        Map<String, ClassInfo> classInfo = new HashMap<>();
-        Map<String, DataInfo> dataInfo = new HashMap<>();
+        Map<Long, ClassInfo> classInfo = new HashMap<>();
+        Map<Long, DataInfo> dataInfo = new HashMap<>();
 
         checkProgressIndicator(null, "Loading class mappings");
 
@@ -1107,24 +1112,23 @@ public class SessionInstance {
 
             checkProgressIndicator(null, "Loading class: " + e.className());
 
-            classInfo.put(String.valueOf(e.classId()), KaitaiUtils.toClassInfo(e));
+            classInfo.put(e.classId(), KaitaiUtils.toClassInfo(e));
 
             checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
 
             e.probeList().forEach(r -> {
-                dataInfo.put(String.valueOf(r.dataId()),
-                        KaitaiUtils.toDataInfo(r));
+                dataInfo.put(r.dataId(), KaitaiUtils.toDataInfo(r));
             });
         });
 
-        Set<Integer> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
+        Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
         Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
 
 
-        Map<String, StringInfo> stringInfo = new HashMap<>();
-        Map<String, ObjectInfo> objectInfo = new HashMap<>();
-        Map<String, TypeInfo> typeInfo = new HashMap<>();
-        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
+        Map<Long, StringInfo> stringInfo = new HashMap<>();
+        Map<Long, ObjectInfo> objectInfo = new HashMap<>();
+        Map<Long, TypeInfo> typeInfo = new HashMap<>();
+        Map<Long, MethodInfo> methodInfoMap = new HashMap<>();
 
         checkProgressIndicator(null, "Loading types");
         for (File sessionArchive : this.sessionArchives) {
@@ -1144,7 +1148,7 @@ public class SessionInstance {
                 logger.error("failed to read object index from session bytes: " + e.getMessage(), e);
                 continue;
             }
-            Map<String, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectId(valueIds);
+            Map<Long, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectIdWithLongKeys(valueIds);
             objectInfo.putAll(sessionObjectInfo);
 
             checkProgressIndicator(null, "Loading strings from " + sessionArchive.getName());
@@ -1160,7 +1164,7 @@ public class SessionInstance {
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
             }
-            Map<String, StringInfo> sessionStringInfo = stringIndex.getStringsById(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
+            Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet()));
             stringInfo.putAll(sessionStringInfo);
 
 
@@ -1177,7 +1181,7 @@ public class SessionInstance {
 //                logger.error("failed to read type index from session archive", e);
 //                continue;
 //            }
-            Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
+            Map<Long, TypeInfo> sessionTypeInfo = typeIndex.getTypesByIdWithLongKeys(typeIds);
             typeInfo.putAll(sessionTypeInfo);
 
         }
@@ -1422,9 +1426,9 @@ public class SessionInstance {
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
-        Map<String, StringInfo> stringInfoMap = new HashMap<>();
-        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
-        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        Map<Long, StringInfo> stringInfoMap = new HashMap<>();
+        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
+        Map<Long, TypeInfo> typeInfoMap = new HashMap<>();
 
 
         final long objectId = filteredDataEventsRequest.getObjectId();
@@ -1459,6 +1463,7 @@ public class SessionInstance {
         Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap();
 
         for (File sessionArchive : sessionArchivesLocal) {
+            logger.warn("open archive [" + sessionArchive.getName() + "]");
 
 
             Map<String, UploadFile> matchedFiles = new HashMap<>();
@@ -1472,7 +1477,7 @@ public class SessionInstance {
                 List<UploadFile> matchedFilesForString = eventsIndex.querySessionFilesByValueId(objectId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
-//                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
+                    logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
                     int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
                     uploadFileToAdd.setValueIds(new Long[]{objectId});
@@ -1521,8 +1526,6 @@ public class SessionInstance {
 
                 for (String archiveFile : archiveFiles) {
                     checkProgressIndicator(null, "Reading events from  " + archiveFile);
-//                    logger.warn("loading next file: " + archiveFile + " need [" + remaining +"] " +
-//                            "more events");
 
                     if (remaining == 0) {
                         break;
@@ -1532,6 +1535,8 @@ public class SessionInstance {
                         continue;
                     }
 
+                    logger.warn("loading next file: " + archiveFile + " need [" + remaining + "] more events");
+
                     SELogFileMetadata metadata = fileEventIdPairs.get(archiveFile);
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = null;
 
@@ -1540,20 +1545,16 @@ public class SessionInstance {
 
                     if (metadata == null && filteredDataEventsRequest.getNanotime() != -1) {
 
-                        if (filteredDataEventsRequest.getThreadId() != -1
-                                && fileThreadId != filteredDataEventsRequest.getThreadId()) {
+                        if (filteredDataEventsRequest.getThreadId() != -1 && fileThreadId != filteredDataEventsRequest.getThreadId()) {
                             continue;
                         }
 
-                        eventsSublist = getEventsFromFile(sessionArchive,
-                                archiveFile);
+                        eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
 
                         KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
-                        KaitaiInsidiousEventParser.Block lastEvent =
-                                eventsSublist.get(eventsSublist.size() -1);
+                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
 
-                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent),
-                                fileThreadId);
+                        metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent), fileThreadId);
                         fileEventIdPairs.put(archiveFile, metadata);
 
 
@@ -1579,8 +1580,7 @@ public class SessionInstance {
                         }
 
                         KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
-                        KaitaiInsidiousEventParser.Block lastEvent =
-                                eventsSublist.get(eventsSublist.size() -1);
+                        KaitaiInsidiousEventParser.Block lastEvent = eventsSublist.get(eventsSublist.size() - 1);
 
                         metadata = new SELogFileMetadata(eventId(firstEvent), eventId(lastEvent),
                                 fileThreadId);
@@ -1636,16 +1636,13 @@ public class SessionInstance {
                                     }
                                 }
 
-                                boolean isRequestedObject =
-                                        valueId == objectId || objectId == -1;
+                                boolean isRequestedObject = valueId == objectId || objectId == -1;
 
                                 if (isRequestedObject) {
                                     previousEventAt.set(currentEventId);
                                 }
 
-                                if (currentFirstEventAt != -1 &&
-                                        currentEventId - currentFirstEventAt
-                                                <= pageInfo.getBufferSize()) {
+                                if (currentFirstEventAt != -1 && currentEventId - currentFirstEventAt <= pageInfo.getBufferSize()) {
                                     return true;
                                 }
 
@@ -1720,7 +1717,7 @@ public class SessionInstance {
             }
 
 
-            Set<Integer> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
+            Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
             Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
 
 
@@ -1737,14 +1734,10 @@ public class SessionInstance {
                 continue;
             }
             Set<Long> potentialStringIds = valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet());
-            Map<String, StringInfo> sessionStringInfo = stringIndex
-                    .getStringsById(potentialStringIds);
+            Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(potentialStringIds);
             if (potentialStringIds.size() != sessionStringInfo.size()) {
 
-                sessionStringInfo.values().stream()
-                        .map(StringInfo::getStringId)
-                        .collect(Collectors.toList())
-                        .forEach(potentialStringIds::remove);
+                sessionStringInfo.values().stream().map(StringInfo::getStringId).collect(Collectors.toList()).forEach(potentialStringIds::remove);
 
 
                 remainingStringIds.addAll(potentialStringIds);
@@ -1772,7 +1765,7 @@ public class SessionInstance {
                 objectIds.add(objectId);
             }
 
-            Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
+            Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
             if (sessionObjectsInfo.size() != objectIds.size()) {
 //                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
 //                        "only " + sessionObjectsInfo.size());
@@ -1790,7 +1783,7 @@ public class SessionInstance {
                     .stream().map(ObjectInfo::getTypeId)
                     .map(Long::intValue).collect(Collectors.toSet());
 
-            Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
+            Map<Long, TypeInfo> sessionTypeInfo = typeIndex.getTypesByIdWithLongKeys(typeIds);
             if (sessionTypeInfo.size() < typeIds.size()){
                 logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
             }
@@ -1822,14 +1815,11 @@ public class SessionInstance {
                 }
 
 
-                Map<String, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectId(objectIds);
-                if (sessionObjectsInfo.size() != objectIds.size()) {
+                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
+                if (sessionObjectsInfo.size() > 0) {
 //                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
 
-                    sessionObjectsInfo.values().stream()
-                            .map(ObjectInfo::getObjectId)
-                            .collect(Collectors.toList())
-                            .forEach(objectIds::remove);
+                    sessionObjectsInfo.values().stream().map(ObjectInfo::getObjectId).collect(Collectors.toList()).forEach(objectIds::remove);
                 }
                 objectInfoMap.putAll(sessionObjectsInfo);
 
@@ -1846,8 +1836,7 @@ public class SessionInstance {
                     logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                     continue;
                 }
-                Map<String, StringInfo> sessionStringInfo = stringIndex
-                        .getStringsById(remainingStringIds);
+                Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(remainingStringIds);
                 if (remainingStringIds.size() != sessionStringInfo.size()) {
 
                     sessionStringInfo.values().stream()
@@ -1863,8 +1852,8 @@ public class SessionInstance {
                         .stream().map(ObjectInfo::getTypeId)
                         .map(Long::intValue).collect(Collectors.toSet());
 
-                Map<String, TypeInfo> sessionTypeInfo = typeIndex.getTypesById(typeIds);
-                if (sessionTypeInfo.size() < typeIds.size()){
+                Map<Long, TypeInfo> sessionTypeInfo = typeIndex.getTypesByIdWithLongKeys(typeIds);
+                if (sessionTypeInfo.size() < typeIds.size()) {
                     logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
                 }
                 typeInfoMap.putAll(sessionTypeInfo);
@@ -1872,19 +1861,874 @@ public class SessionInstance {
 
             }
 
-            if (objectIds.size() > 0) {
-//                logger.warn("failed to find object information for: " + objectIds);
-            }
+
         }
 
 
-            return new ReplayData(
-                null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap,
-                stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
+        return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap, stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
     }
 
+
+    public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
+
+
+//        new File("execution.db").delete();
+        // this uses h2 but you can change it to match your database
+        String databaseUrl = "jdbc:sqlite:execution.db";
+        // create a connection source to our database
+        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+
+        // instantiate the DAO to handle Account with String id
+        Dao<com.insidious.plugin.pojo.dao.TestCandidateMetadata, String> candidateDao =
+                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+
+        Dao<com.insidious.plugin.pojo.dao.ProbeInfo, String> probeInfoDao =
+                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
+
+        Dao<com.insidious.plugin.pojo.dao.Parameter, String> parameterDao =
+                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+
+        Dao<com.insidious.plugin.pojo.dao.MethodCallExpression, String> callExpressionsDao =
+                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+
+        Dao<DataEventWithSessionId, String> dataEventDao =
+                DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
+
+        // if you need to create the 'accounts' table make this call
+//        try {
+//
+//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
+//            TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
+//        } catch (SQLException sqlException) {
+//            logger.warn("probably table already exists: " + sqlException.toString());
+//        }
+
+
+        List<DataEventWithSessionId> dataEventList = new LinkedList<>();
+        Map<Long, StringInfo> stringInfoMap = new HashMap<>();
+        Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
+        Map<Long, TypeInfo> typeInfoMap = new HashMap<>();
+
+        LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
+
+        assert classInfoMap.size() > 0;
+        assert probeInfoMap.size() > 0;
+        assert methodInfoMap.size() > 0;
+
+        List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
+        List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
+        Map<Long, ObjectRoutineContainer> objectRoutineContainerMap = new HashMap<>();
+
+        Collections.sort(sessionArchivesLocal);
+
+
+        checkProgressIndicator(null, "Loading class mappings");
+        VariableContainer variableContainer = new VariableContainer();
+
+        List<MethodCallExpression> callStack = new LinkedList<>();
+        List<MethodCallExpression> callsList = new LinkedList<>();
+        AtomicInteger index = new AtomicInteger(0);
+        List<Long> valueStack = new LinkedList<>();
+
+        Map<String, VariableContainer> classStaticFieldMap = new HashMap<>();
+
+        File output = new File(String.format("output%d.txt", request.getThreadId()));
+        FileOutputStream outputWriter = new FileOutputStream(output);
+        BufferedOutputStream outputStream = new BufferedOutputStream(outputWriter);
+
+
+        try {
+            for (File sessionArchive : sessionArchivesLocal) {
+                logger.warn("open archive [" + sessionArchive.getName() + "]");
+
+//            ArchiveFilesIndex eventsIndex = getEventIndex(sessionArchive);
+
+//            Map<String, UploadFile> matchedFiles = new HashMap<>();
+
+
+                try {
+                    List<String> archiveFiles = new LinkedList<>();
+
+                    archiveFiles = listArchiveFiles(sessionArchive);
+
+                    if (archiveFiles.size() == 0) {
+                        continue;
+                    }
+
+
+                    Collections.sort(archiveFiles);
+
+
+                    for (String archiveFile : archiveFiles) {
+                        checkProgressIndicator(null, "Reading events from  " + archiveFile);
+
+                        if (!archiveFile.endsWith(".selog")) {
+                            continue;
+                        }
+                        final int fileThreadId = getThreadIdFromFileName(archiveFile);
+                        if (fileThreadId != request.getThreadId()) {
+                            continue;
+                        }
+
+                        logger.warn("loading next file: [" + archiveFile + "]");
+
+
+                        logger.info("Checking file " + archiveFile + " for data");
+
+
+                        List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+                        if (eventsSublist.size() == 0) {
+                            continue;
+                        }
+
+
+                        List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
+                                .stream()
+                                .filter(e -> e.magic() == 7 || e.magic() == 4)
+                                .map(e -> {
+                                    if (e.magic() == 4) {
+                                        KaitaiInsidiousEventParser.DataEventBlock eventBlock = (KaitaiInsidiousEventParser.DataEventBlock) e.block();
+                                        DataEventWithSessionId d = new DataEventWithSessionId(fileThreadId);
+                                        d.setDataId((int) eventBlock.probeId());
+                                        d.setNanoTime(eventBlock.eventId());
+                                        d.setRecordedAt(eventBlock.timestamp());
+                                        d.setValue(eventBlock.valueId());
+                                        return d;
+                                    } else if (e.magic() == 7) {
+                                        KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
+                                        DataEventWithSessionId d = new DataEventWithSessionId(fileThreadId);
+                                        d.setDataId((int) eventBlock.probeId());
+                                        d.setNanoTime(eventBlock.eventId());
+                                        d.setRecordedAt(eventBlock.timestamp());
+                                        d.setValue(eventBlock.valueId());
+                                        d.setSerializedValue(eventBlock.serializedData());
+                                        return d;
+
+                                    }
+
+
+                                    return null;
+                                }).filter(Objects::nonNull).peek(dataEvent -> {
+
+                                    try {
+
+
+                                        DataInfo probeInfo = probeInfoMap.get((long) dataEvent.getDataId());
+                                        ClassInfo classInfo = classInfoMap.get((long) probeInfo.getClassId());
+                                        MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
+                                        int instructionIndex = index.getAndIncrement();
+                                        LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                        if (instructionIndex % 100 == 0) {
+                                            long x = dataEvent.getValue();
+                                            logger.info(":%s - " + x);
+                                        }
+
+                                        switch (probeInfo.getEventType()) {
+
+                                            case LABEL:
+                                                // nothing to do
+                                                break;
+                                            case LINE_NUMBER:
+                                                // we always have this information in the probeInfo
+                                                // nothing to do
+                                                break;
+
+                                            case LOCAL_STORE:
+
+                                                if (dataEvent.getValue() != 0) {
+                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
+                                                    if (existingParameter.isPresent()) {
+                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                        String nameFromProbe = probeInfo.getAttribute("Name", null);
+                                                        if (nameFromProbe != null) {
+                                                            existingParameterInstance.addName(nameFromProbe);
+                                                        }
+
+                                                    }
+                                                }
+
+                                                break;
+
+                                            case LOCAL_LOAD:
+                                                if (dataEvent.getValue() != 0) {
+                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
+                                                    if (existingParameter.isPresent()) {
+                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                        String nameFromProbe = probeInfo.getAttribute("Name", null);
+                                                        if (nameFromProbe != null) {
+                                                            existingParameterInstance.addName(nameFromProbe);
+                                                        }
+
+                                                    } else {
+                                                        Parameter localVariableParameter = new Parameter();
+                                                        localVariableParameter.setName(
+                                                                probeInfo.getAttribute("Name", null)
+                                                        );
+                                                        localVariableParameter.setType(
+                                                                ClassTypeUtils.getDottedClassName(
+                                                                        probeInfo.getAttribute("Type", null)
+                                                                )
+                                                        );
+                                                        localVariableParameter.setProb(dataEvent);
+                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                        dataEventDao.createOrUpdate(dataEvent);
+
+                                                        localVariableParameter.setProbeInfo(probeInfo);
+                                                        TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                        VariableContainer candidateVariables = currentTestCandidate.getVariables();
+                                                        candidateVariables.add(localVariableParameter);
+                                                        parameterDao.createOrUpdate(
+                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(localVariableParameter)
+                                                        );
+                                                    }
+                                                }
+
+                                                break;
+
+                                            case GET_STATIC_FIELD:
+                                                if (dataEvent.getValue() != 0) {
+                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
+                                                    if (existingParameter.isPresent()) {
+                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                        String nameFromProbe = probeInfo.getAttribute("Name", null);
+                                                        if (nameFromProbe != null) {
+                                                            existingParameterInstance.addName(nameFromProbe);
+                                                        }
+
+                                                    } else {
+                                                        Parameter localVariableParameter = new Parameter();
+                                                        localVariableParameter.setName(
+                                                                probeInfo.getAttribute("Name", null)
+                                                        );
+                                                        localVariableParameter.setType(
+                                                                ClassTypeUtils.getDottedClassName(
+                                                                        probeInfo.getAttribute("Type", null)
+                                                                )
+                                                        );
+                                                        localVariableParameter.setProb(dataEvent);
+                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                        dataEventDao.createOrUpdate(dataEvent);
+                                                        localVariableParameter.setProbeInfo(probeInfo);
+                                                        TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                        VariableContainer candidateVariables = currentTestCandidate.getVariables();
+                                                        candidateVariables.add(localVariableParameter);
+                                                        parameterDao.createOrUpdate(
+                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(localVariableParameter)
+                                                        );
+
+                                                    }
+                                                }
+
+                                                break;
+
+                                            case GET_INSTANCE_FIELD_RESULT:
+                                                if (dataEvent.getValue() != 0) {
+                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
+                                                    if (existingParameter.isPresent()) {
+                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                        String nameFromProbe = probeInfo.getAttribute("FieldName", null);
+                                                        if (nameFromProbe != null) {
+
+                                                            String existingName = existingParameterInstance.getName();
+                                                            if (existingName == null || existingName.length() < nameFromProbe.length()) {
+                                                                existingParameterInstance.setName(nameFromProbe);
+                                                            }
+
+                                                        }
+
+                                                    }
+                                                }
+                                                break;
+
+                                            case PUT_INSTANCE_FIELD:
+
+                                                String owner = probeInfo.getAttribute("Owner", null);
+                                                String fieldName = probeInfo.getAttribute("FieldName", null);
+                                                String fieldType = probeInfo.getAttribute("Type", null);
+
+                                                // we are going to set this field in the next event
+                                                valueStack.add(dataEvent.getValue());
+
+                                                Optional<Parameter> existingParentParameter = variableContainer.getParametersById(dataEvent.getValue());
+                                                if (existingParentParameter.isPresent()) {
+                                                    Parameter existingParam = existingParentParameter.get();
+                                                    if (existingParam.getType() == null || existingParam.getType().contains(".Object")) {
+                                                        existingParam.setType(ClassTypeUtils.getDottedClassName(owner));
+                                                    }
+                                                } else {
+                                                    // new variable identified ?
+                                                    throw new RuntimeException("unidentified variable");
+                                                }
+
+                                                break;
+
+                                            case PUT_INSTANCE_FIELD_VALUE:
+
+
+                                                owner = probeInfo.getAttribute("Owner", null);
+                                                fieldName = probeInfo.getAttribute("FieldName", null);
+                                                fieldType = probeInfo.getAttribute("Type", null);
+
+                                                Long parentValue = valueStack.remove(valueStack.size() - 1);
+                                                Optional<Parameter> parentParameter = variableContainer.getParametersById(parentValue);
+                                                assert parentParameter.isPresent();
+                                                Parameter parentParameterInstance = parentParameter.get();
+                                                VariableContainer parentFields = parentParameterInstance.getFields();
+
+
+                                                Optional<Parameter> existingParameter = parentFields.getParametersById(dataEvent.getValue());
+                                                if (existingParameter.isPresent()) {
+                                                    Parameter existingParameterInstance = existingParameter.get();
+                                                    String nameFromProbe = probeInfo.getAttribute("FieldName", null);
+                                                    if (nameFromProbe != null) {
+                                                        existingParameterInstance.addName(nameFromProbe);
+                                                    }
+
+                                                } else {
+                                                    // new field
+                                                    Parameter newField = new Parameter();
+                                                    newField.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                                    newField.setName(fieldName);
+                                                    newField.setProb(dataEvent);
+                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                    dataEventDao.createOrUpdate(dataEvent);
+
+                                                    newField.setProbeInfo(probeInfo);
+                                                    parameterDao.createOrUpdate(com.insidious.plugin.pojo.dao.Parameter.fromParameter(newField));
+                                                    parentFields.add(newField);
+                                                }
+                                                break;
+
+
+                                            case PUT_STATIC_FIELD:
+
+                                                String ownerClass = probeInfo.getAttribute("Owner", null);
+                                                fieldType = probeInfo.getAttribute("Type", null);
+
+                                                assert ownerClass != null;
+                                                assert fieldType != null;
+
+
+                                                ownerClass = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
+                                                fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
+
+                                                VariableContainer classStaticFieldContainer = classStaticFieldMap.getOrDefault(ownerClass, new VariableContainer());
+
+                                                Optional<Parameter> fieldParameter = classStaticFieldContainer.getParametersById(dataEvent.getValue());
+                                                if (fieldParameter.isPresent()) {
+                                                    // field is already present and we are overwriting it here
+                                                    // how to keep track of this ?
+
+                                                } else {
+                                                    Optional<Parameter> fieldParameterInstance = variableContainer.getParametersById(dataEvent.getValue());
+                                                    if (fieldParameterInstance.isEmpty()) {
+                                                        // this is a really wierd position to be in
+                                                        // or we are coming across this field for the first time
+                                                        Parameter newFieldParameter = new Parameter();
+                                                        newFieldParameter.setName(
+                                                                probeInfo.getAttribute("FieldName", null)
+                                                        );
+                                                        newFieldParameter.setType(
+                                                                ClassTypeUtils.getDottedClassName(
+                                                                        fieldType
+                                                                )
+                                                        );
+                                                        newFieldParameter.setProb(dataEvent);
+                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                        dataEventDao.createOrUpdate(dataEvent);
+
+                                                        newFieldParameter.setProbeInfo(probeInfo);
+
+                                                        classStaticFieldContainer.add(newFieldParameter);
+                                                        variableContainer.add(newFieldParameter);
+                                                        parameterDao.createOrUpdate(
+                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(newFieldParameter)
+                                                        );
+
+                                                    } else {
+                                                        Parameter existingFieldParam = fieldParameterInstance.get();
+                                                        existingFieldParam.setName(probeInfo.getAttribute("FieldName", null));
+                                                        existingFieldParam.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                                        classStaticFieldContainer.add(fieldParameterInstance.get());
+                                                    }
+                                                }
+
+                                                break;
+
+                                            case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
+
+                                                break;
+
+                                            case GET_INSTANCE_FIELD:
+
+                                                break;
+
+                                            case CALL:
+
+                                                String methodName = probeInfo.getAttribute("Name", null);
+                                                String callType = probeInfo.getAttribute("CallType", null);
+                                                String instruction = probeInfo.getAttribute("Instruction", null);
+                                                owner = probeInfo.getAttribute("Owner", null);
+
+                                                Optional<Parameter> existingSubjectParam = variableContainer.getParametersById(dataEvent.getValue());
+                                                Parameter subjectParameter;
+                                                if (dataEvent.getValue() != 0 && existingSubjectParam.isPresent()) {
+                                                    subjectParameter = existingSubjectParam.get();
+                                                } else {
+                                                    subjectParameter = new Parameter();
+                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                    dataEventDao.createOrUpdate(dataEvent);
+
+                                                    subjectParameter.setProbeInfo(probeInfo);
+                                                    subjectParameter.setProb(dataEvent);
+                                                    parameterDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(subjectParameter)
+                                                    );
+
+                                                }
+
+                                                MethodCallExpression methodCallExpression = new MethodCallExpression(
+                                                        methodName, subjectParameter, new VariableContainer(), null
+                                                );
+                                                methodCallExpression.setEntryProbeInfo(probeInfo);
+                                                methodCallExpression.setEntryProbe(dataEvent);
+
+                                                if (callType.equals("Static")) {
+                                                    methodCallExpression.setStaticCall(true);
+                                                }
+
+
+                                                callStack.add(methodCallExpression);
+                                                callsList.add(methodCallExpression);
+
+
+//                                        variableContainer.add(subjectParameter);
+
+
+                                                break;
+
+
+                                            case CALL_PARAM:
+                                                Parameter callParameter = new Parameter();
+
+                                                Optional<Parameter> existingCallParam = variableContainer.getParametersById(dataEvent.getValue());
+                                                if (existingCallParam.isPresent()) {
+                                                    callParameter = existingCallParam.get();
+                                                } else {
+                                                    callParameter.setValue(dataEvent.getValue());
+                                                    callParameter.setProb(dataEvent);
+                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                    dataEventDao.createOrUpdate(dataEvent);
+
+                                                    callParameter.setProbeInfo(probeInfo);
+                                                    callParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+
+                                                    parameterDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(callParameter)
+                                                    );
+
+                                                }
+
+
+                                                variableContainer.add(callParameter);
+                                                MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
+                                                currentMethodCallExpression.getArguments().add(callParameter);
+                                                break;
+
+                                            case METHOD_ENTRY:
+
+
+                                                MethodCallExpression methodCall = null;
+                                                if (callStack.size() > 0) {
+                                                    methodCall = callStack.get(callStack.size() - 1);
+                                                    @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(methodInfo.getClassName());
+                                                    String owner1 = methodCall.getEntryProbeInfo().getAttribute("Owner", null);
+                                                    if (owner1 == null) {
+                                                        owner1 = methodCall.getSubject().getType();
+                                                    }
+                                                    @NotNull String actualClassName = ClassTypeUtils.getDottedClassName(owner1);
+                                                    if (!actualClassName.startsWith(expectedClassName) ||
+                                                            !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
+                                                        methodCall = null;
+                                                    }
+                                                }
+
+                                                TestCandidateMetadata newCandidate = new TestCandidateMetadata();
+
+                                                newCandidate.setEntryProbeIndex(index.get());
+                                                testCandidateMetadataStack.add(newCandidate);
+
+
+                                                newCandidate.setEntryProbeIndex(instructionIndex);
+
+
+                                                if (methodCall != null) {
+                                                    newCandidate.setMainMethod(methodCall);
+                                                } else {
+                                                    subjectParameter = new Parameter();
+                                                    subjectParameter.setProb(dataEvent);
+                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                    dataEventDao.createOrUpdate(dataEvent);
+
+                                                    subjectParameter.setProbeInfo(probeInfo);
+                                                    String probeOwnerClassType = probeInfo.getAttribute("Owner", null);
+                                                    if (probeOwnerClassType != null) {
+                                                        subjectParameter.setType(ClassTypeUtils.getDottedClassName(probeOwnerClassType));
+                                                    } else {
+                                                        subjectParameter.setType(
+                                                                ClassTypeUtils.getDottedClassName(
+                                                                        methodInfo.getClassName()
+                                                                )
+                                                        );
+                                                    }
+                                                    parameterDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(subjectParameter)
+                                                    );
+
+                                                    variableContainer.add(subjectParameter);
+                                                    methodCall = new MethodCallExpression(
+                                                            methodInfo.getMethodName(), subjectParameter, new VariableContainer(), null
+                                                    );
+                                                    methodCall.setEntryProbeInfo(probeInfo);
+                                                    methodCall.setEntryProbe(dataEvent);
+                                                    callsList.add(methodCall);
+                                                    callStack.add(methodCall);
+
+//                                            currentMethodCall.set(methodCall);
+                                                }
+
+
+                                                break;
+
+
+                                            case METHOD_PARAM:
+
+                                                // if the caller was probed then we already have the method arguments
+                                                // in that case we can verify here
+                                                // else if the caller was a third party, then we need to extract parameters from here
+
+                                                Parameter methodParameter = new Parameter();
+                                                methodParameter.setValue(dataEvent.getValue());
+                                                methodParameter.setProb(dataEvent);
+                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                dataEventDao.createOrUpdate(dataEvent);
+
+                                                methodParameter.setProbeInfo(probeInfo);
+
+                                                parameterDao.createOrUpdate(
+                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(methodParameter)
+                                                );
+
+                                                MethodCallExpression methodExpression = callStack.get(callStack.size() - 1);
+
+                                                EventType entryProbeEventType = methodExpression.getEntryProbeInfo().getEventType();
+                                                if (entryProbeEventType == EventType.CALL) {
+
+                                                    methodExpression.getArguments().getParametersById(methodParameter.getProb().getValue());
+
+                                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                                                    // oo la la
+                                                    methodExpression.getArguments().add(methodParameter);
+                                                } else {
+                                                    throw new RuntimeException("unexpected entry probe event type");
+                                                }
+                                                break;
+
+
+                                            case METHOD_NORMAL_EXIT:
+                                            case METHOD_EXCEPTIONAL_EXIT:
+
+
+                                                MethodCallExpression currentCallExpression = callStack.get(callStack.size() - 1);
+
+                                                entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
+
+                                                Parameter exitParameter = new Parameter();
+                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                dataEventDao.createOrUpdate(dataEvent);
+
+                                                exitParameter.setProbeInfo(probeInfo);
+                                                exitParameter.setProb(dataEvent);
+
+                                                parameterDao.createOrUpdate(
+                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(exitParameter)
+                                                );
+
+
+                                                if (entryProbeEventType == EventType.CALL) {
+                                                    // we dont pop it here, wait for the CALL_RETURN to pop the call
+
+
+                                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                                                    // we can pop the current call here since we never had the CALL event in the first place
+                                                    // this might be going out of our hands
+                                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+
+
+                                                    topCall.setReturnValue(exitParameter);
+                                                    callExpressionsDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.MethodCallExpression.FromMCE(topCall)
+                                                    );
+
+                                                    // also the test candidate metadata need to be finished
+                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                    currentCandidate.setMainMethod(topCall);
+
+                                                } else {
+                                                    throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
+                                                }
+
+
+                                                TestCandidateMetadata completed = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
+                                                if (testCandidateMetadataStack.size() > 0) {
+                                                    TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                    newCurrent.getCallsList().addAll(completed.getCallsList());
+                                                } else {
+                                                    if (callStack.size() > 0) {
+                                                        logger.warn("inconsistent call stack state, flushing calls list");
+                                                        callStack.clear();
+                                                    }
+                                                }
+                                                completed.setExitProbeIndex(instructionIndex);
+                                                if (completed.getMainMethod() != null) {
+                                                    DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
+                                                    if (entryProbe != null) {
+                                                        completed.setCallTimeNanoSecond(
+                                                                dataEvent.getRecordedAt() - entryProbe.getRecordedAt()
+                                                        );
+                                                    }
+                                                }
+                                                if (completed.getMainMethod() != null) {
+                                                    completed.setTestSubject(((MethodCallExpression) completed.getMainMethod()).getSubject());
+                                                }
+//                                        testCandidateMetadataList.add(completed);
+                                                try {
+                                                    if (completed.getTestSubject() != null) {
+                                                        writeCandidate(completed, outputStream);
+                                                        candidateDao.create(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
+                                                                FromTestCandidateMetadata(completed)
+                                                        );
+                                                    }
+                                                    outputStream.flush();
+                                                } catch (IOException e) {
+                                                    //
+                                                } catch (SQLException e) {
+                                                    throw new RuntimeException(e);
+                                                }
+
+                                                break;
+
+                                            case CALL_RETURN:
+
+                                                Parameter callReturnParameter = new Parameter();
+
+                                                callReturnParameter.setProb(dataEvent);
+                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                dataEventDao.createOrUpdate(dataEvent);
+
+                                                callReturnParameter.setProbeInfo(probeInfo);
+                                                callReturnParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                                variableContainer.add(callReturnParameter);
+                                                parameterDao.createOrUpdate(
+                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(callReturnParameter)
+                                                );
+
+                                                MethodCallExpression callExpression = callStack.get(callStack.size() - 1);
+                                                EventType entryEventType = callExpression.getEntryProbeInfo().getEventType();
+                                                if (entryEventType == EventType.CALL) {
+                                                    // we pop it now
+
+                                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+
+                                                    callExpressionsDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.MethodCallExpression.FromMCE(topCall)
+                                                    );
+
+                                                    testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
+
+
+                                                } else if (entryEventType == EventType.METHOD_ENTRY) {
+                                                    // this is probably not a matching event
+
+                                                } else {
+                                                    throw new RuntimeException("this should not happen");
+                                                }
+
+                                                break;
+
+                                            case OBJECT_CONSTANT_LOAD:
+                                                break;
+
+                                            case NEW_OBJECT:
+                                                // we are going to construct a new object, of the following type
+                                                String objectType = probeInfo.getAttribute("Type", null);
+                                                assert objectType != null;
+
+                                                break;
+                                            case NEW_ARRAY:
+                                                break;
+                                            case NEW_ARRAY_RESULT:
+                                                break;
+                                            case NEW_OBJECT_CREATED:
+                                                break;
+                                            case METHOD_OBJECT_INITIALIZED:
+                                                MethodCallExpression theCallJustEnded = callsList.get(callsList.size() - 1);
+                                                Parameter returnValueParameter = theCallJustEnded.getReturnValue();
+                                                if (returnValueParameter == null) {
+                                                    returnValueParameter = new Parameter();
+                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
+                                                    dataEventDao.createOrUpdate(dataEvent);
+
+                                                    returnValueParameter.setProbeInfo(probeInfo);
+                                                    returnValueParameter.setProb(dataEvent);
+                                                    parameterDao.createOrUpdate(
+                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(returnValueParameter)
+                                                    );
+                                                    theCallJustEnded.setReturnValue(returnValueParameter);
+                                                }
+                                                returnValueParameter.setProb(dataEvent);
+                                                variableContainer.add(returnValueParameter);
+
+                                        }
+                                    } catch (SQLException sqlException) {
+
+                                    }
+                                }).collect(Collectors.toList());
+
+                        if (dataEventGroupedList.size() > 0) {
+                            logger.info("adding " + dataEventGroupedList.size() + " objects");
+                        }
+
+
+//                    dataEventList.addAll(dataEventGroupedList);
+
+
+                    }
+
+
+                } catch (IOException e) {
+                    logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
+                    continue;
+                }
+//            if (dataEventList.size() == 0) {
+//                continue;
+//            }
+
+//            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+//                Long value = Long.valueOf((long) testCandidateMetadata.getTestSubject().getValue());
+//                ObjectRoutineContainer objectRoutineContainer = objectRoutineContainerMap.get(value);
+//                if (objectRoutineContainer == null) {
+//                    objectRoutineContainer = new ObjectRoutineContainer(
+//                            ClassName.bestGuess(testCandidateMetadata.getFullyQualifiedClassname()).packageName()
+//                    );
+//                    objectRoutineContainerMap.put(value, objectRoutineContainer);
+//                }
+//
+//                objectRoutineContainer.addMetadata(testCandidateMetadata);
+//            }
+
+
+                Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
+                Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
+
+
+                NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+                assert stringsIndexBytes != null;
+
+
+                ArchiveIndex stringIndex = null;
+                try {
+                    stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
+                } catch (IOException e) {
+                    logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
+                    continue;
+                }
+                Set<Long> potentialStringIds = valueIds.stream().filter(e -> e > 10).collect(Collectors.toSet());
+                Map<Long, StringInfo> sessionStringInfo = stringIndex.getStringsByIdWithLongKeys(potentialStringIds);
+                if (potentialStringIds.size() != sessionStringInfo.size()) {
+
+                    sessionStringInfo.values().stream().map(StringInfo::getStringId).collect(Collectors.toList()).forEach(potentialStringIds::remove);
+
+
+                }
+                stringInfoMap.putAll(sessionStringInfo);
+
+                Set<Long> objectIds = dataEventList.stream().map(DataEventWithSessionId::getValue).filter(e -> e > 1000).collect(Collectors.toSet());
+
+                NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+                assert objectIndexBytes != null;
+                ArchiveIndex objectsIndex = null;
+                try {
+                    objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+                } catch (IOException e) {
+                    logger.error("failed to read object index from session archive", e);
+                    continue;
+                }
+
+
+                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
+                if (sessionObjectsInfo.size() != objectIds.size()) {
+//                logger.warn("expected [" + objectIds.size() + "] object infos results but got " +
+//                        "only " + sessionObjectsInfo.size());
+
+                    sessionObjectsInfo.values().stream().map(ObjectInfo::getObjectId).collect(Collectors.toList()).forEach(objectIds::remove);
+                }
+                objectInfoMap.putAll(sessionObjectsInfo);
+
+
+                Set<Integer> typeIds = objectInfoMap.values().stream().map(ObjectInfo::getTypeId).map(Long::intValue).collect(Collectors.toSet());
+
+                Map<Long, TypeInfo> sessionTypeInfo = typeIndex.getTypesByIdWithLongKeys(typeIds);
+                if (sessionTypeInfo.size() < typeIds.size()) {
+                    logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
+                }
+
+                typeInfoMap.putAll(sessionTypeInfo);
+
+            }
+            connectionSource.close();
+
+        } catch (SQLException sqlE) {
+
+        }
+
+        return objectRoutineContainerMap.values();
+    }
+
+    private void writeCandidate(TestCandidateMetadata candidate, OutputStream outputStream) throws IOException {
+        DataOutputStream writer = new DataOutputStream(outputStream);
+
+        writer.writeBytes("Candidate [" + candidate.getTestSubject().getValue() + "] => " + candidate.getTestSubject().getType() + "\n");
+        MethodCallExpression mainMethod = (MethodCallExpression) candidate.getMainMethod();
+        writer.writeBytes("\t" + mainMethod.getSubject().getName() + "." + mainMethod.getMethodName() + "()\n");
+        writer.writeBytes("Arguments: " + mainMethod.getArguments().all().size() + "\n");
+        for (Parameter parameter : mainMethod.getArguments().all()) {
+            writer.writeBytes("\t" + parameter.getName() + " => " + parameter.getValue() + "\n");
+        }
+        writer.writeBytes("Calls: " + candidate.getCallsList().size() + "\n");
+        for (MethodCallExpression methodCallExpression : candidate.getCallsList()) {
+            writer.writeBytes("\t" + methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() + "()" + "\n");
+        }
+        writer.writeBytes("Returns: " + mainMethod.getReturnValue() + "\n");
+        writer.writeBytes("\n");
+
+
+    }
+
+
     private static int getThreadIdFromFileName(String archiveFile) {
+        if (archiveFile.contains("\\")) {
+            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("\\") + 1);
+        }
+
+        if (archiveFile.contains("/")) {
+            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("/") + 1);
+        }
+
         return Integer.parseInt(archiveFile.split("\\.")[0].split("-")[2]);
     }
 

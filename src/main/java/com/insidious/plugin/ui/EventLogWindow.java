@@ -84,7 +84,7 @@ public class EventLogWindow {
                     return;
                 }
 
-                String[] queryStringParts = queryString.split(",");
+                String[] queryStringParts = queryString.trim().split(",");
                 FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
                 filterRequest.setPageInfo(new PageInfo(0, 100, PageInfo.Order.ASC));
@@ -92,7 +92,7 @@ public class EventLogWindow {
 
                 for (String queryStringPart : queryStringParts) {
 
-                    String[] queryStringPartTriplet = queryStringPart.split(" ");
+                    String[] queryStringPartTriplet = queryStringPart.trim().split(" ");
 
                     String operator = queryStringPartTriplet[1];
                     String key = queryStringPartTriplet[0];

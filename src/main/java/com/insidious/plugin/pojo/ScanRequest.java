@@ -27,6 +27,7 @@ public class ScanRequest {
     // whatever we are searching for, if we match any event which has listeners, the listner gets
     // a callback with the index of the matched probe
     private final Map<EventType, List<EventMatchListener>> eventListeners = new HashMap<>();
+    private final List<EventMatchListener> allEventListener = new LinkedList<>();
     private final Map<Long, List<EventMatchListener>> valueEventListeners = new HashMap<>();
     private int startStack = 0;
     private boolean aborted = false;
@@ -58,12 +59,14 @@ public class ScanRequest {
             EventType eventType,
             EventMatchListener eventTypeMatchListener
     ) {
-        List<EventMatchListener> listenerList = this.eventListeners.get(eventType);
-        if (listenerList == null) {
-            synchronized (this) {
-                listenerList = this.eventListeners.computeIfAbsent(eventType, k -> new LinkedList<>());
-            }
+
+        if (eventType == null) {
+            // listen to all events
+            this.allEventListener.add(eventTypeMatchListener);
+            return;
         }
+        List<EventMatchListener> listenerList = this.eventListeners
+                .computeIfAbsent(eventType, k -> new LinkedList<>());
         listenerList.add(eventTypeMatchListener);
     }
 
@@ -107,6 +110,12 @@ public class ScanRequest {
         }
     }
 
+    public void onAllEvent(
+            final int matchedStack,
+            int callReturnIndex) {
+        allEventListener.forEach(e -> e.eventMatched(callReturnIndex, matchedStack));
+    }
+
     public void onValue(
             final boolean stackMatch,
             final int matchedStack,
@@ -135,5 +144,17 @@ public class ScanRequest {
 
     public void abort() {
         this.aborted = true;
+    }
+
+    public boolean hasValueListeners() {
+        return this.valueEventListeners.size() > 0;
+    }
+
+    public boolean hasEventListeners() {
+        return this.eventListeners.size() > 0;
+    }
+
+    public boolean hasAllEventListener() {
+        return this.allEventListener.size() > 0;
     }
 }

@@ -31,9 +31,7 @@ public class MockFactory {
         }
     }
 
-    private static TestCandidateMetadata
-    buildTestCandidateForBaseClass(
-            Parameter parameter) {
+    private static TestCandidateMetadata buildTestCandidateForBaseClass(Parameter parameter) {
 
         String javaClassName;
         if (parameter.getType().length() > 1) {
@@ -49,13 +47,13 @@ public class MockFactory {
 //        Parameter returnStringParam = new Parameter();
 
 
-        testCandidateMetadata.setFullyQualifiedClassname("java.lang." + javaClassName);
-        testCandidateMetadata.setPackageName("java.lang");
-        testCandidateMetadata.setTestMethodName("<init>");
-        testCandidateMetadata.setUnqualifiedClassname(javaClassName);
+//        testCandidateMetadata.setFullyQualifiedClassname("java.lang." + javaClassName);
+//        testCandidateMetadata.setPackageName("java.lang");
+//        testCandidateMetadata.setTestMethodName("<init>");
+//        testCandidateMetadata.setUnqualifiedClassname(javaClassName);
 
         testCandidateMetadata.setMainMethod(
-                MethodCallExpressionFactory.PlainValueExpression((String) parameter.getValue())
+                MethodCallExpressionFactory.PlainValueExpression(String.valueOf(parameter.getValue()))
         );
         return testCandidateMetadata;
     }
@@ -79,10 +77,10 @@ public class MockFactory {
         ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
         testCandidateMetadata.setTestSubject(null);
 
-        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
-        testCandidateMetadata.setPackageName(targetClassname.packageName());
-        testCandidateMetadata.setIsArray(isArray);
-        testCandidateMetadata.setTestMethodName("<init>");
+//        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
+//        testCandidateMetadata.setPackageName(targetClassname.packageName());
+//        testCandidateMetadata.setIsArray(isArray);
+//        testCandidateMetadata.setTestMethodName("<init>");
 
 
         MethodCallExpression mainMethod = MethodCallExpressionFactory.MockClass(
@@ -92,7 +90,7 @@ public class MockFactory {
         testCandidateMetadata.setMainMethod(mainMethod);
 
 
-        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
+//        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
 
         return testCandidateMetadata;
     }
@@ -101,33 +99,33 @@ public class MockFactory {
 
 
 
-        String parameterTypeName = dependentParameter.getType();
+//        String parameterTypeName = dependentParameter.getType();
 
-        boolean isArray = false;
-        if (parameterTypeName.startsWith("[")) {
-            isArray = true;
-            parameterTypeName = parameterTypeName.substring(1);
-        }
+//        boolean isArray = false;
+//        if (parameterTypeName.startsWith("[")) {
+//            isArray = true;
+//            parameterTypeName = parameterTypeName.substring(1);
+//        }
 
-        parameterTypeName = ClassTypeUtils.getDottedClassName(parameterTypeName);
+//        parameterTypeName = ClassTypeUtils.getDottedClassName(parameterTypeName);
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
 
-        ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
+//        ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
         testCandidateMetadata.setTestSubject(null);
-        Parameter returnStringParam = new Parameter();
+//        Parameter returnStringParam = new Parameter();
 
-        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
-        testCandidateMetadata.setPackageName(targetClassname.packageName());
-        testCandidateMetadata.setIsArray(isArray);
-        testCandidateMetadata.setTestMethodName("<init>");
+//        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
+//        testCandidateMetadata.setPackageName(targetClassname.packageName());
+//        testCandidateMetadata.setIsArray(isArray);
+//        testCandidateMetadata.setTestMethodName("<init>");
 
 
         testCandidateMetadata.setMainMethod(
                 new MethodCallExpression("<init>", dependentParameter, new VariableContainer(),
-                        dependentParameter, null));
+                        dependentParameter));
 
-        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
+//        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
 
         return testCandidateMetadata;
     }

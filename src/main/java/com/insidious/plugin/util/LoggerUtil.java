@@ -27,14 +27,16 @@ public class LoggerUtil {
             ClassInfo currentClassInfo,
             MethodInfo methodInfoLocal
     ) {
-        logger.warn("[" + tag + "] #" + i + ", T=" + historyEvent.getNanoTime() +
-                ", P=" + historyEvent.getDataId() +
+        logger.warn("[" + tag + "] #" + i +
+                ", T=" + historyEvent.getNanoTime() +
+                ", P=" + String.format("%-7s", historyEvent.getDataId()) +
+                ", V=" + String.format("%-10s", historyEvent.getValue()) +
                 " [Stack:" + callStack + "]" +
-                " " + String.format("%25s", historyEventProbe.getEventType())
-                + " in " + String.format("%25s",
+                " " + String.format("%-25s", historyEventProbe.getEventType())
+                + " in " + String.format("%-25s",
                 currentClassInfo.getClassName().substring(currentClassInfo.getClassName().lastIndexOf("/") + 1) + ".java")
                 + ":" + historyEventProbe.getLine()
-                + " in " + String.format("%20s", methodInfoLocal.getMethodName())
+                + " in " + String.format("%-20s", methodInfoLocal.getMethodName())
                 + "  -> " + historyEventProbe.getAttributes());
     }
 }

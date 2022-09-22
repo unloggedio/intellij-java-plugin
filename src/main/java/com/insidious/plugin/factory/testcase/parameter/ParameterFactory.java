@@ -158,8 +158,8 @@ public class ParameterFactory {
 
         String eventProbeIdString = String.valueOf(event.getDataId());
         String eventValueString = String.valueOf(event.getValue());
-        DataInfo probeInfo = replayData.getProbeInfoMap().get(eventProbeIdString);
-        ObjectInfo objectInfo = replayData.getObjectInfoMap().get(eventValueString);
+        DataInfo probeInfo = replayData.getProbeInfoMap().get(event.getDataId());
+        ObjectInfo objectInfo = replayData.getObjectInfoMap().get(event.getValue());
 //        Set<String> typeHierarchy = new HashSet<>();
 
 
@@ -199,20 +199,16 @@ public class ParameterFactory {
 
 
         Object probeValue = replayData.getValueByObjectId(parameter.getProb());
-        parameter.setValue(probeValue);
+//        parameter.setValue(probeValue);
 
 
         if (objectInfo == null) {
             String variableTypeName = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
             parameter.setType(variableTypeName);
             if (Objects.equals(variableTypeName, "V")) {
-                parameter.setValue(null);
+//                parameter.setValue(null);
                 return parameter;
             }
-        }
-
-        if (isContainerType(parameter)) {
-
         }
 
 
@@ -274,7 +270,7 @@ public class ParameterFactory {
 
 //        scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
 //        scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
-        replayData.eventScan(scanRequest);
+        replayData.ScanForValue(scanRequest);
         String finalIdentifiedType = identifiedType.get();
         return finalIdentifiedType;
     }
@@ -621,7 +617,7 @@ public class ParameterFactory {
         }
 
         // we are potentially already invoking another call on this object for
-        // which we wonted to get a name for., the return value has no name, and
+        // which we want to get a name for., the return value has no name, and
         // is being used to invoke another function directly, so we can stop the
         // search for a name
 
@@ -632,7 +628,7 @@ public class ParameterFactory {
 
         ScanRequest scanRequest = new ScanRequest(new ScanResult(eventIndex, 0, false), 0,
                 DirectionType.FORWARDS);
-        replayData.eventScan(scanRequest);
+        replayData.ScanForEvents(scanRequest);
 
         logger.warn("switching direction of search for a method param name");
         direction = -1;

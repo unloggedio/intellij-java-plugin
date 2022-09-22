@@ -28,9 +28,9 @@ public class InsidiousThreadReference implements ThreadReference {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
-    private final Map<String, DataInfo> dataInfoMap;
-    private final Map<String, ClassInfo> classInfoMap;
-    private final Map<String, StringInfo> stringInfoMap;
+    private final Map<Long, DataInfo> dataInfoMap;
+    private final Map<Long, ClassInfo> classInfoMap;
+    private final Map<Long, StringInfo> stringInfoMap;
     private final Map<String, InsidiousField> typeFieldMap = new HashMap<>();
     private final Map<String, InsidiousClassTypeReference> classTypeMap;
     private final TracePoint tracePoint;
@@ -608,10 +608,10 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, InsidiousClassTypeReference> classMap = new HashMap<>();
         Map<String, Map<String, String>> classFieldsMap = new HashMap<>();
 
-        for (Map.Entry<String, ClassInfo> classInfoEntry
+        for (Map.Entry<Long, ClassInfo> classInfoEntry
                 : replayData.getClassInfoMap().entrySet()) {
 
-            Long classId = Long.valueOf(classInfoEntry.getKey());
+            Long classId = classInfoEntry.getKey();
             ClassInfo classInfo = classInfoEntry.getValue();
             List<DataInfo> probes = classInfo.getDataInfoList();
             if (probes == null) {
@@ -695,14 +695,6 @@ public class InsidiousThreadReference implements ThreadReference {
         InsidiousField field = InsidiousField.from(typeName, this.virtualMachine());
         typeFieldMap.put(typeName, field);
         return field;
-    }
-
-    private InsidiousClassTypeReference getClassTypeReference(long classId) {
-        return null;
-    }
-
-    private boolean isNativeType(String className) {
-        return className.startsWith("java.lang") || className.indexOf('.') == -1;
     }
 
     private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, DataInfo probeInfo) {

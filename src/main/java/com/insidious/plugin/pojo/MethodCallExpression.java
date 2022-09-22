@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.Expression;
@@ -9,28 +10,58 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
+import com.insidious.plugin.pojo.dao.ProbeInfo;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.field.ForeignCollectionField;
 
 import java.util.Optional;
 
 public class MethodCallExpression implements Expression {
-    private final VariableContainer arguments;
-    private final String methodName;
-    private final Parameter exception;
+    private VariableContainer arguments;
+    private String methodName;
+    private boolean isStaticCall;
     private Parameter subject;
+
+    public MethodCallExpression() {
+    }
+
+
+    public long getEntryTime() {
+        return entryTime;
+    }
+
+    public void setEntryTime(long entryTime) {
+        this.entryTime = entryTime;
+    }
+
+    private long entryTime;
+    private ProbeInfo entryProbeInfo;
     private Parameter returnValue;
+    private DataEventWithSessionId entryProbe;
+
+    public ProbeInfo getEntryProbeInfo() {
+        return entryProbeInfo;
+    }
+
+    public void setEntryProbeInfo(DataInfo entryProbeInfo) {
+        this.entryProbeInfo = ProbeInfo.FromProbeInfo(entryProbeInfo);
+    }
+
+    public void setStaticCall(boolean staticCall) {
+        isStaticCall = staticCall;
+    }
+
 
     public MethodCallExpression(
             String methodName,
             Parameter subject,
             VariableContainer arguments,
-            Parameter returnValue,
-            Parameter exception
+            Parameter returnValue
     ) {
         this.methodName = methodName;
         this.subject = subject;
         this.arguments = arguments;
         this.returnValue = returnValue;
-        this.exception = exception;
     }
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
@@ -62,7 +93,10 @@ public class MethodCallExpression implements Expression {
     }
 
     public Parameter getException() {
-        return exception;
+        if (returnValue.exception) {
+            return returnValue;
+        }
+        return null;
     }
 
     @Override
@@ -88,13 +122,15 @@ public class MethodCallExpression implements Expression {
 
             objectRoutineScript.addComment("");
             for (Parameter parameter : arguments.all()) {
-                if (parameter.getName() == null && parameter.getProb() != null
-                        && parameter.getProb().getSerializedValue().length > 0) {
-                    String serializedValue = new String(parameter.getProb().getSerializedValue());
-                    if (parameter.getType().equals("java.lang.String")) {
-                        serializedValue = '"' + serializedValue + '"';
-                    }
-                    parameter.setValue(serializedValue);
+                if (parameter.getName() == null &&
+                        parameter.getProb() != null &&
+                        parameter.getProb().getSerializedValue().length > 0
+                ) {
+//                    String serializedValue = new String(parameter.getProb().getSerializedValue());
+//                    if (parameter.getType().equals("java.lang.String")) {
+//                        serializedValue = '"' + serializedValue + '"';
+//                    }
+//                    parameter.setValue(serializedValue);
                 }
                 objectRoutineScript.addParameterComment(parameter);
             }
@@ -198,7 +234,7 @@ public class MethodCallExpression implements Expression {
             }
 
 
-            Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) value);
+            Optional<Parameter> existingVariableById = variableContainer.getParametersById(value);
             if (existingVariableById.isPresent()) {
                 if (overrideName && !returnValue.getName().equals(existingVariableById.get().getName())) {
                     returnValue.setName(existingVariableById.get().getName());
@@ -236,18 +272,19 @@ public class MethodCallExpression implements Expression {
         if (subject != null) {
             name = subject.getName() + ".";
         }
-        return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null) ?
+        return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
                 "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
                 "[" + name + methodName + "(" + arguments + ")" + "]" +
-                (exception == null ? "" : " throws " + exception.getType());
+                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
     }
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
         Parameter returnValue = getReturnValue();
+        assert returnValue != null;
 
         // we don't want to write a mock call if the return value is null
         // since mocked classes return null by default and this mocking just adds noise to the generated test case
-        if (returnValue != null && returnValue.getProb() != null) {
+        if (returnValue.getProb() != null) {
             if (new String(returnValue.getProb().getSerializedValue()).equals("null")) {
                 return;
             }
@@ -265,7 +302,7 @@ public class MethodCallExpression implements Expression {
             }
         }
 
-        if (returnValue == null) {
+        if (returnValue.getException()) {
             Parameter exceptionValue = getException();
             in(objectRoutine)
                     .writeExpression(MethodCallExpressionFactory.MockitoWhen(this))
@@ -301,4 +338,20 @@ public class MethodCallExpression implements Expression {
 
     }
 
+    public void setIsStatic(boolean aStatic) {
+        this.isStaticCall = aStatic;
+    }
+
+    public boolean isStaticCall() {
+        return isStaticCall;
+    }
+
+    public void setEntryProbe(DataEventWithSessionId entryProbe) {
+        this.entryTime = entryProbe.getNanoTime();
+        this.entryProbe = entryProbe;
+    }
+
+    public DataEventWithSessionId getEntryProbe() {
+        return entryProbe;
+    }
 }

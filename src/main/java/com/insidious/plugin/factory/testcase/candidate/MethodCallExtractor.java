@@ -47,7 +47,7 @@ public class MethodCallExtractor implements EventMatchListener {
         DataEventWithSessionId event = replayData.getDataEvents().get(index);
         Optional<Parameter> existingVariable = Optional.empty();
         if (event.getValue() != 0) {
-            existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
+            existingVariable = variableContainer.getParametersById(event.getValue());
         }
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
@@ -69,7 +69,7 @@ public class MethodCallExtractor implements EventMatchListener {
             // highly likely that this is a builder call
             // so we want to avoid this object in future as well
             Parameter builderParameter = new Parameter();
-            builderParameter.setValue(String.valueOf(event.getValue()));
+            builderParameter.setValue(event.getValue());
             variableContainer.add(builderParameter);
             return;
         }

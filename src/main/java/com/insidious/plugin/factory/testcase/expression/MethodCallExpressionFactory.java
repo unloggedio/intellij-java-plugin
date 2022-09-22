@@ -32,9 +32,9 @@ public class MethodCallExpressionFactory {
 
 
     public static MethodCallExpression MethodCallExpression(String methodName, Parameter subjectParameter,
-                                                            VariableContainer from, Parameter callReturnParameter, Parameter exception) {
+                                                            VariableContainer from, Parameter callReturnParameter) {
         return new MethodCallExpression(
-                methodName, subjectParameter, from, callReturnParameter, exception
+                methodName, subjectParameter, from, callReturnParameter
         );
     }
 
@@ -76,7 +76,7 @@ public class MethodCallExpressionFactory {
         return MethodCallExpression(
                 "when", callSubject,
                 VariableContainer.from(List.of(whenExpression)),
-                null, null
+                null
         );
 
     }
@@ -94,7 +94,7 @@ public class MethodCallExpressionFactory {
         return new MethodCallExpression(
                 "mock", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
-                null, null
+                null
         );
 
     }
@@ -112,7 +112,7 @@ public class MethodCallExpressionFactory {
         return new MethodCallExpression(
                 "mockStatic", MockitoClass,
                 VariableContainer.from(List.of(whenExpression)),
-                null, null
+                null
         );
 
     }
@@ -123,7 +123,7 @@ public class MethodCallExpressionFactory {
 
         return new MethodCallExpression(
                 "<init>", null,
-                VariableContainer.from(List.of()), targetClassname, null
+                VariableContainer.from(List.of()), targetClassname
         );
 
     }
@@ -131,7 +131,7 @@ public class MethodCallExpressionFactory {
     public static Expression MockitoThen(Parameter returnValue) {
         return MethodCallExpression("thenReturn", null,
                 VariableContainer.from(List.of(returnValue)),
-                null, null);
+                null);
 
 //        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
 //        return parameter;
@@ -139,45 +139,30 @@ public class MethodCallExpressionFactory {
 
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
-        return MethodCallExpression(
-                "thenThrow", null,
+        return MethodCallExpression("thenThrow", null,
                 VariableContainer.from(List.of(exceptionValue)),
-                null, null);
+                null);
 
 //        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
 //        return parameter;
     }
 
     public static Expression ToJson(Parameter object) {
-        return MethodCallExpression(
-                "toJson", GsonClass,
+        return MethodCallExpression("toJson", GsonClass,
                 VariableContainer.from(List.of(object)),
-                null, null);
+                null);
     }
 
     public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
-        return MethodCallExpression(
-                "assertEquals", AssertClass,
+        return MethodCallExpression("assertEquals", AssertClass,
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
-                null, null
+                null
         );
     }
 
     public static MethodCallExpression FromJson(Parameter object) {
-        return MethodCallExpression(
-                "fromJson", GsonClass,
+        return MethodCallExpression("fromJson", GsonClass,
                 VariableContainer.from(List.of(object)),
-                null, null);
-    }
-
-    public static MethodCallExpression
-    StaticMethodCallExpression(
-            String methodName,
-            VariableContainer variableContainer,
-            Parameter callReturnParameter,
-            Parameter exception) {
-        return new MethodCallExpression(
-                methodName, null, variableContainer, callReturnParameter, exception
-        );
+                null);
     }
 }

@@ -14,11 +14,14 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.project.Project;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -315,8 +318,6 @@ public class TestCaseServiceTest {
         Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-//        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
-
         TestCaseService testCaseService = new TestCaseService(project, client);
 
         List<TestCandidate> testCandidateList = new LinkedList<>();
@@ -340,9 +341,10 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
 //        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
+        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
-        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
+//        List<String> targetClasses = List.of("com.ayu.cabeza.service.HospitalProfileService");
+//        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
 
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
@@ -388,4 +390,37 @@ public class TestCaseServiceTest {
 
 
     }
+
+
+    @Test public void testScanAndGenerateAll() throws Exception {
+
+
+
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+        TestCaseService testCaseService = new TestCaseService(project, client);
+
+        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        ExecutionSession session = sessions.getItems().get(0);
+        client.setSession(session);
+
+
+        FilteredDataEventsRequest request = new FilteredDataEventsRequest();
+        for (int i = 0; i < 10; i++) {
+            request.setThreadId((long) i);
+            Collection<ObjectRoutineContainer> candidates = client.getSessionInstance().scanDataAndBuildReplay(request);
+        }
+
+
+
+//        for (ObjectRoutineContainer candidate : candidates) {
+//            ObjectRoutineContainer obr = new ObjectRoutineContainer();
+//        }
+
+
+    }
+
+
 }

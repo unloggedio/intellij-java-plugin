@@ -19,7 +19,7 @@ public class TracePoint {
     private static final byte ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
     private long recordedAt;
     private long classId, lineNumber, threadId, matchedValueId;
-    private int dataId;
+    private long dataId;
     private String filename;
     private String classname;
     private String exceptionClass;
@@ -30,7 +30,7 @@ public class TracePoint {
     }
 
     public TracePoint(long classId, long lineNumber,
-                      int dataId,
+                      long dataId,
                       long threadId,
                       long matchedValueId,
                       String filename,
@@ -123,7 +123,7 @@ public class TracePoint {
         result = 31 * result + (int) (lineNumber ^ (lineNumber >>> 32));
         result = 31 * result + (int) (threadId ^ (threadId >>> 32));
         result = 31 * result + (int) (matchedValueId ^ (matchedValueId >>> 32));
-        result = 31 * result + dataId;
+        result = 31 * result + (int) (dataId ^ (dataId >>> 32));
         result = 31 * result + (filename != null ? filename.hashCode() : 0);
         result = 31 * result + classname.hashCode();
         result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
@@ -134,7 +134,7 @@ public class TracePoint {
     public FilteredDataEventsRequest toFilterDataEventRequest() {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(this.getExecutionSession().getSessionId());
-        filteredDataEventsRequest.setProbeId(this.getDataId());
+        filteredDataEventsRequest.setProbeId((int)this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getMatchedValueId()));
@@ -177,7 +177,7 @@ public class TracePoint {
         return lineNumber;
     }
 
-    public int getDataId() {
+    public long getDataId() {
         return dataId;
     }
 

@@ -9,6 +9,7 @@ import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.expression.Expression;
@@ -531,17 +532,17 @@ public class TestCaseService {
             subjectTypeInfo = objectReplayData.getTypeInfoByName(parameter.getType());
         }
 
-        final Map<String, TypeInfo> typeInfoMap = objectReplayData.getTypeInfoMap();
-        final Map<String, DataInfo> probeInfoMap = objectReplayData.getProbeInfoMap();
-        final Map<String, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
-        final Map<String, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
-        final Map<String, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfoMap();
+        final Map<Long, TypeInfo> typeInfoMap = objectReplayData.getTypeInfoMap();
+        final Map<Long, DataInfo> probeInfoMap = objectReplayData.getProbeInfoMap();
+        final Map<Long, ClassInfo> classInfoMap = objectReplayData.getClassInfoMap();
+        final Map<Long, MethodInfo> methodInfoMap = objectReplayData.getMethodInfoMap();
+        final Map<Long, ObjectInfo> objectInfoMap = objectReplayData.getObjectInfoMap();
 
         final ObjectInfo subjectObjectInfo =
-                objectInfoMap.get(String.valueOf(parameter.getValue()));
+                objectInfoMap.get(Long.valueOf(String.valueOf(parameter.getValue())));
         if (subjectTypeInfo == null) {
             subjectTypeInfo =
-                    typeInfoMap.get(String.valueOf(subjectObjectInfo.getTypeId()));
+                    typeInfoMap.get(subjectObjectInfo.getTypeId());
         }
         if (subjectTypeInfo == null) {
 //            objectRoutineContainer.setName(parameter.getName());
@@ -571,7 +572,7 @@ public class TestCaseService {
 
         for (int eventIndex = 0; eventIndex < totalEventCount; eventIndex++) {
             DataEventWithSessionId dataEvent = objectEvents.get(eventIndex);
-            if (eventIndex % by10 == 0) {
+            if (eventIndex % by10 == 0 && eventIndex > 0) {
                 logger.warn("completed [" + eventIndex + "/" + totalEventCount + "]");
             }
 
@@ -583,11 +584,11 @@ public class TestCaseService {
 
             final long eventValue = dataEvent.getValue();
             String eventValueString = String.valueOf(eventValue);
-            ObjectInfo objectInfo = objectInfoMap.get(eventValueString);
+            ObjectInfo objectInfo = objectInfoMap.get(eventValue);
 
             TypeInfo objectTypeInfo = null;
             if (objectInfo != null) {
-                objectTypeInfo = typeInfoMap.get(String.valueOf(objectInfo.getTypeId()));
+                objectTypeInfo = typeInfoMap.get(objectInfo.getTypeId());
             }
             if (objectTypeInfo == null) {
                 logger.warn("[" + eventValueString + "] object info not found: " + objectInfo);
@@ -596,17 +597,15 @@ public class TestCaseService {
             Set<String> objectTypeHierarchy =
                     new HashSet<>(objectReplayData.buildHierarchyFromType(objectTypeInfo));
 
-            DataInfo probeInfo = probeInfoMap.get(String.valueOf(dataEvent.getDataId()));
+            DataInfo probeInfo = probeInfoMap.get(dataEvent.getDataId());
 
             int callStack = 0;
-            ClassInfo currentClassInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+            ClassInfo currentClassInfo = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
             String ownerClassName;
             ownerClassName = ClassTypeUtils.getDescriptorName(currentClassInfo.getClassName());
 
-            MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
+            MethodInfo methodInfo = methodInfoMap.get(Long.valueOf(probeInfo.getMethodId()));
 
-            LoggerUtil.logEvent("SearchCall", callStack, eventIndex,
-                    dataEvent, probeInfo, currentClassInfo, methodInfo);
 
 
             switch (probeInfo.getEventType()) {
@@ -637,6 +636,8 @@ public class TestCaseService {
                         logger.warn("constructorOwnerClass is empty, skipping: " + ownerClassName);
                         continue;
                     }
+                    LoggerUtil.logEvent("SearchCall", callStack, eventIndex, dataEvent, probeInfo, currentClassInfo, methodInfo);
+
 
                     Set<String> intersectSet = new HashSet<>(objectTypeHierarchy);
                     intersectSet.retainAll(typeNameHierarchyList);
@@ -692,9 +693,7 @@ public class TestCaseService {
                     int backCallStack = 0;
                     while (matchedProbe < allEvents.size()) {
                         DataEventWithSessionId backEvent = allEvents.get(matchedProbe);
-                        DataInfo backEventProbe = replayEventsBefore.getProbeInfoMap().get(
-                                String.valueOf(backEvent.getDataId())
-                        );
+                        DataInfo backEventProbe = replayEventsBefore.getProbeInfoMap().get(backEvent.getDataId());
                         if (backEventProbe.getEventType() == EventType.METHOD_ENTRY && backCallStack == 0) {
                             break;
                         }
@@ -724,26 +723,8 @@ public class TestCaseService {
 
 
                     TestCandidateMetadata newTestCaseMetadata =
-                            TestCandidateMetadata.create(typeNameHierarchyList, methodInfo,
+                            CandidateMetadataFactory.create(typeNameHierarchyList, methodInfo,
                                     backEvent.getNanoTime(), replayEventsBefore);
-
-                    List<MethodCallExpression> callsList =
-                            TestCandidateMetadata.searchMethodCallExpressions(
-                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
-                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
-                                    testCaseRequest.getNoMockClassList()
-                            );
-
-
-                    List<MethodCallExpression> staticMethodCallList =
-                            TestCandidateMetadata.searchStaticMethodCallExpression(
-                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
-                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
-                                    testCaseRequest.getNoMockClassList()
-                            );
-
-                    newTestCaseMetadata.setCallList(callsList);
-                    newTestCaseMetadata.setStaticCalls(staticMethodCallList);
 
 
 
@@ -779,13 +760,33 @@ public class TestCaseService {
                     }
 
 
+                    List<MethodCallExpression> callsList =
+                            CandidateMetadataFactory.searchMethodCallExpressions(
+                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
+                                    testCaseRequest.getNoMockClassList()
+                            );
+
+
+                    List<MethodCallExpression> staticMethodCallList =
+                            CandidateMetadataFactory.searchStaticMethodCallExpression(
+                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
+                                    testCaseRequest.getNoMockClassList()
+                            );
+
+                    newTestCaseMetadata.setCallList(callsList);
+                    newTestCaseMetadata.setStaticCalls(staticMethodCallList);
+
+
+
                     // capture extra data for okhttp/libraries whose return objects we were not able to
-                    // serialize and they need to be reconstructed
+                    // serialize, and they need to be reconstructed
                     for (MethodCallExpression methodCallExpression : newTestCaseMetadata.getCallsList()) {
                         Parameter returnValue = methodCallExpression.getReturnValue();
                         if (returnValue.getType() != null && returnValue.getType().length() > 1) {
                             MethodCallExpression createrExpression =
-                                    TestCandidateMetadata.buildObject(replayEventsBefore, returnValue);
+                                    CandidateMetadataFactory.buildObject(replayEventsBefore, returnValue);
                             returnValue.setCreator(createrExpression);
                         }
                     }
@@ -844,7 +845,7 @@ public class TestCaseService {
                     // call instead of creating a variable for every anon constructor
 
                     String variableName =
-                            variableContainer.createVariableName(testCandidateMetadata.getUnqualifiedClassname());
+                            variableContainer.createVariableName(testCandidateMetadata.getFullyQualifiedClassname());
                     testSubject.setName(variableName);
                 }
                 variableContainer.add(testSubject);
@@ -868,7 +869,7 @@ public class TestCaseService {
                 // if we do not find a variable by id also, then add the test subject to the
                 // variable container
                 Optional<Parameter> parameterByValue
-                        = variableContainer.getParametersById(String.valueOf(testSubject.getValue()));
+                        = variableContainer.getParametersById(testSubject.getValue());
                 if (parameterByValue.isPresent()) {
                     Parameter existingParameter = parameterByValue.get();
                     if (existingParameter.getName() == null && testSubject.getName() != null) {

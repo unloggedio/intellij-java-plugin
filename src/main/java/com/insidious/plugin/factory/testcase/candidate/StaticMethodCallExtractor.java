@@ -53,7 +53,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
         DataEventWithSessionId event = replayData.getDataEvents().get(index);
         Optional<Parameter> existingVariable = Optional.empty();
         if (event.getValue() != 0) {
-            existingVariable = variableContainer.getParametersById(String.valueOf(event.getValue()));
+            existingVariable = variableContainer.getParametersById(event.getValue());
         }
 
         DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
@@ -117,7 +117,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
                 new ScanResult(index, 0, false), 0, DirectionType.FORWARDS);
         methodEntryPointScan.matchUntil(EventType.CALL_RETURN);
         methodEntryPointScan.matchUntil(EventType.METHOD_ENTRY);
-        ScanResult methodEntryScanMatch = replayData.eventScan(methodEntryPointScan);
+        ScanResult methodEntryScanMatch = replayData.ScanForEvents(methodEntryPointScan);
         if (!methodEntryScanMatch.matched()) {
             return;
         }
@@ -162,7 +162,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
         });
         callsInsideStaticMethodCall.matchUntil(EventType.METHOD_NORMAL_EXIT);
         callsInsideStaticMethodCall.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
-        replayData.eventScan(callsInsideStaticMethodCall);
+        replayData.ScanForEvents(callsInsideStaticMethodCall);
 
         if (callsList.size() > 0) {
             // at this point we know that this static method call uses some fields which were not

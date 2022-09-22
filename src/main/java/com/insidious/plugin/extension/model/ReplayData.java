@@ -25,24 +25,24 @@ public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
-    Map<String, ClassInfo> classInfoMap;
-    Map<String, DataInfo> probeInfoMap;
-    Map<String, StringInfo> stringInfoMap;
-    Map<String, ObjectInfo> objectInfoMap;
-    Map<String, TypeInfo> typeInfoMap;
-    Map<String, MethodInfo> methodInfoMap;
+    Map<Long, ClassInfo> classInfoMap;
+    Map<Long, DataInfo> probeInfoMap;
+    Map<Long, StringInfo> stringInfoMap;
+    Map<Long, ObjectInfo> objectInfoMap;
+    Map<Long, TypeInfo> typeInfoMap;
+    Map<Long, MethodInfo> methodInfoMap;
     private VideobugClientInterface client;
 
     public ReplayData(
             VideobugClientInterface client,
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
-            Map<String, ClassInfo> classInfo,
-            Map<String, DataInfo> dataInfo,
-            Map<String, StringInfo> stringInfo,
-            Map<String, ObjectInfo> objectInfoMap,
-            Map<String, TypeInfo> typeInfoMap,
-            Map<String, MethodInfo> methodInfoMap
+            Map<Long, ClassInfo> classInfo,
+            Map<Long, DataInfo> dataInfo,
+            Map<Long, StringInfo> stringInfo,
+            Map<Long, ObjectInfo> objectInfoMap,
+            Map<Long, TypeInfo> typeInfoMap,
+            Map<Long, MethodInfo> methodInfoMap
     ) {
         this.client = client;
         this.filteredDataEventsRequest = filteredDataEventsRequest;
@@ -55,15 +55,15 @@ public class ReplayData {
         this.methodInfoMap = methodInfoMap;
     }
 
-    public Map<String, MethodInfo> getMethodInfoMap() {
+    public Map<Long, MethodInfo> getMethodInfoMap() {
         return methodInfoMap;
     }
 
-    public Map<String, ObjectInfo> getObjectInfoMap() {
+    public Map<Long, ObjectInfo> getObjectInfoMap() {
         return objectInfoMap;
     }
 
-    public Map<String, TypeInfo> getTypeInfoMap() {
+    public Map<Long, TypeInfo> getTypeInfoMap() {
         return typeInfoMap;
     }
 
@@ -93,15 +93,15 @@ public class ReplayData {
         this.client = client;
     }
 
-    public Map<String, ClassInfo> getClassInfoMap() {
+    public Map<Long, ClassInfo> getClassInfoMap() {
         return classInfoMap;
     }
 
-    public Map<String, DataInfo> getProbeInfoMap() {
+    public Map<Long, DataInfo> getProbeInfoMap() {
         return probeInfoMap;
     }
 
-    public Map<String, StringInfo> getStringInfoMap() {
+    public Map<Long, StringInfo> getStringInfoMap() {
         return stringInfoMap;
     }
 
@@ -136,10 +136,10 @@ public class ReplayData {
 
 
     // A function to scan events starting from some particular index and in a particular
-    // direction. the scanner should callback any event listners on matching events. the scan
+    // direction. the scanner should call back all event listeners on matching events. the scan
     // stops when matchUntil events are hit, the index where the first matchUntil event was
     // matched will be returned
-    public ScanResult eventScan(ScanRequest scanRequest) {
+    public ScanResult ScanForEvents(ScanRequest scanRequest) {
 
         int direction = 1;
 
@@ -166,8 +166,164 @@ public class ReplayData {
         Integer searchRequestCallStack = scanRequest.getCallStack();
 
         DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
-        DataInfo probeInfo = probeInfoMap.get(String.valueOf(firstEvent.getDataId()));
-        ClassInfo firstClass = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+        DataInfo probeInfo = probeInfoMap.get(firstEvent.getDataId());
+        ClassInfo firstClass = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
+        TypeInfo typeInfo = getTypeInfoByName(firstClass.getClassName());
+        List<String> typeLadder = buildHierarchyFromType(typeInfo);
+
+
+        if (scanRequest.hasValueListeners()) {
+
+            Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
+            while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
+                DataEventWithSessionId event = dataEvents.get(callReturnIndex);
+                probeInfo = probeInfoMap.get(event.getDataId());
+                EventType eventType = probeInfo.getEventType();
+                ClassInfo classInfo = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
+                boolean stackMatch = callStack == 0;
+                int callStackMatched = callStack;
+                if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
+                    stackMatch = firstClass.getClassId() == classInfo.getClassId();
+                    if (!stackMatch) {
+                        if (typeLadder.contains(ClassTypeUtils.getDottedClassName(classInfo.getClassName()))) {
+                            stackMatch = true;
+                            callStackMatched = ScanRequest.CURRENT_CLASS;
+                        }
+                    }
+                } else if (searchRequestCallStack == ScanRequest.ANY_STACK) {
+                    stackMatch = true;
+                    callStackMatched = ScanRequest.ANY_STACK;
+                }
+
+                scanRequest.onEvent(stackMatch, callStackMatched, eventType, callReturnIndex);
+
+                if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
+                    return new ScanResult(callReturnIndex, callStack, true);
+                }
+
+                if (eventType == EventType.METHOD_ENTRY) {
+                    callStack += direction;
+                } else if (
+                        eventType == EventType.METHOD_NORMAL_EXIT ||
+                                eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                    callStack -= direction;
+                    if (eventType == EventType.METHOD_EXCEPTIONAL_EXIT &&
+                            matchUntilEvent.contains(EventType.METHOD_EXCEPTIONAL_EXIT) && callStack == 0) {
+                        return new ScanResult(callReturnIndex, callStack, true);
+                    }
+                }
+
+                callReturnIndex += direction;
+
+            }
+
+
+        } else {
+
+            if (scanRequest.hasAllEventListener()) {
+
+
+                Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
+                while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
+                    DataEventWithSessionId event = dataEvents.get(callReturnIndex);
+                    probeInfo = probeInfoMap.get(event.getDataId());
+                    EventType eventType = probeInfo.getEventType();
+
+                    scanRequest.onAllEvent(callStack, callReturnIndex);
+
+                    if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
+                        return new ScanResult(callReturnIndex, callStack, true);
+                    }
+
+                    if (eventType == EventType.METHOD_ENTRY) {
+                        callStack += direction;
+                    } else if (
+                            eventType == EventType.METHOD_NORMAL_EXIT ||
+                                    eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                        callStack -= direction;
+                        if (eventType == EventType.METHOD_EXCEPTIONAL_EXIT &&
+                                matchUntilEvent.contains(EventType.METHOD_EXCEPTIONAL_EXIT) && callStack == 0) {
+                            return new ScanResult(callReturnIndex, callStack, true);
+                        }
+                    }
+
+                    callReturnIndex += direction;
+
+                }
+
+            } else {
+
+
+                Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
+                while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
+                    DataEventWithSessionId event = dataEvents.get(callReturnIndex);
+                    probeInfo = probeInfoMap.get(event.getDataId());
+                    EventType eventType = probeInfo.getEventType();
+
+                    if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
+                        return new ScanResult(callReturnIndex, callStack, true);
+                    }
+
+                    if (eventType == EventType.METHOD_ENTRY) {
+                        callStack += direction;
+                    } else if (
+                            eventType == EventType.METHOD_NORMAL_EXIT ||
+                                    eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                        callStack -= direction;
+                        if (eventType == EventType.METHOD_EXCEPTIONAL_EXIT &&
+                                matchUntilEvent.contains(EventType.METHOD_EXCEPTIONAL_EXIT) && callStack == 0) {
+                            return new ScanResult(callReturnIndex, callStack, true);
+                        }
+                    }
+
+                    callReturnIndex += direction;
+
+                }
+            }
+
+
+        }
+
+
+        // when not found
+        return new ScanResult(callReturnIndex, callStack, false);
+
+    }
+
+
+    // A function to scan events starting from some particular index and in a particular
+    // direction. the scanner should callback any event listners on matching events. the scan
+    // stops when matchUntil events are hit, the index where the first matchUntil event was
+    // matched will be returned
+    public ScanResult ScanForValue(ScanRequest scanRequest) {
+
+        int direction = 1;
+
+        // forwards is -1 for is because we assume the replay data is in descending order of
+        // event id
+        if (filteredDataEventsRequest.getPageInfo().isDesc()) {
+
+            if (scanRequest.getDirection() == DirectionType.FORWARDS) {
+                direction = -1;
+            }
+        } else {
+            if (scanRequest.getDirection() == DirectionType.BACKWARDS) {
+                direction = -1;
+            }
+
+        }
+
+
+        ScanResult entryProbeIndex = scanRequest.getStartIndex();
+        int callReturnIndex = entryProbeIndex.getIndex() + direction;
+
+        int callStack = entryProbeIndex.getCallStack();
+
+        Integer searchRequestCallStack = scanRequest.getCallStack();
+
+        DataEventWithSessionId firstEvent = dataEvents.get(callReturnIndex);
+        DataInfo probeInfo = probeInfoMap.get(firstEvent.getDataId());
+        ClassInfo firstClass = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
         TypeInfo typeInfo = getTypeInfoByName(firstClass.getClassName());
         List<String> typeLadder = buildHierarchyFromType(typeInfo);
 
@@ -175,9 +331,9 @@ public class ReplayData {
         Set<EventType> matchUntilEvent = scanRequest.getMatchUntilEvent();
         while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
             DataEventWithSessionId event = dataEvents.get(callReturnIndex);
-            probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+            probeInfo = probeInfoMap.get(event.getDataId());
             EventType eventType = probeInfo.getEventType();
-            ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+            ClassInfo classInfo = classInfoMap.get(Long.valueOf(probeInfo.getClassId()));
             boolean stackMatch = callStack == 0;
             int callStackMatched = callStack;
             if (searchRequestCallStack == ScanRequest.CURRENT_CLASS) {
@@ -193,7 +349,6 @@ public class ReplayData {
                 callStackMatched = ScanRequest.ANY_STACK;
             }
 
-            scanRequest.onEvent(stackMatch, callStackMatched, eventType, callReturnIndex);
             scanRequest.onValue(stackMatch, callStackMatched, event.getValue(), callReturnIndex);
 
             if (callStack == 0 && matchUntilEvent.contains(eventType) || scanRequest.isAborted()) {
@@ -279,28 +434,28 @@ public class ReplayData {
         return typeHierarchy;
     }
 
-    public DataInfo getProbeInfo(int id) {
-        return probeInfoMap.get(String.valueOf(id));
+    public DataInfo getProbeInfo(long id) {
+        return probeInfoMap.get(id);
     }
 
     public TypeInfo getTypeInfo(long id) {
-        return typeInfoMap.get(String.valueOf(id));
+        return typeInfoMap.get(id);
     }
 
-    public StringInfo getStringInfo(int id) {
-        return stringInfoMap.get(String.valueOf(id));
+    public StringInfo getStringInfo(long id) {
+        return stringInfoMap.get(id);
     }
 
     public ObjectInfo getObjectInfo(long id) {
-        return objectInfoMap.get(String.valueOf(id));
+        return objectInfoMap.get(id);
     }
 
-    public ClassInfo getClassInfo(int id) {
-        return classInfoMap.get(String.valueOf(id));
+    public ClassInfo getClassInfo(long id) {
+        return classInfoMap.get(id);
     }
 
-    public MethodInfo getMethodInfo(int methodId) {
-        return methodInfoMap.get(String.valueOf(methodId));
+    public MethodInfo getMethodInfo(long methodId) {
+        return methodInfoMap.get(methodId);
     }
 
     public void mergeReplayData(ReplayData replayEventsAfter) {
@@ -460,7 +615,7 @@ public class ReplayData {
         callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
 
         callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
-        eventScan(callSubjectScan);
+        ScanForEvents(callSubjectScan);
 
         Parameter subjectParameter ;
         if (subjectParameterList.size() == 0) {
@@ -499,7 +654,7 @@ public class ReplayData {
         callReturnScan.matchUntil(EventType.CALL_RETURN);
         callReturnScan.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
 
-        ScanResult callReturnScanResult = eventScan(callReturnScan);
+        ScanResult callReturnScanResult = ScanForEvents(callReturnScan);
         if (callReturnScanResult.getIndex() == -1 ||
                 callReturnScanResult.getIndex() == getDataEvents().size()) {
             logger.warn("call return not found for " + probeInfo);
@@ -545,8 +700,56 @@ public class ReplayData {
 
         MethodCallExpression methodCallExpression = MethodCallExpressionFactory.MethodCallExpression(
                 methodName, subjectParameter, VariableContainer.from(callArguments),
-                callReturnParameter, exception);
+                callReturnParameter);
         return methodCallExpression;
+
+    }
+
+    public void ParseData() {
+
+
+        int direction = 1;
+
+        // forwards is -1 for is because we assume the replay data is in descending order of
+        // event id
+        if (filteredDataEventsRequest.getPageInfo().isAsc()) {
+            direction = 1;
+        } else {
+            direction = -1;
+
+        }
+
+
+        int callReturnIndex = 0;
+        int callStack = 0;
+
+
+        while (callReturnIndex > -1 && callReturnIndex < dataEvents.size()) {
+            DataEventWithSessionId event = dataEvents.get(callReturnIndex);
+            DataInfo probeInfo = probeInfoMap.get(String.valueOf(event.getDataId()));
+            EventType eventType = probeInfo.getEventType();
+            ClassInfo classInfo = classInfoMap.get(String.valueOf(probeInfo.getClassId()));
+            MethodInfo methodInfo = methodInfoMap.get(String.valueOf(probeInfo.getMethodId()));
+
+            /// process event
+
+            LoggerUtil.logEvent(
+                    "SCAN", callStack, callReturnIndex, event, probeInfo, classInfo, methodInfo
+            );
+
+            // end process even
+
+            if (eventType == EventType.METHOD_ENTRY) {
+                callStack += direction;
+            } else if (
+                    eventType == EventType.METHOD_NORMAL_EXIT || eventType == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                callStack -= direction;
+            }
+
+            callReturnIndex += direction;
+
+        }
+
 
     }
 }

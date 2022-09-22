@@ -513,71 +513,73 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException {
-        String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
-        try {
-            logger.info("url to fetch data events => [" + endpoint + "] with [" +
-                    objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
-        } catch (JsonProcessingException e) {
-            throw new APICallException("failed to log request as json", e);
-        }
-        String responseBodyString;
-        try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
-            responseBodyString = Objects.requireNonNull(response.body()).string();
-            if (response.code() != 200) {
-                logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
-                JSONObject jsonResponse = new JSONObject(responseBodyString);
-                throw new APICallException(jsonResponse.getString("message"));
-            }
-        } catch (IOException e) {
-            throw new APICallException("failed to complete request", e);
-        }
-
-        TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
-        };
+        return null;
+        // this needs to be done
+//        String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
+//        try {
+//            logger.info("url to fetch data events => [" + endpoint + "] with [" +
+//                    objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
+//        } catch (JsonProcessingException e) {
+//            throw new APICallException("failed to log request as json", e);
+//        }
+//        String responseBodyString;
+//        try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
+//            responseBodyString = Objects.requireNonNull(response.body()).string();
+//            if (response.code() != 200) {
+//                logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
+//                JSONObject jsonResponse = new JSONObject(responseBodyString);
+//                throw new APICallException(jsonResponse.getString("message"));
+//            }
+//        } catch (IOException e) {
+//            throw new APICallException("failed to complete request", e);
+//        }
 //
-        DataResponse<DataEventStream> dataResponse = null;
-        try {
-            dataResponse = objectMapper.readValue(responseBodyString, typeReference);
-        } catch (JsonProcessingException e) {
-            throw new APICallException("failed to read response as json", e);
-        }
-
-        DataEventStream responseStream = dataResponse.getItems().get(0);
-
-        int eventCount = responseStream.getStream().length / (8 + 4 + 8);
-
-        List<DataEventWithSessionId> dataEventsList = new ArrayList<>(eventCount);
-
-        ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
-
-        while (streamReader.hasRemaining()) {
-            long timestamp = streamReader.getLong();
-            int dataId = streamReader.getInt();
-            long valueId = streamReader.getLong();
-            DataEventWithSessionId event = new DataEventWithSessionId();
-            event.setNanoTime(timestamp);
-            event.setDataId(dataId);
-            event.setValue(valueId);
-            event.setSessionId(session.getSessionId());
-            event.setThreadId(filteredDataEventsRequest.getThreadId());
-
-
-            dataEventsList.add(event);
-
-
-        }
-
-        ResponseMetadata metadata = dataResponse.getMetadata();
-        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
-        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
-
-        Map<String, StringInfo> stringInfo = metadata.getStringInfo();
-        Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
-        Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
-
-        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
-        return new ReplayData(this, filteredDataEventsRequest, dataEventsList, classInfo, dataInfo, stringInfo,
-                objectInfo, typeInfo, methodInfoMap);
+//        TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
+//        };
+////
+//        DataResponse<DataEventStream> dataResponse = null;
+//        try {
+//            dataResponse = objectMapper.readValue(responseBodyString, typeReference);
+//        } catch (JsonProcessingException e) {
+//            throw new APICallException("failed to read response as json", e);
+//        }
+//
+//        DataEventStream responseStream = dataResponse.getItems().get(0);
+//
+//        int eventCount = responseStream.getStream().length / (8 + 4 + 8);
+//
+//        List<DataEventWithSessionId> dataEventsList = new ArrayList<>(eventCount);
+//
+//        ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
+//
+//        while (streamReader.hasRemaining()) {
+//            long timestamp = streamReader.getLong();
+//            int dataId = streamReader.getInt();
+//            long valueId = streamReader.getLong();
+//            DataEventWithSessionId event = new DataEventWithSessionId();
+//            event.setNanoTime(timestamp);
+//            event.setDataId(dataId);
+//            event.setValue(valueId);
+//            event.setSessionId(session.getSessionId());
+//            event.setThreadId(filteredDataEventsRequest.getThreadId());
+//
+//
+//            dataEventsList.add(event);
+//
+//
+//        }
+//
+//        ResponseMetadata metadata = dataResponse.getMetadata();
+//        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
+//        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
+//
+//        Map<String, StringInfo> stringInfo = metadata.getStringInfo();
+//        Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
+//        Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
+//
+//        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
+//        return new ReplayData(this, filteredDataEventsRequest, dataEventsList, classInfo, dataInfo, stringInfo,
+//                objectInfo, typeInfo, methodInfoMap);
 
     }
 
