@@ -63,6 +63,9 @@ public class TestCaseWriter {
 
     @NotNull
     public static String createMethodParametersString(VariableContainer variableContainer) {
+        if (variableContainer == null || variableContainer.all() == null) {
+            return "";
+        }
         StringBuilder parameterStringBuilder = new StringBuilder();
 
         for (int i = 0; i < variableContainer.count(); i++) {
@@ -94,6 +97,9 @@ public class TestCaseWriter {
     @NotNull
     public static String
     createMethodParametersStringMock(VariableContainer variableContainer) {
+        if (variableContainer == null || variableContainer.all() == null) {
+            return "";
+        }
         StringBuilder parameterStringBuilder = new StringBuilder();
 
         for (int i = 0; i < variableContainer.count(); i++) {

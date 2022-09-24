@@ -30,6 +30,15 @@ public class ProbeInfo {
     @DatabaseField
     private String attributes;
 
+    public static DataInfo ToProbeInfo(ProbeInfo dataInfo) {
+        return new DataInfo(
+                dataInfo.getClassId(), dataInfo.getMethodId(), dataInfo.getDataId(),
+                dataInfo.getLine(), dataInfo.getInstructionIndex(), dataInfo.getEventType(),
+                dataInfo.getValueDesc(), dataInfo.getAttributes()
+        );
+//        return new DataInfo();
+    }
+
     public int getClassId() {
         return classId;
     }
@@ -111,6 +120,9 @@ public class ProbeInfo {
     }
 
     public static ProbeInfo FromProbeInfo(DataInfo dataInfo) {
+        if (dataInfo == null){
+            return null;
+        }
         return new ProbeInfo(
                 dataInfo.getClassId(), dataInfo.getMethodId(), dataInfo.getDataId(),
                 dataInfo.getLine(), dataInfo.getInstructionIndex(), dataInfo.getEventType(),

@@ -49,9 +49,18 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
-        methodCallExpression1.setEntryProbeInfo(
-                methodCallExpression.getEntryProbeInfo()
+        methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
+        return methodCallExpression1;
+    }
+
+    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpression methodCallExpression) {
+        com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
+                methodCallExpression.getMethodName(), null, null, null, 0
         );
+        methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
+        methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
+
         return methodCallExpression1;
     }
 

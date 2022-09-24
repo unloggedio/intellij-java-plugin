@@ -11,18 +11,32 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.field.ForeignCollectionField;
 
 import java.util.Optional;
 
 public class MethodCallExpression implements Expression {
+
+    private int callStack;
     private VariableContainer arguments;
     private String methodName;
     private boolean isStaticCall;
     private Parameter subject;
 
+    private long entryTime;
+    private ProbeInfo entryProbeInfo;
+    private Parameter returnValue;
+    private DataEventWithSessionId entryProbe;
+
     public MethodCallExpression() {
+    }
+
+
+    public int getCallStack() {
+        return callStack;
+    }
+
+    public void setCallStack(int callStack) {
+        this.callStack = callStack;
     }
 
 
@@ -33,11 +47,6 @@ public class MethodCallExpression implements Expression {
     public void setEntryTime(long entryTime) {
         this.entryTime = entryTime;
     }
-
-    private long entryTime;
-    private ProbeInfo entryProbeInfo;
-    private Parameter returnValue;
-    private DataEventWithSessionId entryProbe;
 
     public ProbeInfo getEntryProbeInfo() {
         return entryProbeInfo;
@@ -56,12 +65,13 @@ public class MethodCallExpression implements Expression {
             String methodName,
             Parameter subject,
             VariableContainer arguments,
-            Parameter returnValue
-    ) {
+            Parameter returnValue,
+            int size) {
         this.methodName = methodName;
         this.subject = subject;
         this.arguments = arguments;
         this.returnValue = returnValue;
+        this.callStack = size;
     }
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
@@ -93,7 +103,7 @@ public class MethodCallExpression implements Expression {
     }
 
     public Parameter getException() {
-        if (returnValue.exception) {
+        if (returnValue != null && returnValue.exception) {
             return returnValue;
         }
         return null;
@@ -103,6 +113,10 @@ public class MethodCallExpression implements Expression {
     public void writeTo(ObjectRoutineScript objectRoutineScript) {
 
         Parameter mainMethodReturnValue = getReturnValue();
+        if (mainMethodReturnValue == null) {
+            return;
+        }
+
         if (getMethodName().equals("mock")) {
             in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
             return;
@@ -118,7 +132,7 @@ public class MethodCallExpression implements Expression {
         }
 
         VariableContainer arguments = getArguments();
-        if (arguments.count() > 0) {
+        if (arguments != null && arguments.count() > 0) {
 
             objectRoutineScript.addComment("");
             for (Parameter parameter : arguments.all()) {
@@ -141,8 +155,10 @@ public class MethodCallExpression implements Expression {
 
 
 //
-        for (Parameter parameter : getArguments().all()) {
-            in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+        if (getArguments() != null) {
+            for (Parameter parameter : getArguments().all()) {
+                in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+            }
         }
 //
 
@@ -280,6 +296,9 @@ public class MethodCallExpression implements Expression {
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
         Parameter returnValue = getReturnValue();
+        if (returnValue == null) {
+            return;
+        }
         assert returnValue != null;
 
         // we don't want to write a mock call if the return value is null
@@ -290,14 +309,17 @@ public class MethodCallExpression implements Expression {
             }
         }
 
-        for (Parameter argument : getArguments().all()) {
-            if (argument.getName() != null) {
+        VariableContainer argsContainer = getArguments();
+        if (argsContainer != null && argsContainer.all() != null) {
+            for (Parameter argument : argsContainer.all()) {
+                if (argument.getName() != null) {
 
-                if (
-                        (argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
-                                && !argument.getType().contains(".Object")
-                ) {
-                    in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+                    if (
+                            (argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
+                                    && !argument.getType().contains(".Object")
+                    ) {
+                        in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+                    }
                 }
             }
         }

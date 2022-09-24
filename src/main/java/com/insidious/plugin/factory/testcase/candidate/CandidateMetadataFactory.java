@@ -381,8 +381,7 @@ public class CandidateMetadataFactory {
 
         MethodCallExpression mainMethodExpression = new MethodCallExpression(
                 targetMethodName, metadata.getTestSubject(),
-                methodArguments, returnParameter
-        );
+                methodArguments, returnParameter, 0);
 
         if (mainMethodExpression.getReturnValue().getName() == null
                 && !methodName.equals("<init>")) {

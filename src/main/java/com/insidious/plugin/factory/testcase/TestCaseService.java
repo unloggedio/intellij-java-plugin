@@ -305,8 +305,6 @@ public class TestCaseService {
         );
 
 
-//        for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
-
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
 
         // gotta mock'em all
@@ -368,11 +366,10 @@ public class TestCaseService {
 
 
         // this is part 1
-        ObjectRoutineContainer objectRoutineContainer = buildTestCandidates(testCaseRequest, objectReplayData,
-                testCaseRequest.getBuildLevel());
         // part 1 ends here
 
-        return objectRoutineContainer;
+        return buildTestCandidates(
+                testCaseRequest, objectReplayData, testCaseRequest.getBuildLevel());
 
     }
 

@@ -4,6 +4,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
+import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -16,13 +17,20 @@ import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.project.Project;
+import com.j256.ormlite.jdbc.JdbcConnectionSource;
+import com.j256.ormlite.support.ConnectionSource;
+import com.squareup.javapoet.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -408,16 +416,105 @@ public class TestCaseServiceTest {
 
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 2; i++) {
             request.setThreadId((long) i);
             Collection<ObjectRoutineContainer> candidates = client.getSessionInstance().scanDataAndBuildReplay(request);
         }
 
 
-
 //        for (ObjectRoutineContainer candidate : candidates) {
 //            ObjectRoutineContainer obr = new ObjectRoutineContainer();
 //        }
+
+
+    }
+
+    @Test
+    public void writeTestFromDB() throws SQLException {
+
+
+        File dbFile = new File("execution.db");
+        boolean dbFileExists = dbFile.exists();
+//        dbFile.delete();
+        // this uses h2 but you can change it to match your database
+        String databaseUrl = "jdbc:sqlite:execution.db";
+        // create a connection source to our database
+        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+
+        DaoService daoService = new DaoService(connectionSource);
+
+
+        Parameter targetParameter = daoService.getParameterById(784716363L);
+        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates = daoService.getTestCandidateForSubjectId(784716363L);
+
+//        testCandidates.sort(Comparator.comparing(testCandidateMetadata -> testCandidateMetadata.getMainMethod().getEntryTime()));
+
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(
+                ClassName.bestGuess(targetParameter.getType()).packageName()
+        );
+        for (TestCandidateMetadata testCandidate : testCandidates) {
+            objectRoutineContainer.addMetadata(testCandidate);
+        }
+        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
+
+
+//        if (simpleClassName.contains("$")) {
+//            simpleClassName = simpleClassName.split("\\$")[0];
+//        }
+
+        String generatedTestClassName =
+                "Test" + testCaseScript.getName() + "V";
+        TypeSpec.Builder typeSpecBuilder = TypeSpec
+                .classBuilder(generatedTestClassName)
+                .addModifiers(
+                        javax.lang.model.element.Modifier.PUBLIC,
+                        javax.lang.model.element.Modifier.FINAL);
+
+        for (Parameter field : testCaseScript.getFields()) {
+            if (field == null) {
+                continue;
+            }
+            typeSpecBuilder.addField(field.toFieldSpec().build());
+        }
+
+
+        for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
+            if (objectRoutine.getName().equals("<init>")) {
+                continue;
+            }
+            MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
+            typeSpecBuilder.addMethod(methodSpec);
+        }
+
+        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
+
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+            typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
+        }
+
+
+        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
+
+
+        typeSpecBuilder
+                .addField(FieldSpec
+                        .builder(gsonClass,
+                                "gson", javax.lang.model.element.Modifier.PRIVATE)
+                        .initializer("new $T()", gsonClass)
+                        .build());
+
+
+        TypeSpec helloWorld = typeSpecBuilder.build();
+
+        JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), helloWorld)
+                .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
+                .build();
+
+
+        TestCaseUnit testCaseUnit = new TestCaseUnit(
+                javaFile.toString(), objectRoutineContainer.getPackageName(), generatedTestClassName);
+
+        System.out.println(testCaseUnit);
 
 
     }

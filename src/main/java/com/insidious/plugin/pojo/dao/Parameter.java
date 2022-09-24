@@ -10,7 +10,9 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 
 import javax.lang.model.element.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -63,12 +65,43 @@ public class Parameter {
         Map<String, Parameter> transformedTemplateMap = new HashMap<>();
         for (String s : templateMap1.keySet()) {
             com.insidious.plugin.pojo.Parameter param = templateMap1.get(s);
+            transformedTemplateMap.put(s, Parameter.fromParameter(param));
         }
 
         newParam.setTemplateMap(transformedTemplateMap);
         newParam.setConstructorType(e.getConstructorType());
         newParam.setProbeInfo(e.getProbeInfo());
         newParam.setValue((long) e.getValue());
+        return newParam;
+    }
+
+    public static com.insidious.plugin.pojo.Parameter toParameter(Parameter parameter) {
+        if (parameter == null) {
+            return null;
+        }
+
+
+        com.insidious.plugin.pojo.Parameter newParam = new com.insidious.plugin.pojo.Parameter();
+
+
+        newParam.setContainer(parameter.isContainer());
+//        newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
+//        newParam.setException(e.getException());
+        newParam.setProb(parameter.getProb());
+        newParam.setType(parameter.getType());
+        newParam.addNames(Arrays.asList(parameter.getNames()));
+        Map<String, Parameter> templateMap1 = parameter.getTemplateMap();
+        Map<String, com.insidious.plugin.pojo.Parameter> transformedTemplateMap = new HashMap<>();
+        for (String s : templateMap1.keySet()) {
+            Parameter param = templateMap1.get(s);
+            transformedTemplateMap.put(s, Parameter.toParameter(param));
+        }
+
+        newParam.setTemplateMap(transformedTemplateMap);
+        newParam.setConstructorType(parameter.getConstructorType());
+        newParam.setValue((long) parameter.getValue());
+
+
         return newParam;
     }
 
@@ -129,6 +162,9 @@ public class Parameter {
         return names[0];
     }
 
+    public String[] getNames() {
+        return names;
+    }
 
     public Object getValue() {
         return stringValue == null ? value : stringValue;
@@ -148,7 +184,7 @@ public class Parameter {
 
     public void setProb(DataEventWithSessionId prob) {
         this.prob = prob;
-        if (value == null) {
+        if (value == null && prob != null) {
             value = prob.getValue();
         }
     }

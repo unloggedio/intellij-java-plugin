@@ -49,7 +49,7 @@ public class PendingStatement {
 
         boolean isExceptionExcepted = false;
 
-        if (lhsExpression != null && !lhsExpression.getType().equals("V")) {
+        if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType().equals("V")) {
 
             if (lhsExpression.getName() == null) {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
@@ -93,7 +93,7 @@ public class PendingStatement {
                 if (methodCallExpression.getMethodName().equals("<init>")) {
                     assert i == 0;
                     statementBuilder.append("new $T(").append(parameterString).append(")");
-                    statementParameters.add(ClassName.bestGuess(methodCallExpression.getReturnValue().getType()));
+                    statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject().getType()));
                 } else if (methodCallExpression.getMethodName().equals("fromJson")
                         && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
 

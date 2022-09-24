@@ -79,7 +79,11 @@ public class ObjectRoutineContainer {
     }
 
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        currentRoutine.addMetadata(newTestCaseMetadata);
+        if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName().equals("<init>")) {
+            constructor.addMetadata(newTestCaseMetadata);
+        } else {
+            currentRoutine.addMetadata(newTestCaseMetadata);
+        }
     }
 
     public List<Parameter> getVariablesOfType(final String className) {
@@ -130,9 +134,11 @@ public class ObjectRoutineContainer {
         if (mce.getReturnValue() != null && mce.getReturnValue().getType() != null && mce.getReturnValue().getType().startsWith(className)) {
             dependentImports.add(mce.getSubject());
         }
-        for (Parameter parameter : mce.getArguments().all()) {
-            if (parameter.getType() != null && parameter.getType().startsWith(className)) {
-                dependentImports.add(parameter);
+        if (mce.getArguments() != null && mce.getArguments().all() != null) {
+            for (Parameter parameter : mce.getArguments().all()) {
+                if (parameter.getType() != null && parameter.getType().startsWith(className)) {
+                    dependentImports.add(parameter);
+                }
             }
         }
 
@@ -196,7 +202,7 @@ public class ObjectRoutineContainer {
                     new MethodCallExpression("injectField", null,
                             VariableContainer.from(List.of(
                                     mainSubject, parameter
-                            )), null)).endStatement();
+                            )), null, 0)).endStatement();
 
         }
 
@@ -226,6 +232,10 @@ public class ObjectRoutineContainer {
 
     public void setPackageName(String packageName) {
         this.packageName = packageName;
+    }
+
+    public String getPackageName() {
+        return packageName;
     }
 
 

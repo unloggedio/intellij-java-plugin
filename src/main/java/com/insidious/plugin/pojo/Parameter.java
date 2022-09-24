@@ -10,10 +10,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 
 import javax.lang.model.element.Modifier;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Parameter is a value (long id or string) with a name and type information (class name). It could
@@ -65,7 +62,7 @@ public class Parameter {
         return templateMap;
     }
 
-    private final Map<String, Parameter> templateMap = new HashMap<>();
+    private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
 
     @Override
@@ -85,6 +82,9 @@ public class Parameter {
     }
 
     public void setType(String type) {
+        if (type == null) {
+            return;
+        }
         if (type.contains("$")) {
             type = type.replace('$', '.');
         }
@@ -100,6 +100,10 @@ public class Parameter {
 
     public void setName(String name) {
         this.names.add(0, name);
+    }
+
+    public void addNames(Collection<String> name) {
+        this.names.addAll(name);
     }
 
     public Object getValue() {
@@ -120,7 +124,7 @@ public class Parameter {
 
     public void setProb(DataEventWithSessionId prob) {
         this.prob = prob;
-        if (value == null) {
+        if (value == null || value == 0) {
             value = prob.getValue();
         }
     }
@@ -198,5 +202,9 @@ public class Parameter {
 
     public boolean hasName(String name) {
         return this.names.contains(name);
+    }
+
+    public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
+        this.templateMap = transformedTemplateMap;
     }
 }

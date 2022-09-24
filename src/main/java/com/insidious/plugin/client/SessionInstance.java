@@ -35,6 +35,8 @@ import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
+import com.squareup.javapoet.ClassName;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
@@ -1873,39 +1875,45 @@ public class SessionInstance {
     public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
 
 
-//        new File("execution.db").delete();
+        File dbFile = new File("execution.db");
+        boolean dbFileExists = dbFile.exists();
+//        dbFile.delete();
         // this uses h2 but you can change it to match your database
         String databaseUrl = "jdbc:sqlite:execution.db";
         // create a connection source to our database
         ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
 
-        // instantiate the DAO to handle Account with String id
-        Dao<com.insidious.plugin.pojo.dao.TestCandidateMetadata, String> candidateDao =
-                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+        DaoService daoService = new DaoService(connectionSource);
 
-        Dao<com.insidious.plugin.pojo.dao.ProbeInfo, String> probeInfoDao =
-                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
-
-        Dao<com.insidious.plugin.pojo.dao.Parameter, String> parameterDao =
-                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-
-        Dao<com.insidious.plugin.pojo.dao.MethodCallExpression, String> callExpressionsDao =
-                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-
-        Dao<DataEventWithSessionId, String> dataEventDao =
-                DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
+//        // instantiate the DAO to handle Account with String id
+//        Dao<com.insidious.plugin.pojo.dao.TestCandidateMetadata, String> candidateDao =
+//                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+//
+//        Dao<com.insidious.plugin.pojo.dao.ProbeInfo, String> probeInfoDao =
+//                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
+//
+//        Dao<com.insidious.plugin.pojo.dao.Parameter, String> parameterDao =
+//                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+//
+//        Dao<com.insidious.plugin.pojo.dao.MethodCallExpression, String> callExpressionsDao =
+//                DaoManager.createDao(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+//
+//        Dao<DataEventWithSessionId, String> dataEventDao =
+//                DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
 
         // if you need to create the 'accounts' table make this call
-//        try {
-//
-//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
-//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-//            TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
-//            TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
-//        } catch (SQLException sqlException) {
-//            logger.warn("probably table already exists: " + sqlException.toString());
-//        }
+        if (!dbFileExists) {
+            try {
+
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
+                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
+            } catch (SQLException sqlException) {
+                logger.warn("probably table already exists: " + sqlException.toString());
+            }
+        }
 
 
         List<DataEventWithSessionId> dataEventList = new LinkedList<>();
@@ -1927,7 +1935,7 @@ public class SessionInstance {
 
 
         checkProgressIndicator(null, "Loading class mappings");
-        VariableContainer variableContainer = new VariableContainer();
+//        VariableContainer variableContainer = new VariableContainer();
 
         List<MethodCallExpression> callStack = new LinkedList<>();
         List<MethodCallExpression> callsList = new LinkedList<>();
@@ -2040,9 +2048,9 @@ public class SessionInstance {
                                             case LOCAL_STORE:
 
                                                 if (dataEvent.getValue() != 0) {
-                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
-                                                    if (existingParameter.isPresent()) {
-                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                    Parameter existingParameter = daoService.getParameterById(dataEvent.getValue());
+                                                    if (existingParameter != null) {
+                                                        Parameter existingParameterInstance = existingParameter;
                                                         String nameFromProbe = probeInfo.getAttribute("Name", null);
                                                         if (nameFromProbe != null) {
                                                             existingParameterInstance.addName(nameFromProbe);
@@ -2055,13 +2063,24 @@ public class SessionInstance {
 
                                             case LOCAL_LOAD:
                                                 if (dataEvent.getValue() != 0) {
-                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
-                                                    if (existingParameter.isPresent()) {
-                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                    Parameter existingParameter = daoService.getParameterById(dataEvent.getValue());
+                                                    if (existingParameter != null) {
+                                                        Parameter existingParameterInstance = existingParameter;
                                                         String nameFromProbe = probeInfo.getAttribute("Name", null);
                                                         if (nameFromProbe != null) {
                                                             existingParameterInstance.addName(nameFromProbe);
                                                         }
+
+                                                        String existingType = existingParameterInstance.getType();
+                                                        String typeFromProbe = probeInfo.getAttribute("Type", "V");
+                                                        if (existingType == null || existingType.contains(".Object")) {
+                                                            existingParameterInstance.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                                                        }
+
+
+                                                        daoService.createOrUpdate(
+                                                                existingParameterInstance
+                                                        );
 
                                                     } else {
                                                         Parameter localVariableParameter = new Parameter();
@@ -2074,15 +2093,15 @@ public class SessionInstance {
                                                                 )
                                                         );
                                                         localVariableParameter.setProb(dataEvent);
-                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                        dataEventDao.createOrUpdate(dataEvent);
+                                                        daoService.createOrUpdate(probeInfo);
+                                                        daoService.createOrUpdate(dataEvent);
 
                                                         localVariableParameter.setProbeInfo(probeInfo);
                                                         TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                                         VariableContainer candidateVariables = currentTestCandidate.getVariables();
                                                         candidateVariables.add(localVariableParameter);
-                                                        parameterDao.createOrUpdate(
-                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(localVariableParameter)
+                                                        daoService.createOrUpdate(
+                                                                localVariableParameter
                                                         );
                                                     }
                                                 }
@@ -2091,9 +2110,9 @@ public class SessionInstance {
 
                                             case GET_STATIC_FIELD:
                                                 if (dataEvent.getValue() != 0) {
-                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
-                                                    if (existingParameter.isPresent()) {
-                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                    Parameter existingParameter = daoService.getParameterById(dataEvent.getValue());
+                                                    if (existingParameter != null) {
+                                                        Parameter existingParameterInstance = existingParameter;
                                                         String nameFromProbe = probeInfo.getAttribute("Name", null);
                                                         if (nameFromProbe != null) {
                                                             existingParameterInstance.addName(nameFromProbe);
@@ -2110,14 +2129,14 @@ public class SessionInstance {
                                                                 )
                                                         );
                                                         localVariableParameter.setProb(dataEvent);
-                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                        dataEventDao.createOrUpdate(dataEvent);
+                                                        daoService.createOrUpdate(probeInfo);
+                                                        daoService.createOrUpdate(dataEvent);
                                                         localVariableParameter.setProbeInfo(probeInfo);
                                                         TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                                         VariableContainer candidateVariables = currentTestCandidate.getVariables();
                                                         candidateVariables.add(localVariableParameter);
-                                                        parameterDao.createOrUpdate(
-                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(localVariableParameter)
+                                                        daoService.createOrUpdate(
+                                                                localVariableParameter
                                                         );
 
                                                     }
@@ -2127,9 +2146,9 @@ public class SessionInstance {
 
                                             case GET_INSTANCE_FIELD_RESULT:
                                                 if (dataEvent.getValue() != 0) {
-                                                    Optional<Parameter> existingParameter = variableContainer.getParametersById(dataEvent.getValue());
-                                                    if (existingParameter.isPresent()) {
-                                                        Parameter existingParameterInstance = existingParameter.get();
+                                                    Parameter existingParameter = daoService.getParameterById(dataEvent.getValue());
+                                                    if (existingParameter != null) {
+                                                        Parameter existingParameterInstance = existingParameter;
                                                         String nameFromProbe = probeInfo.getAttribute("FieldName", null);
                                                         if (nameFromProbe != null) {
 
@@ -2153,9 +2172,9 @@ public class SessionInstance {
                                                 // we are going to set this field in the next event
                                                 valueStack.add(dataEvent.getValue());
 
-                                                Optional<Parameter> existingParentParameter = variableContainer.getParametersById(dataEvent.getValue());
-                                                if (existingParentParameter.isPresent()) {
-                                                    Parameter existingParam = existingParentParameter.get();
+                                                Parameter existingParentParameter = daoService.getParameterById(dataEvent.getValue());
+                                                if (existingParentParameter != null) {
+                                                    Parameter existingParam = existingParentParameter;
                                                     if (existingParam.getType() == null || existingParam.getType().contains(".Object")) {
                                                         existingParam.setType(ClassTypeUtils.getDottedClassName(owner));
                                                     }
@@ -2174,9 +2193,9 @@ public class SessionInstance {
                                                 fieldType = probeInfo.getAttribute("Type", null);
 
                                                 Long parentValue = valueStack.remove(valueStack.size() - 1);
-                                                Optional<Parameter> parentParameter = variableContainer.getParametersById(parentValue);
-                                                assert parentParameter.isPresent();
-                                                Parameter parentParameterInstance = parentParameter.get();
+                                                Parameter parentParameter = daoService.getParameterById(parentValue);
+                                                assert parentParameter != null;
+                                                Parameter parentParameterInstance = parentParameter;
                                                 VariableContainer parentFields = parentParameterInstance.getFields();
 
 
@@ -2194,11 +2213,11 @@ public class SessionInstance {
                                                     newField.setType(ClassTypeUtils.getDottedClassName(fieldType));
                                                     newField.setName(fieldName);
                                                     newField.setProb(dataEvent);
-                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                    dataEventDao.createOrUpdate(dataEvent);
+                                                    daoService.createOrUpdate(probeInfo);
+                                                    daoService.createOrUpdate(dataEvent);
 
                                                     newField.setProbeInfo(probeInfo);
-                                                    parameterDao.createOrUpdate(com.insidious.plugin.pojo.dao.Parameter.fromParameter(newField));
+                                                    daoService.createOrUpdate(newField);
                                                     parentFields.add(newField);
                                                 }
                                                 break;
@@ -2224,8 +2243,8 @@ public class SessionInstance {
                                                     // how to keep track of this ?
 
                                                 } else {
-                                                    Optional<Parameter> fieldParameterInstance = variableContainer.getParametersById(dataEvent.getValue());
-                                                    if (fieldParameterInstance.isEmpty()) {
+                                                    Parameter fieldParameterInstance = daoService.getParameterById(dataEvent.getValue());
+                                                    if (fieldParameterInstance == null) {
                                                         // this is a really wierd position to be in
                                                         // or we are coming across this field for the first time
                                                         Parameter newFieldParameter = new Parameter();
@@ -2238,22 +2257,19 @@ public class SessionInstance {
                                                                 )
                                                         );
                                                         newFieldParameter.setProb(dataEvent);
-                                                        probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                        dataEventDao.createOrUpdate(dataEvent);
+                                                        daoService.createOrUpdate(probeInfo);
+                                                        daoService.createOrUpdate(dataEvent);
 
                                                         newFieldParameter.setProbeInfo(probeInfo);
 
                                                         classStaticFieldContainer.add(newFieldParameter);
-                                                        variableContainer.add(newFieldParameter);
-                                                        parameterDao.createOrUpdate(
-                                                                com.insidious.plugin.pojo.dao.Parameter.fromParameter(newFieldParameter)
-                                                        );
+                                                        daoService.createOrUpdate(newFieldParameter);
 
                                                     } else {
-                                                        Parameter existingFieldParam = fieldParameterInstance.get();
+                                                        Parameter existingFieldParam = fieldParameterInstance;
                                                         existingFieldParam.setName(probeInfo.getAttribute("FieldName", null));
                                                         existingFieldParam.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                                                        classStaticFieldContainer.add(fieldParameterInstance.get());
+                                                        classStaticFieldContainer.add(existingFieldParam);
                                                     }
                                                 }
 
@@ -2274,25 +2290,32 @@ public class SessionInstance {
                                                 String instruction = probeInfo.getAttribute("Instruction", null);
                                                 owner = probeInfo.getAttribute("Owner", null);
 
-                                                Optional<Parameter> existingSubjectParam = variableContainer.getParametersById(dataEvent.getValue());
+                                                Parameter existingSubjectParam = daoService.getParameterById(dataEvent.getValue());
                                                 Parameter subjectParameter;
-                                                if (dataEvent.getValue() != 0 && existingSubjectParam.isPresent()) {
-                                                    subjectParameter = existingSubjectParam.get();
+                                                daoService.createOrUpdate(probeInfo);
+                                                if (dataEvent.getValue() != 0 && existingSubjectParam != null) {
+                                                    subjectParameter = existingSubjectParam;
                                                 } else {
                                                     subjectParameter = new Parameter();
-                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                    dataEventDao.createOrUpdate(dataEvent);
+                                                    try {
 
-                                                    subjectParameter.setProbeInfo(probeInfo);
-                                                    subjectParameter.setProb(dataEvent);
-                                                    parameterDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(subjectParameter)
-                                                    );
+
+                                                        daoService.createOrUpdate(dataEvent);
+
+                                                        subjectParameter.setProbeInfo(probeInfo);
+                                                        subjectParameter.setProb(dataEvent);
+                                                        subjectParameter.setType(ClassTypeUtils.getDottedClassName(owner));
+                                                        daoService.createOrUpdate(
+                                                                subjectParameter
+                                                        );
+                                                    } catch (SQLException sqlException) {
+                                                        sqlException.printStackTrace();
+                                                    }
 
                                                 }
 
                                                 MethodCallExpression methodCallExpression = new MethodCallExpression(
-                                                        methodName, subjectParameter, new VariableContainer(), null
+                                                        methodName, subjectParameter, new VariableContainer(), null, callStack.size()
                                                 );
                                                 methodCallExpression.setEntryProbeInfo(probeInfo);
                                                 methodCallExpression.setEntryProbe(dataEvent);
@@ -2315,26 +2338,26 @@ public class SessionInstance {
                                             case CALL_PARAM:
                                                 Parameter callParameter = new Parameter();
 
-                                                Optional<Parameter> existingCallParam = variableContainer.getParametersById(dataEvent.getValue());
-                                                if (existingCallParam.isPresent()) {
-                                                    callParameter = existingCallParam.get();
+                                                Parameter existingCallParam = daoService.getParameterById(dataEvent.getValue());
+                                                if (existingCallParam != null) {
+                                                    callParameter = existingCallParam;
                                                 } else {
                                                     callParameter.setValue(dataEvent.getValue());
                                                     callParameter.setProb(dataEvent);
-                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                    dataEventDao.createOrUpdate(dataEvent);
+                                                    daoService.createOrUpdate(probeInfo);
+                                                    daoService.createOrUpdate(dataEvent);
 
                                                     callParameter.setProbeInfo(probeInfo);
                                                     callParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
 
-                                                    parameterDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(callParameter)
+                                                    daoService.createOrUpdate(
+                                                            callParameter
                                                     );
 
                                                 }
 
 
-                                                variableContainer.add(callParameter);
+                                                daoService.createOrUpdate(callParameter);
                                                 MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
                                                 currentMethodCallExpression.getArguments().add(callParameter);
                                                 break;
@@ -2371,8 +2394,8 @@ public class SessionInstance {
                                                 } else {
                                                     subjectParameter = new Parameter();
                                                     subjectParameter.setProb(dataEvent);
-                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                    dataEventDao.createOrUpdate(dataEvent);
+                                                    daoService.createOrUpdate(probeInfo);
+                                                    daoService.createOrUpdate(dataEvent);
 
                                                     subjectParameter.setProbeInfo(probeInfo);
                                                     String probeOwnerClassType = probeInfo.getAttribute("Owner", null);
@@ -2385,16 +2408,14 @@ public class SessionInstance {
                                                                 )
                                                         );
                                                     }
-                                                    parameterDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(subjectParameter)
-                                                    );
+                                                    daoService.createOrUpdate(subjectParameter);
 
-                                                    variableContainer.add(subjectParameter);
                                                     methodCall = new MethodCallExpression(
-                                                            methodInfo.getMethodName(), subjectParameter, new VariableContainer(), null
-                                                    );
+                                                            methodInfo.getMethodName(), subjectParameter, new VariableContainer(), null,
+                                                            callStack.size());
                                                     methodCall.setEntryProbeInfo(probeInfo);
                                                     methodCall.setEntryProbe(dataEvent);
+                                                    newCandidate.setMainMethod(methodCall);
                                                     callsList.add(methodCall);
                                                     callStack.add(methodCall);
 
@@ -2414,13 +2435,13 @@ public class SessionInstance {
                                                 Parameter methodParameter = new Parameter();
                                                 methodParameter.setValue(dataEvent.getValue());
                                                 methodParameter.setProb(dataEvent);
-                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                dataEventDao.createOrUpdate(dataEvent);
+                                                daoService.createOrUpdate(probeInfo);
+                                                daoService.createOrUpdate(dataEvent);
 
                                                 methodParameter.setProbeInfo(probeInfo);
 
-                                                parameterDao.createOrUpdate(
-                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(methodParameter)
+                                                daoService.createOrUpdate(
+                                                        methodParameter
                                                 );
 
                                                 MethodCallExpression methodExpression = callStack.get(callStack.size() - 1);
@@ -2448,14 +2469,14 @@ public class SessionInstance {
                                                 entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
 
                                                 Parameter exitParameter = new Parameter();
-                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                dataEventDao.createOrUpdate(dataEvent);
+                                                daoService.createOrUpdate(probeInfo);
+                                                daoService.createOrUpdate(dataEvent);
 
                                                 exitParameter.setProbeInfo(probeInfo);
                                                 exitParameter.setProb(dataEvent);
 
-                                                parameterDao.createOrUpdate(
-                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(exitParameter)
+                                                daoService.createOrUpdate(
+                                                        exitParameter
                                                 );
 
 
@@ -2470,13 +2491,11 @@ public class SessionInstance {
 
 
                                                     topCall.setReturnValue(exitParameter);
-                                                    callExpressionsDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.MethodCallExpression.FromMCE(topCall)
-                                                    );
+                                                    daoService.createOrUpdate(topCall);
 
                                                     // also the test candidate metadata need to be finished
-                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                                    currentCandidate.setMainMethod(topCall);
+//                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+//                                                    currentCandidate.setMainMethod(topCall);
 
                                                 } else {
                                                     throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
@@ -2509,15 +2528,14 @@ public class SessionInstance {
                                                 try {
                                                     if (completed.getTestSubject() != null) {
                                                         writeCandidate(completed, outputStream);
-                                                        candidateDao.create(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
-                                                                FromTestCandidateMetadata(completed)
-                                                        );
+                                                        daoService.createOrUpdate(completed);
                                                     }
                                                     outputStream.flush();
                                                 } catch (IOException e) {
                                                     //
                                                 } catch (SQLException e) {
-                                                    throw new RuntimeException(e);
+                                                    e.printStackTrace();
+//                                                    throw new RuntimeException(e);
                                                 }
 
                                                 break;
@@ -2527,15 +2545,13 @@ public class SessionInstance {
                                                 Parameter callReturnParameter = new Parameter();
 
                                                 callReturnParameter.setProb(dataEvent);
-                                                probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                dataEventDao.createOrUpdate(dataEvent);
+                                                daoService.createOrUpdate(probeInfo);
+                                                daoService.createOrUpdate(dataEvent);
 
                                                 callReturnParameter.setProbeInfo(probeInfo);
                                                 callReturnParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
-                                                variableContainer.add(callReturnParameter);
-                                                parameterDao.createOrUpdate(
-                                                        com.insidious.plugin.pojo.dao.Parameter.fromParameter(callReturnParameter)
-                                                );
+
+                                                daoService.createOrUpdate(callReturnParameter);
 
                                                 MethodCallExpression callExpression = callStack.get(callStack.size() - 1);
                                                 EventType entryEventType = callExpression.getEntryProbeInfo().getEventType();
@@ -2544,8 +2560,8 @@ public class SessionInstance {
 
                                                     MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
 
-                                                    callExpressionsDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.MethodCallExpression.FromMCE(topCall)
+                                                    daoService.createOrUpdate(
+                                                            topCall
                                                     );
 
                                                     testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
@@ -2574,24 +2590,38 @@ public class SessionInstance {
                                             case NEW_ARRAY_RESULT:
                                                 break;
                                             case NEW_OBJECT_CREATED:
+                                                long newObjectValue = dataEvent.getValue();
+                                                MethodCallExpression theCallThatJustEnded = callsList.get(callsList.size() - 1);
+                                                Parameter subject = theCallThatJustEnded.getSubject();
+                                                subject.setProb(dataEvent);
+                                                theCallThatJustEnded.setReturnValue(subject);
+                                                daoService.createOrUpdate(subject);
+                                                daoService.createOrUpdate(theCallThatJustEnded);
+                                                daoService.createOrUpdate(dataEvent);
+                                                daoService.createOrUpdate(probeInfo);
+
                                                 break;
                                             case METHOD_OBJECT_INITIALIZED:
-                                                MethodCallExpression theCallJustEnded = callsList.get(callsList.size() - 1);
-                                                Parameter returnValueParameter = theCallJustEnded.getReturnValue();
-                                                if (returnValueParameter == null) {
-                                                    returnValueParameter = new Parameter();
-                                                    probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
-                                                    dataEventDao.createOrUpdate(dataEvent);
+                                                MethodCallExpression currentCall = callStack.get(callStack.size() - 1);
+                                                Parameter callSubject = currentCall.getSubject();
+//                                                if (returnValueParameter == null) {
+//                                                    returnValueParameter = new Parameter();
+//                                                    daoService.createOrUpdate(probeInfo);
+//                                                    daoService.createOrUpdate(dataEvent);
+//`
+//                                                    returnValueParameter.setProbeInfo(probeInfo);
+//                                                    returnValueParameter.setProb(dataEvent);
+//                                                    daoService.createOrUpdate(
+//                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(returnValueParameter)
+//                                                    );
+//                                                    theCallJustEnded.setReturnValue(returnValueParameter);
+//                                                }
+                                                callSubject.setProb(dataEvent);
+                                                daoService.createOrUpdate(callSubject);
 
-                                                    returnValueParameter.setProbeInfo(probeInfo);
-                                                    returnValueParameter.setProb(dataEvent);
-                                                    parameterDao.createOrUpdate(
-                                                            com.insidious.plugin.pojo.dao.Parameter.fromParameter(returnValueParameter)
-                                                    );
-                                                    theCallJustEnded.setReturnValue(returnValueParameter);
-                                                }
-                                                returnValueParameter.setProb(dataEvent);
-                                                variableContainer.add(returnValueParameter);
+                                                currentCall.setSubject(callSubject);
+                                                currentCall.setReturnValue(callSubject);
+                                                daoService.createOrUpdate(currentCall);
 
                                         }
                                     } catch (SQLException sqlException) {
@@ -2711,7 +2741,18 @@ public class SessionInstance {
         }
         writer.writeBytes("Calls: " + candidate.getCallsList().size() + "\n");
         for (MethodCallExpression methodCallExpression : candidate.getCallsList()) {
-            writer.writeBytes("\t" + methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() + "()" + "\n");
+            String methodName = methodCallExpression.getMethodName();
+            if (methodCallExpression.isStaticCall()) {
+                String typeToCreate = methodCallExpression.getSubject().getType();
+                writer.writeBytes("\t" + ClassName.bestGuess(typeToCreate).simpleName() + "." + methodName + "()" + "\n");
+            } else {
+                if (methodName.equals("<init>")) {
+                    String typeToCreate = methodCallExpression.getSubject().getType();
+                    writer.writeBytes("\t" + "new " + ClassName.bestGuess(typeToCreate).simpleName() + "()" + "\n");
+                } else {
+                    writer.writeBytes("\t" + methodCallExpression.getSubject().getName() + "." + methodName + "()" + "\n");
+                }
+            }
         }
         writer.writeBytes("Returns: " + mainMethod.getReturnValue() + "\n");
         writer.writeBytes("\n");
