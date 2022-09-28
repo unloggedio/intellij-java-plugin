@@ -34,7 +34,7 @@ public class Parameter {
     @DatabaseField
     String type;
     @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private final String[] names = new String[0];
+    private String[] names = new String[0];
     @DatabaseField
     private String stringValue;
 
@@ -67,12 +67,17 @@ public class Parameter {
             com.insidious.plugin.pojo.Parameter param = templateMap1.get(s);
             transformedTemplateMap.put(s, Parameter.fromParameter(param));
         }
+        newParam.setNames(e.getNames().toArray(String[]::new));
 
         newParam.setTemplateMap(transformedTemplateMap);
         newParam.setConstructorType(e.getConstructorType());
         newParam.setProbeInfo(e.getProbeInfo());
         newParam.setValue((long) e.getValue());
         return newParam;
+    }
+
+    private void setNames(String[] names) {
+        this.names = names;
     }
 
     public static com.insidious.plugin.pojo.Parameter toParameter(Parameter parameter) {

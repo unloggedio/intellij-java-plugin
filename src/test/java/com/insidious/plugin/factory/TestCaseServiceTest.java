@@ -444,14 +444,12 @@ public class TestCaseServiceTest {
         DaoService daoService = new DaoService(connectionSource);
 
 
-        Parameter targetParameter = daoService.getParameterById(784716363L);
+        Parameter targetParameter = daoService.getParameterByValue(784716363L);
         List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates = daoService.getTestCandidateForSubjectId(784716363L);
 
-//        testCandidates.sort(Comparator.comparing(testCandidateMetadata -> testCandidateMetadata.getMainMethod().getEntryTime()));
+        testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getCallTimeNanoSecond));
 
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(
-                ClassName.bestGuess(targetParameter.getType()).packageName()
-        );
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(ClassName.bestGuess(targetParameter.getType()).packageName());
         for (TestCandidateMetadata testCandidate : testCandidates) {
             objectRoutineContainer.addMetadata(testCandidate);
         }

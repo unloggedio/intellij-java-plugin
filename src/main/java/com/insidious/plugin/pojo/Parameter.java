@@ -4,8 +4,6 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.pojo.dao.ProbeInfo;
-import com.j256.ormlite.field.DatabaseField;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 
@@ -22,7 +20,7 @@ public class Parameter {
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
-    Long value;
+    long value = 0;
     /**
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
@@ -124,7 +122,7 @@ public class Parameter {
 
     public void setProb(DataEventWithSessionId prob) {
         this.prob = prob;
-        if (value == null || value == 0) {
+        if (value == 0) {
             value = prob.getValue();
         }
     }
@@ -173,13 +171,13 @@ public class Parameter {
 
         Parameter parameter = (Parameter) o;
 
-        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
+//        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
         return type != null ? type.equals(parameter.type) : parameter.type == null;
     }
 
     @Override
     public int hashCode() {
-        int result = value != null ? value.hashCode() : 0;
+        int result = Math.toIntExact(value);
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }
@@ -206,5 +204,9 @@ public class Parameter {
 
     public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
         this.templateMap = transformedTemplateMap;
+    }
+
+    public List<String> getNames() {
+        return names;
     }
 }

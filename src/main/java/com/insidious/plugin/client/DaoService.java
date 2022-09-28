@@ -42,6 +42,9 @@ public class DaoService {
 
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidateForSubjectId(Long id) throws SQLException {
+
+//        parameterDao
+
         List<TestCandidateMetadata> candidateList = candidateDao.queryForEq("testSubject_id", id);
 
 
@@ -80,7 +83,10 @@ public class DaoService {
 
         Parameter mainSubject = dbMce.getSubject();
         if (dbMce.getReturnValue() != null) {
-            com.insidious.plugin.pojo.Parameter returnParam = getParameterById((Long) dbMce.getReturnValue().getValue());
+            Parameter returnValue = dbMce.getReturnValue();
+//            DataEventWithSessionId returnValueProbe = returnValue.getProb();
+//            long retruenParameterValue = returnValueProbe.getValue();
+            com.insidious.plugin.pojo.Parameter returnParam = getParameterById((Long) returnValue.getValue());
             mce.setReturnValue(returnParam);
         } else {
 
@@ -98,11 +104,43 @@ public class DaoService {
         return mce;
     }
 
-    public com.insidious.plugin.pojo.Parameter getParameterById(Long value) throws SQLException {
-        Parameter parameter = parameterDao.queryForId(value);
+    public com.insidious.plugin.pojo.Parameter getParameterById(Long id) throws SQLException {
+        if (id == 0) {
+            return null;
+        }
+        Parameter parameter = parameterDao.queryForId(id);
         if (parameter == null) {
             return null;
         }
+        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
+
+        DataEventWithSessionId dataEvent = getDataEventById(convertedParameter.getProb().getNanoTime());
+        if (dataEvent != null) {
+            DataInfo probeInfo = getProbeInfoById(dataEvent.getDataId());
+            convertedParameter.setProbeInfo(probeInfo);
+        }
+
+
+        convertedParameter.setProb(dataEvent);
+
+        if (parameter.getCreatorExpression() != null) {
+            convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));
+        }
+        convertedParameter.setProbeInfo(getProbeInfoById(parameter.getProbeInfo().getDataId()));
+        convertedParameter.setProb(getDataEventById(parameter.getProb().getNanoTime()));
+
+
+        return convertedParameter;
+    }
+    public com.insidious.plugin.pojo.Parameter getParameterByValue(Long value) throws SQLException {
+        if (value == 0) {
+            return null;
+        }
+        List<Parameter> parameterList = parameterDao.queryForEq("value", value);
+        if (parameterList.size() == 0) {
+            return null;
+        }
+        Parameter parameter = parameterList.get(0);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
 
         DataEventWithSessionId dataEvent = getDataEventById(convertedParameter.getProb().getNanoTime());
@@ -135,6 +173,9 @@ public class DaoService {
     }
 
     public void createOrUpdate(com.insidious.plugin.pojo.Parameter existingParameterInstance) throws SQLException {
+        if (existingParameterInstance.getProb() == null) {
+            return;
+        }
         parameterDao.createOrUpdate(Parameter.fromParameter(existingParameterInstance));
     }
 

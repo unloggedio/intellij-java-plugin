@@ -78,6 +78,28 @@ public class ArchiveIndex {
         return collect;
     }
 
+    public ObjectInfo getObjectByObjectId(Long objectIds) {
+
+        Query<ObjectInfoDocument> query = equal(ObjectInfoDocument.OBJECT_ID, objectIds);
+        ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
+        Stream<ObjectInfoDocument> stream = retrieve.stream();
+
+
+        List<ObjectInfo> collect = new LinkedList<>();
+        stream
+                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
+                .forEach(e -> {
+                    String key = String.valueOf(e.getObjectId());
+                    collect.add(e);
+                });
+
+        retrieve.close();
+        if (collect.size() == 0) {
+            return null;
+        }
+        return collect.get(0);
+    }
+
 
     public Map<Long, ObjectInfo> getObjectsByObjectIdWithLongKeys(Collection<Long> objectIds) {
 
