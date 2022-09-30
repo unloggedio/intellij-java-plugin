@@ -147,10 +147,10 @@ public class DaoService {
         if (dataEvent != null) {
             DataInfo probeInfo = getProbeInfoById(dataEvent.getDataId());
             convertedParameter.setProbeInfo(probeInfo);
+            convertedParameter.setProb(dataEvent);
         }
 
 
-        convertedParameter.setProb(dataEvent);
 
         if (parameter.getCreatorExpression() != null) {
             convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));

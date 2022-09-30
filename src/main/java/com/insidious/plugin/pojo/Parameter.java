@@ -131,9 +131,18 @@ public class Parameter {
     }
 
     public void setProb(DataEventWithSessionId prob) {
-        this.prob = prob;
-        if (value == 0) {
-            value = prob.getValue();
+        byte[] existingSerializedData;
+        if (this.prob != null) {
+            existingSerializedData = this.prob.getSerializedValue();
+            if ((existingSerializedData == null || existingSerializedData.length == 0) &&
+                    (prob.getSerializedValue() != null && prob.getSerializedValue().length > 0)) {
+                this.prob = prob;
+            }
+        } else {
+            this.prob = prob;
+            if (value == 0) {
+                value = prob.getValue();
+            }
         }
     }
 

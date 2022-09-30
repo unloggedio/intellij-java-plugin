@@ -55,7 +55,10 @@ public class CandidateMetadataFactory {
                             mainMethod.getCallStack() + 1 == e.getCallStack() &&
                             e.getSubject().getProbeInfo().getEventType() != EventType.LOCAL_LOAD &&
                             e.getSubject().getProbeInfo().getEventType() != EventType.METHOD_ENTRY &&
-                            e.getSubject().getProbeInfo().getEventType() != EventType.CALL_PARAM
+                            e.getSubject().getProbeInfo().getEventType() != EventType.CALL_PARAM &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.METHOD_NORMAL_EXIT &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.METHOD_PARAM &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.CALL_RETURN
             ).collect(Collectors.toList());
 
             if (callToMock.size() > 0) {

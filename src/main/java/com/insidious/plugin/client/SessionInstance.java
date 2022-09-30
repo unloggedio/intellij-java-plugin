@@ -2057,18 +2057,16 @@ public class SessionInstance {
                                                 if (dataEvent.getValue() != 0) {
                                                     Parameter existingParameter = daoService.getParameterByValue(dataEvent.getValue());
 
-                                                    existingParameter.addName(
-                                                            probeInfo.getAttribute("Name", null)
-                                                    );
+                                                    existingParameter.addName(probeInfo.getAttribute("Name", null));
                                                     existingParameter.setType(
                                                             ClassTypeUtils.getDottedClassName(
                                                                     probeInfo.getAttribute("Type", null)
                                                             )
                                                     );
-                                                    existingParameter.setProb(dataEvent);
                                                     daoService.createOrUpdateProbeInfo(probeInfo);
                                                     daoService.createOrUpdateDataEvent(dataEvent);
 
+                                                    existingParameter.setProb(dataEvent);
                                                     existingParameter.setProbeInfo(probeInfo);
                                                     TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                                     VariableContainer candidateVariables = currentTestCandidate.getVariables();
@@ -2482,7 +2480,7 @@ public class SessionInstance {
                                                         callStack.clear();
                                                     }
                                                 }
-                                                completed.setExitProbeIndex(instructionIndex);
+                                                completed.setExitProbeIndex(index.get());
                                                 if (completed.getMainMethod() != null) {
                                                     DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
                                                     if (entryProbe != null) {
