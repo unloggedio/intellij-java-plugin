@@ -2343,10 +2343,7 @@ public class SessionInstance {
 
                                                 TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
-                                                newCandidate.setEntryProbeIndex(index.get());
                                                 testCandidateMetadataStack.add(newCandidate);
-
-
                                                 newCandidate.setEntryProbeIndex(instructionIndex);
 
 
@@ -2425,8 +2422,92 @@ public class SessionInstance {
                                                 break;
 
 
-                                            case METHOD_NORMAL_EXIT:
                                             case METHOD_EXCEPTIONAL_EXIT:
+
+                                                MethodCallExpression exceptionCallExpression = callStack.get(callStack.size() - 1);
+
+                                                entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
+
+                                                Parameter exceptionalParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                daoService.createOrUpdateProbeInfo(probeInfo);
+                                                daoService.createOrUpdateDataEvent(dataEvent);
+
+                                                exceptionalParameter.setProbeInfo(probeInfo);
+                                                exceptionalParameter.setProb(dataEvent);
+
+                                                daoService.createOrUpdateParameter(exceptionalParameter);
+
+
+                                                if (entryProbeEventType == EventType.CALL) {
+                                                    // we need to pop two calls here, since the CALL will not have a matching call_return
+
+                                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+                                                    topCall.setReturnValue(exceptionalParameter);
+                                                    daoService.createOrUpdateCall(topCall);
+
+
+                                                    topCall = callStack.remove(callStack.size() - 1);
+                                                    topCall.setReturnValue(exceptionalParameter);
+                                                    daoService.createOrUpdateCall(topCall);
+
+
+                                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                                                    // we need to pop only 1 call here from the stack
+                                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+                                                    topCall.setReturnValue(exceptionalParameter);
+                                                    daoService.createOrUpdateCall(topCall);
+
+                                                    // also the test candidate metadata need to be finished
+//                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+//                                                    currentCandidate.setMainMethod(topCall);
+
+                                                } else {
+                                                    throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
+                                                }
+
+                                                if (entryProbeEventType == EventType.METHOD_ENTRY) {
+
+                                                }
+
+
+                                                TestCandidateMetadata completedExceptional = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
+                                                if (testCandidateMetadataStack.size() > 0) {
+                                                    TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                    newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
+                                                } else {
+                                                    if (callStack.size() > 0) {
+                                                        logger.warn("inconsistent call stack state, flushing calls list");
+                                                        callStack.clear();
+                                                    }
+                                                }
+                                                completedExceptional.setExitProbeIndex(index.get());
+                                                if (completedExceptional.getMainMethod() != null) {
+                                                    DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
+                                                    if (entryProbe != null) {
+                                                        completedExceptional.setCallTimeNanoSecond(
+                                                                dataEvent.getRecordedAt() - entryProbe.getRecordedAt()
+                                                        );
+                                                    }
+                                                }
+                                                if (completedExceptional.getMainMethod() != null) {
+                                                    completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
+                                                }
+//                                        testCandidateMetadataList.add(completed);
+                                                try {
+                                                    if (completedExceptional.getTestSubject() != null) {
+                                                        writeCandidate(completedExceptional, outputStream);
+                                                        daoService.createOrUpdateTestCandidate(completedExceptional);
+                                                    }
+                                                    outputStream.flush();
+                                                } catch (IOException e) {
+                                                    //
+                                                } catch (SQLException e) {
+                                                    e.printStackTrace();
+//                                                    throw new RuntimeException(e);
+                                                }
+                                                break;
+
+                                            case METHOD_NORMAL_EXIT:
 
 
                                                 MethodCallExpression currentCallExpression = callStack.get(callStack.size() - 1);
@@ -2447,7 +2528,8 @@ public class SessionInstance {
                                                     // we dont pop it here, wait for the CALL_RETURN to pop the call
 
 
-                                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                                                } else if (entryProbeEventType == EventType.METHOD_ENTRY ||
+                                                        probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
                                                     // we can pop the current call here since we never had the CALL event in the first place
                                                     // this might be going out of our hands
                                                     MethodCallExpression topCall = callStack.remove(callStack.size() - 1);

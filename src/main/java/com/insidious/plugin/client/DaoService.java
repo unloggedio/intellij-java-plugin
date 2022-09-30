@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.dao.TestCandidateMetadata;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
 import java.util.LinkedList;
@@ -52,27 +53,41 @@ public class DaoService {
 
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                    TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
+                    getTestCandidateMetadataById(testCandidateMetadata);
 
-            converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
-            converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getEntryTime()));
-
-            List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
-            Long[] calls = testCandidateMetadata.getCallsList();
-
-            for (Long call : calls) {
-                callsList.add(getMethodCallExpressionById(call));
-            }
-
-
-            converted.setCallList(callsList);
-//            testCandidateMetadata.getMainMethod().geten;
             testCandidateList.add(converted);
 
         }
 
 
         return testCandidateList;
+    }
+
+    @NotNull
+    private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata getTestCandidateMetadataById(
+            TestCandidateMetadata testCandidateMetadata) throws SQLException {
+        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
+                TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
+
+        converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
+        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getEntryTime()));
+
+        List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
+        Long[] calls = testCandidateMetadata.getCallsList();
+
+        for (Long call : calls) {
+            callsList.add(getMethodCallExpressionById(call));
+        }
+
+        Long[] fieldParameters = testCandidateMetadata.getFields();
+        for (Long fieldParameterValue : fieldParameters) {
+            com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
+            converted.getFields().add(fieldParameter);
+        }
+
+
+        converted.setCallList(callsList);
+        return converted;
     }
 
     public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws SQLException {

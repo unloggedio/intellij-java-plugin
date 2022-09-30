@@ -347,9 +347,9 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
-        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
+//        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.HospitalProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
@@ -444,8 +444,9 @@ public class TestCaseServiceTest {
         DaoService daoService = new DaoService(connectionSource);
 
 
-        Parameter targetParameter = daoService.getParameterByValue(784716363L);
-        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates = daoService.getTestCandidateForSubjectId(784716363L);
+        long valueId = 659960900L;
+        Parameter targetParameter = daoService.getParameterByValue(valueId);
+        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates = daoService.getTestCandidateForSubjectId(valueId);
 
         testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getCallTimeNanoSecond));
 

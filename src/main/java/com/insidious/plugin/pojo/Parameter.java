@@ -9,6 +9,7 @@ import com.squareup.javapoet.FieldSpec;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Parameter is a value (long id or string) with a name and type information (class name). It could
@@ -104,6 +105,9 @@ public class Parameter {
     }
 
     public void setName(String name) {
+        if (name.startsWith("(")) {
+            return;
+        }
         if (name != null && !this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
@@ -111,6 +115,7 @@ public class Parameter {
     }
 
     public void addNames(Collection<String> name) {
+        name = name.stream().filter(e -> !e.startsWith("(")).collect(Collectors.toList());
         this.names.addAll(name);
     }
 
@@ -214,7 +219,7 @@ public class Parameter {
     }
 
     public void addName(String nameForParameter) {
-        if (nameForParameter == null || this.names.contains(nameForParameter)) {
+        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith("(")) {
             return;
         }
         nameForParameter = nameForParameter.replace('$', 'D');
