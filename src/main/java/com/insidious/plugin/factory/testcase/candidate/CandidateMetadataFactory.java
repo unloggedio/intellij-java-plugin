@@ -27,6 +27,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
@@ -45,7 +46,17 @@ public class CandidateMetadataFactory {
 
 
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
-            Collection<MethodCallExpression> callToMock = testCandidateMetadata.getCallsList();
+            Collection<MethodCallExpression> callToMock = testCandidateMetadata.getCallsList().stream().filter(
+                    e -> !e.getMethodName().startsWith("<") &&
+                            e.getSubject() != null &&
+                            e.getReturnValue() != null &&
+                            e.getReturnValue().getProb() != null &&
+                            !e.getSubject().getType().contains("com.google") &&
+                            mainMethod.getCallStack() + 1 == e.getCallStack() &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.LOCAL_LOAD &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.METHOD_ENTRY &&
+                            e.getSubject().getProbeInfo().getEventType() != EventType.CALL_PARAM
+            ).collect(Collectors.toList());
 
             if (callToMock.size() > 0) {
 

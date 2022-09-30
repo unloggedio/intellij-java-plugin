@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.expression;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
@@ -46,20 +47,20 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression) {
 
-        String callType = methodCallExpression.getSubject()
-                .getProbeInfo().getAttribute("CallType", null);
+        Parameter mainSubject = methodCallExpression.getSubject();
+        DataInfo subjectProbeInfo = mainSubject.getProbeInfo();
+        String callType = subjectProbeInfo.getAttribute("CallType", null);
         boolean isStatic = false;
 
         String param1;
         if (callType != null && callType.equals("Static")) {
             isStatic = true;
-            String owner = methodCallExpression.getSubject()
-                    .getProbeInfo().getAttribute("Owner", null);
+            String owner = subjectProbeInfo.getAttribute("Owner", null);
             String classSimpleName = owner.substring(owner.lastIndexOf('/') + 1);
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
                     "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
         } else {
-            param1 = methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
+            param1 = mainSubject.getName() + "." + methodCallExpression.getMethodName() +
                     "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
         }
 
@@ -69,7 +70,7 @@ public class MethodCallExpressionFactory {
 
         Parameter callSubject = MockitoClass;
         if (isStatic) {
-            callSubject = methodCallExpression.getSubject();
+            callSubject = mainSubject;
         }
         return MethodCallExpression(
                 "when", callSubject,

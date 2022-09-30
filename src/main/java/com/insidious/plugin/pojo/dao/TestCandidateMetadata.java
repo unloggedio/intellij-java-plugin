@@ -148,6 +148,9 @@ public class TestCandidateMetadata {
 //        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
 //        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
 //                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
+
+
+
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());

@@ -54,7 +54,7 @@ public class DaoService {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                     TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
-            converted.setTestSubject(getParameterById((Long) testCandidateMetadata.getTestSubject().getValue()));
+            converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
             converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getEntryTime()));
 
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
@@ -86,7 +86,7 @@ public class DaoService {
             Parameter returnValue = dbMce.getReturnValue();
 //            DataEventWithSessionId returnValueProbe = returnValue.getProb();
 //            long retruenParameterValue = returnValueProbe.getValue();
-            com.insidious.plugin.pojo.Parameter returnParam = getParameterById((Long) returnValue.getValue());
+            com.insidious.plugin.pojo.Parameter returnParam = getParameterByValue((Long) returnValue.getValue());
             mce.setReturnValue(returnParam);
         } else {
 
@@ -94,7 +94,7 @@ public class DaoService {
 
 
         if (!mce.isStaticCall()) {
-            com.insidious.plugin.pojo.Parameter subjectParam = getParameterById((Long) mainSubject.getValue());
+            com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
             mce.setSubject(subjectParam);
         }
 
@@ -104,41 +104,41 @@ public class DaoService {
         return mce;
     }
 
-    public com.insidious.plugin.pojo.Parameter getParameterById(Long id) throws SQLException {
-        if (id == 0) {
-            return null;
-        }
-        Parameter parameter = parameterDao.queryForId(id);
-        if (parameter == null) {
-            return null;
-        }
-        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
-
-        DataEventWithSessionId dataEvent = getDataEventById(convertedParameter.getProb().getNanoTime());
-        if (dataEvent != null) {
-            DataInfo probeInfo = getProbeInfoById(dataEvent.getDataId());
-            convertedParameter.setProbeInfo(probeInfo);
-        }
-
-
-        convertedParameter.setProb(dataEvent);
-
-        if (parameter.getCreatorExpression() != null) {
-            convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));
-        }
-        convertedParameter.setProbeInfo(getProbeInfoById(parameter.getProbeInfo().getDataId()));
-        convertedParameter.setProb(getDataEventById(parameter.getProb().getNanoTime()));
-
-
-        return convertedParameter;
-    }
+//    public com.insidious.plugin.pojo.Parameter getParameterById(Long id) throws SQLException {
+//        if (id == 0) {
+//            return null;
+//        }
+//        Parameter parameter = parameterDao.queryForId(id);
+//        if (parameter == null) {
+//            return null;
+//        }
+//        com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
+//
+//        DataEventWithSessionId dataEvent = getDataEventById(convertedParameter.getProb().getNanoTime());
+//        if (dataEvent != null) {
+//            DataInfo probeInfo = getProbeInfoById(dataEvent.getDataId());
+//            convertedParameter.setProbeInfo(probeInfo);
+//        }
+//
+//
+//        convertedParameter.setProb(dataEvent);
+//
+//        if (parameter.getCreatorExpression() != null) {
+//            convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));
+//        }
+//        convertedParameter.setProbeInfo(getProbeInfoById(parameter.getProbeInfo().getDataId()));
+//        convertedParameter.setProb(getDataEventById(parameter.getProb().getNanoTime()));
+//
+//
+//        return convertedParameter;
+//    }
     public com.insidious.plugin.pojo.Parameter getParameterByValue(Long value) throws SQLException {
         if (value == 0) {
-            return null;
+            return new com.insidious.plugin.pojo.Parameter(value);
         }
         List<Parameter> parameterList = parameterDao.queryForEq("value", value);
         if (parameterList.size() == 0) {
-            return null;
+            return new com.insidious.plugin.pojo.Parameter(value);
         }
         Parameter parameter = parameterList.get(0);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
@@ -172,26 +172,26 @@ public class DaoService {
         return dataEventDao.queryForId(id);
     }
 
-    public void createOrUpdate(com.insidious.plugin.pojo.Parameter existingParameterInstance) throws SQLException {
+    public void createOrUpdateParameter(com.insidious.plugin.pojo.Parameter existingParameterInstance) throws SQLException {
         if (existingParameterInstance.getProb() == null) {
             return;
         }
         parameterDao.createOrUpdate(Parameter.fromParameter(existingParameterInstance));
     }
 
-    public void createOrUpdate(DataInfo probeInfo) throws SQLException {
+    public void createOrUpdateProbeInfo(DataInfo probeInfo) throws SQLException {
         probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
     }
 
-    public void createOrUpdate(DataEventWithSessionId dataEvent) throws SQLException {
+    public void createOrUpdateDataEvent(DataEventWithSessionId dataEvent) throws SQLException {
         dataEventDao.createOrUpdate(dataEvent);
     }
 
-    public void createOrUpdate(com.insidious.plugin.pojo.MethodCallExpression topCall) throws SQLException {
+    public void createOrUpdateCall(com.insidious.plugin.pojo.MethodCallExpression topCall) throws SQLException {
         callExpressionsDao.createOrUpdate(MethodCallExpression.FromMCE(topCall));
     }
 
-    public void createOrUpdate(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata completed) throws SQLException {
+    public void createOrUpdateTestCandidate(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata completed) throws SQLException {
         candidateDao.createOrUpdate(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
                 FromTestCandidateMetadata(completed));
     }

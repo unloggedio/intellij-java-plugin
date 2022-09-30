@@ -32,6 +32,13 @@ public class Parameter {
         return exception;
     }
 
+    public Parameter(Long value) {
+        this.value = value;
+    }
+
+    public Parameter() {
+    }
+
     boolean exception;
     DataEventWithSessionId prob;
     private int index;
@@ -66,7 +73,7 @@ public class Parameter {
     @Override
     public String toString() {
         return
-                names.stream().findFirst() +
+                names.stream().findFirst().orElse("<n/a>") +
                         (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
@@ -97,7 +104,10 @@ public class Parameter {
     }
 
     public void setName(String name) {
-        this.names.add(0, name);
+        if (name != null && !this.names.contains(name)) {
+            name = name.replace('$', 'D');
+            this.names.add(0, name);
+        }
     }
 
     public void addNames(Collection<String> name) {
@@ -195,6 +205,10 @@ public class Parameter {
     }
 
     public void addName(String nameForParameter) {
+        if (nameForParameter == null || this.names.contains(nameForParameter)) {
+            return;
+        }
+        nameForParameter = nameForParameter.replace('$', 'D');
         this.names.add(nameForParameter);
     }
 

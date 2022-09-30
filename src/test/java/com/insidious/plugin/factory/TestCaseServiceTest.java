@@ -450,8 +450,17 @@ public class TestCaseServiceTest {
         testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getCallTimeNanoSecond));
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(ClassName.bestGuess(targetParameter.getType()).packageName());
-        for (TestCandidateMetadata testCandidate : testCandidates) {
-            objectRoutineContainer.addMetadata(testCandidate);
+        for (TestCandidateMetadata testCandidateMetadata : testCandidates) {
+
+            MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            if (methodInfo.getMethodName().equals("<init>")) {
+                objectRoutineContainer.getConstructor().setTestCandidateList(testCandidateMetadata);
+            } else {
+                String routineName = methodInfo.getMethodName();
+                objectRoutineContainer.newRoutine(routineName);
+                objectRoutineContainer.addMetadata(testCandidateMetadata);
+            }
+
         }
         ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
 

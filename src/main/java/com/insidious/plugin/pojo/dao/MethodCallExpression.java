@@ -28,6 +28,8 @@ public class MethodCallExpression {
     private Parameter returnValue;
     @DatabaseField(foreign = true)
     private DataEventWithSessionId entryProbe;
+    @DatabaseField
+    private int callStack;
 
 
     public MethodCallExpression() {
@@ -50,6 +52,7 @@ public class MethodCallExpression {
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
         methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         return methodCallExpression1;
     }
 
@@ -60,6 +63,8 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
+        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+
 
         return methodCallExpression1;
     }
@@ -170,5 +175,13 @@ public class MethodCallExpression {
 
     public DataEventWithSessionId getEntryProbe() {
         return entryProbe;
+    }
+
+    public void setCallStack(int callStack) {
+        this.callStack = callStack;
+    }
+
+    public int getCallStack() {
+        return callStack;
     }
 }
