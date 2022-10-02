@@ -452,8 +452,10 @@ public class TestCaseServiceTest {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(ClassName.bestGuess(targetParameter.getType()).packageName());
         for (TestCandidateMetadata testCandidateMetadata : testCandidates) {
-
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
+                continue;
+            }
             if (methodInfo.getMethodName().equals("<init>")) {
                 objectRoutineContainer.getConstructor().setTestCandidateList(testCandidateMetadata);
             } else {

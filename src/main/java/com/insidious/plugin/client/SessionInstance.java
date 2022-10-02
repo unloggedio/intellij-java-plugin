@@ -2046,6 +2046,7 @@ public class SessionInstance {
                                                         String nameFromProbe = probeInfo.getAttribute("Name", null);
                                                         if (nameFromProbe != null) {
                                                             existingParameterInstance.addName(nameFromProbe);
+                                                            daoService.createOrUpdateParameter(existingParameterInstance);
                                                         }
 
                                                     }
@@ -2333,6 +2334,7 @@ public class SessionInstance {
                                                     if (owner1 == null) {
                                                         methodCall = null;
                                                     } else {
+                                                        // sometimes we can enter a method_entry without a call
                                                         @NotNull String actualClassName = ClassTypeUtils.getDottedClassName(owner1);
                                                         if (!actualClassName.startsWith(expectedClassName) ||
                                                                 !methodInfo.getMethodName().equals(methodCall.getMethodName())) {

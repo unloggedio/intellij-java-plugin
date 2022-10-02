@@ -99,12 +99,16 @@ public class DaoService {
         Parameter mainSubject = dbMce.getSubject();
         if (dbMce.getReturnValue() != null) {
             Parameter returnValue = dbMce.getReturnValue();
-//            DataEventWithSessionId returnValueProbe = returnValue.getProb();
-//            long retruenParameterValue = returnValueProbe.getValue();
             com.insidious.plugin.pojo.Parameter returnParam = getParameterByValue((Long) returnValue.getValue());
             mce.setReturnValue(returnParam);
         } else {
 
+        }
+
+        Long[] argumentParameters = dbMce.getArguments();
+        for (Long argumentParameter : argumentParameters) {
+            com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
+            mce.getArguments().add(argument);
         }
 
 

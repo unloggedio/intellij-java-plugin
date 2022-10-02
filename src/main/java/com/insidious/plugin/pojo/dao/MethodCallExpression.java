@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.j256.ormlite.field.DataType;
@@ -58,7 +59,7 @@ public class MethodCallExpression {
 
     public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpression methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
-                methodCallExpression.getMethodName(), null, null, null, 0
+                methodCallExpression.getMethodName(), null, new VariableContainer(), null, 0
         );
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());

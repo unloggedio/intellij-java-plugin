@@ -130,6 +130,9 @@ public class MethodCallExpression implements Expression {
         if (mainMethodReturnValueProbe == null) {
             return;
         }
+        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
+                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
+                Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
 
         VariableContainer arguments = getArguments();
         if (arguments != null && arguments.count() > 0) {
@@ -175,9 +178,6 @@ public class MethodCallExpression implements Expression {
             return;
         }
 
-        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
-                Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
 
 
         String returnSubjectInstanceName = mainMethodReturnValue.getName();
