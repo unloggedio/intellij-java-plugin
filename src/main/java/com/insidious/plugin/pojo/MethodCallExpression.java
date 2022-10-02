@@ -219,6 +219,7 @@ public class MethodCallExpression implements Expression {
                 .endStatement();
 
 
+        returnSubjectExpectedJsonString.setValue(-1L);
         in(objectRoutineScript)
                 .writeExpression(MethodCallExpressionFactory
                         .MockitoAssert(returnSubjectExpectedJsonString, returnSubjectJsonString))

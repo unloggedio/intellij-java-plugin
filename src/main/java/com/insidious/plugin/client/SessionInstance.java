@@ -49,6 +49,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -1920,7 +1921,7 @@ public class SessionInstance {
 //        VariableContainer variableContainer = new VariableContainer();
 
         List<MethodCallExpression> callStack = new LinkedList<>();
-        List<MethodCallExpression> callsList = new LinkedList<>();
+        AtomicReference<MethodCallExpression> mostRecentCall = new AtomicReference<>();
         AtomicInteger index = new AtomicInteger(0);
         List<Long> valueStack = new LinkedList<>();
 
@@ -1935,11 +1936,6 @@ public class SessionInstance {
         try {
             for (File sessionArchive : sessionArchivesLocal) {
                 logger.warn("open archive [" + sessionArchive.getName() + "]");
-
-//            ArchiveFilesIndex eventsIndex = getEventIndex(sessionArchive);
-
-//            Map<String, UploadFile> matchedFiles = new HashMap<>();
-
 
                 try {
                     List<String> archiveFiles = new LinkedList<>();
@@ -2285,7 +2281,7 @@ public class SessionInstance {
 
 
                                                 callStack.add(methodCallExpression);
-                                                callsList.add(methodCallExpression);
+                                                mostRecentCall.set(methodCallExpression);
 
 
 //                                        variableContainer.add(subjectParameter);
@@ -2380,7 +2376,7 @@ public class SessionInstance {
                                                     methodCall.setEntryProbeInfo(probeInfo);
                                                     methodCall.setEntryProbe(dataEvent);
                                                     newCandidate.setMainMethod(methodCall);
-                                                    callsList.add(methodCall);
+                                                    mostRecentCall.set(methodCall);
                                                     callStack.add(methodCall);
 
 //                                            currentMethodCall.set(methodCall);
@@ -2644,7 +2640,7 @@ public class SessionInstance {
                                                 break;
                                             case NEW_OBJECT_CREATED:
                                                 long newObjectValue = dataEvent.getValue();
-                                                MethodCallExpression theCallThatJustEnded = callsList.get(callsList.size() - 1);
+                                                MethodCallExpression theCallThatJustEnded = mostRecentCall.get();
                                                 Parameter subject = theCallThatJustEnded.getSubject();
                                                 subject.setProb(dataEvent);
                                                 theCallThatJustEnded.setReturnValue(subject);
@@ -2659,13 +2655,13 @@ public class SessionInstance {
                                                 Parameter callSubject = currentCall.getSubject();
                                                 callSubject.setProb(dataEvent);
                                                 callSubject.setProbeInfo(probeInfo);
-                                                ObjectInfo objectInfo = objectsIndexList.stream()
-                                                        .map(e -> e.getObjectByObjectId(dataEvent.getValue()))
-                                                        .filter(Objects::nonNull).collect(Collectors.toList()).get(0);
-                                                if (objectInfo != null) {
-                                                    TypeInfo typeInfo = getTypeInfo(Math.toIntExact(objectInfo.getTypeId()));
-                                                    callSubject.setType(ClassTypeUtils.getDottedClassName(typeInfo.getTypeNameFromClass()));
-                                                }
+//                                                ObjectInfo objectInfo = objectsIndexList.stream()
+//                                                        .map(e -> e.getObjectByObjectId(dataEvent.getValue()))
+//                                                        .filter(Objects::nonNull).collect(Collectors.toList()).get(0);
+//                                                if (objectInfo != null) {
+//                                                    TypeInfo typeInfo = getTypeInfo(Math.toIntExact(objectInfo.getTypeId()));
+                                                    // callSubject.setType(ClassTypeUtils.getDottedClassName(typeInfo.getTypeNameFromClass()));
+//                                                }
                                                 daoService.createOrUpdateProbeInfo(probeInfo);
                                                 daoService.createOrUpdateDataEvent(dataEvent);
                                                 daoService.createOrUpdateParameter(callSubject);
@@ -2692,7 +2688,6 @@ public class SessionInstance {
 
                 } catch (IOException e) {
                     logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
-                    continue;
                 }
 
 
@@ -2700,7 +2695,7 @@ public class SessionInstance {
             connectionSource.close();
 
         } catch (SQLException sqlE) {
-
+            sqlE.printStackTrace();
         }
 
         return objectRoutineContainerMap.values();
