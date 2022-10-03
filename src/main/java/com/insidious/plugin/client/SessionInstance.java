@@ -77,6 +77,18 @@ public class SessionInstance {
 
     }
 
+    private static int getThreadIdFromFileName(String archiveFile) {
+        if (archiveFile.contains("\\")) {
+            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("\\") + 1);
+        }
+
+        if (archiveFile.contains("/")) {
+            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("/") + 1);
+        }
+
+        return Integer.parseInt(archiveFile.split("\\.")[0].split("-")[2]);
+    }
+
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
@@ -173,7 +185,6 @@ public class SessionInstance {
         tracePointList.forEach(e -> e.setExecutionSession(executionSession));
         return tracePointList;
     }
-
 
     private List<TracePoint> getTracePointsByValueIds(File sessionArchive,
                                                       Set<Long> valueIds) {
@@ -329,7 +340,6 @@ public class SessionInstance {
         return tracePointList;
     }
 
-
     private List<DataInfo> getProbeInfo(File sessionFile, Set<Long> dataId) throws IOException {
 
 
@@ -358,7 +368,6 @@ public class SessionInstance {
         return classWeaveInfo1;
     }
 
-
     private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
@@ -369,55 +378,28 @@ public class SessionInstance {
         throw new ClassInfoNotFoundException(classId);
     }
 
-
     private List<DataEventWithSessionId> getDataEventsFromPathByValueIds(byte[] bytes, Long[] valueIds) throws IOException {
 
         Set<Long> ids = Set.of(valueIds);
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
         return dataEvents.event().entries().stream()
-                .filter(e -> e.magic() == 4 || e.magic() == 7)
-                .filter(e -> {
-                    if (e.block() instanceof KaitaiInsidiousEventParser.DataEventBlock) {
-                        return ids.contains(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId());
-                    }
-                    if (e.block() instanceof KaitaiInsidiousEventParser.DetailedEventBlock) {
-                        return ids.contains(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId());
-                    }
-                    return false;
-                })
+                .filter(e -> ids.contains(e.block().valueId()))
                 .map(e -> {
+                    long valueId = e.block().valueId();
+                    int probeId = Math.toIntExact(e.block().probeId());
+                    long eventId = e.block().eventId();
+                    long timestamp = e.block().timestamp();
 
-                    if (e.magic() == 4) {
-                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
-
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-
-                    } else {
-                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
-
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-                    }
+                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                    dataEvent.setDataId(probeId);
+                    dataEvent.setValue(valueId);
+                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setRecordedAt(timestamp);
+                    return dataEvent;
                 })
                 .collect(Collectors.toList());
     }
-
 
     public TypeInfo getTypeInfo(Integer typeId) {
 
@@ -433,7 +415,7 @@ public class SessionInstance {
     public TypeInfo getTypeInfo(String name) {
 
         TypeInfo result = typeIndex.getTypesByName(name);
-        if (result != null ) {
+        if (result != null) {
             return result;
         }
 
@@ -444,7 +426,6 @@ public class SessionInstance {
     public List<TypeInfoDocument> getAllTypes() {
         return new ArrayList<>(typeIndex.Types());
     }
-
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         List<String> files = new LinkedList<>();
@@ -462,13 +443,11 @@ public class SessionInstance {
 
     }
 
-
     private ArchiveFilesIndex readEventIndex(byte[] bytes) throws IOException {
         KaitaiInsidiousIndexParser archiveIndex = new KaitaiInsidiousIndexParser(new ByteBufferKaitaiStream(bytes));
 
         return new ArchiveFilesIndex(archiveIndex);
     }
-
 
     private ArchiveIndex readArchiveIndex(byte[] bytes, DatFileType indexFilterType) throws IOException {
 
@@ -481,7 +460,7 @@ public class SessionInstance {
         Path parentPath = path.getParent();
         parentPath.toFile().mkdirs();
 
-        if(!path.toFile().exists()) {
+        if (!path.toFile().exists()) {
             Files.write(path, bytes);
         }
 
@@ -525,14 +504,12 @@ public class SessionInstance {
         return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex, classInfoMap);
     }
 
-
     @NotNull
     private String bytesHex(byte[] bytes, String indexFilterType) {
         String md5Hex = DigestUtils.md5Hex(bytes);
         String cacheKey = md5Hex + "-" + indexFilterType;
         return cacheKey;
     }
-
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) {
         logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
@@ -588,7 +565,6 @@ public class SessionInstance {
 
     }
 
-
     private void checkProgressIndicator(String text1, String text2) {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
@@ -603,7 +579,6 @@ public class SessionInstance {
         }
     }
 
-
     private List<DataInfo> queryProbeFromFileByEventType(File sessionFile,
                                                          Collection<EventType> eventTypes) {
         return classWeaveInfo.classInfo().stream()
@@ -616,7 +591,6 @@ public class SessionInstance {
 
 
     }
-
 
     public void queryTracePointsByEventType(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
 
@@ -645,7 +619,6 @@ public class SessionInstance {
         tracePointsCallback.completed();
 
     }
-
 
     public void queryTracePointsByProbeIds(SearchQuery searchQuery,
                                            ClientCallBack<TracePoint> tracePointsCallback) {
@@ -682,7 +655,6 @@ public class SessionInstance {
         tracePointsCallback.completed();
 
     }
-
 
     private void getTracePointsByProbeIds(File sessionArchive,
                                           Set<Integer> probeIds,
@@ -831,7 +803,6 @@ public class SessionInstance {
             tracePointsCallback.success(tracePointList);
         }
     }
-
 
     private void
     getTracePointsByProbeIdsWithoutIndex(
@@ -991,50 +962,25 @@ public class SessionInstance {
         }
     }
 
-
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
 
         Set<Integer> ids = Set.of(probeIds);
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
         return dataEvents.event().entries().stream()
-                .filter(e -> e.magic() == 4 || e.magic() == 7)
-                .filter(e -> {
-                    if (e.block() instanceof KaitaiInsidiousEventParser.DataEventBlock) {
-                        return ids.contains((int) ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
-                    }
-                    if (e.block() instanceof KaitaiInsidiousEventParser.DetailedEventBlock) {
-                        return ids.contains((int) ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
-                    }
-                    return false;
-                })
+                .filter(e -> ids.contains((int) e.block().probeId()))
                 .map(e -> {
-                    if (e.magic() == 4) {
-                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+                    long valueId = e.block().valueId();
+                    int probeId = Math.toIntExact(e.block().probeId());
+                    long eventId = e.block().eventId();
+                    long timestamp = e.block().timestamp();
 
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-
-                    } else {
-                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
-
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-                    }
+                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                    dataEvent.setDataId(probeId);
+                    dataEvent.setValue(valueId);
+                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setRecordedAt(timestamp);
+                    return dataEvent;
 
 
                 }).collect(Collectors.toList());
@@ -1070,35 +1016,19 @@ public class SessionInstance {
         checkProgressIndicator(null, "Mapping " + eventsContainer.event().entries().size() + " events ");
 
         List<DataEventWithSessionId> dataEventList = eventsContainer.event()
-                .entries().stream().filter(e -> e.magic() == 4 || e.magic() == 7)
+                .entries().stream()
                 .map(e -> {
-                    if (e.magic() == 4) {
-                        long valueId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DataEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DataEventBlock) e.block()).timestamp();
+                    long valueId = e.block().valueId();
+                    int probeId = Math.toIntExact(e.block().probeId());
+                    long eventId = e.block().eventId();
+                    long timestamp = e.block().timestamp();
 
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-
-                    } else {
-                        long valueId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).valueId();
-                        int probeId = Math.toIntExact(((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).probeId());
-                        long eventId = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).eventId();
-                        long timestamp = ((KaitaiInsidiousEventParser.DetailedEventBlock) e.block()).timestamp();
-
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                        dataEvent.setDataId(probeId);
-                        dataEvent.setValue(valueId);
-                        dataEvent.setNanoTime(eventId);
-                        dataEvent.setRecordedAt(timestamp);
-                        return dataEvent;
-                    }
-
+                    DataEventWithSessionId dataEvent = new DataEventWithSessionId();
+                    dataEvent.setDataId(probeId);
+                    dataEvent.setValue(valueId);
+                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setRecordedAt(timestamp);
+                    return dataEvent;
                 }).collect(Collectors.toList());
 
         Collections.reverse(dataEventList);
@@ -1386,7 +1316,6 @@ public class SessionInstance {
         return classWeave;
     }
 
-
     @Nullable
     private ArchiveFilesIndex getEventIndex(File sessionArchive) {
         NameWithBytes eventIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
@@ -1419,10 +1348,8 @@ public class SessionInstance {
         return eventsContainer.event()
                 .entries()
                 .stream()
-                .filter(e -> e.magic() == 4 || e.magic() == 7)
                 .collect(Collectors.toList());
     }
-
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
@@ -1559,7 +1486,6 @@ public class SessionInstance {
                         fileEventIdPairs.put(archiveFile, metadata);
 
 
-
                     }
 
                     if (filteredDataEventsRequest.getNanotime() != -1) {
@@ -1599,30 +1525,15 @@ public class SessionInstance {
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
                             .stream()
                             .filter(e -> {
-                                boolean isDataEvent = e.magic() == 7 || e.magic() == 4;
-
-
-                                if (!isDataEvent) {
-                                    return false;
-                                }
                                 long currentFirstEventAt = previousEventAt.get();
 
                                 long currentEventId = -1;
                                 long valueId = -1;
 
-                                if (e.magic() == 4) {
-                                    KaitaiInsidiousEventParser.DataEventBlock dataEventBlock =
-                                            (KaitaiInsidiousEventParser.DataEventBlock) e.block();
-                                    currentEventId = dataEventBlock.eventId();
-                                    valueId = dataEventBlock.valueId();
+                                KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock = e.block();
+                                currentEventId = detailedEventBlock.eventId();
+                                valueId = detailedEventBlock.valueId();
 
-                                } else if (e.magic() == 7) {
-                                    KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock =
-                                            (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
-                                    currentEventId = detailedEventBlock.eventId();
-                                    valueId = detailedEventBlock.valueId();
-
-                                }
 
                                 if (filteredDataEventsRequest.getNanotime() != -1) {
                                     if (pageInfo.isAsc()) {
@@ -1648,7 +1559,6 @@ public class SessionInstance {
                                 }
 
 
-
                                 return isRequestedObject;
                             })
                             .filter(e -> {
@@ -1660,32 +1570,17 @@ public class SessionInstance {
                             })
 //                            .map(e -> (KaitaiInsidiousEventParser.DetailedEventBlock) e.block())
                             .map(e -> {
-                                if (e.magic() == 4) {
-                                    KaitaiInsidiousEventParser.DataEventBlock eventBlock
-                                            = (KaitaiInsidiousEventParser.DataEventBlock) e.block();
-                                    DataEventWithSessionId d = new DataEventWithSessionId();
-                                    d.setDataId((int) eventBlock.probeId());
-                                    d.setNanoTime(eventBlock.eventId());
-                                    d.setRecordedAt(eventBlock.timestamp());
-                                    d.setThreadId(finalMetadata.getThreadId());
-                                    d.setValue(eventBlock.valueId());
-                                    return d;
-                                } else if (e.magic() == 7) {
-                                    KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
-                                            = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
-                                    DataEventWithSessionId d = new DataEventWithSessionId();
-                                    d.setDataId((int) eventBlock.probeId());
-                                    d.setNanoTime(eventBlock.eventId());
-                                    d.setRecordedAt(eventBlock.timestamp());
-                                    d.setThreadId(finalMetadata.getThreadId());
-                                    d.setValue(eventBlock.valueId());
-                                    d.setSerializedValue(eventBlock.serializedData());
-                                    return d;
+                                KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
+                                        = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
+                                DataEventWithSessionId d = new DataEventWithSessionId();
+                                d.setDataId((int) eventBlock.probeId());
+                                d.setNanoTime(eventBlock.eventId());
+                                d.setRecordedAt(eventBlock.timestamp());
+                                d.setThreadId(finalMetadata.getThreadId());
+                                d.setValue(eventBlock.valueId());
+                                d.setSerializedValue(eventBlock.serializedData());
+                                return d;
 
-                                }
-
-
-                                return null;
                             }).collect(Collectors.toList());
 
                     if (dataEventGroupedList.size() > 0) {
@@ -1785,7 +1680,7 @@ public class SessionInstance {
                     .map(Long::intValue).collect(Collectors.toSet());
 
             Map<Long, TypeInfo> sessionTypeInfo = typeIndex.getTypesByIdWithLongKeys(typeIds);
-            if (sessionTypeInfo.size() < typeIds.size()){
+            if (sessionTypeInfo.size() < typeIds.size()) {
                 logger.warn("expected [" + typeIds.size() + "] type info but got only: " + sessionTypeInfo.size());
             }
 
@@ -1869,7 +1764,6 @@ public class SessionInstance {
         return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap, stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
     }
-
 
     public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
 
@@ -1984,30 +1878,16 @@ public class SessionInstance {
 
                         List<DataEventWithSessionId> dataEventGroupedList = eventsSublist
                                 .stream()
-                                .filter(e -> e.magic() == 7 || e.magic() == 4)
                                 .map(e -> {
-                                    if (e.magic() == 4) {
-                                        KaitaiInsidiousEventParser.DataEventBlock eventBlock = (KaitaiInsidiousEventParser.DataEventBlock) e.block();
-                                        DataEventWithSessionId d = new DataEventWithSessionId(fileThreadId);
-                                        d.setDataId((int) eventBlock.probeId());
-                                        d.setNanoTime(eventBlock.eventId());
-                                        d.setRecordedAt(eventBlock.timestamp());
-                                        d.setValue(eventBlock.valueId());
-                                        return d;
-                                    } else if (e.magic() == 7) {
-                                        KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
-                                        DataEventWithSessionId d = new DataEventWithSessionId(fileThreadId);
-                                        d.setDataId((int) eventBlock.probeId());
-                                        d.setNanoTime(eventBlock.eventId());
-                                        d.setRecordedAt(eventBlock.timestamp());
-                                        d.setValue(eventBlock.valueId());
-                                        d.setSerializedValue(eventBlock.serializedData());
-                                        return d;
+                                    KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
+                                    DataEventWithSessionId d = new DataEventWithSessionId(fileThreadId);
+                                    d.setDataId((int) eventBlock.probeId());
+                                    d.setNanoTime(eventBlock.eventId());
+                                    d.setRecordedAt(eventBlock.timestamp());
+                                    d.setValue(eventBlock.valueId());
+                                    d.setSerializedValue(eventBlock.serializedData());
+                                    return d;
 
-                                    }
-
-
-                                    return null;
                                 }).filter(Objects::nonNull).peek(dataEvent -> {
 
                                     try {
@@ -2660,7 +2540,7 @@ public class SessionInstance {
 //                                                        .filter(Objects::nonNull).collect(Collectors.toList()).get(0);
 //                                                if (objectInfo != null) {
 //                                                    TypeInfo typeInfo = getTypeInfo(Math.toIntExact(objectInfo.getTypeId()));
-                                                    // callSubject.setType(ClassTypeUtils.getDottedClassName(typeInfo.getTypeNameFromClass()));
+                                                // callSubject.setType(ClassTypeUtils.getDottedClassName(typeInfo.getTypeNameFromClass()));
 //                                                }
                                                 daoService.createOrUpdateProbeInfo(probeInfo);
                                                 daoService.createOrUpdateDataEvent(dataEvent);
@@ -2752,31 +2632,9 @@ public class SessionInstance {
 
     }
 
-
-    private static int getThreadIdFromFileName(String archiveFile) {
-        if (archiveFile.contains("\\")) {
-            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("\\") + 1);
-        }
-
-        if (archiveFile.contains("/")) {
-            archiveFile = archiveFile.substring(archiveFile.lastIndexOf("/") + 1);
-        }
-
-        return Integer.parseInt(archiveFile.split("\\.")[0].split("-")[2]);
-    }
-
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
-        if (lastEvent.magic() == 4) {
-            KaitaiInsidiousEventParser.DataEventBlock eventBlock
-                    = (KaitaiInsidiousEventParser.DataEventBlock) lastEvent.block();
+            KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = lastEvent.block();
             return eventBlock.eventId();
-        }
-        if (lastEvent.magic() == 7) {
-            KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
-                    = (KaitaiInsidiousEventParser.DetailedEventBlock) lastEvent.block();
-            return eventBlock.eventId();
-        }
-        return 0;
     }
 
     private Collection<ObjectInfo> getObjectInfoById(Collection<Long> valueIds) {
