@@ -1,6 +1,8 @@
 package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,10 +35,10 @@ public class TestCaseWriter {
 //            }
 //
 //
-//            Optional<Parameter> existingVariableById = variableContainer.getParametersById((String) value);
-//            if (existingVariableById.isPresent()) {
-//                if (overrideName && !returnValue.getName().equals(existingVariableById.get().getName())) {
-//                    returnValue.setName(existingVariableById.get().getName());
+//            Parameter existingVariableById = variableContainer.getParametersById(value);
+//            if (existingVariableById != null) {
+//                if (overrideName && !returnValue.getName().equals(existingVariableById.getName())) {
+//                    returnValue.setName(existingVariableById.getName());
 //                }
 //            } else {
 //                if (returnValue.getName() == null) {
@@ -110,7 +112,8 @@ public class TestCaseWriter {
             }
 
             Object compareAgainst = "";
-            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+            String parameterType = parameter.getType();
+            if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
             } else if (parameter.getName() != null) {
                 compareAgainst = parameter.getName();
@@ -118,14 +121,14 @@ public class TestCaseWriter {
                 compareAgainst = parameter.getValue();
             }
 
-            if (compareAgainst != null && parameter.getType().equals("java.lang.String")) {
+            if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
                 parameterStringBuilder.append("matches(" + compareAgainst + ")");
-            } else if (compareAgainst != null
-                    && (parameter.getType().length() == 1 || parameter.getType().startsWith("java.lang.")
-                    && !parameter.getType().contains(".Object"))
+            } else if ( parameterType != null &&  compareAgainst != null
+                    && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
+                    && !parameterType.contains(".Object"))
             ) {
 
-                if ((parameter.getType().equals("Z") || parameter.getType().equals("java.lang.Boolean")) && parameter.getName() == null) {
+                if ((parameterType.equals("Z") || parameterType.equals("java.lang.Boolean")) && parameter.getName() == null) {
                     if (compareAgainst.equals("0")) {
                         compareAgainst = "false";
                     } else {

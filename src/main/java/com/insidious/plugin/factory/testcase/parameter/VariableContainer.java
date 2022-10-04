@@ -11,21 +11,9 @@ import java.util.stream.Collectors;
 public class VariableContainer {
     @DatabaseField
     final List<Parameter> parameterList = new LinkedList<>();
-
-    public long getVariableContainerId() {
-        return variableContainerId;
-    }
-
-    public void setVariableContainerId(long variableContainerId) {
-        this.variableContainerId = variableContainerId;
-    }
-
+    final Map<Long, Parameter> parameterMap = new HashMap<>();
     @DatabaseField(id = true)
     private long variableContainerId;
-
-    public List<Parameter> getParameterList() {
-        return parameterList;
-    }
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
@@ -42,6 +30,18 @@ public class VariableContainer {
         return variableContainer;
     }
 
+    public long getVariableContainerId() {
+        return variableContainerId;
+    }
+
+    public void setVariableContainerId(long variableContainerId) {
+        this.variableContainerId = variableContainerId;
+    }
+
+    public List<Parameter> getParameterList() {
+        return parameterList;
+    }
+
     public VariableContainer clone() {
         VariableContainer newContainer = new VariableContainer();
         for (Parameter parameter : this.parameterList) {
@@ -55,26 +55,27 @@ public class VariableContainer {
         Parameter byValue = getParametersById(value);
         if (byValue == null) {
             this.parameterList.add(parameter);
+            if (parameter.getProb() != null) {
+                parameterMap.put(parameter.getProb().getValue(), parameter);
+            }
         } else if (parameter.getProb() != null) {
 
-            Parameter existing = byValue;
-
-            if (existing.getName() != null && existing.getName().equals(parameter.getName())) {
+            if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
                 byte[] newSerializedValue = parameter.getProb().getSerializedValue();
                 if (newSerializedValue == null || newSerializedValue.length == 0) {
                     return;
                 }
-                byte[] existingSerializedValue = existing.getProb().getSerializedValue();
+                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
                 if (existingSerializedValue == null || existingSerializedValue.length == 0) {
-                    existing.setProb(parameter.getProb());
-                } else if (existing.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
-                    existing.setProb(parameter.getProb());
+                    byValue.setProb(parameter.getProb());
+                } else if (byValue.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
+                    byValue.setProb(parameter.getProb());
                 }
             } else {
 
 
                 byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-                byte[] existingSerializedValue = existing.getProb().getSerializedValue();
+                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
                 String existingValueString = new String(existingSerializedValue);
                 String newValueString = new String(newSerializedValue);
                 if (existingValueString.length() > 0 &&
@@ -84,6 +85,7 @@ public class VariableContainer {
                     // existing value matches new value
                 } else {
                     this.parameterList.add(parameter);
+                    parameterMap.put(parameter.getProb().getValue(), parameter);
                 }
 
             }
@@ -172,9 +174,13 @@ public class VariableContainer {
     }
 
     public Parameter getParameterByValue(long eventValue) {
-        Optional<Parameter> ret = this.parameterList
-                .stream()
-                .filter(e -> e.getValue() != null && e.getValue().equals(eventValue))
-                .findAny();
-        return ret.orElse(null);    }
+        if (eventValue == 0) {
+            return new com.insidious.plugin.pojo.Parameter(eventValue);
+        }
+        Parameter parameter = this.parameterMap.get(eventValue);
+        if (parameter == null) {
+            parameter = new Parameter(eventValue);
+        }
+        return parameter;
+    }
 }

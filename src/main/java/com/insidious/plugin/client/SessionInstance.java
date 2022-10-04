@@ -1838,6 +1838,7 @@ public class SessionInstance {
 
             Collections.sort(archiveFiles);
 
+            VariableContainer parameterContainer = new VariableContainer();
 
             for (String archiveFile : archiveFiles) {
                 checkProgressIndicator(null, "Reading events from  " + archiveFile);
@@ -1863,7 +1864,6 @@ public class SessionInstance {
 
                 List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
                 List<DataInfo> probesToSave = new LinkedList<>();
-                VariableContainer parameterContainer = new VariableContainer();
 
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
@@ -1912,7 +1912,7 @@ public class SessionInstance {
                             break;
 
                         case LOCAL_LOAD:
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                             existingParameter.addName(nameFromProbe);
                             existingParameter.setType(
@@ -1932,12 +1932,12 @@ public class SessionInstance {
                             break;
 
                         case GET_STATIC_FIELD:
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
                             if (existingParameter != null) {
                                 existingParameter.addName(nameFromProbe);
 
                             } else {
-                                existingParameter = daoService.getParameterByValue(eventValue);
+                                existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 existingParameter.addName(nameFromProbe);
                                 existingParameter.setType(
                                         ClassTypeUtils.getDottedClassName(
@@ -1956,7 +1956,10 @@ public class SessionInstance {
                             break;
 
                         case GET_INSTANCE_FIELD_RESULT:
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            if (existingParameter.getProb() == null) {
+                                continue;
+                            }
                             existingParameter.addName(nameFromProbe);
                             testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
                             break;
@@ -1966,14 +1969,14 @@ public class SessionInstance {
 
                             // we are going to set this field in the next event
                             valueStack.add(eventValue);
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
                             if (existingParameter != null && existingParameter.getProb() != null) {
                                 if (existingParameter.getType() == null || existingParameter.getType().contains(".Object")) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(owner));
                                 }
                             } else {
                                 // new variable identified ?
-                                existingParameter = daoService.getParameterByValue(eventValue);
+                                existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 existingParameter.setProb(dataEvent);
                                 existingParameter.setProbeInfo(probeInfo);
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
@@ -1986,7 +1989,7 @@ public class SessionInstance {
 
 
                             Long parentValue = valueStack.remove(valueStack.size() - 1);
-                            Parameter valueParameter = daoService.getParameterByValue(parentValue);
+                            Parameter valueParameter = parameterContainer.getParameterByValue(parentValue);
                             VariableContainer parentFields = valueParameter.getFields();
 
 
@@ -1995,7 +1998,7 @@ public class SessionInstance {
                                 existingParameter.addName(nameFromProbe);
                             } else {
                                 // new field
-                                Parameter newField = daoService.getParameterByValue(eventValue);
+                                Parameter newField = parameterContainer.getParameterByValue(eventValue);
                                 newField.setType(ClassTypeUtils.getDottedClassName(fieldType));
                                 newField.addName(nameFromProbe);
                                 newField.setProb(dataEvent);
@@ -2018,10 +2021,10 @@ public class SessionInstance {
                                 // how to keep track of this ?
 
                             } else {
-                                existingParameter = daoService.getParameterByValue(eventValue);
-                                if (existingParameter == null) {
+                                existingParameter = parameterContainer.getParameterByValue(eventValue);
+                                if (existingParameter.getProb() == null) {
                                     // we are coming across this field for the first time
-                                    existingParameter = daoService.getParameterByValue(eventValue);
+                                    existingParameter = parameterContainer.getParameterByValue(eventValue);
                                     existingParameter.addName(nameFromProbe);
                                     existingParameter.setType(fieldType);
                                     existingParameter.setProb(dataEvent);
@@ -2050,7 +2053,7 @@ public class SessionInstance {
 
                         case CALL:
 
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
                             saveProbe = true;
 
                             if (existingParameter.getProbeInfo() == null) {
@@ -2082,16 +2085,14 @@ public class SessionInstance {
 
 
                         case CALL_PARAM:
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
 
 
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                            existingParameter.setValue(eventValue);
                             existingParameter.setProb(dataEvent);
 
                             saveProbe = true;
-
 
 
                             MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
@@ -2129,7 +2130,7 @@ public class SessionInstance {
                             if (methodCall != null) {
                                 newCandidate.setMainMethod(methodCall);
                             } else {
-                                existingParameter = daoService.getParameterByValue(eventValue);
+                                existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (eventValue != 0) {
                                     existingParameter.setProb(dataEvent);
 
@@ -2171,8 +2172,7 @@ public class SessionInstance {
                             // in that case we can verify here
                             // else if the caller was a third party, then we need to extract parameters from here
 
-                            existingParameter = daoService.getParameterByValue(eventValue);
-                            existingParameter.setValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
                             existingParameter.setProb(dataEvent);
 
                             saveProbe = true;
@@ -2201,13 +2201,12 @@ public class SessionInstance {
 
                             entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
 
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                             saveProbe = true;
 
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
-
 
 
                             if (entryProbeEventType == EventType.CALL) {
@@ -2279,7 +2278,7 @@ public class SessionInstance {
 
                             entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
 
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                             saveProbe = true;
 
@@ -2355,7 +2354,7 @@ public class SessionInstance {
 
                         case CALL_RETURN:
 
-                            existingParameter = daoService.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                             existingParameter.setProb(dataEvent);
 
@@ -2415,8 +2414,9 @@ public class SessionInstance {
                             probesToSave.add(probeInfo);
                         }
                     }
-                    if (existingParameter != null) {
+                    if (existingParameter != null && existingParameter.getProb() != null) {
                         daoService.createOrUpdateParameter(existingParameter);
+                        parameterContainer.add(existingParameter);
                     }
                 }
 
