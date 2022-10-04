@@ -22,6 +22,7 @@ import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
@@ -1838,7 +1839,9 @@ public class SessionInstance {
 
             Collections.sort(archiveFiles);
 
-            VariableContainer parameterContainer = new VariableContainer();
+            DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService);
+
+            List<Integer> existingProbes = daoService.getProbes();
 
             for (String archiveFile : archiveFiles) {
                 checkProgressIndicator(null, "Reading events from  " + archiveFile);
@@ -2410,8 +2413,9 @@ public class SessionInstance {
                     }
                     if (saveProbe) {
                         eventsToSave.add(dataEvent);
-                        if (!probesToSave.contains(probeInfo)) {
+                        if (!existingProbes.contains(probeInfo.getDataId())) {
                             probesToSave.add(probeInfo);
+                            existingProbes.add(probeInfo.getDataId());
                         }
                     }
                     if (existingParameter != null && existingParameter.getProb() != null) {
@@ -2420,12 +2424,8 @@ public class SessionInstance {
                     }
                 }
 
-                for (DataEventWithSessionId dataEventWithSessionId : eventsToSave) {
-                    daoService.createOrUpdateDataEvent(dataEventWithSessionId);
-                }
-                for (DataInfo dataInfo : probesToSave) {
-                    daoService.createOrUpdateProbeInfo(dataInfo);
-                }
+                daoService.createOrUpdateDataEvent(eventsToSave);
+                daoService.createOrUpdateProbeInfo(probesToSave);
 
 
             }

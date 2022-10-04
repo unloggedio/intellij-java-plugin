@@ -6,14 +6,18 @@ import com.insidious.plugin.pojo.dao.MethodCallExpression;
 import com.insidious.plugin.pojo.dao.Parameter;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.pojo.dao.TestCandidateMetadata;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DaoService {
 
@@ -24,6 +28,7 @@ public class DaoService {
     private final Dao<Parameter, Long> parameterDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> candidateDao;
+    private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
@@ -108,6 +113,9 @@ public class DaoService {
         Long[] argumentParameters = dbMce.getArguments();
         for (Long argumentParameter : argumentParameters) {
             com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
+            if (argument == null) {
+                argument = new com.insidious.plugin.pojo.Parameter(0L);
+            }
             mce.getArguments().add(argument);
         }
 
@@ -153,11 +161,11 @@ public class DaoService {
 //    }
     public com.insidious.plugin.pojo.Parameter getParameterByValue(Long value) throws SQLException {
         if (value == 0) {
-            return new com.insidious.plugin.pojo.Parameter(value);
+            return null;
         }
         List<Parameter> parameterList = parameterDao.queryForEq("value", value);
         if (parameterList.size() == 0) {
-            return new com.insidious.plugin.pojo.Parameter(value);
+            return null;
         }
         Parameter parameter = parameterList.get(0);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
@@ -202,8 +210,25 @@ public class DaoService {
         probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
     }
 
+    public void createOrUpdateProbeInfo(Collection<DataInfo> probeInfo) throws SQLException {
+        try {
+
+            probeInfoDao.create(probeInfo.stream().map(ProbeInfo::FromProbeInfo).collect(Collectors.toList()) );
+//            for (DataInfo dataInfo : probeInfo) {
+//                logger.warn("Save -> "  + dataInfo.getDataId());
+//                probeInfoDao.create(ProbeInfo.FromProbeInfo(dataInfo));
+//            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void createOrUpdateDataEvent(DataEventWithSessionId dataEvent) throws SQLException {
         dataEventDao.createOrUpdate(dataEvent);
+    }
+
+    public void createOrUpdateDataEvent(Collection<DataEventWithSessionId> dataEvent) throws SQLException {
+        dataEventDao.create(dataEvent);
     }
 
     public void createOrUpdateCall(com.insidious.plugin.pojo.MethodCallExpression topCall) throws SQLException {
@@ -213,5 +238,9 @@ public class DaoService {
     public void createOrUpdateTestCandidate(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata completed) throws SQLException {
         candidateDao.createOrUpdate(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
                 FromTestCandidateMetadata(completed));
+    }
+
+    public List<Integer> getProbes() throws SQLException {
+        return probeInfoDao.queryBuilder().selectColumns("dataId").query().stream().map(ProbeInfo::getDataId).collect(Collectors.toList());
     }
 }
