@@ -170,4 +170,11 @@ public class VariableContainer {
     public String toString() {
         return parameterList.size() + " Variables in {" + '}';
     }
+
+    public Parameter getParameterByValue(long eventValue) {
+        Optional<Parameter> ret = this.parameterList
+                .stream()
+                .filter(e -> e.getValue() != null && e.getValue().equals(eventValue))
+                .findAny();
+        return ret.orElse(null);    }
 }
