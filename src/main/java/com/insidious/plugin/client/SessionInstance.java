@@ -1867,6 +1867,8 @@ public class SessionInstance {
 
                 List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
                 List<DataInfo> probesToSave = new LinkedList<>();
+                Set<MethodCallExpression> callsToSave = new HashSet<>();
+                List<TestCandidateMetadata> candiateToSave = new LinkedList<>();
 
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
@@ -2127,7 +2129,7 @@ public class SessionInstance {
                             TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
                             testCandidateMetadataStack.add(newCandidate);
-                            newCandidate.setEntryProbeIndex(instructionIndex);
+                            newCandidate.setEntryProbeIndex(dataEvent.getNanoTime());
 
 
                             if (methodCall != null) {
@@ -2217,23 +2219,22 @@ public class SessionInstance {
 
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-                                daoService.createOrUpdateCall(topCall);
+//                                daoService.createOrUpdateCall(topCall);
+                                callsToSave.add(topCall);
 
 
                                 topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-                                daoService.createOrUpdateCall(topCall);
+//                                daoService.createOrUpdateCall(topCall);
+                                callsToSave.add(topCall);
 
 
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
                                 // we need to pop only 1 call here from the stack
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-                                daoService.createOrUpdateCall(topCall);
-
-                                // also the test candidate metadata need to be finished
-//                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-//                                                    currentCandidate.setMainMethod(topCall);
+                                callsToSave.add(topCall);
+//                                daoService.createOrUpdateCall(topCall);
 
                             } else {
                                 throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
@@ -2250,7 +2251,7 @@ public class SessionInstance {
                                     callStack.clear();
                                 }
                             }
-                            completedExceptional.setExitProbeIndex(index.get());
+                            completedExceptional.setExitProbeIndex(instructionIndex);
                             if (completedExceptional.getMainMethod() != null) {
                                 DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
                                 if (entryProbe != null) {
@@ -2266,7 +2267,8 @@ public class SessionInstance {
                             try {
                                 if (completedExceptional.getTestSubject() != null) {
                                     writeCandidate(completedExceptional, outputStream);
-                                    daoService.createOrUpdateTestCandidate(completedExceptional);
+                                    candiateToSave.add(completedExceptional);
+//                                    daoService.createOrUpdateTestCandidate(completedExceptional);
                                 }
                                 outputStream.flush();
                             } catch (IOException ex) {
@@ -2306,7 +2308,8 @@ public class SessionInstance {
                                 } else {
                                     topCall.setReturnValue(existingParameter);
                                 }
-                                daoService.createOrUpdateCall(topCall);
+                                callsToSave.add(topCall);
+//                                daoService.createOrUpdateCall(topCall);
 
                                 // also the test candidate metadata need to be finished
 //                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
@@ -2327,7 +2330,7 @@ public class SessionInstance {
                                     callStack.clear();
                                 }
                             }
-                            completed.setExitProbeIndex(index.get());
+                            completed.setExitProbeIndex(dataEvent.getNanoTime());
                             if (completed.getMainMethod() != null) {
                                 DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
                                 if (entryProbe != null) {
@@ -2343,14 +2346,12 @@ public class SessionInstance {
                             try {
                                 if (completed.getTestSubject() != null) {
                                     writeCandidate(completed, outputStream);
-                                    daoService.createOrUpdateTestCandidate(completed);
+//                                    daoService.createOrUpdateTestCandidate(completed);
+                                    candiateToSave.add(completed);
                                 }
                                 outputStream.flush();
                             } catch (IOException e1) {
                                 //
-                            } catch (SQLException e2) {
-                                e2.printStackTrace();
-//                                                    throw new RuntimeException(e);
                             }
 
                             break;
@@ -2374,7 +2375,8 @@ public class SessionInstance {
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
 
-                                daoService.createOrUpdateCall(topCall);
+                                callsToSave.add(topCall);
+//                                daoService.createOrUpdateCall(topCall);
 
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
 
@@ -2393,7 +2395,8 @@ public class SessionInstance {
                             existingParameter = theCallThatJustEnded.getSubject();
                             existingParameter.setProb(dataEvent);
                             theCallThatJustEnded.setReturnValue(existingParameter);
-                            daoService.createOrUpdateCall(theCallThatJustEnded);
+                            callsToSave.add(theCallThatJustEnded);
+//                            daoService.createOrUpdateCall(theCallThatJustEnded);
                             saveProbe = true;
 
                             break;
@@ -2408,7 +2411,8 @@ public class SessionInstance {
 
                             currentCall.setSubject(callSubject);
                             currentCall.setReturnValue(callSubject);
-                            daoService.createOrUpdateCall(currentCall);
+//                            callsToSave.add(currentCall);
+//                            daoService.createOrUpdateCall(currentCall);
 
                     }
                     if (saveProbe) {
@@ -2426,6 +2430,8 @@ public class SessionInstance {
 
                 daoService.createOrUpdateDataEvent(eventsToSave);
                 daoService.createOrUpdateProbeInfo(probesToSave);
+                daoService.createOrUpdateCall(callsToSave);
+                daoService.createOrUpdateTestCandidate(candiateToSave);
 
 
             }

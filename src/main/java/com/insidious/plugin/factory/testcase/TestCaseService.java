@@ -759,7 +759,7 @@ public class TestCaseService {
 
                     List<MethodCallExpression> callsList =
                             CandidateMetadataFactory.searchMethodCallExpressions(
-                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    replayEventsBefore, Math.toIntExact(newTestCaseMetadata.getEntryProbeIndex()),
                                     typeNameHierarchyList, newTestCaseMetadata.getVariables(),
                                     testCaseRequest.getNoMockClassList()
                             );
@@ -767,7 +767,7 @@ public class TestCaseService {
 
                     List<MethodCallExpression> staticMethodCallList =
                             CandidateMetadataFactory.searchStaticMethodCallExpression(
-                                    replayEventsBefore, newTestCaseMetadata.getEntryProbeIndex(),
+                                    replayEventsBefore, Math.toIntExact(newTestCaseMetadata.getEntryProbeIndex()),
                                     typeNameHierarchyList, newTestCaseMetadata.getVariables(),
                                     testCaseRequest.getNoMockClassList()
                             );

@@ -21,16 +21,16 @@ public class TestCandidateMetadata {
     private Expression mainMethod;
     private Parameter testSubject;
     private long callTimeNanoSecond;
-    private int entryProbeIndex;
-    private int exitProbeIndex;
+    private long entryProbeIndex;
+    private long exitProbeIndex;
     private VariableContainer variables = new VariableContainer();
     private List<MethodCallExpression> staticCalls = new LinkedList<>();
 
-    public int getExitProbeIndex() {
+    public long getExitProbeIndex() {
         return exitProbeIndex;
     }
 
-    public void setExitProbeIndex(int exitProbeIndex) {
+    public void setExitProbeIndex(long exitProbeIndex) {
         this.exitProbeIndex = exitProbeIndex;
     }
 
@@ -105,11 +105,11 @@ public class TestCandidateMetadata {
                 '}';
     }
 
-    public int getEntryProbeIndex() {
+    public long getEntryProbeIndex() {
         return entryProbeIndex;
     }
 
-    public void setEntryProbeIndex(int entryProbeIndex) {
+    public void setEntryProbeIndex(long entryProbeIndex) {
         this.entryProbeIndex = entryProbeIndex;
     }
 

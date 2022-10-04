@@ -2,10 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.field.ForeignCollectionField;
 import com.j256.ormlite.table.DatabaseTable;
-
-import java.util.stream.Collectors;
 
 
 @DatabaseTable(tableName = "test_candidate")
@@ -26,6 +23,52 @@ public class TestCandidateMetadata {
     private int exitProbeIndex;
     @DatabaseField(dataType = DataType.SERIALIZABLE)
     private Long[] variables = new Long[0];
+
+    public static TestCandidateMetadata FromTestCandidateMetadata(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
+        TestCandidateMetadata newCandidate = new TestCandidateMetadata();
+        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
+                .toArray(Long[]::new));
+        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
+                .map(e -> (long) e.getValue()).toArray(Long[]::new));
+        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
+        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
+        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
+                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
+        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
+        newCandidate.setEntryProbeIndex(Math.toIntExact(testCandidateMetadata.getEntryProbeIndex()));
+        newCandidate.setExitProbeIndex(Math.toIntExact(testCandidateMetadata.getExitProbeIndex()));
+
+
+        return newCandidate;
+    }
+
+    public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
+        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata newCandidate = new com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata();
+
+        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
+        newCandidate.setCallTimeNanoSecond(newCandidate.getCallTimeNanoSecond());
+        newCandidate.setEntryProbeIndex(newCandidate.getEntryProbeIndex());
+        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
+
+
+//        newCandidate.setCallList(testCandidateMetadata.getCallsList()
+//                .stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
+//                .toArray(Long[]::new));
+//        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
+//                .map(e -> (long) e.getValue()).toArray(Long[]::new));
+//        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
+//        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
+//        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
+//                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
+
+
+        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
+        newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
+        newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
+
+
+        return newCandidate;
+    }
 
     public int getExitProbeIndex() {
         return exitProbeIndex;
@@ -51,7 +94,6 @@ public class TestCandidateMetadata {
         this.fields = fields;
     }
 
-
     public void setCallList(Long[] callsList) {
         this.methodCallExpressions = callsList;
     }
@@ -67,7 +109,6 @@ public class TestCandidateMetadata {
     public void setTestSubject(Parameter testSubject) {
         this.testSubject = testSubject;
     }
-
 
     public long getCallTimeNanoSecond() {
         return callTimeNanoSecond;
@@ -109,54 +150,6 @@ public class TestCandidateMetadata {
 
     public void setVariables(Long[] variables) {
         this.variables = variables;
-    }
-
-
-    public static TestCandidateMetadata FromTestCandidateMetadata(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
-        TestCandidateMetadata newCandidate = new TestCandidateMetadata();
-        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
-                .toArray(Long[]::new));
-        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-                .map(e -> (long) e.getValue()).toArray(Long[]::new));
-        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
-        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
-        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
-        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
-        newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
-        newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
-
-
-        return newCandidate;
-    }
-
-    public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
-        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata newCandidate = new com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata();
-
-        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
-        newCandidate.setCallTimeNanoSecond(newCandidate.getCallTimeNanoSecond());
-        newCandidate.setEntryProbeIndex(newCandidate.getEntryProbeIndex());
-        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
-
-
-//        newCandidate.setCallList(testCandidateMetadata.getCallsList()
-//                .stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
-//                .toArray(Long[]::new));
-//        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-//                .map(e -> (long) e.getValue()).toArray(Long[]::new));
-//        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
-//        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
-//        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-//                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
-
-
-
-        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
-        newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
-        newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
-
-
-        return newCandidate;
     }
 }
 

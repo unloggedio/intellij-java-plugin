@@ -17,18 +17,19 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DaoService {
 
 
+    private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> callExpressionsDao;
     private final Dao<Parameter, Long> parameterDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> candidateDao;
-    private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
@@ -131,7 +132,7 @@ public class DaoService {
         return mce;
     }
 
-//    public com.insidious.plugin.pojo.Parameter getParameterById(Long id) throws SQLException {
+    //    public com.insidious.plugin.pojo.Parameter getParameterById(Long id) throws SQLException {
 //        if (id == 0) {
 //            return null;
 //        }
@@ -178,7 +179,6 @@ public class DaoService {
         }
 
 
-
         if (parameter.getCreatorExpression() != null) {
             convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));
         }
@@ -210,18 +210,6 @@ public class DaoService {
         probeInfoDao.createOrUpdate(ProbeInfo.FromProbeInfo(probeInfo));
     }
 
-    public void createOrUpdateProbeInfo(Collection<DataInfo> probeInfo) throws SQLException {
-        try {
-
-            probeInfoDao.create(probeInfo.stream().map(ProbeInfo::FromProbeInfo).collect(Collectors.toList()) );
-//            for (DataInfo dataInfo : probeInfo) {
-//                logger.warn("Save -> "  + dataInfo.getDataId());
-//                probeInfoDao.create(ProbeInfo.FromProbeInfo(dataInfo));
-//            }
-        }catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     public void createOrUpdateDataEvent(DataEventWithSessionId dataEvent) throws SQLException {
         dataEventDao.createOrUpdate(dataEvent);
@@ -243,4 +231,45 @@ public class DaoService {
     public List<Integer> getProbes() throws SQLException {
         return probeInfoDao.queryBuilder().selectColumns("dataId").query().stream().map(ProbeInfo::getDataId).collect(Collectors.toList());
     }
+
+    public void createOrUpdateCall(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+        try {
+            callExpressionsDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
+//            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
+//                logger.warn("Save: " + methodCallExpression.getEntryTime());
+//                callExpressionsDao.create(MethodCallExpression.FromMCE(methodCallExpression));
+//            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void createOrUpdateTestCandidate(List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candiateToSave) {
+        try {
+            candidateDao.create(candiateToSave.stream()
+                    .map(TestCandidateMetadata::FromTestCandidateMetadata)
+                    .collect(Collectors.toList()));
+//            for (com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata : candiateToSave) {
+//                candidateDao.create(TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata));
+//            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void createOrUpdateProbeInfo(Collection<DataInfo> probeInfo) throws SQLException {
+        try {
+
+            probeInfoDao.create(probeInfo.stream().map(ProbeInfo::FromProbeInfo).collect(Collectors.toList()));
+//            for (DataInfo dataInfo : probeInfo) {
+//                logger.warn("Save -> "  + dataInfo.getDataId());
+//                probeInfoDao.create(ProbeInfo.FromProbeInfo(dataInfo));
+//            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
