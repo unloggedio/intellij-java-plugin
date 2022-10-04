@@ -52,12 +52,12 @@ public class VariableContainer {
 
     public void add(Parameter parameter) {
         Object value = parameter.getValue();
-        Optional<Parameter> byValue = getParametersById(value);
-        if (Objects.equals(value, 0) || byValue.isEmpty()) {
+        Parameter byValue = getParametersById(value);
+        if (byValue == null) {
             this.parameterList.add(parameter);
         } else if (parameter.getProb() != null) {
 
-            Parameter existing = byValue.get();
+            Parameter existing = byValue;
 
             if (existing.getName() != null && existing.getName().equals(parameter.getName())) {
                 byte[] newSerializedValue = parameter.getProb().getSerializedValue();
@@ -108,11 +108,12 @@ public class VariableContainer {
                 .collect(Collectors.toList());
     }
 
-    public Optional<Parameter> getParametersById(Object value) {
-        return this.parameterList
+    public Parameter getParametersById(Object value) {
+        Optional<Parameter> ret = this.parameterList
                 .stream()
                 .filter(e -> e.getValue() != null && e.getValue().equals(value))
-                .findFirst();
+                .findAny();
+        return ret.orElse(null);
     }
 
     public boolean contains(String variableName) {

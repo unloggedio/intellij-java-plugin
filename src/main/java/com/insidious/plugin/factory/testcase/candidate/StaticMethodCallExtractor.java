@@ -51,7 +51,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
     @Override
     public void eventMatched(Integer index, int matchedStack) {
         DataEventWithSessionId event = replayData.getDataEvents().get(index);
-        Optional<Parameter> existingVariable = Optional.empty();
+        Parameter existingVariable = null;
         if (event.getValue() != 0) {
             existingVariable = variableContainer.getParametersById(event.getValue());
         }

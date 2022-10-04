@@ -68,8 +68,10 @@ public class ClassTypeUtils {
         return "L" + className.replace('.', '/') + ";";
     }
 
-    @NotNull
     public static String getDottedClassName(String className) {
+        if (className == null) {
+            return null;
+        }
 
         if (className.endsWith(";")) {
             className = className.substring(0, className.length() - 1);

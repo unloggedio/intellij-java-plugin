@@ -865,16 +865,15 @@ public class TestCaseService {
                 // yes we use that variables name as the test subject name
                 // if we do not find a variable by id also, then add the test subject to the
                 // variable container
-                Optional<Parameter> parameterByValue
+                Parameter parameterByValue
                         = variableContainer.getParametersById(testSubject.getValue());
-                if (parameterByValue.isPresent()) {
-                    Parameter existingParameter = parameterByValue.get();
-                    if (existingParameter.getName() == null && testSubject.getName() != null) {
-                        existingParameter.setName(testSubject.getName());
-                    } else if (existingParameter.getName() != null && testSubject.getName() == null) {
-                        testSubject.setName(existingParameter.getName());
-                    } else if (!existingParameter.getName().equals(testSubject.getName())) {
-                        existingParameter.setName(testSubject.getName());
+                if (parameterByValue != null) {
+                    if (parameterByValue.getName() == null && testSubject.getName() != null) {
+                        parameterByValue.setName(testSubject.getName());
+                    } else if (parameterByValue.getName() != null && testSubject.getName() == null) {
+                        testSubject.setName(parameterByValue.getName());
+                    } else if (!parameterByValue.getName().equals(testSubject.getName())) {
+                        parameterByValue.setName(testSubject.getName());
                     }
                 } else {
                     variableContainer.add(testSubject);

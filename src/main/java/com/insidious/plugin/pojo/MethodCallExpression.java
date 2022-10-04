@@ -251,10 +251,10 @@ public class MethodCallExpression implements Expression {
             }
 
 
-            Optional<Parameter> existingVariableById = variableContainer.getParametersById(value);
-            if (existingVariableById.isPresent()) {
-                if (overrideName && !returnValue.getName().equals(existingVariableById.get().getName())) {
-                    returnValue.setName(existingVariableById.get().getName());
+            Parameter existingVariableById = variableContainer.getParametersById(value);
+            if (existingVariableById != null) {
+                if (overrideName && !returnValue.getName().equals(existingVariableById.getName())) {
+                    returnValue.setName(existingVariableById.getName());
                 }
             } else {
                 if (returnValue.getName() == null) {

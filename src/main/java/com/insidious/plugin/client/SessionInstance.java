@@ -26,6 +26,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -1345,10 +1346,7 @@ public class SessionInstance {
                 new ByteBufferKaitaiStream(bytesWithName.getBytes()));
 
 
-        return eventsContainer.event()
-                .entries()
-                .stream()
-                .collect(Collectors.toList());
+        return eventsContainer.event().entries();
     }
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
@@ -1785,7 +1783,7 @@ public class SessionInstance {
                 TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
                 TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
                 TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.ProbeInfo.class);
+                TableUtils.createTable(connectionSource, ProbeInfo.class);
                 TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
             } catch (SQLException sqlException) {
                 logger.warn("probably table already exists: " + sqlException.toString());
@@ -1888,7 +1886,8 @@ public class SessionInstance {
                                     d.setSerializedValue(eventBlock.serializedData());
                                     return d;
 
-                                }).filter(Objects::nonNull).peek(dataEvent -> {
+                                })
+                                .filter(Objects::nonNull).peek(dataEvent -> {
 
                                     try {
 
@@ -1903,6 +1902,12 @@ public class SessionInstance {
                                             logger.info(":%s - " + x);
                                         }
 
+                                        Parameter existingParameter;
+                                        String fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
+                                        String nameFromProbe = probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null));
+                                        String callType = probeInfo.getAttribute("CallType", null);
+                                        String owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
+
                                         switch (probeInfo.getEventType()) {
 
                                             case LABEL:
@@ -1915,111 +1920,88 @@ public class SessionInstance {
 
                                             case LOCAL_STORE:
 
-                                                if (dataEvent.getValue() != 0) {
-                                                    Parameter existingParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                    if (existingParameter != null) {
-                                                        Parameter existingParameterInstance = existingParameter;
-                                                        String nameFromProbe = probeInfo.getAttribute("Name", null);
-                                                        if (nameFromProbe != null) {
-                                                            existingParameterInstance.addName(nameFromProbe);
-                                                            daoService.createOrUpdateParameter(existingParameterInstance);
-                                                        }
-
-                                                    }
+                                                existingParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                if (existingParameter != null) {
+                                                    existingParameter.addName(nameFromProbe);
+                                                    daoService.createOrUpdateParameter(existingParameter);
                                                 }
 
                                                 break;
 
                                             case LOCAL_LOAD:
-                                                if (dataEvent.getValue() != 0) {
-                                                    Parameter existingParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                existingParameter = daoService.getParameterByValue(dataEvent.getValue());
 
-                                                    existingParameter.addName(probeInfo.getAttribute("Name", null));
-                                                    existingParameter.setType(
-                                                            ClassTypeUtils.getDottedClassName(
-                                                                    probeInfo.getAttribute("Type", null)
-                                                            )
-                                                    );
-                                                    daoService.createOrUpdateProbeInfo(probeInfo);
-                                                    daoService.createOrUpdateDataEvent(dataEvent);
+                                                existingParameter.addName(nameFromProbe);
+                                                existingParameter.setType(
+                                                        ClassTypeUtils.getDottedClassName(
+                                                                fieldType
+                                                        )
+                                                );
+                                                daoService.createOrUpdateProbeInfo(probeInfo);
+                                                daoService.createOrUpdateDataEvent(dataEvent);
 
-                                                    existingParameter.setProb(dataEvent);
-                                                    existingParameter.setProbeInfo(probeInfo);
-                                                    TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                                    VariableContainer candidateVariables = currentTestCandidate.getVariables();
-                                                    candidateVariables.add(existingParameter);
-                                                    daoService.createOrUpdateParameter(existingParameter);
-                                                }
+                                                existingParameter.setProb(dataEvent);
+                                                existingParameter.setProbeInfo(probeInfo);
+                                                TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                VariableContainer candidateVariables = currentTestCandidate.getVariables();
+                                                candidateVariables.add(existingParameter);
+                                                daoService.createOrUpdateParameter(existingParameter);
 
                                                 break;
 
                                             case GET_STATIC_FIELD:
-                                                if (dataEvent.getValue() != 0) {
-                                                    Parameter existingParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                    if (existingParameter != null) {
-                                                        Parameter existingParameterInstance = existingParameter;
-                                                        String nameFromProbe = probeInfo.getAttribute("FieldName", null);
-                                                        if (nameFromProbe != null) {
-                                                            existingParameterInstance.addName(nameFromProbe);
-                                                            daoService.createOrUpdateParameter(existingParameterInstance);
-                                                        }
+                                                existingParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                if (existingParameter != null) {
+                                                    existingParameter.addName(nameFromProbe);
+                                                    daoService.createOrUpdateParameter(existingParameter);
 
-                                                    } else {
-                                                        Parameter localVariableParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                        localVariableParameter.addName(probeInfo.getAttribute("Name", null));
-                                                        localVariableParameter.setType(
-                                                                ClassTypeUtils.getDottedClassName(
-                                                                        probeInfo.getAttribute("Type", null)
-                                                                )
-                                                        );
-                                                        localVariableParameter.setProb(dataEvent);
-                                                        daoService.createOrUpdateProbeInfo(probeInfo);
-                                                        daoService.createOrUpdateDataEvent(dataEvent);
-                                                        localVariableParameter.setProbeInfo(probeInfo);
-                                                        TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                                        VariableContainer candidateVariables = currentTestCandidate.getVariables();
-                                                        candidateVariables.add(localVariableParameter);
-                                                        daoService.createOrUpdateParameter(localVariableParameter);
+                                                } else {
+                                                    Parameter localVariableParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                    localVariableParameter.addName(nameFromProbe);
+                                                    localVariableParameter.setType(
+                                                            ClassTypeUtils.getDottedClassName(
+                                                                    fieldType
+                                                            )
+                                                    );
+                                                    localVariableParameter.setProb(dataEvent);
+                                                    daoService.createOrUpdateProbeInfo(probeInfo);
+                                                    daoService.createOrUpdateDataEvent(dataEvent);
+                                                    localVariableParameter.setProbeInfo(probeInfo);
+                                                    currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                                    candidateVariables = currentTestCandidate.getVariables();
+                                                    candidateVariables.add(localVariableParameter);
+                                                    daoService.createOrUpdateParameter(localVariableParameter);
 
-                                                    }
                                                 }
 
                                                 break;
 
                                             case GET_INSTANCE_FIELD_RESULT:
-                                                if (dataEvent.getValue() != 0) {
-                                                    Parameter existingParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                    String nameFromProbe = probeInfo.getAttribute("FieldName", null);
-                                                    existingParameter.addName(nameFromProbe);
-                                                    daoService.createOrUpdateParameter(existingParameter);
-                                                    testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
-                                                }
+                                                existingParameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                existingParameter.addName(nameFromProbe);
+                                                daoService.createOrUpdateParameter(existingParameter);
+                                                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
                                                 break;
 
                                             case PUT_INSTANCE_FIELD:
 
-                                                String owner = probeInfo.getAttribute("Owner", null);
-                                                String fieldName = probeInfo.getAttribute("FieldName", null);
-                                                String fieldType = probeInfo.getAttribute("Type", null);
 
                                                 // we are going to set this field in the next event
                                                 valueStack.add(dataEvent.getValue());
 
                                                 Parameter existingParentParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                Parameter parameter;
                                                 if (existingParentParameter != null && existingParentParameter.getProb() != null) {
-                                                    Parameter existingParam = existingParentParameter;
-                                                    if (existingParam.getType() == null || existingParam.getType().contains(".Object")) {
-                                                        existingParam.setType(ClassTypeUtils.getDottedClassName(owner));
+                                                    if (existingParentParameter.getType() == null || existingParentParameter.getType().contains(".Object")) {
+                                                        existingParentParameter.setType(ClassTypeUtils.getDottedClassName(owner));
                                                     }
                                                 } else {
                                                     // new variable identified ?
 //                                                    throw new RuntimeException("unidentified variable");
-                                                    parameter = daoService.getParameterByValue(dataEvent.getValue());
+                                                    Parameter parameter = daoService.getParameterByValue(dataEvent.getValue());
                                                     parameter.setProb(dataEvent);
                                                     parameter.setProbeInfo(probeInfo);
-                                                    parameter.setType(ClassTypeUtils.getDottedClassName(fieldName));
-                                                    parameter.addName(fieldName);
+                                                    parameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                                    parameter.addName(nameFromProbe);
                                                     daoService.createOrUpdateParameter(parameter);
                                                 }
 
@@ -2028,29 +2010,20 @@ public class SessionInstance {
                                             case PUT_INSTANCE_FIELD_VALUE:
 
 
-                                                owner = probeInfo.getAttribute("Owner", null);
-                                                fieldName = probeInfo.getAttribute("FieldName", null);
-                                                fieldType = probeInfo.getAttribute("Type", null);
-
                                                 Long parentValue = valueStack.remove(valueStack.size() - 1);
                                                 Parameter valueParameter = daoService.getParameterByValue(parentValue);
                                                 assert valueParameter != null;
                                                 VariableContainer parentFields = valueParameter.getFields();
 
 
-                                                Optional<Parameter> existingParameter = parentFields.getParametersById(dataEvent.getValue());
-                                                if (existingParameter.isPresent()) {
-                                                    Parameter existingParameterInstance = existingParameter.get();
-                                                    String nameFromProbe = probeInfo.getAttribute("FieldName", null);
-                                                    if (nameFromProbe != null) {
-                                                        existingParameterInstance.addName(nameFromProbe);
-                                                    }
-
+                                                existingParameter = parentFields.getParametersById(dataEvent.getValue());
+                                                if (existingParameter != null) {
+                                                    existingParameter.addName(nameFromProbe);
                                                 } else {
                                                     // new field
                                                     Parameter newField = daoService.getParameterByValue(dataEvent.getValue());
                                                     newField.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                                                    newField.addName(fieldName);
+                                                    newField.addName(nameFromProbe);
                                                     newField.setProb(dataEvent);
                                                     daoService.createOrUpdateProbeInfo(probeInfo);
                                                     daoService.createOrUpdateDataEvent(dataEvent);
@@ -2064,20 +2037,11 @@ public class SessionInstance {
 
                                             case PUT_STATIC_FIELD:
 
-                                                String ownerClass = probeInfo.getAttribute("Owner", null);
-                                                fieldType = probeInfo.getAttribute("Type", null);
 
-                                                assert ownerClass != null;
-                                                assert fieldType != null;
+                                                VariableContainer classStaticFieldContainer = classStaticFieldMap.getOrDefault(owner, new VariableContainer());
 
-
-                                                ownerClass = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
-                                                fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
-
-                                                VariableContainer classStaticFieldContainer = classStaticFieldMap.getOrDefault(ownerClass, new VariableContainer());
-
-                                                Optional<Parameter> fieldParameter = classStaticFieldContainer.getParametersById(dataEvent.getValue());
-                                                if (fieldParameter.isPresent()) {
+                                                Parameter fieldParameter = classStaticFieldContainer.getParametersById(dataEvent.getValue());
+                                                if (fieldParameter != null) {
                                                     // field is already present and we are overwriting it here
                                                     // how to keep track of this ?
 
@@ -2087,14 +2051,8 @@ public class SessionInstance {
                                                         // this is a really wierd position to be in
                                                         // or we are coming across this field for the first time
                                                         Parameter newFieldParameter = daoService.getParameterByValue(dataEvent.getValue());
-                                                        newFieldParameter.addName(
-                                                                probeInfo.getAttribute("FieldName", null)
-                                                        );
-                                                        newFieldParameter.setType(
-                                                                ClassTypeUtils.getDottedClassName(
-                                                                        fieldType
-                                                                )
-                                                        );
+                                                        newFieldParameter.addName(nameFromProbe);
+                                                        newFieldParameter.setType(fieldType);
                                                         newFieldParameter.setProb(dataEvent);
                                                         daoService.createOrUpdateProbeInfo(probeInfo);
                                                         daoService.createOrUpdateDataEvent(dataEvent);
@@ -2105,10 +2063,9 @@ public class SessionInstance {
                                                         daoService.createOrUpdateParameter(newFieldParameter);
 
                                                     } else {
-                                                        Parameter existingFieldParam = fieldParameterInstance;
-                                                        existingFieldParam.addName(probeInfo.getAttribute("FieldName", null));
-                                                        existingFieldParam.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                                                        classStaticFieldContainer.add(existingFieldParam);
+                                                        fieldParameterInstance.addName(nameFromProbe);
+                                                        fieldParameterInstance.setType(fieldType);
+                                                        classStaticFieldContainer.add(fieldParameterInstance);
                                                     }
                                                 }
 
@@ -2120,37 +2077,24 @@ public class SessionInstance {
 
                                             case GET_INSTANCE_FIELD:
 
-//                                                Parameter existingParameter1 = daoService.getParameterByValue(dataEvent.getValue());
-//                                                existingParameter1.addName(probeInfo.getAttribute("FieldName", null));
-//                                                daoService.createOrUpdateParameter(existingParameter1);
-
                                                 break;
 
                                             case CALL:
 
-                                                String methodName = probeInfo.getAttribute("Name", null);
-                                                String callType = probeInfo.getAttribute("CallType", null);
-                                                String instruction = probeInfo.getAttribute("Instruction", null);
-                                                owner = probeInfo.getAttribute("Owner", null);
-
                                                 Parameter subjectParameter = daoService.getParameterByValue(dataEvent.getValue());
                                                 daoService.createOrUpdateProbeInfo(probeInfo);
 
-                                                try {
-                                                    daoService.createOrUpdateDataEvent(dataEvent);
-                                                    if (subjectParameter.getProbeInfo() == null) {
-                                                        subjectParameter.setProbeInfo(probeInfo);
-                                                        subjectParameter.setProb(dataEvent);
-                                                    }
-                                                    subjectParameter.setType(ClassTypeUtils.getDottedClassName(owner));
-                                                    daoService.createOrUpdateParameter(subjectParameter);
-                                                } catch (SQLException sqlException) {
-                                                    sqlException.printStackTrace();
+                                                daoService.createOrUpdateDataEvent(dataEvent);
+                                                if (subjectParameter.getProbeInfo() == null) {
+                                                    subjectParameter.setProbeInfo(probeInfo);
+                                                    subjectParameter.setProb(dataEvent);
                                                 }
+                                                subjectParameter.setType(owner);
+                                                daoService.createOrUpdateParameter(subjectParameter);
 
 
                                                 MethodCallExpression methodCallExpression = new MethodCallExpression(
-                                                        methodName, subjectParameter, new VariableContainer(), null, callStack.size()
+                                                        nameFromProbe, subjectParameter, new VariableContainer(), null, callStack.size()
                                                 );
                                                 methodCallExpression.setEntryProbeInfo(probeInfo);
                                                 methodCallExpression.setEntryProbe(dataEvent);
@@ -2173,15 +2117,9 @@ public class SessionInstance {
                                             case CALL_PARAM:
                                                 Parameter callParameter = daoService.getParameterByValue(dataEvent.getValue());
 
-//                                                Parameter existingCallParam = daoService.getParameterById(dataEvent.getValue());
-//                                                if (existingCallParam != null) {
-//                                                    callParameter = existingCallParam;
-//                                                } else {
-
 
                                                 callParameter.setProbeInfo(probeInfo);
-                                                callParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
-//                                                }
+                                                callParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                                                 callParameter.setValue(dataEvent.getValue());
                                                 callParameter.setProb(dataEvent);
                                                 daoService.createOrUpdateProbeInfo(probeInfo);
@@ -2203,15 +2141,14 @@ public class SessionInstance {
                                                 if (callStack.size() > 0) {
                                                     methodCall = callStack.get(callStack.size() - 1);
                                                     @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(methodInfo.getClassName());
-                                                    String owner1 = methodCall.getEntryProbeInfo().getAttribute("Owner", null);
-                                                    if (owner1 == null) {
-                                                        owner1 = methodCall.getSubject().getType();
+                                                    if (owner == null) {
+                                                        owner = methodCall.getSubject().getType();
                                                     }
-                                                    if (owner1 == null) {
+                                                    if (owner == null) {
                                                         methodCall = null;
                                                     } else {
                                                         // sometimes we can enter a method_entry without a call
-                                                        @NotNull String actualClassName = ClassTypeUtils.getDottedClassName(owner1);
+                                                        @NotNull String actualClassName = ClassTypeUtils.getDottedClassName(owner);
                                                         if (!actualClassName.startsWith(expectedClassName) ||
                                                                 !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
                                                             methodCall = null;
@@ -2233,9 +2170,8 @@ public class SessionInstance {
                                                         subjectParameter.setProb(dataEvent);
 
                                                         subjectParameter.setProbeInfo(probeInfo);
-                                                        String probeOwnerClassType = probeInfo.getAttribute("Owner", null);
-                                                        if (probeOwnerClassType != null) {
-                                                            subjectParameter.setType(ClassTypeUtils.getDottedClassName(probeOwnerClassType));
+                                                        if (owner != null) {
+                                                            subjectParameter.setType(ClassTypeUtils.getDottedClassName(owner));
                                                         } else {
                                                             subjectParameter.setType(
                                                                     ClassTypeUtils.getDottedClassName(
@@ -2343,10 +2279,6 @@ public class SessionInstance {
                                                     throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
                                                 }
 
-                                                if (entryProbeEventType == EventType.METHOD_ENTRY) {
-
-                                                }
-
 
                                                 TestCandidateMetadata completedExceptional = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
                                                 if (testCandidateMetadataStack.size() > 0) {
@@ -2452,7 +2384,7 @@ public class SessionInstance {
                                                 if (completed.getMainMethod() != null) {
                                                     completed.setTestSubject(((MethodCallExpression) completed.getMainMethod()).getSubject());
                                                 }
-//                                        testCandidateMetadataList.add(completed);
+
                                                 try {
                                                     if (completed.getTestSubject() != null) {
                                                         writeCandidate(completed, outputStream);
@@ -2477,11 +2409,9 @@ public class SessionInstance {
                                                 daoService.createOrUpdateDataEvent(dataEvent);
 
                                                 callReturnParameter.setProbeInfo(probeInfo);
-                                                callReturnParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                                callReturnParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
 
-                                                if (dataEvent.getValue() != 0) {
-                                                    daoService.createOrUpdateParameter(callReturnParameter);
-                                                }
+                                                daoService.createOrUpdateParameter(callReturnParameter);
 
                                                 MethodCallExpression callExpression = callStack.get(callStack.size() - 1);
                                                 EventType entryEventType = callExpression.getEntryProbeInfo().getEventType();
@@ -2505,21 +2435,7 @@ public class SessionInstance {
 
                                                 break;
 
-                                            case OBJECT_CONSTANT_LOAD:
-                                                break;
-
-                                            case NEW_OBJECT:
-                                                // we are going to construct a new object, of the following type
-                                                String objectType = probeInfo.getAttribute("Type", null);
-                                                assert objectType != null;
-
-                                                break;
-                                            case NEW_ARRAY:
-                                                break;
-                                            case NEW_ARRAY_RESULT:
-                                                break;
                                             case NEW_OBJECT_CREATED:
-                                                long newObjectValue = dataEvent.getValue();
                                                 MethodCallExpression theCallThatJustEnded = mostRecentCall.get();
                                                 Parameter subject = theCallThatJustEnded.getSubject();
                                                 subject.setProb(dataEvent);
@@ -2535,13 +2451,6 @@ public class SessionInstance {
                                                 Parameter callSubject = currentCall.getSubject();
                                                 callSubject.setProb(dataEvent);
                                                 callSubject.setProbeInfo(probeInfo);
-//                                                ObjectInfo objectInfo = objectsIndexList.stream()
-//                                                        .map(e -> e.getObjectByObjectId(dataEvent.getValue()))
-//                                                        .filter(Objects::nonNull).collect(Collectors.toList()).get(0);
-//                                                if (objectInfo != null) {
-//                                                    TypeInfo typeInfo = getTypeInfo(Math.toIntExact(objectInfo.getTypeId()));
-                                                // callSubject.setType(ClassTypeUtils.getDottedClassName(typeInfo.getTypeNameFromClass()));
-//                                                }
                                                 daoService.createOrUpdateProbeInfo(probeInfo);
                                                 daoService.createOrUpdateDataEvent(dataEvent);
                                                 daoService.createOrUpdateParameter(callSubject);
@@ -2633,8 +2542,8 @@ public class SessionInstance {
     }
 
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
-            KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = lastEvent.block();
-            return eventBlock.eventId();
+        KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = lastEvent.block();
+        return eventBlock.eventId();
     }
 
     private Collection<ObjectInfo> getObjectInfoById(Collection<Long> valueIds) {

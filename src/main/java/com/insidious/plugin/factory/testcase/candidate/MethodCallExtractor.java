@@ -1,21 +1,21 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.MethodInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.extension.model.ScanResult;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.pojo.EventMatchListener;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 
 public class MethodCallExtractor implements EventMatchListener {
 
@@ -45,7 +45,7 @@ public class MethodCallExtractor implements EventMatchListener {
     @Override
     public void eventMatched(Integer index, int matchedStack) {
         DataEventWithSessionId event = replayData.getDataEvents().get(index);
-        Optional<Parameter> existingVariable = Optional.empty();
+        Parameter existingVariable = null;
         if (event.getValue() != 0) {
             existingVariable = variableContainer.getParametersById(event.getValue());
         }
@@ -75,9 +75,7 @@ public class MethodCallExtractor implements EventMatchListener {
         }
 
 
-
-
-        if (existingVariable.isPresent()) {
+        if (existingVariable != null) {
             return;
         }
 
@@ -129,7 +127,7 @@ public class MethodCallExtractor implements EventMatchListener {
         if (methodCallExpression == null) return;
 
         // happens when the function call is on the return value of another function call
-        if (methodCallExpression.getSubject().getName()  == null) return;
+        if (methodCallExpression.getSubject().getName() == null) return;
         LoggerUtil.logEvent("SearchCallSubject", 0, index, event, probeInfo, classInfo, methodInfo);
         callList.add(methodCallExpression);
     }
