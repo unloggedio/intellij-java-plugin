@@ -60,7 +60,13 @@ public class DatabaseVariableContainer {
             if (parameter.getProb() != null) {
                 parameterMap.put(parameter.getProb().getValue(), parameter);
             }
-        } else if (parameter.getProb() != null) {
+            return;
+        }
+        if (byValue == parameter) {
+            // literally the same value
+            return;
+        }
+        if (parameter.getProb() != null) {
 
             if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
                 byte[] newSerializedValue = parameter.getProb().getSerializedValue();
@@ -74,22 +80,8 @@ public class DatabaseVariableContainer {
                     byValue.setProb(parameter.getProb());
                 }
             } else {
-
-
-                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
-                String existingValueString = new String(existingSerializedValue);
-                String newValueString = new String(newSerializedValue);
-                if (existingValueString.length() > 0 &&
-                        newValueString.length() > 0 &&
-                        existingValueString.equals(newValueString)
-                ) {
-                    // existing value matches new value
-                } else {
-                    this.parameterList.add(parameter);
-                    parameterMap.put(parameter.getProb().getValue(), parameter);
-                }
-
+                this.parameterList.add(parameter);
+                parameterMap.put(parameter.getProb().getValue(), parameter);
             }
 
 
@@ -184,7 +176,7 @@ public class DatabaseVariableContainer {
             try {
                 Parameter paramFromDatabase = daoService.getParameterByValue(eventValue);
                 if (paramFromDatabase != null) {
-                    parameterMap.put(paramFromDatabase.getProb().getValue(), paramFromDatabase);
+                    parameterMap.put(eventValue, paramFromDatabase);
                     parameterList.add(paramFromDatabase);
                     return paramFromDatabase;
                 }

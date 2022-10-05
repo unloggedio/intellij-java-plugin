@@ -1767,7 +1767,9 @@ public class SessionInstance {
     public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
 
         File dbFile = new File("execution.db");
+//        dbFile.delete();
         boolean dbFileExists = dbFile.exists();
+
         String databaseUrl = "jdbc:sqlite:execution.db";
         ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
 
@@ -2024,7 +2026,8 @@ public class SessionInstance {
                             if (existingParameter != null) {
                                 // field is already present and we are overwriting it here
                                 // how to keep track of this ?
-
+                                // setting this to null so it is not inserted into the database again
+                                existingParameter = null;
                             } else {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter.getProb() == null) {
@@ -2048,14 +2051,6 @@ public class SessionInstance {
 
                             break;
 
-                        case PUT_INSTANCE_FIELD_BEFORE_INITIALIZATION:
-
-                            break;
-
-                        case GET_INSTANCE_FIELD:
-
-                            break;
-
                         case CALL:
 
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
@@ -2067,7 +2062,6 @@ public class SessionInstance {
                             }
                             existingParameter.setType(owner);
 
-
                             MethodCallExpression methodCallExpression = new MethodCallExpression(
                                     nameFromProbe, existingParameter, new VariableContainer(), null, callStack.size()
                             );
@@ -2078,28 +2072,19 @@ public class SessionInstance {
                                 methodCallExpression.setStaticCall(true);
                             }
 
-
                             callStack.add(methodCallExpression);
                             mostRecentCall.set(methodCallExpression);
-
-
-//                                        variableContainer.add(subjectParameter);
-
-
                             break;
 
 
                         case CALL_PARAM:
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
-
-
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                            existingParameter.setProb(dataEvent);
-
-                            saveProbe = true;
-
-
+                            if (existingParameter.getProb() == null) {
+                                existingParameter.setProbeInfo(probeInfo);
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                existingParameter.setProb(dataEvent);
+                                saveProbe = true;
+                            }
                             MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
                             currentMethodCallExpression.getArguments().add(existingParameter);
                             break;
@@ -2136,12 +2121,12 @@ public class SessionInstance {
                                 newCandidate.setMainMethod(methodCall);
                             } else {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                if (eventValue != 0) {
+                                if (eventValue != 0 && existingParameter.getProb() == null) {
                                     existingParameter.setProb(dataEvent);
 
                                     existingParameter.setProbeInfo(probeInfo);
                                     if (owner != null) {
-                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(owner));
+                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
                                     } else {
                                         existingParameter.setType(
                                                 ClassTypeUtils.getDottedClassName(
@@ -2163,10 +2148,7 @@ public class SessionInstance {
                                 newCandidate.setMainMethod(methodCall);
                                 mostRecentCall.set(methodCall);
                                 callStack.add(methodCall);
-
-//                                            currentMethodCall.set(methodCall);
                             }
-
 
                             break;
 
@@ -2192,7 +2174,6 @@ public class SessionInstance {
                                 methodExpression.getArguments().getParametersById(existingParameter.getProb().getValue());
 
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                                // oo la la
                                 methodExpression.getArguments().add(existingParameter);
                             } else {
                                 throw new RuntimeException("unexpected entry probe event type");
@@ -2203,11 +2184,8 @@ public class SessionInstance {
                         case METHOD_EXCEPTIONAL_EXIT:
 
                             MethodCallExpression exceptionCallExpression = callStack.get(callStack.size() - 1);
-
                             entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
-
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
-
                             saveProbe = true;
 
                             existingParameter.setProbeInfo(probeInfo);
@@ -2219,13 +2197,11 @@ public class SessionInstance {
 
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-//                                daoService.createOrUpdateCall(topCall);
                                 callsToSave.add(topCall);
 
 
                                 topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-//                                daoService.createOrUpdateCall(topCall);
                                 callsToSave.add(topCall);
 
 
@@ -2234,7 +2210,6 @@ public class SessionInstance {
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
                                 callsToSave.add(topCall);
-//                                daoService.createOrUpdateCall(topCall);
 
                             } else {
                                 throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
@@ -2263,12 +2238,11 @@ public class SessionInstance {
                             if (completedExceptional.getMainMethod() != null) {
                                 completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
                             }
-//                                        testCandidateMetadataList.add(completed);
+
                             try {
                                 if (completedExceptional.getTestSubject() != null) {
                                     writeCandidate(completedExceptional, outputStream);
                                     candiateToSave.add(completedExceptional);
-//                                    daoService.createOrUpdateTestCandidate(completedExceptional);
                                 }
                                 outputStream.flush();
                             } catch (IOException ex) {
@@ -2280,13 +2254,9 @@ public class SessionInstance {
 
 
                             MethodCallExpression currentCallExpression = callStack.get(callStack.size() - 1);
-
                             entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
-
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
-
                             saveProbe = true;
-
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
 
@@ -2309,8 +2279,6 @@ public class SessionInstance {
                                     topCall.setReturnValue(existingParameter);
                                 }
                                 callsToSave.add(topCall);
-//                                daoService.createOrUpdateCall(topCall);
-
                                 // also the test candidate metadata need to be finished
 //                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
 //                                                    currentCandidate.setMainMethod(topCall);
@@ -2346,7 +2314,6 @@ public class SessionInstance {
                             try {
                                 if (completed.getTestSubject() != null) {
                                     writeCandidate(completed, outputStream);
-//                                    daoService.createOrUpdateTestCandidate(completed);
                                     candiateToSave.add(completed);
                                 }
                                 outputStream.flush();
@@ -2374,10 +2341,7 @@ public class SessionInstance {
 
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
-
                                 callsToSave.add(topCall);
-//                                daoService.createOrUpdateCall(topCall);
-
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
 
 
@@ -2396,7 +2360,6 @@ public class SessionInstance {
                             existingParameter.setProb(dataEvent);
                             theCallThatJustEnded.setReturnValue(existingParameter);
                             callsToSave.add(theCallThatJustEnded);
-//                            daoService.createOrUpdateCall(theCallThatJustEnded);
                             saveProbe = true;
 
                             break;
@@ -2407,12 +2370,8 @@ public class SessionInstance {
                             callSubject.setProbeInfo(probeInfo);
 
                             saveProbe = true;
-
-
                             currentCall.setSubject(callSubject);
                             currentCall.setReturnValue(callSubject);
-//                            callsToSave.add(currentCall);
-//                            daoService.createOrUpdateCall(currentCall);
 
                     }
                     if (saveProbe) {
@@ -2423,18 +2382,23 @@ public class SessionInstance {
                         }
                     }
                     if (existingParameter != null && existingParameter.getProb() != null) {
-                        daoService.createOrUpdateParameter(existingParameter);
                         parameterContainer.add(existingParameter);
                     }
                 }
 
+
                 daoService.createOrUpdateDataEvent(eventsToSave);
                 daoService.createOrUpdateProbeInfo(probesToSave);
+
+                // this is saving/updating all parameters every single time.
+                // need to save/update only modified parameters
+
                 daoService.createOrUpdateCall(callsToSave);
                 daoService.createOrUpdateTestCandidate(candiateToSave);
 
 
             }
+            daoService.createOrUpdateParameter(parameterContainer.all());
 
 
         }

@@ -272,4 +272,14 @@ public class DaoService {
         }
     }
 
+    public void createOrUpdateParameter(List<com.insidious.plugin.pojo.Parameter> parameterList) {
+        try {
+            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
+                Parameter e = Parameter.fromParameter(parameter);
+                parameterDao.createOrUpdate(e);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

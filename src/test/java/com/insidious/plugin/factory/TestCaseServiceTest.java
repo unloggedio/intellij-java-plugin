@@ -402,6 +402,8 @@ public class TestCaseServiceTest {
 
     @Test public void testScanAndGenerateAll() throws Exception {
 
+        File dbFile = new File("execution.db");
+        dbFile.delete();
 
 
         Project project = Mockito.mock(Project.class);
