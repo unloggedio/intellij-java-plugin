@@ -1872,7 +1872,13 @@ public class SessionInstance {
                 Set<MethodCallExpression> callsToSave = new HashSet<>();
                 List<TestCandidateMetadata> candiateToSave = new LinkedList<>();
 
+                long previousIndex = -1;
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
+
+                    if (previousIndex != -1 && e.block().eventId() != previousIndex +1) {
+                        throw new RuntimeException("index jump");
+                    }
+                    previousIndex = e.block().eventId();
 
                     KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
