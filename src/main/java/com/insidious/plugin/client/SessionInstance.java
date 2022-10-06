@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.esotericsoftware.asm.Opcodes;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
@@ -1816,6 +1817,8 @@ public class SessionInstance {
         FileOutputStream outputWriter = new FileOutputStream(output);
         BufferedOutputStream outputStream = new BufferedOutputStream(outputWriter);
 
+        long currentCallId = daoService.getMaxCallId();
+
 
         List<ArchiveIndex> objectsIndexList = new LinkedList<>();
         for (File sessionArchive : sessionArchivesLocal) {
@@ -1830,14 +1833,14 @@ public class SessionInstance {
             }
 
 
-            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
-            assert stringsIndexBytes != null;
-            ArchiveIndex stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
+//            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
+//            assert stringsIndexBytes != null;
+//            ArchiveIndex stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
 
-            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
-            assert objectIndexBytes != null;
-            ArchiveIndex objectsIndex1 = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-            objectsIndexList.add(objectsIndex1);
+//            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
+//            assert objectIndexBytes != null;
+//            ArchiveIndex objectsIndex1 = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
+//            objectsIndexList.add(objectsIndex1);
 
             Collections.sort(archiveFiles);
 
@@ -1875,8 +1878,8 @@ public class SessionInstance {
                 long previousIndex = -1;
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
-                    if (previousIndex != -1 && e.block().eventId() != previousIndex +1) {
-                        throw new RuntimeException("index jump");
+                    if (previousIndex != -1 && e.block().eventId() != previousIndex + 1) {
+//                        logger.warn("index jump from [" + previousIndex + "] -> [" + e.block().eventId() + "]");
                     }
                     previousIndex = e.block().eventId();
 
@@ -1896,7 +1899,6 @@ public class SessionInstance {
                     ClassInfo classInfo = classInfoMap.get((long) probeInfo.getClassId());
                     MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
                     int instructionIndex = index.getAndIncrement();
-                    LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                     Parameter existingParameter = null;
                     String fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
@@ -2058,6 +2060,7 @@ public class SessionInstance {
                             break;
 
                         case CALL:
+                            LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
                             saveProbe = true;
@@ -2068,15 +2071,18 @@ public class SessionInstance {
                             }
                             existingParameter.setType(owner);
 
+                            currentCallId++;
                             MethodCallExpression methodCallExpression = new MethodCallExpression(
                                     nameFromProbe, existingParameter, new VariableContainer(), null, callStack.size()
                             );
                             methodCallExpression.setEntryProbeInfo(probeInfo);
                             methodCallExpression.setEntryProbe(dataEvent);
+                            methodCallExpression.setId(currentCallId);
 
                             if (callType.equals("Static")) {
                                 methodCallExpression.setStaticCall(true);
                             }
+
 
                             callStack.add(methodCallExpression);
                             mostRecentCall.set(methodCallExpression);
@@ -2096,6 +2102,7 @@ public class SessionInstance {
                             break;
 
                         case METHOD_ENTRY:
+                            LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
 
                             MethodCallExpression methodCall = null;
@@ -2143,18 +2150,30 @@ public class SessionInstance {
                                 }
 
 
+                                currentCallId++;
                                 methodCall = new MethodCallExpression(
                                         methodInfo.getMethodName(), existingParameter, new VariableContainer(), null,
                                         callStack.size());
 
                                 saveProbe = true;
 
+                                methodCall.setId(currentCallId);
                                 methodCall.setEntryProbeInfo(probeInfo);
                                 methodCall.setEntryProbe(dataEvent);
-                                newCandidate.setMainMethod(methodCall);
                                 mostRecentCall.set(methodCall);
                                 callStack.add(methodCall);
+                                newCandidate.setMainMethod(methodCall);
+
+
                             }
+
+                            int methodAccess = methodInfo.getAccess();
+                            methodCall.setMethodAccess(methodAccess);
+                            if ((methodInfo.getAccess() & Opcodes.ACC_PUBLIC) != Opcodes.ACC_PUBLIC) {
+                                // non public methods not to be picked up as a testCandidate
+//                                    continue;
+                            }
+
 
                             break;
 
@@ -2188,6 +2207,7 @@ public class SessionInstance {
 
 
                         case METHOD_EXCEPTIONAL_EXIT:
+                            LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                             MethodCallExpression exceptionCallExpression = callStack.get(callStack.size() - 1);
                             entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
@@ -2258,6 +2278,7 @@ public class SessionInstance {
 
                         case METHOD_NORMAL_EXIT:
 
+                            LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                             MethodCallExpression currentCallExpression = callStack.get(callStack.size() - 1);
                             entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
@@ -2331,6 +2352,7 @@ public class SessionInstance {
 
                         case CALL_RETURN:
 
+                            LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                             existingParameter.setProb(dataEvent);

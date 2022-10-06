@@ -26,7 +26,7 @@ public class ObjectRoutine {
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
     private List<TestCandidateMetadata> testCandidateList = new LinkedList<>();
-    private VariableContainer variableContainer = new VariableContainer();
+//    private VariableContainer variableContainer = new VariableContainer();
 
     public ObjectRoutine(String routineName) {
         this.routineName = routineName;
@@ -89,7 +89,8 @@ public class ObjectRoutine {
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
-            ObjectRoutineScript script = CandidateMetadataFactory.toObjectScript(testCandidateMetadata, scriptContainer.getCreatedVariables());
+            ObjectRoutineScript script = CandidateMetadataFactory.toObjectScript(
+                    testCandidateMetadata, scriptContainer.getCreatedVariables());
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 
@@ -97,11 +98,11 @@ public class ObjectRoutine {
 
     }
 
-    public VariableContainer getVariableContainer() {
-        return variableContainer;
-    }
-
-    public void setVariableContainer(VariableContainer variableContainer) {
-        this.variableContainer = variableContainer;
-    }
+//    public VariableContainer getVariableContainer() {
+//        return variableContainer;
+//    }
+//
+//    public void setVariableContainer(VariableContainer variableContainer) {
+//        this.variableContainer = variableContainer;
+//    }
 }

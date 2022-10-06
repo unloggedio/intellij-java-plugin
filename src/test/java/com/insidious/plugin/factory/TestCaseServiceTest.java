@@ -28,10 +28,14 @@ import com.squareup.javapoet.*;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
@@ -347,12 +351,12 @@ public class TestCaseServiceTest {
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
 //        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
 //        List<String> targetClasses = List.of("com.ayu.cabeza.service.HospitalProfileService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
+        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
 
 
         SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
@@ -434,6 +438,13 @@ public class TestCaseServiceTest {
     @Test
     public void writeTestFromDB() throws SQLException {
 
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+        TestCaseService testCaseService = new TestCaseService(project, client);
+
+
 
         File dbFile = new File("execution.db");
         boolean dbFileExists = dbFile.exists();
@@ -446,14 +457,21 @@ public class TestCaseServiceTest {
         DaoService daoService = new DaoService(connectionSource);
 
 
-        long valueId = 659960900L;
-        Parameter targetParameter = daoService.getParameterByValue(valueId);
-        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates = daoService.getTestCandidateForSubjectId(valueId);
+        List<Parameter> parameterList =  daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");
 
-        testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getCallTimeNanoSecond));
+        long valueId = (long) parameterList.get(0).getValue();
+        Parameter targetParameter = parameterList.get(0);
+        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates =
+                daoService.getTestCandidateForSubjectId(valueId);
 
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(ClassName.bestGuess(targetParameter.getType()).packageName());
+        testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getEntryProbeIndex));
+
+        ClassName targetClassName = ClassName.bestGuess(targetParameter.getType());
+        ObjectRoutineContainer objectRoutineContainer =
+                new ObjectRoutineContainer(targetClassName.packageName());
+        objectRoutineContainer.newRoutine("test" + targetClassName.simpleName());
         for (TestCandidateMetadata testCandidateMetadata : testCandidates) {
+
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
             if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
                 continue;
@@ -461,12 +479,20 @@ public class TestCaseServiceTest {
             if (methodInfo.getMethodName().equals("<init>")) {
                 objectRoutineContainer.getConstructor().setTestCandidateList(testCandidateMetadata);
             } else {
-                String routineName = methodInfo.getMethodName();
-                objectRoutineContainer.newRoutine(routineName);
                 objectRoutineContainer.addMetadata(testCandidateMetadata);
             }
 
         }
+
+
+//        VariableContainer variableContainer =  testCaseService.postProcessObjectRoutine(objectRoutineContainer);
+
+        testCaseService.createFieldMocks(objectRoutineContainer);
+
+        // part 3
+//        testCaseService.createDependentRoutines(testCaseRequest, variableContainer, objectRoutineContainer);
+
+
         ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
 
 
@@ -528,6 +554,9 @@ public class TestCaseServiceTest {
 
         System.out.println(testCaseUnit);
 
+        StringSelection selection = new StringSelection(testCaseUnit.toString());
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, selection);
 
     }
 

@@ -11,12 +11,12 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
@@ -110,11 +110,12 @@ public class TestCaseService {
                 continue;
             }
             // part 2
-            VariableContainer variableContainer = postProcessObjectRoutine(classTestSuite);
+//            VariableContainer variableContainer = postProcessObjectRoutine(classTestSuite);
 
-            processFields(classTestSuite, variableContainer);
+            createFieldMocks(classTestSuite);
 
             // part 3
+            VariableContainer variableContainer = new VariableContainer();
             createDependentRoutines(testCaseRequest, variableContainer, classTestSuite);
 
             ObjectRoutineScriptContainer testCaseScript = classTestSuite.toRoutineScript();
@@ -186,10 +187,11 @@ public class TestCaseService {
 
     }
 
-    private void createDependentRoutines(
+    public void createDependentRoutines(
             TestCaseRequest testCaseRequest,
             VariableContainer variableContainer,
-            ObjectRoutineContainer classTestSuite)
+            ObjectRoutineContainer classTestSuite
+    )
             throws APICallException, SessionNotSelectedException {
 
         for (ObjectRoutine objectRoutine : classTestSuite.getObjectRoutines()) {
@@ -246,13 +248,18 @@ public class TestCaseService {
 
         } else {
 
-            dependentObjectCreation =
-                    generateTestCaseFromObjectHistory(TestCaseRequest.nextLevel(testCaseRequest));
+            if (testCaseRequest.getBuildLevel() == 0) {
+                dependentObjectCreation =
+                        generateTestCaseFromObjectHistory(TestCaseRequest.nextLevel(testCaseRequest));
 
-            // part 2
-            variableContainer = postProcessObjectRoutine(dependentObjectCreation);
+                // part 2
+//            variableContainer = postProcessObjectRoutine(dependentObjectCreation);
 
-            processFields(dependentObjectCreation, variableContainer);
+                createFieldMocks(dependentObjectCreation);
+
+            } else {
+                return null;
+            }
 
 
         }
@@ -260,10 +267,10 @@ public class TestCaseService {
 
         variableContainer.add(dependentParameter);
 
-        for (ObjectRoutine routine : dependentObjectCreation.getObjectRoutines()) {
-            VariableContainer createdVariablesContainer = routine.getVariableContainer();
-            createdVariablesContainer.all().forEach(variableContainer::add);
-        }
+//        for (ObjectRoutine routine : dependentObjectCreation.getObjectRoutines()) {
+//            VariableContainer createdVariablesContainer = routine.getVariableContainer();
+//            createdVariablesContainer.all().forEach(variableContainer::add);
+//        }
 
 
         if (dependentObjectCreation.getName() != null) {
@@ -287,9 +294,8 @@ public class TestCaseService {
     }
 
 
-    private void processFields(
-            ObjectRoutineContainer objectRoutineContainer,
-            VariableContainer globalVariableContainer
+    public void createFieldMocks(
+            ObjectRoutineContainer objectRoutineContainer
     ) {
 
 
@@ -309,18 +315,12 @@ public class TestCaseService {
 
         // gotta mock'em all
         for (Parameter fieldParameter : fields.all()) {
-            Parameter subjectVariable = globalVariableContainer.getParameterByName(fieldParameter.getName());
-            if (subjectVariable == null) {
-                TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter);
-                constructor.addMetadata(metadata);
+            TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter);
+            constructor.addMetadata(metadata);
 
-                if (fieldParameter.getName() != null && objectRoutineContainer.getName() == null) {
-                    objectRoutineContainer.setName(fieldParameter.getName());
-                }
-
-                globalVariableContainer.add(fieldParameter);
+            if (fieldParameter.getName() != null && objectRoutineContainer.getName() == null) {
+                objectRoutineContainer.setName(fieldParameter.getName());
             }
-
         }
 
 
@@ -394,14 +394,13 @@ public class TestCaseService {
      * without names, also acts as the sink for all the identified
      * new parameters in the routines
      */
-    private VariableContainer
+    public VariableContainer
     postProcessObjectRoutine(
             ObjectRoutineContainer objectRoutineContainer
     ) {
         VariableContainer globalVariableContainer = new VariableContainer();
 
         globalVariableContainer.add(objectRoutineContainer.getConstructor().getTestCandidateList().get(0).getTestSubject());
-
 
 
         for (ObjectRoutine objectRoutine : objectRoutineContainer.getObjectRoutines()) {
@@ -423,10 +422,10 @@ public class TestCaseService {
             }
 
 
-            objectRoutine.setVariableContainer(variableContainer);
+//            objectRoutine.setVariableContainer(variableContainer);
 
             // normalizing variable names by id, need to refactor out this block to its own method
-            variableContainer.normalize(globalVariableContainer);
+//            variableContainer.normalize(globalVariableContainer);
 
 
             // dependent parameters need to be created before the routine can be invoked
@@ -604,7 +603,6 @@ public class TestCaseService {
             MethodInfo methodInfo = methodInfoMap.get(Long.valueOf(probeInfo.getMethodId()));
 
 
-
             switch (probeInfo.getEventType()) {
 
 
@@ -724,7 +722,6 @@ public class TestCaseService {
                                     backEvent.getNanoTime(), replayEventsBefore);
 
 
-
                     Parameter testSubject = newTestCaseMetadata.getTestSubject();
                     if (testSubject == null) {
                         // whats happening here, if we were unable to pick a test subject
@@ -774,7 +771,6 @@ public class TestCaseService {
 
                     newTestCaseMetadata.setCallList(callsList);
                     newTestCaseMetadata.setStaticCalls(staticMethodCallList);
-
 
 
                     // capture extra data for okhttp/libraries whose return objects we were not able to

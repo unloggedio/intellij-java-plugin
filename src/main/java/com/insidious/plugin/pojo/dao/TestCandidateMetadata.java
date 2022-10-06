@@ -26,14 +26,21 @@ public class TestCandidateMetadata {
 
     public static TestCandidateMetadata FromTestCandidateMetadata(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
         TestCandidateMetadata newCandidate = new TestCandidateMetadata();
-        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
-                .toArray(Long[]::new));
+
+        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(
+                com.insidious.plugin.pojo.MethodCallExpression::getId).toArray(Long[]::new));
+
         newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
                 .map(e -> (long) e.getValue()).toArray(Long[]::new));
+
         newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
-        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
+
+        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression)
+                testCandidateMetadata.getMainMethod()));
+
         newCandidate.setVariables(testCandidateMetadata.getVariables().all()
                 .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
+
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(Math.toIntExact(testCandidateMetadata.getEntryProbeIndex()));
         newCandidate.setExitProbeIndex(Math.toIntExact(testCandidateMetadata.getExitProbeIndex()));

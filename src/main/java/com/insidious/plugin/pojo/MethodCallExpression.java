@@ -1,5 +1,6 @@
 package com.insidious.plugin.pojo;
 
+import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -26,6 +27,8 @@ public class MethodCallExpression implements Expression {
     private ProbeInfo entryProbeInfo;
     private Parameter returnValue;
     private DataEventWithSessionId entryProbe;
+    private int methodAccess;
+    private long id;
 
     public MethodCallExpression() {
     }
@@ -376,5 +379,26 @@ public class MethodCallExpression implements Expression {
 
     public DataEventWithSessionId getEntryProbe() {
         return entryProbe;
+    }
+
+    public void setMethodAccess(int methodAccess) {
+        this.methodAccess = methodAccess;
+    }
+
+    public boolean isMethodPublic() {
+        return (methodAccess & Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC;
+
+    }
+
+    public int getMethodAccess() {
+        return methodAccess;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public long getId() {
+        return id;
     }
 }

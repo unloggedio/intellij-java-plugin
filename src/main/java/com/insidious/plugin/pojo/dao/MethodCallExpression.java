@@ -12,6 +12,9 @@ import com.j256.ormlite.table.DatabaseTable;
 @DatabaseTable(tableName = "method_call")
 public class MethodCallExpression {
 
+    @DatabaseField(generatedId = true)
+    private long id;
+
     @DatabaseField(dataType = DataType.SERIALIZABLE)
     private Long[] arguments = new Long[0];
     @DatabaseField
@@ -21,7 +24,7 @@ public class MethodCallExpression {
     @DatabaseField(foreign = true)
     private Parameter subject;
 
-    @DatabaseField(id = true)
+    @DatabaseField
     private long entryTime;
     @DatabaseField(foreign = true)
     private ProbeInfo entryProbeInfo;
@@ -31,6 +34,8 @@ public class MethodCallExpression {
     private DataEventWithSessionId entryProbe;
     @DatabaseField
     private int callStack;
+    @DatabaseField
+    private int methodAccess;
 
 
     public MethodCallExpression() {
@@ -50,10 +55,12 @@ public class MethodCallExpression {
                 Parameter.fromParameter(methodCallExpression.getReturnValue())
         );
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
         methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setId(methodCallExpression.getId());
         return methodCallExpression1;
     }
 
@@ -65,7 +72,8 @@ public class MethodCallExpression {
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-
+        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
+        methodCallExpression1.setId(methodCallExpression.getId());
 
         return methodCallExpression1;
     }
@@ -73,6 +81,14 @@ public class MethodCallExpression {
 
     public long getEntryTime() {
         return entryTime;
+    }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
     }
 
     public void setEntryTime(long entryTime) {
@@ -184,5 +200,13 @@ public class MethodCallExpression {
 
     public int getCallStack() {
         return callStack;
+    }
+
+    public void setMethodAccess(int methodAccess) {
+        this.methodAccess = methodAccess;
+    }
+
+    public int getMethodAccess() {
+        return methodAccess;
     }
 }

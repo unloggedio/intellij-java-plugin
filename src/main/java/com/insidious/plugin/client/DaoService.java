@@ -48,7 +48,8 @@ public class DaoService {
     }
 
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidateForSubjectId(Long id) throws SQLException {
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidateForSubjectId(Long id) throws SQLException {
 
 //        parameterDao
 
@@ -60,9 +61,17 @@ public class DaoService {
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                     getTestCandidateMetadataById(testCandidateMetadata);
+            com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
+            if (!mainMethod.getMethodName().equals("<init>")) {
+                if (!mainMethod.isMethodPublic()) {
+                    continue;
+                }
+            }
+            if (mainMethod.getReturnValue() == null) {
+                continue;
+            }
 
             testCandidateList.add(converted);
-
         }
 
 
@@ -76,13 +85,17 @@ public class DaoService {
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
         converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
-        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getEntryTime()));
+        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getId()));
 
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
         Long[] calls = testCandidateMetadata.getCallsList();
 
         for (Long call : calls) {
-            callsList.add(getMethodCallExpressionById(call));
+            com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
+            if (!methodCallExpressionById.isMethodPublic()) {
+                continue;
+            }
+            callsList.add(methodCallExpressionById);
         }
 
         Long[] fieldParameters = testCandidateMetadata.getFields();
@@ -180,7 +193,7 @@ public class DaoService {
 
 
         if (parameter.getCreatorExpression() != null) {
-            convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getEntryTime()));
+            convertedParameter.setCreator(getMethodCallExpressionById(parameter.getCreatorExpression().getId()));
         }
 
 
@@ -280,6 +293,25 @@ public class DaoService {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
+        try {
+            return parameterDao.queryForEq("type", typeName).stream()
+                    .map(Parameter::toParameter).collect(Collectors.toList());
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    public long getMaxCallId() {
+        try {
+            long result = callExpressionsDao.queryRawValue("select max(id) from method_call");
+            return result;
+        } catch (SQLException e) {
+            return 0;
         }
     }
 }
