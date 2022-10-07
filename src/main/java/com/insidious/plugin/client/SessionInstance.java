@@ -2080,10 +2080,11 @@ public class SessionInstance {
                                 existingParameter.setProbeInfo(probeInfo);
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
                                 existingParameter.setProb(dataEvent);
-                                saveProbe = true;
                             }
                             MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
-                            currentMethodCallExpression.getArguments().add(existingParameter);
+                            saveProbe = true;
+                            currentMethodCallExpression.addArgument(existingParameter);
+                            currentMethodCallExpression.addArgumentProbe(dataEvent);
                             break;
 
                         case METHOD_ENTRY:
@@ -2175,7 +2176,9 @@ public class SessionInstance {
                                 methodExpression.getArguments().getParametersById(existingParameter.getProb().getValue());
 
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                                methodExpression.getArguments().add(existingParameter);
+                                saveProbe = true;
+                                methodExpression.addArgument(existingParameter);
+                                methodExpression.addArgumentProbe(dataEvent);
                             } else {
                                 throw new RuntimeException("unexpected entry probe event type");
                             }
@@ -2199,11 +2202,13 @@ public class SessionInstance {
 
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
+                                topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
 
 
                                 topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
+                                topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
 
 
@@ -2211,6 +2216,7 @@ public class SessionInstance {
                                 // we need to pop only 1 call here from the stack
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
+                                topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
 
                             } else {
@@ -2222,6 +2228,7 @@ public class SessionInstance {
                             if (testCandidateMetadataStack.size() > 0) {
                                 TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                 newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
+                                newCurrent.getFields().all().addAll(completedExceptional.getFields().all());
                             } else {
                                 if (callStack.size() > 0) {
                                     logger.warn("inconsistent call stack state, flushing calls list");
@@ -2281,6 +2288,7 @@ public class SessionInstance {
                                 } else {
                                     topCall.setReturnValue(existingParameter);
                                 }
+                                topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
 
                             } else {
@@ -2292,6 +2300,7 @@ public class SessionInstance {
                             if (testCandidateMetadataStack.size() > 0) {
                                 TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                 newCurrent.getCallsList().addAll(completed.getCallsList());
+                                newCurrent.getFields().all().addAll(completed.getFields().all());
                             } else {
                                 if (callStack.size() > 0) {
                                     logger.warn("inconsistent call stack state, flushing calls list");
@@ -2335,6 +2344,7 @@ public class SessionInstance {
 
                                 MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
                                 topCall.setReturnValue(existingParameter);
+                                topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
 

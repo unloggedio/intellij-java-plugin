@@ -201,9 +201,7 @@ public class Parameter {
 
     @Override
     public int hashCode() {
-        int result = Math.toIntExact(value);
-        result = 31 * result + (type != null ? type.hashCode() : 0);
-        return result;
+        return Objects.hash(value, type);
     }
 
     public FieldSpec.Builder toFieldSpec() {

@@ -52,7 +52,6 @@ public class CandidateMetadataFactory {
                             e.getReturnValue() != null &&
                             e.getReturnValue().getProb() != null &&
                             !e.getSubject().getType().contains("com.google") &&
-                            mainMethod.getCallStack() + 1 == e.getCallStack() &&
                             testCandidateMetadata.getFields().getParametersById(e.getSubject().getProb().getValue()) != null
             ).collect(Collectors.toList());
 

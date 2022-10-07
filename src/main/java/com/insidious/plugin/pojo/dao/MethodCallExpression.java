@@ -34,6 +34,10 @@ public class MethodCallExpression {
     private int callStack;
     @DatabaseField
     private int methodAccess;
+    @DatabaseField(dataType = DataType.SERIALIZABLE)
+    private Long[] argumentProbes;
+    @DatabaseField
+    private long returnDataEvent;
 
 
     public MethodCallExpression() {
@@ -70,6 +74,11 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
+                .stream().map(DataEventWithSessionId::getNanoTime).toArray(Long[]::new));
+        if (methodCallExpression.getReturnDataEvent() != null) {
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
+        }
         return methodCallExpression1;
     }
 
@@ -120,6 +129,10 @@ public class MethodCallExpression {
 
     public Long[] getArguments() {
         return arguments;
+    }
+
+    public void setArguments(Long[] arguments) {
+        this.arguments = arguments;
     }
 
     public Parameter getReturnValue() {
@@ -192,5 +205,21 @@ public class MethodCallExpression {
 
     public void setMethodAccess(int methodAccess) {
         this.methodAccess = methodAccess;
+    }
+
+    public Long[] getArgumentProbes() {
+        return argumentProbes;
+    }
+
+    public void setArgumentProbes(Long[] argumentProbes) {
+        this.argumentProbes = argumentProbes;
+    }
+
+    public long getReturnDataEvent() {
+        return returnDataEvent;
+    }
+
+    public void setReturnDataEvent(long returnDataEvent) {
+        this.returnDataEvent = returnDataEvent;
     }
 }

@@ -4,6 +4,7 @@ import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
@@ -13,6 +14,8 @@ import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 
 public class MethodCallExpression implements Expression {
@@ -28,6 +31,8 @@ public class MethodCallExpression implements Expression {
     private DataEventWithSessionId entryProbe;
     private int methodAccess;
     private long id;
+    private List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
+    private DataEventWithSessionId returnDataEvent;
 
     public MethodCallExpression() {
     }
@@ -387,5 +392,29 @@ public class MethodCallExpression implements Expression {
 
     public long getId() {
         return id;
+    }
+
+    public void setArgumentProbes(List<DataEventWithSessionId> argumentProbes) {
+        this.argumentProbes = argumentProbes;
+    }
+
+    public List<DataEventWithSessionId> getArgumentProbes() {
+        return argumentProbes;
+    }
+
+    public void addArgument(Parameter existingParameter) {
+        arguments.add(existingParameter);
+    }
+
+    public void addArgumentProbe(DataEventWithSessionId dataEvent) {
+        argumentProbes.add(dataEvent);
+    }
+
+    public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
+        this.returnDataEvent = returnDataEvent;
+    }
+
+    public DataEventWithSessionId getReturnDataEvent() {
+        return returnDataEvent;
     }
 }

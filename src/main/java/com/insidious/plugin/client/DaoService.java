@@ -120,19 +120,28 @@ public class DaoService {
             Parameter returnValue = dbMce.getReturnValue();
             com.insidious.plugin.pojo.Parameter returnParam = getParameterByValue((Long) returnValue.getValue());
             mce.setReturnValue(returnParam);
+            if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
+                DataEventWithSessionId returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
+                returnParam.setProb(returnDataEvent);
+                mce.setReturnDataEvent(returnDataEvent);
+            }
         } else {
 
         }
 
         Long[] argumentParameters = dbMce.getArguments();
-        for (Long argumentParameter : argumentParameters) {
+        Long[] argumentProbes = dbMce.getArgumentProbes();
+        for (int i = 0; i < argumentParameters.length; i++) {
+            Long argumentParameter = argumentParameters[i];
+            DataEventWithSessionId dataEvent = getDataEventById(argumentProbes[i]);
+
             com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
             if (argument == null) {
                 argument = new com.insidious.plugin.pojo.Parameter(0L);
             }
-            mce.getArguments().add(argument);
+            argument.setProb(dataEvent);
+            mce.addArgument(argument);
         }
-
 
         if (!mce.isStaticCall()) {
             com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
