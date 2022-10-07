@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.Map;
 
 /**
- * Parameter is a value (long id or string) with a name and type information (class name). It could
+ * Parameter is a variable (long id or string) with a name and type information (class name). It could
  * be a variable passed as a method argument, or the
  * test subject or the return value from the function. Store the corresponding probeInfo and
  * event also from where the information was identified

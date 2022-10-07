@@ -24,8 +24,6 @@ public class MethodCallExpression {
     @DatabaseField(foreign = true)
     private Parameter subject;
 
-    @DatabaseField
-    private long entryTime;
     @DatabaseField(foreign = true)
     private ProbeInfo entryProbeInfo;
     @DatabaseField(foreign = true)
@@ -69,7 +67,6 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
         methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
@@ -82,7 +79,6 @@ public class MethodCallExpression {
         );
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryTime(methodCallExpression.getEntryTime());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setId(methodCallExpression.getId());
@@ -92,14 +88,6 @@ public class MethodCallExpression {
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
         return new PendingStatement(objectRoutine);
-    }
-
-    public long getEntryTime() {
-        return entryTime;
-    }
-
-    public void setEntryTime(long entryTime) {
-        this.entryTime = entryTime;
     }
 
     public long getId() {
@@ -187,7 +175,6 @@ public class MethodCallExpression {
     }
 
     public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryTime = entryProbe.getNanoTime();
         this.entryProbe = entryProbe;
     }
 

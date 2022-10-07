@@ -2311,16 +2311,9 @@ public class SessionInstance {
                                 completed.setTestSubject(((MethodCallExpression) completed.getMainMethod()).getSubject());
                             }
 
-//                            try {
                             if (completed.getTestSubject() != null) {
-//                                    writeCandidate(completed, outputStream);
                                 candidatesToSave.add(completed);
                             }
-//                                outputStream.flush();
-//                            } catch (IOException e1) {
-                            //
-//                            }
-
                             break;
 
                         case CALL_RETURN:
@@ -2348,7 +2341,6 @@ public class SessionInstance {
 
                             } else if (entryEventType == EventType.METHOD_ENTRY) {
                                 // this is probably not a matching event
-
                             } else {
                                 throw new RuntimeException("this should not happen");
                             }

@@ -23,7 +23,6 @@ public class MethodCallExpression implements Expression {
     private boolean isStaticCall;
     private Parameter subject;
 
-    private long entryTime;
     private ProbeInfo entryProbeInfo;
     private Parameter returnValue;
     private DataEventWithSessionId entryProbe;
@@ -42,14 +41,6 @@ public class MethodCallExpression implements Expression {
         this.callStack = callStack;
     }
 
-
-    public long getEntryTime() {
-        return entryTime;
-    }
-
-    public void setEntryTime(long entryTime) {
-        this.entryTime = entryTime;
-    }
 
     public ProbeInfo getEntryProbeInfo() {
         return entryProbeInfo;
@@ -239,10 +230,7 @@ public class MethodCallExpression implements Expression {
 
         if (returnValue != null) {
 
-            String variableName =
-                    ClassTypeUtils.createVariableNameFromMethodName(
-                            getMethodName(),
-                            getReturnValue().getType());
+            String variableName = ClassTypeUtils.createVariableNameFromMethodName(getMethodName(), getReturnValue().getType());
 
             Object value = returnValue.getValue();
             boolean overrideName = true;
@@ -373,7 +361,6 @@ public class MethodCallExpression implements Expression {
     }
 
     public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryTime = entryProbe.getNanoTime();
         this.entryProbe = entryProbe;
     }
 

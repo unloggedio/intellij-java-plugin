@@ -1,18 +1,13 @@
 package com.insidious.plugin.factory.testcase.parameter;
 
 import com.insidious.plugin.pojo.Parameter;
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-@DatabaseTable(tableName = "variable_container")
 public class VariableContainer {
-    @DatabaseField
     final List<Parameter> parameterList = new LinkedList<>();
     final Map<Long, Parameter> parameterMap = new HashMap<>();
-    @DatabaseField(id = true)
     private long variableContainerId;
 
     public static String upperInstanceName(String methodName) {
