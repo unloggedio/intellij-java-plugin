@@ -1,6 +1,5 @@
 package com.insidious.plugin.client;
 
-import com.esotericsoftware.asm.Opcodes;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
@@ -72,6 +71,7 @@ public class SessionInstance {
     private Map<Long, DataInfo> probeInfoMap;
     private Map<Long, ClassInfo> classInfoMap;
     private Map<Long, MethodInfo> methodInfoMap;
+//    private HashSet<Long> doneIds = new HashSet<Long>();
 
     public SessionInstance(File sessionDirectory, ExecutionSession executionSession) {
         this.sessionDirectory = sessionDirectory;
@@ -1767,28 +1767,7 @@ public class SessionInstance {
 
     public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
 
-        File dbFile = new File("execution.db");
-//        dbFile.delete();
-        boolean dbFileExists = dbFile.exists();
-
-        String databaseUrl = "jdbc:sqlite:execution.db";
-        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
-
-        DaoService daoService = new DaoService(connectionSource);
-
-        // if you need to create the 'accounts' table make this call
-        if (!dbFileExists) {
-            try {
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-                TableUtils.createTable(connectionSource, ProbeInfo.class);
-                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
-            } catch (SQLException sqlException) {
-                logger.warn("probably table already exists: " + sqlException.toString());
-            }
-        }
-
+        DaoService daoService = createDaoService();
 
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
@@ -1797,34 +1776,30 @@ public class SessionInstance {
         assert methodInfoMap.size() > 0;
 
         List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
-        List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
-        Map<Long, ObjectRoutineContainer> objectRoutineContainerMap = new HashMap<>();
 
         Collections.sort(sessionArchivesLocal);
 
 
         checkProgressIndicator(null, "Loading class mappings");
-//        VariableContainer variableContainer = new VariableContainer();
 
         List<MethodCallExpression> callStack = new LinkedList<>();
+        List<String> upcomingObjectTypeStack = new LinkedList<>();
         AtomicReference<MethodCallExpression> mostRecentCall = new AtomicReference<>();
         AtomicInteger index = new AtomicInteger(0);
         List<Long> valueStack = new LinkedList<>();
 
         Map<String, VariableContainer> classStaticFieldMap = new HashMap<>();
 
-        File output = new File(String.format("output%d.txt", request.getThreadId()));
-        FileOutputStream outputWriter = new FileOutputStream(output);
-        BufferedOutputStream outputStream = new BufferedOutputStream(outputWriter);
+//        File output = new File(String.format("output%d.txt", request.getThreadId()));
+//        FileOutputStream outputWriter = new FileOutputStream(output);
+//        BufferedOutputStream outputStream = new BufferedOutputStream(outputWriter);
 
-        long currentCallId = daoService.getMaxCallId();
+        Long currentCallId = daoService.getMaxCallId();
 
-
-        List<ArchiveIndex> objectsIndexList = new LinkedList<>();
         for (File sessionArchive : sessionArchivesLocal) {
             logger.warn("open archive [" + sessionArchive.getName() + "]");
 
-            List<String> archiveFiles = new LinkedList<>();
+            List<String> archiveFiles;
 
             archiveFiles = listArchiveFiles(sessionArchive);
 
@@ -1873,8 +1848,9 @@ public class SessionInstance {
                 List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
                 List<DataInfo> probesToSave = new LinkedList<>();
                 Set<MethodCallExpression> callsToSave = new HashSet<>();
-                List<TestCandidateMetadata> candiateToSave = new LinkedList<>();
-
+                Set<MethodCallExpression> callsToUpdate = new HashSet<>();
+                List<TestCandidateMetadata> candidatesToSave = new LinkedList<>();
+                KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
                 long previousIndex = -1;
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
@@ -1976,6 +1952,7 @@ public class SessionInstance {
                                 continue;
                             }
                             existingParameter.addName(nameFromProbe);
+                            existingParameter.setType(fieldType);
                             testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
                             break;
 
@@ -2065,11 +2042,15 @@ public class SessionInstance {
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
                             saveProbe = true;
 
-                            if (existingParameter.getProbeInfo() == null) {
-                                existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setProb(dataEvent);
+                            if (eventValue != 0) {
+                                if (existingParameter.getProbeInfo() == null) {
+                                    existingParameter.setProbeInfo(probeInfo);
+                                    existingParameter.setProb(dataEvent);
+                                }
+                                if (existingParameter.getType() == null) {
+                                    existingParameter.setType(owner);
+                                }
                             }
-                            existingParameter.setType(owner);
 
                             currentCallId++;
                             MethodCallExpression methodCallExpression = new MethodCallExpression(
@@ -2078,6 +2059,10 @@ public class SessionInstance {
                             methodCallExpression.setEntryProbeInfo(probeInfo);
                             methodCallExpression.setEntryProbe(dataEvent);
                             methodCallExpression.setId(currentCallId);
+//                            if (doneIds.contains(currentCallId)) {
+//                                throw new RuntimeException("u");
+//                            }
+//                            doneIds.add(currentCallId);
 
                             if (callType.equals("Static")) {
                                 methodCallExpression.setStaticCall(true);
@@ -2130,9 +2115,7 @@ public class SessionInstance {
                             newCandidate.setEntryProbeIndex(dataEvent.getNanoTime());
 
 
-                            if (methodCall != null) {
-                                newCandidate.setMainMethod(methodCall);
-                            } else {
+                            if (methodCall == null) {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (eventValue != 0 && existingParameter.getProb() == null) {
                                     existingParameter.setProb(dataEvent);
@@ -2162,18 +2145,11 @@ public class SessionInstance {
                                 methodCall.setEntryProbe(dataEvent);
                                 mostRecentCall.set(methodCall);
                                 callStack.add(methodCall);
-                                newCandidate.setMainMethod(methodCall);
-
-
                             }
+                            newCandidate.setMainMethod(methodCall);
 
                             int methodAccess = methodInfo.getAccess();
                             methodCall.setMethodAccess(methodAccess);
-                            if ((methodInfo.getAccess() & Opcodes.ACC_PUBLIC) != Opcodes.ACC_PUBLIC) {
-                                // non public methods not to be picked up as a testCandidate
-//                                    continue;
-                            }
-
 
                             break;
 
@@ -2249,7 +2225,7 @@ public class SessionInstance {
                             } else {
                                 if (callStack.size() > 0) {
                                     logger.warn("inconsistent call stack state, flushing calls list");
-                                    callStack.clear();
+//                                    callStack.clear();
                                 }
                             }
                             completedExceptional.setExitProbeIndex(instructionIndex);
@@ -2265,15 +2241,15 @@ public class SessionInstance {
                                 completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
                             }
 
-                            try {
-                                if (completedExceptional.getTestSubject() != null) {
-                                    writeCandidate(completedExceptional, outputStream);
-                                    candiateToSave.add(completedExceptional);
-                                }
-                                outputStream.flush();
-                            } catch (IOException ex) {
-                                throw new RuntimeException(ex);
+//                            try {
+                            if (completedExceptional.getTestSubject() != null) {
+//                                    writeCandidate(completedExceptional, outputStream);
+                                candidatesToSave.add(completedExceptional);
                             }
+//                                outputStream.flush();
+//                            } catch (IOException ex) {
+//                                throw new RuntimeException(ex);
+//                            }
                             break;
 
                         case METHOD_NORMAL_EXIT:
@@ -2306,9 +2282,6 @@ public class SessionInstance {
                                     topCall.setReturnValue(existingParameter);
                                 }
                                 callsToSave.add(topCall);
-                                // also the test candidate metadata need to be finished
-//                                                    TestCandidateMetadata currentCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-//                                                    currentCandidate.setMainMethod(topCall);
 
                             } else {
                                 throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
@@ -2338,15 +2311,15 @@ public class SessionInstance {
                                 completed.setTestSubject(((MethodCallExpression) completed.getMainMethod()).getSubject());
                             }
 
-                            try {
-                                if (completed.getTestSubject() != null) {
-                                    writeCandidate(completed, outputStream);
-                                    candiateToSave.add(completed);
-                                }
-                                outputStream.flush();
-                            } catch (IOException e1) {
-                                //
+//                            try {
+                            if (completed.getTestSubject() != null) {
+//                                    writeCandidate(completed, outputStream);
+                                candidatesToSave.add(completed);
                             }
+//                                outputStream.flush();
+//                            } catch (IOException e1) {
+                            //
+//                            }
 
                             break;
 
@@ -2381,26 +2354,33 @@ public class SessionInstance {
                             }
 
                             break;
-
+                        case NEW_OBJECT:
+                            upcomingObjectTypeStack.add(fieldType);
+                            break;
                         case NEW_OBJECT_CREATED:
                             MethodCallExpression theCallThatJustEnded = mostRecentCall.get();
+                            String upcomingObjectType = upcomingObjectTypeStack.remove(upcomingObjectTypeStack.size() - 1);
                             existingParameter = theCallThatJustEnded.getSubject();
                             existingParameter.setProb(dataEvent);
+                            existingParameter.setType(upcomingObjectType);
                             theCallThatJustEnded.setReturnValue(existingParameter);
-                            callsToSave.add(theCallThatJustEnded);
+                            if (!callsToSave.contains(theCallThatJustEnded)) {
+                                callsToUpdate.add(theCallThatJustEnded);
+                            }
                             saveProbe = true;
 
                             break;
                         case METHOD_OBJECT_INITIALIZED:
-                            MethodCallExpression currentCall = callStack.get(callStack.size() - 1);
-                            Parameter callSubject = currentCall.getSubject();
-                            callSubject.setProb(dataEvent);
-                            callSubject.setProbeInfo(probeInfo);
-
+                            MethodCallExpression topCall = callStack.get(callStack.size() - 1);
+                            existingParameter = topCall.getSubject();
+                            existingParameter.setProb(dataEvent);
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
                             saveProbe = true;
-                            currentCall.setSubject(callSubject);
-                            currentCall.setReturnValue(callSubject);
+                            topCall.setSubject(existingParameter);
+                            topCall.setReturnValue(existingParameter);
 
+                            break;
                     }
                     if (saveProbe) {
                         eventsToSave.add(dataEvent);
@@ -2422,7 +2402,8 @@ public class SessionInstance {
                 // need to save/update only modified parameters
 
                 daoService.createOrUpdateCall(callsToSave);
-                daoService.createOrUpdateTestCandidate(candiateToSave);
+                daoService.updateCalls(callsToUpdate);
+                daoService.createOrUpdateTestCandidate(candidatesToSave);
 
 
             }
@@ -2430,9 +2411,35 @@ public class SessionInstance {
 
 
         }
-        connectionSource.close();
+        daoService.close();
 
-        return objectRoutineContainerMap.values();
+        return null;
+    }
+
+    private DaoService createDaoService() throws SQLException {
+
+        File dbFile = new File("execution.db");
+//        dbFile.delete();
+        boolean dbFileExists = dbFile.exists();
+
+        String databaseUrl = "jdbc:sqlite:execution.db";
+        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+
+        DaoService daoService = new DaoService(connectionSource);
+
+        // if you need to create the 'accounts' table make this call
+        if (!dbFileExists) {
+            try {
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+                TableUtils.createTable(connectionSource, ProbeInfo.class);
+                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
+            } catch (SQLException sqlException) {
+                logger.warn("probably table already exists: " + sqlException.toString());
+            }
+        }
+        return daoService;
     }
 
     private void writeCandidate(TestCandidateMetadata candidate, OutputStream outputStream) throws IOException {

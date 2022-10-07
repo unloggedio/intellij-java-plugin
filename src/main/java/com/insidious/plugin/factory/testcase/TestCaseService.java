@@ -241,8 +241,7 @@ public class TestCaseService {
 
         if (ClassTypeUtils.IsBasicType(dependentParameterType)) {
 
-            dependentObjectCreation =
-                    new ObjectRoutineContainer(ClassName.bestGuess(dependentParameterType).packageName());
+            dependentObjectCreation = new ObjectRoutineContainer(dependentParameter);
             testCandidateMetadata = MockFactory.createParameterMock(dependentParameter);
             dependentObjectCreation.getConstructor().addMetadata(testCandidateMetadata);
 
@@ -437,9 +436,7 @@ public class TestCaseService {
                 // we want to create the objects from java.lang.* namespace using their real values, so
                 // in the test case it looks something like
                 // Integer varName = value;
-                ObjectRoutineContainer dependentContainer = new ObjectRoutineContainer(
-                        ClassName.bestGuess(dependentParameter.getType()).packageName()
-                );
+                ObjectRoutineContainer dependentContainer = new ObjectRoutineContainer(dependentParameter);
                 TestCandidateMetadata testCandidate = MockFactory.createParameterMock(dependentParameter);
                 dependentContainer.getConstructor().addMetadata(testCandidate);
                 dependentContainer.setName(dependentParameter.getName());

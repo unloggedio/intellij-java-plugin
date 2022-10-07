@@ -249,10 +249,19 @@ public class DaoService {
         try {
             callExpressionsDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
 //            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
-//                logger.warn("Save: " + methodCallExpression.getEntryTime());
 //                callExpressionsDao.create(MethodCallExpression.FromMCE(methodCallExpression));
 //            }
 
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void updateCalls(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+        try {
+            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
+                callExpressionsDao.update(MethodCallExpression.FromMCE(methodCallExpression));
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -313,5 +322,9 @@ public class DaoService {
         } catch (SQLException e) {
             return 0;
         }
+    }
+
+    public void close() throws Exception {
+        connectionSource.close();
     }
 }

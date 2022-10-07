@@ -467,8 +467,7 @@ public class TestCaseServiceTest {
         testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getEntryProbeIndex));
 
         ClassName targetClassName = ClassName.bestGuess(targetParameter.getType());
-        ObjectRoutineContainer objectRoutineContainer =
-                new ObjectRoutineContainer(targetClassName.packageName());
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(targetParameter);
         objectRoutineContainer.newRoutine("test" + targetClassName.simpleName());
         for (TestCandidateMetadata testCandidateMetadata : testCandidates) {
 

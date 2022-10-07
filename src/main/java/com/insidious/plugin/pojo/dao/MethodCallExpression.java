@@ -12,7 +12,7 @@ import com.j256.ormlite.table.DatabaseTable;
 @DatabaseTable(tableName = "method_call")
 public class MethodCallExpression {
 
-    @DatabaseField(generatedId = true)
+    @DatabaseField(id = true)
     private long id;
 
     @DatabaseField(dataType = DataType.SERIALIZABLE)
@@ -39,6 +39,18 @@ public class MethodCallExpression {
 
 
     public MethodCallExpression() {
+    }
+
+    public MethodCallExpression(
+            String methodName,
+            Parameter subject,
+            Long[] arguments,
+            Parameter returnValue
+    ) {
+        this.methodName = methodName;
+        this.subject = subject;
+        this.arguments = arguments;
+        this.returnValue = returnValue;
     }
 
     public static MethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
@@ -78,9 +90,16 @@ public class MethodCallExpression {
         return methodCallExpression1;
     }
 
+    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
+        return new PendingStatement(objectRoutine);
+    }
 
     public long getEntryTime() {
         return entryTime;
+    }
+
+    public void setEntryTime(long entryTime) {
+        this.entryTime = entryTime;
     }
 
     public long getId() {
@@ -90,11 +109,6 @@ public class MethodCallExpression {
     public void setId(long id) {
         this.id = id;
     }
-
-    public void setEntryTime(long entryTime) {
-        this.entryTime = entryTime;
-    }
-
 
     public ProbeInfo getEntryProbeInfo() {
         return entryProbeInfo;
@@ -106,27 +120,6 @@ public class MethodCallExpression {
 
     public void setEntryProbeInfo(ProbeInfo entryProbeInfo) {
         this.entryProbeInfo = entryProbeInfo;
-    }
-
-    public void setStaticCall(boolean staticCall) {
-        isStaticCall = staticCall;
-    }
-
-
-    public MethodCallExpression(
-            String methodName,
-            Parameter subject,
-            Long[] arguments,
-            Parameter returnValue
-    ) {
-        this.methodName = methodName;
-        this.subject = subject;
-        this.arguments = arguments;
-        this.returnValue = returnValue;
-    }
-
-    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
-        return new PendingStatement(objectRoutine);
     }
 
     public Parameter getSubject() {
@@ -185,28 +178,32 @@ public class MethodCallExpression {
         return isStaticCall;
     }
 
-    public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryTime = entryProbe.getNanoTime();
-        this.entryProbe = entryProbe;
+    public void setStaticCall(boolean staticCall) {
+        isStaticCall = staticCall;
     }
 
     public DataEventWithSessionId getEntryProbe() {
         return entryProbe;
     }
 
-    public void setCallStack(int callStack) {
-        this.callStack = callStack;
+    public void setEntryProbe(DataEventWithSessionId entryProbe) {
+        this.entryTime = entryProbe.getNanoTime();
+        this.entryProbe = entryProbe;
     }
 
     public int getCallStack() {
         return callStack;
     }
 
-    public void setMethodAccess(int methodAccess) {
-        this.methodAccess = methodAccess;
+    public void setCallStack(int callStack) {
+        this.callStack = callStack;
     }
 
     public int getMethodAccess() {
         return methodAccess;
+    }
+
+    public void setMethodAccess(int methodAccess) {
+        this.methodAccess = methodAccess;
     }
 }

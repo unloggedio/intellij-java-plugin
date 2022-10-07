@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
+    private final Parameter parameter;
     private String packageName;
     private ObjectRoutine currentRoutine;
     private ObjectRoutine constructor = newRoutine("<init>");
@@ -34,8 +35,13 @@ public class ObjectRoutineContainer {
      * Name for variable for this particular object
      */
     private String name;
-    public ObjectRoutineContainer(String packageName) {
-        this.packageName = packageName;
+    public ObjectRoutineContainer(Parameter parameter) {
+        this.parameter  = parameter;
+        this.packageName = ClassName.bestGuess(parameter.getType()).packageName();
+    }
+
+    public Parameter getParameter() {
+        return parameter;
     }
 
     public String getName() {
@@ -179,7 +185,7 @@ public class ObjectRoutineContainer {
 
         TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
         MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
-        Parameter mainSubject = mainSubjectConstructorExpression.getSubject();
+        Parameter mainSubject = getParameter();
         Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
