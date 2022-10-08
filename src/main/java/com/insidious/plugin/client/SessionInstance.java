@@ -2047,9 +2047,9 @@ public class SessionInstance {
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
                                 }
-                                if (existingParameter.getType() == null) {
-                                    existingParameter.setType(owner);
-                                }
+                            }
+                            if (existingParameter.getType() == null) {
+                                existingParameter.setType(owner);
                             }
 
                             currentCallId++;
@@ -2126,11 +2126,12 @@ public class SessionInstance {
                                         existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
                                     } else {
                                         existingParameter.setType(
-                                                ClassTypeUtils.getDottedClassName(
-                                                        methodInfo.getClassName()
-                                                )
+                                                ClassTypeUtils.getDottedClassName(methodInfo.getClassName())
                                         );
                                     }
+                                }
+                                if (existingParameter.getType() == null) {
+                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
                                 }
 
 
@@ -2176,7 +2177,6 @@ public class SessionInstance {
                                 methodExpression.getArguments().getParametersById(existingParameter.getProb().getValue());
 
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                                saveProbe = true;
                                 methodExpression.addArgument(existingParameter);
                                 methodExpression.addArgumentProbe(dataEvent);
                             } else {
@@ -2232,7 +2232,6 @@ public class SessionInstance {
                             } else {
                                 if (callStack.size() > 0) {
                                     logger.warn("inconsistent call stack state, flushing calls list");
-//                                    callStack.clear();
                                 }
                             }
                             completedExceptional.setExitProbeIndex(instructionIndex);
@@ -2248,15 +2247,9 @@ public class SessionInstance {
                                 completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
                             }
 
-//                            try {
                             if (completedExceptional.getTestSubject() != null) {
-//                                    writeCandidate(completedExceptional, outputStream);
                                 candidatesToSave.add(completedExceptional);
                             }
-//                                outputStream.flush();
-//                            } catch (IOException ex) {
-//                                throw new RuntimeException(ex);
-//                            }
                             break;
 
                         case METHOD_NORMAL_EXIT:
@@ -2297,27 +2290,37 @@ public class SessionInstance {
 
 
                             TestCandidateMetadata completed = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
-                            if (testCandidateMetadataStack.size() > 0) {
-                                TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                newCurrent.getCallsList().addAll(completed.getCallsList());
-                                newCurrent.getFields().all().addAll(completed.getFields().all());
-                            } else {
-                                if (callStack.size() > 0) {
-                                    logger.warn("inconsistent call stack state, flushing calls list");
-                                    callStack.clear();
-                                }
-                            }
+
                             completed.setExitProbeIndex(dataEvent.getNanoTime());
                             if (completed.getMainMethod() != null) {
                                 DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
                                 if (entryProbe != null) {
-                                    completed.setCallTimeNanoSecond(
-                                            dataEvent.getRecordedAt() - entryProbe.getRecordedAt()
-                                    );
+                                    completed.setCallTimeNanoSecond(dataEvent.getRecordedAt() - entryProbe.getRecordedAt());
                                 }
                             }
                             if (completed.getMainMethod() != null) {
                                 completed.setTestSubject(((MethodCallExpression) completed.getMainMethod()).getSubject());
+                            }
+
+                            if (testCandidateMetadataStack.size() > 0) {
+                                TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                newCurrent.getCallsList().addAll(completed.getCallsList());
+                                if (((MethodCallExpression)newCurrent.getMainMethod()).getSubject().getType().equals(
+                                        ((MethodCallExpression)completed.getMainMethod()).getSubject().getType()
+                                )) {
+                                    for (Parameter parameter : completed.getFields().all()) {
+                                        newCurrent.getFields().add(parameter);
+                                    }
+                                }
+
+
+//                                newCurrent.getFields().all().addAll(completed.getFields().all());
+                            } else {
+                                if (callStack.size() > 0) {
+                                    logger.warn("inconsistent call stack state, flushing calls list");
+                                    callStack.clear();
+
+                                }
                             }
 
                             if (completed.getTestSubject() != null) {
