@@ -2,14 +2,15 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
-import com.j256.ormlite.field.DataType;
+import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @DatabaseTable(tableName = "method_call")
 public class MethodCallExpression {
@@ -17,8 +18,8 @@ public class MethodCallExpression {
     @DatabaseField(id = true)
     private long id;
 
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private Long[] arguments = new Long[0];
+    @DatabaseField
+    private String arguments;
     @DatabaseField
     private String methodName;
     @DatabaseField
@@ -36,8 +37,8 @@ public class MethodCallExpression {
     private int callStack;
     @DatabaseField
     private int methodAccess;
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private Long[] argumentProbes;
+    @DatabaseField
+    private String argumentProbes;
     @DatabaseField
     private long returnDataEvent;
 
@@ -48,12 +49,12 @@ public class MethodCallExpression {
     public MethodCallExpression(
             String methodName,
             Parameter subject,
-            Long[] arguments,
+            List<Long> arguments,
             Parameter returnValue
     ) {
         this.methodName = methodName;
         this.subject = subject;
-        this.arguments = arguments;
+        this.arguments = Strings.join(arguments, ",");
         this.returnValue = returnValue;
     }
 
@@ -65,9 +66,10 @@ public class MethodCallExpression {
         MethodCallExpression methodCallExpression1 = new MethodCallExpression(
                 methodCallExpression.getMethodName(),
                 Parameter.fromParameter(methodCallExpression.getSubject()),
-                methodCallExpression.getArguments().stream()
+                methodCallExpression.getArguments()
+                        .stream()
                         .map(e1 -> (long) e1.getValue())
-                        .toArray(Long[]::new),
+                        .collect(Collectors.toList()),
                 Parameter.fromParameter(methodCallExpression.getReturnValue())
         );
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
@@ -77,7 +79,7 @@ public class MethodCallExpression {
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
-                .stream().map(DataEventWithSessionId::getNanoTime).toArray(Long[]::new));
+                .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
         }
@@ -129,11 +131,19 @@ public class MethodCallExpression {
         this.subject = testSubject;
     }
 
-    public Long[] getArguments() {
-        return arguments;
+    public List<Long> getArguments() {
+        if (arguments == null || arguments.length() < 1) {
+            return List.of();
+        }
+        List<Long> argumentList = new LinkedList<>();
+        String[] args = arguments.split(",");
+        for (String arg : args) {
+            argumentList.add(Long.valueOf(arg));
+        }
+        return argumentList;
     }
 
-    public void setArguments(Long[] arguments) {
+    public void setArguments(String arguments) {
         this.arguments = arguments;
     }
 
@@ -209,12 +219,20 @@ public class MethodCallExpression {
         this.methodAccess = methodAccess;
     }
 
-    public Long[] getArgumentProbes() {
-        return argumentProbes;
+    public List<Long> getArgumentProbes() {
+        if (argumentProbes == null || argumentProbes.length() < 1) {
+            return List.of();
+        }
+        List<Long> argsProbeList = new LinkedList<>();
+        String[] probeIds = argumentProbes.split(",");
+        for (String probeId : probeIds) {
+            argsProbeList.add(Long.valueOf(probeId));
+        }
+        return argsProbeList;
     }
 
-    public void setArgumentProbes(Long[] argumentProbes) {
-        this.argumentProbes = argumentProbes;
+    public void setArgumentProbes(List<Long> argumentProbes) {
+        this.argumentProbes = Strings.join(argumentProbes, ",");
     }
 
     public long getReturnDataEvent() {

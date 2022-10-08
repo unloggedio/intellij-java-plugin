@@ -3,9 +3,7 @@ package com.insidious.plugin.factory.testcase.routine;
 import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
@@ -88,9 +86,12 @@ public class ObjectRoutine {
         scriptContainer.addException(Exception.class);
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
+        VariableContainer variableContainer = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
+            VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
+            variableContainer.all().addAll(candidateVariables.all());
             ObjectRoutineScript script = CandidateMetadataFactory.toObjectScript(
-                    testCandidateMetadata, scriptContainer.getCreatedVariables());
+                    testCandidateMetadata, variableContainer);
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 

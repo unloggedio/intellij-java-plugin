@@ -129,11 +129,11 @@ public class DaoService {
 
         }
 
-        Long[] argumentParameters = dbMce.getArguments();
-        Long[] argumentProbes = dbMce.getArgumentProbes();
-        for (int i = 0; i < argumentParameters.length; i++) {
-            Long argumentParameter = argumentParameters[i];
-            DataEventWithSessionId dataEvent = getDataEventById(argumentProbes[i]);
+        List<Long> argumentParameters = dbMce.getArguments();
+        List<Long> argumentProbes = dbMce.getArgumentProbes();
+        for (int i = 0; i < argumentParameters.size(); i++) {
+            Long argumentParameter = argumentParameters.get(i);
+            DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
 
             com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
             if (argument == null) {
