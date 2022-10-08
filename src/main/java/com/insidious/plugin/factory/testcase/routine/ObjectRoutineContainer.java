@@ -140,8 +140,8 @@ public class ObjectRoutineContainer {
         if (mce.getReturnValue() != null && mce.getReturnValue().getType() != null && mce.getReturnValue().getType().startsWith(className)) {
             dependentImports.add(mce.getSubject());
         }
-        if (mce.getArguments() != null && mce.getArguments().all() != null) {
-            for (Parameter parameter : mce.getArguments().all()) {
+        if (mce.getArguments() != null && mce.getArguments() != null) {
+            for (Parameter parameter : mce.getArguments()) {
                 if (parameter.getType() != null && parameter.getType().startsWith(className)) {
                     dependentImports.add(parameter);
                 }
@@ -206,9 +206,7 @@ public class ObjectRoutineContainer {
 
             MethodCallExpression.in(builderMethodScript).writeExpression(
                     new MethodCallExpression("injectField", null,
-                            VariableContainer.from(List.of(
-                                    mainSubject, parameter
-                            )), null, 0)).endStatement();
+                            List.of(mainSubject, parameter), null, 0)).endStatement();
 
         }
 

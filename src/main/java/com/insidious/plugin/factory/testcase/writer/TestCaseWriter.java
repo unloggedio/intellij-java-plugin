@@ -6,6 +6,8 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public class TestCaseWriter {
 
 //    public static void createMethodCallComment(
@@ -64,13 +66,13 @@ public class TestCaseWriter {
 
 
     @NotNull
-    public static String createMethodParametersString(VariableContainer variableContainer) {
-        if (variableContainer == null || variableContainer.all() == null) {
+    public static String createMethodParametersString(List<Parameter> variableContainer) {
+        if (variableContainer == null) {
             return "";
         }
         StringBuilder parameterStringBuilder = new StringBuilder();
 
-        for (int i = 0; i < variableContainer.count(); i++) {
+        for (int i = 0; i < variableContainer.size(); i++) {
             Parameter parameter = variableContainer.get(i);
 
             if (i > 0) {
@@ -98,13 +100,13 @@ public class TestCaseWriter {
 
     @NotNull
     public static String
-    createMethodParametersStringMock(VariableContainer variableContainer) {
-        if (variableContainer == null || variableContainer.all() == null) {
+    createMethodParametersStringMock(List<Parameter> variableContainer) {
+        if (variableContainer == null) {
             return "";
         }
         StringBuilder parameterStringBuilder = new StringBuilder();
 
-        for (int i = 0; i < variableContainer.count(); i++) {
+        for (int i = 0; i < variableContainer.size(); i++) {
             Parameter parameter = variableContainer.get(i);
 
             if (i > 0) {

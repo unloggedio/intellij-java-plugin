@@ -1,11 +1,10 @@
 package com.insidious.plugin.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.weaver.*;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.*;
@@ -29,9 +28,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class VideobugNetworkClient implements VideobugClientInterface {

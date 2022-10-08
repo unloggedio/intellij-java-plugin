@@ -34,7 +34,7 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression MethodCallExpression(String methodName, Parameter subjectParameter,
                                                             VariableContainer from, Parameter callReturnParameter) {
-        return new MethodCallExpression(methodName, subjectParameter, from, callReturnParameter, 0);
+        return new MethodCallExpression(methodName, subjectParameter, from.all(), callReturnParameter, 0);
     }
 
     public static Expression PlainValueExpression(String value) {
@@ -88,9 +88,7 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        return new MethodCallExpression(
-                "mock", MockitoClass,
-                VariableContainer.from(List.of(whenExpression)), null, 0);
+        return new MethodCallExpression("mock", MockitoClass, List.of(whenExpression), null, 0);
 
     }
 
@@ -104,9 +102,7 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        return new MethodCallExpression(
-                "mockStatic", MockitoClass,
-                VariableContainer.from(List.of(whenExpression)), null, 0);
+        return new MethodCallExpression("mockStatic", MockitoClass, List.of(whenExpression), null, 0);
 
     }
 
@@ -114,9 +110,7 @@ public class MethodCallExpressionFactory {
 
         // new $T()
 
-        return new MethodCallExpression(
-                "<init>", null,
-                VariableContainer.from(List.of()), targetClassname, 0);
+        return new MethodCallExpression("<init>", null, List.of(), targetClassname, 0);
 
     }
 

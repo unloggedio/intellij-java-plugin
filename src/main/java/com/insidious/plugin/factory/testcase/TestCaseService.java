@@ -457,7 +457,6 @@ public class TestCaseService {
                 .filter(e -> e instanceof MethodCallExpression)
                 .map(e -> (MethodCallExpression) e)
                 .map(MethodCallExpression::getArguments)
-                .map(VariableContainer::all)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toCollection(LinkedList::new));
     }
@@ -486,9 +485,7 @@ public class TestCaseService {
         Parameter parameter = testCaseRequest.getTargetParameter();
 
 
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(
-                null
-        );
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(null);
         if (parameter.getName() != null) {
             objectRoutineContainer.setName(parameter.getName());
         }

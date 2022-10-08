@@ -98,7 +98,7 @@ public class PendingStatement {
                         && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
 
 
-                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+                    List<? extends Parameter> variables = methodCallExpression.getArguments();
 
                     Parameter objectToDeserialize = variables.get(0);
 
@@ -133,7 +133,7 @@ public class PendingStatement {
                         && methodCallExpression.getSubject() == null) {
 
 
-                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+                    List<? extends Parameter> variables = methodCallExpression.getArguments();
 
 
                     Parameter injectionTarget = variables.get(0);
@@ -152,7 +152,7 @@ public class PendingStatement {
                         && methodCallExpression.getSubject() == null) {
 
 
-                    List<? extends Parameter> variables = methodCallExpression.getArguments().all();
+                    List<? extends Parameter> variables = methodCallExpression.getArguments();
 
                     statementBuilder.append(".$L($T.class)");
                     statementParameters.add(methodCallExpression.getMethodName());

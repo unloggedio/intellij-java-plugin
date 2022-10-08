@@ -2054,7 +2054,7 @@ public class SessionInstance {
 
                             currentCallId++;
                             MethodCallExpression methodCallExpression = new MethodCallExpression(
-                                    nameFromProbe, existingParameter, new VariableContainer(), null, callStack.size()
+                                    nameFromProbe, existingParameter, new LinkedList<>(), null, callStack.size()
                             );
                             methodCallExpression.setEntryProbeInfo(probeInfo);
                             methodCallExpression.setEntryProbe(dataEvent);
@@ -2137,7 +2137,7 @@ public class SessionInstance {
 
                                 currentCallId++;
                                 methodCall = new MethodCallExpression(
-                                        methodInfo.getMethodName(), existingParameter, new VariableContainer(), null,
+                                        methodInfo.getMethodName(), existingParameter, new LinkedList<>(), null,
                                         callStack.size());
 
                                 saveProbe = true;
@@ -2173,9 +2173,7 @@ public class SessionInstance {
 
                             EventType entryProbeEventType = methodExpression.getEntryProbeInfo().getEventType();
                             if (entryProbeEventType == EventType.CALL) {
-
-                                methodExpression.getArguments().getParametersById(existingParameter.getProb().getValue());
-
+                                // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
                                 methodExpression.addArgument(existingParameter);
                                 methodExpression.addArgumentProbe(dataEvent);
@@ -2277,7 +2275,6 @@ public class SessionInstance {
 
                             if (entryProbeEventType == EventType.CALL) {
                                 // we dont pop it here, wait for the CALL_RETURN to pop the call
-
 
                             } else if (entryProbeEventType == EventType.METHOD_ENTRY ||
                                     probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
@@ -2469,7 +2466,7 @@ public class SessionInstance {
             return;
         }
         writer.writeBytes("\t" + mainMethod.getReturnValue() + " = " + mainMethod.getSubject().getName() + "." + mainMethod.getMethodName() + "(" +
-                Strings.join(mainMethod.getArguments().all().stream().map(Parameter::getName).collect(Collectors.toList()), ", ") +
+                Strings.join(mainMethod.getArguments().stream().map(Parameter::getName).collect(Collectors.toList()), ", ") +
                 ")\n");
 //        writer.writeBytes("Arguments: " + mainMethod.getArguments().all().size() + "\n");
 //        for (Parameter parameter : mainMethod.getArguments().all()) {
@@ -2483,7 +2480,7 @@ public class SessionInstance {
 
         for (MethodCallExpression methodCallExpression : callsToMock) {
             String methodName = methodCallExpression.getMethodName();
-            @NotNull String paramString = Strings.join(methodCallExpression.getArguments().all().stream().map(Parameter::getName).collect(Collectors.toList()), ", ");
+            @NotNull String paramString = Strings.join(methodCallExpression.getArguments().stream().map(Parameter::getName).collect(Collectors.toList()), ", ");
             if (methodCallExpression.getReturnValue() != null) {
                 writer.writeBytes("\t" + methodCallExpression.getReturnValue().getName() + " = ");
             } else {

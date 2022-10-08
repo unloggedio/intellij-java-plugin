@@ -21,7 +21,7 @@ import java.util.Optional;
 public class MethodCallExpression implements Expression {
 
     private int callStack;
-    private VariableContainer arguments;
+    private List<Parameter> arguments;
     private String methodName;
     private boolean isStaticCall;
     private Parameter subject;
@@ -63,7 +63,7 @@ public class MethodCallExpression implements Expression {
     public MethodCallExpression(
             String methodName,
             Parameter subject,
-            VariableContainer arguments,
+            List<Parameter> arguments,
             Parameter returnValue,
             int size) {
         this.methodName = methodName;
@@ -85,7 +85,7 @@ public class MethodCallExpression implements Expression {
         this.subject = testSubject;
     }
 
-    public VariableContainer getArguments() {
+    public List<Parameter> getArguments() {
         return arguments;
     }
 
@@ -133,11 +133,11 @@ public class MethodCallExpression implements Expression {
                 "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
                 Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
 
-        VariableContainer arguments = getArguments();
-        if (arguments != null && arguments.count() > 0) {
+        List<Parameter> arguments = getArguments();
+        if (arguments != null && arguments.size() > 0) {
 
             objectRoutineScript.addComment("");
-            for (Parameter parameter : arguments.all()) {
+            for (Parameter parameter : arguments) {
                 if (parameter.getName() == null &&
                         parameter.getProb() != null &&
                         parameter.getProb().getSerializedValue().length > 0
@@ -158,7 +158,7 @@ public class MethodCallExpression implements Expression {
 
 //
         if (getArguments() != null) {
-            for (Parameter parameter : getArguments().all()) {
+            for (Parameter parameter : getArguments()) {
                 in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
             }
         }
@@ -306,9 +306,9 @@ public class MethodCallExpression implements Expression {
             }
         }
 
-        VariableContainer argsContainer = getArguments();
-        if (argsContainer != null && argsContainer.all() != null) {
-            for (Parameter argument : argsContainer.all()) {
+        List<Parameter> argsContainer = getArguments();
+        if (argsContainer != null) {
+            for (Parameter argument : argsContainer) {
                 if (argument.getName() != null) {
 
                     if (
@@ -334,8 +334,8 @@ public class MethodCallExpression implements Expression {
             } else {
                 MethodCallExpression createrExpression = returnValue.getCreatorExpression();
 
-                VariableContainer arguments = createrExpression.getArguments();
-                for (Parameter parameter : arguments.all()) {
+                List<Parameter> arguments = createrExpression.getArguments();
+                for (Parameter parameter : arguments) {
                     in(objectRoutine)
                             .assignVariable(parameter)
                             .fromRecordedValue()

@@ -8,6 +8,8 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
 
+import java.util.LinkedList;
+
 public class MockFactory {
 
     public static TestCandidateMetadata createParameterMock(Parameter callSubject) {
@@ -120,7 +122,7 @@ public class MockFactory {
 
 
         testCandidateMetadata.setMainMethod(
-                new MethodCallExpression("<init>", dependentParameter, new VariableContainer(),
+                new MethodCallExpression("<init>", dependentParameter, new LinkedList<>(),
                         dependentParameter, 0));
 
 //        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());

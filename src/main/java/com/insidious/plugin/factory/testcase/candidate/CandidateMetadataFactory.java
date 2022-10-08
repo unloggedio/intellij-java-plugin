@@ -86,7 +86,7 @@ public class CandidateMetadataFactory {
                             .append(".")
                             .append(methodCallExpression.getMethodName());
 
-                    for (Parameter parameter : methodCallExpression.getArguments().all()) {
+                    for (Parameter parameter : methodCallExpression.getArguments()) {
                         callBuilder.append(parameter.getValue());
                     }
 
@@ -389,7 +389,7 @@ public class CandidateMetadataFactory {
 
         MethodCallExpression mainMethodExpression = new MethodCallExpression(
                 targetMethodName, metadata.getTestSubject(),
-                methodArguments, returnParameter, 0);
+                methodArguments.all(), returnParameter, 0);
 
         if (mainMethodExpression.getReturnValue().getName() == null
                 && !methodName.equals("<init>")) {

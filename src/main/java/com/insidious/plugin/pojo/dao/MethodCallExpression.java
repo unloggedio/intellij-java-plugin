@@ -9,6 +9,8 @@ import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
+import java.util.LinkedList;
+
 @DatabaseTable(tableName = "method_call")
 public class MethodCallExpression {
 
@@ -63,7 +65,7 @@ public class MethodCallExpression {
         MethodCallExpression methodCallExpression1 = new MethodCallExpression(
                 methodCallExpression.getMethodName(),
                 Parameter.fromParameter(methodCallExpression.getSubject()),
-                methodCallExpression.getArguments().all().stream()
+                methodCallExpression.getArguments().stream()
                         .map(e1 -> (long) e1.getValue())
                         .toArray(Long[]::new),
                 Parameter.fromParameter(methodCallExpression.getReturnValue())
@@ -84,7 +86,7 @@ public class MethodCallExpression {
 
     public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpression methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
-                methodCallExpression.getMethodName(), null, new VariableContainer(), null, 0
+                methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
         );
         methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
