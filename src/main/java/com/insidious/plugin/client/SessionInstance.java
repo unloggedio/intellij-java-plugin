@@ -2225,15 +2225,7 @@ public class SessionInstance {
 
 
                             TestCandidateMetadata completedExceptional = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
-                            if (testCandidateMetadataStack.size() > 0) {
-                                TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
-                                newCurrent.getFields().all().addAll(completedExceptional.getFields().all());
-                            } else {
-                                if (callStack.size() > 0) {
-                                    logger.warn("inconsistent call stack state, flushing calls list");
-                                }
-                            }
+
                             completedExceptional.setExitProbeIndex(instructionIndex);
                             if (completedExceptional.getMainMethod() != null) {
                                 DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
@@ -2245,6 +2237,25 @@ public class SessionInstance {
                             }
                             if (completedExceptional.getMainMethod() != null) {
                                 completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
+                            }
+
+
+                            if (testCandidateMetadataStack.size() > 0) {
+                                TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+                                newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
+
+                                if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject().getType().equals(
+                                        ((MethodCallExpression) completedExceptional.getMainMethod()).getSubject().getType()
+                                )) {
+                                    for (Parameter parameter : completedExceptional.getFields().all()) {
+                                        newCurrent.getFields().add(parameter);
+                                    }
+                                }
+
+                            } else {
+                                if (callStack.size() > 0) {
+                                    logger.warn("inconsistent call stack state, flushing calls list");
+                                }
                             }
 
                             if (completedExceptional.getTestSubject() != null) {
@@ -2305,8 +2316,8 @@ public class SessionInstance {
                             if (testCandidateMetadataStack.size() > 0) {
                                 TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
                                 newCurrent.getCallsList().addAll(completed.getCallsList());
-                                if (((MethodCallExpression)newCurrent.getMainMethod()).getSubject().getType().equals(
-                                        ((MethodCallExpression)completed.getMainMethod()).getSubject().getType()
+                                if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject().getType().equals(
+                                        ((MethodCallExpression) completed.getMainMethod()).getSubject().getType()
                                 )) {
                                     for (Parameter parameter : completed.getFields().all()) {
                                         newCurrent.getFields().add(parameter);
