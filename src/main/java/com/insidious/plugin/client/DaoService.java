@@ -88,7 +88,7 @@ public class DaoService {
         converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getId()));
 
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
-        Long[] calls = testCandidateMetadata.getCallsList();
+        List<Long> calls = testCandidateMetadata.getCallsList();
 
         for (Long call : calls) {
             com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
@@ -98,7 +98,7 @@ public class DaoService {
             callsList.add(methodCallExpressionById);
         }
 
-        Long[] fieldParameters = testCandidateMetadata.getFields();
+        List<Long> fieldParameters = testCandidateMetadata.getFields();
         for (Long fieldParameterValue : fieldParameters) {
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
             converted.getFields().add(fieldParameter);

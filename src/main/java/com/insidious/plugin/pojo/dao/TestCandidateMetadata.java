@@ -1,16 +1,20 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.j256.ormlite.field.DataType;
+import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 
 @DatabaseTable(tableName = "test_candidate")
 public class TestCandidateMetadata {
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private Long[] methodCallExpressions = new Long[0];
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private Long[] fields = new Long[0];
+    @DatabaseField
+    private String methodCallExpressions;
+    @DatabaseField
+    private String fields;
     @DatabaseField(foreign = true)
     private MethodCallExpression mainMethod;
     @DatabaseField(foreign = true)
@@ -21,17 +25,17 @@ public class TestCandidateMetadata {
     private int entryProbeIndex;
     @DatabaseField
     private int exitProbeIndex;
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private Long[] variables = new Long[0];
+    @DatabaseField
+    private String variables;
 
     public static TestCandidateMetadata FromTestCandidateMetadata(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
         TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
         newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(
-                com.insidious.plugin.pojo.MethodCallExpression::getId).toArray(Long[]::new));
+                com.insidious.plugin.pojo.MethodCallExpression::getId).collect(Collectors.toList()));
 
         newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-                .map(e -> (long) e.getValue()).toArray(Long[]::new));
+                .map(e -> (long) e.getValue()).collect(Collectors.toList()));
 
         newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
 
@@ -39,7 +43,7 @@ public class TestCandidateMetadata {
                 testCandidateMetadata.getMainMethod()));
 
         newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
+                .stream().map(e -> (long) e.getValue()).collect(Collectors.toList()));
 
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(Math.toIntExact(testCandidateMetadata.getEntryProbeIndex()));
@@ -93,20 +97,20 @@ public class TestCandidateMetadata {
         this.mainMethod = mainMethod;
     }
 
-    public Long[] getFields() {
-        return fields;
+    public List<Long> getFields() {
+        return Arrays.stream(fields.split(",")).map(Long::valueOf).collect(Collectors.toList());
     }
 
-    public void setFields(Long[] fields) {
-        this.fields = fields;
+    public void setFields(List<Long> fields) {
+        this.fields = Strings.join(fields, ",");
     }
 
-    public void setCallList(Long[] callsList) {
-        this.methodCallExpressions = callsList;
+    public void setCallList(List<Long> callsList) {
+        this.methodCallExpressions = Strings.join(callsList, ",");
     }
 
     public String getFullyQualifiedClassname() {
-        return ((com.insidious.plugin.pojo.dao.MethodCallExpression) getMainMethod()).getSubject().getType();
+        return getMainMethod().getSubject().getType();
     }
 
     public Parameter getTestSubject() {
@@ -125,8 +129,8 @@ public class TestCandidateMetadata {
         this.callTimeNanoSecond = callTimeNanoSecond;
     }
 
-    public Long[] getCallsList() {
-        return methodCallExpressions;
+    public List<Long> getCallsList() {
+        return Arrays.stream(methodCallExpressions.split(",")).map(Long::valueOf).collect(Collectors.toList());
     }
 
     @Override
@@ -151,12 +155,12 @@ public class TestCandidateMetadata {
         this.entryProbeIndex = entryProbeIndex;
     }
 
-    public Long[] getVariables() {
-        return variables;
+    public List<Long> getVariables() {
+        return Arrays.stream(variables.split(",")).map(Long::valueOf).collect(Collectors.toList());
     }
 
-    public void setVariables(Long[] variables) {
-        this.variables = variables;
+    public void setVariables(List<Long> variables) {
+        this.variables = Strings.join(variables, ",");
     }
 }
 
