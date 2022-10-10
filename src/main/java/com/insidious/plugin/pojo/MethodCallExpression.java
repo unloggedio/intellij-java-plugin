@@ -379,7 +379,10 @@ public class MethodCallExpression implements Expression {
 
     public boolean isMethodPublic() {
         return (methodAccess & Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC;
+    }
 
+    public boolean isMethodProtected() {
+        return (methodAccess & Opcodes.ACC_PROTECTED) == Opcodes.ACC_PROTECTED;
     }
 
     public int getMethodAccess() {

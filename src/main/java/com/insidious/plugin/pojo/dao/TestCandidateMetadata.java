@@ -98,6 +98,9 @@ public class TestCandidateMetadata {
     }
 
     public List<Long> getFields() {
+        if (fields == null || fields.length() < 1) {
+            return List.of();
+        }
         return Arrays.stream(fields.split(",")).map(Long::valueOf).collect(Collectors.toList());
     }
 

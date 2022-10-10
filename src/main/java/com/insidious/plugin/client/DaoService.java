@@ -92,10 +92,9 @@ public class DaoService {
 
         for (Long call : calls) {
             com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
-            if (!methodCallExpressionById.isMethodPublic()) {
-                continue;
+            if (methodCallExpressionById.isMethodPublic() || methodCallExpressionById.isMethodProtected()) {
+                callsList.add(methodCallExpressionById);
             }
-            callsList.add(methodCallExpressionById);
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
