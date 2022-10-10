@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 public class CandidateMetadataFactory {
+    public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
+
     public static ObjectRoutineScript toObjectScript(
             TestCandidateMetadata testCandidateMetadata,
             VariableContainer createdVariables
@@ -65,6 +67,7 @@ public class CandidateMetadataFactory {
                     methodCallExpression.writeCommentTo(objectRoutineScript);
                     methodCallExpression.writeMockTo(objectRoutineScript);
                     mockedCalls.put(mainMethod.getMethodName(), methodCallExpression);
+                    objectRoutineScript.addComment("");
                 }
                 objectRoutineScript.addComment("");
                 objectRoutineScript.addComment("");
@@ -137,8 +140,6 @@ public class CandidateMetadataFactory {
         return objectRoutineScript;
 
     }
-
-    public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
 
     public static TestCandidateMetadata create(
             List<String> typeHierarchy,

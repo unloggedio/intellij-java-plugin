@@ -4,7 +4,6 @@ import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
@@ -13,10 +12,10 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
+import com.squareup.javapoet.ClassName;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 
 public class MethodCallExpression implements Expression {
 
@@ -38,28 +37,6 @@ public class MethodCallExpression implements Expression {
     }
 
 
-    public int getCallStack() {
-        return callStack;
-    }
-
-    public void setCallStack(int callStack) {
-        this.callStack = callStack;
-    }
-
-
-    public ProbeInfo getEntryProbeInfo() {
-        return entryProbeInfo;
-    }
-
-    public void setEntryProbeInfo(DataInfo entryProbeInfo) {
-        this.entryProbeInfo = ProbeInfo.FromProbeInfo(entryProbeInfo);
-    }
-
-    public void setStaticCall(boolean staticCall) {
-        isStaticCall = staticCall;
-    }
-
-
     public MethodCallExpression(
             String methodName,
             Parameter subject,
@@ -75,6 +52,22 @@ public class MethodCallExpression implements Expression {
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
         return new PendingStatement(objectRoutine);
+    }
+
+    public int getCallStack() {
+        return callStack;
+    }
+
+    public void setCallStack(int callStack) {
+        this.callStack = callStack;
+    }
+
+    public ProbeInfo getEntryProbeInfo() {
+        return entryProbeInfo;
+    }
+
+    public void setEntryProbeInfo(DataInfo entryProbeInfo) {
+        this.entryProbeInfo = ProbeInfo.FromProbeInfo(entryProbeInfo);
     }
 
     public Parameter getSubject() {
@@ -178,7 +171,6 @@ public class MethodCallExpression implements Expression {
         }
 
 
-
         String returnSubjectInstanceName = mainMethodReturnValue.getName();
 
 
@@ -230,7 +222,7 @@ public class MethodCallExpression implements Expression {
         VariableContainer variableContainer = objectRoutine.getCreatedVariables();
         Parameter returnValue = getReturnValue();
         Parameter exception = getException();
-//        String callArgumentsString = createMethodParametersString(getArguments());
+        String callArgumentsString = getArguments().size() + " arguments";
 
 
         if (returnValue != null) {
@@ -260,17 +252,18 @@ public class MethodCallExpression implements Expression {
             }
 
 
-//            objectRoutine.addComment(
-//                    returnValue.getType() + " " + returnValue.getName() + " = " +
-//                            getSubject().getName() + "." + getMethodName() +
-//                            "(" + callArgumentsString + "); // ==> "
-//                            + returnValue.getProb().getSerializedValue().length);
+            String returnValueType = ClassName.bestGuess(returnValue.getType()).simpleName();
+            objectRoutine.addComment(
+                    returnValueType + " " + returnValue.getName() + " = " +
+                            getSubject().getName() + "." + getMethodName() +
+                            "(" + callArgumentsString + "); // ==> "
+                            + returnValue.getProb().getSerializedValue().length);
         } else if (exception != null) {
-//            objectRoutine.addComment(
-//                    getSubject().getName() + "." +
-//                            getMethodName() +
-//                            "(" + callArgumentsString + ");" +
-//                            " // ==>  throws exception " + exception.getType());
+            objectRoutine.addComment(
+                    getSubject().getName() + "." +
+                            getMethodName() +
+                            "(" + callArgumentsString + ");" +
+                            " // ==>  throws exception " + exception.getType());
         }
     }
 
@@ -365,16 +358,16 @@ public class MethodCallExpression implements Expression {
         return isStaticCall;
     }
 
-    public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryProbe = entryProbe;
+    public void setStaticCall(boolean staticCall) {
+        isStaticCall = staticCall;
     }
 
     public DataEventWithSessionId getEntryProbe() {
         return entryProbe;
     }
 
-    public void setMethodAccess(int methodAccess) {
-        this.methodAccess = methodAccess;
+    public void setEntryProbe(DataEventWithSessionId entryProbe) {
+        this.entryProbe = entryProbe;
     }
 
     public boolean isMethodPublic() {
@@ -389,20 +382,24 @@ public class MethodCallExpression implements Expression {
         return methodAccess;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setMethodAccess(int methodAccess) {
+        this.methodAccess = methodAccess;
     }
 
     public long getId() {
         return id;
     }
 
-    public void setArgumentProbes(List<DataEventWithSessionId> argumentProbes) {
-        this.argumentProbes = argumentProbes;
+    public void setId(long id) {
+        this.id = id;
     }
 
     public List<DataEventWithSessionId> getArgumentProbes() {
         return argumentProbes;
+    }
+
+    public void setArgumentProbes(List<DataEventWithSessionId> argumentProbes) {
+        this.argumentProbes = argumentProbes;
     }
 
     public void addArgument(Parameter existingParameter) {
@@ -413,11 +410,11 @@ public class MethodCallExpression implements Expression {
         argumentProbes.add(dataEvent);
     }
 
-    public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
-        this.returnDataEvent = returnDataEvent;
-    }
-
     public DataEventWithSessionId getReturnDataEvent() {
         return returnDataEvent;
+    }
+
+    public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
+        this.returnDataEvent = returnDataEvent;
     }
 }
