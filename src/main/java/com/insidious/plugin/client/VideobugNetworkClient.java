@@ -13,11 +13,13 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.Project;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -703,6 +705,11 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public SessionInstance getSessionInstance() {
+        return null;
+    }
+
+    @Override
+    public TestCaseService getSessionTestCaseService(Project project, ExecutionSession session) {
         return null;
     }
 

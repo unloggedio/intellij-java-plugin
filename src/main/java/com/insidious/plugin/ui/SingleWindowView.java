@@ -54,8 +54,6 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
         mainTree.addTreeExpansionListener(SingleWindowView.this);
         mainTree.addTreeWillExpandListener(SingleWindowView.this);
         mainTree.addTreeSelectionListener(SingleWindowView.this);
-
-//        mainPanel.remove(detailedView);
         treeModel = new VideobugTreeModel(insidiousService);
         mainTree.setModel(treeModel);
 
@@ -63,9 +61,9 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
         cellRenderer = new VideobugTreeCellRenderer(insidiousService);
 
         mainTree.setCellRenderer(cellRenderer);
-        resultPanel.setDividerLocation(0.99d);
         TreeUtil.installActions(mainTree);
 
+        resultPanel.setDividerLocation(0.99d);
         constraints = new GridConstraints();
         constraints.setFill(GridConstraints.FILL_BOTH);
 
@@ -94,7 +92,6 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
     @Override
     public void treeCollapsed(TreeExpansionEvent event) {
         logger.warn("Tree collapse event - " + event.getPath());
-
     }
 
 
@@ -106,7 +103,6 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
     @Override
     public void treeWillCollapse(TreeExpansionEvent event) throws ExpandVetoException {
         logger.warn("Tree treeWillCollapse event - " + event.getPath());
-
     }
 
     @Override

@@ -13,10 +13,12 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.IOException;
@@ -383,6 +385,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public SessionInstance getSessionInstance() {
         return session;
+    }
+
+    @Override
+    public TestCaseService getSessionTestCaseService(Project project, ExecutionSession session) {
+        return new TestCaseService(project, this);
     }
 
     public String getRootDirectory() {

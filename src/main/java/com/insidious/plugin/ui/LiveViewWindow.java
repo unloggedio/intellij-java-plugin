@@ -12,22 +12,23 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.vfs.VirtualFileSystem;
+import com.intellij.util.ui.tree.TreeUtil;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 
 public class LiveViewWindow {
     private final Project project;
     private final InsidiousService insidiousService;
+    private final NewVideobugTreeModel treeModel;
+    private final VideobugTreeCellRenderer cellRenderer;
     private JButton selectSession;
     private JPanel bottomPanel;
     private JPanel leftSplitContainer;
-    private JTree classHierarchyContainer;
-    private JPanel bottomLeftResultPanel;
-    private JPanel leftControlPanel;
+    private JTree mainTree;
     private JPanel mainPanel;
 
 
@@ -35,38 +36,43 @@ public class LiveViewWindow {
         this.project = project;
         this.insidiousService = insidiousService;
 
-        this.selectSession.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                FileChooserDescriptor goingToChooseASingleFolder = FileChooserDescriptorFactory.createSingleFolderDescriptor();
+        this.selectSession.addActionListener(selectSessionActionListener(project, insidiousService));
 
-                VideobugLocalClient localClient = (VideobugLocalClient) insidiousService.getClient();
+        treeModel = new NewVideobugTreeModel(insidiousService);
+        cellRenderer = new VideobugTreeCellRenderer(insidiousService);
 
+        mainTree.setModel(treeModel);
+        mainTree.setCellRenderer(cellRenderer);
 
-                String sessionRootDirectory = localClient.getRootDirectory();
-//                VirtualFile fileByUrl = VirtualFileManager.getInstance().findFileByUrl(
-//                        sessionRootDirectory
-//                );
-                VirtualFileSystem vfs = VirtualFileManager.getInstance().getFileSystem("C:");
-//                vfs.
-//                goingToChooseASingleFolder.setRoots(fileByUrl);
-                goingToChooseASingleFolder.setTitle("Unlogged");
-                goingToChooseASingleFolder.setDescription("Select session");
+        TreeUtil.installActions(mainTree);
 
-                @Nullable VirtualFile choosenFile = FileChooser.chooseFile(goingToChooseASingleFolder, project, null);
+    }
 
-                ExecutionSession session = new ExecutionSession();
-                session.setSessionId(choosenFile.getName());
-                try {
-                    insidiousService.getClient().setSession(session);
-                } catch (IOException ex) {
-                    InsidiousNotification.notifyMessage("Failed to open session: " + ex.getMessage(), NotificationType.ERROR);
-                }
+    @NotNull
+    private static ActionListener selectSessionActionListener(Project project, InsidiousService insidiousService) {
+        return e -> {
+            FileChooserDescriptor goingToChooseASingleFolder = FileChooserDescriptorFactory.createSingleFolderDescriptor();
+
+            VideobugLocalClient localClient = (VideobugLocalClient) insidiousService.getClient();
 
 
+            String sessionRootDirectory = localClient.getRootDirectory();
+            VirtualFileSystem vfs = VirtualFileManager.getInstance().getFileSystem("C:");
+            goingToChooseASingleFolder.setTitle("Unlogged");
+            goingToChooseASingleFolder.setDescription("Select session");
+
+            @Nullable VirtualFile choosenFile = FileChooser.chooseFile(goingToChooseASingleFolder, project, null);
+
+            ExecutionSession session = new ExecutionSession();
+            session.setSessionId(choosenFile.getName());
+            try {
+                insidiousService.getClient().setSession(session);
+            } catch (IOException ex) {
+                InsidiousNotification.notifyMessage("Failed to open session: " + ex.getMessage(), NotificationType.ERROR);
             }
-        });
 
+
+        };
     }
 
     public JComponent getContent() {
