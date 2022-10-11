@@ -28,9 +28,9 @@ public class InsidiousThreadReference implements ThreadReference {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
-    private final Map<String, DataInfo> dataInfoMap;
-    private final Map<String, ClassInfo> classInfoMap;
-    private final Map<String, StringInfo> stringInfoMap;
+    private final Map<Long, DataInfo> dataInfoMap;
+    private final Map<Long, ClassInfo> classInfoMap;
+    private final Map<Long, StringInfo> stringInfoMap;
     private final Map<String, InsidiousField> typeFieldMap = new HashMap<>();
     private final Map<String, InsidiousClassTypeReference> classTypeMap;
     private final TracePoint tracePoint;
@@ -53,10 +53,10 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("filename", tracePoint.getFilename());
         eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
-        eventProperties.put("probesCount", replayData.getDataInfoMap().size());
+        eventProperties.put("probesCount", replayData.getProbeInfoMap().size());
         eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
-        eventProperties.put("typesCount", replayData.getTypeInfo().size());
-        eventProperties.put("objectsCount", replayData.getObjectInfo().size());
+        eventProperties.put("typesCount", replayData.getTypeInfoMap().size());
+        eventProperties.put("objectsCount", replayData.getObjectInfoMap().size());
         UsageInsightTracker.getInstance().RecordEvent("ConstructThreadReference", eventProperties);
 
         int i = 0;
@@ -71,7 +71,7 @@ public class InsidiousThreadReference implements ThreadReference {
         );
 
 
-        dataInfoMap = this.replayData.getDataInfoMap();
+        dataInfoMap = this.replayData.getProbeInfoMap();
         classInfoMap = this.replayData.getClassInfoMap();
         stringInfoMap = this.replayData.getStringInfoMap();
 
@@ -122,10 +122,10 @@ public class InsidiousThreadReference implements ThreadReference {
             DataInfo probeInfo = dataInfoMap.get(dataId);
             int classId = probeInfo.getClassId();
             ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
-            ObjectInfo objectInfo = this.replayData.getObjectInfo().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo objectInfo = this.replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
             TypeInfo typeInfo = null;
             if (objectInfo != null) {
-                typeInfo = this.replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                typeInfo = this.replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
             }
             long receiverObjectId = 0;
             InsidiousObjectReference receiverObject;
@@ -261,7 +261,7 @@ public class InsidiousThreadReference implements ThreadReference {
                         continue;
                     }
                     DataInfo parentDataInfo
-                            = this.replayData.getDataInfoMap().get(
+                            = this.replayData.getProbeInfoMap().get(
                             Util.getAttribute(probeInfo.getAttributes(), "NewParent", "0"));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
@@ -570,7 +570,7 @@ public class InsidiousThreadReference implements ThreadReference {
             dataValue = stringInfoMap.get(dataValueString);
         } else if (
                 (paramType.startsWith("L")
-                        || replayData.getObjectInfo().containsKey(dataValueString)
+                        || replayData.getObjectInfoMap().containsKey(dataValueString)
                         || objectReferenceMap.containsKey(Long.valueOf(dataValueString))
                 ) && (!paramType.startsWith("Ljava/lang") || paramType.startsWith("Ljava/lang/Object"))
         ) {
@@ -579,10 +579,10 @@ public class InsidiousThreadReference implements ThreadReference {
                 dataValue = objectReferenceMap.get(paramObjectId);
                 return dataValue;
             } else {
-                if (replayData.getObjectInfo().containsKey(dataValueString)) {
+                if (replayData.getObjectInfoMap().containsKey(dataValueString)) {
                     try {
-                        ObjectInfo objectInfo = replayData.getObjectInfo().get(dataValueString);
-                        TypeInfo typeInfo = replayData.getTypeInfo().get(String.valueOf(objectInfo.getTypeId()));
+                        ObjectInfo objectInfo = replayData.getObjectInfoMap().get(dataValueString);
+                        TypeInfo typeInfo = replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
                         if (typeInfo != null) {
                             paramType = typeInfo.getTypeNameFromClass();
                         } else {
@@ -608,10 +608,10 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, InsidiousClassTypeReference> classMap = new HashMap<>();
         Map<String, Map<String, String>> classFieldsMap = new HashMap<>();
 
-        for (Map.Entry<String, ClassInfo> classInfoEntry
+        for (Map.Entry<Long, ClassInfo> classInfoEntry
                 : replayData.getClassInfoMap().entrySet()) {
 
-            Long classId = Long.valueOf(classInfoEntry.getKey());
+            Long classId = classInfoEntry.getKey();
             ClassInfo classInfo = classInfoEntry.getValue();
             List<DataInfo> probes = classInfo.getDataInfoList();
             if (probes == null) {
@@ -695,14 +695,6 @@ public class InsidiousThreadReference implements ThreadReference {
         InsidiousField field = InsidiousField.from(typeName, this.virtualMachine());
         typeFieldMap.put(typeName, field);
         return field;
-    }
-
-    private InsidiousClassTypeReference getClassTypeReference(long classId) {
-        return null;
-    }
-
-    private boolean isNativeType(String className) {
-        return className.startsWith("java.lang") || className.indexOf('.') == -1;
     }
 
     private InsidiousLocalVariable buildLocalVariable(String variableName, DataEventWithSessionId dataEvent, DataInfo probeInfo) {
@@ -1017,14 +1009,13 @@ public class InsidiousThreadReference implements ThreadReference {
 //        UsageInsightTracker.getInstance().RecordEvent("DebugStep", eventProperties);
 
         List<DataEventWithSessionId> dataEvents = replayData.getDataEvents();
-        int currentLineNumber = replayData.getDataInfoMap().get(
-                String.valueOf(dataEvents.get(position).getDataId())).getLine();
+        int currentLineNumber = replayData.getProbeInfo(dataEvents.get(position).getDataId()).getLine();
 
         List<DataEventWithSessionId> subList = dataEvents.subList(position, dataEvents.size());
         if (size < 0) {
             for (int i = position; i < dataEvents.size(); i++) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
-                DataInfo dataInfo = replayData.getDataInfoMap().get
+                DataInfo dataInfo = replayData.getProbeInfoMap().get
                         (String.valueOf(dataEventWithSessionId.getDataId()));
                 if (!EventType.LINE_NUMBER.equals(dataInfo.getEventType())) {
                     continue;
@@ -1038,7 +1029,7 @@ public class InsidiousThreadReference implements ThreadReference {
             for (int i = position; i > 0; i--) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo
-                        = replayData.getDataInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                        = replayData.getProbeInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
                 if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
                     continue;
                 }

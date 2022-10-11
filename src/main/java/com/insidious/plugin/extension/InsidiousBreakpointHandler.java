@@ -68,6 +68,9 @@ public class InsidiousBreakpointHandler extends XBreakpointHandler {
 
     public void removeBreakpoint(@NotNull XBreakpoint breakpoint, List<? extends EventRequest> allBreakpoints) {
         Breakpoint<?> javaBreakpoint = BreakpointManager.getJavaBreakpoint(breakpoint);
+        if (allBreakpoints == null) {
+            return;
+        }
         if (javaBreakpoint != null) {
             List<EventRequest> deleteList = new ArrayList<>();
             for (EventRequest request : allBreakpoints) {

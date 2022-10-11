@@ -12,19 +12,8 @@ public class ExecutionSession {
     private long lastUpdateAt;
     private String projectId;
     private Date createdAt;
-    private String name;
     private String sessionId;
     private String hostname;
-
-    private List<TypeInfo> typeInfoList;
-
-    public List<TypeInfo> getTypeInfoList() {
-        return typeInfoList;
-    }
-
-    public void setTypeInfoList(List<TypeInfo> typeInfoList) {
-        this.typeInfoList = typeInfoList;
-    }
 
     public String getSessionId() {
         return sessionId;
@@ -66,12 +55,10 @@ public class ExecutionSession {
         this.createdAt = createdAt;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+    @Override
+    public String toString() {
+        return "[" + hostname + "] " +
+                sessionId + " - " + createdAt;
     }
 //
 //    public String getId() {

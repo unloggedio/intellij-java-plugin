@@ -6,7 +6,9 @@ import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
+import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
@@ -18,12 +20,10 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
-import com.insidious.plugin.pojo.QueryType;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TracePoint;
-import com.insidious.plugin.ui.ConfigurationWindow;
-import com.insidious.plugin.ui.SearchByTypesWindow;
-import com.insidious.plugin.ui.SearchByValueWindow;
+import com.insidious.plugin.factory.testcase.TestCaseRequest;
+import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
@@ -32,7 +32,6 @@ import com.intellij.credentialStore.Credentials;
 import com.intellij.execution.ProgramRunnerUtil;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.configurations.ConfigurationTypeUtil;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironment;
@@ -45,6 +44,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -54,6 +56,8 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
@@ -61,16 +65,23 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
+import com.intellij.ui.content.ContentManager;
+import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -84,6 +95,7 @@ public class InsidiousService implements Disposable {
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final long pluginSessionId = new Date().getTime();
+    private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private ExecutorService threadPool;
@@ -92,6 +104,7 @@ public class InsidiousService implements Disposable {
     private String packageName = "YOUR.PACKAGE.NAME";
     private SearchByTypesWindow searchByTypesWindow;
     private SearchByValueWindow searchByValueWindow;
+    private SingleWindowView singleWindowView;
     private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
     private InsidiousJDIConnector connector;
@@ -102,7 +115,7 @@ public class InsidiousService implements Disposable {
     private String javaAgentString;
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
-
+    private AboutUsWindow aboutUsWindow;
 
     public InsidiousService(Project project) {
         try {
@@ -119,22 +132,26 @@ public class InsidiousService implements Disposable {
                 logger.info("current module - " + currentModule.getName());
             }
 
-            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
-
-            ReadAction.run(this::getProjectPackageName);
-            threadPool.submit(this::startDebugSession);
-
-            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
-
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
+            this.testCaseService = new TestCaseService(project, client);
+            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+
+            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
+
+            ReadAction.run(this::getProjectPackageName);
+//            threadPool.submit(this::startDebugSession);
+
             ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
+            ReadAction.run(this::initiateUI);
 
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
+        } catch (ProcessCanceledException ignored) {
         } catch (Throwable e) {
+            e.printStackTrace();
             logger.error("exception in videobug service init", e);
         }
     }
@@ -145,7 +162,7 @@ public class InsidiousService implements Disposable {
             final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
 
             @Override
-            public void onNewTracePoints(List<TracePoint> tracePoints) {
+            public void onNewTracePoints(Collection<TracePoint> tracePoints) {
                 if (mostRecentTracePoints.size() > 0) {
                     List<TracePoint> newTracePoints = new LinkedList<>();
                     for (TracePoint tracePoint : tracePoints) {
@@ -270,6 +287,9 @@ public class InsidiousService implements Disposable {
     }
 
     private void getProjectPackageName() {
+        if (currentModule == null) {
+            return;
+        }
         logger.info("looking up package name for the module [" + currentModule.getName() + "]");
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml", GlobalSearchScope.projectScope(project));
         if (pomFileSearchResult.length > 0) {
@@ -312,7 +332,7 @@ public class InsidiousService implements Disposable {
                     String password = credentials.getPasswordAsString();
                     try {
                         if (password != null) {
-                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+//                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
                         }
                     } catch (Exception e) {
                         logger.error("failed to signin", e);
@@ -331,7 +351,6 @@ public class InsidiousService implements Disposable {
         this.client = new VideobugNetworkClient(serverUrl);
         this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
     }
-
 
     public boolean isValidEmailAddress(String email) {
         String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
@@ -472,13 +491,171 @@ public class InsidiousService implements Disposable {
         });
     }
 
-
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
         this.client.createProject(projectName, newProjectCallback);
     }
 
     public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
         this.client.getProjectToken(projectTokenCallback);
+    }
+
+    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
+
+        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+                "Videobug", true) {
+            @Override
+            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
+                TestCaseRequest testCaseRequest = new TestCaseRequest(
+                        List.of(object), List.of(
+                        "com.fasterxml",
+                        "com.google"
+                ), Set.of());
+
+                TestSuite testSuite = null;
+                try {
+                    testSuite = testCaseService.generateTestCase(testCaseRequest);
+                } catch (SessionNotSelectedException e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+                    );
+                }
+                return testSuite;
+            }
+        });
+        if (testSuite == null) {
+            return;
+        }
+        logger.warn("testsuite: \n" + testSuite.toString());
+
+        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+        if (newFile == null) {
+            logger.warn("Test case generated for [" + object + "] but failed to write");
+            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+        } else {
+            InsidiousNotification.notifyMessage(
+                    "Test case saved at [" + newFile.getCanonicalPath() + "]", NotificationType.INFORMATION
+            );
+        }
+
+    }
+
+    public void generateTestCases(List<String> targetClasses) throws Exception {
+
+        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+                "Videobug", true) {
+            @Override
+            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
+
+
+                List<TestCandidate> testCandidateList = new LinkedList<>();
+                BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+
+
+//        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
+
+                SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+
+                List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
+
+                DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+                ExecutionSession session = sessions.getItems().get(0);
+
+                client.getObjectsByType(
+                        searchQuery, session.getSessionId(), new ClientCallBack<>() {
+                            @Override
+                            public void error(ExceptionResponse errorResponse) {
+
+                            }
+
+                            @Override
+                            public void success(Collection<ObjectWithTypeInfo> tracePoints) {
+                                allObjects.addAll(tracePoints);
+                            }
+
+                            @Override
+                            public void completed() {
+                                waiter.offer("done");
+                            }
+                        }
+                );
+                waiter.take();
+
+                if (allObjects.size() == 0) {
+                    InsidiousNotification.notifyMessage("Could not find any instances of [" + targetClasses + "]",
+                            NotificationType.WARNING);
+                }
+
+                TestCaseRequest testRequest = new TestCaseRequest(
+                        allObjects, List.of(
+                        "com.fasterxml",
+                        "com.google"
+                ), Set.of()
+                );
+                TestSuite testSuite = null;
+                try {
+                    testSuite = testCaseService.generateTestCase(testRequest);
+                } catch (SessionNotSelectedException e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+                    );
+                    return null;
+                }
+                return testSuite;
+
+            }
+        });
+        if (testSuite == null) {
+            return;
+        }
+
+        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+        if (newFile == null) {
+            logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
+            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+        }
+
+
+    }
+
+    private @Nullable VirtualFile saveTestSuite(TestSuite testSuite) {
+        File lastFile = null;
+        for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
+            String testOutputDirPath =
+                    project.getBasePath() + "/src/test/java/"
+                            + testCaseScript.getPackageName().replaceAll("\\.", "/");
+            File outputDir = new File(testOutputDirPath);
+            outputDir.mkdirs();
+            File testcaseFile = new File(
+                    testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
+            lastFile = testcaseFile;
+
+            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test case: " + testCaseScript + " -> "
+                                + e.getMessage(), NotificationType.ERROR
+                );
+            }
+
+            @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                    .refreshAndFindFileByUrl(
+                            Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
+            if (newFile == null) {
+                return null;
+            }
+
+
+            FileContentUtil.reparseFiles(project, List.of(newFile), true);
+            @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+
+            FileEditorManager.getInstance(project).openFile(newFile, true, true);
+
+            logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
+            return newFile;
+        }
+        VirtualFileManager.getInstance().syncRefresh();
+        return null;
     }
 
     public void doSearch(SearchQuery searchQuery) throws APICallException, IOException {
@@ -497,7 +674,8 @@ public class InsidiousService implements Disposable {
         eventProperties.put("projectId", client.getCurrentSession().getProjectId());
         UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
 
-        insidiousConfiguration.addSearchQuery(searchQuery.getQuery(), 0);
+        insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+                0);
         searchByValueWindow.updateQueryList();
 
         long start = System.currentTimeMillis();
@@ -506,7 +684,15 @@ public class InsidiousService implements Disposable {
         ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
             public void run(@NotNull ProgressIndicator indicator) {
 
-                List<ExecutionSession> sessionList = client.getSessionList();
+                List<ExecutionSession> sessionList =
+                        null;
+                try {
+                    sessionList = client.fetchProjectSessions().getItems();
+                } catch (APICallException | IOException e) {
+                    InsidiousNotification.notifyMessage("Failed to get " +
+                            "project sessions", NotificationType.ERROR);
+                    return;
+                }
                 if (sessionList.size() > 10) {
                     sessionList = sessionList.subList(0, 10);
                 }
@@ -516,17 +702,21 @@ public class InsidiousService implements Disposable {
                 indicator.setText2("Filtering by class types");
                 AtomicInteger done = new AtomicInteger(0);
 
-                sessionList.forEach(executionSession -> {
+                for (ExecutionSession executionSession : sessionList) {
                     switch (searchQuery.getQueryType()) {
                         case BY_TYPE:
-                            client.queryTracePointsByType(searchQuery, executionSession.getSessionId(), -1, searchResultsHandler);
+                            client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1, searchResultsHandler);
                             break;
                         case BY_VALUE:
                             client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(), searchResultsHandler);
                             break;
+                        case BY_PROBE:
+                            client.queryTracePointsByEventType(searchQuery,
+                                    executionSession.getSessionId(), searchResultsHandler);
+                            break;
                     }
 
-                });
+                }
 
                 while (client instanceof VideobugNetworkClient &&
                         searchResultsHandler.getDoneCount() != sessionList.size()) {
@@ -541,7 +731,8 @@ public class InsidiousService implements Disposable {
                     searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
                 } else {
                     searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                    insidiousConfiguration.addSearchQuery(searchQuery.getQuery(), searchResultsHandler.getResults().size());
+                    insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+                            searchResultsHandler.getResults().size());
                     searchByValueWindow.updateQueryList();
                 }
 
@@ -563,6 +754,9 @@ public class InsidiousService implements Disposable {
 
     private synchronized void startDebugSession() {
         logger.info("start debug session");
+        if (true) {
+            return;
+        }
 
         debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
@@ -631,7 +825,7 @@ public class InsidiousService implements Disposable {
                 if (traceContent != null) {
                     toolWindow.getContentManager().removeContent(traceContent, true);
                 }
-                ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                 ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                 Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(), "Credentials", false);
                 toolWindow.getContentManager().addContent(credentialContent);
@@ -644,48 +838,80 @@ public class InsidiousService implements Disposable {
 
         List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class).getAllSettings();
 
-        for (RunnerAndConfigurationSettings runSetting : allSettings) {
-            logger.info("runner config - " + runSetting.getName());
-
-            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-                String currentVMParams = applicationConfiguration.getVMParameters();
-                String newVmOptions = currentVMParams;
-                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
-                applicationConfiguration.setVMParameters(newVmOptions.trim());
-            }
-        }
+//        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+//            logger.info("runner config - " + runSetting.getName());
+//
+//            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+//                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+//                String currentVMParams = applicationConfiguration.getVMParameters();
+//                String newVmOptions = currentVMParams;
+//                newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, javaAgentString);
+//                applicationConfiguration.setVMParameters(newVmOptions.trim());
+//            }
+//        }
     }
 
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+        if (this.toolWindow == null) {
+            return;
+        }
 
+        ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {
             credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
-            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
-            this.toolWindow.getContentManager().addContent(credentialContent);
+//            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
+//            contentManager.addContent(credentialContent);
+
+            singleWindowView = new SingleWindowView(project, this);
+            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+            contentManager.addContent(singleWindowContent);
+            setupProject();
+            return;
         }
+
+//        Content rawViewContent2 = contentManager.findContent("Raw");
+//        if (rawViewContent2 == null) {
+//        Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+//            contentManager.addContent(singleWindowContent);
+//        }
+
+
         if (isLoggedIn() && searchByTypesWindow == null) {
 
             searchByTypesWindow = new SearchByTypesWindow(project, this);
             searchByValueWindow = new SearchByValueWindow(project, this);
+            singleWindowView = new SingleWindowView(project, this);
+            LiveViewWindow liveViewWindow = new LiveViewWindow(project, this);
+            aboutUsWindow = new AboutUsWindow();
 
-            @NotNull Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
-            this.toolWindow.getContentManager().addContent(bugsContent);
-
+            // create the windows
+            Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
             Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            @NotNull Content logicbugContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            this.toolWindow.getContentManager().addContent(logicbugContent);
+            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(), "About", false);
 
-            Content content = this.toolWindow.getContentManager().findContent("Exceptions");
+
+            Content content = contentManager.findContent("Exceptions");
             if (content == null) {
-                this.toolWindow.getContentManager().addContent(bugsContent);
+                contentManager.addContent(bugsContent);
             }
-            Content traceContent2 = this.toolWindow.getContentManager().findContent("Traces");
+            Content traceContent2 = contentManager.findContent("Traces");
             if (traceContent2 == null) {
-                this.toolWindow.getContentManager().addContent(traceContent);
+                contentManager.addContent(traceContent);
+            }
+
+
+
+            Content liveWindowContent2 = contentManager.findContent("Live");
+            if (liveWindowContent2 == null) {
+//                contentManager.addContent(liveWindowContent);
+            }
+            Content aboutVideobug = contentManager.findContent("About");
+            if (aboutVideobug == null) {
+//                contentManager.addContent(aboutWindowContent);
             }
         }
         if (isLoggedIn() && client.getProject() == null) {
@@ -868,7 +1094,10 @@ public class InsidiousService implements Disposable {
             InsidiousNotification.notifyMessage("No sessions available for module [" + currentModule.getName() + "]", NotificationType.ERROR);
             return;
         }
-        client.setSession(sessions.getItems().get(0));
+        if (client.getCurrentSession() == null || !client.getCurrentSession()
+                .getSessionId().equals(sessions.getItems().get(0).getSessionId())) {
+            client.setSession(sessions.getItems().get(0));
+        }
     }
 
     public void initiateUseLocal() {
@@ -957,5 +1186,9 @@ public class InsidiousService implements Disposable {
         UsageInsightTracker.getInstance().RecordEvent("DiagnosticReport", null);
         DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project, this.currentModule);
         diagnosticService.generateAndUploadReport();
+    }
+
+    public Project getProject() {
+        return project;
     }
 }

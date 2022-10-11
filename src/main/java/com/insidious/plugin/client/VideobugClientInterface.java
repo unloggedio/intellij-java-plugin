@@ -1,18 +1,20 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.cqengine.TypeInfoDocument;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
-import com.insidious.plugin.extension.connector.model.ProjectItem;
-import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.extension.connector.model.ProjectItem;
+import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.pojo.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -32,7 +34,8 @@ public interface VideobugClientInterface {
 
     void getProjectByName(String projectName, GetProjectCallback getProjectCallback);
 
-    ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+    ProjectItem fetchProjectByName(String projectName)
+            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
 
     void createProject(String projectName, NewProjectCallback newProjectCallback);
 
@@ -50,22 +53,30 @@ public interface VideobugClientInterface {
                 .collect(Collectors.toList());
     }
 
-    void queryTracePointsByType(
-            SearchQuery classList,
-            String sessionId, int historyDepth,
-            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback);
+    ClassWeaveInfo getSessionClassWeave(String sessionId);
 
-    void queryTracePointsByValue(SearchQuery value,
-                                 String sessionId,
-                                 GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback);
+    void queryTracePointsByEventType(SearchQuery searchQuery, String sessionid,
+                                     ClientCallBack<TracePoint> tracePointsCallback);
 
-    ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception;
+    ReplayData fetchObjectHistoryByObjectId(
+            FilteredDataEventsRequest request
+    ) throws SessionNotSelectedException;
+
+    void queryTracePointsByTypes(SearchQuery classList, String sessionId, int historyDepth,
+                                 ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
+
+    void queryTracePointsByValue(SearchQuery value, String sessionId,
+                                 ClientCallBack<TracePoint> getProjectSessionErrorsCallback);
+
+    ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException;
+
 
     String getToken();
 
     ProjectItem getProject();
 
-    void setProject(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+    void setProject(String projectName)
+            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
 
     String getEndpoint();
 
@@ -77,5 +88,23 @@ public interface VideobugClientInterface {
 
     void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 
-    List<ExecutionSession> getSessionList();
+
+    void getMethods(String sessionId, Integer typeId,
+                    ClientCallBack<TestCandidate> tracePointsCallback);
+
+    void getObjectsByType(SearchQuery searchQuery, String sessionId,
+                          ClientCallBack<ObjectWithTypeInfo> clientCallBack);
+
+    List<String> getSessionArchiveList(String sessionId);
+
+    void queryTracePointsByProbeIds(
+            SearchQuery searchQuery,
+            String sessionId,
+            ClientCallBack<TracePoint> tracePointsCallback);
+
+    TypeInfo getTypeInfoByName(String sessionId, String type);
+
+    List<TypeInfoDocument> getAllTypes(String sessionId);
+
+    SessionInstance getSessionInstance();
 }

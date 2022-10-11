@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.SignUpCallback;
+import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -13,12 +14,14 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.wm.ToolWindow;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.*;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -47,6 +50,7 @@ public class ConfigurationWindow {
     private JPanel buttonsPanel;
     private JTextField supportEmailAddress;
     private JButton getInTouchButton;
+    private JButton generateTestCases;
     private final InsidiousService insidiousService;
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
@@ -68,6 +72,24 @@ public class ConfigurationWindow {
                 insidiousService.initiateUseLocal();
 //                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
 //                }
+            }
+        });
+
+        generateTestCases.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+
+                    @Nullable String classNamesList =
+                            Messages.showInputDialog("Class names list", "Videobug", null);
+                    if (classNamesList == null || classNamesList.length() == 0) {
+                        return;
+                    }
+
+                    insidiousService.generateTestCases(Arrays.asList(classNamesList.split(",")));
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
 
@@ -174,6 +196,7 @@ public class ConfigurationWindow {
         });
 
     }
+
     public void setErrorLabel(String message) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Messages.showInfoMessage(project, message, "Error");

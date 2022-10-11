@@ -1,0 +1,3821 @@
+{
+  "objectRoutines": [
+    {
+      "statements": [],
+      "routineName": "<init>",
+      "dependentList": [
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "scheduler",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "validator",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "mongoConverter",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "reactiveMongoTemplate",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "repository",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "analyticsService",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "userRepository",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "sessionUserService",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "assetService",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "releaseNotesService",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "featureFlagService",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "userChangedHandler",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "applicationRepository",
+          "statements": []
+        }
+      ],
+      "variableContainer": {
+        "names": [
+          "userDataService",
+          "scheduler",
+          "validator",
+          "mongoConverter",
+          "reactiveMongoTemplate",
+          "repository",
+          "analyticsService",
+          "userRepository",
+          "sessionUserService",
+          "assetService",
+          "releaseNotesService",
+          "featureFlagService",
+          "userChangedHandler",
+          "applicationRepository"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "test<init>",
+          "testSubject": {
+            "value": "308023604",
+            "name": "userDataService",
+            "type": "com.appsmith.server.services.UserDataServiceImpl",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17294,
+              "recordedAt": 3660799767130,
+              "dataId": 91347,
+              "value": 308023604,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 499,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91347,
+              "index": 0,
+              "line": 33,
+              "instructionIndex": 16,
+              "eventType": "METHOD_OBJECT_INITIALIZED",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "returnParameter": {
+            "value": "308023604",
+            "name": "userDataService",
+            "type": "com.appsmith.server.services.UserDataServiceImpl",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17294,
+              "recordedAt": 3660799767130,
+              "dataId": 91347,
+              "value": 308023604,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 499,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91347,
+              "index": 0,
+              "line": 33,
+              "instructionIndex": 16,
+              "eventType": "METHOD_OBJECT_INITIALIZED",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 3038900,
+          "methodName": "<init>",
+          "parameterValues": [
+            {
+              "value": "1840080975",
+              "name": "scheduler",
+              "type": "Lreactor/core/scheduler/Scheduler;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17137,
+                "recordedAt": 3660796735230,
+                "dataId": 91304,
+                "value": 1840080975,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 656,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91304,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "940097020",
+              "name": "validator",
+              "type": "Ljavax/validation/Validator;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17138,
+                "recordedAt": 3660796741930,
+                "dataId": 91305,
+                "value": 940097020,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 655,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91305,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=2",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1899552868",
+              "name": "mongoConverter",
+              "type": "Lorg/springframework/data/mongodb/core/convert/MongoConverter;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17139,
+                "recordedAt": 3660796747830,
+                "dataId": 91306,
+                "value": 1899552868,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 654,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91306,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=3",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1652884090",
+              "name": "reactiveMongoTemplate",
+              "type": "Lorg/springframework/data/mongodb/core/ReactiveMongoTemplate;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17140,
+                "recordedAt": 3660796753830,
+                "dataId": 91307,
+                "value": 1652884090,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 653,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91307,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=4",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "471571945",
+              "name": "repository",
+              "type": "Lcom/appsmith/server/repositories/UserDataRepository;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17141,
+                "recordedAt": 3660797182630,
+                "dataId": 91308,
+                "value": 471571945,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 652,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91308,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=5",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1521405221",
+              "name": "analyticsService",
+              "type": "Lcom/appsmith/server/services/AnalyticsService;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17142,
+                "recordedAt": 3660797239630,
+                "dataId": 91309,
+                "value": 1521405221,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 651,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91309,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=6",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1414456375",
+              "name": "userRepository",
+              "type": "Lcom/appsmith/server/repositories/UserRepository;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17143,
+                "recordedAt": 3660797248330,
+                "dataId": 91310,
+                "value": 1414456375,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 650,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91310,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=7",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "268248785",
+              "name": "sessionUserService",
+              "type": "Lcom/appsmith/server/services/SessionUserService;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17144,
+                "recordedAt": 3660797279730,
+                "dataId": 91311,
+                "value": 268248785,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 649,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91311,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=8",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1135894135",
+              "name": "assetService",
+              "type": "Lcom/appsmith/server/services/AssetService;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17145,
+                "recordedAt": 3660797317430,
+                "dataId": 91312,
+                "value": 1135894135,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 648,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91312,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=9",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1821016172",
+              "name": "releaseNotesService",
+              "type": "Lcom/appsmith/server/solutions/ReleaseNotesService;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17146,
+                "recordedAt": 3660797345830,
+                "dataId": 91313,
+                "value": 1821016172,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 647,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91313,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=10",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1057484510",
+              "name": "featureFlagService",
+              "type": "Lcom/appsmith/server/services/FeatureFlagService;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17147,
+                "recordedAt": 3660797373630,
+                "dataId": 91314,
+                "value": 1057484510,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 646,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91314,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=11",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "572931610",
+              "name": "userChangedHandler",
+              "type": "Lcom/appsmith/server/solutions/UserChangedHandler;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17148,
+                "recordedAt": 3660797401230,
+                "dataId": 91315,
+                "value": 572931610,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 645,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91315,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=12",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "766596964",
+              "name": "applicationRepository",
+              "type": "Lcom/appsmith/server/repositories/ApplicationRepository;",
+              "prob": {
+                "threadId": 0,
+                "nanoTime": 17149,
+                "recordedAt": 3660797407030,
+                "dataId": 91316,
+                "value": 766596964,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 644,
+              "probeInfo": {
+                "classId": 330,
+                "methodId": 2559,
+                "dataId": 91316,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=13",
+                "attributesMap": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements": [],
+      "routineName": "thread3",
+      "dependentList": [
+        {
+          "objectRoutines": [
+            {
+              "statements": [
+                {
+                  "first": {
+                    "line": "$T $L = $L"
+                  },
+                  "second": [
+                    {
+                      "annotations": [],
+                      "annotated": false,
+                      "primitive": false,
+                      "boxedPrimitive": false
+                    },
+                    "email",
+                    "\"anonymousUser\""
+                  ]
+                }
+              ],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": [
+                {
+                  "fullyQualifiedClassname": "java.lang.String",
+                  "unqualifiedClassname": "String",
+                  "packageName": "java.lang",
+                  "testMethodName": "<init>",
+                  "testSubject": {
+                    "value": "\"anonymousUser\"",
+                    "name": "email",
+                    "type": "Ljava/lang/String;",
+                    "prob": {
+                      "threadId": 3,
+                      "nanoTime": 2459799,
+                      "recordedAt": 3832947107530,
+                      "dataId": 91542,
+                      "value": 403576660,
+                      "sessionId": null,
+                      "serializedValue": ""
+                    },
+                    "index": 498,
+                    "probeInfo": {
+                      "classId": 333,
+                      "methodId": 2583,
+                      "dataId": 91542,
+                      "index": 0,
+                      "line": 0,
+                      "instructionIndex": 0,
+                      "eventType": "METHOD_PARAM",
+                      "valueDesc": "Object",
+                      "attributes": "Index=1",
+                      "attributesMap": null
+                    }
+                  },
+                  "returnParameter": {
+                    "value": null,
+                    "name": null,
+                    "type": null,
+                    "prob": null,
+                    "index": 0,
+                    "probeInfo": null
+                  },
+                  "callTimeNanoSecond": 0,
+                  "methodName": null,
+                  "parameterValues": []
+                }
+              ]
+            }
+          ],
+          "constructor": {
+            "statements": [
+              {
+                "first": {
+                  "line": "$T $L = $L"
+                },
+                "second": [
+                  {
+                    "annotations": [],
+                    "annotated": false,
+                    "primitive": false,
+                    "boxedPrimitive": false
+                  },
+                  "email",
+                  "\"anonymousUser\""
+                ]
+              }
+            ],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": [
+              {
+                "fullyQualifiedClassname": "java.lang.String",
+                "unqualifiedClassname": "String",
+                "packageName": "java.lang",
+                "testMethodName": "<init>",
+                "testSubject": {
+                  "value": "\"anonymousUser\"",
+                  "name": "email",
+                  "type": "Ljava/lang/String;",
+                  "prob": {
+                    "threadId": 3,
+                    "nanoTime": 2459799,
+                    "recordedAt": 3832947107530,
+                    "dataId": 91542,
+                    "value": 403576660,
+                    "sessionId": null,
+                    "serializedValue": ""
+                  },
+                  "index": 498,
+                  "probeInfo": {
+                    "classId": 333,
+                    "methodId": 2583,
+                    "dataId": 91542,
+                    "index": 0,
+                    "line": 0,
+                    "instructionIndex": 0,
+                    "eventType": "METHOD_PARAM",
+                    "valueDesc": "Object",
+                    "attributes": "Index=1",
+                    "attributesMap": null
+                  }
+                },
+                "returnParameter": {
+                  "value": null,
+                  "name": null,
+                  "type": null,
+                  "prob": null,
+                  "index": 0,
+                  "probeInfo": null
+                },
+                "callTimeNanoSecond": 0,
+                "methodName": null,
+                "parameterValues": []
+              }
+            ]
+          },
+          "name": "email",
+          "statements": [
+            {
+              "first": {
+                "line": "$T $L = $L"
+              },
+              "second": [
+                {
+                  "annotations": [],
+                  "annotated": false,
+                  "primitive": false,
+                  "boxedPrimitive": false
+                },
+                "email",
+                "\"anonymousUser\""
+              ]
+            }
+          ]
+        }
+      ],
+      "variableContainer": {
+        "names": [
+          "userDataService",
+          "email"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForCurrentUser",
+          "testSubject": {
+            "value": "308023604",
+            "name": "userDataService",
+            "type": "com.appsmith.server.services.UserDataServiceImpl",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 2446225,
+              "recordedAt": 3832913649930,
+              "dataId": 147577,
+              "value": 308023604,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 503,
+            "probeInfo": {
+              "classId": 405,
+              "methodId": 3722,
+              "dataId": 147577,
+              "index": 0,
+              "line": 943,
+              "instructionIndex": 23,
+              "eventType": "GET_INSTANCE_FIELD_RESULT",
+              "valueDesc": "Object",
+              "attributes": "Parent=147576,Owner=com/appsmith/server/services/ce/UserServiceCEImpl,FieldName=userDataService,Type=Lcom/appsmith/server/services/UserDataService;",
+              "attributesMap": null
+            }
+          },
+          "returnParameter": {
+            "value": "1166080827",
+            "name": "forCurrentUserValue",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 2446275,
+              "recordedAt": 3832914838130,
+              "dataId": 91535,
+              "value": 1166080827,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 453,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2582,
+              "dataId": 91535,
+              "index": 0,
+              "line": 104,
+              "instructionIndex": 16,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 1174300,
+          "methodName": "getForCurrentUser",
+          "parameterValues": []
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUserEmail",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "199648011",
+            "name": "forUserEmailValue",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 2460263,
+              "recordedAt": 3832948505530,
+              "dataId": 91561,
+              "value": 199648011,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 451,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2583,
+              "dataId": 91561,
+              "index": 0,
+              "line": 111,
+              "instructionIndex": 13,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 1400500,
+          "methodName": "getForUserEmail",
+          "parameterValues": [
+            {
+              "value": "\"anonymousUser\"",
+              "name": "email",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 3,
+                "nanoTime": 2459799,
+                "recordedAt": 3832947107530,
+                "dataId": 91542,
+                "value": 403576660,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2583,
+                "dataId": 91542,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetFeatureFlagsForCurrentUser",
+          "testSubject": {
+            "value": "308023604",
+            "name": "userDataService",
+            "type": "com.appsmith.server.services.UserDataServiceImpl",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 2756582,
+              "recordedAt": 3834222220530,
+              "dataId": 80529,
+              "value": 308023604,
+              "sessionId": null,
+              "serializedValue": "7gw="
+            },
+            "index": 501,
+            "probeInfo": {
+              "classId": 301,
+              "methodId": 2226,
+              "dataId": 80529,
+              "index": 0,
+              "line": 211,
+              "instructionIndex": 3,
+              "eventType": "GET_INSTANCE_FIELD_RESULT",
+              "valueDesc": "Object",
+              "attributes": "Parent=80528,Owner=com/appsmith/server/controllers/ce/UserControllerCE,FieldName=userDataService,Type=Lcom/appsmith/server/services/UserDataService;",
+              "attributesMap": null
+            }
+          },
+          "returnParameter": {
+            "value": "220148474",
+            "name": "featureFlagsForCurrentUserValue",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 2756668,
+              "recordedAt": 3834247542530,
+              "dataId": 92194,
+              "value": 220148474,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 415,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2598,
+              "dataId": 92194,
+              "index": 0,
+              "line": 297,
+              "instructionIndex": 5,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 25285000,
+          "methodName": "getFeatureFlagsForCurrentUser",
+          "parameterValues": []
+        }
+      ]
+    },
+    {
+      "statements": [],
+      "routineName": "thread6",
+      "dependentList": [
+        {
+          "objectRoutines": [
+            {
+              "statements": [
+                {
+                  "first": {
+                    "line": "$T $L = $L"
+                  },
+                  "second": [
+                    {
+                      "annotations": [],
+                      "annotated": false,
+                      "primitive": false,
+                      "boxedPrimitive": false
+                    },
+                    "email",
+                    "\"artpar@gmail.com\""
+                  ]
+                }
+              ],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": [
+                {
+                  "fullyQualifiedClassname": "java.lang.String",
+                  "unqualifiedClassname": "String",
+                  "packageName": "java.lang",
+                  "testMethodName": "<init>",
+                  "testSubject": {
+                    "value": "\"artpar@gmail.com\"",
+                    "name": "email",
+                    "type": "Ljava/lang/String;",
+                    "prob": {
+                      "threadId": 6,
+                      "nanoTime": 2886225,
+                      "recordedAt": 3845864740430,
+                      "dataId": 91542,
+                      "value": 1951095228,
+                      "sessionId": null,
+                      "serializedValue": ""
+                    },
+                    "index": 498,
+                    "probeInfo": {
+                      "classId": 333,
+                      "methodId": 2583,
+                      "dataId": 91542,
+                      "index": 0,
+                      "line": 0,
+                      "instructionIndex": 0,
+                      "eventType": "METHOD_PARAM",
+                      "valueDesc": "Object",
+                      "attributes": "Index=1",
+                      "attributesMap": null
+                    }
+                  },
+                  "returnParameter": {
+                    "value": null,
+                    "name": null,
+                    "type": null,
+                    "prob": null,
+                    "index": 0,
+                    "probeInfo": null
+                  },
+                  "callTimeNanoSecond": 0,
+                  "methodName": null,
+                  "parameterValues": []
+                }
+              ]
+            }
+          ],
+          "constructor": {
+            "statements": [
+              {
+                "first": {
+                  "line": "$T $L = $L"
+                },
+                "second": [
+                  {
+                    "annotations": [],
+                    "annotated": false,
+                    "primitive": false,
+                    "boxedPrimitive": false
+                  },
+                  "email",
+                  "\"artpar@gmail.com\""
+                ]
+              }
+            ],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": [
+              {
+                "fullyQualifiedClassname": "java.lang.String",
+                "unqualifiedClassname": "String",
+                "packageName": "java.lang",
+                "testMethodName": "<init>",
+                "testSubject": {
+                  "value": "\"artpar@gmail.com\"",
+                  "name": "email",
+                  "type": "Ljava/lang/String;",
+                  "prob": {
+                    "threadId": 6,
+                    "nanoTime": 2886225,
+                    "recordedAt": 3845864740430,
+                    "dataId": 91542,
+                    "value": 1951095228,
+                    "sessionId": null,
+                    "serializedValue": ""
+                  },
+                  "index": 498,
+                  "probeInfo": {
+                    "classId": 333,
+                    "methodId": 2583,
+                    "dataId": 91542,
+                    "index": 0,
+                    "line": 0,
+                    "instructionIndex": 0,
+                    "eventType": "METHOD_PARAM",
+                    "valueDesc": "Object",
+                    "attributes": "Index=1",
+                    "attributesMap": null
+                  }
+                },
+                "returnParameter": {
+                  "value": null,
+                  "name": null,
+                  "type": null,
+                  "prob": null,
+                  "index": 0,
+                  "probeInfo": null
+                },
+                "callTimeNanoSecond": 0,
+                "methodName": null,
+                "parameterValues": []
+              }
+            ]
+          },
+          "name": "email",
+          "statements": [
+            {
+              "first": {
+                "line": "$T $L = $L"
+              },
+              "second": [
+                {
+                  "annotations": [],
+                  "annotated": false,
+                  "primitive": false,
+                  "boxedPrimitive": false
+                },
+                "email",
+                "\"artpar@gmail.com\""
+              ]
+            }
+          ]
+        }
+      ],
+      "variableContainer": {
+        "names": [
+          "userDataService",
+          "email"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUserEmail",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "436279308",
+            "name": "forUserEmailValue",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 6,
+              "nanoTime": 2886272,
+              "recordedAt": 3845864942530,
+              "dataId": 91561,
+              "value": 436279308,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 451,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2583,
+              "dataId": 91561,
+              "index": 0,
+              "line": 111,
+              "instructionIndex": 13,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 204100,
+          "methodName": "getForUserEmail",
+          "parameterValues": [
+            {
+              "value": "\"artpar@gmail.com\"",
+              "name": "email",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 6,
+                "nanoTime": 2886225,
+                "recordedAt": 3845864740430,
+                "dataId": 91542,
+                "value": 1951095228,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2583,
+                "dataId": 91542,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements": [],
+      "routineName": "thread19",
+      "dependentList": [
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "user",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [
+                {
+                  "first": {
+                    "line": "$T $L = $L"
+                  },
+                  "second": [
+                    {
+                      "annotations": [],
+                      "annotated": false,
+                      "primitive": false,
+                      "boxedPrimitive": false
+                    },
+                    "userId",
+                    "\"62f1afdf9e42926bca92c77d\""
+                  ]
+                }
+              ],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": [
+                {
+                  "fullyQualifiedClassname": "java.lang.String",
+                  "unqualifiedClassname": "String",
+                  "packageName": "java.lang",
+                  "testMethodName": "<init>",
+                  "testSubject": {
+                    "value": "\"62f1afdf9e42926bca92c77d\"",
+                    "name": "userId",
+                    "type": "Ljava/lang/String;",
+                    "prob": {
+                      "threadId": 19,
+                      "nanoTime": 2987415,
+                      "recordedAt": 3846174648330,
+                      "dataId": 91473,
+                      "value": 489643774,
+                      "sessionId": null,
+                      "serializedValue": ""
+                    },
+                    "index": 498,
+                    "probeInfo": {
+                      "classId": 333,
+                      "methodId": 2581,
+                      "dataId": 91473,
+                      "index": 0,
+                      "line": 0,
+                      "instructionIndex": 0,
+                      "eventType": "METHOD_PARAM",
+                      "valueDesc": "Object",
+                      "attributes": "Index=1",
+                      "attributesMap": null
+                    }
+                  },
+                  "returnParameter": {
+                    "value": null,
+                    "name": null,
+                    "type": null,
+                    "prob": null,
+                    "index": 0,
+                    "probeInfo": null
+                  },
+                  "callTimeNanoSecond": 0,
+                  "methodName": null,
+                  "parameterValues": []
+                }
+              ]
+            }
+          ],
+          "constructor": {
+            "statements": [
+              {
+                "first": {
+                  "line": "$T $L = $L"
+                },
+                "second": [
+                  {
+                    "annotations": [],
+                    "annotated": false,
+                    "primitive": false,
+                    "boxedPrimitive": false
+                  },
+                  "userId",
+                  "\"62f1afdf9e42926bca92c77d\""
+                ]
+              }
+            ],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": [
+              {
+                "fullyQualifiedClassname": "java.lang.String",
+                "unqualifiedClassname": "String",
+                "packageName": "java.lang",
+                "testMethodName": "<init>",
+                "testSubject": {
+                  "value": "\"62f1afdf9e42926bca92c77d\"",
+                  "name": "userId",
+                  "type": "Ljava/lang/String;",
+                  "prob": {
+                    "threadId": 19,
+                    "nanoTime": 2987415,
+                    "recordedAt": 3846174648330,
+                    "dataId": 91473,
+                    "value": 489643774,
+                    "sessionId": null,
+                    "serializedValue": ""
+                  },
+                  "index": 498,
+                  "probeInfo": {
+                    "classId": 333,
+                    "methodId": 2581,
+                    "dataId": 91473,
+                    "index": 0,
+                    "line": 0,
+                    "instructionIndex": 0,
+                    "eventType": "METHOD_PARAM",
+                    "valueDesc": "Object",
+                    "attributes": "Index=1",
+                    "attributesMap": null
+                  }
+                },
+                "returnParameter": {
+                  "value": null,
+                  "name": null,
+                  "type": null,
+                  "prob": null,
+                  "index": 0,
+                  "probeInfo": null
+                },
+                "callTimeNanoSecond": 0,
+                "methodName": null,
+                "parameterValues": []
+              }
+            ]
+          },
+          "name": "userId",
+          "statements": [
+            {
+              "first": {
+                "line": "$T $L = $L"
+              },
+              "second": [
+                {
+                  "annotations": [],
+                  "annotated": false,
+                  "primitive": false,
+                  "boxedPrimitive": false
+                },
+                "userId",
+                "\"62f1afdf9e42926bca92c77d\""
+              ]
+            }
+          ]
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "currentUser",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "userData",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [
+                {
+                  "first": {
+                    "line": "$T $L = $L"
+                  },
+                  "second": [
+                    {
+                      "annotations": [],
+                      "annotated": false,
+                      "primitive": false,
+                      "boxedPrimitive": false
+                    },
+                    "version",
+                    "\"v1.7.11\""
+                  ]
+                }
+              ],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": [
+                {
+                  "fullyQualifiedClassname": "java.lang.String",
+                  "unqualifiedClassname": "String",
+                  "packageName": "java.lang",
+                  "testMethodName": "<init>",
+                  "testSubject": {
+                    "value": "\"v1.7.11\"",
+                    "name": "version",
+                    "type": "Ljava/lang/String;",
+                    "prob": {
+                      "threadId": 19,
+                      "nanoTime": 3422430,
+                      "recordedAt": 3847788024430,
+                      "dataId": 91834,
+                      "value": 1049518411,
+                      "sessionId": null,
+                      "serializedValue": ""
+                    },
+                    "index": 497,
+                    "probeInfo": {
+                      "classId": 333,
+                      "methodId": 2588,
+                      "dataId": 91834,
+                      "index": 0,
+                      "line": 0,
+                      "instructionIndex": 0,
+                      "eventType": "METHOD_PARAM",
+                      "valueDesc": "Object",
+                      "attributes": "Index=2",
+                      "attributesMap": null
+                    }
+                  },
+                  "returnParameter": {
+                    "value": null,
+                    "name": null,
+                    "type": null,
+                    "prob": null,
+                    "index": 0,
+                    "probeInfo": null
+                  },
+                  "callTimeNanoSecond": 0,
+                  "methodName": null,
+                  "parameterValues": []
+                }
+              ]
+            }
+          ],
+          "constructor": {
+            "statements": [
+              {
+                "first": {
+                  "line": "$T $L = $L"
+                },
+                "second": [
+                  {
+                    "annotations": [],
+                    "annotated": false,
+                    "primitive": false,
+                    "boxedPrimitive": false
+                  },
+                  "version",
+                  "\"v1.7.11\""
+                ]
+              }
+            ],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": [
+              {
+                "fullyQualifiedClassname": "java.lang.String",
+                "unqualifiedClassname": "String",
+                "packageName": "java.lang",
+                "testMethodName": "<init>",
+                "testSubject": {
+                  "value": "\"v1.7.11\"",
+                  "name": "version",
+                  "type": "Ljava/lang/String;",
+                  "prob": {
+                    "threadId": 19,
+                    "nanoTime": 3422430,
+                    "recordedAt": 3847788024430,
+                    "dataId": 91834,
+                    "value": 1049518411,
+                    "sessionId": null,
+                    "serializedValue": ""
+                  },
+                  "index": 497,
+                  "probeInfo": {
+                    "classId": 333,
+                    "methodId": 2588,
+                    "dataId": 91834,
+                    "index": 0,
+                    "line": 0,
+                    "instructionIndex": 0,
+                    "eventType": "METHOD_PARAM",
+                    "valueDesc": "Object",
+                    "attributes": "Index=2",
+                    "attributesMap": null
+                  }
+                },
+                "returnParameter": {
+                  "value": null,
+                  "name": null,
+                  "type": null,
+                  "prob": null,
+                  "index": 0,
+                  "probeInfo": null
+                },
+                "callTimeNanoSecond": 0,
+                "methodName": null,
+                "parameterValues": []
+              }
+            ]
+          },
+          "name": "version",
+          "statements": [
+            {
+              "first": {
+                "line": "$T $L = $L"
+              },
+              "second": [
+                {
+                  "annotations": [],
+                  "annotated": false,
+                  "primitive": false,
+                  "boxedPrimitive": false
+                },
+                "version",
+                "\"v1.7.11\""
+              ]
+            }
+          ]
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "updateResult",
+          "statements": []
+        }
+      ],
+      "variableContainer": {
+        "names": [
+          "userDataService",
+          "user",
+          "userId",
+          "currentUser",
+          "userData",
+          "version",
+          "updateResult"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "823488671",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 2987523,
+              "recordedAt": 3846175587130,
+              "dataId": 91466,
+              "value": 823488671,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 373,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2580,
+              "dataId": 91466,
+              "index": 0,
+              "line": 90,
+              "instructionIndex": 14,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 1007700,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "85251615",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 2987398,
+                "recordedAt": 3846174584430,
+                "dataId": 91450,
+                "value": 85251615,
+                "sessionId": null,
+                "serializedValue": "hxc="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2580,
+                "dataId": 91450,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "823488671",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 2987520,
+              "recordedAt": 3846175578530,
+              "dataId": 91505,
+              "value": 823488671,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 393,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2581,
+              "dataId": 91505,
+              "index": 0,
+              "line": 97,
+              "instructionIndex": 25,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 933600,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "\"62f1afdf9e42926bca92c77d\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 2987415,
+                "recordedAt": 3846174648330,
+                "dataId": 91473,
+                "value": 489643774,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2581,
+                "dataId": 91473,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testEnsureViewedCurrentVersionReleaseNotes",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "1123626074",
+            "name": "ensureViewedCurrentVersionReleaseNotesResult",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3393245,
+              "recordedAt": 3847665079030,
+              "dataId": 91918,
+              "value": 1123626074,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 352,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2589,
+              "dataId": 91918,
+              "index": 0,
+              "line": 183,
+              "instructionIndex": 13,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 1582300,
+          "methodName": "ensureViewedCurrentVersionReleaseNotes",
+          "parameterValues": [
+            {
+              "value": "572547828",
+              "name": "currentUser",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3393099,
+                "recordedAt": 3847663499830,
+                "dataId": 91899,
+                "value": 572547828,
+                "sessionId": null,
+                "serializedValue": "jCU="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2589,
+                "dataId": 91899,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "1290008961",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3393231,
+              "recordedAt": 3847664019130,
+              "dataId": 91466,
+              "value": 1290008961,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 373,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2580,
+              "dataId": 91466,
+              "index": 0,
+              "line": 90,
+              "instructionIndex": 14,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 502100,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "572547828",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3393106,
+                "recordedAt": 3847663519930,
+                "dataId": 91450,
+                "value": 572547828,
+                "sessionId": null,
+                "serializedValue": "jCU="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2580,
+                "dataId": 91450,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "1290008961",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3393228,
+              "recordedAt": 3847664013230,
+              "dataId": 91505,
+              "value": 1290008961,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 393,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2581,
+              "dataId": 91505,
+              "index": 0,
+              "line": 97,
+              "instructionIndex": 25,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 456600,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "\"62f1afdf9e42926bca92c77d\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3393123,
+                "recordedAt": 3847663558930,
+                "dataId": 91473,
+                "value": 1294853574,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2581,
+                "dataId": 91473,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testEnsureViewedCurrentVersionReleaseNotes",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "468334070",
+            "name": "ensureViewedCurrentVersionReleaseNotesResult",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3422526,
+              "recordedAt": 3847790356130,
+              "dataId": 92682,
+              "value": 468334070,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 315,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2614,
+              "dataId": 92682,
+              "index": 0,
+              "line": 186,
+              "instructionIndex": 12,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 2694400,
+          "methodName": "ensureViewedCurrentVersionReleaseNotes",
+          "parameterValues": [
+            {
+              "value": "572547828",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3422343,
+                "recordedAt": 3847787666630,
+                "dataId": 92666,
+                "value": 572547828,
+                "sessionId": null,
+                "serializedValue": "jCU="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2614,
+                "dataId": 92666,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "601549665",
+              "name": "userData",
+              "type": "Lcom/appsmith/server/domains/UserData;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3422344,
+                "recordedAt": 3847787669630,
+                "dataId": 92667,
+                "value": 601549665,
+                "sessionId": null,
+                "serializedValue": "yCU="
+              },
+              "index": 497,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2614,
+                "dataId": 92667,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=2",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testSetViewedCurrentVersionReleaseNotes",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "468334070",
+            "name": "viewedCurrentVersionReleaseNotesValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3422524,
+              "recordedAt": 3847790349230,
+              "dataId": 91826,
+              "value": 468334070,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 337,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2587,
+              "dataId": 91826,
+              "index": 0,
+              "line": 163,
+              "instructionIndex": 23,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 2598200,
+          "methodName": "setViewedCurrentVersionReleaseNotes",
+          "parameterValues": [
+            {
+              "value": "572547828",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3422363,
+                "recordedAt": 3847787754230,
+                "dataId": 91796,
+                "value": 572547828,
+                "sessionId": null,
+                "serializedValue": "jCU="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2587,
+                "dataId": 91796,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testSetViewedCurrentVersionReleaseNotes",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "468334070",
+            "name": "viewedCurrentVersionReleaseNotesValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3422522,
+              "recordedAt": 3847790341830,
+              "dataId": 91892,
+              "value": 468334070,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 405,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2588,
+              "dataId": 91892,
+              "index": 0,
+              "line": 172,
+              "instructionIndex": 40,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 2327800,
+          "methodName": "setViewedCurrentVersionReleaseNotes",
+          "parameterValues": [
+            {
+              "value": "572547828",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3422429,
+                "recordedAt": 3847788016830,
+                "dataId": 91833,
+                "value": 572547828,
+                "sessionId": null,
+                "serializedValue": "jCU="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2588,
+                "dataId": 91833,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "\"v1.7.11\"",
+              "name": "version",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3422430,
+                "recordedAt": 3847788024430,
+                "dataId": 91834,
+                "value": 1049518411,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 497,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2588,
+                "dataId": 91834,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=2",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testSetViewedCurrentVersionReleaseNotes",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "282313128",
+            "name": "viewedCurrentVersionReleaseNotesValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 3424172,
+              "recordedAt": 3847799713730,
+              "dataId": 92708,
+              "value": 282313128,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 388,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2615,
+              "dataId": 92708,
+              "index": 0,
+              "line": 177,
+              "instructionIndex": 8,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 4258800,
+          "methodName": "setViewedCurrentVersionReleaseNotes",
+          "parameterValues": [
+            {
+              "value": "\"v1.7.11\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3424062,
+                "recordedAt": 3847795461230,
+                "dataId": 92696,
+                "value": 1049518411,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2615,
+                "dataId": 92696,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "\"62f1afdf9e42926bca92c77d\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 3424063,
+                "recordedAt": 3847795464630,
+                "dataId": 92697,
+                "value": 1294853574,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 497,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2615,
+                "dataId": 92697,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=2",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testUpdate",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "829205151",
+            "name": "updateResult",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 4167213,
+              "recordedAt": 3850068110230,
+              "dataId": 92750,
+              "value": 829205151,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 455,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2617,
+              "dataId": 92750,
+              "index": 0,
+              "line": 152,
+              "instructionIndex": 18,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 419700,
+          "methodName": "update",
+          "parameterValues": [
+            {
+              "value": "\"62f1afdf9e42926bca92c77d\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 4166985,
+                "recordedAt": 3850067695230,
+                "dataId": 92731,
+                "value": 1294853574,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2617,
+                "dataId": 92731,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            },
+            {
+              "value": "1312381893",
+              "name": "updateResult",
+              "type": "Lcom/mongodb/client/result/UpdateResult;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 4166989,
+                "recordedAt": 3850067699930,
+                "dataId": 92732,
+                "value": 1312381893,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 497,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2617,
+                "dataId": 92732,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=2",
+                "attributesMap": null
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "statements": [],
+      "routineName": "thread3",
+      "dependentList": [],
+      "variableContainer": {
+        "names": [
+          "userDataService"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetFeatureFlagsForCurrentUser",
+          "testSubject": {
+            "value": "308023604",
+            "name": "userDataService",
+            "type": "com.appsmith.server.services.UserDataServiceImpl",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 4475757,
+              "recordedAt": 3852060018130,
+              "dataId": 80529,
+              "value": 308023604,
+              "sessionId": null,
+              "serializedValue": "7gw="
+            },
+            "index": 501,
+            "probeInfo": {
+              "classId": 301,
+              "methodId": 2226,
+              "dataId": 80529,
+              "index": 0,
+              "line": 211,
+              "instructionIndex": 3,
+              "eventType": "GET_INSTANCE_FIELD_RESULT",
+              "valueDesc": "Object",
+              "attributes": "Parent=80528,Owner=com/appsmith/server/controllers/ce/UserControllerCE,FieldName=userDataService,Type=Lcom/appsmith/server/services/UserDataService;",
+              "attributesMap": null
+            }
+          },
+          "returnParameter": {
+            "value": "57191149",
+            "name": "featureFlagsForCurrentUserValue",
+            "type": "reactor.core.publisher.MonoLiftFuseable",
+            "prob": {
+              "threadId": 3,
+              "nanoTime": 4475843,
+              "recordedAt": 3852060563830,
+              "dataId": 92194,
+              "value": 57191149,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 415,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2598,
+              "dataId": 92194,
+              "index": 0,
+              "line": 297,
+              "instructionIndex": 5,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 527400,
+          "methodName": "getFeatureFlagsForCurrentUser",
+          "parameterValues": []
+        }
+      ]
+    },
+    {
+      "statements": [],
+      "routineName": "thread19",
+      "dependentList": [
+        {
+          "objectRoutines": [
+            {
+              "statements": [],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": []
+            }
+          ],
+          "constructor": {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          },
+          "name": "user",
+          "statements": []
+        },
+        {
+          "objectRoutines": [
+            {
+              "statements": [
+                {
+                  "first": {
+                    "line": "$T $L = $L"
+                  },
+                  "second": [
+                    {
+                      "annotations": [],
+                      "annotated": false,
+                      "primitive": false,
+                      "boxedPrimitive": false
+                    },
+                    "userId",
+                    "\"62f1afdf9e42926bca92c77d\""
+                  ]
+                }
+              ],
+              "routineName": "<init>",
+              "dependentList": [],
+              "variableContainer": {
+                "names": []
+              },
+              "metadata": [
+                {
+                  "fullyQualifiedClassname": "java.lang.String",
+                  "unqualifiedClassname": "String",
+                  "packageName": "java.lang",
+                  "testMethodName": "<init>",
+                  "testSubject": {
+                    "value": "\"62f1afdf9e42926bca92c77d\"",
+                    "name": "userId",
+                    "type": "Ljava/lang/String;",
+                    "prob": {
+                      "threadId": 19,
+                      "nanoTime": 4726918,
+                      "recordedAt": 3852708488230,
+                      "dataId": 91473,
+                      "value": 174492590,
+                      "sessionId": null,
+                      "serializedValue": ""
+                    },
+                    "index": 498,
+                    "probeInfo": {
+                      "classId": 333,
+                      "methodId": 2581,
+                      "dataId": 91473,
+                      "index": 0,
+                      "line": 0,
+                      "instructionIndex": 0,
+                      "eventType": "METHOD_PARAM",
+                      "valueDesc": "Object",
+                      "attributes": "Index=1",
+                      "attributesMap": null
+                    }
+                  },
+                  "returnParameter": {
+                    "value": null,
+                    "name": null,
+                    "type": null,
+                    "prob": null,
+                    "index": 0,
+                    "probeInfo": null
+                  },
+                  "callTimeNanoSecond": 0,
+                  "methodName": null,
+                  "parameterValues": []
+                }
+              ]
+            }
+          ],
+          "constructor": {
+            "statements": [
+              {
+                "first": {
+                  "line": "$T $L = $L"
+                },
+                "second": [
+                  {
+                    "annotations": [],
+                    "annotated": false,
+                    "primitive": false,
+                    "boxedPrimitive": false
+                  },
+                  "userId",
+                  "\"62f1afdf9e42926bca92c77d\""
+                ]
+              }
+            ],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": [
+              {
+                "fullyQualifiedClassname": "java.lang.String",
+                "unqualifiedClassname": "String",
+                "packageName": "java.lang",
+                "testMethodName": "<init>",
+                "testSubject": {
+                  "value": "\"62f1afdf9e42926bca92c77d\"",
+                  "name": "userId",
+                  "type": "Ljava/lang/String;",
+                  "prob": {
+                    "threadId": 19,
+                    "nanoTime": 4726918,
+                    "recordedAt": 3852708488230,
+                    "dataId": 91473,
+                    "value": 174492590,
+                    "sessionId": null,
+                    "serializedValue": ""
+                  },
+                  "index": 498,
+                  "probeInfo": {
+                    "classId": 333,
+                    "methodId": 2581,
+                    "dataId": 91473,
+                    "index": 0,
+                    "line": 0,
+                    "instructionIndex": 0,
+                    "eventType": "METHOD_PARAM",
+                    "valueDesc": "Object",
+                    "attributes": "Index=1",
+                    "attributesMap": null
+                  }
+                },
+                "returnParameter": {
+                  "value": null,
+                  "name": null,
+                  "type": null,
+                  "prob": null,
+                  "index": 0,
+                  "probeInfo": null
+                },
+                "callTimeNanoSecond": 0,
+                "methodName": null,
+                "parameterValues": []
+              }
+            ]
+          },
+          "name": "userId",
+          "statements": [
+            {
+              "first": {
+                "line": "$T $L = $L"
+              },
+              "second": [
+                {
+                  "annotations": [],
+                  "annotated": false,
+                  "primitive": false,
+                  "boxedPrimitive": false
+                },
+                "userId",
+                "\"62f1afdf9e42926bca92c77d\""
+              ]
+            }
+          ]
+        }
+      ],
+      "variableContainer": {
+        "names": [
+          "userDataService",
+          "user",
+          "userId"
+        ]
+      },
+      "metadata": [
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "263035075",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 4727220,
+              "recordedAt": 3852708839430,
+              "dataId": 91466,
+              "value": 263035075,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 373,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2580,
+              "dataId": 91466,
+              "index": 0,
+              "line": 90,
+              "instructionIndex": 14,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 403100,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "417646259",
+              "name": "user",
+              "type": "Lcom/appsmith/server/domains/User;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 4726883,
+                "recordedAt": 3852708439530,
+                "dataId": 91450,
+                "value": 417646259,
+                "sessionId": null,
+                "serializedValue": "xj8="
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2580,
+                "dataId": 91450,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        },
+        {
+          "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+          "unqualifiedClassname": "UserDataServiceImpl",
+          "packageName": "com.appsmith.server.services",
+          "testMethodName": "testGetForUser",
+          "testSubject": {
+            "value": 308023604,
+            "name": "userDataService",
+            "type": null,
+            "prob": null,
+            "index": 0,
+            "probeInfo": null
+          },
+          "returnParameter": {
+            "value": "263035075",
+            "name": "forUserValue",
+            "type": "reactor.core.publisher.MonoLift",
+            "prob": {
+              "threadId": 19,
+              "nanoTime": 4727215,
+              "recordedAt": 3852708834630,
+              "dataId": 91505,
+              "value": 263035075,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 393,
+            "probeInfo": {
+              "classId": 333,
+              "methodId": 2581,
+              "dataId": 91505,
+              "index": 0,
+              "line": 97,
+              "instructionIndex": 25,
+              "eventType": "METHOD_NORMAL_EXIT",
+              "valueDesc": "Object",
+              "attributes": "",
+              "attributesMap": null
+            }
+          },
+          "callTimeNanoSecond": 348300,
+          "methodName": "getForUser",
+          "parameterValues": [
+            {
+              "value": "\"62f1afdf9e42926bca92c77d\"",
+              "name": "userId",
+              "type": "Ljava/lang/String;",
+              "prob": {
+                "threadId": 19,
+                "nanoTime": 4726918,
+                "recordedAt": 3852708488230,
+                "dataId": 91473,
+                "value": 174492590,
+                "sessionId": null,
+                "serializedValue": ""
+              },
+              "index": 498,
+              "probeInfo": {
+                "classId": 333,
+                "methodId": 2581,
+                "dataId": 91473,
+                "index": 0,
+                "line": 0,
+                "instructionIndex": 0,
+                "eventType": "METHOD_PARAM",
+                "valueDesc": "Object",
+                "attributes": "Index=1",
+                "attributesMap": null
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "constructor": {
+    "statements": [],
+    "routineName": "<init>",
+    "dependentList": [
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "scheduler",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "validator",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "mongoConverter",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "reactiveMongoTemplate",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "repository",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "analyticsService",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "userRepository",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "sessionUserService",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "assetService",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "releaseNotesService",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "featureFlagService",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "userChangedHandler",
+        "statements": []
+      },
+      {
+        "objectRoutines": [
+          {
+            "statements": [],
+            "routineName": "<init>",
+            "dependentList": [],
+            "variableContainer": {
+              "names": []
+            },
+            "metadata": []
+          }
+        ],
+        "constructor": {
+          "statements": [],
+          "routineName": "<init>",
+          "dependentList": [],
+          "variableContainer": {
+            "names": []
+          },
+          "metadata": []
+        },
+        "name": "applicationRepository",
+        "statements": []
+      }
+    ],
+    "variableContainer": {
+      "names": [
+        "userDataService",
+        "scheduler",
+        "validator",
+        "mongoConverter",
+        "reactiveMongoTemplate",
+        "repository",
+        "analyticsService",
+        "userRepository",
+        "sessionUserService",
+        "assetService",
+        "releaseNotesService",
+        "featureFlagService",
+        "userChangedHandler",
+        "applicationRepository"
+      ]
+    },
+    "metadata": [
+      {
+        "fullyQualifiedClassname": "com.appsmith.server.services.UserDataServiceImpl",
+        "unqualifiedClassname": "UserDataServiceImpl",
+        "packageName": "com.appsmith.server.services",
+        "testMethodName": "test<init>",
+        "testSubject": {
+          "value": "308023604",
+          "name": "userDataService",
+          "type": "com.appsmith.server.services.UserDataServiceImpl",
+          "prob": {
+            "threadId": 0,
+            "nanoTime": 17294,
+            "recordedAt": 3660799767130,
+            "dataId": 91347,
+            "value": 308023604,
+            "sessionId": null,
+            "serializedValue": ""
+          },
+          "index": 499,
+          "probeInfo": {
+            "classId": 330,
+            "methodId": 2559,
+            "dataId": 91347,
+            "index": 0,
+            "line": 33,
+            "instructionIndex": 16,
+            "eventType": "METHOD_OBJECT_INITIALIZED",
+            "valueDesc": "Object",
+            "attributes": "",
+            "attributesMap": null
+          }
+        },
+        "returnParameter": {
+          "value": "308023604",
+          "name": "userDataService",
+          "type": "com.appsmith.server.services.UserDataServiceImpl",
+          "prob": {
+            "threadId": 0,
+            "nanoTime": 17294,
+            "recordedAt": 3660799767130,
+            "dataId": 91347,
+            "value": 308023604,
+            "sessionId": null,
+            "serializedValue": ""
+          },
+          "index": 499,
+          "probeInfo": {
+            "classId": 330,
+            "methodId": 2559,
+            "dataId": 91347,
+            "index": 0,
+            "line": 33,
+            "instructionIndex": 16,
+            "eventType": "METHOD_OBJECT_INITIALIZED",
+            "valueDesc": "Object",
+            "attributes": "",
+            "attributesMap": null
+          }
+        },
+        "callTimeNanoSecond": 3038900,
+        "methodName": "<init>",
+        "parameterValues": [
+          {
+            "value": "1840080975",
+            "name": "scheduler",
+            "type": "Lreactor/core/scheduler/Scheduler;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17137,
+              "recordedAt": 3660796735230,
+              "dataId": 91304,
+              "value": 1840080975,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 656,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91304,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=1",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "940097020",
+            "name": "validator",
+            "type": "Ljavax/validation/Validator;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17138,
+              "recordedAt": 3660796741930,
+              "dataId": 91305,
+              "value": 940097020,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 655,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91305,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=2",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1899552868",
+            "name": "mongoConverter",
+            "type": "Lorg/springframework/data/mongodb/core/convert/MongoConverter;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17139,
+              "recordedAt": 3660796747830,
+              "dataId": 91306,
+              "value": 1899552868,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 654,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91306,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=3",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1652884090",
+            "name": "reactiveMongoTemplate",
+            "type": "Lorg/springframework/data/mongodb/core/ReactiveMongoTemplate;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17140,
+              "recordedAt": 3660796753830,
+              "dataId": 91307,
+              "value": 1652884090,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 653,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91307,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=4",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "471571945",
+            "name": "repository",
+            "type": "Lcom/appsmith/server/repositories/UserDataRepository;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17141,
+              "recordedAt": 3660797182630,
+              "dataId": 91308,
+              "value": 471571945,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 652,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91308,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=5",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1521405221",
+            "name": "analyticsService",
+            "type": "Lcom/appsmith/server/services/AnalyticsService;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17142,
+              "recordedAt": 3660797239630,
+              "dataId": 91309,
+              "value": 1521405221,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 651,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91309,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=6",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1414456375",
+            "name": "userRepository",
+            "type": "Lcom/appsmith/server/repositories/UserRepository;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17143,
+              "recordedAt": 3660797248330,
+              "dataId": 91310,
+              "value": 1414456375,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 650,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91310,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=7",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "268248785",
+            "name": "sessionUserService",
+            "type": "Lcom/appsmith/server/services/SessionUserService;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17144,
+              "recordedAt": 3660797279730,
+              "dataId": 91311,
+              "value": 268248785,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 649,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91311,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=8",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1135894135",
+            "name": "assetService",
+            "type": "Lcom/appsmith/server/services/AssetService;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17145,
+              "recordedAt": 3660797317430,
+              "dataId": 91312,
+              "value": 1135894135,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 648,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91312,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=9",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1821016172",
+            "name": "releaseNotesService",
+            "type": "Lcom/appsmith/server/solutions/ReleaseNotesService;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17146,
+              "recordedAt": 3660797345830,
+              "dataId": 91313,
+              "value": 1821016172,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 647,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91313,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=10",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "1057484510",
+            "name": "featureFlagService",
+            "type": "Lcom/appsmith/server/services/FeatureFlagService;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17147,
+              "recordedAt": 3660797373630,
+              "dataId": 91314,
+              "value": 1057484510,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 646,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91314,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=11",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "572931610",
+            "name": "userChangedHandler",
+            "type": "Lcom/appsmith/server/solutions/UserChangedHandler;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17148,
+              "recordedAt": 3660797401230,
+              "dataId": 91315,
+              "value": 572931610,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 645,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91315,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=12",
+              "attributesMap": null
+            }
+          },
+          {
+            "value": "766596964",
+            "name": "applicationRepository",
+            "type": "Lcom/appsmith/server/repositories/ApplicationRepository;",
+            "prob": {
+              "threadId": 0,
+              "nanoTime": 17149,
+              "recordedAt": 3660797407030,
+              "dataId": 91316,
+              "value": 766596964,
+              "sessionId": null,
+              "serializedValue": ""
+            },
+            "index": 644,
+            "probeInfo": {
+              "classId": 330,
+              "methodId": 2559,
+              "dataId": 91316,
+              "index": 0,
+              "line": 0,
+              "instructionIndex": 0,
+              "eventType": "METHOD_PARAM",
+              "valueDesc": "Object",
+              "attributes": "Index=13",
+              "attributesMap": null
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "name": "userDataService",
+  "statements": []
+}

@@ -1,6 +1,7 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.common.Util;
 import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
@@ -16,17 +17,20 @@ public class TracePoint {
 
     private static final byte ATTRIBUTE_SEPARATOR = ',';
     private static final byte ATTRIBUTE_KEYVALUE_SEPARATOR = '=';
-    private final long recordedAt;
-    long classId, lineNumber, threadId, matchedValueId;
-    int dataId;
-    String filename;
-    String classname;
-    String exceptionClass;
+    private long recordedAt;
+    private long classId, lineNumber, threadId, matchedValueId;
+    private long dataId;
+    private String filename;
+    private String classname;
+    private String exceptionClass;
     private long nanoTime;
     private ExecutionSession executionSession;
 
+    public TracePoint() {
+    }
+
     public TracePoint(long classId, long lineNumber,
-                      int dataId,
+                      long dataId,
                       long threadId,
                       long matchedValueId,
                       String filename,
@@ -79,7 +83,7 @@ public class TracePoint {
                     classInfo.getFilename(),
                     classInfo.getClassName(),
                     exceptionClass,
-                    dataEvent.getRecordedAt().getTime(),
+                    dataEvent.getRecordedAt(),
                     dataEvent.getNanoTime());
             ExecutionSession executionSession1 = new ExecutionSession();
             executionSession1.setSessionId(dataEvent.getSessionId());
@@ -119,7 +123,7 @@ public class TracePoint {
         result = 31 * result + (int) (lineNumber ^ (lineNumber >>> 32));
         result = 31 * result + (int) (threadId ^ (threadId >>> 32));
         result = 31 * result + (int) (matchedValueId ^ (matchedValueId >>> 32));
-        result = 31 * result + dataId;
+        result = 31 * result + (int) (dataId ^ (dataId >>> 32));
         result = 31 * result + (filename != null ? filename.hashCode() : 0);
         result = 31 * result + classname.hashCode();
         result = 31 * result + (exceptionClass != null ? exceptionClass.hashCode() : 0);
@@ -130,14 +134,12 @@ public class TracePoint {
     public FilteredDataEventsRequest toFilterDataEventRequest() {
         FilteredDataEventsRequest filteredDataEventsRequest = new FilteredDataEventsRequest();
         filteredDataEventsRequest.setSessionId(this.getExecutionSession().getSessionId());
-        filteredDataEventsRequest.setProbeId(this.getDataId());
+        filteredDataEventsRequest.setProbeId((int)this.getDataId());
         filteredDataEventsRequest.setThreadId(this.getThreadId());
         filteredDataEventsRequest.setNanotime(this.getRecordedAt());
         filteredDataEventsRequest.setValueId(Collections.singletonList(this.getMatchedValueId()));
-        filteredDataEventsRequest.setPageSize(200);
-        filteredDataEventsRequest.setPageNumber(0);
+        filteredDataEventsRequest.setPageInfo(new PageInfo(0, 50000, PageInfo.Order.DESC));
         filteredDataEventsRequest.setDebugPoints(Collections.emptyList());
-        filteredDataEventsRequest.setSortOrder("DESC");
         return filteredDataEventsRequest;
     }
 
@@ -175,7 +177,7 @@ public class TracePoint {
         return lineNumber;
     }
 
-    public int getDataId() {
+    public long getDataId() {
         return dataId;
     }
 

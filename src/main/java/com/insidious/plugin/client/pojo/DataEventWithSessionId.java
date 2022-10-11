@@ -1,24 +1,37 @@
 package com.insidious.plugin.client.pojo;
 
 
-import java.util.Date;
+import com.j256.ormlite.field.DataType;
+import com.j256.ormlite.field.DatabaseField;
+import com.j256.ormlite.table.DatabaseTable;
+
+import java.io.Serializable;
 
 /**
  * This object is to record attributes of a data ID but also serializes the session id in response
  */
-public class DataEventWithSessionId {
 
+@DatabaseTable(tableName = "data_event")
+public class DataEventWithSessionId implements Serializable {
+
+    @DatabaseField
     private long threadId;
+    @DatabaseField(id = true)
     private long nanoTime;
-    private Date recordedAt;
+    @DatabaseField
+    private long recordedAt;
 
-    private int dataId;
+    @DatabaseField
+    private long dataId;
 
+    @DatabaseField
     private long value;
     private String sessionId;
+    @DatabaseField(dataType = DataType.BYTE_ARRAY)
+    private byte[] serializedValue = new byte[0];
 
-    public int getThreadId() {
-        return (int) threadId;
+    public long getThreadId() {
+        return threadId;
     }
 
     public void setThreadId(long threadId) {
@@ -33,19 +46,19 @@ public class DataEventWithSessionId {
         this.nanoTime = nanoTime;
     }
 
-    public Date getRecordedAt() {
+    public long getRecordedAt() {
         return recordedAt;
     }
 
-    public void setRecordedAt(Date recordedAt) {
+    public void setRecordedAt(long recordedAt) {
         this.recordedAt = recordedAt;
     }
 
-    public int getDataId() {
+    public long getDataId() {
         return dataId;
     }
 
-    public void setDataId(int dataId) {
+    public void setDataId(long dataId) {
         this.dataId = dataId;
     }
 
@@ -65,6 +78,13 @@ public class DataEventWithSessionId {
         this.sessionId = sessionId;
     }
 
+    public DataEventWithSessionId(long threadId) {
+        this.threadId = threadId;
+    }
+
+    public DataEventWithSessionId() {
+    }
+
     @Override
     public String toString() {
         return "DataEventWithSessionId{" +
@@ -75,5 +95,13 @@ public class DataEventWithSessionId {
                 ", value=" + value +
                 ", sessionId='" + sessionId + '\'' +
                 '}';
+    }
+
+    public void setSerializedValue(byte[] serializedValue) {
+        this.serializedValue = serializedValue;
+    }
+
+    public byte[] getSerializedValue() {
+        return serializedValue;
     }
 }

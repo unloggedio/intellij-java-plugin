@@ -3,7 +3,8 @@ package com.insidious.plugin.client;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.weaver.*;
+import com.insidious.common.cqengine.TypeInfoDocument;
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.*;
@@ -12,8 +13,7 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TracePoint;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -28,9 +28,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class VideobugNetworkClient implements VideobugClientInterface {
@@ -321,6 +322,17 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
+    public @NotNull List<TracePoint> getTracePoints(DataResponse<DataEventWithSessionId> traceResponse) {
+        throw new RuntimeException("not implemented");
+    }
+
+    @Override
+    public ClassWeaveInfo getSessionClassWeave(String sessionId) {
+        throw new RuntimeException("not implemented");
+    }
+
+
+    @Override
     public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
         logger.info("get project sessions - " + this.project.getId());
         String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
@@ -362,10 +374,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void queryTracePointsByType(
+    public void queryTracePointsByTypes(
             SearchQuery searchQuery,
             String sessionId, int depth,
-            GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback
+            ClientCallBack<TracePoint> getProjectSessionErrorsCallback
     ) {
 
         String url = PROJECT_URL
@@ -426,7 +438,10 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
+                } finally {
+                    getProjectSessionErrorsCallback.completed();
                 }
+
             }
         });
 
@@ -435,7 +450,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public void queryTracePointsByValue(SearchQuery searchQuery,
                                         String sessionId,
-                                        GetProjectSessionTracePointsCallback getProjectSessionErrorsCallback) {
+                                        ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
 
         String url = PROJECT_URL
                 + "/" + this.project.getId()
@@ -487,6 +502,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     List<TracePoint> tracePoints = getTracePoints(traceResponse);
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
+                } finally {
+                    getProjectSessionErrorsCallback.completed();
                 }
 
             }
@@ -495,60 +512,74 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws Exception {
-        String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
-        logger.info("url to fetch data events => [" + endpoint + "] with [" +
-                objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
-        String responseBodyString;
-        try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
-            responseBodyString = Objects.requireNonNull(response.body()).string();
-            if (response.code() != 200) {
-                logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
-                JSONObject jsonResponse = new JSONObject(responseBodyString);
-                throw new Exception(jsonResponse.getString("message"));
-            }
-        }
-
-        TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
-        };
+    public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) throws APICallException {
+        return null;
+        // this needs to be done
+//        String url = PROJECT_URL + "/" + project.getId() + FILTER_DATA_EVENTS_URL;
+//        try {
+//            logger.info("url to fetch data events => [" + endpoint + "] with [" +
+//                    objectMapper.writeValueAsString(filteredDataEventsRequest) + "]");
+//        } catch (JsonProcessingException e) {
+//            throw new APICallException("failed to log request as json", e);
+//        }
+//        String responseBodyString;
+//        try (Response response = postSync(url, objectMapper.writeValueAsString(filteredDataEventsRequest))) {
+//            responseBodyString = Objects.requireNonNull(response.body()).string();
+//            if (response.code() != 200) {
+//                logger.error("error response from filterDataEvents  [" + response.code() + "] - " + responseBodyString);
+//                JSONObject jsonResponse = new JSONObject(responseBodyString);
+//                throw new APICallException(jsonResponse.getString("message"));
+//            }
+//        } catch (IOException e) {
+//            throw new APICallException("failed to complete request", e);
+//        }
 //
-        DataResponse<DataEventStream> dataResponse = objectMapper.readValue(responseBodyString, typeReference);
-
-        DataEventStream responseStream = dataResponse.getItems().get(0);
-
-        int eventCount = responseStream.getStream().length / (8 + 4 + 8);
-
-        List<DataEventWithSessionId> dataEventsList = new ArrayList<>(eventCount);
-
-        ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
-
-        while (streamReader.hasRemaining()) {
-            long timestamp = streamReader.getLong();
-            int dataId = streamReader.getInt();
-            long valueId = streamReader.getLong();
-            DataEventWithSessionId event = new DataEventWithSessionId();
-            event.setNanoTime(timestamp);
-            event.setDataId(dataId);
-            event.setValue(valueId);
-            event.setSessionId(session.getSessionId());
-            event.setThreadId(filteredDataEventsRequest.getThreadId());
-
-
-            dataEventsList.add(event);
-
-
-        }
-
-        ResponseMetadata metadata = dataResponse.getMetadata();
-        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
-        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
-
-        Map<String, StringInfo> stringInfo = metadata.getStringInfo();
-        Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
-        Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
-
-        return new ReplayData(dataEventsList, classInfo, dataInfo, stringInfo,
-                objectInfo, typeInfo, filteredDataEventsRequest.getSortOrder());
+//        TypeReference<DataResponse<DataEventStream>> typeReference = new TypeReference<>() {
+//        };
+////
+//        DataResponse<DataEventStream> dataResponse = null;
+//        try {
+//            dataResponse = objectMapper.readValue(responseBodyString, typeReference);
+//        } catch (JsonProcessingException e) {
+//            throw new APICallException("failed to read response as json", e);
+//        }
+//
+//        DataEventStream responseStream = dataResponse.getItems().get(0);
+//
+//        int eventCount = responseStream.getStream().length / (8 + 4 + 8);
+//
+//        List<DataEventWithSessionId> dataEventsList = new ArrayList<>(eventCount);
+//
+//        ByteBuffer streamReader = ByteBuffer.wrap(responseStream.getStream());
+//
+//        while (streamReader.hasRemaining()) {
+//            long timestamp = streamReader.getLong();
+//            int dataId = streamReader.getInt();
+//            long valueId = streamReader.getLong();
+//            DataEventWithSessionId event = new DataEventWithSessionId();
+//            event.setNanoTime(timestamp);
+//            event.setDataId(dataId);
+//            event.setValue(valueId);
+//            event.setSessionId(session.getSessionId());
+//            event.setThreadId(filteredDataEventsRequest.getThreadId());
+//
+//
+//            dataEventsList.add(event);
+//
+//
+//        }
+//
+//        ResponseMetadata metadata = dataResponse.getMetadata();
+//        Map<String, ClassInfo> classInfo = metadata.getClassInfo();
+//        Map<String, DataInfo> dataInfo = metadata.getDataInfo();
+//
+//        Map<String, StringInfo> stringInfo = metadata.getStringInfo();
+//        Map<String, ObjectInfo> objectInfo = metadata.getObjectInfo();
+//        Map<String, TypeInfo> typeInfo = metadata.getTypeInfo();
+//
+//        Map<String, MethodInfo> methodInfoMap = new HashMap<>();
+//        return new ReplayData(this, filteredDataEventsRequest, dataEventsList, classInfo, dataInfo, stringInfo,
+//                objectInfo, typeInfo, methodInfoMap);
 
     }
 
@@ -627,8 +658,53 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         // todo
     }
 
+
     @Override
-    public List<ExecutionSession> getSessionList() {
-        return this.sessionList;
+    public void queryTracePointsByEventType(SearchQuery searchQuery,
+                                            String sessionid,
+                                            ClientCallBack<TracePoint> tracePointsCallback) {
+
     }
+
+    @Override
+    public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
+        return null;
+    }
+
+    @Override
+    public void getMethods(String sessionId, Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
+
+    }
+
+    @Override
+    public void getObjectsByType(SearchQuery searchQuery, String sessionId, ClientCallBack<ObjectWithTypeInfo> clientCallBack) {
+
+    }
+
+    @Override
+    public List<String> getSessionArchiveList(String sessionId) {
+        return List.of();
+    }
+
+    @Override
+    public void queryTracePointsByProbeIds(SearchQuery searchQuery, String sessionId, ClientCallBack<TracePoint> tracePointsCallback) {
+
+    }
+
+    @Override
+    public TypeInfo getTypeInfoByName(String sessionId, String type) {
+        throw new RuntimeException("not implemented yet ");
+    }
+
+    @Override
+    public List<TypeInfoDocument> getAllTypes(String sessionId) {
+        throw new RuntimeException("not implemented yet ");
+    }
+
+    @Override
+    public SessionInstance getSessionInstance() {
+        return null;
+    }
+
+
 }

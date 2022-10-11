@@ -1,6 +1,7 @@
 package com.insidious.plugin.extension.thread;
 
 import com.insidious.common.FilteredDataEventsRequest;
+import com.insidious.common.PageInfo;
 import com.insidious.plugin.extension.connector.RequestHint;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
@@ -497,7 +498,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
     public void setTracePoint(TracePoint tracePoint) throws Exception {
         FilteredDataEventsRequest filterDataEventRequest = tracePoint.toFilterDataEventRequest();
-        filterDataEventRequest.setPageSize(1000);
+        filterDataEventRequest.setPageInfo(new PageInfo(0, 10000));
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
@@ -509,7 +510,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
                     "Creating frames from: " + this.replayData.getDataEvents().size()
                             + " events across " + this.replayData.getClassInfoMap().size() + " class file, for " +
-                            this.replayData.getDataInfoMap().size() + " probes");
+                            this.replayData.getProbeInfoMap().size() + " probes");
         }
 
 
