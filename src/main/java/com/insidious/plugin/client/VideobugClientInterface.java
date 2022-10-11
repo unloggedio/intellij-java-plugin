@@ -14,7 +14,9 @@ import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
+import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -107,4 +109,6 @@ public interface VideobugClientInterface {
     List<TypeInfoDocument> getAllTypes(String sessionId);
 
     SessionInstance getSessionInstance();
+
+    TestCaseService getSessionTestCaseService(Project project, ExecutionSession session);
 }

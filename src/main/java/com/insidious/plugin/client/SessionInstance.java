@@ -1293,7 +1293,6 @@ public class SessionInstance {
         List<DataInfo> dataInfoList = new LinkedList<>();
 
 
-        i = 0;
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             i += 1;
             checkProgressIndicator(null,
@@ -1314,9 +1313,7 @@ public class SessionInstance {
 
         }
 
-        ClassWeaveInfo classWeave = new ClassWeaveInfo(classInfoList,
-                methodInfoList, dataInfoList);
-        return classWeave;
+        return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
     }
 
     @Nullable

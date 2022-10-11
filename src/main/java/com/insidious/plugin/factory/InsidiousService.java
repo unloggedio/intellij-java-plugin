@@ -2,7 +2,6 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.MultipartUtility;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
@@ -94,11 +93,9 @@ public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
-    private final long pluginSessionId = new Date().getTime();
     private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
-    private ExecutorService threadPool;
     private VideobugClientInterface client;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
@@ -116,13 +113,14 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
+    private LiveViewWindow liveViewWindow;
 
     public InsidiousService(Project project) {
         try {
 
 
             this.project = project;
-            threadPool = Executors.newFixedThreadPool(4);
+            ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project).getModules().length == 0) {
@@ -323,24 +321,24 @@ public class InsidiousService implements Disposable {
     public void init() {
         ApplicationManager.getApplication().invokeLater(this::initiateUI);
 
-        if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
-            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " + insidiousConfiguration.getServerUrl());
-            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-            if (insidiousCredentials != null) {
-                Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
-                if (credentials != null) {
-                    String password = credentials.getPasswordAsString();
-                    try {
-                        if (password != null) {
-//                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
-                        }
-                    } catch (Exception e) {
-                        logger.error("failed to signin", e);
-                        InsidiousNotification.notifyMessage("Failed to sign in -" + e.getMessage(), NotificationType.ERROR);
-                    }
-                }
-            }
-        }
+//        if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
+//            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " + insidiousConfiguration.getServerUrl());
+//            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
+//            if (insidiousCredentials != null) {
+//                Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
+//                if (credentials != null) {
+//                    String password = credentials.getPasswordAsString();
+//                    try {
+//                        if (password != null) {
+////                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
+//                        }
+//                    } catch (Exception e) {
+//                        logger.error("failed to signin", e);
+//                        InsidiousNotification.notifyMessage("Failed to sign in -" + e.getMessage(), NotificationType.ERROR);
+//                    }
+//                }
+//            }
+//        }
     }
 
     public boolean isLoggedIn() {
@@ -456,7 +454,6 @@ public class InsidiousService implements Disposable {
                     logger.error("failed to create project - {}", errorMessage);
 
                     InsidiousNotification.notifyMessage("Failed to create new project for [" + currentModule.getName() + "] on server [" + insidiousConfiguration.serverUrl, NotificationType.ERROR);
-
 
                 }
 
@@ -868,6 +865,11 @@ public class InsidiousService implements Disposable {
             singleWindowView = new SingleWindowView(project, this);
             Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
             contentManager.addContent(singleWindowContent);
+
+            liveViewWindow = new LiveViewWindow(project, this);
+            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+            contentManager.addContent(liveWindowContent);
+
             setupProject();
             return;
         }
@@ -879,45 +881,45 @@ public class InsidiousService implements Disposable {
 //        }
 
 
-        if (isLoggedIn() && searchByTypesWindow == null) {
-
-            searchByTypesWindow = new SearchByTypesWindow(project, this);
-            searchByValueWindow = new SearchByValueWindow(project, this);
-            singleWindowView = new SingleWindowView(project, this);
-            LiveViewWindow liveViewWindow = new LiveViewWindow(project, this);
-            aboutUsWindow = new AboutUsWindow();
-
-            // create the windows
-            Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
-            Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
-            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(), "About", false);
-
-
-            Content content = contentManager.findContent("Exceptions");
-            if (content == null) {
-                contentManager.addContent(bugsContent);
-            }
-            Content traceContent2 = contentManager.findContent("Traces");
-            if (traceContent2 == null) {
-                contentManager.addContent(traceContent);
-            }
-
-
-
-            Content liveWindowContent2 = contentManager.findContent("Live");
-            if (liveWindowContent2 == null) {
-//                contentManager.addContent(liveWindowContent);
-            }
-            Content aboutVideobug = contentManager.findContent("About");
-            if (aboutVideobug == null) {
-//                contentManager.addContent(aboutWindowContent);
-            }
-        }
-        if (isLoggedIn() && client.getProject() == null) {
-            logger.info("user is logged in by project is null, setting up project");
-            setupProject();
-        }
+//        if (isLoggedIn() && searchByTypesWindow == null) {
+//
+//            searchByTypesWindow = new SearchByTypesWindow(project, this);
+//            searchByValueWindow = new SearchByValueWindow(project, this);
+//            singleWindowView = new SingleWindowView(project, this);
+//            liveViewWindow = new LiveViewWindow(project, this);
+//            aboutUsWindow = new AboutUsWindow();
+//
+//            // create the windows
+//            Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
+//            Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
+//            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+//            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(), "About", false);
+//
+//
+//            Content content = contentManager.findContent("Exceptions");
+//            if (content == null) {
+//                contentManager.addContent(bugsContent);
+//            }
+//            Content traceContent2 = contentManager.findContent("Traces");
+//            if (traceContent2 == null) {
+//                contentManager.addContent(traceContent);
+//            }
+//
+//
+//
+//            Content liveWindowContent2 = contentManager.findContent("Live");
+//            if (liveWindowContent2 == null) {
+////                contentManager.addContent(liveWindowContent);
+//            }
+//            Content aboutVideobug = contentManager.findContent("About");
+//            if (aboutVideobug == null) {
+////                contentManager.addContent(aboutWindowContent);
+//            }
+//        }
+//        if (isLoggedIn() && client.getProject() == null) {
+//            logger.info("user is logged in by project is null, setting up project");
+//            setupProject();
+//        }
 
 
     }
@@ -1056,20 +1058,6 @@ public class InsidiousService implements Disposable {
         return insidiousConfiguration;
     }
 
-    public void logout() {
-        InsidiousConfigurationState newConfig = new InsidiousConfigurationState();
-        insidiousConfiguration.exceptionClassMap = newConfig.exceptionClassMap;
-        insidiousConfiguration.setServerUrl(newConfig.serverUrl);
-        insidiousConfiguration.setUsername(newConfig.username);
-
-        Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
-        if (credentials != null) {
-            PasswordSafe.getInstance().set(insidiousCredentials, null);
-        }
-
-
-    }
-
     public void ensureAgentJar(boolean overwrite) {
         checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {
             @Override
@@ -1122,63 +1110,6 @@ public class InsidiousService implements Disposable {
             this.client = null;
             currentModule = null;
         }
-    }
-
-//    public void uploadSessionToServer() throws IOException {
-//        String pathToSessions = project.getBasePath();
-//        assert pathToSessions != null;
-//        Path.of(pathToSessions).toFile().mkdirs();
-//
-//        VideobugLocalClient localClient = new VideobugLocalClient(pathToSessions);
-//        localClient.getProjectSessions(new GetProjectSessionsCallback() {
-//            @Override
-//            public void error(String message) {
-//                InsidiousNotification.notifyMessage("Session upload failed - " + message,
-//                        NotificationType.ERROR);
-//            }
-//
-//            @Override
-//            public void success(List<ExecutionSession> executionSessionList) throws IOException {
-//                if (executionSessionList.size() == 0) {
-//                    InsidiousNotification.notifyMessage("No sessions found. Run the application with the videobug agent to create a session",
-//                            NotificationType.ERROR);
-//                    return;
-//                }
-//                ExecutionSession latestSession = executionSessionList.get(0);
-//                localClient.setSession(latestSession);
-//                List<File> sessionArchives = localClient.getSessionFiles();
-//                InsidiousNotification.notifyMessage("" +
-//                                "Uploading " + sessionArchives.size() + " archives to server ["
-//                                + InsidiousService.this.client.getEndpoint() + "]",
-//                        NotificationType.INFORMATION);
-//                for (File sessionArchive : sessionArchives) {
-//                    sendPOSTRequest(
-//                            InsidiousService.this.client.getEndpoint() + "/checkpoint/uploadArchive",
-//                            localClient.getCurrentSession().getSessionId(),
-//                            sessionArchive.getAbsolutePath(),
-//                            InsidiousService.this.appToken
-//                    );
-//                }
-//            }
-//        });
-//    }
-
-    public void sendPOSTRequest(String url, String sessionId, String attachmentFilePath, String token) throws IOException {
-
-        String charset = "UTF-8";
-        Map<String, String> headers = new HashMap<>();
-        headers.put("User-Agent", "insidious/1.0.1");
-        headers.put("Authorization", "Bearer " + token);
-
-        MultipartUtility form = new MultipartUtility(url, charset, headers);
-
-        File binaryFile = new File(attachmentFilePath);
-        form.addFilePart("file", binaryFile);
-        form.addFormField("sessionId", sessionId);
-        form.addFormField("hostname", HOSTNAME);
-
-        String response = form.finish();
-
     }
 
 
