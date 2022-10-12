@@ -4,6 +4,8 @@ import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
+import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -21,11 +23,11 @@ import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.PackageInfoModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
@@ -36,27 +38,13 @@ import java.util.stream.Collectors;
 public class TestCaseService {
     public static final ClassName JUNIT_CLASS_NAME = ClassName.get("org.junit", "Test");
     private final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
-    private final Project project;
+    private final SessionInstance sessionInstance;
     private final VideobugClientInterface client;
-    final private int MAX_TEST_CASE_LINES = 1000;
 
 
-    public TestCaseService(Project project, VideobugClientInterface client) {
-        this.project = project;
+    public TestCaseService(VideobugClientInterface client) {
+        this.sessionInstance = client.getSessionInstance();
         this.client = client;
-    }
-
-    @NotNull
-    private TracePoint dummyTracePoint() {
-        return new TracePoint(
-                1,
-                2,
-                3, 4, 5,
-                "file.java",
-                "ClassName",
-                "ExceptionClassName",
-                1234,
-                1235);
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -73,9 +61,7 @@ public class TestCaseService {
         }
     }
 
-    public TestSuite generateTestCase(
-            TestCaseRequest testCaseRequest
-    ) throws APICallException, SessionNotSelectedException {
+    public TestSuite generateTestCase(TestCaseRequest testCaseRequest) throws APICallException, SessionNotSelectedException {
 
         List<ObjectWithTypeInfo> allObjects = testCaseRequest.getTargetObjectList();
         List<TestCaseUnit> testCases = new LinkedList<>();
@@ -265,11 +251,6 @@ public class TestCaseService {
 
 
         variableContainer.add(dependentParameter);
-
-//        for (ObjectRoutine routine : dependentObjectCreation.getObjectRoutines()) {
-//            VariableContainer createdVariablesContainer = routine.getVariableContainer();
-//            createdVariablesContainer.all().forEach(variableContainer::add);
-//        }
 
 
         if (dependentObjectCreation.getName() != null) {
@@ -869,9 +850,10 @@ public class TestCaseService {
                     variableContainer.add(testSubject);
                 }
             }
-
-
         }
     }
 
+    public List<PackageInfoModel> getPackageNames() {
+        return sessionInstance.getDaoService().getPackageNames();
+    }
 }

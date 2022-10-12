@@ -4,7 +4,9 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
+import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -25,6 +27,7 @@ import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.squareup.javapoet.*;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -90,7 +93,7 @@ public class TestCaseServiceTest {
 
 
     @Test
-    void testPrintObjectHistory() throws SessionNotSelectedException {
+    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException {
 
         Long objectId = Long.valueOf(909497978);
 //        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
@@ -138,17 +141,17 @@ public class TestCaseServiceTest {
 //
 //    }
 
-    private void printObjectHistory(Long objectId) throws SessionNotSelectedException {
+    private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException {
 
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
 
-        TestCaseService testCaseService = new TestCaseService(project, client);
+//        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
-        List<TestCandidate> testCandidateList = new LinkedList<>();
-        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+//        List<TestCandidate> testCandidateList = new LinkedList<>();
+//        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
 //        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
@@ -159,7 +162,7 @@ public class TestCaseServiceTest {
         ExecutionSession session = sessions.getItems().get(0);
 
 
-        client.setSession(session);
+        client.setSessionInstance(session);
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
         filterRequest.setObjectId(objectId);
@@ -201,9 +204,8 @@ public class TestCaseServiceTest {
 
 
     @Test
-    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException {
+    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException {
 
-        Long objectId;
         List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
 
 
@@ -213,9 +215,9 @@ public class TestCaseServiceTest {
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
 //        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
 
-        TestCaseService testCaseService = new TestCaseService(project, client);
+//        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
-        List<TestCandidate> testCandidateList = new LinkedList<>();
+//        List<TestCandidate> testCandidateList = new LinkedList<>();
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
 
 
@@ -323,17 +325,31 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    void testGenerateByObjects() throws InterruptedException, APICallException, IOException, SessionNotSelectedException {
+    void testGenerateByObjects() throws InterruptedException, APICallException, IOException, SessionNotSelectedException, SQLException {
 
 
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-        TestCaseService testCaseService = new TestCaseService(project, client);
-
-        List<TestCandidate> testCandidateList = new LinkedList<>();
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+
+        client.getProjectSessions(new GetProjectSessionsCallback() {
+            @Override
+            public void error(String message) {
+                throw new RuntimeException(message);
+            }
+
+            @Override
+            public void success(List<ExecutionSession> executionSessionList) {
+                client.setSessionInstance(executionSessionList.get(0));
+                waiter.offer("done");
+            }
+        });
+
+        waiter.take();
+        TestCaseService testCaseService = new TestCaseService(client);
+
 
 
 //        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
@@ -414,25 +430,26 @@ public class TestCaseServiceTest {
         Mockito.when(project.getBasePath()).thenReturn("./");
 
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-        TestCaseService testCaseService = new TestCaseService(project, client);
+        TestCaseService testCaseService = new TestCaseService(client);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         ExecutionSession session = sessions.getItems().get(0);
-        client.setSession(session);
+        client.setSessionInstance(session);
 
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
         for (int i = 0; i < 2; i++) {
             request.setThreadId((long) i);
-            Collection<ObjectRoutineContainer> candidates = client.getSessionInstance().scanDataAndBuildReplay(request);
+            client.getSessionInstance().scanDataAndBuildReplay();
         }
 
+    }
 
-//        for (ObjectRoutineContainer candidate : candidates) {
-//            ObjectRoutineContainer obr = new ObjectRoutineContainer();
-//        }
-
-
+    @NotNull
+    private static DaoService getDaoService(String url) throws SQLException {
+        ConnectionSource connectionSource = new JdbcConnectionSource(url);
+        DaoService daoService = new DaoService(connectionSource);
+        return daoService;
     }
 
     @Test
@@ -441,10 +458,6 @@ public class TestCaseServiceTest {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-        TestCaseService testCaseService = new TestCaseService(project, client);
-
-
 
         File dbFile = new File("execution.db");
         boolean dbFileExists = dbFile.exists();
@@ -452,9 +465,14 @@ public class TestCaseServiceTest {
         // this uses h2 but you can change it to match your database
         String databaseUrl = "jdbc:sqlite:execution.db";
         // create a connection source to our database
-        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+        DaoService daoService = getDaoService(databaseUrl);
 
-        DaoService daoService = new DaoService(connectionSource);
+
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+
+        TestCaseService testCaseService = new TestCaseService(client);
+
+
 
 
         List<Parameter> parameterList =  daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");

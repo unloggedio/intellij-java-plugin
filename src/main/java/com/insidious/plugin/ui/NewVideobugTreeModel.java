@@ -1,34 +1,21 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.weaver.ClassInfo;
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.client.VideobugClientInterface;
+import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreePath;
-import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class NewVideobugTreeModel implements TreeModel {
 
-    private final InsidiousService service;
-    private final VideobugClientInterface client;
     private final DefaultMutableTreeNode rootNode;
     private final Map<String, ClassWeaveInfo> sessionClassWeaveMap = new HashMap<>();
     private final Map<String, List<PackageInfoModel>> sessionPackageMap = new HashMap<>();
@@ -36,22 +23,18 @@ public class NewVideobugTreeModel implements TreeModel {
     private final Map<String, List<MethodInfoModel>> sessionClassMethodMap = new HashMap<>();
     private final Map<String, List<ProbeInfoModel>> sessionMethodProbeMap = new HashMap<>();
     private final List<TreeModelListener> listeners = new LinkedList<>();
+    private final TestCaseService testCaseService;
+    private final List<PackageInfoModel> packageNames;
     private DataResponse<ExecutionSession> sessionList;
     private Project project;
 
-    public NewVideobugTreeModel(InsidiousService insidiousService) {
+    public NewVideobugTreeModel(TestCaseService testCaseService) {
         String sessionNodeLabel = "Sessions";
-        this.service = insidiousService;
-        this.project = insidiousService.getProject();
-        this.client = this.service.getClient();
-        try {
-            this.sessionList = client.fetchProjectSessions();
-
-        } catch (APICallException | IOException e) {
-            sessionNodeLabel = "Failed to load sessions - " + e.getMessage();
-        }
+        this.testCaseService = testCaseService;
 
         rootNode = new DefaultMutableTreeNode(sessionNodeLabel);
+
+        packageNames = testCaseService.getPackageNames();
     }
 
     @Override
@@ -62,7 +45,7 @@ public class NewVideobugTreeModel implements TreeModel {
     @Override
     public Object getChild(Object parent, int index) {
         if (parent == rootNode) {
-            return sessionList.getItems().get(index);
+            return packageNames.get(index);
         }
 
         Class<?> nodeType = parent.getClass();
@@ -94,12 +77,6 @@ public class NewVideobugTreeModel implements TreeModel {
     public void init(ExecutionSession session) {
 
 
-        ClassWeaveInfo classWeaveInfo;
-        if (sessionClassWeaveMap.containsKey(session.getSessionId())) {
-            return;
-        }
-        TestCaseService testCaseService = client.getSessionTestCaseService(project, session);
-
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -120,7 +97,7 @@ public class NewVideobugTreeModel implements TreeModel {
     @Override
     public int getChildCount(Object parent) {
         if (parent == rootNode) {
-            return sessionList.getItems().size();
+            return packageNames.size();
         }
 
         Class<?> nodeType = parent.getClass();
@@ -227,14 +204,4 @@ public class NewVideobugTreeModel implements TreeModel {
         this.listeners.remove(l);
     }
 
-    public void refreshSessionList() throws APICallException, IOException {
-        this.sessionList = client.fetchProjectSessions();
-        if (this.sessionList.getItems().size() > 0) {
-            init(this.sessionList.getItems().get(0));
-        }
-//        for (TreeModelListener listener : this.listeners) {
-//            listener.
-//        }
-
-    }
 }

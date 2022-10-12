@@ -41,7 +41,7 @@ public class VideobugLocalClientTest {
         });
 
         ExecutionSession session = blockingQueue.take();
-        client.setSession(session);
+        client.setSessionInstance(session);
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);

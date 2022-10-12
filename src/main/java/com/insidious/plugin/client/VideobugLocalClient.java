@@ -2,10 +2,8 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.cqengine.TypeInfoDocument;
-import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
-import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
@@ -18,11 +16,10 @@ import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.Project;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,12 +29,9 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private static final Logger logger = Logger.getInstance(VideobugLocalClient.class.getName());
     private final String pathToSessions;
-    private final Map<String, ClassInfo> classInfoMap = new HashMap<>();
     private final VideobugNetworkClient networkClient;
-    private final Map<String, ArchiveIndex> indexCache = new HashMap<>();
     private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
-    RecordSession recordSession;
-    private SessionInstance session;
+    private SessionInstance sessionInstance;
     private ProjectItem currentProject;
 
     public VideobugLocalClient(String pathToSessions) {
@@ -50,16 +44,20 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public ExecutionSession getCurrentSession() {
-        if (this.session == null) {
+        if (this.sessionInstance == null) {
             return null;
         }
-        return this.session.getExecutionSession();
+        return this.sessionInstance.getExecutionSession();
     }
 
     @Override
-    public void setSession(ExecutionSession session) {
-        this.session = new SessionInstance(
-                new File(this.pathToSessions + session.getSessionId()), session);
+    public void setSessionInstance(ExecutionSession executionSession) {
+        try {
+            this.sessionInstance = new SessionInstance(executionSession);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -97,7 +95,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) throws IOException {
+    public void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) {
         getProjectSessionsCallback.success(getLocalSessions());
     }
 
@@ -120,6 +118,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 executionSession.setCreatedAt(new Date(file.lastModified()));
                 executionSession.setHostname("localhost");
                 executionSession.setLastUpdateAt(file.lastModified());
+                executionSession.setPath(file.getAbsolutePath());
                 list.add(executionSession);
             }
         }
@@ -165,7 +164,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
         logger.info("trace by string value: " + searchQuery);
         checkSession(sessionId);
-        this.session.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
+        this.sessionInstance.queryTracePointsByValue(searchQuery, getProjectSessionErrorsCallback);
 
     }
 
@@ -177,10 +176,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
         if (filteredDataEventsRequest.getSessionId() != null) {
             checkSession(filteredDataEventsRequest.getSessionId());
         }
-        if (this.session == null) {
+        if (this.sessionInstance == null) {
             throw new SessionNotSelectedException();
         }
-        ReplayData replayData = this.session.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
+        ReplayData replayData = this.sessionInstance.fetchObjectHistoryByObjectId(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;
 
@@ -192,7 +191,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                                         ClientCallBack<TracePoint> clientCallBack) {
         logger.info("get trace by object type: " + searchQuery.getQuery());
         checkSession(sessionId);
-        this.session.queryTracePointsByTypes(searchQuery, clientCallBack);
+        this.sessionInstance.queryTracePointsByTypes(searchQuery, clientCallBack);
 
 
     }
@@ -200,7 +199,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public ReplayData fetchDataEvents(FilteredDataEventsRequest filteredDataEventsRequest) {
         checkSession(filteredDataEventsRequest.getSessionId());
-        ReplayData replayData = this.session.fetchDataEvents(filteredDataEventsRequest);
+        ReplayData replayData = this.sessionInstance.fetchDataEvents(filteredDataEventsRequest);
         replayData.setClient(this);
         return replayData;
     }
@@ -271,10 +270,10 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                 List<ExecutionSession> sessions = getLocalSessions();
                 ExecutionSession executionSession = sessions.get(0);
-                setSession(executionSession);
+                setSessionInstance(executionSession);
 
                 queryTracePointsByTypes(SearchQuery.ByType(typeNameList),
-                        session.getExecutionSession().getSessionId(), 2,
+                        sessionInstance.getExecutionSession().getSessionId(), 2,
                         new ClientCallBack<TracePoint>() {
                             @Override
                             public void error(ExceptionResponse errorResponse) {
@@ -301,7 +300,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     public void getMethods(String sessionId,
                            Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
         checkSession(sessionId);
-        this.session.getMethods(typeId, tracePointsCallback);
+        this.sessionInstance.getMethods(typeId, tracePointsCallback);
     }
 
     /**
@@ -319,7 +318,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
 
         checkSession(sessionId);
-        this.session.getObjectsByType(searchQuery, clientCallBack);
+        this.sessionInstance.getObjectsByType(searchQuery, clientCallBack);
 
 
     }
@@ -327,22 +326,22 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public List<String> getSessionArchiveList(String sessionId) {
         checkSession(sessionId);
-        return this.session.getArchiveNamesList();
+        return this.sessionInstance.getArchiveNamesList();
 
     }
 
     @Override
     public ClassWeaveInfo getSessionClassWeave(String sessionId) {
         checkSession(sessionId);
-        return this.session.getClassWeaveInfo();
+        return this.sessionInstance.getClassWeaveInfo();
 
     }
 
     private void checkSession(String sessionId) {
-        if (this.session == null || !this.session.getExecutionSession().getSessionId().equals(sessionId)) {
+        if (this.sessionInstance == null || !this.sessionInstance.getExecutionSession().getSessionId().equals(sessionId)) {
             ExecutionSession executionSession = new ExecutionSession();
             executionSession.setSessionId(sessionId);
-            this.setSession(executionSession);
+            this.setSessionInstance(executionSession);
         }
     }
 
@@ -354,7 +353,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
         checkSession(sessionId);
         logger.info("trace by probe ids: " + searchQuery);
         checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        this.session.queryTracePointsByEventType(searchQuery, tracePointsCallback);
+        this.sessionInstance.queryTracePointsByEventType(searchQuery, tracePointsCallback);
 
 
     }
@@ -367,29 +366,29 @@ public class VideobugLocalClient implements VideobugClientInterface {
         checkSession(sessionId);
         logger.info("trace by probe ids: " + searchQuery);
         checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        this.session.queryTracePointsByProbeIds(searchQuery, tracePointsCallback);
+        this.sessionInstance.queryTracePointsByProbeIds(searchQuery, tracePointsCallback);
 //        this.session.queryTracePointsByProbeIdsWithoutIndex(searchQuery, tracePointsCallback);
 
     }
 
     @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {
-        return this.session.getTypeInfo(type);
+        return this.sessionInstance.getTypeInfo(type);
     }
 
     @Override
     public List<TypeInfoDocument> getAllTypes(String sessionId) {
-        return this.session.getAllTypes();
+        return this.sessionInstance.getAllTypes();
     }
 
     @Override
     public SessionInstance getSessionInstance() {
-        return session;
+        return sessionInstance;
     }
 
     @Override
-    public TestCaseService getSessionTestCaseService(Project project, ExecutionSession session) {
-        return new TestCaseService(project, this);
+    public TestCaseService getSessionTestCaseService() {
+        return new TestCaseService(this);
     }
 
     public String getRootDirectory() {

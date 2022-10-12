@@ -27,6 +27,8 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.dao.ArchiveFile;
+import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -61,6 +63,8 @@ import static com.googlecode.cqengine.query.QueryFactory.startsWith;
 import static com.insidious.plugin.client.DatFileType.*;
 
 public class SessionInstance {
+    public static final String COMPLETED = "completed";
+    public static final String PENDING = "pending";
     private static final Logger logger = LoggerUtil.getInstance(SessionInstance.class);
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
@@ -71,12 +75,16 @@ public class SessionInstance {
     private Map<Long, DataInfo> probeInfoMap;
     private Map<Long, ClassInfo> classInfoMap;
     private Map<Long, MethodInfo> methodInfoMap;
-//    private HashSet<Long> doneIds = new HashSet<Long>();
+    private DaoService daoService;
 
-    public SessionInstance(File sessionDirectory, ExecutionSession executionSession) {
-        this.sessionDirectory = sessionDirectory;
+    public SessionInstance(ExecutionSession executionSession) throws SQLException {
+        this.sessionDirectory = Path.of(executionSession.getPath()).toFile();
         this.executionSession = executionSession;
         this.sessionArchives = refreshSessionArchivesList();
+
+        String databaseUrl = executionSession.getDatabasePath();
+        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+        daoService = new DaoService(connectionSource);
 
     }
 
@@ -90,6 +98,26 @@ public class SessionInstance {
         }
 
         return Integer.parseInt(archiveFile.split("\\.")[0].split("-")[2]);
+    }
+
+    @NotNull
+    private static Map<String, LogFile> getLogFileMap(DaoService daoService) {
+        Map<String, LogFile> logFileMap = new HashMap<>();
+        List<LogFile> logFiles = daoService.getLogFiles();
+        for (LogFile logFile : logFiles) {
+            logFileMap.put(logFile.getName(), logFile);
+        }
+        return logFileMap;
+    }
+
+    @NotNull
+    private static Map<String, ArchiveFile> getArchiveFileMap(DaoService daoService) {
+        List<ArchiveFile> archiveFileList = daoService.getArchiveList();
+        Map<String, ArchiveFile> archiveFileMap = new HashMap<>();
+        for (ArchiveFile archiveFile : archiveFileList) {
+            archiveFileMap.put(archiveFile.getName(), archiveFile);
+        }
+        return archiveFileMap;
     }
 
     public ExecutionSession getExecutionSession() {
@@ -154,6 +182,7 @@ public class SessionInstance {
 
 
         sessionFiles.removeAll(filesToRemove);
+        Collections.sort(sessionFiles);
         return sessionFiles;
     }
 
@@ -442,6 +471,7 @@ public class SessionInstance {
             String entryName = entry.getName();
             files.add(entryName);
         }
+        Collections.sort(files);
         return files;
 
     }
@@ -1762,9 +1792,7 @@ public class SessionInstance {
 
     }
 
-    public Collection<ObjectRoutineContainer> scanDataAndBuildReplay(FilteredDataEventsRequest request) throws Exception {
-
-        DaoService daoService = createDaoService();
+    public void scanDataAndBuildReplay() throws Exception {
 
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
@@ -1773,8 +1801,6 @@ public class SessionInstance {
         assert methodInfoMap.size() > 0;
 
         List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
-
-        Collections.sort(sessionArchivesLocal);
 
 
         checkProgressIndicator(null, "Loading class mappings");
@@ -1787,57 +1813,78 @@ public class SessionInstance {
 
         Map<String, VariableContainer> classStaticFieldMap = new HashMap<>();
 
-//        File output = new File(String.format("output%d.txt", request.getThreadId()));
-//        FileOutputStream outputWriter = new FileOutputStream(output);
-//        BufferedOutputStream outputStream = new BufferedOutputStream(outputWriter);
 
+        int threadId = 1;
+        DaoService daoService = getDaoService();
         Long currentCallId = daoService.getMaxCallId();
 
-        for (File sessionArchive : sessionArchivesLocal) {
-            logger.warn("open archive [" + sessionArchive.getName() + "]");
 
+        Map<String, ArchiveFile> archiveFileMap = getArchiveFileMap(daoService);
+        Map<String, LogFile> logFileMap = getLogFileMap(daoService);
+
+        DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService);
+        List<Integer> existingProbes = daoService.getProbes();
+
+
+        for (File sessionArchive : sessionArchivesLocal) {
+            ArchiveFile archiveFile = archiveFileMap.get(sessionArchive.getName());
+            if (archiveFile != null && archiveFile.getStatus().equals(COMPLETED)) {
+                continue;
+            }
+
+            if (archiveFile == null) {
+                archiveFile = new ArchiveFile();
+                archiveFile.setStatus(PENDING);
+                archiveFile.setName(sessionArchive.getName());
+            }
+
+            logger.warn("open archive [" + sessionArchive.getName() + "]");
             List<String> archiveFiles;
 
             archiveFiles = listArchiveFiles(sessionArchive);
 
             if (archiveFiles.size() == 0) {
+                archiveFile.setStatus(COMPLETED);
+                daoService.updateArchiveFile(archiveFile);
                 continue;
             }
 
-
-//            NameWithBytes stringsIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_STRING_DAT_FILE.getFileName());
-//            assert stringsIndexBytes != null;
-//            ArchiveIndex stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
-
-//            NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
-//            assert objectIndexBytes != null;
-//            ArchiveIndex objectsIndex1 = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-//            objectsIndexList.add(objectsIndex1);
-
-            Collections.sort(archiveFiles);
-
-            DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService);
-
-            List<Integer> existingProbes = daoService.getProbes();
-
-            for (String archiveFile : archiveFiles) {
-                checkProgressIndicator(null, "Reading events from  " + archiveFile);
-
-                if (!archiveFile.endsWith(".selog")) {
-                    continue;
+            for (String file : archiveFiles) {
+                LogFile logFile = logFileMap.get(file);
+                if (logFile == null) {
+                    logFile = new LogFile();
+                    logFile.setName(file);
+                    logFile.setArchiveName(archiveFile.getName());
+                    logFile.setStatus(PENDING);
+                    daoService.updateLogFile(logFile);
+                    logFileMap.put(file, logFile);
                 }
-                final int fileThreadId = getThreadIdFromFileName(archiveFile);
-                if (fileThreadId != request.getThreadId()) {
+            }
+
+
+            for (String logFile : archiveFiles) {
+                checkProgressIndicator(null, "Reading events from  " + logFile);
+
+                if (!logFile.endsWith(".selog")) {
                     continue;
                 }
 
-                logger.warn("loading next file: [" + archiveFile + "]");
+                LogFile logFileEntry = logFileMap.get(logFile);
+                if (logFileEntry != null && logFileEntry.getStatus().equals(COMPLETED)) {
+                    continue;
+                }
 
 
-                logger.info("Checking file " + archiveFile + " for data");
+                final int fileThreadId = getThreadIdFromFileName(logFile);
+                if (fileThreadId != threadId) {
+                    continue;
+                }
+
+                logger.warn("loading next file: [" + logFile + "]");
+                logger.info("Checking file " + logFile + " for data");
 
 
-                List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive, archiveFile);
+                List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive, logFile);
                 if (eventsSublist.size() == 0) {
                     continue;
                 }
@@ -1847,7 +1894,6 @@ public class SessionInstance {
                 Set<MethodCallExpression> callsToSave = new HashSet<>();
                 Set<MethodCallExpression> callsToUpdate = new HashSet<>();
                 List<TestCandidateMetadata> candidatesToSave = new LinkedList<>();
-                KaitaiInsidiousEventParser.Block firstEvent = eventsSublist.get(0);
                 long previousIndex = -1;
                 for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
@@ -2415,15 +2461,20 @@ public class SessionInstance {
                 daoService.updateCalls(callsToUpdate);
                 daoService.createOrUpdateTestCandidate(candidatesToSave);
 
+                logFileEntry.setStatus(COMPLETED);
+                daoService.updateLogFile(logFileEntry);
 
             }
             daoService.createOrUpdateParameter(parameterContainer.all());
-
+            archiveFile.setStatus(COMPLETED);
+            daoService.updateArchiveFile(archiveFile);
 
         }
         daoService.close();
+    }
 
-        return null;
+    public DaoService getDaoService() {
+        return daoService;
     }
 
     private DaoService createDaoService() throws SQLException {

@@ -2,14 +2,14 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.pojo.dao.MethodCallExpression;
-import com.insidious.plugin.pojo.dao.Parameter;
-import com.insidious.plugin.pojo.dao.ProbeInfo;
-import com.insidious.plugin.pojo.dao.TestCandidateMetadata;
+import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.ui.PackageInfoModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
+import com.j256.ormlite.dao.GenericRawResults;
+import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
 
@@ -28,18 +28,22 @@ public class DaoService {
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> callExpressionsDao;
     private final Dao<Parameter, Long> parameterDao;
+    private final Dao<LogFile, Long> logFilesDao;
+    private final Dao<ArchiveFile, Long> archiveFileDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
-    private final Dao<TestCandidateMetadata, Long> candidateDao;
+    private final Dao<TestCandidateMetadata, Long> testCandidateDao;
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
 
         // instantiate the DAO to handle Account with String id
-        candidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
+        testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
 
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
 
         parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
+        logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
+        archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
 
         callExpressionsDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
 
@@ -53,7 +57,7 @@ public class DaoService {
 
 //        parameterDao
 
-        List<TestCandidateMetadata> candidateList = candidateDao.queryForEq("testSubject_id", id);
+        List<TestCandidateMetadata> candidateList = testCandidateDao.queryForEq("testSubject_id", id);
 
 
         List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidateList = new LinkedList<>();
@@ -245,7 +249,7 @@ public class DaoService {
     }
 
     public void createOrUpdateTestCandidate(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata completed) throws SQLException {
-        candidateDao.createOrUpdate(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
+        testCandidateDao.createOrUpdate(com.insidious.plugin.pojo.dao.TestCandidateMetadata.
                 FromTestCandidateMetadata(completed));
     }
 
@@ -277,7 +281,7 @@ public class DaoService {
 
     public void createOrUpdateTestCandidate(List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candiateToSave) {
         try {
-            candidateDao.create(candiateToSave.stream()
+            testCandidateDao.create(candiateToSave.stream()
                     .map(TestCandidateMetadata::FromTestCandidateMetadata)
                     .collect(Collectors.toList()));
 //            for (com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata : candiateToSave) {
@@ -334,5 +338,60 @@ public class DaoService {
 
     public void close() throws Exception {
         connectionSource.close();
+    }
+
+    public List<PackageInfoModel> getPackageNames() {
+        List<PackageInfoModel> packageList = new LinkedList<>();
+
+
+        try {
+            GenericRawResults<Object[]> parameterIdList = parameterDao.queryRaw("select distinct(type) from parameter;",
+                    new DataType[]{DataType.STRING});
+
+            for (Object[] objects : parameterIdList) {
+                String typeName = (String) objects[0];
+                packageList.add(new PackageInfoModel(typeName, null));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+
+        return packageList;
+    }
+
+    public List<LogFile> getLogFiles() {
+        try {
+            return logFilesDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    public List<ArchiveFile> getArchiveList() {
+        try {
+            return archiveFileDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    public void updateArchiveFile(ArchiveFile archiveFile) {
+        try {
+            archiveFileDao.createOrUpdate(archiveFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateLogFile(LogFile logFile) {
+        try {
+            logFilesDao.createOrUpdate(logFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

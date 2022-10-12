@@ -54,7 +54,6 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -133,7 +132,7 @@ public class InsidiousService implements Disposable {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
-            this.testCaseService = new TestCaseService(project, client);
+            this.testCaseService = new TestCaseService(client);
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
@@ -961,7 +960,7 @@ public class InsidiousService implements Disposable {
             }
 
             @Override
-            public void success(List<ExecutionSession> executionSessionList) throws IOException {
+            public void success(List<ExecutionSession> executionSessionList) {
                 logger.info("got [" + executionSessionList.size() + "] sessions for project");
                 if (executionSessionList.size() == 0) {
                     ApplicationManager.getApplication().invokeLater(() -> {
@@ -975,7 +974,11 @@ public class InsidiousService implements Disposable {
                     });
                     return;
                 }
-                client.setSession(executionSessionList.get(0));
+                try {
+                    client.setSessionInstance(executionSessionList.get(0));
+                } catch (IOException e) {
+                    InsidiousNotification.notifyMessage("Failed to set session - " + e.getMessage(), NotificationType.ERROR);
+                }
             }
         });
     }
@@ -1084,7 +1087,7 @@ public class InsidiousService implements Disposable {
         }
         if (client.getCurrentSession() == null || !client.getCurrentSession()
                 .getSessionId().equals(sessions.getItems().get(0).getSessionId())) {
-            client.setSession(sessions.getItems().get(0));
+            client.setSessionInstance(sessions.getItems().get(0));
         }
     }
 

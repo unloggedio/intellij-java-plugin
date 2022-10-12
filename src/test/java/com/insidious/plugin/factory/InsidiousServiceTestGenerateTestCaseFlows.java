@@ -40,7 +40,7 @@ public class InsidiousServiceTestGenerateTestCaseFlows extends TestCase {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
         VideobugLocalClient client = new VideobugLocalClient("C:\\Users\\artpa\\.videobug\\sessions");
         DataResponse<ExecutionSession> sessionList = client.fetchProjectSessions();
-        client.setSession(sessionList.getItems().get(0));
+        client.setSessionInstance(sessionList.getItems().get(0));
 
         TestCaseService testCaseService = new TestCaseService(project, client);
 

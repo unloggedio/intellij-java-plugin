@@ -1,19 +1,19 @@
 package com.insidious.plugin.client.pojo;
 
 
-import com.insidious.common.weaver.TypeInfo;
-
+import java.nio.file.Path;
 import java.util.Date;
-import java.util.List;
 
 public class ExecutionSession {
 
 
+    public static final String EXECUTION_DB_NAME = "execution.db";
     private long lastUpdateAt;
     private String projectId;
     private Date createdAt;
     private String sessionId;
     private String hostname;
+    private String path;
 
     public String getSessionId() {
         return sessionId;
@@ -60,12 +60,16 @@ public class ExecutionSession {
         return "[" + hostname + "] " +
                 sessionId + " - " + createdAt;
     }
-//
-//    public String getId() {
-//        return id;
-//    }
-//
-//    public void setId(String id) {
-//        this.id = id;
-//    }
+
+    public String getDatabasePath() {
+        return "jdbc:sqlite:" + Path.of(path, EXECUTION_DB_NAME);
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 }

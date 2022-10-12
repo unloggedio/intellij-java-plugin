@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public interface VideobugClientInterface {
     ExecutionSession getCurrentSession();
 
-    void setSession(ExecutionSession session) throws IOException;
+    void setSessionInstance(ExecutionSession sessionInstance) throws IOException;
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 
@@ -43,7 +43,7 @@ public interface VideobugClientInterface {
 
     void getProjectToken(ProjectTokenCallback projectTokenCallback);
 
-    void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback) throws IOException;
+    void getProjectSessions(GetProjectSessionsCallback getProjectSessionsCallback);
 
     DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException;
 
@@ -110,5 +110,5 @@ public interface VideobugClientInterface {
 
     SessionInstance getSessionInstance();
 
-    TestCaseService getSessionTestCaseService(Project project, ExecutionSession session);
+    TestCaseService getSessionTestCaseService();
 }

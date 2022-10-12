@@ -77,8 +77,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void setSession(ExecutionSession session) {
-        this.session = session;
+    public void setSessionInstance(ExecutionSession sessionInstance) {
+        this.session = sessionInstance;
     }
 
     @Override
@@ -709,7 +709,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public TestCaseService getSessionTestCaseService(Project project, ExecutionSession session) {
+    public TestCaseService getSessionTestCaseService() {
         return null;
     }
 

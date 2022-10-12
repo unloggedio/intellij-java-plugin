@@ -8,5 +8,5 @@ import java.util.List;
 public interface GetProjectSessionsCallback {
     void error(String message);
 
-    void success(List<ExecutionSession> executionSessionList) throws IOException;
+    void success(List<ExecutionSession> executionSessionList);
 }
