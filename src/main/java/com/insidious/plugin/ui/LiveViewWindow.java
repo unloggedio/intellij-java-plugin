@@ -1,7 +1,6 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
@@ -59,9 +58,9 @@ public class LiveViewWindow {
                 try {
                     ExecutionSession executionSession = executionSessionList.get(0);
                     insidiousService.getClient().setSessionInstance(executionSession);
-                    SessionInstance sessionInstance = insidiousService.getClient().getSessionInstance();
                     TestCaseService testCaseService = new TestCaseService(insidiousService.getClient());
-                    treeModel = new NewVideobugTreeModel(testCaseService);
+                    testCaseService.processLogFiles();
+                    treeModel = new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
                     mainTree.setModel(treeModel);
 
                 } catch (Exception ex) {

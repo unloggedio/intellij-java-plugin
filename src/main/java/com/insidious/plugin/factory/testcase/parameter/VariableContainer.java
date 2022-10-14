@@ -46,7 +46,7 @@ public class VariableContainer {
     }
 
     public void add(Parameter parameter) {
-        Object value = parameter.getValue();
+        long value = parameter.getValue();
         Parameter byValue = getParametersById(value);
         if (byValue == null) {
             this.parameterList.add(parameter);
@@ -105,10 +105,10 @@ public class VariableContainer {
                 .collect(Collectors.toList());
     }
 
-    public Parameter getParametersById(Object value) {
+    public Parameter getParametersById(long value) {
         Optional<Parameter> ret = this.parameterList
                 .stream()
-                .filter(e -> e.getValue() != null && e.getValue().equals(value))
+                .filter(e -> e.getValue() == value)
                 .findAny();
         return ret.orElse(null);
     }

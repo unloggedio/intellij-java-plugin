@@ -1,20 +1,21 @@
 package com.insidious.plugin.ui;
 
-import javax.swing.event.TreeModelListener;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.TreeModel;
-import javax.swing.tree.TreePath;
-import java.util.*;
+import java.util.Vector;
 
 public class PackageInfoModel {
-
-    public Vector<TreeClassInfoModel> getChildren() {
-        return children;
-    }
 
     private final Vector<TreeClassInfoModel> children;
     String packageNamePart;
     private String sessionId;
+    public PackageInfoModel(String packageNamePart, String sessionId) {
+        this.packageNamePart = packageNamePart;
+        this.sessionId = sessionId;
+        this.children = new Vector<>();
+    }
+
+    public Vector<TreeClassInfoModel> getChildren() {
+        return children;
+    }
 
     public String getPackageNamePart() {
         return packageNamePart;
@@ -30,12 +31,6 @@ public class PackageInfoModel {
 
     public void setSessionId(String sessionId) {
         this.sessionId = sessionId;
-    }
-
-    public PackageInfoModel(String packageNamePart, String sessionId) {
-        this.packageNamePart = packageNamePart;
-        this.sessionId = sessionId;
-        this.children = new Vector<>();
     }
 
     @Override

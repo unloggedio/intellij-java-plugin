@@ -4,7 +4,6 @@ import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
-import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
@@ -23,7 +22,6 @@ import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.PackageInfoModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
@@ -703,14 +701,14 @@ public class TestCaseService {
                         // parameter then we dont know which variable to invoke this method on.
                         // Potentially be a pagination issue also.
                         // this can also be a super() call
-                        if (parameter.getValue() != null) {
+                        if (parameter.getValue() != 0) {
                             newTestCaseMetadata.setTestSubject(parameter);
                             testSubject = parameter;
                         } else {
                             continue;
                         }
                     }
-                    if (testSubject.getValue() == null ||
+                    if (testSubject.getValue() == 0 ||
                             !(String.valueOf(testSubject.getValue()))
                                     .equals(String.valueOf(parameter.getValue()))
                     ) {
@@ -805,7 +803,7 @@ public class TestCaseService {
             if (mainExpression instanceof MethodCallExpression &&
                     ((MethodCallExpression) mainExpression).getMethodName().equals("<init>")) {
 
-                if (testSubject.getValue() == null) {
+                if (testSubject.getValue() == 0) {
                     // this is a constructor call, going directly to as a parameter
                     // something.method(new ClassHere(), ..)
                     // we will create a variable for this first and then use it
@@ -853,7 +851,15 @@ public class TestCaseService {
         }
     }
 
-    public List<PackageInfoModel> getPackageNames() {
+    public List<String> getPackageNames() {
         return sessionInstance.getDaoService().getPackageNames();
+    }
+
+    public void processLogFiles() throws Exception {
+        sessionInstance.scanDataAndBuildReplay();
+    }
+
+    public List<TestCandidateMetadata> getTestCandidatesForClass(String className) {
+        return sessionInstance.getTestCandidatesForClass(className);
     }
 }

@@ -6,7 +6,7 @@ import com.j256.ormlite.table.DatabaseTable;
 @DatabaseTable(tableName = "archive_file")
 public class ArchiveFile {
 
-    @DatabaseField
+    @DatabaseField(id = true)
     String name;
     @DatabaseField
     String status;

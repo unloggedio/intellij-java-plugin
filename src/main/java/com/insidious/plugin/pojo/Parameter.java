@@ -119,8 +119,8 @@ public class Parameter {
         this.names.addAll(name);
     }
 
-    public Object getValue() {
-        return stringValue == null ? value : stringValue;
+    public long getValue() {
+        return value;
     }
 
     public void setValue(Long value) {

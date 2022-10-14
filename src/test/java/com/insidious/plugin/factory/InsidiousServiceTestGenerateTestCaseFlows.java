@@ -42,7 +42,7 @@ public class InsidiousServiceTestGenerateTestCaseFlows extends TestCase {
         DataResponse<ExecutionSession> sessionList = client.fetchProjectSessions();
         client.setSessionInstance(sessionList.getItems().get(0));
 
-        TestCaseService testCaseService = new TestCaseService(project, client);
+        TestCaseService testCaseService = new TestCaseService(client);
 
 
         List<String> targetClasses = List.of("com.repyute.service.zoho.ZohoService");

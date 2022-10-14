@@ -6,15 +6,16 @@ import junit.framework.TestCase;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.sql.SQLException;
 
 public class SessionInstanceTest extends TestCase {
 
     @Test
-    public void testTypeIndex() {
+    public void testTypeIndex() throws SQLException {
         File sessionDirectory = new File("C:\\Users\\artpa\\" +
                 ".videobug\\sessions\\selogger-output-9");
         ExecutionSession executionSession = new ExecutionSession();
-        SessionInstance sessionInstance = new SessionInstance(sessionDirectory, executionSession);
+        SessionInstance sessionInstance = new SessionInstance(executionSession);
 
         TypeInfo type318 = sessionInstance.getTypeInfo(318);
         TypeInfo type317 = sessionInstance.getTypeInfo(317);

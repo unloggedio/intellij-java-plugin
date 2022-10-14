@@ -6,7 +6,6 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.DaoService;
-import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -37,8 +36,8 @@ import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
@@ -91,6 +90,12 @@ public class TestCaseServiceTest {
 //
 //    }
 
+    @NotNull
+    private static DaoService getDaoService(String url) throws SQLException {
+        ConnectionSource connectionSource = new JdbcConnectionSource(url);
+        DaoService daoService = new DaoService(connectionSource);
+        return daoService;
+    }
 
     @Test
     void testPrintObjectHistory() throws SessionNotSelectedException, SQLException {
@@ -100,25 +105,6 @@ public class TestCaseServiceTest {
 
         printObjectHistory(objectId);
 
-    }
-
-    @Test
-    void testPrintEventsByProbeIds() {
-
-        List<Long> probeIds = List.of(909497978L);
-
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-
-
-        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
-
-//        client.fetchDataEvents()
-
-        Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
     }
 
 //    @Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
@@ -140,6 +126,25 @@ public class TestCaseServiceTest {
 //
 //
 //    }
+
+    @Test
+    void testPrintEventsByProbeIds() {
+
+        List<Long> probeIds = List.of(909497978L);
+
+
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+
+
+        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
+
+//        client.fetchDataEvents()
+
+        Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
+    }
 
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException {
 
@@ -201,7 +206,6 @@ public class TestCaseServiceTest {
         }
 
     }
-
 
     @Test
     void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException {
@@ -275,7 +279,6 @@ public class TestCaseServiceTest {
 
     }
 
-
     @Test
     public void printClassProbes() {
 
@@ -320,8 +323,6 @@ public class TestCaseServiceTest {
     void testMono() {
 
 
-
-
     }
 
     @Test
@@ -349,7 +350,6 @@ public class TestCaseServiceTest {
 
         waiter.take();
         TestCaseService testCaseService = new TestCaseService(client);
-
 
 
 //        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
@@ -419,8 +419,8 @@ public class TestCaseServiceTest {
 
     }
 
-
-    @Test public void testScanAndGenerateAll() throws Exception {
+    @Test
+    public void testScanAndGenerateAll() throws Exception {
 
         File dbFile = new File("execution.db");
         dbFile.delete();
@@ -438,18 +438,11 @@ public class TestCaseServiceTest {
 
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
-        for (int i = 0; i < 2; i++) {
-            request.setThreadId((long) i);
-            client.getSessionInstance().scanDataAndBuildReplay();
-        }
+//        for (int i = 0; i < 2; i++) {
+//            request.setThreadId((long) i);
+        client.getSessionInstance().scanDataAndBuildReplay();
+//        }
 
-    }
-
-    @NotNull
-    private static DaoService getDaoService(String url) throws SQLException {
-        ConnectionSource connectionSource = new JdbcConnectionSource(url);
-        DaoService daoService = new DaoService(connectionSource);
-        return daoService;
     }
 
     @Test
@@ -473,9 +466,7 @@ public class TestCaseServiceTest {
         TestCaseService testCaseService = new TestCaseService(client);
 
 
-
-
-        List<Parameter> parameterList =  daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");
+        List<Parameter> parameterList = daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");
 
         long valueId = (long) parameterList.get(0).getValue();
         Parameter targetParameter = parameterList.get(0);

@@ -3,7 +3,6 @@ package com.insidious.plugin.client;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.dao.*;
-import com.insidious.plugin.ui.PackageInfoModel;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
@@ -14,19 +13,30 @@ import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DaoService {
 
 
+    public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select p.type, p.value, count(*)\n" +
+            "from test_candidate\n" +
+            "         join parameter p on p.value = testSubject_id and p.type != 'java.lang.Object' and length(p.type) > 1\n" +
+            "group by p.type, p.value\n" +
+            "having count(*) > 1\n" +
+            "order by p.type";
+    public static final String TEST_CANDIDATE_METHOD_AGGREGATE_QUERY = "select mc.methodName, count(*)\n" +
+            "from test_candidate tc\n" +
+            "         join parameter p on p.value = testSubject_id\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "where p.type = ?\n" +
+            "and mc.methodName != '<init>'\n" +
+            "group by mc.methodName\n" +
+            "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
-    private final Dao<MethodCallExpression, Long> callExpressionsDao;
+    private final Dao<MethodCallExpression, Long> methodCallExpressionDao;
     private final Dao<Parameter, Long> parameterDao;
     private final Dao<LogFile, Long> logFilesDao;
     private final Dao<ArchiveFile, Long> archiveFileDao;
@@ -45,7 +55,7 @@ public class DaoService {
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
 
-        callExpressionsDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
+        methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
 
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
 
@@ -115,7 +125,7 @@ public class DaoService {
     public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws SQLException {
 
 
-        MethodCallExpression dbMce = callExpressionsDao.queryForId(methodCallId);
+        MethodCallExpression dbMce = methodCallExpressionDao.queryForId(methodCallId);
         com.insidious.plugin.pojo.MethodCallExpression mce = MethodCallExpression.ToMCE(dbMce);
 
         Parameter mainSubject = dbMce.getSubject();
@@ -245,7 +255,7 @@ public class DaoService {
     }
 
     public void createOrUpdateCall(com.insidious.plugin.pojo.MethodCallExpression topCall) throws SQLException {
-        callExpressionsDao.createOrUpdate(MethodCallExpression.FromMCE(topCall));
+        methodCallExpressionDao.createOrUpdate(MethodCallExpression.FromMCE(topCall));
     }
 
     public void createOrUpdateTestCandidate(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata completed) throws SQLException {
@@ -259,7 +269,7 @@ public class DaoService {
 
     public void createOrUpdateCall(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
-            callExpressionsDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
+            methodCallExpressionDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
 //            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
 //                callExpressionsDao.create(MethodCallExpression.FromMCE(methodCallExpression));
 //            }
@@ -272,7 +282,7 @@ public class DaoService {
     public void updateCalls(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
-                callExpressionsDao.update(MethodCallExpression.FromMCE(methodCallExpression));
+                methodCallExpressionDao.update(MethodCallExpression.FromMCE(methodCallExpression));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -329,7 +339,7 @@ public class DaoService {
 
     public long getMaxCallId() {
         try {
-            long result = callExpressionsDao.queryRawValue("select max(id) from method_call");
+            long result = methodCallExpressionDao.queryRawValue("select max(id) from method_call");
             return result;
         } catch (SQLException e) {
             return 0;
@@ -340,20 +350,20 @@ public class DaoService {
         connectionSource.close();
     }
 
-    public List<PackageInfoModel> getPackageNames() {
-        List<PackageInfoModel> packageList = new LinkedList<>();
-
+    public List<String> getPackageNames() {
+        List<String> packageList = new LinkedList<>();
 
         try {
-            GenericRawResults<Object[]> parameterIdList = parameterDao.queryRaw("select distinct(type) from parameter;",
-                    new DataType[]{DataType.STRING});
+            GenericRawResults<Object[]> parameterIdList = parameterDao
+                    .queryRaw("select distinct(type) from parameter order by type;", new DataType[]{DataType.STRING});
 
             for (Object[] objects : parameterIdList) {
-                String typeName = (String) objects[0];
-                packageList.add(new PackageInfoModel(typeName, null));
+                String className = (String) objects[0];
+                packageList.add(className);
             }
+            parameterIdList.close();
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return List.of();
         }
@@ -393,5 +403,62 @@ public class DaoService {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidatesForClass(String className) {
+        try {
+            long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
+
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = getTestCandidateForSubjectId(result);
+
+            return results;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
+        try {
+            List<VideobugTreeClassAggregateNode> aggregateList = new LinkedList<>();
+            Map<String, Integer> packageCountAggregate = new HashMap<>();
+
+            GenericRawResults<String[]> rows = testCandidateDao.queryRaw(TEST_CANDIDATE_AGGREGATE_QUERY);
+            for (String[] result : rows.getResults()) {
+                Integer value = packageCountAggregate.computeIfAbsent(result[0], s -> 0);
+                packageCountAggregate.put(result[0], value + Integer.parseInt(result[2]));
+            }
+            for (String s : packageCountAggregate.keySet()) {
+                aggregateList.add(new VideobugTreeClassAggregateNode(s, packageCountAggregate.get(s)));
+            }
+            rows.close();
+            return aggregateList;
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<TestCandidateMethodAggregate> getTestCandidateAggregatesForType(String typeName) {
+
+        try {
+            List<TestCandidateMethodAggregate> results = new LinkedList<>();
+            GenericRawResults<String[]> rows = testCandidateDao.queryRaw(TEST_CANDIDATE_METHOD_AGGREGATE_QUERY, typeName);
+            for (String[] result : rows.getResults()) {
+                results.add(
+                        new TestCandidateMethodAggregate(typeName, result[0], Integer.valueOf(result[1]))
+                );
+            }
+
+            rows.close();
+
+            return results;
+
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

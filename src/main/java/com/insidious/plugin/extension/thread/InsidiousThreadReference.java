@@ -666,16 +666,9 @@ public class InsidiousThreadReference implements ThreadReference {
 
         List<String> signatureParts = Arrays.asList(className.split("/"));
         String qualifiedClassName = className.replaceAll("/", ".");
-//            signatureParts.remove(signatureParts.size() - 1);
-        String packageName = StringUtil.join(signatureParts.subList(0, signatureParts.size() - 1), ".");
-
-//            String nonQualifiedClassName = signatureParts.get(signatureParts.size() - 1);
-
-
-        InsidiousClassTypeReference classTypeReference = new InsidiousClassTypeReference(
+        return new InsidiousClassTypeReference(
                 qualifiedClassName, className, "L" + className, null, this.virtualMachine()
         );
-        return classTypeReference;
     }
 
     private Map<String, Field> buildFieldMap(Map<String, String> fieldToTypeMap) {

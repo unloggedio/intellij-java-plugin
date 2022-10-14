@@ -133,6 +133,9 @@ public class TestCandidateMetadata {
     }
 
     public List<Long> getCallsList() {
+        if (methodCallExpressions == null || methodCallExpressions.length() < 1) {
+            return List.of();
+        }
         return Arrays.stream(methodCallExpressions.split(",")).map(Long::valueOf).collect(Collectors.toList());
     }
 
