@@ -1,6 +1,8 @@
 package com.insidious.plugin.client;
 
-public class VideobugTreeClassAggregateNode {
+import org.jetbrains.annotations.NotNull;
+
+public class VideobugTreeClassAggregateNode implements Comparable<VideobugTreeClassAggregateNode> {
     final String className;
     final String packageName;
     final Integer count;
@@ -26,5 +28,10 @@ public class VideobugTreeClassAggregateNode {
     @Override
     public String toString() {
         return className.substring(className.lastIndexOf(".") + 1) + " - [" + count + " items]";
+    }
+
+    @Override
+    public int compareTo(@NotNull VideobugTreeClassAggregateNode o) {
+        return this.className.compareTo(o.getClassName());
     }
 }

@@ -1,6 +1,8 @@
 package com.insidious.plugin.client;
 
-public class TestCandidateMethodAggregate {
+import org.jetbrains.annotations.NotNull;
+
+public class TestCandidateMethodAggregate implements Comparable<TestCandidateMethodAggregate> {
     private final String className;
     String methodName;
     Integer count;
@@ -26,5 +28,10 @@ public class TestCandidateMethodAggregate {
     @Override
     public String toString() {
         return methodName + " - [" + count + " items]";
+    }
+
+    @Override
+    public int compareTo(@NotNull TestCandidateMethodAggregate o) {
+        return this.methodName.compareTo(o.getMethodName());
     }
 }

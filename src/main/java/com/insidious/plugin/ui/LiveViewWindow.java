@@ -1,29 +1,44 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
+import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.TestCandidateMethodAggregate;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
+import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
 
-public class LiveViewWindow {
+public class LiveViewWindow implements TreeSelectionListener {
+    private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     private final Project project;
     private final InsidiousService insidiousService;
     private final VideobugTreeCellRenderer cellRenderer;
     private NewVideobugTreeModel treeModel;
     private JButton selectSession;
     private JPanel bottomPanel;
-    private JPanel leftSplitContainer;
     private JTree mainTree;
     private JPanel mainPanel;
+    private JSplitPane splitPanel;
+    private JScrollPane mainTreeScrollPanel;
+    private JPanel topControlPanel;
+    private JPanel candidateListPanel;
+    private TestCaseService testCaseService;
+    private SessionInstance sessionInstance;
 
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
@@ -35,6 +50,7 @@ public class LiveViewWindow {
         cellRenderer = new VideobugTreeCellRenderer(insidiousService);
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
+        mainTree.addTreeSelectionListener(this);
         loadSession();
 
     }
@@ -57,8 +73,9 @@ public class LiveViewWindow {
             public void success(List<ExecutionSession> executionSessionList) {
                 try {
                     ExecutionSession executionSession = executionSessionList.get(0);
-                    insidiousService.getClient().setSessionInstance(executionSession);
-                    TestCaseService testCaseService = new TestCaseService(insidiousService.getClient());
+                    sessionInstance = new SessionInstance(executionSession);
+                    insidiousService.getClient().setSessionInstance(sessionInstance);
+                    testCaseService = new TestCaseService(insidiousService.getClient());
                     testCaseService.processLogFiles();
                     treeModel = new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
                     mainTree.setModel(treeModel);
@@ -76,4 +93,29 @@ public class LiveViewWindow {
     }
 
 
+    @Override
+    public void valueChanged(TreeSelectionEvent e) {
+        logger.warn("value selection event - " + e.getPath() + " - " + e.getPath().getLastPathComponent());
+        Object selectedNode = e.getPath().getLastPathComponent();
+        if (selectedNode.getClass().equals(TestCandidateMethodAggregate.class)) {
+            TestCandidateMethodAggregate methodNode = (TestCandidateMethodAggregate) selectedNode;
+            List<TestCandidateMetadata> testCandidateMetadataList =
+                    sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName());
+
+            this.candidateListPanel.removeAll();
+
+            Dimension dimension = new Dimension(0, 0);
+            GridConstraints constraints = new GridConstraints();
+            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+                TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
+                        testCandidateMetadata, testCaseService, insidiousService);
+                Component contentPanel = testCandidatePreviewPanel.getContentPanel();
+                candidateListPanel.add(contentPanel, constraints);
+            }
+
+            this.candidateListPanel.revalidate();
+
+
+        }
+    }
 }

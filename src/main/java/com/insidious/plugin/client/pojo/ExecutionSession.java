@@ -61,8 +61,12 @@ public class ExecutionSession {
                 sessionId + " - " + createdAt;
     }
 
-    public String getDatabasePath() {
+    public String getDatabaseConnectionString() {
         return "jdbc:sqlite:" + Path.of(path, EXECUTION_DB_NAME);
+    }
+
+    public String getDatabasePath() {
+        return Path.of(path, EXECUTION_DB_NAME).toAbsolutePath().toString();
     }
 
     public String getPath() {

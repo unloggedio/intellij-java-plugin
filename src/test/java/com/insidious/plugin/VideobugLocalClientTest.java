@@ -2,6 +2,7 @@ package com.insidious.plugin;
 
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
@@ -11,6 +12,7 @@ import com.insidious.plugin.pojo.TracePoint;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -21,7 +23,7 @@ public class VideobugLocalClientTest {
 
 
     @Test
-    public void testLocalClient1() throws IOException, InterruptedException {
+    public void testLocalClient1() throws IOException, InterruptedException, SQLException {
 
         BlockingQueue<ExecutionSession> blockingQueue = new ArrayBlockingQueue<>(1);
 
@@ -41,7 +43,7 @@ public class VideobugLocalClientTest {
         });
 
         ExecutionSession session = blockingQueue.take();
-        client.setSessionInstance(session);
+        client.setSessionInstance(new SessionInstance(session));
 
 
         BlockingQueue<TracePoint> tracePointsQueue = new ArrayBlockingQueue<>(1);

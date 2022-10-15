@@ -2,6 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
@@ -76,6 +77,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -613,7 +615,7 @@ public class InsidiousService implements Disposable {
 
     }
 
-    private @Nullable VirtualFile saveTestSuite(TestSuite testSuite) {
+    public VirtualFile saveTestSuite(TestSuite testSuite) {
         File lastFile = null;
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             String testOutputDirPath =
@@ -654,7 +656,7 @@ public class InsidiousService implements Disposable {
         return null;
     }
 
-    public void doSearch(SearchQuery searchQuery) throws APICallException, IOException {
+    public void doSearch(SearchQuery searchQuery) throws APICallException, IOException, SQLException {
 
 
         refreshSession();
@@ -975,8 +977,8 @@ public class InsidiousService implements Disposable {
                     return;
                 }
                 try {
-                    client.setSessionInstance(executionSessionList.get(0));
-                } catch (IOException e) {
+                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
+                } catch (Exception e) {
                     InsidiousNotification.notifyMessage("Failed to set session - " + e.getMessage(), NotificationType.ERROR);
                 }
             }
@@ -1076,7 +1078,7 @@ public class InsidiousService implements Disposable {
 
     }
 
-    public void refreshSession() throws APICallException, IOException {
+    public void refreshSession() throws APICallException, IOException, SQLException {
         logger.info("fetch latest session for module: " + currentModule.getName());
         client.setProject(currentModule.getName());
 
@@ -1087,7 +1089,7 @@ public class InsidiousService implements Disposable {
         }
         if (client.getCurrentSession() == null || !client.getCurrentSession()
                 .getSessionId().equals(sessions.getItems().get(0).getSessionId())) {
-            client.setSessionInstance(sessions.getItems().get(0));
+            client.setSessionInstance(new SessionInstance(sessions.getItems().get(0)));
         }
     }
 

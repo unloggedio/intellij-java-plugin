@@ -75,6 +75,7 @@ public class NewVideobugTreeModel implements TreeModel {
         if (nodeType.equals(VideobugTreePackageAggregateNode.class)) {
             VideobugTreePackageAggregateNode packageAggregate = (VideobugTreePackageAggregateNode) parent;
             List<VideobugTreeClassAggregateNode> classAggregates = classAggregatesByPackageName.get(packageAggregate.getPackageName());
+            Collections.sort(classAggregates);
             return classAggregates.get(index);
         }
 
@@ -82,8 +83,9 @@ public class NewVideobugTreeModel implements TreeModel {
             VideobugTreeClassAggregateNode classAggregateNode = (VideobugTreeClassAggregateNode) parent;
             List<TestCandidateMethodAggregate> methodAggregateList = sessionClassMethodMap.get(classAggregateNode.getClassName());
             if (methodAggregateList == null) {
-                methodAggregateList= sessionInstance
+                methodAggregateList = sessionInstance
                         .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());
+                Collections.sort(methodAggregateList);
                 sessionClassMethodMap.put(classAggregateNode.getClassName(), methodAggregateList);
             }
             return methodAggregateList.get(index);

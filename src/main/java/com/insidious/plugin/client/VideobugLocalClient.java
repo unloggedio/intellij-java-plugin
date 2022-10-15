@@ -51,16 +51,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public void setSessionInstance(ExecutionSession executionSession) {
-        try {
-            this.sessionInstance = new SessionInstance(executionSession);
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
     public void signup(String serverUrl, String username, String password, SignUpCallback callback) {
         callback.success();
     }
@@ -270,7 +260,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
                 List<ExecutionSession> sessions = getLocalSessions();
                 ExecutionSession executionSession = sessions.get(0);
-                setSessionInstance(executionSession);
+                try {
+                    setSessionInstance(new SessionInstance(executionSession));
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
 
                 queryTracePointsByTypes(SearchQuery.ByType(typeNameList),
                         sessionInstance.getExecutionSession().getSessionId(), 2,
@@ -341,7 +335,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
         if (this.sessionInstance == null || !this.sessionInstance.getExecutionSession().getSessionId().equals(sessionId)) {
             ExecutionSession executionSession = new ExecutionSession();
             executionSession.setSessionId(sessionId);
-            this.setSessionInstance(executionSession);
+            try {
+                this.setSessionInstance(new SessionInstance(executionSession));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -384,6 +382,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public SessionInstance getSessionInstance() {
         return sessionInstance;
+    }
+
+    @Override
+    public void setSessionInstance(SessionInstance sessionInstance) {
+        this.sessionInstance = sessionInstance;
     }
 
     @Override

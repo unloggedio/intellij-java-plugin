@@ -19,7 +19,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.project.Project;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -56,6 +55,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     private String token;
     private ExecutionSession session;
     private List<ExecutionSession> sessionList;
+    private SessionInstance sessionInstance;
 
     public VideobugNetworkClient(String endpoint) {
         this.endpoint = endpoint;
@@ -77,8 +77,9 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void setSessionInstance(ExecutionSession sessionInstance) {
-        this.session = sessionInstance;
+    public void setSessionInstance(SessionInstance sessionInstance) {
+        this.session = sessionInstance.getExecutionSession();
+        this.sessionInstance = sessionInstance;
     }
 
     @Override

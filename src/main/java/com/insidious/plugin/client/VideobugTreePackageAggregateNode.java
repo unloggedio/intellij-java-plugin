@@ -21,7 +21,7 @@ public class VideobugTreePackageAggregateNode implements Comparable<VideobugTree
 
     @Override
     public int compareTo(@NotNull VideobugTreePackageAggregateNode o) {
-        return this.count - o.count;
+        return this.getPackageName().compareTo(o.getPackageName());
     }
 
     @Override

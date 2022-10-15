@@ -33,6 +33,14 @@ public class DaoService {
             "and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";
+
+    public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join parameter p on p.value = testSubject_id\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "where p.type = ?\n" +
+            "  and mc.methodName = ?\n" +
+            "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
@@ -74,7 +82,7 @@ public class DaoService {
 
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                    getTestCandidateMetadataById(testCandidateMetadata);
+                    convertTestCandidateMetadata(testCandidateMetadata);
             com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
             if (!mainMethod.getMethodName().equals("<init>")) {
                 if (!mainMethod.isMethodPublic()) {
@@ -93,7 +101,7 @@ public class DaoService {
     }
 
     @NotNull
-    private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata getTestCandidateMetadataById(
+    private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata convertTestCandidateMetadata(
             TestCandidateMetadata testCandidateMetadata) throws SQLException {
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
@@ -460,5 +468,43 @@ public class DaoService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName) {
+
+        try {
+
+            GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
+                    .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className, methodName);
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
+
+            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
+            for (TestCandidateMetadata testCandidate : testCandidates) {
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted = convertTestCandidateMetadata(testCandidate);
+                resultList.add(converted);
+            }
+
+            parameterIds.close();
+            return resultList;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidates(long value, long entryProbeIndex) {
+        try {
+            List<TestCandidateMetadata> candidates = testCandidateDao.queryBuilder()
+                    .where().eq("testSubject_id", value)
+                    .and().lt("entryProbeIndex", entryProbeIndex).query();
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
+
+            for (TestCandidateMetadata candidate : candidates) {
+                results.add(convertTestCandidateMetadata(candidate));
+            }
+
+            return results;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -83,9 +83,8 @@ public class SessionInstance {
         this.executionSession = executionSession;
         this.sessionArchives = refreshSessionArchivesList();
 
-        String databaseUrl = executionSession.getDatabasePath();
-        boolean dbFileExists = Path.of(databaseUrl).toFile().exists();
-        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+        boolean dbFileExists = Path.of(executionSession.getDatabasePath()).toFile().exists();
+        ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
         daoService = new DaoService(connectionSource);
 
         if (!dbFileExists) {
@@ -1813,13 +1812,10 @@ public class SessionInstance {
         assert probeInfoMap.size() > 0;
         assert methodInfoMap.size() > 0;
 
-        List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
 
 
         checkProgressIndicator(null, "Loading class mappings");
 
-        List<String> upcomingObjectTypeStack = new LinkedList<>();
-        AtomicReference<MethodCallExpression> mostRecentCall = new AtomicReference<>();
         AtomicInteger index = new AtomicInteger(0);
         List<Long> valueStack = new LinkedList<>();
 
@@ -1844,7 +1840,12 @@ public class SessionInstance {
         threadsPending.add(0);
 
         while (threadsPending.size() > 0) {
+
             List<MethodCallExpression> callStack = new LinkedList<>();
+
+            AtomicReference<MethodCallExpression> mostRecentCall = new AtomicReference<>();
+            List<String> upcomingObjectTypeStack = new LinkedList<>();
+            List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
 
             Integer threadId = threadsPending.remove(0);
             for (File sessionArchive : sessionArchivesLocal) {
@@ -2075,7 +2076,7 @@ public class SessionInstance {
                             case PUT_STATIC_FIELD:
 
 
-                                VariableContainer classStaticFieldContainer = classStaticFieldMap.getOrDefault(owner, new VariableContainer());
+                                VariableContainer classStaticFieldContainer = classStaticFieldMap.computeIfAbsent(owner, (e1) -> new VariableContainer());
 
                                 existingParameter = classStaticFieldContainer.getParametersById(eventValue);
                                 if (existingParameter != null) {
@@ -2091,7 +2092,7 @@ public class SessionInstance {
                                         existingParameter.addName(nameFromProbe);
                                         existingParameter.setType(fieldType);
                                         existingParameter.setProb(dataEvent);
-                                        saveProbe = true;
+                                        saveProbe = false;
 
                                         existingParameter.setProbeInfo(probeInfo);
 
@@ -2597,31 +2598,31 @@ public class SessionInstance {
         return daoService;
     }
 
-    private DaoService createDaoService() throws SQLException {
-
-        File dbFile = new File("execution.db");
-//        dbFile.delete();
-        boolean dbFileExists = dbFile.exists();
-
-        String databaseUrl = "jdbc:sqlite:execution.db";
-        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
-
-        DaoService daoService = new DaoService(connectionSource);
-
-        // if you need to create the 'accounts' table make this call
-        if (!dbFileExists) {
-            try {
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-                TableUtils.createTable(connectionSource, ProbeInfo.class);
-                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
-            } catch (SQLException sqlException) {
-                logger.warn("probably table already exists: " + sqlException.toString());
-            }
-        }
-        return daoService;
-    }
+//    private DaoService createDaoService() throws SQLException {
+//
+//        File dbFile = new File("execution.db");
+////        dbFile.delete();
+//        boolean dbFileExists = dbFile.exists();
+//
+//        String databaseUrl = "jdbc:sqlite:execution.db";
+//        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
+//
+//        DaoService daoService = new DaoService(connectionSource);
+//
+//        // if you need to create the 'accounts' table make this call
+//        if (!dbFileExists) {
+//            try {
+//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
+//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
+//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
+//                TableUtils.createTable(connectionSource, ProbeInfo.class);
+//                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
+//            } catch (SQLException sqlException) {
+//                logger.warn("probably table already exists: " + sqlException.toString());
+//            }
+//        }
+//        return daoService;
+//    }
 
     private void writeCandidate(TestCandidateMetadata candidate, OutputStream outputStream) throws IOException {
         DataOutputStream writer = new DataOutputStream(outputStream);
@@ -2771,4 +2772,11 @@ public class SessionInstance {
         return daoService.getTestCandidateAggregatesForType(className);
     }
 
+    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName) {
+        return daoService.getTestCandidatesForMethod(className, methodName);
+    }
+
+    public List<TestCandidateMetadata> getTestCandidatesUntil(long value, long entryProbeIndex) {
+        return daoService.getTestCandidates(value, entryProbeIndex);
+    }
 }

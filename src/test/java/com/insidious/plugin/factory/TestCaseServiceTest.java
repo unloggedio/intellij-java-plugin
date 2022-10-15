@@ -6,6 +6,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -17,15 +18,10 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
-import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
-import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.*;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
-import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -167,7 +163,7 @@ public class TestCaseServiceTest {
         ExecutionSession session = sessions.getItems().get(0);
 
 
-        client.setSessionInstance(session);
+        client.setSessionInstance(new SessionInstance(session));
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
         filterRequest.setObjectId(objectId);
@@ -343,7 +339,11 @@ public class TestCaseServiceTest {
 
             @Override
             public void success(List<ExecutionSession> executionSessionList) {
-                client.setSessionInstance(executionSessionList.get(0));
+                try {
+                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
                 waiter.offer("done");
             }
         });
@@ -383,7 +383,7 @@ public class TestCaseServiceTest {
         ExecutionSession session = sessions.getItems().get(0);
 
         client.getObjectsByType(
-                searchQuery, session.getSessionId(), new ClientCallBack<ObjectWithTypeInfo>() {
+                searchQuery, session.getSessionId(), new ClientCallBack<>() {
                     @Override
                     public void error(ExceptionResponse errorResponse) {
 
@@ -434,7 +434,7 @@ public class TestCaseServiceTest {
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         ExecutionSession session = sessions.getItems().get(0);
-        client.setSessionInstance(session);
+        client.setSessionInstance(new SessionInstance(session));
 
 
         FilteredDataEventsRequest request = new FilteredDataEventsRequest();
@@ -475,90 +475,7 @@ public class TestCaseServiceTest {
 
         testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getEntryProbeIndex));
 
-        ClassName targetClassName = ClassName.bestGuess(targetParameter.getType());
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(targetParameter);
-        objectRoutineContainer.newRoutine("test" + targetClassName.simpleName());
-        for (TestCandidateMetadata testCandidateMetadata : testCandidates) {
-
-            MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
-                continue;
-            }
-            if (methodInfo.getMethodName().equals("<init>")) {
-                objectRoutineContainer.getConstructor().setTestCandidateList(testCandidateMetadata);
-            } else {
-                objectRoutineContainer.addMetadata(testCandidateMetadata);
-            }
-
-        }
-
-
-//        VariableContainer variableContainer =  testCaseService.postProcessObjectRoutine(objectRoutineContainer);
-
-        testCaseService.createFieldMocks(objectRoutineContainer);
-
-        // part 3
-//        testCaseService.createDependentRoutines(testCaseRequest, variableContainer, objectRoutineContainer);
-
-
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
-
-
-//        if (simpleClassName.contains("$")) {
-//            simpleClassName = simpleClassName.split("\\$")[0];
-//        }
-
-        String generatedTestClassName =
-                "Test" + testCaseScript.getName() + "V";
-        TypeSpec.Builder typeSpecBuilder = TypeSpec
-                .classBuilder(generatedTestClassName)
-                .addModifiers(
-                        javax.lang.model.element.Modifier.PUBLIC,
-                        javax.lang.model.element.Modifier.FINAL);
-
-        for (Parameter field : testCaseScript.getFields()) {
-            if (field == null) {
-                continue;
-            }
-            typeSpecBuilder.addField(field.toFieldSpec().build());
-        }
-
-
-        for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName().equals("<init>")) {
-                continue;
-            }
-            MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
-            typeSpecBuilder.addMethod(methodSpec);
-        }
-
-        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
-
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
-            typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
-        }
-
-
-        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
-
-
-        typeSpecBuilder
-                .addField(FieldSpec
-                        .builder(gsonClass,
-                                "gson", javax.lang.model.element.Modifier.PRIVATE)
-                        .initializer("new $T()", gsonClass)
-                        .build());
-
-
-        TypeSpec helloWorld = typeSpecBuilder.build();
-
-        JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), helloWorld)
-                .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
-                .build();
-
-
-        TestCaseUnit testCaseUnit = new TestCaseUnit(
-                javaFile.toString(), objectRoutineContainer.getPackageName(), generatedTestClassName);
+        TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidates);
 
         System.out.println(testCaseUnit);
 

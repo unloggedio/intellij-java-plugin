@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.callbacks.ClientCallBack;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
@@ -20,6 +21,7 @@ import junit.framework.TestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +33,7 @@ public class InsidiousServiceTestGenerateTestCaseFlows extends TestCase {
 
 
     @Test
-    public void newMethod() throws InterruptedException, APICallException {
+    public void newMethod() throws InterruptedException, APICallException, SQLException {
 
 
         Project project = Mockito.mock(Project.class);
@@ -40,7 +42,7 @@ public class InsidiousServiceTestGenerateTestCaseFlows extends TestCase {
         BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
         VideobugLocalClient client = new VideobugLocalClient("C:\\Users\\artpa\\.videobug\\sessions");
         DataResponse<ExecutionSession> sessionList = client.fetchProjectSessions();
-        client.setSessionInstance(sessionList.getItems().get(0));
+        client.setSessionInstance(new SessionInstance(sessionList.getItems().get(0)));
 
         TestCaseService testCaseService = new TestCaseService(client);
 

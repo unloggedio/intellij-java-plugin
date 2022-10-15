@@ -16,7 +16,6 @@ import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
-import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 public interface VideobugClientInterface {
     ExecutionSession getCurrentSession();
 
-    void setSessionInstance(ExecutionSession sessionInstance) throws IOException;
+    void setSessionInstance(SessionInstance sessionInstance) throws IOException;
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 

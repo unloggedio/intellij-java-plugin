@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.SearchQuery;
@@ -22,7 +21,6 @@ import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
@@ -32,7 +30,9 @@ public class SearchByValueWindow extends SearchByWindowCommon {
     private static final Logger logger = LoggerUtil.getInstance(SearchByValueWindow.class);
     private final Project project;
     private final InsidiousService insidiousService;
+    private final List<TracePoint> tracePointList = new LinkedList<>();
     DefaultTableCellRenderer centerRenderer;
+    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"Class", "# Line", "# Thread", "Time"});
     private JPanel mainPanel;
     private JPanel searchControl;
     private JTable bugsTable;
@@ -44,10 +44,8 @@ public class SearchByValueWindow extends SearchByWindowCommon {
     private JPanel searchtablepanel;
     private JScrollPane searchtablescrollpane;
     private JPanel resultsPanel;
-    private final List<TracePoint> tracePointList = new LinkedList<>();
     private DefaultTableModel searchHistoryTableModel;
     private ReentrantLock lock;
-    Vector<Object> headers = VectorUtils.convertToVector(new Object[]{"Class", "# Line", "# Thread", "Time"});
 
     public SearchByValueWindow(Project project, InsidiousService insidiousService) {
         super(new Vector<>(List.of("Class", "# Line", "# Thread", "Time")), project);
@@ -91,7 +89,8 @@ public class SearchByValueWindow extends SearchByWindowCommon {
         try {
             updateQueryList();
             insidiousService.doSearch(SearchQuery.ByValue(searchValueInput.getText()));
-        } catch (APICallException | IOException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             logger.error("Failed to refresh sessions", e);
         }
 
