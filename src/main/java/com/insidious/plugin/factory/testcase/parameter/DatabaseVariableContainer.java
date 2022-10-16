@@ -54,7 +54,7 @@ public class DatabaseVariableContainer {
 
     public void add(Parameter parameter) {
         long value = parameter.getValue();
-        Parameter byValue = getParametersById(value);
+        Parameter byValue = parameterMap.get(value);
         if (byValue == null) {
             this.parameterList.add(parameter);
             if (parameter.getProb() != null) {
@@ -105,11 +105,8 @@ public class DatabaseVariableContainer {
     }
 
     public Parameter getParametersById(long value) {
-        Optional<Parameter> ret = this.parameterList
-                .stream()
-                .filter(e -> e.getValue() != 0 && e.getValue() == value)
-                .findAny();
-        return ret.orElse(null);
+        Parameter ret = this.parameterMap.get(value);
+        return ret;
     }
 
     public boolean contains(String variableName) {

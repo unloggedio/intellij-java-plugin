@@ -33,11 +33,9 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import com.squareup.javapoet.ClassName;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
@@ -46,11 +44,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.sqlite.SQLiteException;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,6 +73,8 @@ public class SessionInstance {
     private final ExecutionSession executionSession;
     private final List<File> sessionArchives;
     private final Map<String, String> cacheEntries = new HashMap<>();
+    private final LinkedTransferQueue<Parameter> parameterQueue;
+    private final DatabasePipe databasePipe;
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex typeIndex;
     private Map<Long, DataInfo> probeInfoMap;
@@ -100,6 +105,10 @@ public class SessionInstance {
                 logger.warn("probably table already exists: " + sqlException.toString());
             }
         }
+        parameterQueue = new LinkedTransferQueue<>();
+        databasePipe = new DatabasePipe(parameterQueue);
+        ExecutorService executorPool = Executors.newFixedThreadPool(4);
+        executorPool.submit(databasePipe);
 
 
     }
@@ -126,6 +135,17 @@ public class SessionInstance {
             archiveFileMap.put(archiveFile.getName(), archiveFile);
         }
         return archiveFileMap;
+    }
+
+    @NotNull
+    private static DataEventWithSessionId createDataEventFromBlock(int fileThreadId, KaitaiInsidiousEventParser.DetailedEventBlock eventBlock) {
+        DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
+        dataEvent.setDataId((int) eventBlock.probeId());
+        dataEvent.setNanoTime(eventBlock.eventId());
+        dataEvent.setRecordedAt(eventBlock.timestamp());
+        dataEvent.setValue(eventBlock.valueId());
+        dataEvent.setSerializedValue(eventBlock.serializedData());
+        return dataEvent;
     }
 
     public ExecutionSession getExecutionSession() {
@@ -467,11 +487,11 @@ public class SessionInstance {
         return new ArrayList<>(typeIndex.Types());
     }
 
-
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         if (zipFileListMap.containsKey(sessionFile.getName())) {
             return zipFileListMap.get(sessionFile.getName());
         }
+        logger.warn("open archive [" + sessionFile + "]");
         List<String> files = new LinkedList<>();
 
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
@@ -1811,7 +1831,7 @@ public class SessionInstance {
         assert classInfoMap.size() > 0;
         assert probeInfoMap.size() > 0;
         assert methodInfoMap.size() > 0;
-
+        Date startTime = new Date();
 
 
         checkProgressIndicator(null, "Loading class mappings");
@@ -1826,6 +1846,7 @@ public class SessionInstance {
 
         Map<String, ArchiveFile> archiveFileMap = getArchiveFileMap(daoService);
         Map<String, LogFile> logFileMap = getLogFileMap(daoService);
+        Map<String, List<LogFile>> filesByArchive = logFileMap.values().stream().collect(Collectors.groupingBy(e -> e.getArchiveName()));
 
         List<Integer> existingProbes = new LinkedList<>();
         try {
@@ -1861,10 +1882,14 @@ public class SessionInstance {
                     daoService.updateArchiveFile(archiveFile);
                 }
 
-                logger.warn("open archive [" + sessionArchive.getName() + "]");
-                List<String> archiveFiles;
+                List<String> archiveFiles = filesByArchive.getOrDefault(sessionArchive.getName(), List.of())
+                        .stream()
+                        .map(LogFile::getName)
+                        .collect(Collectors.toList());
 
-                archiveFiles = listArchiveFiles(sessionArchive);
+                if (archiveFiles.size() == 0) {
+                    archiveFiles = listArchiveFiles(sessionArchive);
+                }
 
                 if (archiveFiles.size() == 0) {
                     archiveFile.setStatus(COMPLETED);
@@ -1909,8 +1934,8 @@ public class SessionInstance {
                         continue;
                     }
 
-                    logger.warn("loading next file: [" + logFile + "]");
-                    logger.info("Checking file " + logFile + " for data");
+//                    logger.warn(((new Date().getTime() - startTime.getTime()) / 1000) + " [" + logFile + "] - [" + index.get() + "]");
+//                    logger.info("Checking file " + logFile + " for data");
 
 
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive, logFile);
@@ -1923,33 +1948,20 @@ public class SessionInstance {
                     Set<MethodCallExpression> callsToSave = new HashSet<>();
                     Set<MethodCallExpression> callsToUpdate = new HashSet<>();
                     List<TestCandidateMetadata> candidatesToSave = new LinkedList<>();
-                    long previousIndex = -1;
+                    Date start = new Date();
                     for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
-                        previousIndex = e.block().eventId();
-
                         KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
-                        DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
-                        dataEvent.setDataId((int) eventBlock.probeId());
-                        dataEvent.setNanoTime(eventBlock.eventId());
-                        dataEvent.setRecordedAt(eventBlock.timestamp());
-                        dataEvent.setValue(eventBlock.valueId());
-                        dataEvent.setSerializedValue(eventBlock.serializedData());
+                        DataEventWithSessionId dataEvent = null;
 
 
-                        final long probeId = dataEvent.getDataId();
-                        final long eventValue = dataEvent.getValue();
+                        final long eventValue = eventBlock.valueId();
 
-                        DataInfo probeInfo = probeInfoMap.get(probeId);
-                        ClassInfo classInfo = classInfoMap.get((long) probeInfo.getClassId());
-                        MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
+                        DataInfo probeInfo = probeInfoMap.get(eventBlock.probeId());
+//                        ClassInfo classInfo = classInfoMap.get((long) probeInfo.getClassId());
                         int instructionIndex = index.getAndIncrement();
 
                         Parameter existingParameter = null;
-                        String fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));
-                        String nameFromProbe = probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null));
-                        String callType = probeInfo.getAttribute("CallType", null);
-                        String owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
                         boolean saveProbe = false;
                         MethodCallExpression exceptionCallExpression;
                         TestCandidateMetadata completedExceptional;
@@ -1968,7 +1980,7 @@ public class SessionInstance {
 
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null) {
-                                    existingParameter.addName(nameFromProbe);
+                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                                 }
 
                                 break;
@@ -1976,15 +1988,12 @@ public class SessionInstance {
                             case LOCAL_LOAD:
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
 
-                                existingParameter.addName(nameFromProbe);
-                                existingParameter.setType(
-                                        ClassTypeUtils.getDottedClassName(
-                                                fieldType
-                                        )
-                                );
+                                existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                 saveProbe = true;
 
 
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 existingParameter.setProb(dataEvent);
                                 existingParameter.setProbeInfo(probeInfo);
                                 TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
@@ -1996,16 +2005,13 @@ public class SessionInstance {
                             case GET_STATIC_FIELD:
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null) {
-                                    existingParameter.addName(nameFromProbe);
+                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
 
                                 } else {
                                     existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                    existingParameter.addName(nameFromProbe);
-                                    existingParameter.setType(
-                                            ClassTypeUtils.getDottedClassName(
-                                                    fieldType
-                                            )
-                                    );
+                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                                    dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                     existingParameter.setProb(dataEvent);
                                     saveProbe = true;
                                     existingParameter.setProbeInfo(probeInfo);
@@ -2022,8 +2028,8 @@ public class SessionInstance {
                                 if (existingParameter.getProb() == null) {
                                     continue;
                                 }
-                                existingParameter.addName(nameFromProbe);
-                                existingParameter.setType(fieldType);
+                                existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
                                 break;
 
@@ -2035,15 +2041,16 @@ public class SessionInstance {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null && existingParameter.getProb() != null) {
                                     if (existingParameter.getType() == null || existingParameter.getType().contains(".Object")) {
-                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(owner));
+                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null)));
                                     }
                                 } else {
                                     // new variable identified ?
+                                    dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                     existingParameter = parameterContainer.getParameterByValue(eventValue);
                                     existingParameter.setProb(dataEvent);
                                     existingParameter.setProbeInfo(probeInfo);
-                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                                    existingParameter.addName(nameFromProbe);
+                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                                 }
 
                                 break;
@@ -2058,12 +2065,13 @@ public class SessionInstance {
 
                                 existingParameter = parentFields.getParametersById(eventValue);
                                 if (existingParameter != null) {
-                                    existingParameter.addName(nameFromProbe);
+                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                                 } else {
                                     // new field
+                                    dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                     Parameter newField = parameterContainer.getParameterByValue(eventValue);
-                                    newField.setType(ClassTypeUtils.getDottedClassName(fieldType));
-                                    newField.addName(nameFromProbe);
+                                    newField.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                                    newField.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
                                     newField.setProb(dataEvent);
                                     saveProbe = true;
 
@@ -2076,7 +2084,9 @@ public class SessionInstance {
                             case PUT_STATIC_FIELD:
 
 
-                                VariableContainer classStaticFieldContainer = classStaticFieldMap.computeIfAbsent(owner, (e1) -> new VariableContainer());
+                                VariableContainer classStaticFieldContainer = classStaticFieldMap.computeIfAbsent(
+                                        ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null))
+                                        , (e1) -> new VariableContainer());
 
                                 existingParameter = classStaticFieldContainer.getParametersById(eventValue);
                                 if (existingParameter != null) {
@@ -2088,9 +2098,10 @@ public class SessionInstance {
                                     existingParameter = parameterContainer.getParameterByValue(eventValue);
                                     if (existingParameter.getProb() == null) {
                                         // we are coming across this field for the first time
+                                        dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                         existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                        existingParameter.addName(nameFromProbe);
-                                        existingParameter.setType(fieldType);
+                                        existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                         existingParameter.setProb(dataEvent);
                                         saveProbe = false;
 
@@ -2099,8 +2110,8 @@ public class SessionInstance {
                                         classStaticFieldContainer.add(existingParameter);
 
                                     } else {
-                                        existingParameter.addName(nameFromProbe);
-                                        existingParameter.setType(fieldType);
+                                        existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                        existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                         classStaticFieldContainer.add(existingParameter);
                                     }
                                 }
@@ -2108,7 +2119,8 @@ public class SessionInstance {
                                 break;
 
                             case CALL:
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 saveProbe = true;
@@ -2120,22 +2132,19 @@ public class SessionInstance {
                                     }
                                 }
                                 if (existingParameter.getType() == null) {
-                                    existingParameter.setType(owner);
+                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null)));
                                 }
 
                                 currentCallId++;
                                 MethodCallExpression methodCallExpression = new MethodCallExpression(
-                                        nameFromProbe, existingParameter, new LinkedList<>(), null, callStack.size()
+                                        probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)),
+                                        existingParameter, new LinkedList<>(), null, callStack.size()
                                 );
                                 methodCallExpression.setEntryProbeInfo(probeInfo);
                                 methodCallExpression.setEntryProbe(dataEvent);
                                 methodCallExpression.setId(currentCallId);
-//                            if (doneIds.contains(currentCallId)) {
-//                                throw new RuntimeException("u");
-//                            }
-//                            doneIds.add(currentCallId);
 
-                                if (callType.equals("Static")) {
+                                if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                                     methodCallExpression.setStaticCall(true);
                                 }
 
@@ -2147,9 +2156,10 @@ public class SessionInstance {
 
                             case CALL_PARAM:
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 if (existingParameter.getProb() == null) {
                                     existingParameter.setProbeInfo(probeInfo);
-                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                     existingParameter.setProb(dataEvent);
                                 }
                                 MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
@@ -2159,13 +2169,17 @@ public class SessionInstance {
                                 break;
 
                             case METHOD_ENTRY:
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+                                MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
 
                                 MethodCallExpression methodCall = null;
+                                String owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
                                 if (callStack.size() > 0) {
                                     methodCall = callStack.get(callStack.size() - 1);
                                     @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(methodInfo.getClassName());
+                                    owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
                                     if (owner == null) {
                                         owner = methodCall.getSubject().getType();
                                     }
@@ -2173,8 +2187,7 @@ public class SessionInstance {
                                         methodCall = null;
                                     } else {
                                         // sometimes we can enter a method_entry without a call
-                                        @NotNull String actualClassName = ClassTypeUtils.getDottedClassName(owner);
-                                        if (!actualClassName.startsWith(expectedClassName) ||
+                                        if (!owner.startsWith(expectedClassName) ||
                                                 !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
                                             methodCall = null;
                                         }
@@ -2184,7 +2197,7 @@ public class SessionInstance {
                                 TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
                                 testCandidateMetadataStack.add(newCandidate);
-                                newCandidate.setEntryProbeIndex(dataEvent.getNanoTime());
+                                newCandidate.setEntryProbeIndex(eventBlock.eventId());
 
 
                                 if (methodCall == null) {
@@ -2194,7 +2207,9 @@ public class SessionInstance {
 
                                         existingParameter.setProbeInfo(probeInfo);
                                         if (owner != null) {
-                                            existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
+                                            existingParameter.setType(ClassTypeUtils
+                                                    .getDottedClassName(classInfoMap.get(
+                                                            (long) probeInfo.getClassId()).getClassName()));
                                         } else {
                                             existingParameter.setType(
                                                     ClassTypeUtils.getDottedClassName(methodInfo.getClassName())
@@ -2237,6 +2252,7 @@ public class SessionInstance {
                                 // in that case we can verify here
                                 // else if the caller was a third party, then we need to extract parameters from here
 
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 existingParameter.setProb(dataEvent);
 
@@ -2259,7 +2275,8 @@ public class SessionInstance {
 
 
                             case METHOD_EXCEPTIONAL_EXIT:
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                                 exceptionCallExpression = callStack.get(callStack.size() - 1);
                                 entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
@@ -2304,7 +2321,7 @@ public class SessionInstance {
                                     DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
                                     if (entryProbe != null) {
                                         completedExceptional.setCallTimeNanoSecond(
-                                                dataEvent.getRecordedAt() - entryProbe.getRecordedAt()
+                                                eventBlock.timestamp() - entryProbe.getRecordedAt()
                                         );
                                     }
                                 }
@@ -2338,7 +2355,8 @@ public class SessionInstance {
 
 
                             case CATCH:
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                                 exceptionCallExpression = callStack.get(callStack.size() - 1);
                                 entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
@@ -2417,7 +2435,8 @@ public class SessionInstance {
 
                             case METHOD_NORMAL_EXIT:
 
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
                                 MethodCallExpression currentCallExpression = callStack.get(callStack.size() - 1);
                                 entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
@@ -2453,11 +2472,11 @@ public class SessionInstance {
 
                                 TestCandidateMetadata completed = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
 
-                                completed.setExitProbeIndex(dataEvent.getNanoTime());
+                                completed.setExitProbeIndex(eventBlock.eventId());
                                 if (completed.getMainMethod() != null) {
                                     DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
                                     if (entryProbe != null) {
-                                        completed.setCallTimeNanoSecond(dataEvent.getRecordedAt() - entryProbe.getRecordedAt());
+                                        completed.setCallTimeNanoSecond(eventBlock.timestamp() - entryProbe.getRecordedAt());
                                     }
                                 }
                                 if (completed.getMainMethod() != null) {
@@ -2492,7 +2511,8 @@ public class SessionInstance {
 
                             case CALL_RETURN:
 
-                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                                 existingParameter.setProb(dataEvent);
@@ -2500,7 +2520,7 @@ public class SessionInstance {
                                 saveProbe = true;
 
                                 existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(fieldType));
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
 
                                 MethodCallExpression callExpression = callStack.get(callStack.size() - 1);
                                 EventType entryEventType = callExpression.getEntryProbeInfo().getEventType();
@@ -2522,12 +2542,13 @@ public class SessionInstance {
 
                                 break;
                             case NEW_OBJECT:
-                                upcomingObjectTypeStack.add(fieldType);
+                                upcomingObjectTypeStack.add(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                 break;
                             case NEW_OBJECT_CREATED:
                                 MethodCallExpression theCallThatJustEnded = mostRecentCall.get();
                                 String upcomingObjectType = upcomingObjectTypeStack.remove(upcomingObjectTypeStack.size() - 1);
                                 existingParameter = theCallThatJustEnded.getSubject();
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 existingParameter.setProb(dataEvent);
                                 existingParameter.setType(upcomingObjectType);
                                 theCallThatJustEnded.setReturnValue(existingParameter);
@@ -2540,9 +2561,10 @@ public class SessionInstance {
                             case METHOD_OBJECT_INITIALIZED:
                                 MethodCallExpression topCall = callStack.get(callStack.size() - 1);
                                 existingParameter = topCall.getSubject();
+                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 existingParameter.setProb(dataEvent);
                                 existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
+//                                existingParameter.setType(ClassTypeUtils.getDottedClassName(classInfo.getClassName()));
                                 saveProbe = true;
                                 topCall.setSubject(existingParameter);
                                 topCall.setReturnValue(existingParameter);
@@ -2561,7 +2583,12 @@ public class SessionInstance {
                             parameterContainer.add(existingParameter);
                         }
                     }
+                    long timeInMs = (new Date().getTime() - start.getTime()) + 1;
+                    logger.warn("[" + logFile + "] Took [" + timeInMs + " ms] to process ["
+                            + eventsSublist.size() + " events] => "
+                            + (1000 * eventsSublist.size()) / timeInMs + " events per second");
 
+//                    logger.warn("Saving [" + eventsToSave.size() + " events] [" + probesToSave.size() + " probes]");
 
                     daoService.createOrUpdateDataEvent(eventsToSave);
                     daoService.createOrUpdateProbeInfo(probesToSave);
@@ -2577,7 +2604,8 @@ public class SessionInstance {
                     daoService.updateLogFile(logFileEntry);
 
                 }
-                daoService.createOrUpdateParameter(parameterContainer.all());
+//                daoService.createOrUpdateParameter(parameterContainer.all());
+                parameterQueue.addAll(parameterContainer.all());
                 if (processedAllFiles) {
                     archiveFile.setStatus(COMPLETED);
                 }
@@ -2591,88 +2619,12 @@ public class SessionInstance {
         }
 
 
+        databasePipe.close();
         daoService.close();
     }
 
     public DaoService getDaoService() {
         return daoService;
-    }
-
-//    private DaoService createDaoService() throws SQLException {
-//
-//        File dbFile = new File("execution.db");
-////        dbFile.delete();
-//        boolean dbFileExists = dbFile.exists();
-//
-//        String databaseUrl = "jdbc:sqlite:execution.db";
-//        ConnectionSource connectionSource = new JdbcConnectionSource(databaseUrl);
-//
-//        DaoService daoService = new DaoService(connectionSource);
-//
-//        // if you need to create the 'accounts' table make this call
-//        if (!dbFileExists) {
-//            try {
-//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TestCandidateMetadata.class);
-//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.MethodCallExpression.class);
-//                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.Parameter.class);
-//                TableUtils.createTable(connectionSource, ProbeInfo.class);
-//                TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
-//            } catch (SQLException sqlException) {
-//                logger.warn("probably table already exists: " + sqlException.toString());
-//            }
-//        }
-//        return daoService;
-//    }
-
-    private void writeCandidate(TestCandidateMetadata candidate, OutputStream outputStream) throws IOException {
-        DataOutputStream writer = new DataOutputStream(outputStream);
-        if ((long) candidate.getTestSubject().getValue() == 0) {
-            return;
-        }
-        writer.writeBytes("Candidate [" + candidate.getTestSubject().getValue() + "] => " + candidate.getTestSubject().getType() + "\n");
-        MethodCallExpression mainMethod = (MethodCallExpression) candidate.getMainMethod();
-        if (mainMethod.getSubject().getName() == null) {
-            return;
-        }
-        writer.writeBytes("\t" + mainMethod.getReturnValue() + " = " + mainMethod.getSubject().getName() + "." + mainMethod.getMethodName() + "(" +
-                Strings.join(mainMethod.getArguments().stream().map(Parameter::getName).collect(Collectors.toList()), ", ") +
-                ")\n");
-//        writer.writeBytes("Arguments: " + mainMethod.getArguments().all().size() + "\n");
-//        for (Parameter parameter : mainMethod.getArguments().all()) {
-//            writer.writeBytes("\t" + parameter.getName() + " => " + parameter.getValue() + "\n");
-//        }
-        List<MethodCallExpression> callsToMock = candidate.getCallsList().stream()
-                .filter(e -> e.getSubject().getProbeInfo().getEventType() != EventType.LOCAL_LOAD && !e.getMethodName().startsWith("<"))
-                .collect(Collectors.toList());
-        writer.writeBytes("Calls: " + candidate.getCallsList().size() + "\n");
-
-
-        for (MethodCallExpression methodCallExpression : callsToMock) {
-            String methodName = methodCallExpression.getMethodName();
-            @NotNull String paramString = Strings.join(methodCallExpression.getArguments().stream().map(Parameter::getName).collect(Collectors.toList()), ", ");
-            if (methodCallExpression.getReturnValue() != null) {
-                writer.writeBytes("\t" + methodCallExpression.getReturnValue().getName() + " = ");
-            } else {
-                writer.writeBytes("\t");
-            }
-            if (methodCallExpression.isStaticCall()) {
-                String typeToCreate = methodCallExpression.getSubject().getType();
-                writer.writeBytes(ClassName.bestGuess(typeToCreate).simpleName() + "." + methodName + "(" +
-                        paramString + ")" + "\n");
-            } else {
-                if (methodName.equals("<init>")) {
-                    String typeToCreate = methodCallExpression.getSubject().getType();
-                    writer.writeBytes("new " + ClassName.bestGuess(typeToCreate).simpleName() + "(" +
-                            paramString + ")" + "\n");
-                } else {
-                    writer.writeBytes(methodCallExpression.getSubject().getName() + "." + methodName + "(" +
-                            paramString + ")" + "\n");
-                }
-            }
-        }
-        writer.writeBytes("\n");
-
-
     }
 
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
@@ -2778,5 +2730,42 @@ public class SessionInstance {
 
     public List<TestCandidateMetadata> getTestCandidatesUntil(long value, long entryProbeIndex) {
         return daoService.getTestCandidates(value, entryProbeIndex);
+    }
+
+    class DatabasePipe implements Runnable {
+
+        private final LinkedTransferQueue<Parameter> parameterQueue;
+        private boolean stop = false;
+
+        public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue) {
+            this.parameterQueue = parameterQueue;
+        }
+
+        @Override
+        public void run() {
+            while (!stop) {
+                Parameter param = null;
+                try {
+                    param = parameterQueue.take();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                if (param == null) {
+                    continue;
+                }
+
+                List<Parameter> batch = new LinkedList<>();
+                parameterQueue.drainTo(batch);
+                batch.add(param);
+                daoService.createOrUpdateParameter(batch);
+            }
+        }
+
+        public void close() {
+            stop = true;
+            List<Parameter> batch = new LinkedList<>();
+            parameterQueue.drainTo(batch);
+            daoService.createOrUpdateParameter(batch);
+        }
     }
 }

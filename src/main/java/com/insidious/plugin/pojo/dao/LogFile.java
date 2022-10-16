@@ -2,9 +2,10 @@ package com.insidious.plugin.pojo.dao;
 
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
+import org.jetbrains.annotations.NotNull;
 
 @DatabaseTable(tableName = "log_file")
-public class LogFile {
+public class LogFile implements Comparable<LogFile> {
 
     @DatabaseField(id = true)
     String name;
@@ -12,6 +13,15 @@ public class LogFile {
     String archiveName;
     @DatabaseField
     String status;
+
+    public LogFile() {
+    }
+
+    public LogFile(String name, String archiveName, String status) {
+        this.name = name;
+        this.archiveName = archiveName;
+        this.status = status;
+    }
 
     public String getName() {
         return name;
@@ -35,5 +45,10 @@ public class LogFile {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    @Override
+    public int compareTo(@NotNull LogFile o) {
+        return this.name.compareTo(o.name);
     }
 }
