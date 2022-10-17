@@ -51,9 +51,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -1627,20 +1625,7 @@ public class SessionInstance {
                                 }
                                 return true;
                             })
-//                            .map(e -> (KaitaiInsidiousEventParser.DetailedEventBlock) e.block())
-                            .map(e -> {
-                                KaitaiInsidiousEventParser.DetailedEventBlock eventBlock
-                                        = (KaitaiInsidiousEventParser.DetailedEventBlock) e.block();
-                                DataEventWithSessionId d = new DataEventWithSessionId();
-                                d.setDataId((int) eventBlock.probeId());
-                                d.setNanoTime(eventBlock.eventId());
-                                d.setRecordedAt(eventBlock.timestamp());
-                                d.setThreadId(finalMetadata.getThreadId());
-                                d.setValue(eventBlock.valueId());
-                                d.setSerializedValue(eventBlock.serializedData());
-                                return d;
-
-                            }).collect(Collectors.toList());
+                            .map(e -> createDataEventFromBlock(finalMetadata.getThreadId(), e.block())).collect(Collectors.toList());
 
                     if (dataEventGroupedList.size() > 0) {
                         logger.info("adding " + dataEventGroupedList.size() + " objects");
@@ -1841,7 +1826,7 @@ public class SessionInstance {
 
         Map<String, VariableContainer> classStaticFieldMap = new HashMap<>();
 
-        Long currentCallId = daoService.getMaxCallId();
+        long currentCallId = daoService.getMaxCallId();
 
 
         Map<String, ArchiveFile> archiveFileMap = getArchiveFileMap(daoService);
@@ -2136,9 +2121,15 @@ public class SessionInstance {
                                 }
 
                                 currentCallId++;
+                                String methodName = probeInfo.getAttribute("Name", null);
+//                                if (methodName.equals("getAllDoctors")) {
+//                                    LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent,
+//                                            probeInfo, classInfoMap.get((long) probeInfo.getClassId()),
+//                                            new MethodInfo(0, 0, "0", "", "", 0, "", ""));
+//                                }
+
                                 MethodCallExpression methodCallExpression = new MethodCallExpression(
-                                        probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)),
-                                        existingParameter, new LinkedList<>(), null, callStack.size()
+                                        methodName, existingParameter, new LinkedList<>(), null, callStack.size()
                                 );
                                 methodCallExpression.setEntryProbeInfo(probeInfo);
                                 methodCallExpression.setEntryProbe(dataEvent);
@@ -2171,7 +2162,9 @@ public class SessionInstance {
                             case METHOD_ENTRY:
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+//                                if (methodInfo.getMethodName().equals("getAllDoctors")) {
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfoMap.get((long) probeInfo.getClassId()), methodInfo);
+//                                }
 
 
                                 MethodCallExpression methodCall = null;
@@ -2235,8 +2228,8 @@ public class SessionInstance {
                                     callStack.add(methodCall);
                                 } else {
                                     saveProbe = true;
-                                    methodCall.setEntryProbeInfo(probeInfo);
-                                    methodCall.setEntryProbe(dataEvent);
+//                                    methodCall.setEntryProbeInfo(probeInfo);
+//                                    methodCall.setEntryProbe(dataEvent);
                                 }
                                 newCandidate.setMainMethod(methodCall);
 
@@ -2290,10 +2283,10 @@ public class SessionInstance {
                                 if (entryProbeEventType == EventType.CALL) {
                                     // we need to pop two calls here, since the CALL will not have a matching call_return
 //
-//                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
-//                                    topCall.setReturnValue(existingParameter);
-//                                    topCall.setReturnDataEvent(dataEvent);
-//                                    callsToSave.add(topCall);
+                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+                                    topCall.setReturnValue(existingParameter);
+                                    topCall.setReturnDataEvent(dataEvent);
+                                    callsToSave.add(topCall);
 //
 //
 //                                    topCall = callStack.remove(callStack.size() - 1);
@@ -2354,84 +2347,46 @@ public class SessionInstance {
                                 break;
 
 
-                            case CATCH:
-                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
-
-                                exceptionCallExpression = callStack.get(callStack.size() - 1);
-                                entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
-//                                existingParameter = parameterContainer.getParameterByValue(eventValue);
-//                                saveProbe = true;
+//                            case CATCH:
+//                                dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+////                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 //
-//                                existingParameter.setProbeInfo(probeInfo);
-//                                existingParameter.setProb(dataEvent);
-
-
-                                if (entryProbeEventType == EventType.CALL) {
-                                    // we need to pop two calls here, since the CALL will not have a matching call_return
-
-                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
-                                    topCall.setReturnValue(existingParameter);
-                                    topCall.setReturnDataEvent(dataEvent);
-                                    callsToSave.add(topCall);
-
-//
-//                                    topCall = callStack.remove(callStack.size() - 1);
-//                                    topCall.setReturnValue(existingParameter);
-//                                    topCall.setReturnDataEvent(dataEvent);
-//                                    callsToSave.add(topCall);
-
-
-                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                                    // we will get a method_exception_exit to pop the call
-//                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
-//                                    topCall.setReturnValue(existingParameter);
-//                                    topCall.setReturnDataEvent(dataEvent);
-//                                    callsToSave.add(topCall);
-
-                                } else {
-                                    throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
-                                }
-
-
-//                                completedExceptional = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
-//
-//                                completedExceptional.setExitProbeIndex(instructionIndex);
-//                                if (completedExceptional.getMainMethod() != null) {
-//                                    DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
-//                                    if (entryProbe != null) {
-//                                        completedExceptional.setCallTimeNanoSecond(
-//                                                dataEvent.getRecordedAt() - entryProbe.getRecordedAt()
-//                                        );
-//                                    }
-//                                }
-//                                if (completedExceptional.getMainMethod() != null) {
-//                                    completedExceptional.setTestSubject(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
-//                                }
+//                                exceptionCallExpression = callStack.get(callStack.size() - 1);
+//                                entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
+////                                existingParameter = parameterContainer.getParameterByValue(eventValue);
+////                                saveProbe = true;
+////
+////                                existingParameter.setProbeInfo(probeInfo);
+////                                existingParameter.setProb(dataEvent);
 //
 //
-//                                if (testCandidateMetadataStack.size() > 0) {
-//                                    TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-//                                    newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
+//                                if (entryProbeEventType == EventType.CALL) {
+//                                    // we need to pop two calls here, since the CALL will not have a matching call_return
 //
-//                                    if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject().getType().equals(
-//                                            ((MethodCallExpression) completedExceptional.getMainMethod()).getSubject().getType()
-//                                    )) {
-//                                        for (Parameter parameter : completedExceptional.getFields().all()) {
-//                                            newCurrent.getFields().add(parameter);
-//                                        }
-//                                    }
+////                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+////                                    topCall.setReturnValue(existingParameter);
+////                                    topCall.setReturnDataEvent(dataEvent);
+////                                    callsToSave.add(topCall);
+////
+////
+////                                    topCall = callStack.remove(callStack.size() - 1);
+////                                    topCall.setReturnValue(existingParameter);
+////                                    topCall.setReturnDataEvent(dataEvent);
+////                                    callsToSave.add(topCall);
+//
+//
+//                                } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+//                                    // we will get a method_exception_exit to pop the call
+////                                    MethodCallExpression topCall = callStack.remove(callStack.size() - 1);
+////                                    topCall.setReturnValue(existingParameter);
+////                                    topCall.setReturnDataEvent(dataEvent);
+////                                    callsToSave.add(topCall);
 //
 //                                } else {
-//                                    if (callStack.size() > 0) {
-//                                        logger.warn("inconsistent call stack state, flushing calls list");
-//                                    }
+//                                    throw new RuntimeException("unexpected entry probe event type [" + entryProbeEventType + "]");
 //                                }
 //
-//                                if (completedExceptional.getTestSubject() != null) {
-//                                    candidatesToSave.add(completedExceptional);
-//                                }
-                                break;
+//                                break;
 
                             case METHOD_NORMAL_EXIT:
 
@@ -2736,6 +2691,7 @@ public class SessionInstance {
 
         private final LinkedTransferQueue<Parameter> parameterQueue;
         private boolean stop = false;
+        private ArrayBlockingQueue<Boolean> isSaving = new ArrayBlockingQueue<>(1);
 
         public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue) {
             this.parameterQueue = parameterQueue;
@@ -2746,23 +2702,26 @@ public class SessionInstance {
             while (!stop) {
                 Parameter param = null;
                 try {
-                    param = parameterQueue.take();
+                    param = parameterQueue.poll(1, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 if (param == null) {
                     continue;
                 }
+                isSaving.clear();
 
                 List<Parameter> batch = new LinkedList<>();
                 parameterQueue.drainTo(batch);
                 batch.add(param);
                 daoService.createOrUpdateParameter(batch);
+                isSaving.offer(true);
             }
         }
 
-        public void close() {
+        public void close() throws InterruptedException {
             stop = true;
+            isSaving.take();
             List<Parameter> batch = new LinkedList<>();
             parameterQueue.drainTo(batch);
             daoService.createOrUpdateParameter(batch);

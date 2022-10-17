@@ -2,6 +2,7 @@ package com.insidious.plugin.client;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -103,6 +104,7 @@ public class DaoService {
     @NotNull
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata convertTestCandidateMetadata(
             TestCandidateMetadata testCandidateMetadata) throws SQLException {
+        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
@@ -112,6 +114,7 @@ public class DaoService {
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
         List<Long> calls = testCandidateMetadata.getCallsList();
 
+        logger.warn("\tloading " + calls.size() + " call methods");
         for (Long call : calls) {
             com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
             if (methodCallExpressionById.isMethodPublic() || methodCallExpressionById.isMethodProtected()) {
@@ -120,6 +123,7 @@ public class DaoService {
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
+        logger.warn("\tloading " + fieldParameters.size() + " fields");
         for (Long fieldParameterValue : fieldParameters) {
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
             converted.getFields().add(fieldParameter);
@@ -155,11 +159,13 @@ public class DaoService {
         for (int i = 0; i < argumentParameters.size(); i++) {
             Long argumentParameter = argumentParameters.get(i);
             DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
-
+            DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
             com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
             if (argument == null) {
                 argument = new com.insidious.plugin.pojo.Parameter(0L);
             }
+            argument.setProbeInfo(eventProbe);
+            argument.setType(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
             argument.setProb(dataEvent);
             mce.addArgument(argument);
         }
