@@ -170,9 +170,7 @@ public class StaticMethodCallExtractor implements EventMatchListener {
             MethodCallExpression methodCallExpression = replayData.extractMethodCall(index);
             Parameter staticParameter = new Parameter();
             staticParameter.setType(ownerClassName);
-            staticParameter.setName(
-                    ClassTypeUtils.createVariableName(ownerClassName)
-            );
+            staticParameter.setName(ClassTypeUtils.createVariableName(ownerClassName));
             staticParameter.setProb(event);
             staticParameter.setProbeInfo(probeInfo);
             methodCallExpression.setSubject(staticParameter);

@@ -170,12 +170,19 @@ public class DaoService {
             mce.addArgument(argument);
         }
 
+        mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
         if (!mce.isStaticCall()) {
             com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
             mce.setSubject(subjectParam);
+        } else {
+            DataInfo entryProbeInfo = mce.getEntryProbeInfo();
+            com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
+            staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
+            staticSubject.setProb(mce.getEntryProbe());
+            staticSubject.setProbeInfo(entryProbeInfo);
+            mce.setSubject(staticSubject);
         }
 
-        mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
 
 
         return mce;

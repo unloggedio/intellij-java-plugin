@@ -48,11 +48,13 @@ public class CandidateMetadataFactory {
 
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
             Collection<MethodCallExpression> callToMock = new ArrayList<>();
+            List<MethodCallExpression> staticCallsList = testCandidateMetadata.getStaticCalls();
+
             for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
                 if (e.isStaticCall()) {
                     // all static calls need to be mocked
                     // even if they have no return value
-                    callToMock.add(e);
+                    staticCallsList.add(e);
                     continue;
                 }
                 if (e.getMethodName().startsWith("<")) {
@@ -101,7 +103,6 @@ public class CandidateMetadataFactory {
             }
 
 
-            List<MethodCallExpression> staticCallsList = testCandidateMetadata.getStaticCalls();
 
             if (staticCallsList != null && staticCallsList.size() > 0) {
 
