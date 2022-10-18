@@ -1,8 +1,5 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
 
@@ -86,7 +83,12 @@ public class TestCaseWriter {
             } else {
                 Object parameterValue;
                 parameterValue = parameter.getValue();
-                parameterStringBuilder.append(parameterValue);
+                String stringValue = parameter.getStringValue();
+                if (stringValue == null) {
+                    parameterStringBuilder.append(parameterValue);
+                } else {
+                    parameterStringBuilder.append(stringValue);
+                }
             }
 
 
@@ -125,7 +127,7 @@ public class TestCaseWriter {
 
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
                 parameterStringBuilder.append("matches(" + compareAgainst + ")");
-            } else if ( parameterType != null &&  compareAgainst != null
+            } else if (parameterType != null && compareAgainst != null
                     && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
                     && !parameterType.contains(".Object"))
             ) {

@@ -27,7 +27,7 @@ public class Parameter {
      */
     String type;
     private final List<String> names = new LinkedList<>();
-    private String stringValue;
+    private String stringValue = null;
 
     public boolean getException() {
         return exception;
@@ -121,6 +121,10 @@ public class Parameter {
 
     public long getValue() {
         return value;
+    }
+
+    public String getStringValue() {
+        return stringValue;
     }
 
     public void setValue(Long value) {

@@ -270,18 +270,23 @@ public class MethodCallExpression implements Expression {
     @Override
     public String toString() {
 
-        String owner = "<n/a>";
+        String owner = null;
         if (subject != null && subject.getProbeInfo() != null) {
-            owner = subject.getProbeInfo().getAttribute("Owner", null);
+            String owner1 = subject.getProbeInfo().getAttribute("Owner", null);
+            if (owner1 != null) {
+                owner = "[" + owner1 + "]";
+
+            }
         }
         String name = "";
         if (subject != null) {
             name = subject.getName() + ".";
         }
-        return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
-                "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
-                "[" + name + methodName + "(" + arguments + ")" + "]" +
-                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
+        return ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
+                "" : (returnValue.getName() + " = ")) +
+                name + methodName + "(" + arguments.size() + " args)" +
+                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "")
+                + (owner == null ? "" : " in " + owner);
     }
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {

@@ -47,7 +47,7 @@ public class VariableContainer {
 
     public void add(Parameter parameter) {
         long value = parameter.getValue();
-        Parameter byValue = getParametersById(value);
+        Parameter byValue = parameterMap.get(value);
         if (byValue == null) {
             this.parameterList.add(parameter);
             if (parameter.getProb() != null) {
@@ -99,24 +99,20 @@ public class VariableContainer {
     }
 
     public List<Parameter> getParametersByType(String typename) {
-        return this.parameterList
-                .stream()
+        return this.parameterList.stream()
                 .filter(e -> e.getType().equals(typename))
                 .collect(Collectors.toList());
     }
 
     public Parameter getParametersById(long value) {
-        Optional<Parameter> ret = this.parameterList
-                .stream()
-                .filter(e -> e.getValue() == value)
-                .findAny();
-        return ret.orElse(null);
+        return this.parameterMap.get(value);
     }
 
     public boolean contains(String variableName) {
         return this.parameterList.stream()
-                .anyMatch(e -> e.getName() != null &&
-                        e.getName().equals(variableName));
+                .anyMatch(e ->
+                        e.getName() != null && e.getName().equals(variableName)
+                );
     }
 
     public String createVariableName(String className) {
