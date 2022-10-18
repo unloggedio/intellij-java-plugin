@@ -90,8 +90,8 @@ public class ObjectRoutine {
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             variableContainer.all().addAll(candidateVariables.all());
-            ObjectRoutineScript script = CandidateMetadataFactory.toObjectScript(
-                    testCandidateMetadata, variableContainer);
+            ObjectRoutineScript script = CandidateMetadataFactory
+                    .toObjectScript(testCandidateMetadata, variableContainer);
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 

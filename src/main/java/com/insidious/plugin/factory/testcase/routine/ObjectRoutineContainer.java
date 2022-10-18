@@ -37,9 +37,11 @@ public class ObjectRoutineContainer {
     private String name;
     public ObjectRoutineContainer(Parameter parameter) {
         this.parameter  = parameter;
-        ClassName className = ClassName.bestGuess(parameter.getType());
-        this.packageName = className.packageName();
-        this.name = className.simpleName();
+        if (parameter != null && parameter.getType() != null) {
+            ClassName className = ClassName.bestGuess(parameter.getType());
+            this.packageName = className.packageName();
+            this.name = className.simpleName();
+        }
     }
 
     public Parameter getParameter() {
@@ -203,10 +205,6 @@ public class ObjectRoutineContainer {
             container.addField(parameter);
 
             classVariableContainer.add(parameter);
-//            in(builderMethodScript).assignVariable(parameter).writeExpression(
-//                    MethodCallExpressionFactory.MockClass(ClassName.bestGuess(parameter.getType()))
-//            ).endStatement();
-
             MethodCallExpression.in(builderMethodScript).writeExpression(
                     new MethodCallExpression("injectField", null,
                             List.of(mainSubject, parameter), null, 0)).endStatement();
@@ -218,8 +216,7 @@ public class ObjectRoutineContainer {
                 continue;
             }
 
-            ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectScript(classVariableContainer.clone());
+            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(classVariableContainer.clone());
             container.getObjectRoutines().add(objectScript);
         }
 

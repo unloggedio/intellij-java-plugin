@@ -540,7 +540,7 @@ public class TestCaseService {
         Parameter parameter = testCaseRequest.getTargetParameter();
 
 
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(null);
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(parameter);
         if (parameter.getName() != null) {
             objectRoutineContainer.setName(parameter.getName());
         }

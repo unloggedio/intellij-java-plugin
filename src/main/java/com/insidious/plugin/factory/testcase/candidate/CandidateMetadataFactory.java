@@ -27,7 +27,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
@@ -48,14 +47,42 @@ public class CandidateMetadataFactory {
 
 
             Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
-            Collection<MethodCallExpression> callToMock = testCandidateMetadata.getCallsList().stream().filter(
-                    e -> !e.getMethodName().startsWith("<") &&
-                            e.getSubject() != null &&
-                            e.getReturnValue() != null &&
-                            e.getReturnValue().getProb() != null &&
-                            !e.getSubject().getType().contains("com.google") &&
-                            testCandidateMetadata.getFields().getParametersById(e.getSubject().getProb().getValue()) != null
-            ).collect(Collectors.toList());
+            Collection<MethodCallExpression> callToMock = new ArrayList<>();
+            for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
+                if (e.isStaticCall()) {
+                    // all static calls need to be mocked
+                    // even if they have no return value
+                    callToMock.add(e);
+                    continue;
+                }
+                if (e.getMethodName().startsWith("<")) {
+                    // constructors need not be mocked
+                    continue;
+                }
+                if (e.getSubject() == null) {
+                    // not a static call, but we failed to identify subject
+                    // this is potentially a bug, and the fix is inside scan implementation
+                    continue;
+                }
+                if (e.getReturnValue() == null || e.getReturnValue().getProb() == null) {
+                    // either the function has no return value (need not be mocked) or
+                    // we failed to identify the return value in the scan, in that case this is a bug
+                    continue;
+                }
+                if (e.getSubject().getType().contains("com.google")) {
+                    // this is hard coded to skip mocking Gson class
+                    continue;
+                }
+
+                if (testCandidateMetadata.getFields().getParametersById(e.getSubject().getProb().getValue()) == null) {
+                    // the subject should ideally be one of the already identified fields.
+                    continue;
+                }
+
+                // finally add this call in the list of calls that will be actually mocked
+                callToMock.add(e);
+
+            }
 
             if (callToMock.size() > 0) {
 
@@ -396,8 +423,7 @@ public class CandidateMetadataFactory {
                 && !methodName.equals("<init>")) {
 
             String potentialReturnValueName =
-                    ClassTypeUtils.createVariableNameFromMethodName(methodName,
-                            metadata.getFullyQualifiedClassname());
+                    ClassTypeUtils.createVariableNameFromMethodName(methodName, typeHierarchy.get(0));
 
             mainMethodExpression.getReturnValue().setName(potentialReturnValueName);
         }

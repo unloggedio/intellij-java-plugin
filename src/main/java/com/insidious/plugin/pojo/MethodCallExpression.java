@@ -25,7 +25,7 @@ public class MethodCallExpression implements Expression {
     private boolean isStaticCall;
     private Parameter subject;
 
-    private ProbeInfo entryProbeInfo;
+    private DataInfo entryProbeInfo;
     private Parameter returnValue;
     private DataEventWithSessionId entryProbe;
     private int methodAccess;
@@ -62,12 +62,12 @@ public class MethodCallExpression implements Expression {
         this.callStack = callStack;
     }
 
-    public ProbeInfo getEntryProbeInfo() {
+    public DataInfo getEntryProbeInfo() {
         return entryProbeInfo;
     }
 
     public void setEntryProbeInfo(DataInfo entryProbeInfo) {
-        this.entryProbeInfo = ProbeInfo.FromProbeInfo(entryProbeInfo);
+        this.entryProbeInfo = entryProbeInfo;
     }
 
     public Parameter getSubject() {
@@ -220,14 +220,17 @@ public class MethodCallExpression implements Expression {
 
     public void writeCommentTo(ObjectRoutineScript objectRoutine) {
         VariableContainer variableContainer = objectRoutine.getCreatedVariables();
-        Parameter returnValue = getReturnValue();
         Parameter exception = getException();
         String callArgumentsString = getArguments().size() + " arguments";
 
 
+        String subjectName = "";
+        if (subject != null) {
+            subjectName = getSubject().getName();
+        }
         if (returnValue != null) {
 
-            String variableName = ClassTypeUtils.createVariableNameFromMethodName(getMethodName(), getReturnValue().getType());
+            String variableName = ClassTypeUtils.createVariableNameFromMethodName(methodName, returnValue.getType());
 
             Object value = returnValue.getValue();
             boolean overrideName = true;
@@ -255,12 +258,12 @@ public class MethodCallExpression implements Expression {
             String returnValueType = ClassName.bestGuess(returnValue.getType()).simpleName();
             objectRoutine.addComment(
                     returnValueType + " " + returnValue.getName() + " = " +
-                            getSubject().getName() + "." + getMethodName() +
+                            subjectName + "." + getMethodName() +
                             "(" + callArgumentsString + "); // ==> "
                             + returnValue.getProb().getSerializedValue().length);
         } else if (exception != null) {
             objectRoutine.addComment(
-                    getSubject().getName() + "." +
+                    subjectName + "." +
                             getMethodName() +
                             "(" + callArgumentsString + ");" +
                             " // ==>  throws exception " + exception.getType());
