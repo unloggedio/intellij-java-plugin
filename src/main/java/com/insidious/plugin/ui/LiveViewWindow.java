@@ -11,6 +11,9 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.tree.TreeUtil;
@@ -51,8 +54,7 @@ public class LiveViewWindow implements TreeSelectionListener {
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
-        loadSession();
-
+//        loadSession();
     }
 
     @NotNull
@@ -76,8 +78,15 @@ public class LiveViewWindow implements TreeSelectionListener {
                     sessionInstance = new SessionInstance(executionSession);
                     insidiousService.getClient().setSessionInstance(sessionInstance);
                     testCaseService = new TestCaseService(insidiousService.getClient());
-                    testCaseService.processLogFiles();
-                    treeModel = new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
+
+                    treeModel = ProgressManager.getInstance()
+                            .run(new Task.WithResult<NewVideobugTreeModel, Exception>(project, "Unlogged", true) {
+                                @Override
+                                protected NewVideobugTreeModel compute(@NotNull ProgressIndicator indicator) throws Exception {
+                                    testCaseService.processLogFiles();
+                                    return new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
+                                }
+                            });
                     mainTree.setModel(treeModel);
 
                 } catch (Exception ex) {
@@ -103,10 +112,11 @@ public class LiveViewWindow implements TreeSelectionListener {
                     sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName());
 
             this.candidateListPanel.removeAll();
-
-            Dimension dimension = new Dimension(0, 0);
-            GridConstraints constraints = new GridConstraints();
-            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+            this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
+            for (int i = 0; i < testCandidateMetadataList.size(); i++) {
+                TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
+                GridConstraints constraints = new GridConstraints();
+                constraints.setRow(i);
                 TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
                         testCandidateMetadata, testCaseService, insidiousService);
                 Component contentPanel = testCandidatePreviewPanel.getContentPanel();

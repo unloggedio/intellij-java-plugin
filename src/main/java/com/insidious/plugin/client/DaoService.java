@@ -490,12 +490,14 @@ public class DaoService {
 
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName) {
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidatesForMethod(String className, String methodName) {
 
         try {
 
             GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
                     .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className, methodName);
+
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
 
             List<TestCandidateMetadata> testCandidates = parameterIds.getResults();

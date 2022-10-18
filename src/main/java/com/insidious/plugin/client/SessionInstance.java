@@ -1831,7 +1831,7 @@ public class SessionInstance {
 
         Map<String, ArchiveFile> archiveFileMap = getArchiveFileMap(daoService);
         Map<String, LogFile> logFileMap = getLogFileMap(daoService);
-        Map<String, List<LogFile>> filesByArchive = logFileMap.values().stream().collect(Collectors.groupingBy(e -> e.getArchiveName()));
+        Map<String, List<LogFile>> filesByArchive = logFileMap.values().stream().collect(Collectors.groupingBy(LogFile::getArchiveName));
 
         List<Integer> existingProbes = new LinkedList<>();
         try {
@@ -1859,6 +1859,7 @@ public class SessionInstance {
                 if (archiveFile != null && archiveFile.getStatus().equals(COMPLETED)) {
                     continue;
                 }
+                checkProgressIndicator("Processing archive: " + sessionArchive.getName(), null);
 
                 if (archiveFile == null) {
                     archiveFile = new ArchiveFile();
@@ -1919,9 +1920,6 @@ public class SessionInstance {
                         continue;
                     }
 
-//                    logger.warn(((new Date().getTime() - startTime.getTime()) / 1000) + " [" + logFile + "] - [" + index.get() + "]");
-//                    logger.info("Checking file " + logFile + " for data");
-
 
                     List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive, logFile);
                     if (eventsSublist.size() == 0) {
@@ -1943,7 +1941,6 @@ public class SessionInstance {
                         final long eventValue = eventBlock.valueId();
 
                         DataInfo probeInfo = probeInfoMap.get(eventBlock.probeId());
-//                        ClassInfo classInfo = classInfoMap.get((long) probeInfo.getClassId());
                         int instructionIndex = index.getAndIncrement();
 
                         Parameter existingParameter = null;
@@ -2460,9 +2457,9 @@ public class SessionInstance {
                                         DataInfo callSubjectProbe = callSubject.getProbeInfo();
                                         if (!(
                                                 callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
-                                                callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
-                                                callSubjectProbe.getEventType().equals(EventType.METHOD_OBJECT_INITIALIZED) ||
-                                                callSubjectProbe.getEventType().equals(EventType.CALL) ||
+                                                        callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
+                                                        callSubjectProbe.getEventType().equals(EventType.METHOD_OBJECT_INITIALIZED) ||
+                                                        callSubjectProbe.getEventType().equals(EventType.CALL) ||
                                                         callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
                                         )) {
                                             testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
@@ -2696,8 +2693,8 @@ public class SessionInstance {
                 parameterQueue.drainTo(batch);
                 batch.add(param);
                 daoService.createOrUpdateParameter(batch);
-                isSaving.offer(true);
             }
+            isSaving.offer(true);
         }
 
         public void close() throws InterruptedException {
