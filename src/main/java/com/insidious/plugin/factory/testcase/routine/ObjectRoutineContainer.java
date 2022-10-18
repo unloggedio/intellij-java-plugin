@@ -37,7 +37,9 @@ public class ObjectRoutineContainer {
     private String name;
     public ObjectRoutineContainer(Parameter parameter) {
         this.parameter  = parameter;
-        this.packageName = ClassName.bestGuess(parameter.getType()).packageName();
+        ClassName className = ClassName.bestGuess(parameter.getType());
+        this.packageName = className.packageName();
+        this.name = className.simpleName();
     }
 
     public Parameter getParameter() {
@@ -154,6 +156,7 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutineScriptContainer toRoutineScript() {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName);
+        container.setName(getName());
 
 
         VariableContainer variableContainer = new VariableContainer();

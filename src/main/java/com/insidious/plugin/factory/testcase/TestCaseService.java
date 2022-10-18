@@ -945,8 +945,11 @@ public class TestCaseService {
 
     public @NotNull TestCaseUnit getTestCaseUnit(TestCandidateMetadata testCandidateMetadata) {
 
-        List<TestCandidateMetadata> testCandidateList = sessionInstance
-                .getTestCandidatesUntil(testCandidateMetadata.getTestSubject().getValue(), testCandidateMetadata.getEntryProbeIndex());
+        List<TestCandidateMetadata> testCandidateList = sessionInstance.getTestCandidatesUntil(
+                        testCandidateMetadata.getTestSubject().getValue(),
+                        testCandidateMetadata.getEntryProbeIndex(),
+                        ((MethodCallExpression) testCandidateMetadata.getMainMethod()).getId()
+                );
         return getTestCaseUnit(testCandidateList);
     }
 }

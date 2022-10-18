@@ -54,47 +54,57 @@ public class LiveViewWindow implements TreeSelectionListener {
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
-//        loadSession();
+        try {
+            loadSession();
+        } catch (Exception ex) {
+            InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
+        }
     }
 
     @NotNull
     private ActionListener selectSessionActionListener() {
         return e -> {
-            loadSession();
+            try {
+                loadSession();
+            } catch (Exception ex) {
+                InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
+            }
         };
     }
 
-    public void loadSession() {
-        insidiousService.getClient().getProjectSessions(new GetProjectSessionsCallback() {
-            @Override
-            public void error(String message) {
-                InsidiousNotification.notifyMessage("Failed to list sessions - " + message, NotificationType.ERROR);
-            }
+    public void loadSession() throws Exception {
+        treeModel = ProgressManager.getInstance().run(
+                new Task.WithResult<NewVideobugTreeModel, Exception>(project, "Unlogged", true) {
+                    @Override
+                    protected NewVideobugTreeModel compute(@NotNull ProgressIndicator indicator) throws Exception {
+                        insidiousService.getClient().getProjectSessions(new GetProjectSessionsCallback() {
+                            @Override
+                            public void error(String message) {
+                                InsidiousNotification.notifyMessage("Failed to list sessions - " + message, NotificationType.ERROR);
+                            }
 
-            @Override
-            public void success(List<ExecutionSession> executionSessionList) {
-                try {
-                    ExecutionSession executionSession = executionSessionList.get(0);
-                    sessionInstance = new SessionInstance(executionSession);
-                    insidiousService.getClient().setSessionInstance(sessionInstance);
-                    testCaseService = new TestCaseService(insidiousService.getClient());
+                            @Override
+                            public void success(List<ExecutionSession> executionSessionList) {
+                                try {
+                                    ExecutionSession executionSession = executionSessionList.get(0);
+                                    sessionInstance = new SessionInstance(executionSession);
+                                    insidiousService.getClient().setSessionInstance(sessionInstance);
+                                    testCaseService = new TestCaseService(insidiousService.getClient());
 
-                    treeModel = ProgressManager.getInstance()
-                            .run(new Task.WithResult<NewVideobugTreeModel, Exception>(project, "Unlogged", true) {
-                                @Override
-                                protected NewVideobugTreeModel compute(@NotNull ProgressIndicator indicator) throws Exception {
                                     testCaseService.processLogFiles();
-                                    return new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
-                                }
-                            });
-                    mainTree.setModel(treeModel);
+                                    treeModel = new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
+                                    mainTree.setModel(treeModel);
 
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    InsidiousNotification.notifyMessage("Failed to set sessions - " + ex.getMessage(), NotificationType.ERROR);
-                }
-            }
-        });
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                    InsidiousNotification.notifyMessage("Failed to set sessions - " + ex.getMessage(), NotificationType.ERROR);
+                                }
+                            }
+                        });
+                        return null;
+                    }
+                });
+
     }
 
     public JComponent getContent() {

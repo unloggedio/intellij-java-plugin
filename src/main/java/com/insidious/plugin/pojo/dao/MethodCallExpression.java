@@ -169,18 +169,22 @@ public class MethodCallExpression {
     @Override
     public String toString() {
 
-        String owner = "<n/a>";
+        String owner = null;
         if (subject != null && subject.getProbeInfo() != null) {
-            owner = subject.getProbeInfo().getAttribute("Owner", null);
+            String methodCallOwner = subject.getProbeInfo().getAttribute("Owner", null);
+            if (methodCallOwner != null) {
+                owner = "[" + methodCallOwner + "]";
+            }
         }
         String name = "";
         if (subject != null) {
             name = subject.getName() + ".";
         }
-        return "[" + owner + "] => " + ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
+        return ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
                 "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
-                "[" + name + methodName + "(" + arguments + ")" + "]" +
-                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
+                "[" + name + methodName + "(" + arguments.length() + " arguments)" + "]" +
+                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "") +
+                (owner == null ? "" : owner);
     }
 
     public void setIsStatic(boolean aStatic) {

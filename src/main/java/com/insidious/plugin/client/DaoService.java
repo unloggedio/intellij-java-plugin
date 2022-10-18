@@ -513,11 +513,14 @@ public class DaoService {
         }
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidates(long value, long entryProbeIndex) {
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidates(long value, long entryProbeIndex, long mainMethodId) {
         try {
             List<TestCandidateMetadata> candidates = testCandidateDao.queryBuilder()
                     .where().eq("testSubject_id", value)
-                    .and().lt("entryProbeIndex", entryProbeIndex).query();
+                    .and().le("entryProbeIndex", entryProbeIndex)
+                    .and().le("mainMethod_id", mainMethodId)
+                    .query();
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
 
             for (TestCandidateMetadata candidate : candidates) {

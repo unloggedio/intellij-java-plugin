@@ -2661,8 +2661,8 @@ public class SessionInstance {
         return daoService.getTestCandidatesForMethod(className, methodName);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesUntil(long value, long entryProbeIndex) {
-        return daoService.getTestCandidates(value, entryProbeIndex);
+    public List<TestCandidateMetadata> getTestCandidatesUntil(long subjectId, long entryProbeIndex, long mainMethodId) {
+        return daoService.getTestCandidates(subjectId, entryProbeIndex, mainMethodId);
     }
 
     class DatabasePipe implements Runnable {

@@ -62,17 +62,6 @@ public class TestCandidateMetadata {
         newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
 
 
-//        newCandidate.setCallList(testCandidateMetadata.getCallsList()
-//                .stream().map(com.insidious.plugin.pojo.MethodCallExpression::getEntryTime)
-//                .toArray(Long[]::new));
-//        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-//                .map(e -> (long) e.getValue()).toArray(Long[]::new));
-//        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
-//        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression) testCandidateMetadata.getMainMethod()));
-//        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-//                .stream().map(e -> (long) e.getValue()).toArray(Long[]::new));
-
-
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
@@ -141,14 +130,12 @@ public class TestCandidateMetadata {
 
     @Override
     public String toString() {
-        return "TestCandidateMetadata{" +
+        return "TCM[" + entryProbeIndex + " - " + exitProbeIndex + "]{" +
                 "mainMethod=" + mainMethod +
                 ", testSubject=" + testSubject +
                 ", methodCallExpressions=" + methodCallExpressions +
                 ", fields=" + fields +
                 ", callTimeNanoSecond=" + callTimeNanoSecond +
-                ", entryProbeIndex=" + entryProbeIndex +
-                ", exitProbeIndex=" + exitProbeIndex +
                 ", variables=" + variables +
                 '}';
     }

@@ -93,14 +93,13 @@ public class TestCaseServiceTest {
         return daoService;
     }
 
-    @Test
-    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException {
+    private static void copyTestCaseToClipboard(TestCaseUnit testCaseUnit) {
+        System.out.println(testCaseUnit);
 
-        Long objectId = Long.valueOf(909497978);
-//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
-
-        printObjectHistory(objectId);
-
+        StringSelection selection = new StringSelection(testCaseUnit.toString());
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, selection);
+        System.out.println(selection);
     }
 
 //    @Test public void testByListCandatidates2() throws APICallException, IOException, InterruptedException {
@@ -122,6 +121,16 @@ public class TestCaseServiceTest {
 //
 //
 //    }
+
+    @Test
+    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException {
+
+        Long objectId = Long.valueOf(909497978);
+//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
+
+        printObjectHistory(objectId);
+
+    }
 
     @Test
     void testPrintEventsByProbeIds() {
@@ -420,6 +429,26 @@ public class TestCaseServiceTest {
     }
 
     @Test
+    public void testGetTestCaseUnit() throws SQLException {
+        Project project = Mockito.mock(Project.class);
+        Mockito.when(project.getBasePath()).thenReturn("./");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+
+        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        ExecutionSession session = sessions.getItems().get(0);
+        client.setSessionInstance(new SessionInstance(session));
+
+
+        TestCaseService testCaseService = new TestCaseService(client);
+
+        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+                "com.ayu.cabeza.service.DoctorProfileService", "addNewDoctorProfile");
+
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
+        copyTestCaseToClipboard(testCaseUnit);
+    }
+
+    @Test
     public void testScanAndGenerateAll() throws Exception {
 
         Project project = Mockito.mock(Project.class);
@@ -431,13 +460,7 @@ public class TestCaseServiceTest {
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
         ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session));
-
-
-        FilteredDataEventsRequest request = new FilteredDataEventsRequest();
-//        for (int i = 0; i < 2; i++) {
-//            request.setThreadId((long) i);
         client.getSessionInstance().scanDataAndBuildReplay();
-//        }
 
     }
 
@@ -473,11 +496,7 @@ public class TestCaseServiceTest {
 
         TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidates);
 
-        System.out.println(testCaseUnit);
-
-        StringSelection selection = new StringSelection(testCaseUnit.toString());
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(selection, selection);
+        copyTestCaseToClipboard(testCaseUnit);
 
     }
 

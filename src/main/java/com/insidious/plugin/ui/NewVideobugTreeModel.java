@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 public class NewVideobugTreeModel implements TreeModel {
 
     private final DefaultMutableTreeNode rootNode;
-    private final Map<String, ClassWeaveInfo> sessionClassWeaveMap = new HashMap<>();
     private final Map<String, List<PackageInfoModel>> sessionPackageMap = new HashMap<>();
     private final Map<String, List<TreeClassInfoModel>> sessionPackageClassMap = new HashMap<>();
     private final Map<String, List<TestCandidateMethodAggregate>> sessionClassMethodMap = new HashMap<>();
@@ -30,7 +29,6 @@ public class NewVideobugTreeModel implements TreeModel {
     private final List<TreeModelListener> listeners = new LinkedList<>();
     private final SessionInstance sessionInstance;
     private final List<VideobugTreeClassAggregateNode> videobugTreeClassAggregateNodes;
-    private final Map<String, TestCandidateMethodAggregate> testCandidateMethodAggregateMap = new HashMap<>();
     private final Map<String, List<VideobugTreeClassAggregateNode>> classAggregatesByPackageName;
     private final List<VideobugTreePackageAggregateNode> packageAggregates;
 
