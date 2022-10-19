@@ -72,6 +72,9 @@ public class ClassTypeUtils {
         if (className == null) {
             return null;
         }
+        if (className.contains(".")) {
+            return className;
+        }
 
         if (className.endsWith(";")) {
             className = className.substring(0, className.length() - 1);

@@ -1947,6 +1947,7 @@ public class SessionInstance {
                         boolean saveProbe = false;
                         MethodCallExpression exceptionCallExpression;
                         TestCandidateMetadata completedExceptional;
+                        MethodCallExpression methodCall = null;
 
                         switch (probeInfo.getEventType()) {
 
@@ -1996,9 +1997,9 @@ public class SessionInstance {
                                 if (existingParameter != null) {
                                     existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
 
-                                } else {
-                                    existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                    existingParameter.addName(probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                                }
+
+                                if (existingParameter.getProbeInfo() == null) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                     dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                     existingParameter.setProb(dataEvent);
@@ -2114,11 +2115,9 @@ public class SessionInstance {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 saveProbe = true;
 
-                                if (eventValue != 0) {
-                                    if (existingParameter.getProbeInfo() == null) {
-                                        existingParameter.setProbeInfo(probeInfo);
-                                        existingParameter.setProb(dataEvent);
-                                    }
+                                if (existingParameter.getProbeInfo() == null) {
+                                    existingParameter.setProbeInfo(probeInfo);
+                                    existingParameter.setProb(dataEvent);
                                 }
                                 if (existingParameter.getType() == null) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null)));
@@ -2132,22 +2131,43 @@ public class SessionInstance {
 //                                            new MethodInfo(0, 0, "0", "", "", 0, "", ""));
 //                                }
 
-                                MethodCallExpression methodCallExpression = new MethodCallExpression(
+                                methodCall = new MethodCallExpression(
                                         methodName, existingParameter, new LinkedList<>(), null, callStack.size()
                                 );
-                                methodCallExpression.setEntryProbeInfo(probeInfo);
-                                methodCallExpression.setEntryProbe(dataEvent);
-                                methodCallExpression.setId(currentCallId);
+                                if (methodName.equals("createOrUpdate")) {
+                                    logger.warn("yo");
+                                }
+                                methodCall.setEntryProbeInfo(probeInfo);
+                                methodCall.setEntryProbe(dataEvent);
+                                methodCall.setId(currentCallId);
 
                                 if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
-                                    methodCallExpression.setStaticCall(true);
-                                    Parameter staticCallSubject = new Parameter();
-                                    methodCallExpression.setSubject(staticCallSubject);
+                                    methodCall.setStaticCall(true);
+//                                    Parameter staticCallSubject = new Parameter();
+                                    methodCall.setSubject(existingParameter);
                                 }
 
 
-                                callStack.add(methodCallExpression);
-                                mostRecentCall.set(methodCallExpression);
+                                callStack.add(methodCall);
+                                mostRecentCall.set(methodCall);
+                                if (methodCall.isStaticCall()) {
+                                    testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+                                } else if (!methodCall.getMethodName().startsWith("<")) {
+                                    Parameter callSubject = methodCall.getSubject();
+                                    DataInfo callSubjectProbe = callSubject.getProbeInfo();
+                                    if (!(
+                                            callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
+                                                    callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
+                                                    callSubjectProbe.getEventType().equals(EventType.CALL) ||
+                                                    callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
+                                    )) {
+                                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+                                    } else {
+//                                        logger.warn("call skipped - " + methodCallExpression);
+                                    }
+                                }
+
+
                                 break;
 
 
@@ -2173,15 +2193,11 @@ public class SessionInstance {
 //                                }
 
 
-                                MethodCallExpression methodCall = null;
-                                String owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
+                                methodCall = null;
                                 if (callStack.size() > 0) {
                                     methodCall = callStack.get(callStack.size() - 1);
                                     @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(methodInfo.getClassName());
-                                    owner = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", null));
-                                    if (owner == null) {
-                                        owner = methodCall.getSubject().getType();
-                                    }
+                                    String owner = ClassTypeUtils.getDottedClassName(methodCall.getEntryProbeInfo().getAttribute("Owner", null));
                                     if (owner == null) {
                                         methodCall = null;
                                     } else {
@@ -2195,25 +2211,18 @@ public class SessionInstance {
 
                                 TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
-                                testCandidateMetadataStack.add(newCandidate);
                                 newCandidate.setEntryProbeIndex(eventBlock.eventId());
 
 
                                 if (methodCall == null) {
                                     existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                    if (eventValue != 0 && existingParameter.getProb() == null) {
+                                    if (existingParameter.getProb() == null) {
                                         existingParameter.setProb(dataEvent);
 
                                         existingParameter.setProbeInfo(probeInfo);
-                                        if (owner != null) {
-                                            existingParameter.setType(ClassTypeUtils
-                                                    .getDottedClassName(classInfoMap.get(
-                                                            (long) probeInfo.getClassId()).getClassName()));
-                                        } else {
-                                            existingParameter.setType(
-                                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())
-                                            );
-                                        }
+                                        existingParameter.setType(
+                                                ClassTypeUtils.getDottedClassName(methodInfo.getClassName())
+                                        );
                                     }
                                     if (existingParameter.getType() == null) {
                                         existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
@@ -2224,12 +2233,35 @@ public class SessionInstance {
                                     methodCall = new MethodCallExpression(
                                             methodInfo.getMethodName(), existingParameter, new LinkedList<>(), null,
                                             callStack.size());
+                                    if (methodInfo.getMethodName().equals("createOrUpdate")) {
+                                        logger.warn("yo");
+                                    }
 
                                     saveProbe = true;
 
                                     methodCall.setId(currentCallId);
                                     methodCall.setEntryProbeInfo(probeInfo);
                                     methodCall.setEntryProbe(dataEvent);
+                                    if (testCandidateMetadataStack.size() > 0) {
+                                        if (methodCall.isStaticCall()) {
+                                            testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+                                        } else if (!methodCall.getMethodName().startsWith("<")) {
+                                            Parameter callSubject = methodCall.getSubject();
+                                            DataInfo callSubjectProbe = callSubject.getProbeInfo();
+                                            if (!(
+                                                    callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
+                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
+                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_ENTRY) ||
+                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_NORMAL_EXIT) ||
+                                                            callSubjectProbe.getEventType().equals(EventType.CALL) ||
+                                                            callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
+                                            )) {
+                                                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+                                            } else {
+//                                                logger.warn("call skipped - " + methodCall);
+                                            }
+                                        }
+                                    }
                                     mostRecentCall.set(methodCall);
                                     callStack.add(methodCall);
                                 } else {
@@ -2238,6 +2270,7 @@ public class SessionInstance {
 //                                    methodCall.setEntryProbe(dataEvent);
                                 }
                                 newCandidate.setMainMethod(methodCall);
+                                testCandidateMetadataStack.add(newCandidate);
 
                                 int methodAccess = methodInfo.getAccess();
                                 methodCall.setMethodAccess(methodAccess);
@@ -2316,7 +2349,7 @@ public class SessionInstance {
 
                                 completedExceptional = testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
 
-                                completedExceptional.setExitProbeIndex(instructionIndex);
+                                completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
                                 if (completedExceptional.getMainMethod() != null) {
                                     DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
                                     if (entryProbe != null) {
@@ -2332,7 +2365,7 @@ public class SessionInstance {
 
                                 if (testCandidateMetadataStack.size() > 0) {
                                     TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                    newCurrent.getCallsList().addAll(completedExceptional.getCallsList());
+                                    newCurrent.addAllMethodCall(completedExceptional.getCallsList());
 
                                     if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject().getType().equals(
                                             ((MethodCallExpression) completedExceptional.getMainMethod()).getSubject().getType()
@@ -2406,7 +2439,7 @@ public class SessionInstance {
 
                                 if (testCandidateMetadataStack.size() > 0) {
                                     TestCandidateMetadata newCurrent = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                    newCurrent.getCallsList().addAll(completed.getCallsList());
+                                    newCurrent.addAllMethodCall(completed.getCallsList());
                                     if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject().getType().equals(
                                             ((MethodCallExpression) completed.getMainMethod()).getSubject().getType()
                                     )) {
@@ -2452,22 +2485,6 @@ public class SessionInstance {
                                     topCall.setReturnValue(existingParameter);
                                     topCall.setReturnDataEvent(dataEvent);
                                     callsToSave.add(topCall);
-                                    if (topCall.isStaticCall()) {
-                                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
-                                    } else if (!topCall.getMethodName().startsWith("<")) {
-                                        Parameter callSubject = topCall.getSubject();
-                                        DataInfo callSubjectProbe = callSubject.getProbeInfo();
-                                        if (!(
-                                                callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
-                                                        callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
-                                                        callSubjectProbe.getEventType().equals(EventType.METHOD_OBJECT_INITIALIZED) ||
-                                                        callSubjectProbe.getEventType().equals(EventType.CALL) ||
-                                                        callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
-                                        )) {
-                                            testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getCallsList().add(topCall);
-                                        }
-                                    }
-
 
                                 } else if (entryEventType == EventType.METHOD_ENTRY) {
                                     // this is probably not a matching event

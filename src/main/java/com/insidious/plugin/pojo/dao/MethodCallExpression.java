@@ -182,7 +182,7 @@ public class MethodCallExpression {
         }
         return ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
                 "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
-                "[" + name + methodName + "(" + arguments.length() + " arguments)" + "]" +
+                "[" + name + methodName + "(" + (arguments == null ? "0" : arguments.length()) + " arguments)" + "]" +
                 (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "") +
                 (owner == null ? "" : owner);
     }

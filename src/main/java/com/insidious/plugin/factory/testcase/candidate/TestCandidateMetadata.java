@@ -4,10 +4,6 @@ import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.j256.ormlite.field.DataType;
-import com.j256.ormlite.field.DatabaseField;
-import com.j256.ormlite.field.ForeignCollectionField;
-import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -127,5 +123,13 @@ public class TestCandidateMetadata {
 
     public void setStaticCalls(List<MethodCallExpression> staticCalls) {
         this.staticCalls = staticCalls;
+    }
+
+    public void addMethodCall(MethodCallExpression topCall) {
+        methodCallExpressions.add(topCall);
+    }
+
+    public void addAllMethodCall(Collection<MethodCallExpression> topCall) {
+        methodCallExpressions.addAll(topCall);
     }
 }

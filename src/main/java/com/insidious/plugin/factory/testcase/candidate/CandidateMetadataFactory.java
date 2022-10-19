@@ -139,14 +139,14 @@ public class CandidateMetadataFactory {
                         }
 
                         doneMap.put(mockedFieldsKey, true);
+                        objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
+                        if (!methodCallExpression.getReturnValue().getType().equals("V")) {
+                            methodCallExpression.writeMockTo(objectRoutineScript);
+                        }
 
                     }
 
 
-                    objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
-                    if (!methodCallExpression.getReturnValue().getType().equals("V")) {
-                        methodCallExpression.writeMockTo(objectRoutineScript);
-                    }
 
 
                 }
