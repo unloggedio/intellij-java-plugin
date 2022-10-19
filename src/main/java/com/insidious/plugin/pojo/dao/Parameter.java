@@ -3,16 +3,13 @@ package com.insidious.plugin.pojo.dao;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.ConstructorType;
-import com.j256.ormlite.field.DataType;
+import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
 
-import javax.lang.model.element.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,16 +30,14 @@ public class Parameter {
      */
     @DatabaseField
     String type;
-    @DatabaseField(dataType = DataType.SERIALIZABLE)
-    private String[] names = new String[0];
-    @DatabaseField
-    private String stringValue;
-
-
     @DatabaseField
     boolean exception;
     @DatabaseField(foreign = true)
     DataEventWithSessionId prob;
+    @DatabaseField
+    private String names = "";
+    @DatabaseField
+    private String stringValue;
     @DatabaseField
     private int index;
     @DatabaseField(foreign = true)
@@ -50,6 +45,8 @@ public class Parameter {
     private ConstructorType constructorType;
     @DatabaseField(foreign = true)
     private MethodCallExpression creatorExpression;
+    private Map<String, Parameter> templateMap = new HashMap<>();
+    private boolean isContainer = false;
 
     public static Parameter fromParameter(com.insidious.plugin.pojo.Parameter e) {
         if (e == null) {
@@ -67,17 +64,13 @@ public class Parameter {
             com.insidious.plugin.pojo.Parameter param = templateMap1.get(s);
             transformedTemplateMap.put(s, Parameter.fromParameter(param));
         }
-        newParam.setNames(e.getNames().toArray(String[]::new));
+        newParam.setNames(e.getNames());
 
         newParam.setTemplateMap(transformedTemplateMap);
         newParam.setConstructorType(e.getConstructorType());
         newParam.setProbeInfo(e.getProbeInfo());
-        newParam.setValue((long) e.getValue());
+        newParam.setValue(e.getValue());
         return newParam;
-    }
-
-    private void setNames(String[] names) {
-        this.names = names;
     }
 
     public static com.insidious.plugin.pojo.Parameter toParameter(Parameter parameter) {
@@ -118,12 +111,12 @@ public class Parameter {
         this.exception = exception;
     }
 
-    public void setContainer(boolean container) {
-        isContainer = container;
-    }
-
     public boolean isContainer() {
         return isContainer;
+    }
+
+    public void setContainer(boolean container) {
+        isContainer = container;
     }
 
     public Map<String, Parameter> getTemplateMap() {
@@ -134,13 +127,11 @@ public class Parameter {
         this.templateMap = templateMap;
     }
 
-    private Map<String, Parameter> templateMap = new HashMap<>();
-    private boolean isContainer = false;
-
     @Override
     public String toString() {
+        String[] namesList = names.split(",");
         return
-                (names.length > 0 ? names[0] : "") +
+                (namesList.length > 0 ? namesList[0] : "") +
                         (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
@@ -161,14 +152,21 @@ public class Parameter {
     }
 
     public String getName() {
-        if (names.length == 0) {
+        if (names.length() == 0) {
             return null;
         }
-        return names[0];
+        return names.split(",")[0];
     }
 
     public String[] getNames() {
-        return names;
+        return names.split(",");
+    }
+
+    private void setNames(List<String> names) {
+        if (names.size() == 0) {
+            return;
+        }
+        this.names = Strings.join(names, ",");
     }
 
     public Object getValue() {
@@ -243,13 +241,6 @@ public class Parameter {
         int result = value != null ? value.hashCode() : 0;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
-    }
-
-    public FieldSpec.Builder toFieldSpec() {
-        return FieldSpec.builder(
-                ClassName.bestGuess(getType()),
-                getName(), Modifier.PRIVATE
-        );
     }
 
     public void setTemplateParameter(String e, Parameter nextValueParam) {

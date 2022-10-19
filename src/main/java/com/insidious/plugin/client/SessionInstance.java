@@ -146,6 +146,25 @@ public class SessionInstance {
         return dataEvent;
     }
 
+    private static void addMethodToCandidate(List<TestCandidateMetadata> testCandidateMetadataStack, MethodCallExpression methodCall) {
+        if (methodCall.isStaticCall()) {
+            testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+        } else if (!methodCall.getMethodName().startsWith("<")) {
+            Parameter callSubject = methodCall.getSubject();
+            DataInfo callSubjectProbe = callSubject.getProbeInfo();
+            if (!(
+                    callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
+                            callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
+                            callSubjectProbe.getEventType().equals(EventType.METHOD_ENTRY) ||
+                            callSubjectProbe.getEventType().equals(EventType.METHOD_NORMAL_EXIT) ||
+                            callSubjectProbe.getEventType().equals(EventType.CALL) ||
+                            callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
+            )) {
+                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
+            }
+        }
+    }
+
     public ExecutionSession getExecutionSession() {
         return executionSession;
     }
@@ -2110,8 +2129,6 @@ public class SessionInstance {
 
                             case CALL:
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
-
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 saveProbe = true;
 
@@ -2125,47 +2142,23 @@ public class SessionInstance {
 
                                 currentCallId++;
                                 String methodName = probeInfo.getAttribute("Name", null);
-//                                if (methodName.equals("getAllDoctors")) {
-//                                    LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent,
-//                                            probeInfo, classInfoMap.get((long) probeInfo.getClassId()),
-//                                            new MethodInfo(0, 0, "0", "", "", 0, "", ""));
-//                                }
 
                                 methodCall = new MethodCallExpression(
                                         methodName, existingParameter, new LinkedList<>(), null, callStack.size()
                                 );
-                                if (methodName.equals("createOrUpdate")) {
-                                    logger.warn("yo");
-                                }
                                 methodCall.setEntryProbeInfo(probeInfo);
                                 methodCall.setEntryProbe(dataEvent);
                                 methodCall.setId(currentCallId);
 
                                 if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                                     methodCall.setStaticCall(true);
-//                                    Parameter staticCallSubject = new Parameter();
                                     methodCall.setSubject(existingParameter);
                                 }
 
 
                                 callStack.add(methodCall);
                                 mostRecentCall.set(methodCall);
-                                if (methodCall.isStaticCall()) {
-                                    testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
-                                } else if (!methodCall.getMethodName().startsWith("<")) {
-                                    Parameter callSubject = methodCall.getSubject();
-                                    DataInfo callSubjectProbe = callSubject.getProbeInfo();
-                                    if (!(
-                                            callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
-                                                    callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
-                                                    callSubjectProbe.getEventType().equals(EventType.CALL) ||
-                                                    callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
-                                    )) {
-                                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
-                                    } else {
-//                                        logger.warn("call skipped - " + methodCallExpression);
-                                    }
-                                }
+                                addMethodToCandidate(testCandidateMetadataStack, methodCall);
 
 
                                 break;
@@ -2231,11 +2224,8 @@ public class SessionInstance {
 
                                     currentCallId++;
                                     methodCall = new MethodCallExpression(
-                                            methodInfo.getMethodName(), existingParameter, new LinkedList<>(), null,
-                                            callStack.size());
-                                    if (methodInfo.getMethodName().equals("createOrUpdate")) {
-                                        logger.warn("yo");
-                                    }
+                                            methodInfo.getMethodName(), existingParameter,
+                                            new LinkedList<>(), null, callStack.size());
 
                                     saveProbe = true;
 
@@ -2243,24 +2233,7 @@ public class SessionInstance {
                                     methodCall.setEntryProbeInfo(probeInfo);
                                     methodCall.setEntryProbe(dataEvent);
                                     if (testCandidateMetadataStack.size() > 0) {
-                                        if (methodCall.isStaticCall()) {
-                                            testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
-                                        } else if (!methodCall.getMethodName().startsWith("<")) {
-                                            Parameter callSubject = methodCall.getSubject();
-                                            DataInfo callSubjectProbe = callSubject.getProbeInfo();
-                                            if (!(
-                                                    callSubjectProbe.getEventType().equals(EventType.CALL_RETURN) ||
-                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_PARAM) ||
-                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_ENTRY) ||
-                                                            callSubjectProbe.getEventType().equals(EventType.METHOD_NORMAL_EXIT) ||
-                                                            callSubjectProbe.getEventType().equals(EventType.CALL) ||
-                                                            callSubjectProbe.getEventType().equals(EventType.LOCAL_LOAD)
-                                            )) {
-                                                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).addMethodCall(methodCall);
-                                            } else {
-//                                                logger.warn("call skipped - " + methodCall);
-                                            }
-                                        }
+                                        addMethodToCandidate(testCandidateMetadataStack, methodCall);
                                     }
                                     mostRecentCall.set(methodCall);
                                     callStack.add(methodCall);

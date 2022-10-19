@@ -221,7 +221,7 @@ public class Parameter {
     }
 
     public void addName(String nameForParameter) {
-        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith("(")) {
+        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith("(") || nameForParameter.length() < 1) {
             return;
         }
         nameForParameter = nameForParameter.replace('$', 'D');
