@@ -68,22 +68,21 @@ public class DatabaseVariableContainer {
         }
         if (parameter.getProb() != null) {
 
-            if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
-                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-                if (newSerializedValue == null || newSerializedValue.length == 0) {
-                    return;
-                }
-                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
-                if (existingSerializedValue == null || existingSerializedValue.length == 0) {
-                    byValue.setProb(parameter.getProb());
-                } else if (byValue.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
-                    byValue.setProb(parameter.getProb());
-                }
-            } else {
+//            if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
+//                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
+//                if (newSerializedValue == null || newSerializedValue.length == 0) {
+//                    return;
+//                }
+//                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
+//                if (existingSerializedValue == null || existingSerializedValue.length == 0) {
+//                    byValue.setProb(parameter.getProb());
+//                } else if (byValue.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
+//                    byValue.setProb(parameter.getProb());
+//                }
+//            } else {
                 this.parameterList.add(parameter);
                 parameterMap.put(parameter.getProb().getValue(), parameter);
-            }
-
+//            }
 
         }
     }

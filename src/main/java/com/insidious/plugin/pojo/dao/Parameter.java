@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Parameter is a variable (long id or string) with a name and type information (class name). It could
@@ -166,7 +167,7 @@ public class Parameter {
         if (names.size() == 0) {
             return;
         }
-        this.names = Strings.join(names, ",");
+        this.names = Strings.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
     }
 
     public Object getValue() {

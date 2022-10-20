@@ -120,7 +120,7 @@ public class DaoService {
             if (methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
                 continue;
             }
-            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
+//            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
             if (methodCallExpressionById.isMethodPublic() || methodCallExpressionById.isMethodProtected()) {
                 callsList.add(methodCallExpressionById);
             }
@@ -187,7 +187,6 @@ public class DaoService {
             staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
             mce.setSubject(staticSubject);
         }
-
 
 
         return mce;
@@ -276,10 +275,13 @@ public class DaoService {
         dataEventDao.createOrUpdate(dataEvent);
     }
 
-    public void createOrUpdateDataEvent(Collection<DataEventWithSessionId> dataEvent) throws SQLException {
-        Date start = new Date();
-        dataEventDao.create(dataEvent);
-//        logger.warn("saving " + dataEvent.size() + " events took " + (new Date().getTime() - start.getTime()) + " ms");
+    public void createOrUpdateDataEvent(Collection<DataEventWithSessionId> dataEvent) {
+        try {
+            dataEventDao.create(dataEvent);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
     public void createOrUpdateCall(com.insidious.plugin.pojo.MethodCallExpression topCall) throws SQLException {
@@ -295,45 +297,29 @@ public class DaoService {
         return probeInfoDao.queryBuilder().selectColumns("dataId").query().stream().map(ProbeInfo::getDataId).collect(Collectors.toList());
     }
 
-    public void createOrUpdateCall(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+    public void createOrUpdateCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
-            Date start = new Date();
             methodCallExpressionDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
-//            logger.warn("saving " + callsToSave.size() + " methods took " + (new Date().getTime() - start.getTime()) + " ms");
-
-//            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
-//                callExpressionsDao.create(MethodCallExpression.FromMCE(methodCallExpression));
-//            }
-
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void updateCalls(Set<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+    public void updateCalls(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
-            Date start = new Date();
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
                 methodCallExpressionDao.update(MethodCallExpression.FromMCE(methodCallExpression));
             }
-//            logger.warn("updating " + callsToSave.size() + " methods took " + (new Date().getTime() - start.getTime()) + " ms");
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void createOrUpdateTestCandidate(List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candiateToSave) {
+    public void createOrUpdateTestCandidate(Collection<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candiateToSave) {
         try {
-            Date start = new Date();
             testCandidateDao.create(candiateToSave.stream()
                     .map(TestCandidateMetadata::FromTestCandidateMetadata)
                     .collect(Collectors.toList()));
-//            logger.warn("saving " + candiateToSave.size() + " candidates took " + (new Date().getTime() - start.getTime()) + " ms");
-
-//            for (com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata : candiateToSave) {
-//                candidateDao.create(TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata));
-//            }
-
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -521,6 +507,7 @@ public class DaoService {
             parameterIds.close();
             return resultList;
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

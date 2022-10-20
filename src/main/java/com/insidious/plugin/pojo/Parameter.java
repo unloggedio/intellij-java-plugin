@@ -229,7 +229,10 @@ public class Parameter {
     }
 
     public boolean hasName(String name) {
-        return this.names.contains(name);
+        if (name == null || this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
+            return true;
+        }
+        return false;
     }
 
     public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
