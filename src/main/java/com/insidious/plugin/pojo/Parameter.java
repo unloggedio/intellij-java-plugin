@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
  * event also from where the information was identified
  */
 public class Parameter {
+    private final List<String> names = new LinkedList<>();
+    private final VariableContainer variableContainer = new VariableContainer();
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
@@ -26,13 +28,15 @@ public class Parameter {
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
     String type;
-    private final List<String> names = new LinkedList<>();
+    boolean exception;
+    DataEventWithSessionId prob;
     private String stringValue = null;
-
-    public boolean getException() {
-        return exception;
-    }
-
+    private int index;
+    private DataInfo dataInfo;
+    private ConstructorType constructorType;
+    private MethodCallExpression creatorExpression;
+    private Map<String, Parameter> templateMap = new HashMap<>();
+    private boolean isContainer = false;
     public Parameter(Long value) {
         this.value = value;
     }
@@ -40,13 +44,9 @@ public class Parameter {
     public Parameter() {
     }
 
-    boolean exception;
-    DataEventWithSessionId prob;
-    private int index;
-    private DataInfo dataInfo;
-    private ConstructorType constructorType;
-    private MethodCallExpression creatorExpression;
-    private final VariableContainer variableContainer = new VariableContainer();
+    public boolean getException() {
+        return exception;
+    }
 
     public void addField(Parameter parameter) {
         this.variableContainer.add(parameter);
@@ -56,20 +56,21 @@ public class Parameter {
         return this.variableContainer;
     }
 
-    public void setContainer(boolean container) {
-        isContainer = container;
-    }
-
     public boolean isContainer() {
         return isContainer;
+    }
+
+    public void setContainer(boolean container) {
+        isContainer = container;
     }
 
     public Map<String, Parameter> getTemplateMap() {
         return templateMap;
     }
 
-    private Map<String, Parameter> templateMap = new HashMap<>();
-    private boolean isContainer = false;
+    public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
+        this.templateMap = transformedTemplateMap;
+    }
 
     @Override
     public String toString() {
@@ -125,16 +126,16 @@ public class Parameter {
         return value;
     }
 
-    public String getStringValue() {
-        return stringValue;
-    }
-
     public void setValue(Long value) {
         this.value = value;
     }
 
     public void setValue(String value) {
         this.stringValue = value;
+    }
+
+    public String getStringValue() {
+        return stringValue;
     }
 
     public DataEventWithSessionId getProb() {
@@ -150,10 +151,10 @@ public class Parameter {
 //                this.prob = prob;
 //            }
 //        } else {
-            this.prob = prob;
-            if (value == 0) {
-                value = prob.getValue();
-            }
+        this.prob = prob;
+        if (value == 0) {
+            value = prob.getValue();
+        }
 //        }
     }
 
@@ -170,7 +171,12 @@ public class Parameter {
     }
 
     public void setProbeInfo(DataInfo probeInfo) {
-        this.dataInfo = probeInfo;
+        if (this.dataInfo == null
+                || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+        ) {
+            this.dataInfo = probeInfo;
+        }
         if (probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
             this.exception = true;
         }
@@ -235,10 +241,6 @@ public class Parameter {
             return true;
         }
         return false;
-    }
-
-    public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
-        this.templateMap = transformedTemplateMap;
     }
 
     public List<String> getNames() {

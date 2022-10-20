@@ -153,7 +153,7 @@ public class MethodCallExpression implements Expression {
         // return type == V ==> void return type => no return value
         boolean isException = mainMethodReturnValue.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
         if (isException) {
-            in(objectRoutineScript).withTryAndCatch(mainMethodReturnValue).writeExpression(this).endStatement();
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
             return;
         } else {
             in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();

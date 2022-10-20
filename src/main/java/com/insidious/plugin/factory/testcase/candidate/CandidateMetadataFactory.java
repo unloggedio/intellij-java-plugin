@@ -46,7 +46,6 @@ public class CandidateMetadataFactory {
             MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
 
 
-            Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
             Collection<MethodCallExpression> callToMock = new ArrayList<>();
             List<MethodCallExpression> staticCallsList = testCandidateMetadata.getStaticCalls();
 
@@ -87,15 +86,17 @@ public class CandidateMetadataFactory {
             }
 
             if (callToMock.size() > 0) {
+                Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
 
                 objectRoutineScript.addComment("");
                 for (MethodCallExpression methodCallExpression : callToMock) {
-                    if (mainMethod.getException() != null && mockedCalls.containsKey(mainMethod.getMethodName())) {
+                    if (methodCallExpression.getException() != null
+                            && mockedCalls.containsKey(methodCallExpression.getMethodName())) {
                         continue;
                     }
                     methodCallExpression.writeCommentTo(objectRoutineScript);
                     methodCallExpression.writeMockTo(objectRoutineScript);
-                    mockedCalls.put(mainMethod.getMethodName(), methodCallExpression);
+                    mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);
                     objectRoutineScript.addComment("");
                 }
                 objectRoutineScript.addComment("");
@@ -106,7 +107,7 @@ public class CandidateMetadataFactory {
 
             if (staticCallsList != null && staticCallsList.size() > 0) {
 
-                Map<String, Boolean> doneMap = new HashMap<>();
+                Map<String, Boolean> mockedCalls = new HashMap<>();
 
                 for (MethodCallExpression methodCallExpression : staticCallsList) {
 
@@ -124,7 +125,7 @@ public class CandidateMetadataFactory {
 
                     String mockedFieldsKey = callBuilder.toString();
 
-                    if (!doneMap.containsKey(mockedFieldsKey)) {
+                    if (!mockedCalls.containsKey(mockedFieldsKey)) {
                         if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
                             subject.setContainer(true);
                             Parameter childParameter = new Parameter();
@@ -138,7 +139,7 @@ public class CandidateMetadataFactory {
                                     .endStatement();
                         }
 
-                        doneMap.put(mockedFieldsKey, true);
+                        mockedCalls.put(mockedFieldsKey, true);
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
                         if (!methodCallExpression.getReturnValue().getType().equals("V")) {
                             methodCallExpression.writeMockTo(objectRoutineScript);

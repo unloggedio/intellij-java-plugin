@@ -220,7 +220,7 @@ public class PendingStatement {
                 return variableName + i;
             }
         }
-        return null;
+        return "thisNeverHappened";
     }
 
     public PendingStatement fromRecordedValue() {

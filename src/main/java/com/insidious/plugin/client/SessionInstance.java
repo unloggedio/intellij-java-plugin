@@ -2270,7 +2270,7 @@ public class SessionInstance {
                                         );
                                         isModified = true;
                                     }
-                                    if (existingParameter.getType() == null|| existingParameter.getType().equals("java.lang.Object")) {
+                                    if (existingParameter.getType() == null || existingParameter.getType().equals("java.lang.Object")) {
                                         existingParameter.setType(ClassTypeUtils.getDottedClassName(methodInfo.getClassName()));
                                         isModified = true;
                                     }
@@ -2351,13 +2351,9 @@ public class SessionInstance {
                                 entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 saveProbe = true;
-
-                                isModified = false;
-                                if (existingParameter.getProb() == null) {
-                                    existingParameter.setProbeInfo(probeInfo);
-                                    existingParameter.setProb(dataEvent);
-                                    isModified = true;
-                                }
+                                existingParameter.setProbeInfo(probeInfo);
+                                existingParameter.setProb(dataEvent);
+                                isModified = true;
 
 
                                 if (entryProbeEventType == EventType.CALL) {

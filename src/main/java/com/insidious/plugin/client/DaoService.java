@@ -233,7 +233,8 @@ public class DaoService {
 
         DataEventWithSessionId dataEvent = getDataEventById(convertedParameter.getProb().getNanoTime());
         if (dataEvent != null) {
-            DataInfo probeInfo = getProbeInfoById(dataEvent.getDataId());
+            DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo().getDataId());
+            DataInfo probeInfo1 = getProbeInfoById(dataEvent.getDataId());
             convertedParameter.setProbeInfo(probeInfo);
             convertedParameter.setProb(dataEvent);
         }
