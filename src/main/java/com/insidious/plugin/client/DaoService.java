@@ -327,14 +327,7 @@ public class DaoService {
 
     public void createOrUpdateProbeInfo(Collection<DataInfo> probeInfo) {
         try {
-
-            Date start = new Date();
             probeInfoDao.create(probeInfo.stream().map(ProbeInfo::FromProbeInfo).collect(Collectors.toList()));
-//            logger.warn("saving " + probeInfo.size() + " probes took " + (new Date().getTime() - start.getTime()) + " ms");
-//            for (DataInfo dataInfo : probeInfo) {
-//                logger.warn("Save -> "  + dataInfo.getDataId());
-//                probeInfoDao.create(ProbeInfo.FromProbeInfo(dataInfo));
-//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -342,12 +335,10 @@ public class DaoService {
 
     public void createOrUpdateParameter(List<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
-            Date start = new Date();
             for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
                 Parameter e = Parameter.fromParameter(parameter);
                 parameterDao.createOrUpdate(e);
             }
-//            logger.warn("saving " + parameterList.size() + " parameters took " + (new Date().getTime() - start.getTime()) + " ms");
         } catch (Exception e) {
             e.printStackTrace();
         }

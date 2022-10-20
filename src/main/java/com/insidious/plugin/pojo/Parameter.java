@@ -94,7 +94,9 @@ public class Parameter {
         if (type.contains("$")) {
             type = type.replace('$', '.');
         }
-        this.type = type;
+        if (this.type == null || !type.equals("java.lang.Object")) {
+            this.type = type;
+        }
     }
 
     public String getName() {
