@@ -21,6 +21,7 @@ public class PendingStatement {
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new LinkedList<>();
     private Parameter lhsExpression;
+    private Parameter expectingException;
 
     public PendingStatement(ObjectRoutineScript objectRoutine, Parameter testSubject) {
 
@@ -286,15 +287,16 @@ public class PendingStatement {
             }
 
         } else {
-
-//            Parameter parameterValue = new Parameter();
-//            parameterValue.setValue(new String(lhsExpression.getProb().getSerializedValue()));
-//            parameterValue.setType(lhsExpression.getType());
             this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
 
         }
 
 
+        return this;
+    }
+
+    public PendingStatement withTryAndCatch(Parameter mainMethodReturnValue) {
+        this.expectingException = mainMethodReturnValue;
         return this;
     }
 }

@@ -135,11 +135,6 @@ public class MethodCallExpression implements Expression {
                         parameter.getProb() != null &&
                         parameter.getProb().getSerializedValue().length > 0
                 ) {
-//                    String serializedValue = new String(parameter.getProb().getSerializedValue());
-//                    if (parameter.getType().equals("java.lang.String")) {
-//                        serializedValue = '"' + serializedValue + '"';
-//                    }
-//                    parameter.setValue(serializedValue);
                 }
                 objectRoutineScript.addParameterComment(parameter);
             }
@@ -147,24 +142,25 @@ public class MethodCallExpression implements Expression {
             objectRoutineScript.addComment("");
 
         }
-
-
-//
         if (getArguments() != null) {
             for (Parameter parameter : getArguments()) {
                 in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
             }
         }
-//
 
         //////////////////////// FUNCTION CALL ////////////////////////
 
         // return type == V ==> void return type => no return value
-        in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
         boolean isException = mainMethodReturnValue.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
+        if (isException) {
+            in(objectRoutineScript).withTryAndCatch(mainMethodReturnValue).writeExpression(this).endStatement();
+            return;
+        } else {
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
+        }
 
 
-        if (getMethodName().equals("<init>") || isException) {
+        if (getMethodName().equals("<init>")) {
             // there is no verification required (?) after calling constructors or methods which
             // throw an exception
             return;

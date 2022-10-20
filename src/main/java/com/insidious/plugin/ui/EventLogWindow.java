@@ -282,8 +282,8 @@ public class EventLogWindow {
         for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
             Vector<Object> rowVector = new Vector<>(6);
 
-            DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
-            ObjectInfo objectInfo = replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
+            DataInfo probeInfo = replayData.getProbeInfoMap().get(dataEvent.getDataId());
+            ObjectInfo objectInfo = replayData.getObjectInfoMap().get(dataEvent.getValue());
             String eventType = probeInfo.getEventType().toString();
 
 
@@ -295,11 +295,11 @@ public class EventLogWindow {
             rowVector.add(probeInfo.getAttributes());
 
             if (objectInfo != null) {
-                TypeInfo typeInfo = replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
+                TypeInfo typeInfo = replayData.getTypeInfoMap().get(objectInfo.getTypeId());
                 rowVector.add(typeInfo.getTypeNameFromClass());
             }
-            if (replayData.getStringInfoMap().containsKey(String.valueOf(dataEvent.getValue()))) {
-                StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
+            if (replayData.getStringInfoMap().containsKey(dataEvent.getValue())) {
+                StringInfo stringValue = replayData.getStringInfoMap().get(dataEvent.getValue());
                 rowVector.add(stringValue.getContent());
             }
 
