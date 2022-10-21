@@ -64,6 +64,9 @@ public class MockFactory {
     ) {
 
         String parameterTypeName = parameter.getType();
+        if (parameterTypeName.contains("$")) {
+            parameterTypeName = parameterTypeName.substring(0, parameterTypeName.indexOf('$'));
+        }
         boolean isArray = false;
         if (parameterTypeName.startsWith("[")) {
             isArray = true;

@@ -258,7 +258,7 @@ public class MethodCallExpression implements Expression {
 
             String returnValueType = ClassName.bestGuess(returnValue.getType()).simpleName();
             objectRoutine.addComment(
-                    returnValueType + " " + returnValue.getName() + " = " +
+                    returnValueType + " " + returnValue.getClosestName(this.getSubject().getType(), this.getMethodName()) + " = " +
                             subjectName + "." + getMethodName() +
                             "(" + callArgumentsString + "); // ==> "
                             + returnValue.getProb().getSerializedValue().length);

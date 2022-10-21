@@ -6,6 +6,7 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
+import org.apache.commons.lang.StringUtils;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -242,5 +243,25 @@ public class Parameter {
 
     public List<String> getNames() {
         return names;
+    }
+
+    public String getClosestName(String type, String methodName) {
+        if (names.size() < 1) {
+            return null;
+        }
+        if (names.size() < 2) {
+            return names.get(0);
+        }
+        int matchedDistance = 99999;
+        String matchedString = names.get(0);
+        for (String name : names) {
+            int distance = StringUtils.getLevenshteinDistance(name, methodName);
+            if (distance < matchedDistance) {
+                matchedString = name;
+                matchedDistance = distance;
+            }
+        }
+
+        return matchedString;
     }
 }
