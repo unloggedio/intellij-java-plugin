@@ -29,7 +29,6 @@ import org.mockito.Mockito;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
@@ -123,7 +122,7 @@ public class TestCaseServiceTest {
 //    }
 
     @Test
-    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException {
+    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException, IOException {
 
         Long objectId = Long.valueOf(909497978);
 //        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
@@ -151,7 +150,7 @@ public class TestCaseServiceTest {
         Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
     }
 
-    private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException {
+    private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException, IOException {
 
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
@@ -187,19 +186,19 @@ public class TestCaseServiceTest {
         for (int i = 0; i < dataEvents.size(); i++) {
             DataEventWithSessionId dataEvent = dataEvents.get(i);
 
-            DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(dataEvent.getDataId()));
+            DataInfo probeInfo = replayData.getProbeInfoMap().get(dataEvent.getDataId());
 
-            ClassInfo classInfo = replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
+            ClassInfo classInfo = replayData.getClassInfoMap().get((long) probeInfo.getClassId());
             String logLine = "#" + i + ": [" + dataEvent.getNanoTime() + "]["
                     + probeInfo.getEventType() + "] ["
                     + classInfo.getClassName().replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +
                     "";
 
-            ObjectInfo valueObjectInfo = replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
+            ObjectInfo valueObjectInfo = replayData.getObjectInfoMap().get(dataEvent.getValue());
             if (valueObjectInfo != null) {
-                TypeInfo typeObjectInfo = replayData.getTypeInfoMap().get(String.valueOf(valueObjectInfo.getTypeId()));
+                TypeInfo typeObjectInfo = replayData.getTypeInfoMap().get(valueObjectInfo.getTypeId());
                 logLine = logLine + " [" + typeObjectInfo.getTypeNameFromClass() + "]";
-                StringInfo stringValue = replayData.getStringInfoMap().get(String.valueOf(dataEvent.getValue()));
+                StringInfo stringValue = replayData.getStringInfoMap().get(dataEvent.getValue());
                 if (stringValue != null) {
                     logLine = logLine + " [" + stringValue.getContent() + "]";
                 }
@@ -213,7 +212,7 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException {
+    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException, IOException {
 
         List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
 
@@ -350,7 +349,7 @@ public class TestCaseServiceTest {
             public void success(List<ExecutionSession> executionSessionList) {
                 try {
                     client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
-                } catch (SQLException e) {
+                } catch (SQLException | IOException e) {
                     throw new RuntimeException(e);
                 }
                 waiter.offer("done");
@@ -429,7 +428,7 @@ public class TestCaseServiceTest {
     }
 
     @Test
-    public void testGetTestCaseUnit() throws SQLException {
+    public void testGetTestCaseUnit() throws SQLException, IOException {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("./");
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
@@ -442,7 +441,7 @@ public class TestCaseServiceTest {
         TestCaseService testCaseService = new TestCaseService(client);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.db.dao.AyuCityDao", "getAllCities");
+                "com.ayu.cabeza.db.dao.AyuCityDao", "getAllCities", true);
 
         @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
         copyTestCaseToClipboard(testCaseUnit);

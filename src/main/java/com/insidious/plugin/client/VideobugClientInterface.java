@@ -96,7 +96,7 @@ public interface VideobugClientInterface {
     void getObjectsByType(SearchQuery searchQuery, String sessionId,
                           ClientCallBack<ObjectWithTypeInfo> clientCallBack);
 
-    List<String> getSessionArchiveList(String sessionId);
+    List<String> getSessionArchiveList(String sessionId) throws IOException;
 
     void queryTracePointsByProbeIds(
             SearchQuery searchQuery,

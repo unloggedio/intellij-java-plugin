@@ -21,9 +21,9 @@ import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
 
 public class ArchiveIndex {
-    private final ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
-    private final ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
-    private final ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
+    private ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
+    private ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
+    private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
 
     public ArchiveIndex(
             ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex,
@@ -82,16 +82,11 @@ public class ArchiveIndex {
 
         Query<ObjectInfoDocument> query = equal(ObjectInfoDocument.OBJECT_ID, objectIds);
         ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
-        Stream<ObjectInfoDocument> stream = retrieve.stream();
-
 
         List<ObjectInfo> collect = new LinkedList<>();
-        stream
+        retrieve.stream()
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
-                .forEach(e -> {
-                    String key = String.valueOf(e.getObjectId());
-                    collect.add(e);
-                });
+                .forEach(collect::add);
 
         retrieve.close();
         if (collect.size() == 0) {
@@ -192,6 +187,33 @@ public class ArchiveIndex {
         return returnValue.get();
     }
 
+    public TypeInfo getObjectType(long objectId) {
+        ObjectInfo object = getObjectByObjectId(objectId);
+        if (object == null) {
+            return null;
+        }
+        long aLong = object.getTypeId();
+        return getTypeById((int) aLong);
+    }
+
+    public TypeInfo getTypeById(Integer valueIds) {
+
+        Query<TypeInfoDocument> query = equal(TypeInfoDocument.TYPE_ID, valueIds);
+        ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
+
+        Optional<TypeInfo> result = retrieve.stream()
+                .map(e -> {
+                    byte[] typeBytes = e.getTypeBytes();
+                    return TypeInfo.fromBytes(typeBytes);
+                })
+                .findFirst();
+        retrieve.close();
+
+        return result.orElse(null);
+
+    }
+
+
 
     public Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
 
@@ -274,5 +296,13 @@ public class ArchiveIndex {
 
         return collect;
 
+    }
+
+    public ConcurrentIndexedCollection<ObjectInfoDocument> getObjectIndex() {
+        return objectInfoIndex;
+    }
+
+    public void setObjectInfoIndex(ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexFile) {
+        this.objectInfoIndex = objectIndexFile;
     }
 }

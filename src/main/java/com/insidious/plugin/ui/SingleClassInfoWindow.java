@@ -20,6 +20,7 @@ import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -73,7 +74,11 @@ public class SingleClassInfoWindow {
             public void actionPerformed(ActionEvent e) {
                 String searchQuery = searchQueryTextField.getText();
                 if (searchQuery != null && searchQuery.length() > 0) {
-                    doSearch(searchQuery);
+                    try {
+                        doSearch(searchQuery);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
                 }
             }
         });
@@ -109,7 +114,7 @@ public class SingleClassInfoWindow {
 
     }
 
-    public void doSearch(String searchQuery) {
+    public void doSearch(String searchQuery) throws IOException {
         clearResults();
         searchQueryTextField.setText(searchQuery);
 

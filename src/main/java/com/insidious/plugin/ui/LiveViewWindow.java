@@ -119,7 +119,7 @@ public class LiveViewWindow implements TreeSelectionListener {
         if (selectedNode.getClass().equals(TestCandidateMethodAggregate.class)) {
             TestCandidateMethodAggregate methodNode = (TestCandidateMethodAggregate) selectedNode;
             List<TestCandidateMetadata> testCandidateMetadataList =
-                    sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName());
+                    sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName(), false);
 
             this.candidateListPanel.removeAll();
             this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));

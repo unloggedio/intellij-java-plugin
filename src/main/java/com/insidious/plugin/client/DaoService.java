@@ -83,7 +83,7 @@ public class DaoService {
 
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
-                    convertTestCandidateMetadata(testCandidateMetadata);
+                    convertTestCandidateMetadata(testCandidateMetadata, true);
             com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
             if (!mainMethod.getMethodName().equals("<init>")) {
                 if (!mainMethod.isMethodPublic()) {
@@ -103,7 +103,8 @@ public class DaoService {
 
     @NotNull
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata convertTestCandidateMetadata(
-            TestCandidateMetadata testCandidateMetadata) throws SQLException {
+            TestCandidateMetadata testCandidateMetadata, Boolean loadCalls
+    ) throws SQLException {
         logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
@@ -112,17 +113,21 @@ public class DaoService {
         converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getId()));
 
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
-        List<Long> calls = testCandidateMetadata.getCallsList();
-
-        logger.warn("\tloading " + calls.size() + " call methods");
-        for (Long call : calls) {
-            com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
-            if (methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
-                continue;
-            }
+        if (loadCalls) {
+            List<Long> calls = testCandidateMetadata.getCallsList();
+            logger.warn("\tloading " + calls.size() + " call methods");
+            for (Long call : calls) {
+                com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
+                if (methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
+                    continue;
+                }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
-            if (methodCallExpressionById.isMethodPublic() || methodCallExpressionById.isMethodProtected()) {
-                callsList.add(methodCallExpressionById);
+                if (methodCallExpressionById.isMethodPublic()
+                        || methodCallExpressionById.isMethodProtected()
+                        || "INVOKEVIRTUAL".equals(methodCallExpressionById.getEntryProbeInfo().getAttribute("Instruction", ""))
+                ) {
+                    callsList.add(methodCallExpressionById);
+                }
             }
         }
 
@@ -481,7 +486,7 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForMethod(String className, String methodName) {
+    getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
 
         try {
 
@@ -492,7 +497,8 @@ public class DaoService {
 
             List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
             for (TestCandidateMetadata testCandidate : testCandidates) {
-                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted = convertTestCandidateMetadata(testCandidate);
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
+                        convertTestCandidateMetadata(testCandidate, loadCalls);
                 resultList.add(converted);
             }
 
@@ -515,7 +521,7 @@ public class DaoService {
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
 
             for (TestCandidateMetadata candidate : candidates) {
-                results.add(convertTestCandidateMetadata(candidate));
+                results.add(convertTestCandidateMetadata(candidate, true));
             }
 
             return results;

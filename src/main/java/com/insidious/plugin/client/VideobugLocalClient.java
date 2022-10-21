@@ -18,6 +18,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
@@ -262,7 +263,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 ExecutionSession executionSession = sessions.get(0);
                 try {
                     setSessionInstance(new SessionInstance(executionSession));
-                } catch (SQLException e) {
+                } catch (SQLException | IOException e) {
                     throw new RuntimeException(e);
                 }
 
@@ -318,7 +319,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public List<String> getSessionArchiveList(String sessionId) {
+    public List<String> getSessionArchiveList(String sessionId) throws IOException {
         checkSession(sessionId);
         return this.sessionInstance.getArchiveNamesList();
 
@@ -337,7 +338,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
             executionSession.setSessionId(sessionId);
             try {
                 this.setSessionInstance(new SessionInstance(executionSession));
-            } catch (SQLException e) {
+            } catch (SQLException | IOException e) {
                 throw new RuntimeException(e);
             }
         }

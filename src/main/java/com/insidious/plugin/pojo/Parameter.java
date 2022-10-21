@@ -95,7 +95,7 @@ public class Parameter {
         if (type.contains("$")) {
             type = type.replace('$', '.');
         }
-        if (this.type == null || !type.equals("java.lang.Object")) {
+        if (this.type == null) {
             this.type = type;
         }
     }

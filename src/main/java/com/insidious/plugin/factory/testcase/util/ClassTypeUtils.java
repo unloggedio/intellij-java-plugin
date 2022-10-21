@@ -91,7 +91,6 @@ public class ClassTypeUtils {
         if (dottedName.contains("$$")) {
             dottedName = dottedName.substring(0, dottedName.indexOf("$$"));
         }
-        dottedName = dottedName.replace('$', '.');
         return dottedName;
     }
 

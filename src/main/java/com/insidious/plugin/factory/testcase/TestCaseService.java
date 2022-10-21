@@ -939,8 +939,8 @@ public class TestCaseService {
         return sessionInstance.getTestCandidatesForClass(className);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName) {
-        return sessionInstance.getTestCandidatesForMethod(className, methodName);
+    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
+        return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
     }
 
     public @NotNull TestCaseUnit getTestCaseUnit(TestCandidateMetadata testCandidateMetadata) {
@@ -953,7 +953,7 @@ public class TestCaseService {
 
         List<TestCandidateMetadata> list =
                 sessionInstance.getTestCandidatesForMethod(
-                        testCandidateMetadata.getTestSubject().getType(), "<init>");
+                        testCandidateMetadata.getTestSubject().getType(), "<init>", true);
         list.add(testCandidateMetadata);
         return getTestCaseUnit(list);
     }

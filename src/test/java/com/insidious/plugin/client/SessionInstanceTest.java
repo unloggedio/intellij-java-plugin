@@ -6,12 +6,13 @@ import junit.framework.TestCase;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 
 public class SessionInstanceTest extends TestCase {
 
     @Test
-    public void testTypeIndex() throws SQLException {
+    public void testTypeIndex() throws SQLException, IOException {
         File sessionDirectory = new File("C:\\Users\\artpa\\" +
                 ".videobug\\sessions\\selogger-output-9");
         ExecutionSession executionSession = new ExecutionSession();

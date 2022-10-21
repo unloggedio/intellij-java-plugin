@@ -179,13 +179,6 @@ public class ObjectRoutineContainer {
         builderMethodScript.addModifiers(Modifier.PUBLIC);
 
 
-//        MethodSpec.Builder builder = MethodSpec.methodBuilder("setup");
-//
-//        builder.addModifiers(Modifier.PUBLIC);
-//        builder.addAnnotation(ClassName.bestGuess("org.junit.Before"));
-//        builder.addException(Exception.class);
-
-
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
         TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
@@ -195,9 +188,6 @@ public class ObjectRoutineContainer {
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
         container.addField(returnValue);
-
-
-//        in(builderMethodScript).assignVariable(returnValue).writeExpression(mainSubjectConstructorExpression).endStatement();
 
 
         for (Parameter parameter : allFields) {

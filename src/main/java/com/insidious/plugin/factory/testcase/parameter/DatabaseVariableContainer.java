@@ -1,7 +1,11 @@
 package com.insidious.plugin.factory.testcase.parameter;
 
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.cache.ArchiveIndex;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
+import com.intellij.codeInspection.ui.PreviewEditorFoldingRegion;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -11,10 +15,13 @@ public class DatabaseVariableContainer {
     final List<Parameter> parameterList = new LinkedList<>();
     final Map<Long, Parameter> parameterMap = new HashMap<>();
     private final DaoService daoService;
+    private final ArchiveIndex archiveIndex;
     private long variableContainerId;
+    private Map<Long, Boolean> ensuredParameters = new HashMap<>();
 
-    public DatabaseVariableContainer(DaoService daoService) {
+    public DatabaseVariableContainer(DaoService daoService, ArchiveIndex archiveIndex) {
         this.daoService = daoService;
+        this.archiveIndex = archiveIndex;
     }
 
     public static String upperInstanceName(String methodName) {
@@ -27,7 +34,7 @@ public class DatabaseVariableContainer {
     }
 
     public static DatabaseVariableContainer from(List<Parameter> callArguments) {
-        DatabaseVariableContainer variableContainer = new DatabaseVariableContainer(null);
+        DatabaseVariableContainer variableContainer = new DatabaseVariableContainer(null, null);
         callArguments.forEach(variableContainer::add);
         return variableContainer;
     }
@@ -45,7 +52,7 @@ public class DatabaseVariableContainer {
     }
 
     public DatabaseVariableContainer clone() {
-        DatabaseVariableContainer newContainer = new DatabaseVariableContainer(daoService);
+        DatabaseVariableContainer newContainer = new DatabaseVariableContainer(daoService, archiveIndex);
         for (Parameter parameter : this.parameterList) {
             newContainer.add(parameter);
         }
@@ -80,8 +87,8 @@ public class DatabaseVariableContainer {
 //                    byValue.setProb(parameter.getProb());
 //                }
 //            } else {
-                this.parameterList.add(parameter);
-                parameterMap.put(parameter.getProb().getValue(), parameter);
+            this.parameterList.add(parameter);
+            parameterMap.put(parameter.getProb().getValue(), parameter);
 //            }
 
         }
@@ -181,7 +188,56 @@ public class DatabaseVariableContainer {
                 return new Parameter(eventValue);
             }
             parameter = new Parameter(eventValue);
+            if (eventValue > 10000) {
+                TypeInfo objectType = archiveIndex.getObjectType(eventValue);
+                if (objectType != null) {
+                    parameter.setType(ClassTypeUtils.getDottedClassName(objectType.getTypeNameFromClass()));
+                }
+            }
+            return parameter;
         }
         return parameter;
+    }
+
+    public void ensureParameterType(Parameter existingParameter, String expectingClassName) {
+        if (existingParameter.getValue() < 10000 || existingParameter.getType() == null) {
+            existingParameter.setType(expectingClassName);
+            return;
+        }
+        if (ensuredParameters.containsKey(existingParameter.getValue())) {
+            return;
+        }
+        ensuredParameters.put(existingParameter.getValue(), true);
+        if (expectingClassName.length() < 2) {
+            return;
+        }
+        if (expectingClassName.equals("java.lang.Object")) {
+            return;
+        }
+        TypeInfo parameterType = archiveIndex.getObjectType(existingParameter.getValue());
+        if (parameterType == null) {
+            return;
+        }
+        Map<String, TypeInfo> typeHierarchy = archiveIndex.getTypesById(Set.of((int) parameterType.getTypeId()));
+        TypeInfo expectedTypeInfo = archiveIndex.getTypesByName(expectingClassName);
+        if (expectedTypeInfo == null) {
+            // this is the case of some generated class name containing $$ and stuff
+            // like a proxy object
+            // selecting the right type gets very tricky
+            if (!parameterType.getTypeNameFromClass().contains("$")) {
+                throw new RuntimeException("this one has no $$$");
+            }
+            return;
+        }
+        if (!typeHierarchy.containsKey(String.valueOf(expectedTypeInfo.getTypeId()))) {
+            // the type info we got from the probe is probably wrong
+            return;
+        }
+//        if (!ClassTypeUtils.getDottedClassName(parameterType.getTypeNameFromClass()).equals(expectingClassName)) {
+//            throw new RuntimeException("type mismatch");
+//        }
+        if (parameterType.getTypeId() < expectedTypeInfo.getTypeId()) {
+            existingParameter.setType(expectedTypeInfo.getTypeNameFromClass());
+        }
     }
 }

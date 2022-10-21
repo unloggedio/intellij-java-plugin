@@ -21,6 +21,7 @@ import junit.framework.TestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -33,7 +34,7 @@ public class InsidiousServiceTestGenerateTestCaseFlows extends TestCase {
 
 
     @Test
-    public void newMethod() throws InterruptedException, APICallException, SQLException {
+    public void newMethod() throws InterruptedException, APICallException, SQLException, IOException {
 
 
         Project project = Mockito.mock(Project.class);

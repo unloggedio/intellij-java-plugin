@@ -151,7 +151,7 @@ public class EventLogWindow {
                 Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
 
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
-                DataInfo probeInfo = replayData.getProbeInfoMap().get(String.valueOf(selectedEvent.getDataId()));
+                DataInfo probeInfo = replayData.getProbeInfoMap().get(selectedEvent.getDataId());
 
                 InsidiousUtils.focusProbeLocationInEditor(probeInfo,
                         replayData.getClassInfo(probeInfo.getClassId()).getClassName(), insidiousService);
