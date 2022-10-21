@@ -2556,7 +2556,6 @@ public class SessionInstance {
                                     saveProbe = true;
                                     existingParameter.setProbeInfo(probeInfo);
                                     parameterContainer.ensureParameterType(existingParameter, ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
-
                                     isModified = true;
                                 }
 

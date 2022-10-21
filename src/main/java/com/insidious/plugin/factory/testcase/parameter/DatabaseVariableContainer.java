@@ -208,7 +208,7 @@ public class DatabaseVariableContainer {
             return;
         }
         ensuredParameters.put(existingParameter.getValue(), true);
-        if (expectingClassName.length() < 2) {
+        if (expectingClassName.length() < 2 || expectingClassName.endsWith("]")) {
             return;
         }
         if (expectingClassName.equals("java.lang.Object")) {
@@ -221,8 +221,8 @@ public class DatabaseVariableContainer {
         Map<String, TypeInfo> typeHierarchy = archiveIndex.getTypesById(Set.of((int) parameterType.getTypeId()));
         TypeInfo expectedTypeInfo = archiveIndex.getTypesByName(expectingClassName);
         if (expectedTypeInfo == null) {
-            // this is the case of some generated class name containing $$ and stuff
-            // like a proxy object
+            // this is the case of some generated class name containing $$
+            // and stuff (array types we have excluded earlier) like a proxy object
             // selecting the right type gets very tricky
             if (!parameterType.getTypeNameFromClass().contains("$")) {
                 throw new RuntimeException("this one has no $$$");
