@@ -80,7 +80,7 @@ public class ClassTypeUtils {
             className = className.substring(0, className.length() - 1);
         }
 
-        while(className.startsWith("[")) {
+        while (className.startsWith("[")) {
             className = className.substring(1) + "[]";
         }
         if (className.startsWith("L")) {
@@ -107,7 +107,10 @@ public class ClassTypeUtils {
         if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
             return constructClassName(returnParameterType);
         } else if (returnParameterType.contains(".")) {
-            returnValueSquareClass = ClassName.bestGuess(returnParameterType.replace('$', '.'));
+            if (returnParameterType.contains("$")) {
+                returnParameterType = returnParameterType.substring(0, returnParameterType.indexOf("$"));
+            }
+            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
         } else {
             returnValueSquareClass = getClassFromDescriptor(returnParameterType);
         }

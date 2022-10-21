@@ -2086,9 +2086,11 @@ public class SessionInstance {
                                     isModified = true;
                                 }
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
+                                callStack.get(callStack.size() - 1).setUsesFields(true);
                                 if (!isModified) {
                                     existingParameter = null;
                                 }
+
                                 break;
 
                             case PUT_INSTANCE_FIELD:

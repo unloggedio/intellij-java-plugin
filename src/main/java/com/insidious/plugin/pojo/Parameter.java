@@ -92,9 +92,6 @@ public class Parameter {
         if (type == null) {
             return;
         }
-        if (type.contains("$")) {
-            type = type.replace('$', '.');
-        }
         if (this.type == null) {
             this.type = type;
         }

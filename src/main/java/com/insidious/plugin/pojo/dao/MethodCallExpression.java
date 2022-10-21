@@ -24,6 +24,10 @@ public class MethodCallExpression {
     private String methodName;
     @DatabaseField
     private boolean isStaticCall;
+
+
+    @DatabaseField
+    private boolean usesFields;
     @DatabaseField(foreign = true)
     private Parameter subject;
 
@@ -78,6 +82,7 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
                 .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
         if (methodCallExpression.getReturnDataEvent() != null) {
@@ -95,6 +100,7 @@ public class MethodCallExpression {
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
 
         return methodCallExpression1;
     }
@@ -246,4 +252,12 @@ public class MethodCallExpression {
     public void setReturnDataEvent(long returnDataEvent) {
         this.returnDataEvent = returnDataEvent;
     }
+    public boolean getUsesFields() {
+        return usesFields;
+    }
+
+    public void setUsesFields(boolean usesFields) {
+        this.usesFields = usesFields;
+    }
+
 }

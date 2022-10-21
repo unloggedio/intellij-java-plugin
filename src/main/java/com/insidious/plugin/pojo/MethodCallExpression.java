@@ -11,7 +11,6 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
-import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.squareup.javapoet.ClassName;
 
 import java.util.LinkedList;
@@ -32,6 +31,12 @@ public class MethodCallExpression implements Expression {
     private long id;
     private List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
     private DataEventWithSessionId returnDataEvent;
+
+    public boolean getUsesFields() {
+        return usesFields;
+    }
+
+    private boolean usesFields;
 
     public MethodCallExpression() {
     }
@@ -420,5 +425,9 @@ public class MethodCallExpression implements Expression {
 
     public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
         this.returnDataEvent = returnDataEvent;
+    }
+
+    public void setUsesFields(boolean b) {
+        this.usesFields = b;
     }
 }

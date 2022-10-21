@@ -441,7 +441,7 @@ public class TestCaseServiceTest {
         TestCaseService testCaseService = new TestCaseService(client);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.db.dao.AyuCityDao", "getAllCities", true);
+                "com.repyute.helper.paybooks.PaybooksHelper", "getToken", true);
 
         @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
         copyTestCaseToClipboard(testCaseUnit);

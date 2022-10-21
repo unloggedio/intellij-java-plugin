@@ -146,9 +146,9 @@ public class Parameter {
     }
 
     public void setType(String type) {
-        if (type != null && type.contains("$")) {
-            type = type.replace('$', '.');
-        }
+//        if (type != null && type.contains("$")) {
+//            type = type.replace('$', '.');
+//        }
         this.type = type;
     }
 

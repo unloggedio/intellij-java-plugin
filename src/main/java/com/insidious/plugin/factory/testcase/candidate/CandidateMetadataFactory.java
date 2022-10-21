@@ -50,7 +50,10 @@ public class CandidateMetadataFactory {
             List<MethodCallExpression> staticCallsList = testCandidateMetadata.getStaticCalls();
 
             for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
-                if (e.isStaticCall()) {
+                if (e.getReturnValue() == null) {
+                    continue;
+                }
+                if (e.isStaticCall() && e.getUsesFields()) {
                     // all static calls need to be mocked
                     // even if they have no return value
                     staticCallsList.add(e);
@@ -70,6 +73,9 @@ public class CandidateMetadataFactory {
                 }
                 if (e.getMethodName().startsWith("<")) {
                     // constructors need not be mocked
+                    continue;
+                }
+                if (!e.getUsesFields()) {
                     continue;
                 }
                 if (e.getSubject() == null) {
@@ -103,7 +109,7 @@ public class CandidateMetadataFactory {
                 objectRoutineScript.addComment("");
                 for (MethodCallExpression methodCallExpression : callToMock) {
                     if (methodCallExpression.getException() != null
-                            && mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                            || mockedCalls.containsKey(methodCallExpression.getMethodName())) {
                         continue;
                     }
                     methodCallExpression.writeCommentTo(objectRoutineScript);
