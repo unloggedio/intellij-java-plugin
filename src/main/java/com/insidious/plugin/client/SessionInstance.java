@@ -1835,8 +1835,6 @@ public class SessionInstance {
         assert classInfoMap.size() > 0;
         assert probeInfoMap.size() > 0;
         assert methodInfoMap.size() > 0;
-        Date startTime = new Date();
-
 
         checkProgressIndicator(null, "Loading class mappings");
 
@@ -2024,11 +2022,9 @@ public class SessionInstance {
                                         existingParameter.setType(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                         dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                         existingParameter.setProb(dataEvent);
-                                        saveProbe = true;
                                         existingParameter.setProbeInfo(probeInfo);
-                                        TestCandidateMetadata currentTestCandidate = testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
-                                        VariableContainer candidateVariables = currentTestCandidate.getVariables();
-                                        candidateVariables.add(existingParameter);
+
+                                        saveProbe = true;
                                         isModified = true;
                                     }
                                     if (!isModified) {

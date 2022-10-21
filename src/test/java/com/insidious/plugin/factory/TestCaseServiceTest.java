@@ -442,7 +442,7 @@ public class TestCaseServiceTest {
         TestCaseService testCaseService = new TestCaseService(client);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.DoctorProfileService", "addNewDoctorProfile");
+                "com.ayu.cabeza.db.dao.AyuCityDao", "getAllCities");
 
         @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
         copyTestCaseToClipboard(testCaseUnit);
@@ -464,41 +464,41 @@ public class TestCaseServiceTest {
 
     }
 
-    @Test
-    public void writeTestFromDB() throws SQLException {
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-
-        File dbFile = new File("execution.db");
-        boolean dbFileExists = dbFile.exists();
-//        dbFile.delete();
-        // this uses h2 but you can change it to match your database
-        String databaseUrl = "jdbc:sqlite:execution.db";
-        // create a connection source to our database
-        DaoService daoService = getDaoService(databaseUrl);
-
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-
-        TestCaseService testCaseService = new TestCaseService(client);
-
-
-        List<Parameter> parameterList = daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");
-
-        long valueId = (long) parameterList.get(0).getValue();
-        Parameter targetParameter = parameterList.get(0);
-        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates =
-                daoService.getTestCandidateForSubjectId(valueId);
-
-        testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getEntryProbeIndex));
-
-        TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidates);
-
-        copyTestCaseToClipboard(testCaseUnit);
-
-    }
+//    @Test
+//    public void writeTestFromDB() throws SQLException {
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//
+//        File dbFile = new File("execution.db");
+//        boolean dbFileExists = dbFile.exists();
+////        dbFile.delete();
+//        // this uses h2 but you can change it to match your database
+//        String databaseUrl = "jdbc:sqlite:execution.db";
+//        // create a connection source to our database
+//        DaoService daoService = getDaoService(databaseUrl);
+//
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+//
+//        TestCaseService testCaseService = new TestCaseService(client);
+//
+//
+//        List<Parameter> parameterList = daoService.getParametersByType("com.ayu.cabeza.service.DoctorProfileService");
+//
+//        long valueId = (long) parameterList.get(0).getValue();
+//        Parameter targetParameter = parameterList.get(0);
+//        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> testCandidates =
+//                daoService.getTestCandidateForSubjectId(valueId);
+//
+//        testCandidates.sort(Comparator.comparing(TestCandidateMetadata::getEntryProbeIndex));
+//
+//        TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidates);
+//
+//        copyTestCaseToClipboard(testCaseUnit);
+//
+//    }
 
 
 }

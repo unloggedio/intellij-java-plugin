@@ -19,7 +19,7 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-    private VariableContainer variables = new VariableContainer();
+//    private VariableContainer variables = new VariableContainer();
     private List<MethodCallExpression> staticCalls = new LinkedList<>();
 
     public long getExitProbeIndex() {
@@ -88,16 +88,13 @@ public class TestCandidateMetadata {
 
     @Override
     public String toString() {
-        return "TestCandidateMetadata{" +
-                "mainMethod=" + mainMethod +
-                ", testSubject=" + testSubject +
-                ", methodCallExpressions=" + methodCallExpressions +
-                ", fields=" + fields +
+        return "TCM{" +
+                 mainMethod +
+                " calls " + methodCallExpressions.size() +
+                " methods " +
                 ", callTimeNanoSecond=" + callTimeNanoSecond +
                 ", entryProbeIndex=" + entryProbeIndex +
                 ", exitProbeIndex=" + exitProbeIndex +
-                ", variables=" + variables +
-                ", staticCalls=" + staticCalls +
                 '}';
     }
 
@@ -109,13 +106,13 @@ public class TestCandidateMetadata {
         this.entryProbeIndex = entryProbeIndex;
     }
 
-    public VariableContainer getVariables() {
-        return variables;
-    }
+//    public VariableContainer getVariables() {
+//        return variables;
+//    }
 
-    public void setVariables(VariableContainer variables) {
-        this.variables = variables;
-    }
+//    public void setVariables(VariableContainer variables) {
+//        this.variables = variables;
+//    }
 
     public List<MethodCallExpression> getStaticCalls() {
         return staticCalls;

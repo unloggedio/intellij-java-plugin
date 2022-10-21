@@ -118,7 +118,7 @@ public class Parameter {
     }
 
     public void addNames(Collection<String> name) {
-        name = name.stream().filter(e -> !e.startsWith("(")).collect(Collectors.toList());
+        name = name.stream().filter(e -> !e.startsWith("(") && e.length() > 0).collect(Collectors.toList());
         this.names.addAll(name);
     }
 

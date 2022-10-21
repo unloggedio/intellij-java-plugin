@@ -806,7 +806,7 @@ public class TestCaseService {
                     List<MethodCallExpression> callsList =
                             CandidateMetadataFactory.searchMethodCallExpressions(
                                     replayEventsBefore, Math.toIntExact(newTestCaseMetadata.getEntryProbeIndex()),
-                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
+                                    typeNameHierarchyList, new VariableContainer(),
                                     testCaseRequest.getNoMockClassList()
                             );
 
@@ -814,7 +814,7 @@ public class TestCaseService {
                     List<MethodCallExpression> staticMethodCallList =
                             CandidateMetadataFactory.searchStaticMethodCallExpression(
                                     replayEventsBefore, Math.toIntExact(newTestCaseMetadata.getEntryProbeIndex()),
-                                    typeNameHierarchyList, newTestCaseMetadata.getVariables(),
+                                    typeNameHierarchyList, new VariableContainer(),
                                     testCaseRequest.getNoMockClassList()
                             );
 
@@ -945,11 +945,16 @@ public class TestCaseService {
 
     public @NotNull TestCaseUnit getTestCaseUnit(TestCandidateMetadata testCandidateMetadata) {
 
-        List<TestCandidateMetadata> testCandidateList = sessionInstance.getTestCandidatesUntil(
-                        testCandidateMetadata.getTestSubject().getValue(),
-                        testCandidateMetadata.getEntryProbeIndex(),
-                        ((MethodCallExpression) testCandidateMetadata.getMainMethod()).getId()
-                );
-        return getTestCaseUnit(testCandidateList);
+//        List<TestCandidateMetadata> testCandidateList = sessionInstance.getTestCandidatesUntil(
+//                        testCandidateMetadata.getTestSubject().getValue(),
+//                        testCandidateMetadata.getEntryProbeIndex(),
+//                        ((MethodCallExpression) testCandidateMetadata.getMainMethod()).getId()
+//                );
+
+        List<TestCandidateMetadata> list =
+                sessionInstance.getTestCandidatesForMethod(
+                        testCandidateMetadata.getTestSubject().getType(), "<init>");
+        list.add(testCandidateMetadata);
+        return getTestCaseUnit(list);
     }
 }

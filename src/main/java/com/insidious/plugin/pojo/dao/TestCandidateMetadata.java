@@ -42,8 +42,8 @@ public class TestCandidateMetadata {
         newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression)
                 testCandidateMetadata.getMainMethod()));
 
-        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-                .stream().map(e -> (long) e.getValue()).collect(Collectors.toList()));
+//        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
+//                .stream().map(e -> (long) e.getValue()).collect(Collectors.toList()));
 
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(Math.toIntExact(testCandidateMetadata.getEntryProbeIndex()));

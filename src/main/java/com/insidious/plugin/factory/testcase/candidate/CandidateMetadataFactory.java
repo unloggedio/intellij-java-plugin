@@ -178,8 +178,8 @@ public class CandidateMetadataFactory {
     ) throws APICallException, SessionNotSelectedException {
         final String methodName = methodInfo.getMethodName();
         logger.warn("[" + methodName + "] " +
-                "create test case metadata for types [" + entryProbeDataId + "] -> entry probe " +
-                " types  " + typeHierarchy);
+                "create test case metadata for types [" + entryProbeDataId
+                + "] -> entry probe " + " types  " + typeHierarchy);
         TestCandidateMetadata metadata = new TestCandidateMetadata();
 
 
@@ -316,11 +316,11 @@ public class CandidateMetadataFactory {
 
         VariableContainer fieldsContainer = searchMethodFieldsAccessed(replayData, entryProbeIndex);
 
-        VariableContainer variableContainer = new VariableContainer();
-        for (Parameter methodParameter : methodArguments.all()) {
-            variableContainer.add(methodParameter);
-        }
-        metadata.setVariables(variableContainer);
+//        VariableContainer variableContainer = new VariableContainer();
+//        for (Parameter methodParameter : methodArguments.all()) {
+//            variableContainer.add(methodParameter);
+//        }
+//        metadata.setVariables(variableContainer);
 
 
         metadata.addAllFields(fieldsContainer);
