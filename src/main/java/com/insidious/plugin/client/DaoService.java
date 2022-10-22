@@ -57,15 +57,11 @@ public class DaoService {
 
         // instantiate the DAO to handle Account with String id
         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
-
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
-
         parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
-
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
-
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
 
     }

@@ -102,10 +102,12 @@ public class SessionInstance {
                 TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
                 TableUtils.createTable(connectionSource, LogFile.class);
                 TableUtils.createTable(connectionSource, ArchiveFile.class);
+                TableUtils.createTable(connectionSource, TypeInfo.class);
             } catch (SQLException sqlException) {
                 logger.warn("probably table already exists: " + sqlException.toString());
             }
         }
+
         parameterQueue = new LinkedTransferQueue<>();
         databasePipe = new DatabasePipe(parameterQueue);
         ExecutorService executorPool = Executors.newFixedThreadPool(4);

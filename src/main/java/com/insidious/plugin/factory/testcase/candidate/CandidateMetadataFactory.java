@@ -112,6 +112,8 @@ public class CandidateMetadataFactory {
                             || mockedCalls.containsKey(methodCallExpression.getMethodName())) {
                         continue;
                     }
+                    methodCallExpression.getReturnValue().getClosestName(
+                            methodCallExpression.getSubject().getType(), methodCallExpression.getMethodName());
                     methodCallExpression.writeCommentTo(objectRoutineScript);
                     methodCallExpression.writeMockTo(objectRoutineScript);
                     mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);

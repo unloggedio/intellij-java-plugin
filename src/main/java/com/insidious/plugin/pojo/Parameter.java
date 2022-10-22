@@ -38,6 +38,7 @@ public class Parameter {
     private MethodCallExpression creatorExpression;
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
+
     public Parameter(Long value) {
         this.value = value;
     }
@@ -215,8 +216,12 @@ public class Parameter {
     }
 
     public FieldSpec.Builder toFieldSpec() {
+        String fieldType = getType();
+        if (fieldType.contains("$")) {
+            fieldType = fieldType.substring(0, fieldType.indexOf('$'));
+        }
         return FieldSpec.builder(
-                ClassName.bestGuess(getType()),
+                ClassName.bestGuess(fieldType),
                 getName(), Modifier.PRIVATE
         );
     }
@@ -260,6 +265,10 @@ public class Parameter {
                 matchedString = name;
                 matchedDistance = distance;
             }
+        }
+        if (!matchedString.equals(names.get(0))) {
+            names.remove(matchedString);
+            names.add(0, matchedString);
         }
 
         return matchedString;

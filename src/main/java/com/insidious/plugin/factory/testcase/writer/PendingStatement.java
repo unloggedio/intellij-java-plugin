@@ -78,6 +78,7 @@ public class PendingStatement {
 
                 }
                 statementBuilder.append("$L");
+
                 statementParameters.add(lhsExpression.getName());
 
                 statementBuilder.append(" = ");
