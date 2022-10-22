@@ -507,7 +507,7 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidates(long value, long entryProbeIndex, long mainMethodId) {
+    getTestCandidates(long value, long entryProbeIndex, long mainMethodId, boolean loadCalls) {
         try {
             List<TestCandidateMetadata> candidates = testCandidateDao.queryBuilder()
                     .where().eq("testSubject_id", value)
@@ -517,11 +517,22 @@ public class DaoService {
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
 
             for (TestCandidateMetadata candidate : candidates) {
-                results.add(convertTestCandidateMetadata(candidate, true));
+                results.add(convertTestCandidateMetadata(candidate, loadCalls));
             }
 
             return results;
         } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
+    getTestCandidateById(Long testCandidateId) {
+        try {
+            TestCandidateMetadata dbCandidate = testCandidateDao.queryForId(testCandidateId);
+            return convertTestCandidateMetadata(dbCandidate, true);
+        } catch (SQLException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

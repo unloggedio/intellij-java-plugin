@@ -8,6 +8,8 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -26,7 +28,8 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
 
-public class LiveViewWindow implements TreeSelectionListener {
+public class LiveViewWindow implements TreeSelectionListener,
+        TestSelectionListener, TestGenerateActionListener {
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     private final Project project;
     private final InsidiousService insidiousService;
@@ -42,6 +45,7 @@ public class LiveViewWindow implements TreeSelectionListener {
     private JPanel candidateListPanel;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
+    private TestCandidateMethodAggregate selectedTestCandidateAggregate;
 
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
@@ -117,25 +121,59 @@ public class LiveViewWindow implements TreeSelectionListener {
         logger.warn("value selection event - " + e.getPath() + " - " + e.getPath().getLastPathComponent());
         Object selectedNode = e.getPath().getLastPathComponent();
         if (selectedNode.getClass().equals(TestCandidateMethodAggregate.class)) {
-            TestCandidateMethodAggregate methodNode = (TestCandidateMethodAggregate) selectedNode;
-            List<TestCandidateMetadata> testCandidateMetadataList =
-                    sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName(), false);
-
-            this.candidateListPanel.removeAll();
-            this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
-            for (int i = 0; i < testCandidateMetadataList.size(); i++) {
-                TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
-                GridConstraints constraints = new GridConstraints();
-                constraints.setRow(i);
-                TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
-                        testCandidateMetadata, testCaseService, insidiousService);
-                Component contentPanel = testCandidatePreviewPanel.getContentPanel();
-                candidateListPanel.add(contentPanel, constraints);
-            }
-
-            this.candidateListPanel.revalidate();
-
+            selectedTestCandidateAggregate = (TestCandidateMethodAggregate) selectedNode;
+            loadTestCandidateConfigView(selectedTestCandidateAggregate);
 
         }
+    }
+
+    private void loadTestCandidateConfigView(TestCandidateMethodAggregate methodNode) {
+        List<TestCandidateMetadata> testCandidateMetadataList =
+                sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName(), false);
+
+        this.candidateListPanel.removeAll();
+        this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
+        for (int i = 0; i < testCandidateMetadataList.size(); i++) {
+            TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
+            GridConstraints constraints = new GridConstraints();
+            constraints.setRow(i);
+            TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
+                    testCandidateMetadata, testCaseService, this);
+            Component contentPanel = testCandidatePreviewPanel.getContentPanel();
+            candidateListPanel.add(contentPanel, constraints);
+        }
+
+        this.candidateListPanel.revalidate();
+    }
+
+    @Override
+    public void onSelect(TestCandidateMetadata testCandidateMetadata) {
+
+        TestCandidateCustomizeView testCandidateView = new TestCandidateCustomizeView(
+                testCandidateMetadata, sessionInstance, this);
+        this.candidateListPanel.removeAll();
+        this.candidateListPanel.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(1);
+
+        candidateListPanel.add(testCandidateView.getContentPanel(), constraints);
+        this.candidateListPanel.revalidate();
+
+
+    }
+
+    @Override
+    public void generateTestCase(
+            TestCandidateMetadata testCandidateMetadata,
+            TestCaseGenerationConfiguration generationConfiguration
+    ) {
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidateMetadata);
+        TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+        insidiousService.saveTestSuite(testSuite);
+    }
+
+    @Override
+    public void cancel() {
+        loadTestCandidateConfigView(selectedTestCandidateAggregate);
     }
 }

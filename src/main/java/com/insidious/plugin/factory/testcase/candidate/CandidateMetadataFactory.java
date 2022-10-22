@@ -59,6 +59,9 @@ public class CandidateMetadataFactory {
                     staticCallsList.add(e);
                     continue;
                 }
+                if (e.getSubject().getType().startsWith("com.google.")) {
+                    continue;
+                }
                 DataInfo entryProbeInfo = e.getEntryProbeInfo();
                 if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
                         && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
@@ -70,14 +73,15 @@ public class CandidateMetadataFactory {
                     // add the return object of this call as a field,
                     // because we need to mock the calls on the return object as well
                     testCandidateMetadata.getFields().add(e.getReturnValue());
+                    continue;
                 }
                 if (e.getMethodName().startsWith("<")) {
                     // constructors need not be mocked
                     continue;
                 }
-                if (!e.getUsesFields()) {
-                    continue;
-                }
+//                if (!e.getUsesFields()) {
+//                    continue;
+//                }
                 if (e.getSubject() == null) {
                     // not a static call, but we failed to identify subject
                     // this is potentially a bug, and the fix is inside scan implementation

@@ -33,7 +33,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
-import com.intellij.vcs.log.Hash;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -2776,8 +2775,14 @@ public class SessionInstance {
         return daoService.getTestCandidatesForMethod(className, methodName, loadCalls);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesUntil(long subjectId, long entryProbeIndex, long mainMethodId) {
-        return daoService.getTestCandidates(subjectId, entryProbeIndex, mainMethodId);
+    public List<TestCandidateMetadata> getTestCandidatesUntil(long subjectId, long entryProbeIndex, long mainMethodId, boolean loadCalls) {
+        return daoService.getTestCandidates(
+                subjectId, entryProbeIndex, mainMethodId, loadCalls
+        );
+    }
+
+    public TestCandidateMetadata getTestCandidateById(Long testCandidateId) {
+        return daoService.getTestCandidateById(testCandidateId);
     }
 
     class DatabasePipe implements Runnable {

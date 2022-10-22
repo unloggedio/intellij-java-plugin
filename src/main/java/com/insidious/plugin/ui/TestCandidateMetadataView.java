@@ -1,42 +1,37 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.TestSuite;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 public class TestCandidateMetadataView {
     private final TestCandidateMetadata testCandidateMetadata;
     private final TestCaseService testCaseService;
-    private final InsidiousService insidiousService;
+    private final TestSelectionListener candidateSelectionListener;
     private JPanel contentPanel;
     private JLabel testCandidateName;
     private JButton generateTestCaseButton;
+    private JPanel labelPanel;
+    private JPanel buttonPanel;
 
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
             TestCaseService testCaseService,
-            InsidiousService insidiousService
+            TestSelectionListener candidateSelectionListener
     ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.testCaseService = testCaseService;
-        this.insidiousService = insidiousService;
+        this.candidateSelectionListener = candidateSelectionListener;
         MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
         testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime());
         generateTestCaseButton.addActionListener(e -> generateTestCase());
     }
 
     private void generateTestCase() {
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidateMetadata);
-        TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
-        insidiousService.saveTestSuite(testSuite);
+        candidateSelectionListener.onSelect(testCandidateMetadata);
     }
 
     public Component getContentPanel() {

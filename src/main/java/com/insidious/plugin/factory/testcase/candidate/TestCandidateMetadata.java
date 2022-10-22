@@ -82,7 +82,7 @@ public class TestCandidateMetadata {
         this.callTimeNanoSecond = callTimeNanoSecond;
     }
 
-    public Collection<MethodCallExpression> getCallsList() {
+    public List<MethodCallExpression> getCallsList() {
         return methodCallExpressions;
     }
 
