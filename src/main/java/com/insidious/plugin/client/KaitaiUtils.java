@@ -34,6 +34,38 @@ public class KaitaiUtils {
                 e.attributes().value());
     }
 
+
+
+    @NotNull
+    public static ProbeInfoDocument toProbeInfoDocument(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
+        String descriptorValue = e.valueDescriptor().value();
+
+        Descriptor valueDesc = Descriptor.Object;
+        if (!descriptorValue.startsWith("L")) {
+            valueDesc = Descriptor.get(descriptorValue);
+        }
+        long lineNumber = e.lineNumber();
+
+        EventType eventType = EventType.valueOf(e.eventType().value());
+        long instructionIndex = e.instructionIndex();
+        if (eventType.equals(EventType.RESERVED)) {
+            lineNumber = -1;
+            instructionIndex = -1;
+        }
+
+        ProbeInfoDocument probeInfoDocument = new ProbeInfoDocument();
+        probeInfoDocument.setAttributes(e.attributes().value());
+        probeInfoDocument.setClassId(Math.toIntExact(e.classId()));
+        probeInfoDocument.setDataId(Math.toIntExact(e.dataId()));
+        probeInfoDocument.setLine(Math.toIntExact(lineNumber));
+        probeInfoDocument.setEventType(EventType.valueOf(e.eventType().value()));
+        probeInfoDocument.setMethodId(Math.toIntExact(e.methodId()));
+        probeInfoDocument.setValueDesc(valueDesc);
+        probeInfoDocument.setInstructionIndex(Math.toIntExact(instructionIndex));
+        return probeInfoDocument;
+    }
+
+
     @NotNull
     public static ClassInfo toClassInfo(KaitaiInsidiousClassWeaveParser.ClassInfo classInfo) {
         String[] interfaceList = classInfo.interfaceNames()

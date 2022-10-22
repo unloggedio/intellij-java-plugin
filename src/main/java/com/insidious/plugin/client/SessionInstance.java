@@ -71,17 +71,16 @@ public class SessionInstance {
     private final ExecutionSession executionSession;
     private final List<File> sessionArchives;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final LinkedTransferQueue<Parameter> parameterQueue;
     private final DatabasePipe databasePipe;
+    private final DaoService daoService;
+    private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex archiveIndex;
     private Map<Long, DataInfo> probeInfoMap;
     private Map<Long, ClassInfo> classInfoMap;
     private Map<Long, MethodInfo> methodInfoMap;
-    private DaoService daoService;
-    private Map<String, List<String>> zipFileListMap = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
-    private ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
+    private ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex;
 
     public SessionInstance(ExecutionSession executionSession) throws SQLException, IOException {
         this.sessionDirectory = Path.of(executionSession.getPath()).toFile();
@@ -107,10 +106,10 @@ public class SessionInstance {
             }
         }
 
-        parameterQueue = new LinkedTransferQueue<>();
-        databasePipe = new DatabasePipe(parameterQueue);
+        databasePipe = new DatabasePipe(new LinkedTransferQueue<>());
         ExecutorService executorPool = Executors.newFixedThreadPool(4);
         executorPool.submit(databasePipe);
+        createObjectInfoIndex();
 
 
     }
@@ -171,7 +170,7 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() throws IOException {
+    private List<File> refreshSessionArchivesList() {
         if (sessionDirectory.listFiles() == null) {
             return List.of();
         }
@@ -185,22 +184,6 @@ public class SessionInstance {
         logger.info("found [" + sessionFiles.size() + "] session archives");
 
         List<File> filesToRemove = new LinkedList<>();
-
-//        File typeIndexFile = Path.of(executionSession.getPath(), "type_index.dat").toFile();
-//        DiskPersistence<TypeInfoDocument, Integer> typeInfoDocumentStringDiskPersistence =
-//                DiskPersistence.onPrimaryKeyInFile(TypeInfoDocument.TYPE_ID, typeIndexFile);
-//        typeInfoIndex = new ConcurrentIndexedCollection<>(typeInfoDocumentStringDiskPersistence);
-//        typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_NAME));
-//        typeInfoIndex.addIndex(HashIndex.onAttribute(TypeInfoDocument.TYPE_ID));
-
-
-        File objectIndexFile = Path.of(executionSession.getPath(), "object_index.dat").toFile();
-        DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence =
-                DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, objectIndexFile);
-
-        objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
-        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
 
         for (int i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
             classWeaveInfo = readClassWeaveInfo(sessionFiles.get(i));
@@ -247,14 +230,27 @@ public class SessionInstance {
 
 
         sessionFiles.removeAll(filesToRemove);
-//        for (int i = 0; i < sessionFiles.size(); i++) {
-//            NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i), INDEX_OBJECT_DAT_FILE.getFileName());
-//            assert objectIndex != null;
-//            ArchiveIndex archiveObjectIndex = readArchiveIndex(objectIndex.getBytes(), INDEX_OBJECT_DAT_FILE);
-//            objectInfoIndex.addAll(archiveObjectIndex.getObjectIndex());
-//        }
         Collections.sort(sessionFiles);
         return sessionFiles;
+    }
+
+    private void createObjectInfoIndex() {
+        File objectIndexFile = Path.of(executionSession.getPath(), "object_index.dat").toFile();
+        DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence =
+                DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, objectIndexFile);
+
+        objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
+    }
+
+    private void createProbeInfoIndex() {
+        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
+        DiskPersistence<ProbeInfoDocument, Integer> objectInfoDocumentIntegerDiskPersistence =
+                DiskPersistence.onPrimaryKeyInFile(ProbeInfoDocument.PROBE_ID, objectIndexFile);
+
+        probeInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+        probeInfoIndex.addIndex(HashIndex.onAttribute(ProbeInfoDocument.PROBE_ID));
     }
 
 
@@ -290,8 +286,9 @@ public class SessionInstance {
         return tracePointList;
     }
 
-    private List<TracePoint> getTracePointsByValueIds(File sessionArchive,
-                                                      Set<Long> valueIds) {
+    private List<TracePoint> getTracePointsByValueIds(
+            File sessionArchive,
+            Set<Long> valueIds) {
         logger.info("Query for valueIds [" + valueIds.toString() + "]");
         List<TracePoint> tracePointList = new LinkedList<>();
         NameWithBytes bytes;
@@ -319,10 +316,6 @@ public class SessionInstance {
             Set<Integer> types = objectInfoMap.values().stream().map(ObjectInfo::getTypeId).map(Long::intValue).collect(Collectors.toSet());
 
             checkProgressIndicator(null, "Loading types from " + sessionArchive.getName());
-
-//            NameWithBytes typesInfoBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_TYPE_DAT_FILE.getFileName());
-//            assert typesInfoBytes != null;
-//            ArchiveIndex typeIndex = readArchiveIndex(typesInfoBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             typeInfoMap = archiveIndex.getTypesById(types);
             logger.info("[" + typeInfoMap.size() + "] typeInfo found");
 
@@ -389,7 +382,7 @@ public class SessionInstance {
                 List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
 
                     try {
-                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive, Set.of(e1.getDataId()));
+                        List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
                         logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
 
                         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
@@ -444,7 +437,7 @@ public class SessionInstance {
         return tracePointList;
     }
 
-    private List<DataInfo> getProbeInfo(File sessionFile, Set<Long> dataId) throws IOException {
+    private List<DataInfo> getProbeInfo(Set<Long> dataId) throws IOException {
 
 
         return classWeaveInfo.classInfo().stream()
@@ -856,7 +849,7 @@ public class SessionInstance {
                 List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
 
                     try {
-                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive, Set.of(e1.getDataId()));
+                        List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
                         logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
 
                         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
@@ -1012,7 +1005,7 @@ public class SessionInstance {
                 List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
 
                     try {
-                        List<DataInfo> dataInfoList = getProbeInfo(sessionArchive, Set.of(e1.getDataId()));
+                        List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
                         logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
 
                         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
