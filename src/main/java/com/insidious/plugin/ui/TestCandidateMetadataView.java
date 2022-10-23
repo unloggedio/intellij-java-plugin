@@ -17,6 +17,8 @@ public class TestCandidateMetadataView {
     private JPanel labelPanel;
     private JPanel buttonPanel;
 
+    private Dimension contentPanelDimensions = new Dimension(-1,30);
+
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
             TestCaseService testCaseService,
@@ -25,6 +27,8 @@ public class TestCandidateMetadataView {
         this.testCandidateMetadata = testCandidateMetadata;
         this.testCaseService = testCaseService;
         this.candidateSelectionListener = candidateSelectionListener;
+        this.contentPanel.setMaximumSize(contentPanelDimensions);
+        this.contentPanel.setMaximumSize(contentPanelDimensions);
         MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
         testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime());
         generateTestCaseButton.addActionListener(e -> generateTestCase());
@@ -36,5 +40,13 @@ public class TestCandidateMetadataView {
 
     public Component getContentPanel() {
         return contentPanel;
+    }
+
+    public Dimension getContentPanelDimensions() {
+        return contentPanelDimensions;
+    }
+
+    public void setContentPanelDimensions(Dimension contentPanelDimensions) {
+        this.contentPanelDimensions = contentPanelDimensions;
     }
 }
