@@ -107,11 +107,11 @@ public class SessionInstance {
 
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>());
         ExecutorService executorPool = Executors.newFixedThreadPool(4);
-        executorPool.submit(databasePipe);
 
         createObjectInfoIndex();
 //        createProbeInfoIndex();
         this.sessionArchives = refreshSessionArchivesList();
+        executorPool.submit(databasePipe);
 //        archiveIndex.setObjectInfoIndex(objectInfoIndex);
 //        archiveIndex.setProbeInfoIndex(probeInfoIndex);
 
