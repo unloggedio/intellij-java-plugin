@@ -73,8 +73,10 @@
                     </constraints>
                     <properties>
                       <background color="-105256"/>
-                      <borderPainted value="true"/>
-                      <contentAreaFilled value="true"/>
+                      <borderPainted value="false"/>
+                      <contentAreaFilled value="false"/>
+                      <foreground color="-1"/>
+                      <opaque value="true"/>
                       <text value="Generate"/>
                       <visible value="true"/>
                     </properties>

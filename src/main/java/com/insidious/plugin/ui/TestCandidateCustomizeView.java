@@ -41,10 +41,6 @@ public class TestCandidateCustomizeView {
         cellRenderer = new CustomizeViewTreeCellRenderer();
         this.testCandidateTree.setCellRenderer(cellRenderer);
 
-        generateButton.setBackground(Color.RED);
-        generateButton.setOpaque(true);
-        generateButton.setBorderPainted(false);
-        generateButton.setContentAreaFilled(true);
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
