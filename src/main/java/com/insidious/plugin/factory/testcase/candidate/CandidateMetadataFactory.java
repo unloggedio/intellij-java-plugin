@@ -62,6 +62,9 @@ public class CandidateMetadataFactory {
                 if (e.getSubject().getType().startsWith("com.google.")) {
                     continue;
                 }
+                if (!e.isMethodPublic() && !e.isMethodProtected()) {
+                    continue;
+                }
                 DataInfo entryProbeInfo = e.getEntryProbeInfo();
 //                if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
 //                        && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
