@@ -951,6 +951,8 @@ public class TestCaseService {
 //                        ((MethodCallExpression) testCandidateMetadata.getMainMethod()).getId()
 //                );
 
+        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex());
+
         List<TestCandidateMetadata> list =
                 sessionInstance.getTestCandidatesForMethod(
                         testCandidateMetadata.getTestSubject().getType(), "<init>", true);
