@@ -4,6 +4,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class TestCandidateCustomizeView {
 
@@ -20,6 +21,9 @@ public class TestCandidateCustomizeView {
     private JButton cancelButton;
     private JPanel configPanel;
     private JPanel buttonsPanel;
+    private JLabel descriptionText;
+    private JTextPane documentationTextArea;
+    private CustomizeViewTreeCellRenderer cellRenderer;
 
     public TestCandidateCustomizeView(
             TestCandidateMetadata testCandidateMetadata,
@@ -34,6 +38,13 @@ public class TestCandidateCustomizeView {
         TestCandidateTreeModel candidateTree = new TestCandidateTreeModel(testCandidateMetadata, sessionInstance);
         this.testCandidateTree.setModel(candidateTree);
 
+        cellRenderer = new CustomizeViewTreeCellRenderer();
+        this.testCandidateTree.setCellRenderer(cellRenderer);
+
+        generateButton.setBackground(Color.RED);
+        generateButton.setOpaque(true);
+        generateButton.setBorderPainted(false);
+        generateButton.setContentAreaFilled(true);
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }

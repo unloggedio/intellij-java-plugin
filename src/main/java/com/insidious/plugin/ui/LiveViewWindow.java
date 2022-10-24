@@ -49,6 +49,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
+
         this.project = project;
         this.insidiousService = insidiousService;
 
@@ -140,6 +141,7 @@ public class LiveViewWindow implements TreeSelectionListener,
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
                     testCandidateMetadata, testCaseService, this);
+            testCandidatePreviewPanel.setCandidateNumberIndex((i+1));
             Component contentPanel = testCandidatePreviewPanel.getContentPanel();
             gridPanel.add(contentPanel, constraints);
         }
