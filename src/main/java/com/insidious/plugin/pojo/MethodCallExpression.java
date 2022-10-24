@@ -31,16 +31,10 @@ public class MethodCallExpression implements Expression {
     private long id;
     private List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
     private DataEventWithSessionId returnDataEvent;
-
-    public boolean getUsesFields() {
-        return usesFields;
-    }
-
     private boolean usesFields;
 
     public MethodCallExpression() {
     }
-
 
     public MethodCallExpression(
             String methodName,
@@ -57,6 +51,14 @@ public class MethodCallExpression implements Expression {
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
         return new PendingStatement(objectRoutine);
+    }
+
+    public boolean getUsesFields() {
+        return usesFields;
+    }
+
+    public void setUsesFields(boolean b) {
+        this.usesFields = b;
     }
 
     public int getCallStack() {
@@ -284,11 +286,18 @@ public class MethodCallExpression implements Expression {
         if (subject != null) {
             name = subject.getName() + ".";
         }
-        return ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
-                "" : (returnValue.getName() + " = ")) +
-                name + methodName + "(" + arguments.size() + " args)" +
-                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "")
-                + (owner == null ? "" : " in " + owner);
+        String methodName1 = methodName;
+        String methodCallOnVariableString = name + methodName1;
+        if (methodName.equals("<init>")) {
+            methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType()).simpleName();
+        } else {
+            methodCallOnVariableString = methodName1;
+        }
+        return
+//                ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ? "" : (returnValue.getName() + " = ")) +
+                methodCallOnVariableString + "(" + arguments.size() + " args)" +
+                        (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "")
+                        + (owner == null ? "" : " in " + owner);
     }
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
@@ -423,9 +432,5 @@ public class MethodCallExpression implements Expression {
 
     public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
         this.returnDataEvent = returnDataEvent;
-    }
-
-    public void setUsesFields(boolean b) {
-        this.usesFields = b;
     }
 }

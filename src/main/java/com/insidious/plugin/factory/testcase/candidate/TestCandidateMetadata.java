@@ -10,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 
-
 public class TestCandidateMetadata {
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
     private VariableContainer fields = new VariableContainer();
@@ -19,7 +18,7 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-//    private VariableContainer variables = new VariableContainer();
+    //    private VariableContainer variables = new VariableContainer();
     private List<MethodCallExpression> staticCalls = new LinkedList<>();
 
     public long getExitProbeIndex() {
@@ -88,14 +87,7 @@ public class TestCandidateMetadata {
 
     @Override
     public String toString() {
-        return "TCM{" +
-                 mainMethod +
-                " calls " + methodCallExpressions.size() +
-                " methods " +
-                ", callTimeNanoSecond=" + callTimeNanoSecond +
-                ", entryProbeIndex=" + entryProbeIndex +
-                ", exitProbeIndex=" + exitProbeIndex +
-                '}';
+        return mainMethod.toString();
     }
 
     public long getEntryProbeIndex() {

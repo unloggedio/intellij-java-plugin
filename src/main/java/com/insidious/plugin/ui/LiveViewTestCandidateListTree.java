@@ -6,7 +6,6 @@ import com.insidious.plugin.client.VideobugTreeClassAggregateNode;
 import com.insidious.plugin.client.VideobugTreePackageAggregateNode;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -18,7 +17,7 @@ import javax.swing.tree.TreePath;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class NewVideobugTreeModel implements TreeModel {
+public class LiveViewTestCandidateListTree implements TreeModel {
 
     private final DefaultMutableTreeNode rootNode;
     private final Map<String, List<PackageInfoModel>> sessionPackageMap = new HashMap<>();
@@ -32,7 +31,7 @@ public class NewVideobugTreeModel implements TreeModel {
     private final Map<String, List<VideobugTreeClassAggregateNode>> classAggregatesByPackageName;
     private final List<VideobugTreePackageAggregateNode> packageAggregates;
 
-    public NewVideobugTreeModel(SessionInstance sessionInstance) {
+    public LiveViewTestCandidateListTree(SessionInstance sessionInstance) {
         String sessionNodeLabel = "Packages";
         this.sessionInstance = sessionInstance;
 

@@ -689,10 +689,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
         return List.of();
     }
 
-    @Override
-    public void queryTracePointsByProbeIds(SearchQuery searchQuery, String sessionId, ClientCallBack<TracePoint> tracePointsCallback) {
-
-    }
 
     @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {

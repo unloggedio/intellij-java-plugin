@@ -358,19 +358,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public void queryTracePointsByProbeIds(
-            SearchQuery searchQuery,
-            String sessionId,
-            ClientCallBack<TracePoint> tracePointsCallback) {
-        checkSession(sessionId);
-        logger.info("trace by probe ids: " + searchQuery);
-        checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        this.sessionInstance.queryTracePointsByProbeIds(searchQuery, tracePointsCallback);
-//        this.session.queryTracePointsByProbeIdsWithoutIndex(searchQuery, tracePointsCallback);
-
-    }
-
-    @Override
     public TypeInfo getTypeInfoByName(String sessionId, String type) {
         return this.sessionInstance.getTypeInfo(type);
     }
@@ -395,7 +382,4 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return new TestCaseService(this);
     }
 
-    public String getRootDirectory() {
-        return this.pathToSessions;
-    }
 }

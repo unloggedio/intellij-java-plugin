@@ -34,7 +34,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private final Project project;
     private final InsidiousService insidiousService;
     private final VideobugTreeCellRenderer cellRenderer;
-    private NewVideobugTreeModel treeModel;
+    private LiveViewTestCandidateListTree treeModel;
     private JButton selectSession;
     private JPanel bottomPanel;
     private JTree mainTree;
@@ -78,9 +78,9 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     public void loadSession() throws Exception {
         treeModel = ProgressManager.getInstance().run(
-                new Task.WithResult<NewVideobugTreeModel, Exception>(project, "Unlogged", true) {
+                new Task.WithResult<LiveViewTestCandidateListTree, Exception>(project, "Unlogged", true) {
                     @Override
-                    protected NewVideobugTreeModel compute(@NotNull ProgressIndicator indicator) throws Exception {
+                    protected LiveViewTestCandidateListTree compute(@NotNull ProgressIndicator indicator) throws Exception {
                         insidiousService.getClient().getProjectSessions(new GetProjectSessionsCallback() {
                             @Override
                             public void error(String message) {
@@ -96,7 +96,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                     testCaseService = new TestCaseService(insidiousService.getClient());
 
                                     testCaseService.processLogFiles();
-                                    treeModel = new NewVideobugTreeModel(insidiousService.getClient().getSessionInstance());
+                                    treeModel = new LiveViewTestCandidateListTree(insidiousService.getClient().getSessionInstance());
                                     mainTree.setModel(treeModel);
 
                                 } catch (Exception ex) {

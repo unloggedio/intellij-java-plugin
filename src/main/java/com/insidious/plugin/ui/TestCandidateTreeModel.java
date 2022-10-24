@@ -118,5 +118,10 @@ public class TestCandidateTreeModel implements TreeModel {
         public String getLabel() {
             return label;
         }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 }

@@ -11,6 +11,7 @@ import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.client.ProbeInfoDocument;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -24,6 +25,7 @@ public class ArchiveIndex {
     private ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
     private ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
+    private ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex;
 
     public ArchiveIndex(
             ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex,
@@ -304,5 +306,9 @@ public class ArchiveIndex {
 
     public void setObjectInfoIndex(ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexFile) {
         this.objectInfoIndex = objectIndexFile;
+    }
+
+    public void setProbeInfoIndex(ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex) {
+        this.probeInfoIndex = probeInfoIndex;
     }
 }

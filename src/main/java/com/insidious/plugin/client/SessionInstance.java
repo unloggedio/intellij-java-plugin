@@ -71,7 +71,7 @@ public class SessionInstance {
     private final ExecutionSession executionSession;
     private final List<File> sessionArchives;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final DatabasePipe databasePipe;
+    private final DatabasePipe databasePipe ;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
@@ -85,7 +85,6 @@ public class SessionInstance {
     public SessionInstance(ExecutionSession executionSession) throws SQLException, IOException {
         this.sessionDirectory = Path.of(executionSession.getPath()).toFile();
         this.executionSession = executionSession;
-        this.sessionArchives = refreshSessionArchivesList();
 
         boolean dbFileExists = Path.of(executionSession.getDatabasePath()).toFile().exists();
         ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
@@ -100,7 +99,7 @@ public class SessionInstance {
                 TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
                 TableUtils.createTable(connectionSource, LogFile.class);
                 TableUtils.createTable(connectionSource, ArchiveFile.class);
-                TableUtils.createTable(connectionSource, TypeInfo.class);
+                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TypeInfo.class);
             } catch (SQLException sqlException) {
                 logger.warn("probably table already exists: " + sqlException.toString());
             }
@@ -109,8 +108,12 @@ public class SessionInstance {
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>());
         ExecutorService executorPool = Executors.newFixedThreadPool(4);
         executorPool.submit(databasePipe);
-        createObjectInfoIndex();
 
+        createObjectInfoIndex();
+//        createProbeInfoIndex();
+        this.sessionArchives = refreshSessionArchivesList();
+//        archiveIndex.setObjectInfoIndex(objectInfoIndex);
+//        archiveIndex.setProbeInfoIndex(probeInfoIndex);
 
     }
 
@@ -184,7 +187,6 @@ public class SessionInstance {
         logger.info("found [" + sessionFiles.size() + "] session archives");
 
         List<File> filesToRemove = new LinkedList<>();
-
         for (int i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
             classWeaveInfo = readClassWeaveInfo(sessionFiles.get(i));
 
@@ -609,8 +611,7 @@ public class SessionInstance {
     @NotNull
     private String bytesHex(byte[] bytes, String indexFilterType) {
         String md5Hex = DigestUtils.md5Hex(bytes);
-        String cacheKey = md5Hex + "-" + indexFilterType;
-        return cacheKey;
+        return md5Hex + "-" + indexFilterType;
     }
 
     private NameWithBytes createFileOnDiskFromSessionArchiveFile(File sessionFile, String pathName) {
@@ -717,38 +718,6 @@ public class SessionInstance {
                         tracePointsCallback
                 );
             }
-        }
-        tracePointsCallback.completed();
-
-    }
-
-    public void queryTracePointsByProbeIds(SearchQuery searchQuery,
-                                           ClientCallBack<TracePoint> tracePointsCallback) {
-
-
-        Collection<Integer> probeIds =
-                (Collection<Integer>) searchQuery.getQuery();
-
-        for (File sessionArchive : sessionArchives) {
-            getTracePointsByProbeIds(sessionArchive,
-                    new HashSet<>(probeIds),
-                    tracePointsCallback
-            );
-        }
-        tracePointsCallback.completed();
-
-    }
-
-    public void queryTracePointsByProbeIdsWithoutIndex(SearchQuery searchQuery, ClientCallBack<TracePoint> tracePointsCallback) {
-
-
-        Collection<Integer> probeIds = (Collection<Integer>) searchQuery.getQuery();
-
-        for (File sessionArchive : sessionArchives) {
-            getTracePointsByProbeIdsWithoutIndex(sessionArchive,
-                    new HashSet<>(probeIds),
-                    tracePointsCallback
-            );
         }
         tracePointsCallback.completed();
 
@@ -1133,7 +1102,7 @@ public class SessionInstance {
         Map<Long, ClassInfo> classInfo = new HashMap<>();
         Map<Long, DataInfo> dataInfo = new HashMap<>();
 
-        checkProgressIndicator(null, "Loading class mappings");
+        checkProgressIndicator(null, "Loading class mappings for data events");
 
         classWeaveInfo.classInfo().forEach(e -> {
 
@@ -1465,7 +1434,7 @@ public class SessionInstance {
         Integer remaining = pageInfo.getSize();
 
 
-        checkProgressIndicator(null, "Loading class mappings");
+        checkProgressIndicator(null, "Loading class mappings for object history");
 
 
 //        logger.warn("classInfoMap size: " + classInfoMap.size());
@@ -1850,7 +1819,7 @@ public class SessionInstance {
         assert probeInfoMap.size() > 0;
         assert methodInfoMap.size() > 0;
 
-        checkProgressIndicator(null, "Loading class mappings");
+        checkProgressIndicator(null, "Loading class mappings to scan events");
 
         AtomicInteger index = new AtomicInteger(0);
         List<Long> valueStack = new LinkedList<>();
@@ -2657,8 +2626,9 @@ public class SessionInstance {
             }
             threadsProcessed.add(threadId);
         }
+    }
 
-
+    public void close() throws Exception {
         databasePipe.close();
         daoService.close();
     }
@@ -2670,36 +2640,6 @@ public class SessionInstance {
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
         KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = lastEvent.block();
         return eventBlock.eventId();
-    }
-
-    private Collection<ObjectInfo> getObjectInfoById(Collection<Long> valueIds) {
-
-        Set<ObjectInfo> objectInfoCollection = new HashSet<>();
-
-        for (File sessionArchive : this.sessionArchives) {
-
-            NameWithBytes objectsIndexBytes = createFileOnDiskFromSessionArchiveFile(
-                    sessionArchive, INDEX_OBJECT_DAT_FILE.getFileName());
-            if (objectsIndexBytes == null) {
-                continue;
-            }
-
-
-            checkProgressIndicator(null, "Loading objects from " + sessionArchive.getName());
-            ArchiveIndex objectIndex = null;
-            try {
-                objectIndex = readArchiveIndex(objectsIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
-            } catch (IOException e) {
-                logger.error("failed to read object index from session bytes: " + e.getMessage(), e);
-                continue;
-            }
-            Map<String, ObjectInfo> sessionObjectInfo = objectIndex.getObjectsByObjectId(valueIds);
-            objectInfoCollection.addAll(sessionObjectInfo.values());
-
-        }
-
-
-        return objectInfoCollection;
     }
 
     public void queryTracePointsByTypes(SearchQuery searchQuery, ClientCallBack<TracePoint> clientCallBack) {
@@ -2833,8 +2773,6 @@ public class SessionInstance {
                 if (param == null) {
                     continue;
                 }
-                isSaving.clear();
-
                 List<Parameter> batch = new LinkedList<>();
                 parameterQueue.drainTo(batch);
                 batch.add(param);
@@ -2852,7 +2790,7 @@ public class SessionInstance {
             daoService.createOrUpdateParameter(batch);
 
 
-            if (probeInfoMap.size() > 0) {
+            if (dataInfoList.size() > 0) {
                 Collection<DataInfo> saving = new LinkedList<>();
                 dataInfoList.removeAll(saving);
                 daoService.createOrUpdateProbeInfo(saving);

@@ -98,10 +98,6 @@ public interface VideobugClientInterface {
 
     List<String> getSessionArchiveList(String sessionId) throws IOException;
 
-    void queryTracePointsByProbeIds(
-            SearchQuery searchQuery,
-            String sessionId,
-            ClientCallBack<TracePoint> tracePointsCallback);
 
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
