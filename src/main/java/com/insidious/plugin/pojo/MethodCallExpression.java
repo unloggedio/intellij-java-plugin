@@ -15,6 +15,7 @@ import com.squareup.javapoet.ClassName;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class MethodCallExpression implements Expression {
 
@@ -247,7 +248,7 @@ public class MethodCallExpression implements Expression {
 
             Parameter existingVariableById = variableContainer.getParametersById((long) value);
             if (existingVariableById != null) {
-                if (overrideName && !returnValue.getName().equals(existingVariableById.getName())) {
+                if (overrideName && !Objects.equals(returnValue.getName(), existingVariableById.getName())) {
                     returnValue.setName(existingVariableById.getName());
                 }
             } else {

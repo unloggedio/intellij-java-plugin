@@ -63,18 +63,18 @@ public class CandidateMetadataFactory {
                     continue;
                 }
                 DataInfo entryProbeInfo = e.getEntryProbeInfo();
-                if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
-                        && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
-                ) {
-                    // a invokevirtual call, is going to one of its super class,
-                    // and specifically in case of Classes which are children of AbstractDao of hibernate package
-                    // we need to mock the call and also the return object
-                    callToMock.add(e);
-                    // add the return object of this call as a field,
-                    // because we need to mock the calls on the return object as well
-                    testCandidateMetadata.getFields().add(e.getReturnValue());
-                    continue;
-                }
+//                if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
+//                        && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
+//                ) {
+//                    // a invokevirtual call, is going to one of its super class,
+//                    // and specifically in case of Classes which are children of AbstractDao of hibernate package
+//                    // we need to mock the call and also the return object
+//                    callToMock.add(e);
+//                    // add the return object of this call as a field,
+//                    // because we need to mock the calls on the return object as well
+//                    testCandidateMetadata.getFields().add(e.getReturnValue());
+//                    continue;
+//                }
                 if (e.getMethodName().startsWith("<")) {
                     // constructors need not be mocked
                     continue;

@@ -1908,7 +1908,7 @@ public class SessionInstance {
 
                 boolean processedAllFiles = true;
                 DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService, archiveIndex);
-                checkProgressIndicator("Processing thread " + (threadsProcessed.size() + 1) + ", " + threadsPending.size() + " remaining", null);
+                checkProgressIndicator("Processing thread " + (threadsProcessed.size() + 1) + " / " + (threadsPending.size() + threadsProcessed.size()), null);
 
                 for (String logFile : archiveFiles) {
                     checkProgressIndicator(null, "Reading events from  " + logFile);
@@ -2034,9 +2034,9 @@ public class SessionInstance {
 
                             case GET_INSTANCE_FIELD_RESULT:
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                if (existingParameter.getProb() == null) {
-                                    continue;
-                                }
+//                                if (existingParameter.getProb() == null) {
+//                                    continue;
+//                                }
                                 nameFromProbe = probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null));
                                 isModified = false;
                                 if (!existingParameter.hasName(nameFromProbe)) {
@@ -2050,6 +2050,13 @@ public class SessionInstance {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
 
                                     isModified = true;
+                                }
+                                if (existingParameter.getProb() == null) {
+                                    isModified = true;
+                                    saveProbe = true;
+                                    dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
+                                    existingParameter.setProb(dataEvent);
+                                    existingParameter.setProbeInfo(probeInfo);
                                 }
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
                                 callStack.get(callStack.size() - 1).setUsesFields(true);
@@ -2448,7 +2455,7 @@ public class SessionInstance {
                                 entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 isModified = false;
-                                if (existingParameter.getProb() == null) {
+                                if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
                                     saveProbe = true;
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
@@ -2666,12 +2673,11 @@ public class SessionInstance {
             }
             threadsProcessed.add(threadId);
         }
-    }
-
-    public void close() throws Exception {
         databasePipe.close();
         daoService.close();
+
     }
+
 
     public DaoService getDaoService() {
         return daoService;
@@ -2827,6 +2833,7 @@ public class SessionInstance {
         public void close() throws InterruptedException {
             stop = true;
             isSaving.take();
+            logger.warn("saving after close");
             List<Parameter> batch = new LinkedList<>();
             parameterQueue.drainTo(batch);
             daoService.createOrUpdateParameter(batch);

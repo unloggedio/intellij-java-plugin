@@ -114,7 +114,7 @@ public class DaoService {
             logger.warn("\tloading " + calls.size() + " call methods");
             for (Long call : calls) {
                 com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
-                if (methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
+                if (methodCallExpressionById.getSubject() == null || methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
                     continue;
                 }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
@@ -341,6 +341,7 @@ public class DaoService {
                 Parameter e = Parameter.fromParameter(parameter);
                 parameterDao.createOrUpdate(e);
             }
+            logger.warn("updated " + parameterList.size() + " parameters");
         } catch (Exception e) {
             e.printStackTrace();
         }
