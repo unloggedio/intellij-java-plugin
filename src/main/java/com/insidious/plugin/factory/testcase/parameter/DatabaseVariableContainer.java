@@ -3,9 +3,7 @@ package com.insidious.plugin.factory.testcase.parameter;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.cache.ArchiveIndex;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
-import com.intellij.codeInspection.ui.PreviewEditorFoldingRegion;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -188,12 +186,6 @@ public class DatabaseVariableContainer {
                 return new Parameter(eventValue);
             }
             parameter = new Parameter(eventValue);
-            if (eventValue > 10000) {
-                TypeInfo objectType = archiveIndex.getObjectType(eventValue);
-                if (objectType != null) {
-                    parameter.setType(ClassTypeUtils.getDottedClassName(objectType.getTypeNameFromClass()));
-                }
-            }
             return parameter;
         }
         return parameter;
@@ -233,11 +225,28 @@ public class DatabaseVariableContainer {
             // the type info we got from the probe is probably wrong
             return;
         }
-//        if (!ClassTypeUtils.getDottedClassName(parameterType.getTypeNameFromClass()).equals(expectingClassName)) {
-//            throw new RuntimeException("type mismatch");
-//        }
         if (parameterType.getTypeId() < expectedTypeInfo.getTypeId()) {
             existingParameter.setType(expectedTypeInfo.getTypeNameFromClass());
         }
+    }
+
+    public void ensureParameterType(Parameter existingParameter, TypeInfo parameterType) {
+        if (existingParameter.getType() == null) {
+            existingParameter.setType(parameterType.getTypeNameFromClass());
+            return;
+        }
+        if (existingParameter.getValue() < 10000) {
+//            existingParameter.setType(expectingClassName);
+            return;
+        }
+        if (ensuredParameters.containsKey(existingParameter.getValue())) {
+            return;
+        }
+        ensuredParameters.put(existingParameter.getValue(), true);
+        if (existingParameter.getType().length() < 2 || existingParameter.getType().endsWith("]")) {
+            return;
+        }
+        existingParameter.setType(parameterType.getTypeNameFromClass());
+
     }
 }

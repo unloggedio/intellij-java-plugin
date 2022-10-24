@@ -59,21 +59,17 @@ public class ArchiveIndex {
         return typeInfoIndex;
     }
 
-    public Map<String, ObjectInfo> getObjectsByObjectId(Collection<Long> objectIds) {
+    public Map<Long, ObjectInfo> getObjectsByObjectId(Collection<Long> objectIds) {
 
         Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_ID, objectIds);
         ResultSet<ObjectInfoDocument> retrieve = objectInfoIndex.retrieve(query);
         Stream<ObjectInfoDocument> stream = retrieve.stream();
 
-        Map<String, ObjectInfo> collect = new HashMap<>();
+        Map<Long, ObjectInfo> collect = new HashMap<>();
         stream
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
                 .forEach(e -> {
-                    String key = String.valueOf(e.getObjectId());
-//                    if (collect.containsKey(key)) {
-//                        logger
-//                    }
-                    collect.put(key, e);
+                    collect.put(e.getObjectId(), e);
                 });
 
         retrieve.close();
@@ -183,7 +179,7 @@ public class ArchiveIndex {
                     return typeInfo;
                 }).findFirst();
         retrieve.close();
-        if (returnValue.isEmpty()){
+        if (returnValue.isEmpty()) {
             return null;
         }
         return returnValue.get();
@@ -214,7 +210,6 @@ public class ArchiveIndex {
         return result.orElse(null);
 
     }
-
 
 
     public Map<String, TypeInfo> getTypesById(Set<Integer> valueIds) {
