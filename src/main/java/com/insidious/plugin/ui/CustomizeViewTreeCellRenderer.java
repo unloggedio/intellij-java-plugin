@@ -43,9 +43,7 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
                                                   boolean hasFocus) {
 
         Component returnValue;
-        //if (leaf) {
-
-            String stringValue = tree.convertValueToText(value, selected,
+        String stringValue = tree.convertValueToText(value, selected,
                     expanded, leaf, row, false);
         checkboxRenderer.setText(stringValue);
         checkboxRenderer.setSelected(false);
