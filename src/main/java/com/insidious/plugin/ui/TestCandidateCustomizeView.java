@@ -74,8 +74,15 @@ public class TestCandidateCustomizeView {
 //            System.out.println("[FIRST leaf ] : "+model.getChild(selectedNode,0));
 //            System.out.println("[LAST leaf ] : "+model.getChild(selectedNode,count-1));
 
-            leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode,0)));
-            leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode,count-1)));
+            try {
+
+                leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, 0)));
+                leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, count - 1)));
+            }
+            catch (Exception e)
+            {
+                System.out.println("Exception e -> "+e);
+            }
         }
         for(int i=0;i<leafPaths.size();i++)
         {
