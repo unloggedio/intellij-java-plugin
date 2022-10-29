@@ -292,13 +292,12 @@ public class MethodCallExpression implements Expression {
         if (methodName.equals("<init>")) {
             methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType()).simpleName();
         } else {
-            methodCallOnVariableString = methodName1;
+            methodCallOnVariableString = ClassName.bestGuess(subject.getType()).simpleName() + "." + methodName1;
         }
         return
 //                ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ? "" : (returnValue.getName() + " = ")) +
                 methodCallOnVariableString + "(" + arguments.size() + " args)" +
-                        (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "")
-                        + (owner == null ? "" : " in " + owner);
+                        (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
     }
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
@@ -306,7 +305,6 @@ public class MethodCallExpression implements Expression {
         if (returnValue == null) {
             return;
         }
-        assert returnValue != null;
 
         // we don't want to write a mock call if the return value is null
         // since mocked classes return null by default and this mocking just adds noise to the generated test case

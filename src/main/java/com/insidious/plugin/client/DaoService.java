@@ -11,6 +11,7 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
@@ -21,20 +22,36 @@ public class DaoService {
 
 
     public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select p.type, p.value, count(*)\n" +
-            "from test_candidate\n" +
+            "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id and p.type != 'java.lang.Object' and length(p.type) > 1\n" +
+            "         join method_call mce on mce.id = tc.mainMethod_id\n" +
+            "where (mce.methodAccess & 1 == 1) and mce.methodName != '<init>'\n" +
             "group by p.type, p.value\n" +
-            "having count(*) > 1\n" +
+            "having count(*) > 0\n" +
             "order by p.type";
     public static final String TEST_CANDIDATE_METHOD_AGGREGATE_QUERY = "select mc.methodName, count(*)\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ?\n" +
+            "where p.type = ? and (mc.methodAccess & 1 == 1)\n" +
             "and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";
 
+
+    public static final String CALLS_TO_MOCK_SELECT_QUERY = "select mc.*\n" +
+            "from method_call mc\n" +
+            "         join parameter subject on subject.value == mc.subject_id" +
+            "         join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "where id in (CALL_IDS)\n" +
+            "  and subject.type not like 'java.lang%'\n" +
+            "  and subject.type not like 'org.springframework%' " +
+            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)" +
+            "  and pi.eventType != 'CALL_PARAM'\n" +
+            "  and pi.eventType != 'CALL'\n" +
+            "  and pi.eventType != 'CALL_RETURN'\n" +
+            "  and names != '';\n" +
+            "\n";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
@@ -111,10 +128,11 @@ public class DaoService {
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
         if (loadCalls) {
             List<Long> calls = testCandidateMetadata.getCallsList();
-            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionByIds(calls);
+            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionToMock(calls);
             logger.warn("\tloading " + calls.size() + " call methods");
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
-                if (methodCallExpressionById.getSubject() == null || methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
+                if (methodCallExpressionById.getSubject() == null ||
+                        methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
                     continue;
                 }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
@@ -123,6 +141,8 @@ public class DaoService {
                         || "INVOKEVIRTUAL".equals(methodCallExpressionById.getEntryProbeInfo().getAttribute("Instruction", ""))
                 ) {
                     callsList.add(methodCallExpressionById);
+                } else {
+                    logger.debug("skip call - " + methodCallExpressionById.getId());
                 }
             }
         }
@@ -148,8 +168,25 @@ public class DaoService {
         }
     }
 
+    private List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMock(List<Long> callIds) {
+        try {
+            String query = CALLS_TO_MOCK_SELECT_QUERY.replace("CALL_IDS", StringUtils.join(callIds, ","));
+            GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
+                    .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
+            List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
+                    results.getResults().stream().map(this::convertDbMCE).collect(Collectors.toList());
+            results.close();
+            return callsList;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @NotNull
-    private com.insidious.plugin.pojo.MethodCallExpression convertDbMCE(MethodCallExpression dbMce, Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap) {
+    private com.insidious.plugin.pojo.MethodCallExpression convertDbMCE(
+            MethodCallExpression dbMce,
+            Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap
+    ) {
         com.insidious.plugin.pojo.MethodCallExpression mce = MethodCallExpression.ToMCE(dbMce);
         try {
 
@@ -175,7 +212,7 @@ public class DaoService {
                 Long argumentParameter = argumentParameters.get(i);
                 DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
                 DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
-                com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
+                com.insidious.plugin.pojo.Parameter argument = parameterMap.get(argumentParameter);
                 if (argument == null) {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
                 }
@@ -187,7 +224,7 @@ public class DaoService {
 
             mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
             if (!mce.isStaticCall()) {
-                com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
+                com.insidious.plugin.pojo.Parameter subjectParam = parameterMap.get((Long) mainSubject.getValue());
                 mce.setSubject(subjectParam);
             } else {
                 DataInfo entryProbeInfo = mce.getEntryProbeInfo();
