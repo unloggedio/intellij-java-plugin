@@ -111,9 +111,9 @@ public class DaoService {
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
         if (loadCalls) {
             List<Long> calls = testCandidateMetadata.getCallsList();
+            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionByIds(calls);
             logger.warn("\tloading " + calls.size() + " call methods");
-            for (Long call : calls) {
-                com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById = getMethodCallExpressionById(call);
+            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null || methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
                     continue;
                 }
@@ -139,54 +139,136 @@ public class DaoService {
         return converted;
     }
 
-    public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws SQLException {
+    private List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionByIds(List<Long> callIds) {
+        try {
+            List<MethodCallExpression> callsFromDb = methodCallExpressionDao.queryBuilder().where().in("id", callIds).query();
+            return callsFromDb.stream().map(this::convertDbMCE).collect(Collectors.toList());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-
-        MethodCallExpression dbMce = methodCallExpressionDao.queryForId(methodCallId);
+    @NotNull
+    private com.insidious.plugin.pojo.MethodCallExpression convertDbMCE(MethodCallExpression dbMce, Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap) {
         com.insidious.plugin.pojo.MethodCallExpression mce = MethodCallExpression.ToMCE(dbMce);
+        try {
 
-        Parameter mainSubject = dbMce.getSubject();
-        if (dbMce.getReturnValue() != null) {
-            Parameter returnValue = dbMce.getReturnValue();
-            com.insidious.plugin.pojo.Parameter returnParam = getParameterByValue((Long) returnValue.getValue());
-            mce.setReturnValue(returnParam);
-            if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
-                DataEventWithSessionId returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
-                returnParam.setProb(returnDataEvent);
-                mce.setReturnDataEvent(returnDataEvent);
+            Parameter mainSubject = dbMce.getSubject();
+            if (dbMce.getReturnValue() != null) {
+                Parameter returnValue = dbMce.getReturnValue();
+                com.insidious.plugin.pojo.Parameter returnParam = null;
+                returnParam = parameterMap.get((Long) returnValue.getValue());
+                mce.setReturnValue(returnParam);
+                if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
+                    DataEventWithSessionId returnDataEvent = null;
+                    returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
+                    returnParam.setProb(returnDataEvent);
+                    mce.setReturnDataEvent(returnDataEvent);
+                }
+            } else {
+
             }
-        } else {
 
+            List<Long> argumentParameters = dbMce.getArguments();
+            List<Long> argumentProbes = dbMce.getArgumentProbes();
+            for (int i = 0; i < argumentParameters.size(); i++) {
+                Long argumentParameter = argumentParameters.get(i);
+                DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
+                DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
+                com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
+                if (argument == null) {
+                    argument = new com.insidious.plugin.pojo.Parameter(0L);
+                }
+                argument.setProbeInfo(eventProbe);
+                argument.setType(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+                argument.setProb(dataEvent);
+                mce.addArgument(argument);
+            }
+
+            mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
+            if (!mce.isStaticCall()) {
+                com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
+                mce.setSubject(subjectParam);
+            } else {
+                DataInfo entryProbeInfo = mce.getEntryProbeInfo();
+                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
+                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
+                staticSubject.setProb(mce.getEntryProbe());
+                staticSubject.setProbeInfo(entryProbeInfo);
+                staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
+                mce.setSubject(staticSubject);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
 
-        List<Long> argumentParameters = dbMce.getArguments();
-        List<Long> argumentProbes = dbMce.getArgumentProbes();
-        for (int i = 0; i < argumentParameters.size(); i++) {
-            Long argumentParameter = argumentParameters.get(i);
-            DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
-            DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
-            com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
-            if (argument == null) {
-                argument = new com.insidious.plugin.pojo.Parameter(0L);
-            }
-            argument.setProbeInfo(eventProbe);
-            argument.setType(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
-            argument.setProb(dataEvent);
-            mce.addArgument(argument);
-        }
 
-        mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
-        if (!mce.isStaticCall()) {
-            com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
-            mce.setSubject(subjectParam);
-        } else {
-            DataInfo entryProbeInfo = mce.getEntryProbeInfo();
-            com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
-            staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
-            staticSubject.setProb(mce.getEntryProbe());
-            staticSubject.setProbeInfo(entryProbeInfo);
-            staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
-            mce.setSubject(staticSubject);
+        return mce;
+    }
+
+
+    public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) {
+        MethodCallExpression dbMce = null;
+        try {
+            dbMce = methodCallExpressionDao.queryForId(methodCallId);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return convertDbMCE(dbMce);
+    }
+
+    @NotNull
+    private com.insidious.plugin.pojo.MethodCallExpression convertDbMCE(MethodCallExpression dbMce) {
+        com.insidious.plugin.pojo.MethodCallExpression mce = MethodCallExpression.ToMCE(dbMce);
+        try {
+
+            Parameter mainSubject = dbMce.getSubject();
+            if (dbMce.getReturnValue() != null) {
+                Parameter returnValue = dbMce.getReturnValue();
+                com.insidious.plugin.pojo.Parameter returnParam = null;
+                returnParam = getParameterByValue((Long) returnValue.getValue());
+                mce.setReturnValue(returnParam);
+                if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
+                    DataEventWithSessionId returnDataEvent = null;
+                    returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
+                    returnParam.setProb(returnDataEvent);
+                    mce.setReturnDataEvent(returnDataEvent);
+                }
+            } else {
+
+            }
+
+            List<Long> argumentParameters = dbMce.getArguments();
+            List<Long> argumentProbes = dbMce.getArgumentProbes();
+            for (int i = 0; i < argumentParameters.size(); i++) {
+                Long argumentParameter = argumentParameters.get(i);
+                DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
+                DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
+                com.insidious.plugin.pojo.Parameter argument = getParameterByValue(argumentParameter);
+                if (argument == null) {
+                    argument = new com.insidious.plugin.pojo.Parameter(0L);
+                }
+                argument.setProbeInfo(eventProbe);
+                argument.setType(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+                argument.setProb(dataEvent);
+                mce.addArgument(argument);
+            }
+
+            mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
+            if (!mce.isStaticCall()) {
+                com.insidious.plugin.pojo.Parameter subjectParam = getParameterByValue((Long) mainSubject.getValue());
+                mce.setSubject(subjectParam);
+            } else {
+                DataInfo entryProbeInfo = mce.getEntryProbeInfo();
+                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
+                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
+                staticSubject.setProb(mce.getEntryProbe());
+                staticSubject.setProbeInfo(entryProbeInfo);
+                staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
+                mce.setSubject(staticSubject);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
 
 

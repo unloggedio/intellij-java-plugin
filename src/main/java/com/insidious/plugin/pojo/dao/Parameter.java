@@ -26,15 +26,15 @@ public class Parameter {
      */
     @DatabaseField(id = true)
     Long value;
-    /**
-     * name should be a valid java variable name. this will be used inside the generated test cases
-     */
     @DatabaseField
     String type;
     @DatabaseField
     boolean exception;
     @DatabaseField(foreign = true)
     DataEventWithSessionId prob;
+    /**
+     * name should be a valid java variable name. this will be used inside the generated test cases
+     */
     @DatabaseField
     private String names = "";
     @DatabaseField
