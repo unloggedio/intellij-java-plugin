@@ -264,11 +264,14 @@ public class DaoService {
                 Parameter returnValue = dbMce.getReturnValue();
                 com.insidious.plugin.pojo.Parameter returnParam = null;
                 returnParam = getParameterByValue((Long) returnValue.getValue());
+                if (returnParam == null) {
+                    returnParam = new com.insidious.plugin.pojo.Parameter();
+                }
                 mce.setReturnValue(returnParam);
-                if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
-                    DataEventWithSessionId returnDataEvent = null;
-                    returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
+                if (dbMce.getReturnDataEvent() != 0) {
+                    DataEventWithSessionId returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
                     returnParam.setProb(returnDataEvent);
+                    returnParam.setProbeInfo(getProbeInfoById(returnDataEvent.getDataId()));
                     mce.setReturnDataEvent(returnDataEvent);
                 }
             } else {

@@ -11,6 +11,8 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 
 import java.util.LinkedList;
@@ -19,12 +21,12 @@ import java.util.Objects;
 
 public class MethodCallExpression implements Expression {
 
+    private static final Logger logger = LoggerUtil.getInstance(MethodCallExpression.class);
     private int callStack;
     private List<Parameter> arguments;
     private String methodName;
     private boolean isStaticCall;
     private Parameter subject;
-
     private DataInfo entryProbeInfo;
     private Parameter returnValue;
     private DataEventWithSessionId entryProbe;
@@ -114,6 +116,7 @@ public class MethodCallExpression implements Expression {
 
         Parameter mainMethodReturnValue = getReturnValue();
         if (mainMethodReturnValue == null) {
+            logger.error("writing a call without a return value is skipped - " + this);
             return;
         }
 
@@ -259,7 +262,7 @@ public class MethodCallExpression implements Expression {
             }
 
 
-            String returnValueType = ClassName.bestGuess(returnValue.getType()).simpleName();
+            String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType()).simpleName();
             objectRoutine.addComment(
                     returnValueType + " " + returnValue.getName()
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");
@@ -289,10 +292,12 @@ public class MethodCallExpression implements Expression {
         }
         String methodName1 = methodName;
         String methodCallOnVariableString = name + methodName1;
-        if (methodName.equals("<init>")) {
-            methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType()).simpleName();
-        } else {
-            methodCallOnVariableString = ClassName.bestGuess(subject.getType()).simpleName() + "." + methodName1;
+        if (subject != null && subject.getType() != null) {
+            if (methodName.equals("<init>")) {
+                methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType()).simpleName();
+            } else {
+                methodCallOnVariableString = ClassName.bestGuess(subject.getType()).simpleName() + "." + methodName1;
+            }
         }
         return
 //                ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ? "" : (returnValue.getName() + " = ")) +
@@ -302,7 +307,7 @@ public class MethodCallExpression implements Expression {
 
     public void writeMockTo(ObjectRoutineScript objectRoutine) {
         Parameter returnValue = getReturnValue();
-        if (returnValue == null) {
+        if (returnValue.getType() == null) {
             return;
         }
 
@@ -318,10 +323,14 @@ public class MethodCallExpression implements Expression {
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
                 if (argument.getName() != null) {
+                    if (argument.getType().equals("Z") || argument.getType().equals("java.lang.Boolean")) {
+                        // boolean values to be used directly without their names
+                        // since a lot of them conflict with each other
+                        continue;
+                    }
 
-                    if (
-                            (argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
-                                    && !argument.getType().contains(".Object")
+                    if ((argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
+                            && !argument.getType().contains(".Object")
                     ) {
                         in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
                     }
@@ -340,9 +349,9 @@ public class MethodCallExpression implements Expression {
             if (returnValue.getCreatorExpression() == null) {
                 in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
             } else {
-                MethodCallExpression createrExpression = returnValue.getCreatorExpression();
+                MethodCallExpression creatorExpression = returnValue.getCreatorExpression();
 
-                List<Parameter> arguments = createrExpression.getArguments();
+                List<Parameter> arguments = creatorExpression.getArguments();
                 for (Parameter parameter : arguments) {
                     in(objectRoutine)
                             .assignVariable(parameter)
@@ -352,8 +361,8 @@ public class MethodCallExpression implements Expression {
 
 
                 in(objectRoutine)
-                        .assignVariable(createrExpression.getReturnValue())
-                        .writeExpression(createrExpression)
+                        .assignVariable(creatorExpression.getReturnValue())
+                        .writeExpression(creatorExpression)
                         .endStatement();
             }
 

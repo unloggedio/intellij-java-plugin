@@ -37,12 +37,12 @@ public class CandidateMetadataFactory {
     public static ObjectRoutineScript toObjectScript(
             TestCandidateMetadata testCandidateMetadata,
             VariableContainer createdVariables,
-            TestCaseGenerationConfiguration testConfiguration) {
+            TestCaseGenerationConfiguration testConfiguration
+    ) {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(createdVariables);
 
 
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
-
 
             MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
 
@@ -56,6 +56,7 @@ public class CandidateMetadataFactory {
                     continue;
                 }
                 if (e.getReturnValue() == null) {
+                    logger.error("MCE to mock without a return value - " + e);
                     continue;
                 }
                 if (e.isStaticCall() && e.getUsesFields()) {
@@ -93,7 +94,7 @@ public class CandidateMetadataFactory {
                     // this is potentially a bug, and the fix is inside scan implementation
                     continue;
                 }
-                if (e.getReturnValue() == null || e.getReturnValue().getProb() == null) {
+                if (e.getReturnValue().getType() == null || e.getReturnValue().getProb() == null) {
                     // either the function has no return value (need not be mocked) or
                     // we failed to identify the return value in the scan, in that case this is a bug
                     continue;
@@ -134,7 +135,7 @@ public class CandidateMetadataFactory {
             }
 
 
-            if (staticCallsList != null && staticCallsList.size() > 0) {
+            if (staticCallsList.size() > 0) {
 
                 Map<String, Boolean> mockedCalls = new HashMap<>();
 

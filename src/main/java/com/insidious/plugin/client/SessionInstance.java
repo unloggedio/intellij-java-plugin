@@ -2366,10 +2366,10 @@ public class SessionInstance {
                                 exceptionCallExpression = callStack.get(callStack.size() - 1);
                                 entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
-                                saveProbe = true;
                                 existingParameter.setProbeInfo(probeInfo);
                                 existingParameter.setProb(dataEvent);
                                 isModified = true;
+                                saveProbe = true;
 
 
                                 if (entryProbeEventType == EventType.CALL) {
@@ -2455,13 +2455,12 @@ public class SessionInstance {
                                 entryProbeEventType = currentCallExpression.getEntryProbeInfo().getEventType();
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 isModified = false;
+                                saveProbe = true;
                                 if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
-                                    saveProbe = true;
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
                                     isModified = eventValue != 0;
                                 }
-
 
                                 if (entryProbeEventType == EventType.CALL) {
                                     // we dont pop it here, wait for the CALL_RETURN to pop the call
@@ -2537,6 +2536,7 @@ public class SessionInstance {
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
 
                                 isModified = false;
+                                saveProbe = true;
                                 if (existingParameter.getValue() != 0) {
                                     existingParameter.setProb(dataEvent);
                                     saveProbe = true;
