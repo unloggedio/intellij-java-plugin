@@ -46,8 +46,11 @@ public class LiveViewTestCandidateListTree implements TreeModel {
 
         for (String packageName : classAggregatesByPackageName.keySet()) {
             List<VideobugTreeClassAggregateNode> classAggregates = classAggregatesByPackageName.get(packageName);
-            Integer totalCount = classAggregates.stream()
-                    .map(VideobugTreeClassAggregateNode::getCount).reduce(Integer::sum).orElse(0);
+            Integer totalCount = classAggregates
+                    .stream()
+                    .map(VideobugTreeClassAggregateNode::getCount)
+                    .reduce(Integer::sum)
+                    .orElse(0);
             packageAggregates.add(new VideobugTreePackageAggregateNode(packageName, totalCount));
         }
         Collections.sort(packageAggregates);

@@ -50,7 +50,6 @@ public class ConfigurationWindow {
     private JPanel buttonsPanel;
     private JTextField supportEmailAddress;
     private JButton getInTouchButton;
-    private JButton generateTestCases;
     private final InsidiousService insidiousService;
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
@@ -75,23 +74,23 @@ public class ConfigurationWindow {
             }
         });
 
-        generateTestCases.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-
-                    @Nullable String classNamesList =
-                            Messages.showInputDialog("Class names list", "Videobug", null);
-                    if (classNamesList == null || classNamesList.length() == 0) {
-                        return;
-                    }
-
-                    insidiousService.generateTestCases(Arrays.asList(classNamesList.split(",")));
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        });
+//        generateTestCases.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                try {
+//
+//                    @Nullable String classNamesList =
+//                            Messages.showInputDialog("Class names list", "Videobug", null);
+//                    if (classNamesList == null || classNamesList.length() == 0) {
+//                        return;
+//                    }
+//
+//                    insidiousService.generateTestCases(Arrays.asList(classNamesList.split(",")));
+//                } catch (Exception ex) {
+//                    throw new RuntimeException(ex);
+//                }
+//            }
+//        });
 
         signInButton.addActionListener(new ActionListener() {
             @Override

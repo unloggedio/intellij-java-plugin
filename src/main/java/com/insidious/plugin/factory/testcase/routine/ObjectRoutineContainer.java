@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
     private final Parameter parameter;
+    private final TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private String packageName;
     private ObjectRoutine currentRoutine;
     private ObjectRoutine constructor = newRoutine("<init>");
@@ -35,13 +37,32 @@ public class ObjectRoutineContainer {
      * Name for variable for this particular object
      */
     private String name;
-    public ObjectRoutineContainer(Parameter parameter) {
-        this.parameter  = parameter;
-        if (parameter != null && parameter.getType() != null) {
-            ClassName className = ClassName.bestGuess(parameter.getType());
-            this.packageName = className.packageName();
-            this.name = className.simpleName();
+
+    public ObjectRoutineContainer(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
+        this.testCaseGenerationConfiguration = testCaseGenerationConfiguration;
+        Parameter parameter = testCaseGenerationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
+        ClassName targetClassName = ClassName.bestGuess(parameter.getType());
+
+        this.parameter = parameter;
+        assert parameter.getType() != null;
+        ClassName className = ClassName.bestGuess(parameter.getType());
+        this.packageName = className.packageName();
+        this.name = className.simpleName();
+        newRoutine("test" + targetClassName.simpleName());
+
+        for (TestCandidateMetadata testCandidateMetadata : testCaseGenerationConfiguration.getTestCandidateMetadataList()) {
+
+            MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
+                continue;
+            }
+            if (methodInfo.getMethodName().equals("<init>")) {
+                constructor.setTestCandidateList(testCandidateMetadata);
+            } else {
+                addMetadata(testCandidateMetadata);
+            }
         }
+
     }
 
     public Parameter getParameter() {
@@ -64,7 +85,7 @@ public class ObjectRoutineContainer {
             }
         }
 
-        ObjectRoutine newRoutine = new ObjectRoutine(routineName);
+        ObjectRoutine newRoutine = new ObjectRoutine(routineName, testCaseGenerationConfiguration);
         this.objectRoutines.add(newRoutine);
         this.currentRoutine = newRoutine;
         return newRoutine;
@@ -224,20 +245,12 @@ public class ObjectRoutineContainer {
                 .collect(Collectors.toSet());
     }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
-    }
-
     public String getPackageName() {
         return packageName;
     }
 
+    public void setPackageName(String packageName) {
+        this.packageName = packageName;
+    }
 
-//    public ObjectRoutineScriptContainer toRoutineScriptContainer(VariableContainer variableContainer) {
-//        ObjectRoutineScriptContainer orsc = new ObjectRoutineScriptContainer();
-//
-//        orsc.addScriptsFromRoutineContainer(this, variableContainer);
-//
-//        return orsc;
-//    }
 }

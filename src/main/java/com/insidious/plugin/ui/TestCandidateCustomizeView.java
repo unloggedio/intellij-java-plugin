@@ -2,14 +2,13 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.JsonFramework;
+import com.insidious.plugin.pojo.TestFramework;
 
 import javax.swing.*;
-import javax.swing.event.EventListenerList;
-import javax.swing.tree.*;
-import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.util.*;
+import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
+import java.util.ArrayList;
 
 public class TestCandidateCustomizeView {
 
@@ -33,13 +32,18 @@ public class TestCandidateCustomizeView {
     public TestCandidateCustomizeView(
             TestCandidateMetadata testCandidateMetadata,
             SessionInstance sessionInstance,
-            TestGenerateActionListener testActionListener) {
+            TestGenerateActionListener testActionListener
+    ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.sessionInstance = sessionInstance;
         this.testActionListener = testActionListener;
         this.testGenerationConfiguration = new TestCaseGenerationConfiguration();
 
-        TestCandidateTreeModel candidateTree = new TestCandidateTreeModel(testCandidateMetadata, sessionInstance);
+        testGenerationConfiguration.setTestFramework(TestFramework.JUNIT5);
+        testGenerationConfiguration.setJsonFramework(JsonFramework.GSON);
+
+        TestCandidateTreeModel candidateTree = new TestCandidateTreeModel(
+                testCandidateMetadata, testGenerationConfiguration, sessionInstance);
         this.testCandidateTree.setModel(candidateTree);
 
         cellRenderer = new CustomizeViewTreeCellRenderer();
@@ -52,11 +56,10 @@ public class TestCandidateCustomizeView {
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
 
-    private void setDefaultSelection()
-    {
+    private void setDefaultSelection() {
         int level1_rowcount = this.testCandidateTree.getRowCount();
         //select all l1 nodes
-        for(int i=0; i<level1_rowcount; i++){
+        for (int i = 0; i < level1_rowcount; i++) {
             TreePath path = this.testCandidateTree.getPathForRow(i);
             this.testCandidateTree.addSelectionPath(path);
 
@@ -67,8 +70,7 @@ public class TestCandidateCustomizeView {
         ArrayList<TreePath> leafPaths = new ArrayList<TreePath>();
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
 
-        for(int i=1;i< paths.length;i++)
-        {
+        for (int i = 1; i < paths.length; i++) {
             Object selectedNode = paths[i].getLastPathComponent();
             int count = model.getChildCount(selectedNode);
 //            System.out.println("[FIRST leaf ] : "+model.getChild(selectedNode,0));
@@ -78,24 +80,19 @@ public class TestCandidateCustomizeView {
 
                 leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, 0)));
                 leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, count - 1)));
-            }
-            catch (Exception e)
-            {
-                System.out.println("Exception e -> "+e);
+            } catch (Exception e) {
+                System.out.println("Exception e -> " + e);
             }
         }
-        for(int i=0;i<leafPaths.size();i++)
-        {
+        for (int i = 0; i < leafPaths.size(); i++) {
             this.testCandidateTree.addSelectionPath(leafPaths.get(i));
         }
     }
 
-    private void printSelections()
-    {
+    private void printSelections() {
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-        for(int i=0;i<paths.length;i++)
-        {
-            System.out.println("Selection : "+i+" "+paths[i].toString());
+        for (int i = 0; i < paths.length; i++) {
+            System.out.println("Selection : " + i + " " + paths[i].toString());
         }
     }
 
@@ -105,7 +102,7 @@ public class TestCandidateCustomizeView {
 
     private void generateWithSelectedOptions() {
         printSelections();
-        testActionListener.generateTestCase(testCandidateMetadata, testGenerationConfiguration);
+        testActionListener.generateTestCase(testGenerationConfiguration);
     }
 
     public JPanel getContentPanel() {

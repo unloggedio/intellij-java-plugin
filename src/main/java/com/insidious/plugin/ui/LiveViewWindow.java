@@ -170,10 +170,9 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     @Override
     public void generateTestCase(
-            TestCandidateMetadata testCandidateMetadata,
             TestCaseGenerationConfiguration generationConfiguration
     ) {
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(testCandidateMetadata);
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(generationConfiguration);
         TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
         insidiousService.saveTestSuite(testSuite);
     }

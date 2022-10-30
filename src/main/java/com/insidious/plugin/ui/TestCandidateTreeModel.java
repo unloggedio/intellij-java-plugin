@@ -3,6 +3,7 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.TreeModel;
@@ -17,29 +18,45 @@ public class TestCandidateTreeModel implements TreeModel {
     private final SessionInstance sessionInstance;
     private final RootNode rootNode;
     private final List<TestCandidateMetadata> candidates;
+    private final TestCaseGenerationConfiguration testGenerationConfiguration;
     private List<TreeModelListener> treeModelListeners = new LinkedList<>();
-    private Map<Long, TestCandidateMetadata> candidatesWithCalls = new HashMap<>();
+    private Map<Long, List<MethodCallExpression>> candidateCallMap = new HashMap<>();
+    private List<TestCandidateMetadata> candidateList = new LinkedList<>();
 
-    public TestCandidateTreeModel(TestCandidateMetadata selectedCandidate, SessionInstance sessionInstance) {
+    public TestCandidateTreeModel(
+            TestCandidateMetadata selectedCandidate,
+            TestCaseGenerationConfiguration testGenerationConfiguration,
+            SessionInstance sessionInstance
+    ) {
         this.selectedCandidate = selectedCandidate;
         this.sessionInstance = sessionInstance;
+        this.testGenerationConfiguration = testGenerationConfiguration;
         String testSubjectType = selectedCandidate.getTestSubject().getType();
         MethodCallExpression mainMethod = (MethodCallExpression) selectedCandidate.getMainMethod();
-        this.rootNode = new RootNode(testSubjectType.substring(testSubjectType.lastIndexOf('.') + 1) + "." +
-                mainMethod.getMethodName());
+        this.rootNode = createRootNode(testSubjectType, mainMethod);
 
         candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
                 selectedCandidate.getCallTimeNanoSecond(), mainMethod.getId(), false);
+
+        for (TestCandidateMetadata candidate : candidates) {
+            TestCandidateMetadata candidateWithCalls = getTestCandidateById(candidate.getEntryProbeIndex());
+            candidateList.add(candidateWithCalls);
+            // add all candidates to default selected, or just first and last ?
+            testGenerationConfiguration.getTestCandidateMetadataList().add(candidateWithCalls);
+            // add all calls of all test candidate to be mocked
+            testGenerationConfiguration.getCallExpressionList().addAll(candidateWithCalls.getCallsList());
+        }
+
+    }
+
+    @NotNull
+    private static RootNode createRootNode(String testSubjectType, MethodCallExpression mainMethod) {
+        return new RootNode(testSubjectType.substring(testSubjectType.lastIndexOf('.') + 1) + "." +
+                mainMethod.getMethodName());
     }
 
     private TestCandidateMetadata getTestCandidateById(Long value) {
-        if (candidatesWithCalls.containsKey(value)) {
-            return candidatesWithCalls.get(value);
-        }
-        TestCandidateMetadata testCandidateWithCalls = sessionInstance
-                .getTestCandidateById(value);
-        candidatesWithCalls.put(value, testCandidateWithCalls);
-        return testCandidateWithCalls;
+        return sessionInstance.getTestCandidateById(value);
     }
 
     @Override
@@ -56,7 +73,7 @@ public class TestCandidateTreeModel implements TreeModel {
 
         if (parent instanceof TestCandidateMetadata) {
             TestCandidateMetadata candidateNode = (TestCandidateMetadata) parent;
-            return (getTestCandidateById(candidateNode.getEntryProbeIndex())).getCallsList().get(index);
+            return candidateNode.getCallsList().get(index);
         }
 
         return null;
@@ -69,7 +86,7 @@ public class TestCandidateTreeModel implements TreeModel {
         }
         if (parent instanceof TestCandidateMetadata) {
             TestCandidateMetadata testCandidateMetadata = (TestCandidateMetadata) parent;
-            return getTestCandidateById(testCandidateMetadata.getEntryProbeIndex()).getCallsList().size();
+            return testCandidateMetadata.getCallsList().size();
         }
         return 0;
     }

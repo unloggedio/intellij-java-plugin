@@ -18,8 +18,6 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
-    //    private VariableContainer variables = new VariableContainer();
-    private List<MethodCallExpression> staticCalls = new LinkedList<>();
 
     public long getExitProbeIndex() {
         return exitProbeIndex;
@@ -96,22 +94,6 @@ public class TestCandidateMetadata {
 
     public void setEntryProbeIndex(long entryProbeIndex) {
         this.entryProbeIndex = entryProbeIndex;
-    }
-
-//    public VariableContainer getVariables() {
-//        return variables;
-//    }
-
-//    public void setVariables(VariableContainer variables) {
-//        this.variables = variables;
-//    }
-
-    public List<MethodCallExpression> getStaticCalls() {
-        return staticCalls;
-    }
-
-    public void setStaticCalls(List<MethodCallExpression> staticCalls) {
-        this.staticCalls = staticCalls;
     }
 
     public void addMethodCall(MethodCallExpression topCall) {

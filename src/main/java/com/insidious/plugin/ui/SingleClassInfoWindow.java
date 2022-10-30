@@ -232,23 +232,22 @@ public class SingleClassInfoWindow {
                 );
             }
         };
-        ActionListener actionTestListener = e -> {
-            ObjectWithTypeInfo selectedTracePoint = objectResultList.get(objectListTable.getSelectedRow());
-            try {
-                insidiousService.generateTestCases(selectedTracePoint);
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                throw new RuntimeException(ex);
-            }
-        };
+//        ActionListener actionTestListener = e -> {
+//            ObjectWithTypeInfo selectedTracePoint = objectResultList.get(objectListTable.getSelectedRow());
+//            try {
+//                insidiousService.generateTestCases(selectedTracePoint);
+//            } catch (Exception ex) {
+//                ex.printStackTrace();
+//                throw new RuntimeException(ex);
+//            }
+//        };
         objectListTable.getColumn("Load").setCellEditor(new ButtonEditor(new JCheckBox(),
                 actionLoadListener));
         objectListTable.getColumn("Load").setPreferredWidth(30);
 
 
         objectListTable.getColumn("Test").setCellRenderer(new ButtonRenderer());
-        objectListTable.getColumn("Test").setCellEditor(new ButtonEditor(new JCheckBox(),
-                actionTestListener));
+//        objectListTable.getColumn("Test").setCellEditor(new ButtonEditor(new JCheckBox(), actionTestListener));
         objectListTable.getColumn("Test").setPreferredWidth(30);
     }
 

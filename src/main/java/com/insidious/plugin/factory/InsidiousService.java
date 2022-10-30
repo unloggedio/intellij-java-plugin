@@ -497,123 +497,123 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
+//    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
+//
+//        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+//                "Videobug", true) {
+//            @Override
+//            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
+//                TestCaseRequest testCaseRequest = new TestCaseRequest(
+//                        List.of(object), List.of(
+//                        "com.fasterxml",
+//                        "com.google"
+//                ), Set.of());
+//
+//                TestSuite testSuite = null;
+//                try {
+//                    testSuite = testCaseService.generateTestCase(testCaseRequest);
+//                } catch (SessionNotSelectedException e) {
+//                    InsidiousNotification.notifyMessage(
+//                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+//                    );
+//                }
+//                return testSuite;
+//            }
+//        });
+//        if (testSuite == null) {
+//            return;
+//        }
+//        logger.warn("testsuite: \n" + testSuite.toString());
+//
+//        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+//        if (newFile == null) {
+//            logger.warn("Test case generated for [" + object + "] but failed to write");
+//            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+//        } else {
+//            InsidiousNotification.notifyMessage(
+//                    "Test case saved at [" + newFile.getCanonicalPath() + "]", NotificationType.INFORMATION
+//            );
+//        }
+//
+//    }
 
-        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
-                "Videobug", true) {
-            @Override
-            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
-                TestCaseRequest testCaseRequest = new TestCaseRequest(
-                        List.of(object), List.of(
-                        "com.fasterxml",
-                        "com.google"
-                ), Set.of());
-
-                TestSuite testSuite = null;
-                try {
-                    testSuite = testCaseService.generateTestCase(testCaseRequest);
-                } catch (SessionNotSelectedException e) {
-                    InsidiousNotification.notifyMessage(
-                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
-                    );
-                }
-                return testSuite;
-            }
-        });
-        if (testSuite == null) {
-            return;
-        }
-        logger.warn("testsuite: \n" + testSuite.toString());
-
-        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
-        if (newFile == null) {
-            logger.warn("Test case generated for [" + object + "] but failed to write");
-            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
-        } else {
-            InsidiousNotification.notifyMessage(
-                    "Test case saved at [" + newFile.getCanonicalPath() + "]", NotificationType.INFORMATION
-            );
-        }
-
-    }
-
-    public void generateTestCases(List<String> targetClasses) throws Exception {
-
-        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
-                "Videobug", true) {
-            @Override
-            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
-
-
-                List<TestCandidate> testCandidateList = new LinkedList<>();
-                BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
-
-
-//        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
-
-                SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
-
-                List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
-
-                DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-                ExecutionSession session = sessions.getItems().get(0);
-
-                client.getObjectsByType(
-                        searchQuery, session.getSessionId(), new ClientCallBack<>() {
-                            @Override
-                            public void error(ExceptionResponse errorResponse) {
-
-                            }
-
-                            @Override
-                            public void success(Collection<ObjectWithTypeInfo> tracePoints) {
-                                allObjects.addAll(tracePoints);
-                            }
-
-                            @Override
-                            public void completed() {
-                                waiter.offer("done");
-                            }
-                        }
-                );
-                waiter.take();
-
-                if (allObjects.size() == 0) {
-                    InsidiousNotification.notifyMessage("Could not find any instances of [" + targetClasses + "]",
-                            NotificationType.WARNING);
-                }
-
-                TestCaseRequest testRequest = new TestCaseRequest(
-                        allObjects, List.of(
-                        "com.fasterxml",
-                        "com.google"
-                ), Set.of()
-                );
-                TestSuite testSuite = null;
-                try {
-                    testSuite = testCaseService.generateTestCase(testRequest);
-                } catch (SessionNotSelectedException e) {
-                    InsidiousNotification.notifyMessage(
-                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
-                    );
-                    return null;
-                }
-                return testSuite;
-
-            }
-        });
-        if (testSuite == null) {
-            return;
-        }
-
-        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
-        if (newFile == null) {
-            logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
-            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
-        }
-
-
-    }
+//    public void generateTestCases(List<String> targetClasses) throws Exception {
+//
+//        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
+//                "Videobug", true) {
+//            @Override
+//            protected TestSuite compute(@NotNull ProgressIndicator indicator) throws Exception {
+//
+//
+//                List<TestCandidate> testCandidateList = new LinkedList<>();
+//                BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+//
+//
+////        List<String> targetClasses = List.of("org.zerhusen.service.Adder");
+//
+//                SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+//
+//                List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
+//
+//                DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+//                ExecutionSession session = sessions.getItems().get(0);
+//
+//                client.getObjectsByType(
+//                        searchQuery, session.getSessionId(), new ClientCallBack<>() {
+//                            @Override
+//                            public void error(ExceptionResponse errorResponse) {
+//
+//                            }
+//
+//                            @Override
+//                            public void success(Collection<ObjectWithTypeInfo> tracePoints) {
+//                                allObjects.addAll(tracePoints);
+//                            }
+//
+//                            @Override
+//                            public void completed() {
+//                                waiter.offer("done");
+//                            }
+//                        }
+//                );
+//                waiter.take();
+//
+//                if (allObjects.size() == 0) {
+//                    InsidiousNotification.notifyMessage("Could not find any instances of [" + targetClasses + "]",
+//                            NotificationType.WARNING);
+//                }
+//
+//                TestCaseRequest testRequest = new TestCaseRequest(
+//                        allObjects, List.of(
+//                        "com.fasterxml",
+//                        "com.google"
+//                ), Set.of()
+//                );
+//                TestSuite testSuite = null;
+//                try {
+//                    testSuite = testCaseService.generateTestCase(testRequest);
+//                } catch (SessionNotSelectedException e) {
+//                    InsidiousNotification.notifyMessage(
+//                            "Failed to generate test suite: " + e.getMessage(), NotificationType.ERROR
+//                    );
+//                    return null;
+//                }
+//                return testSuite;
+//
+//            }
+//        });
+//        if (testSuite == null) {
+//            return;
+//        }
+//
+//        @Nullable VirtualFile newFile = saveTestSuite(testSuite);
+//        if (newFile == null) {
+//            logger.warn("Test case generated for [" + targetClasses + "] but failed to write");
+//            InsidiousNotification.notifyMessage("Failed to write test case to file", NotificationType.ERROR);
+//        }
+//
+//
+//    }
 
     public VirtualFile saveTestSuite(TestSuite testSuite) {
         File lastFile = null;

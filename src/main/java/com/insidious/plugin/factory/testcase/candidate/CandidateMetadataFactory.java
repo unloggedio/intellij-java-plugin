@@ -19,6 +19,7 @@ import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
@@ -35,8 +36,8 @@ public class CandidateMetadataFactory {
 
     public static ObjectRoutineScript toObjectScript(
             TestCandidateMetadata testCandidateMetadata,
-            VariableContainer createdVariables
-    ) {
+            VariableContainer createdVariables,
+            TestCaseGenerationConfiguration testConfiguration) {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(createdVariables);
 
 
@@ -47,9 +48,13 @@ public class CandidateMetadataFactory {
 
 
             Collection<MethodCallExpression> callToMock = new ArrayList<>();
-            List<MethodCallExpression> staticCallsList = testCandidateMetadata.getStaticCalls();
+            List<MethodCallExpression> staticCallsList = new LinkedList<>();
 
             for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
+                if (!testConfiguration.getCallExpressionList().contains(e)) {
+                    logger.warn("Skip unselected call expression to be mocked - " + e);
+                    continue;
+                }
                 if (e.getReturnValue() == null) {
                     continue;
                 }
@@ -82,9 +87,7 @@ public class CandidateMetadataFactory {
                     // constructors need not be mocked
                     continue;
                 }
-//                if (!e.getUsesFields()) {
-//                    continue;
-//                }
+
                 if (e.getSubject() == null) {
                     // not a static call, but we failed to identify subject
                     // this is potentially a bug, and the fix is inside scan implementation
@@ -131,7 +134,6 @@ public class CandidateMetadataFactory {
             }
 
 
-
             if (staticCallsList != null && staticCallsList.size() > 0) {
 
                 Map<String, Boolean> mockedCalls = new HashMap<>();
@@ -173,8 +175,6 @@ public class CandidateMetadataFactory {
                         }
 
                     }
-
-
 
 
                 }

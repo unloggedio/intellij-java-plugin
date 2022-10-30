@@ -4,6 +4,7 @@ import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
@@ -23,11 +24,12 @@ public class ObjectRoutine {
     private final String routineName;
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
+    private final TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private List<TestCandidateMetadata> testCandidateList = new LinkedList<>();
-//    private VariableContainer variableContainer = new VariableContainer();
 
-    public ObjectRoutine(String routineName) {
+    public ObjectRoutine(String routineName, TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
         this.routineName = routineName;
+        this.testCaseGenerationConfiguration = testCaseGenerationConfiguration;
     }
 
 
@@ -91,7 +93,7 @@ public class ObjectRoutine {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             variableContainer.all().addAll(candidateVariables.all());
             ObjectRoutineScript script = CandidateMetadataFactory
-                    .toObjectScript(testCandidateMetadata, variableContainer);
+                    .toObjectScript(testCandidateMetadata, variableContainer, testCaseGenerationConfiguration);
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 
@@ -99,11 +101,4 @@ public class ObjectRoutine {
 
     }
 
-//    public VariableContainer getVariableContainer() {
-//        return variableContainer;
-//    }
-//
-//    public void setVariableContainer(VariableContainer variableContainer) {
-//        this.variableContainer = variableContainer;
-//    }
 }

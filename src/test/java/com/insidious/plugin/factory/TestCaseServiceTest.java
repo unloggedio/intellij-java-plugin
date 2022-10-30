@@ -329,103 +329,103 @@ public class TestCaseServiceTest {
 
     }
 
-    @Test
-    void testGenerateByObjects() throws InterruptedException, APICallException, IOException, SessionNotSelectedException, SQLException {
-
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
-        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
-
-        client.getProjectSessions(new GetProjectSessionsCallback() {
-            @Override
-            public void error(String message) {
-                throw new RuntimeException(message);
-            }
-
-            @Override
-            public void success(List<ExecutionSession> executionSessionList) {
-                try {
-                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
-                } catch (SQLException | IOException e) {
-                    throw new RuntimeException(e);
-                }
-                waiter.offer("done");
-            }
-        });
-
-        waiter.take();
-        TestCaseService testCaseService = new TestCaseService(client);
-
-
-//        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
-//        List<String> targetClasses = List.of("com.appsmith.server.solutions.ce.UserChangedHandlerCEImpl");
-//        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
-//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
-//        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
-//        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
-//        List<String> targetClasses = List.of("jenkins.org.apache.commons.validator.routines.RegexValidator");
-//        List<String> targetClasses = List.of("org.zerhusen.security.UserModelDetailsService");
-
-
-//        List<String> targetClasses = List.of("com.repyute.service.pocket.PocketService");
-//        List<String> targetClasses = List.of("com.repyute.helper.pocket.PocketHelper");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
-//        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
-//        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
-//        List<String> targetClasses = List.of("com.ayu.cabeza.service.HospitalProfileService");
-        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
-
-
-        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
-
-        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
-
-        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems().get(0);
-
-        client.getObjectsByType(
-                searchQuery, session.getSessionId(), new ClientCallBack<>() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(Collection<ObjectWithTypeInfo> tracePoints) {
-                        allObjects.addAll(tracePoints);
-                    }
-
-                    @Override
-                    public void completed() {
-                        waiter.offer("done");
-                    }
-                }
-        );
-        waiter.take();
-
-        TestCaseRequest testCaseRequest = new TestCaseRequest(
-                allObjects,
-                List.of(
-                        "com.fasterxml",
-                        "com.google"
-                ),
-                Set.of()
-        );
-        TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);
-
-        for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
-            System.out.println(testCaseScript);
-        }
-
-
-    }
+//    @Test
+//    void testGenerateByObjects() throws InterruptedException {
+//
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+//        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+//
+//        client.getProjectSessions(new GetProjectSessionsCallback() {
+//            @Override
+//            public void error(String message) {
+//                throw new RuntimeException(message);
+//            }
+//
+//            @Override
+//            public void success(List<ExecutionSession> executionSessionList) {
+//                try {
+//                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
+//                } catch (SQLException | IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                waiter.offer("done");
+//            }
+//        });
+//
+//        waiter.take();
+//        TestCaseService testCaseService = new TestCaseService(client);
+//
+//
+////        List<String> targetClasses = List.of("com.appsmith.server.authentication.handlers.ce.AuthenticationSuccessHandlerCE");
+////        List<String> targetClasses = List.of("com.appsmith.server.solutions.ce.UserChangedHandlerCEImpl");
+////        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
+////        List<String> targetClasses = List.of("com.appsmith.server.services.ce.FeatureFlagServiceCEImpl");
+////        List<String> targetClasses = List.of("org.zerhusen.service.GCDService");
+////        List<String> targetClasses = List.of("com.appsmith.server.services.SessionUserService");
+////        List<String> targetClasses = List.of("jenkins.org.apache.commons.validator.routines.RegexValidator");
+////        List<String> targetClasses = List.of("org.zerhusen.security.UserModelDetailsService");
+//
+//
+////        List<String> targetClasses = List.of("com.repyute.service.pocket.PocketService");
+////        List<String> targetClasses = List.of("com.repyute.helper.pocket.PocketHelper");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.communication.whatsapp.api.WhatsappAPIController");
+////        List<String> targetClasses = List.of("com.repyute.service.paybooks.PaybooksService");
+////        List<String> targetClasses = List.of("com.repyute.helper.paybooks.PaybooksHelper");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.service.CustomerProfileService");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCityService");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.service.AyuCatalogueService");
+////        List<String> targetClasses = List.of("com.ayu.cabeza.service.HospitalProfileService");
+//        List<String> targetClasses = List.of("com.ayu.cabeza.service.DoctorProfileService");
+//
+//
+//        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+//
+//        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
+//
+//        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+//        ExecutionSession session = sessions.getItems().get(0);
+//
+//        client.getObjectsByType(
+//                searchQuery, session.getSessionId(), new ClientCallBack<>() {
+//                    @Override
+//                    public void error(ExceptionResponse errorResponse) {
+//
+//                    }
+//
+//                    @Override
+//                    public void success(Collection<ObjectWithTypeInfo> tracePoints) {
+//                        allObjects.addAll(tracePoints);
+//                    }
+//
+//                    @Override
+//                    public void completed() {
+//                        waiter.offer("done");
+//                    }
+//                }
+//        );
+//        waiter.take();
+//
+//        TestCaseRequest testCaseRequest = new TestCaseRequest(
+//                allObjects,
+//                List.of(
+//                        "com.fasterxml",
+//                        "com.google"
+//                ),
+//                Set.of()
+//        );
+//        TestSuite testSuite = testCaseService.generateTestCase(testCaseRequest);
+//
+//        for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
+//            System.out.println(testCaseScript);
+//        }
+//
+//
+//    }
 
     @Test
     public void testGetTestCaseUnit() throws SQLException, IOException {
