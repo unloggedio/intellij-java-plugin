@@ -85,7 +85,7 @@ public class ObjectRoutineContainer {
             }
         }
 
-        ObjectRoutine newRoutine = new ObjectRoutine(routineName, testCaseGenerationConfiguration);
+        ObjectRoutine newRoutine = new ObjectRoutine(routineName);
         this.objectRoutines.add(newRoutine);
         this.currentRoutine = newRoutine;
         return newRoutine;
@@ -189,7 +189,7 @@ public class ObjectRoutineContainer {
         }
 
 
-        ObjectRoutineScript builderMethodScript = getConstructor().toObjectScript(variableContainer);
+        ObjectRoutineScript builderMethodScript = getConstructor().toObjectScript(variableContainer, testCaseGenerationConfiguration);
         container.getObjectRoutines().add(builderMethodScript);
 
         ObjectRoutine constructorRoutine = getConstructor();
@@ -227,7 +227,7 @@ public class ObjectRoutineContainer {
                 continue;
             }
 
-            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(classVariableContainer.clone());
+            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(classVariableContainer.clone(), testCaseGenerationConfiguration);
             container.getObjectRoutines().add(objectScript);
         }
 

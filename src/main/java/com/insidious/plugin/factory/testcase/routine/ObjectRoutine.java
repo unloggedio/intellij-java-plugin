@@ -24,12 +24,10 @@ public class ObjectRoutine {
     private final String routineName;
     private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
     private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
-    private final TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private List<TestCandidateMetadata> testCandidateList = new LinkedList<>();
 
-    public ObjectRoutine(String routineName, TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
+    public ObjectRoutine(String routineName) {
         this.routineName = routineName;
-        this.testCaseGenerationConfiguration = testCaseGenerationConfiguration;
     }
 
 
@@ -71,7 +69,8 @@ public class ObjectRoutine {
 
 
     public ObjectRoutineScript toObjectScript(
-            VariableContainer createdVariables
+            VariableContainer createdVariables,
+            TestCaseGenerationConfiguration testCaseGenerationConfiguration
     ) {
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
                 "testAs" + VariableContainer.upperInstanceName(routineName)
