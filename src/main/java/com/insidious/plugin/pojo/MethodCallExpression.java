@@ -155,6 +155,11 @@ public class MethodCallExpression implements Expression {
         }
         if (getArguments() != null) {
             for (Parameter parameter : getArguments()) {
+                if (parameter.getType() != null &&
+                        (parameter.getType().equals("Z") || parameter.getType().equals("java.lang.Boolean"))) {
+                    // we don't need boolean values in a variable, always use boolean values directly
+                    continue;
+                }
                 in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
             }
         }
