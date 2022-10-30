@@ -465,8 +465,7 @@ public class CandidateMetadataFactory {
         return metadata;
     }
 
-    public static MethodCallExpression buildObject(ReplayData replayData,
-                                                   final Parameter targetParameter) {
+    public static MethodCallExpression buildObject(ReplayData replayData, final Parameter targetParameter) {
         logger.warn("reconstruct object: " + targetParameter);
 
         switch (targetParameter.getType()) {
