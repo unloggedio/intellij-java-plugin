@@ -119,8 +119,12 @@ public class CandidateMetadataFactory {
 
                 objectRoutineScript.addComment("");
                 for (MethodCallExpression methodCallExpression : callToMock) {
+
+                    String mockedCallSignature = buildCallSignature(methodCallExpression);
+
+
                     if (methodCallExpression.getException() != null
-                            || mockedCalls.containsKey(methodCallExpression.getMethodName())) {
+                            || mockedCalls.containsKey(mockedCallSignature)) {
                         continue;
                     }
                     methodCallExpression.getReturnValue().getClosestName(
@@ -143,19 +147,9 @@ public class CandidateMetadataFactory {
 
                     Parameter subject = methodCallExpression.getSubject();
 
-                    StringBuilder callBuilder = new StringBuilder();
-                    callBuilder.append(subject.getName())
-                            .append(".")
-                            .append(methodCallExpression.getMethodName());
+                    String mockedCallSignature = buildCallSignature(methodCallExpression);
 
-                    for (Parameter parameter : methodCallExpression.getArguments()) {
-                        callBuilder.append(parameter.getValue());
-                    }
-
-
-                    String mockedFieldsKey = callBuilder.toString();
-
-                    if (!mockedCalls.containsKey(mockedFieldsKey)) {
+                    if (!mockedCalls.containsKey(mockedCallSignature)) {
                         if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
                             subject.setContainer(true);
                             Parameter childParameter = new Parameter();
@@ -169,7 +163,7 @@ public class CandidateMetadataFactory {
                                     .endStatement();
                         }
 
-                        mockedCalls.put(mockedFieldsKey, true);
+                        mockedCalls.put(mockedCallSignature, true);
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
                         if (!methodCallExpression.getReturnValue().getType().equals("V")) {
                             methodCallExpression.writeMockTo(objectRoutineScript);
@@ -197,6 +191,21 @@ public class CandidateMetadataFactory {
         objectRoutineScript.addComment("");
         return objectRoutineScript;
 
+    }
+
+    @NotNull
+    private static String buildCallSignature(MethodCallExpression methodCallExpression) {
+        Parameter subject = methodCallExpression.getSubject();
+
+        StringBuilder callBuilder = new StringBuilder();
+        callBuilder.append(subject.getName())
+                .append(".")
+                .append(methodCallExpression.getMethodName());
+
+        for (Parameter parameter : methodCallExpression.getArguments()) {
+            callBuilder.append(new String(parameter.getProb().getSerializedValue()));
+        }
+        return callBuilder.toString();
     }
 
     public static TestCandidateMetadata create(
