@@ -17,7 +17,6 @@ public class TestCandidateTreeModel implements TreeModel {
     private final TestCandidateMetadata selectedCandidate;
     private final SessionInstance sessionInstance;
     private final RootNode rootNode;
-    private final List<TestCandidateMetadata> candidates;
     private final TestCaseGenerationConfiguration testGenerationConfiguration;
     private List<TreeModelListener> treeModelListeners = new LinkedList<>();
     private Map<Long, List<MethodCallExpression>> candidateCallMap = new HashMap<>();
@@ -35,7 +34,7 @@ public class TestCandidateTreeModel implements TreeModel {
         MethodCallExpression mainMethod = (MethodCallExpression) selectedCandidate.getMainMethod();
         this.rootNode = createRootNode(testSubjectType, mainMethod);
 
-        candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
                 selectedCandidate.getCallTimeNanoSecond(), mainMethod.getId(), false);
 
         for (TestCandidateMetadata candidate : candidates) {
@@ -67,7 +66,7 @@ public class TestCandidateTreeModel implements TreeModel {
     @Override
     public Object getChild(Object parent, int index) {
         if (parent == rootNode) {
-            return candidates.get(index);
+            return candidateList.get(index);
         }
 
 
@@ -82,7 +81,7 @@ public class TestCandidateTreeModel implements TreeModel {
     @Override
     public int getChildCount(Object parent) {
         if (parent instanceof RootNode) {
-            return candidates.size();
+            return candidateList.size();
         }
         if (parent instanceof TestCandidateMetadata) {
             TestCandidateMetadata testCandidateMetadata = (TestCandidateMetadata) parent;
@@ -107,7 +106,7 @@ public class TestCandidateTreeModel implements TreeModel {
     @Override
     public int getIndexOfChild(Object parent, Object child) {
         if (parent instanceof RootNode) {
-            return candidates.indexOf(child);
+            return candidateList.indexOf(child);
         }
         if (parent instanceof TestCandidateMetadata) {
             return ((TestCandidateMetadata) parent).getCallsList().indexOf(child);
