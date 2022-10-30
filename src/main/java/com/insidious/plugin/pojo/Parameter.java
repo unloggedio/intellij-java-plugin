@@ -264,4 +264,8 @@ public class Parameter {
 
         return matchedString;
     }
+
+    public boolean isBooleanType() {
+        return type != null && (type.equals("Z") || type.equals("java.lang.Boolean"));
+    }
 }

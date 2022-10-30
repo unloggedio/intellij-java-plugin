@@ -205,10 +205,10 @@ public class ObjectRoutineContainer {
         TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
         MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
         Parameter mainSubject = getParameter();
-        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
+//        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
-        container.addField(returnValue);
+//        container.addField(mainSubject);
 
 
         for (Parameter parameter : allFields) {

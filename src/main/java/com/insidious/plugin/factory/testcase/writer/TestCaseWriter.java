@@ -78,7 +78,7 @@ public class TestCaseWriter {
 
             if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
                 parameterStringBuilder.append("any()");
-            } else if (parameter.getType() != null && (parameter.getType().equals("Z") || parameter.getType().equals("java.lang.Boolean"))){
+            } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1) {
                     parameterStringBuilder.append("true");
                 } else {
@@ -137,8 +137,7 @@ public class TestCaseWriter {
                     && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
                     && !parameterType.contains(".Object"))
             ) {
-
-                if ((parameterType.equals("Z") || parameterType.equals("java.lang.Boolean")) && parameter.getName() == null) {
+                if (parameter.isBooleanType()) {
                     if (compareAgainst.equals("0")) {
                         compareAgainst = "false";
                     } else {

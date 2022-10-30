@@ -155,8 +155,7 @@ public class MethodCallExpression implements Expression {
         }
         if (getArguments() != null) {
             for (Parameter parameter : getArguments()) {
-                if (parameter.getType() != null &&
-                        (parameter.getType().equals("Z") || parameter.getType().equals("java.lang.Boolean"))) {
+                if (parameter.isBooleanType()) {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
@@ -328,7 +327,7 @@ public class MethodCallExpression implements Expression {
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
                 if (argument.getName() != null) {
-                    if (argument.getType().equals("Z") || argument.getType().equals("java.lang.Boolean")) {
+                    if (argument.isBooleanType()) {
                         // boolean values to be used directly without their names
                         // since a lot of them conflict with each other
                         continue;
@@ -352,7 +351,9 @@ public class MethodCallExpression implements Expression {
 
         } else {
             if (returnValue.getCreatorExpression() == null) {
-                in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+                if (!returnValue.isBooleanType()) {
+                    in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+                }
             } else {
                 MethodCallExpression creatorExpression = returnValue.getCreatorExpression();
 

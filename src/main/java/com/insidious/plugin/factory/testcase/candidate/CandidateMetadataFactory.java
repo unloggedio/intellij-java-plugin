@@ -184,7 +184,8 @@ public class CandidateMetadataFactory {
             }
 
             if (mainMethod.getMethodName().equals("<init>")) {
-                objectRoutineScript.getCreatedVariables().add(mainMethod.getReturnValue());
+                objectRoutineScript.getCreatedVariables().add(mainMethod.getSubject());
+                mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
             mainMethod.writeTo(objectRoutineScript);
