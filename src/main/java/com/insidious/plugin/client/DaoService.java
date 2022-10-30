@@ -268,6 +268,7 @@ public class DaoService {
                     returnParam = new com.insidious.plugin.pojo.Parameter();
                 }
                 mce.setReturnValue(returnParam);
+                assert dbMce.getReturnDataEvent() != 0;
                 if (dbMce.getReturnDataEvent() != 0) {
                     DataEventWithSessionId returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
                     returnParam.setProb(returnDataEvent);

@@ -2212,6 +2212,16 @@ public class SessionInstance {
                                 isModified = false;
                                 if (existingParameter.getValue() != 0) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                    // TODO: This is getting ugly, but
+                                    // we need some way to prefer some kind of events/probes combination
+                                    // over other kind of events/probes
+                                    // for instance events which are of type CALL_RETURN/CALL_PARAM are going to have
+                                    // the serialized value which we use to recreate the object, but for fields we need
+                                    // the events/probes of type GET_INSTANCE_FIELD_RESULT/PUT since we use those
+                                    // to identify if a parameter is a field of a class
+                                    // (and so mock the calls on those parameters)
+                                    // maybe we need to restructure the parameter class to store this information
+                                    // instead of storing the event/probe
                                     if (existingParameter.getProbeInfo() == null ||
                                             (!existingParameter.getProbeInfo().getEventType().equals(PUT_INSTANCE_FIELD_VALUE)
                                             && !existingParameter.getProbeInfo().getEventType().equals(GET_INSTANCE_FIELD_RESULT))) {
