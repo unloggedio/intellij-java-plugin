@@ -566,9 +566,10 @@ public class CandidateMetadataFactory {
                         List.of(responseBodyStringProbe.get())
                 );
 
-                return MethodCallExpressionFactory.MethodCallExpression(
-                        "buildOkHttpResponseFromString", null, variableContainer,
-                        targetParameter);
+                MethodCallExpression buildOkHttpResponseFromString =
+                        MethodCallExpressionFactory.MethodCallExpression("buildOkHttpResponseFromString",
+                                null, variableContainer, targetParameter);
+                return buildOkHttpResponseFromString;
             case "java.util.List":
 
 
