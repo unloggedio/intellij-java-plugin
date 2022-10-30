@@ -379,7 +379,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     @Override
     public TestCaseService getSessionTestCaseService() {
-        return new TestCaseService(this);
+        return new TestCaseService(sessionInstance);
     }
 
 }

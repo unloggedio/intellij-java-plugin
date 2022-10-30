@@ -134,7 +134,7 @@ public class InsidiousService implements Disposable {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             Path.of(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
-            this.testCaseService = new TestCaseService(client);
+            this.testCaseService = new TestCaseService(client.getSessionInstance());
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
