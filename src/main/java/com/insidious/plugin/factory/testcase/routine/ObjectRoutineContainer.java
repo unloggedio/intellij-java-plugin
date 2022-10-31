@@ -192,7 +192,7 @@ public class ObjectRoutineContainer {
         ObjectRoutineScript builderMethodScript = getConstructor().toObjectScript(variableContainer, testCaseGenerationConfiguration);
         container.getObjectRoutines().add(builderMethodScript);
 
-        ObjectRoutine constructorRoutine = getConstructor();
+//        ObjectRoutine constructorRoutine = getConstructor();
 
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(ClassName.bestGuess("org.junit.Before"));
@@ -202,13 +202,9 @@ public class ObjectRoutineContainer {
 
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
-//        TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
-//        MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
         Parameter mainSubject = getTestSubject();
-//        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
-//        container.addField(mainSubject);
 
 
         for (Parameter parameter : allFields) {
@@ -227,8 +223,8 @@ public class ObjectRoutineContainer {
                 continue;
             }
 
-            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(
-                    classVariableContainer.clone(), testCaseGenerationConfiguration);
+            ObjectRoutineScript objectScript =
+                    objectRoutine.toObjectScript(classVariableContainer.clone(), testCaseGenerationConfiguration);
             container.getObjectRoutines().add(objectScript);
         }
 

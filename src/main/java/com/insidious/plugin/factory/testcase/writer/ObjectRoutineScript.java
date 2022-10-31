@@ -17,7 +17,7 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 /**
- * ObjectRoutine is representing a block of code, close to a method, containing all the
+ * ObjectRoutine is representing a block of code, a method, containing all the
  * statements and dependent variables along with their own object routines (the whole hierarchy
  * should be available to recreate this object inside a test case)
  */

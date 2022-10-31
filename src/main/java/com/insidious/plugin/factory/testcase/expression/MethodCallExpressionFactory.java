@@ -8,6 +8,7 @@ import com.insidious.plugin.pojo.ConstructorType;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.squareup.javapoet.ClassName;
+import org.objectweb.asm.Opcodes;
 
 import java.util.List;
 
@@ -88,7 +89,9 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        return new MethodCallExpression("mock", MockitoClass, List.of(whenExpression), null, 0);
+        MethodCallExpression mock = new MethodCallExpression("mock", MockitoClass, List.of(whenExpression), null, 0);
+        mock.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return mock;
 
     }
 
@@ -102,22 +105,23 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        return new MethodCallExpression("mockStatic", MockitoClass, List.of(whenExpression), null, 0);
+        MethodCallExpression mockStatic = new MethodCallExpression("mockStatic", MockitoClass, List.of(whenExpression), null, 0);
+        mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return mockStatic;
 
     }
 
     public static MethodCallExpression InitNoArgsConstructor(Parameter targetClassname) {
-
-        // new $T()
-
         return new MethodCallExpression("<init>", null, List.of(), targetClassname, 0);
 
     }
 
     public static Expression MockitoThen(Parameter returnValue) {
-        return MethodCallExpression("thenReturn", null,
+        MethodCallExpression thenReturn = MethodCallExpression("thenReturn", null,
                 VariableContainer.from(List.of(returnValue)),
                 null);
+        thenReturn.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return thenReturn;
 
 //        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
 //        return parameter;
@@ -125,30 +129,39 @@ public class MethodCallExpressionFactory {
 
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
-        return MethodCallExpression("thenThrow", null,
+        MethodCallExpression thenThrow = MethodCallExpression("thenThrow", null,
                 VariableContainer.from(List.of(exceptionValue)),
                 null);
+        thenThrow.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return thenThrow;
 
 //        PlainValueExpression parameter = new PlainValueExpression(".thenReturn(" + thingToReturn + ")");
 //        return parameter;
     }
 
     public static Expression ToJson(Parameter object) {
-        return MethodCallExpression("toJson", GsonClass,
+        MethodCallExpression toJson = MethodCallExpression("toJson", GsonClass,
                 VariableContainer.from(List.of(object)),
                 null);
+        toJson.setMethodAccess(Opcodes.ACC_PUBLIC);
+
+        return toJson;
     }
 
     public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
-        return MethodCallExpression("assertEquals", AssertClass,
+        MethodCallExpression assertEquals = MethodCallExpression("assertEquals", AssertClass,
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
                 null
         );
+        assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return assertEquals;
     }
 
     public static MethodCallExpression FromJson(Parameter object) {
-        return MethodCallExpression("fromJson", GsonClass,
+        MethodCallExpression fromJson = MethodCallExpression("fromJson", GsonClass,
                 VariableContainer.from(List.of(object)),
                 null);
+        fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return fromJson;
     }
 }

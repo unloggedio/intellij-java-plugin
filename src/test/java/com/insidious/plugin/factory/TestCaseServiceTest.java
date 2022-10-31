@@ -4,7 +4,6 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -13,12 +12,11 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
@@ -447,7 +445,21 @@ public class TestCaseServiceTest {
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
 //                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
 
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
+        TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
+        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex());
+
+        List<TestCandidateMetadata> list =
+                sessionInstance.getTestCandidatesForMethod(
+                        testCandidateMetadata.getTestSubject().getType(), "<init>", true);
+
+        list.add(testCandidateMetadata);
+        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration();
+        generationConfiguration.getTestCandidateMetadataList().addAll(list);
+        for (TestCandidateMetadata candidateMetadata : list) {
+            generationConfiguration.getCallExpressionList().addAll(candidateMetadata.getCallsList());
+        }
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+
         copyTestCaseToClipboard(testCaseUnit);
     }
 

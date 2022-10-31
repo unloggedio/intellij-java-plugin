@@ -10,6 +10,7 @@ import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -36,10 +37,10 @@ public class CandidateMetadataFactory {
 
     public static ObjectRoutineScript toObjectScript(
             TestCandidateMetadata testCandidateMetadata,
-            VariableContainer createdVariables,
+            TestGenerationState testGenerationState,
             TestCaseGenerationConfiguration testConfiguration
     ) {
-        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(createdVariables);
+        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer());
 
 
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
@@ -114,34 +115,29 @@ public class CandidateMetadataFactory {
 
             }
 
+            Map<String, Boolean> mockedCalls = testGenerationState.getMockedCallsMap();
             if (callToMock.size() > 0) {
-                Map<String, MethodCallExpression> mockedCalls = new HashMap<>();
 
-                objectRoutineScript.addComment("");
                 for (MethodCallExpression methodCallExpression : callToMock) {
 
                     String mockedCallSignature = buildCallSignature(methodCallExpression);
 
 
-                    if (methodCallExpression.getException() != null
-                            || mockedCalls.containsKey(mockedCallSignature)) {
+                    if (methodCallExpression.getException() != null || mockedCalls.containsKey(mockedCallSignature)) {
                         continue;
                     }
                     methodCallExpression.getReturnValue().getClosestName(
                             methodCallExpression.getSubject().getType(), methodCallExpression.getMethodName());
                     methodCallExpression.writeCommentTo(objectRoutineScript);
                     methodCallExpression.writeMockTo(objectRoutineScript);
-                    mockedCalls.put(methodCallExpression.getMethodName(), methodCallExpression);
+                    mockedCalls.put(mockedCallSignature, true);
                     objectRoutineScript.addComment("");
                 }
-                objectRoutineScript.addComment("");
                 objectRoutineScript.addComment("");
             }
 
 
             if (staticCallsList.size() > 0) {
-
-                Map<String, Boolean> mockedCalls = new HashMap<>();
 
                 for (MethodCallExpression methodCallExpression : staticCallsList) {
 
@@ -182,7 +178,9 @@ public class CandidateMetadataFactory {
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
-            mainMethod.writeTo(objectRoutineScript);
+            if (mainMethod.isMethodPublic()) {
+                mainMethod.writeTo(objectRoutineScript);
+            }
 
 
         } else {

@@ -31,7 +31,7 @@ public class TestCaseService {
     }
 
     @NotNull
-    public TestCaseUnit getTestCaseUnit(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
+    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(testCaseGenerationConfiguration);
 
         createFieldMocks(objectRoutineContainer);
@@ -39,8 +39,8 @@ public class TestCaseService {
         ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
 
 
-        String generatedTestClassName =
-                "Test" + testCaseScript.getName() + "V";
+        String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
+
         TypeSpec.Builder typeSpecBuilder = TypeSpec
                 .classBuilder(generatedTestClassName)
                 .addModifiers(
@@ -77,10 +77,10 @@ public class TestCaseService {
 
         typeSpecBuilder
                 .addField(FieldSpec
-                        .builder(gsonClass,
-                                "gson", javax.lang.model.element.Modifier.PRIVATE)
+                        .builder(gsonClass, "gson", javax.lang.model.element.Modifier.PRIVATE)
                         .initializer("new $T()", gsonClass)
-                        .build());
+                        .build()
+                );
 
 
         TypeSpec helloWorld = typeSpecBuilder.build();
@@ -90,9 +90,7 @@ public class TestCaseService {
                 .build();
 
 
-        TestCaseUnit testCaseUnit = new TestCaseUnit(
-                javaFile.toString(), objectRoutineContainer.getPackageName(), generatedTestClassName);
-        return testCaseUnit;
+        return new TestCaseUnit(javaFile.toString(), objectRoutineContainer.getPackageName(), generatedTestClassName);
     }
 
     public void createFieldMocks(
@@ -132,25 +130,7 @@ public class TestCaseService {
         sessionInstance.scanDataAndBuildReplay();
     }
 
-
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
         return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
-    }
-
-    public @NotNull TestCaseUnit getTestCaseUnit(TestCandidateMetadata testCandidateMetadata) {
-
-        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex());
-
-        List<TestCandidateMetadata> list =
-                sessionInstance.getTestCandidatesForMethod(
-                        testCandidateMetadata.getTestSubject().getType(), "<init>", true);
-
-        list.add(testCandidateMetadata);
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration();
-        generationConfiguration.getTestCandidateMetadataList().addAll(list);
-        for (TestCandidateMetadata candidateMetadata : list) {
-            generationConfiguration.getCallExpressionList().addAll(candidateMetadata.getCallsList());
-        }
-        return getTestCaseUnit(generationConfiguration);
     }
 }

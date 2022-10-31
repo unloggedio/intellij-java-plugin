@@ -49,7 +49,6 @@ public class TestCandidateMetadataView {
 //        Date date = new Date("71314710088602");
 //        Format format = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
 //        String entryDateTimeStamp =  format.format(date);
-        testCandidateMetadata.getEntryProbeIndex();
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
         testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+testCandidateMetadata.getCallsList().size()+ " Methods called, "+timeInMs+" ms | ");

@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.routine;
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -87,12 +88,15 @@ public class ObjectRoutine {
         scriptContainer.addException(Exception.class);
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
+        TestGenerationState testGenerationState = new TestGenerationState();
+
         VariableContainer variableContainer = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             variableContainer.all().addAll(candidateVariables.all());
+            testGenerationState.setVariableContainer(variableContainer);
             ObjectRoutineScript script = CandidateMetadataFactory
-                    .toObjectScript(testCandidateMetadata, variableContainer, testCaseGenerationConfiguration);
+                    .toObjectScript(testCandidateMetadata, testGenerationState, testCaseGenerationConfiguration);
             scriptContainer.getStatements().addAll(script.getStatements());
         }
 
