@@ -6,6 +6,8 @@ import com.insidious.plugin.pojo.JsonFramework;
 import com.insidious.plugin.pojo.TestFramework;
 
 import javax.swing.*;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.tree.DefaultTreeSelectionModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.event.MouseAdapter;
@@ -31,7 +33,6 @@ public class TestCandidateCustomizeView {
     private JLabel descriptionText;
     private JTextPane documentationTextArea;
     private CustomizeViewTreeCellRenderer cellRenderer;
-    private List<TreePath> selectedPaths = new ArrayList<TreePath>();
 
     public TestCandidateCustomizeView(
             TestCandidateMetadata testCandidateMetadata,
@@ -53,17 +54,23 @@ public class TestCandidateCustomizeView {
         cellRenderer = new CustomizeViewTreeCellRenderer();
         this.testCandidateTree.setCellRenderer(cellRenderer);
 
+        //removeDefaultSelectionListeners();
+        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel());
         setDefaultSelection();
-
-        this.testCandidateTree.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent me) {
-                treeMouseClickEvent(me);
-            }
-        });
 
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
+
+//    private void removeDefaultSelectionListeners()
+//    {
+//        TreeSelectionListener[] listeners = this.testCandidateTree.getTreeSelectionListeners();
+//        for (int i=0;i<listeners.length;i++)
+//        {
+//            //System.out.println("Listener - "+i+", "+listeners[i].toString());
+//            this.testCandidateTree.removeTreeSelectionListener(listeners[i]);
+//        }
+//    }
 
     private void setDefaultSelection()
     {
@@ -71,13 +78,13 @@ public class TestCandidateCustomizeView {
         //select all l1 nodes
         for(int i=0; i<level1_rowcount; i++){
             TreePath path = this.testCandidateTree.getPathForRow(i);
-            this.selectedPaths.add(path);
+            this.testCandidateTree.addSelectionPath(path);
         }
         //select the first and last nodes of each row
         TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
 
         ArrayList<TreePath> leafPaths = new ArrayList<TreePath>();
-        TreePath[] paths = this.selectedPaths.toArray(TreePath[]::new);
+        TreePath[] paths = this.testCandidateTree.getSelectionPaths();
 
         for(int i=1;i< paths.length;i++)
         {
@@ -94,8 +101,10 @@ public class TestCandidateCustomizeView {
                 System.out.println("Exception e -> "+e);
             }
         }
-        this.selectedPaths.addAll(leafPaths);
-        setSelectedNodes();
+        for(TreePath path : leafPaths)
+        {
+            this.testCandidateTree.addSelectionPath(path);
+        }
     }
 
     private void printSelections()
@@ -120,23 +129,5 @@ public class TestCandidateCustomizeView {
         return mainPanel;
     }
 
-    void treeMouseClickEvent(MouseEvent me) {
-        TreePath tp = this.testCandidateTree.getPathForLocation(me.getX(), me.getY());
-        if (tp != null) {
-            if(this.selectedPaths.contains(tp))
-            {
-                this.selectedPaths.remove(tp);
-            }
-            else
-            {
-                this.selectedPaths.add(tp);
-            }
-        }
-        setSelectedNodes();
-    }
-
-    void setSelectedNodes()
-    {
-        this.testCandidateTree.setSelectionPaths(this.selectedPaths.toArray(TreePath[]::new));
-    }
 }
+
