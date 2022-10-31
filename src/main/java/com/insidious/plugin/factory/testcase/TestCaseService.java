@@ -1,7 +1,6 @@
 package com.insidious.plugin.factory.testcase;
 
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -46,8 +45,10 @@ public class TestCaseService {
                 .classBuilder(generatedTestClassName)
                 .addModifiers(
                         javax.lang.model.element.Modifier.PUBLIC,
-                        javax.lang.model.element.Modifier.FINAL);
+                        javax.lang.model.element.Modifier.FINAL
+                );
 
+        typeSpecBuilder.addField(objectRoutineContainer.getTestSubject().toFieldSpec().build());
         for (Parameter field : testCaseScript.getFields()) {
             if (field == null) {
                 continue;
@@ -112,6 +113,7 @@ public class TestCaseService {
 
 
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+
 
         // gotta mock'em all
         for (Parameter fieldParameter : fields.all()) {

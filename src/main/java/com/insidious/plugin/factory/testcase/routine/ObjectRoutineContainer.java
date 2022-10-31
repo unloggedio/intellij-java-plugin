@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
-    private final Parameter parameter;
+    private final Parameter testSubject;
     private final TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private String packageName;
     private ObjectRoutine currentRoutine;
@@ -43,7 +43,7 @@ public class ObjectRoutineContainer {
         Parameter parameter = testCaseGenerationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
         ClassName targetClassName = ClassName.bestGuess(parameter.getType());
 
-        this.parameter = parameter;
+        this.testSubject = parameter;
         assert parameter.getType() != null;
         ClassName className = ClassName.bestGuess(parameter.getType());
         this.packageName = className.packageName();
@@ -65,8 +65,8 @@ public class ObjectRoutineContainer {
 
     }
 
-    public Parameter getParameter() {
-        return parameter;
+    public Parameter getTestSubject() {
+        return testSubject;
     }
 
     public String getName() {
@@ -202,9 +202,9 @@ public class ObjectRoutineContainer {
 
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
-        TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
-        MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
-        Parameter mainSubject = getParameter();
+//        TestCandidateMetadata firstTestMetadata = constructorRoutine.getTestCandidateList().get(0);
+//        MethodCallExpression mainSubjectConstructorExpression = (MethodCallExpression) firstTestMetadata.getMainMethod();
+        Parameter mainSubject = getTestSubject();
 //        Parameter returnValue = mainSubjectConstructorExpression.getReturnValue();
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
@@ -227,7 +227,8 @@ public class ObjectRoutineContainer {
                 continue;
             }
 
-            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(classVariableContainer.clone(), testCaseGenerationConfiguration);
+            ObjectRoutineScript objectScript = objectRoutine.toObjectScript(
+                    classVariableContainer.clone(), testCaseGenerationConfiguration);
             container.getObjectRoutines().add(objectScript);
         }
 

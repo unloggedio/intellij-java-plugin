@@ -132,7 +132,7 @@ public class TestCaseWriter {
             }
 
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
-                parameterStringBuilder.append("matches(" + compareAgainst + ")");
+                parameterStringBuilder.append("eq(" + compareAgainst + ")");
             } else if (parameterType != null && compareAgainst != null
                     && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
                     && !parameterType.contains(".Object"))

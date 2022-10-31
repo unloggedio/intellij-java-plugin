@@ -2037,6 +2037,7 @@ public class SessionInstance {
                                 nameFromProbe = probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null));
                                 isModified = false;
                                 if (!existingParameter.hasName(nameFromProbe)) {
+                                    isModified = true;
                                     existingParameter.addName(nameFromProbe);
                                 }
                                 String typeFromProbe = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"));

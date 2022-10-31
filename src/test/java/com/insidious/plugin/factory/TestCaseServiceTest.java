@@ -444,6 +444,9 @@ public class TestCaseServiceTest {
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
                 "com.repyute.helper.paybooks.PaybooksHelper", "getLatestSalarySlips", true);
 
+//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+//                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
+
         @NotNull TestCaseUnit testCaseUnit = testCaseService.getTestCaseUnit(candidateList.get(0));
         copyTestCaseToClipboard(testCaseUnit);
     }

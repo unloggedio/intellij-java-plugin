@@ -62,7 +62,7 @@ public class PendingStatement {
             } else {
 
 
-                @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(lhsExpression.getType());
+                @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
                 if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
                     objectRoutine.getCreatedVariables().add(lhsExpression);
                     if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
@@ -160,7 +160,7 @@ public class PendingStatement {
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
-                statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType()));
+                statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
             }
 
@@ -191,7 +191,7 @@ public class PendingStatement {
 
             statementBuilder.append(".$L($T.class)");
             statementParameters.add(methodCallExpression.getMethodName());
-            statementParameters.add(ClassName.bestGuess(variables.get(0).getType()));
+            statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0).getType())));
 
         } else {
             Parameter callExpressionSubject = methodCallExpression.getSubject();

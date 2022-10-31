@@ -94,11 +94,35 @@ public class ClassTypeUtils {
         return dottedName;
     }
 
+    public static String getJavaClassName(String className) {
+        if (className == null) {
+            return null;
+        }
+        if (className.contains("$$")) {
+            className = className.substring(0, className.indexOf("$$"));
+        }
+        className = className.replace('$', '.');
+        if (className.contains(".")) {
+            return className;
+        }
+
+        if (className.endsWith(";")) {
+            className = className.substring(0, className.length() - 1);
+        }
+
+        while (className.startsWith("[")) {
+            className = className.substring(1) + "[]";
+        }
+        if (className.startsWith("L")) {
+            className = className.substring(1);
+        }
+
+        return className.replace('/', '.');
+    }
+
 
     public static String getVariableNameFromProbe(DataInfo historyEventProbe, String defaultValue) {
-        return historyEventProbe.getAttribute(
-                "Name", historyEventProbe.getAttribute(
-                        "FieldName", defaultValue));
+        return historyEventProbe.getAttribute("Name", historyEventProbe.getAttribute("FieldName", defaultValue));
     }
 
     @Nullable
@@ -179,8 +203,7 @@ public class ClassTypeUtils {
     }
 
 
-    public static String createVariableNameFromMethodName(String targetMethodName,
-                                                          String className) {
+    public static String createVariableNameFromMethodName(String targetMethodName, String className) {
 
         String potentialReturnValueName = targetMethodName + "Result";
 
