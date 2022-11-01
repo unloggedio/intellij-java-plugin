@@ -20,8 +20,8 @@ import java.util.List;
 public class TestCaseGenerationConfiguration {
 
 
-    private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
-    private final List<MethodCallExpression> callExpressionList = new LinkedList<>();
+    private  List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
+    private  List<MethodCallExpression> callExpressionList = new LinkedList<>();
     private TestFramework testFramework = TestFramework.JUNIT5;
     private JsonFramework jsonFramework = JsonFramework.GSON;
 
@@ -60,5 +60,13 @@ public class TestCaseGenerationConfiguration {
 
     public void setResourceEmbedMode(ResourceEmbedMode resourceEmbedMode) {
         this.resourceEmbedMode = resourceEmbedMode;
+    }
+
+    public void setTestCandidateMetadataList(List<TestCandidateMetadata> testCandidateMetadataList) {
+        this.testCandidateMetadataList = testCandidateMetadataList;
+    }
+
+    public void setCallExpressionList(List<MethodCallExpression> callExpressionList) {
+        this.callExpressionList = callExpressionList;
     }
 }
