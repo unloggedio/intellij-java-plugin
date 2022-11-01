@@ -1,18 +1,18 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.JsonFramework;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.TestFramework;
+import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 
 public class TestCandidateCustomizeView {
 
@@ -71,18 +71,14 @@ public class TestCandidateCustomizeView {
 //        }
 //    }
 
-    private void setDefaultSelection()
-    {
+    private void setDefaultSelection() {
         int level1_rowcount = this.testCandidateTree.getRowCount();
-        try
-        {
+        try {
             TreePath firstCandidate = this.testCandidateTree.getPathForRow(1);
-            TreePath lastCandidate = this.testCandidateTree.getPathForRow(level1_rowcount-1);
+            TreePath lastCandidate = this.testCandidateTree.getPathForRow(level1_rowcount - 1);
             this.testCandidateTree.addSelectionPaths(new TreePath[]{firstCandidate, lastCandidate});
 
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             System.out.println("Exception selecting default candidate nodes");
             return;
         }
@@ -92,53 +88,42 @@ public class TestCandidateCustomizeView {
         ArrayList<TreePath> leafPaths = new ArrayList<TreePath>();
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
 
-        for(int i=0;i< paths.length;i++)
-        {
+        for (int i = 0; i < paths.length; i++) {
             Object selectedNode = paths[i].getLastPathComponent();
             int count = model.getChildCount(selectedNode);
 
             try {
-                for(int j=0;j<count;j++)
-                {
+                for (int j = 0; j < count; j++) {
                     leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, j)));
                 }
-            }
-            catch (Exception e)
-            {
-                System.out.println("Exception e -> "+e);
+            } catch (Exception e) {
+                System.out.println("Exception e -> " + e);
             }
         }
-        for(TreePath path : leafPaths)
-        {
+        for (TreePath path : leafPaths) {
             this.testCandidateTree.addSelectionPath(path);
         }
     }
 
-    private void printSelections()
-    {
+    private void printSelections() {
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-        for(int i=0;i<paths.length;i++)
-        {
-            System.out.println("Selection : "+i+" "+paths[i].toString());
+        for (int i = 0; i < paths.length; i++) {
+            System.out.println("Selection : " + i + " " + paths[i].toString());
         }
     }
 
-    private void setupGenerationConfiguration()
-    {
+    private void setupGenerationConfiguration() {
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
         LinkedList<TestCandidateMetadata> candidates = new LinkedList<TestCandidateMetadata>();
         LinkedList<MethodCallExpression> calls = new LinkedList<MethodCallExpression>();
-        for(TreePath path : paths)
-        {
+        for (TreePath path : paths) {
             //candidate metadata
-            if(path.getPathCount()==2)
-            {
+            if (path.getPathCount() == 2) {
                 TestCandidateMetadata candidate = (TestCandidateMetadata) path.getLastPathComponent();
                 candidates.add(candidate);
             }
             //method call
-            else if(path.getPathCount()==3)
-            {
+            else if (path.getPathCount() == 3) {
                 MethodCallExpression call = (MethodCallExpression) path.getLastPathComponent();
                 calls.add(call);
             }
@@ -154,8 +139,13 @@ public class TestCandidateCustomizeView {
 
     private void generateWithSelectedOptions() {
         printSelections();
-        setupGenerationConfiguration();
-        testActionListener.generateTestCase(testGenerationConfiguration);
+//        setupGenerationConfiguration();
+        try {
+            testActionListener.generateTestCase(testGenerationConfiguration);
+        } catch (IOException e) {
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(), NotificationType.ERROR);
+        }
     }
 
     public JPanel getContentPanel() {
