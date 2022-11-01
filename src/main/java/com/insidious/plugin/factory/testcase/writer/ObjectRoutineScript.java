@@ -30,10 +30,6 @@ public class ObjectRoutineScript {
     private String routineName;
     private VariableContainer createdVariables = new VariableContainer();
 
-    public ObjectRoutineScript() {
-        routineName = "<init>";
-    }
-
     public ObjectRoutineScript(String routineName) {
         this.routineName = routineName;
     }
@@ -76,11 +72,6 @@ public class ObjectRoutineScript {
         addComment("Parameter [" + parameter.getName() + "] => " +
                 "Object:" + parameter.getValue() + " of type " + parameter.getType());
 
-    }
-
-    public PendingStatement assignVariable(Parameter testSubject) {
-        PendingStatement pendingAssignment = new PendingStatement(this, testSubject);
-        return pendingAssignment;
     }
 
     public String getName() {

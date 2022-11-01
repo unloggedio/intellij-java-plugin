@@ -105,10 +105,6 @@ public class MethodCallExpression {
         return methodCallExpression1;
     }
 
-    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
-        return new PendingStatement(objectRoutine);
-    }
-
     public long getId() {
         return id;
     }

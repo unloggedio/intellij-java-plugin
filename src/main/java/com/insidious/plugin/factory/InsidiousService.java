@@ -1,14 +1,15 @@
 package com.insidious.plugin.factory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
@@ -20,7 +21,6 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
-import com.insidious.plugin.factory.testcase.TestCaseRequest;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
@@ -80,8 +80,6 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -93,6 +91,7 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
+    private static final Gson gson = new Gson();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private TestCaseService testCaseService;
     private Project project;
@@ -615,17 +614,30 @@ public class InsidiousService implements Disposable {
 //
 //    }
 
-    public VirtualFile saveTestSuite(TestSuite testSuite) {
-        File lastFile = null;
+    public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
+
+
+            Map<String, JsonElement> valueResourceMap = testCaseScript.getTestGenerationState().getValueResourceMap();
+            if (valueResourceMap.values().size() > 0) {
+                String testResourcesDirPath =
+                        project.getBasePath() + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
+                File resourcesDirFile = new File(testResourcesDirPath);
+                resourcesDirFile.mkdirs();
+                String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
+                String resourceJson = gson.toJson(valueResourceMap);
+                try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
+                    resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
+                }
+            }
+
+
             String testOutputDirPath =
                     project.getBasePath() + "/src/test/java/"
                             + testCaseScript.getPackageName().replaceAll("\\.", "/");
             File outputDir = new File(testOutputDirPath);
             outputDir.mkdirs();
-            File testcaseFile = new File(
-                    testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
-            lastFile = testcaseFile;
+            File testcaseFile = new File(testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
 
             try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
                 out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));

@@ -5,9 +5,13 @@ import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
+import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.Pair;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 
@@ -71,7 +75,8 @@ public class ObjectRoutine {
 
     public ObjectRoutineScript toObjectScript(
             VariableContainer createdVariables,
-            TestCaseGenerationConfiguration testCaseGenerationConfiguration
+            TestCaseGenerationConfiguration generationConfiguration,
+            TestGenerationState testGenerationState
     ) {
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
                 "testAs" + VariableContainer.upperInstanceName(routineName)
@@ -88,16 +93,23 @@ public class ObjectRoutine {
         scriptContainer.addException(Exception.class);
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
-        TestGenerationState testGenerationState = new TestGenerationState();
-
         VariableContainer variableContainer = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             variableContainer.all().addAll(candidateVariables.all());
             testGenerationState.setVariableContainer(variableContainer);
             ObjectRoutineScript script = CandidateMetadataFactory
-                    .toObjectScript(testCandidateMetadata, testGenerationState, testCaseGenerationConfiguration);
+                    .toObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
             scriptContainer.getStatements().addAll(script.getStatements());
+        }
+
+        if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+            if (testGenerationState.getValueResourceMap().size() > 0) {
+                scriptContainer.getStatements().add(0, Pair.create(
+                        CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{
+                                ((MethodCallExpression) this.testCandidateList.get(this.testCandidateList.size() - 1).getMainMethod()).getMethodName()
+                        }));
+            }
         }
 
         return scriptContainer;

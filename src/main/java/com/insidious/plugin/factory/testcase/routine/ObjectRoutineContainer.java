@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase.routine;
 
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
     private final Parameter testSubject;
-    private final TestCaseGenerationConfiguration testCaseGenerationConfiguration;
+    private final TestCaseGenerationConfiguration generationConfiguration;
     private String packageName;
     private ObjectRoutine currentRoutine;
     private ObjectRoutine constructor = newRoutine("<init>");
@@ -38,9 +39,9 @@ public class ObjectRoutineContainer {
      */
     private String name;
 
-    public ObjectRoutineContainer(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
-        this.testCaseGenerationConfiguration = testCaseGenerationConfiguration;
-        Parameter parameter = testCaseGenerationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
+    public ObjectRoutineContainer(TestCaseGenerationConfiguration generationConfiguration) {
+        this.generationConfiguration = generationConfiguration;
+        Parameter parameter = generationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
         ClassName targetClassName = ClassName.bestGuess(parameter.getType());
 
         this.testSubject = parameter;
@@ -50,7 +51,7 @@ public class ObjectRoutineContainer {
         this.name = className.simpleName();
         newRoutine("test" + targetClassName.simpleName());
 
-        for (TestCandidateMetadata testCandidateMetadata : testCaseGenerationConfiguration.getTestCandidateMetadataList()) {
+        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
 
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
             if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
@@ -178,7 +179,8 @@ public class ObjectRoutineContainer {
     }
 
     public ObjectRoutineScriptContainer toRoutineScript() {
-        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName);
+        TestGenerationState testGenerationState = new TestGenerationState();
+        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName, testGenerationState);
         container.setName(getName());
 
 
@@ -189,10 +191,10 @@ public class ObjectRoutineContainer {
         }
 
 
-        ObjectRoutineScript builderMethodScript = getConstructor().toObjectScript(variableContainer, testCaseGenerationConfiguration);
-        container.getObjectRoutines().add(builderMethodScript);
+        ObjectRoutineScript builderMethodScript = getConstructor()
+                .toObjectScript(variableContainer, generationConfiguration, testGenerationState);
 
-//        ObjectRoutine constructorRoutine = getConstructor();
+        container.getObjectRoutines().add(builderMethodScript);
 
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(ClassName.bestGuess("org.junit.Before"));
@@ -224,8 +226,13 @@ public class ObjectRoutineContainer {
             }
 
             ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectScript(classVariableContainer.clone(), testCaseGenerationConfiguration);
+                    objectRoutine.toObjectScript(classVariableContainer.clone(), generationConfiguration, testGenerationState);
             container.getObjectRoutines().add(objectScript);
+
+            String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList().get(
+                    objectRoutine.getTestCandidateList().size() - 1).getMainMethod()).getMethodName();
+
+            container.setTestMethodName(testMethodName);
         }
 
 

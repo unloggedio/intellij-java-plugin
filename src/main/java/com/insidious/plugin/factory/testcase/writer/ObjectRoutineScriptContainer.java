@@ -1,16 +1,14 @@
 package com.insidious.plugin.factory.testcase.writer;
 
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.MethodSpec;
 import lombok.AllArgsConstructor;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,8 +21,8 @@ import java.util.List;
 public class ObjectRoutineScriptContainer {
 
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
-    private final String packageName;
     private final List<ObjectRoutineScript> objectRoutines = new LinkedList<>();
+    private final TestGenerationState testGenerationState;
     private ObjectRoutineScript currentRoutine;
     private ObjectRoutineScript constructor = newRoutine("<init>");
     /**
@@ -32,10 +30,11 @@ public class ObjectRoutineScriptContainer {
      */
     private String name;
     private List<Parameter> fields = new LinkedList<>();
+    private String testMethodName;
 
 
-    public ObjectRoutineScriptContainer(String packageName) {
-        this.packageName = packageName;
+    public ObjectRoutineScriptContainer(String packageName, TestGenerationState testGenerationState) {
+        this.testGenerationState = testGenerationState;
     }
 
     public String getName() {
@@ -55,10 +54,12 @@ public class ObjectRoutineScriptContainer {
         this.fields.add(field);
     }
 
+    public TestGenerationState getTestGenerationState() {
+        return testGenerationState;
+    }
+
     public ObjectRoutineScript newRoutine(String routineName) {
-        if (routineName == null) {
-            return new ObjectRoutineScript();
-        }
+        assert routineName != null;
         for (ObjectRoutineScript objectRoutine : this.objectRoutines) {
             if (objectRoutine.getRoutineName().equals(routineName)) {
                 this.currentRoutine = objectRoutine;
@@ -82,5 +83,13 @@ public class ObjectRoutineScriptContainer {
 
     public List<Parameter> getFields() {
         return this.fields;
+    }
+
+    public void setTestMethodName(String testMethodName) {
+        this.testMethodName = testMethodName;
+    }
+
+    public String getTestMethodName() {
+        return testMethodName;
     }
 }

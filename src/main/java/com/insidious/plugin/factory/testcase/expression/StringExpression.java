@@ -1,6 +1,8 @@
 package com.insidious.plugin.factory.testcase.expression;
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 
 public class StringExpression implements Expression {
 
@@ -16,7 +18,7 @@ public class StringExpression implements Expression {
     }
 
     @Override
-    public void writeTo(ObjectRoutineScript objectRoutineScript) {
+    public void writeTo(ObjectRoutineScript objectRoutineScript, TestCaseGenerationConfiguration testConfiguration, TestGenerationState testGenerationState) {
         throw new RuntimeException("what");
     }
 }

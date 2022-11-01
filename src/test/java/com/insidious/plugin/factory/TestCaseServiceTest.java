@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
@@ -15,7 +17,10 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
+import com.insidious.plugin.pojo.ObjectWithTypeInfo;
+import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
@@ -29,8 +34,10 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
@@ -440,7 +447,7 @@ public class TestCaseServiceTest {
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.repyute.helper.paybooks.PaybooksHelper", "getLatestSalarySlips", true);
+                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
 
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
 //                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
@@ -461,6 +468,10 @@ public class TestCaseServiceTest {
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
         copyTestCaseToClipboard(testCaseUnit);
+        Map<String, JsonElement> valueResourceMap = testCaseUnit.getTestGenerationState().getValueResourceMap();
+        if (valueResourceMap.size() > 0) {
+            System.out.println(new Gson().toJson(valueResourceMap));
+        }
     }
 
     @Test

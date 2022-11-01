@@ -26,6 +26,7 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.List;
 
 public class LiveViewWindow implements TreeSelectionListener,
@@ -130,7 +131,8 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     private void loadTestCandidateConfigView(TestCandidateMethodAggregate methodNode) {
         List<TestCandidateMetadata> testCandidateMetadataList =
-                sessionInstance.getTestCandidatesForMethod(methodNode.getClassName(), methodNode.getMethodName(), false);
+                sessionInstance.getTestCandidatesForMethod(
+                        methodNode.getClassName(), methodNode.getMethodName(), false);
 
         this.candidateListPanel.removeAll();
         JPanel gridPanel = new JPanel(new GridLayout(testCandidateMetadataList.size(), 1));
@@ -141,14 +143,14 @@ public class LiveViewWindow implements TreeSelectionListener,
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
                     testCandidateMetadata, testCaseService, this);
-            testCandidatePreviewPanel.setCandidateNumberIndex((i+1));
+            testCandidatePreviewPanel.setCandidateNumberIndex((i + 1));
             Component contentPanel = testCandidatePreviewPanel.getContentPanel();
             gridPanel.add(contentPanel, constraints);
         }
 
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         candidateListPanel.setPreferredSize(scrollPane.getSize());
-        candidateListPanel.add(scrollPane,BorderLayout.CENTER);
+        candidateListPanel.add(scrollPane, BorderLayout.CENTER);
         this.candidateListPanel.revalidate();
     }
 
@@ -169,9 +171,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     }
 
     @Override
-    public void generateTestCase(
-            TestCaseGenerationConfiguration generationConfiguration
-    ) {
+    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws IOException {
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
         TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
         insidiousService.saveTestSuite(testSuite);

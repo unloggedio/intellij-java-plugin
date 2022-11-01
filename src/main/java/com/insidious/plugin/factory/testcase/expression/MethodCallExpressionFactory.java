@@ -164,4 +164,22 @@ public class MethodCallExpressionFactory {
         fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
         return fromJson;
     }
+
+    public static MethodCallExpression FromJsonFetchedFromFile(Parameter object) {
+        MethodCallExpression fromJson = MethodCallExpression("ValueOf", null,
+                VariableContainer.from(List.of(object)),
+                null);
+        fromJson.setStaticCall(true);
+        fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return fromJson;
+    }
+
+    public static MethodCallExpression LoadResources(Parameter targetClassName, Parameter targetMethodName) {
+        MethodCallExpression fromJson = MethodCallExpression("LoadResources", null,
+                VariableContainer.from(List.of(targetClassName, targetMethodName)),
+                null);
+        fromJson.setStaticCall(true);
+        fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return fromJson;
+    }
 }

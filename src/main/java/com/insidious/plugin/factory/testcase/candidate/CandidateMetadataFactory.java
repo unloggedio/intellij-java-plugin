@@ -129,7 +129,7 @@ public class CandidateMetadataFactory {
                     methodCallExpression.getReturnValue().getClosestName(
                             methodCallExpression.getSubject().getType(), methodCallExpression.getMethodName());
                     methodCallExpression.writeCommentTo(objectRoutineScript);
-                    methodCallExpression.writeMockTo(objectRoutineScript);
+                    methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
                     mockedCalls.put(mockedCallSignature, true);
                     objectRoutineScript.addComment("");
                 }
@@ -154,15 +154,16 @@ public class CandidateMetadataFactory {
                             subject.getTemplateMap().put("E", childParameter);
                             in(objectRoutineScript)
                                     .assignVariable(subject)
-                                    .writeExpression(MethodCallExpressionFactory
-                                            .MockStaticClass(ClassName.bestGuess(childParameter.getType())))
+                                    .writeExpression(
+                                            MethodCallExpressionFactory.MockStaticClass(
+                                                    ClassName.bestGuess(childParameter.getType())))
                                     .endStatement();
                         }
 
                         mockedCalls.put(mockedCallSignature, true);
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
                         if (!methodCallExpression.getReturnValue().getType().equals("V")) {
-                            methodCallExpression.writeMockTo(objectRoutineScript);
+                            methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
                         }
 
                     }
@@ -179,12 +180,12 @@ public class CandidateMetadataFactory {
             }
 
             if (mainMethod.isMethodPublic()) {
-                mainMethod.writeTo(objectRoutineScript);
+                mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }
 
 
         } else {
-            testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript);
+            testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
         objectRoutineScript.addComment("");
         return objectRoutineScript;

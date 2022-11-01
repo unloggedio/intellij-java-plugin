@@ -4,6 +4,7 @@ import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
@@ -11,6 +12,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
@@ -112,7 +114,7 @@ public class MethodCallExpression implements Expression {
     }
 
     @Override
-    public void writeTo(ObjectRoutineScript objectRoutineScript) {
+    public void writeTo(ObjectRoutineScript objectRoutineScript, TestCaseGenerationConfiguration testConfiguration, TestGenerationState testGenerationState) {
 
         Parameter mainMethodReturnValue = getReturnValue();
         if (mainMethodReturnValue == null) {
@@ -159,7 +161,7 @@ public class MethodCallExpression implements Expression {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
-                in(objectRoutineScript).assignVariable(parameter).fromRecordedValue().endStatement();
+                in(objectRoutineScript).assignVariable(parameter).fromRecordedValue(testConfiguration, testGenerationState).endStatement();
             }
         }
 
@@ -309,7 +311,11 @@ public class MethodCallExpression implements Expression {
                         (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
     }
 
-    public void writeMockTo(ObjectRoutineScript objectRoutine) {
+    public void writeMockTo(
+            ObjectRoutineScript objectRoutine,
+            TestCaseGenerationConfiguration testCaseGenerationConfiguration,
+            TestGenerationState testGenerationState
+    ) {
         Parameter returnValue = getReturnValue();
         if (returnValue.getType() == null) {
             return;
@@ -336,7 +342,7 @@ public class MethodCallExpression implements Expression {
                     if ((argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
                             && !argument.getType().contains(".Object")
                     ) {
-                        in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
+                        in(objectRoutine).assignVariable(argument).fromRecordedValue(testCaseGenerationConfiguration, testGenerationState).endStatement();
                     }
                 }
             }
@@ -352,7 +358,10 @@ public class MethodCallExpression implements Expression {
         } else {
             if (returnValue.getCreatorExpression() == null) {
                 if (!returnValue.isBooleanType()) {
-                    in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
+                    in(objectRoutine)
+                            .assignVariable(returnValue)
+                            .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                            .endStatement();
                 }
             } else {
                 MethodCallExpression creatorExpression = returnValue.getCreatorExpression();
@@ -361,7 +370,7 @@ public class MethodCallExpression implements Expression {
                 for (Parameter parameter : arguments) {
                     in(objectRoutine)
                             .assignVariable(parameter)
-                            .fromRecordedValue()
+                            .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
                             .endStatement();
                 }
 

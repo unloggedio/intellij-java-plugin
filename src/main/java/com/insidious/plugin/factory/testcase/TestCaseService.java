@@ -31,8 +31,9 @@ public class TestCaseService {
     }
 
     @NotNull
-    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration testCaseGenerationConfiguration) {
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(testCaseGenerationConfiguration);
+    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
+
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
         createFieldMocks(objectRoutineContainer);
 
@@ -83,14 +84,17 @@ public class TestCaseService {
                 );
 
 
-        TypeSpec helloWorld = typeSpecBuilder.build();
+        TypeSpec testClassSpec = typeSpecBuilder.build();
 
-        JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), helloWorld)
+        JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), testClassSpec)
                 .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
+                .addStaticImport(ClassName.bestGuess("io.unlogged.UnloggedTestUtils"), "*")
                 .build();
 
 
-        return new TestCaseUnit(javaFile.toString(), objectRoutineContainer.getPackageName(), generatedTestClassName);
+        return new TestCaseUnit(javaFile.toString(),
+                objectRoutineContainer.getPackageName(),
+                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState());
     }
 
     public void createFieldMocks(

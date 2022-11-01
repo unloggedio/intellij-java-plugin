@@ -7,61 +7,6 @@ import java.util.List;
 
 public class TestCaseWriter {
 
-//    public static void createMethodCallComment(
-//            ObjectRoutineScript objectRoutine,
-//            MethodCallExpression methodCallExpression
-//    ) {
-//        VariableContainer variableContainer = objectRoutine.getCreatedVariables();
-//        Parameter returnValue = methodCallExpression.getReturnValue();
-//        Parameter exception = methodCallExpression.getException();
-//        String callArgumentsString = createMethodParametersString(methodCallExpression.getArguments());
-//
-//
-//        if (returnValue != null) {
-//
-//            String variableName =
-//                    ClassTypeUtils.createVariableNameFromMethodName(
-//                            methodCallExpression.getMethodName(),
-//                            methodCallExpression.getReturnValue().getType());
-//
-//            Object value = returnValue.getValue();
-//            boolean overrideName = true;
-//            if (value instanceof String) {
-//                String valueString = (String) value;
-//                if (valueString.equals("1") || valueString.equals("0")) {
-//                    overrideName = false;
-//                }
-//            }
-//
-//
-//            Parameter existingVariableById = variableContainer.getParametersById(value);
-//            if (existingVariableById != null) {
-//                if (overrideName && !returnValue.getName().equals(existingVariableById.getName())) {
-//                    returnValue.setName(existingVariableById.getName());
-//                }
-//            } else {
-//                if (returnValue.getName() == null) {
-//                    returnValue.setName(variableName);
-//                }
-////                variableContainer.add(returnValue);
-//            }
-//
-//
-////            objectRoutine.addComment(
-////                    returnValue.getType() + " " + returnValue.getName() + " = " +
-////                            methodCallExpression.getSubject().getName() + "." + methodCallExpression.getMethodName() +
-////                            "(" + callArgumentsString + "); // ==> "
-////                            + returnValue.getProb().getSerializedValue().length);
-//        } else if (exception != null) {
-////            objectRoutine.addComment(
-////                    methodCallExpression.getSubject().getName() + "." +
-////                            methodCallExpression.getMethodName() +
-////                            "(" + callArgumentsString + ");" +
-////                            " // ==>  throws exception " + exception.getType());
-//        }
-//    }
-
-
     @NotNull
     public static String createMethodParametersString(List<Parameter> variableContainer) {
         if (variableContainer == null) {
@@ -156,62 +101,6 @@ public class TestCaseWriter {
 
         @NotNull String parameterString = parameterStringBuilder.toString();
         return parameterString;
-    }
-
-
-//    public static void createMethodCallMock(
-//            ObjectRoutineScript objectRoutine,
-//            MethodCallExpression callExpressionToMock
-//    ) {
-//
-//        Parameter returnValue = callExpressionToMock.getReturnValue();
-//
-//
-//        for (Parameter argument : callExpressionToMock.getArguments().all()) {
-//            if (argument.getName() != null) {
-//                in(objectRoutine).assignVariable(argument).fromRecordedValue().endStatement();
-//            }
-//        }
-//
-//        if (returnValue == null) {
-//            Parameter exceptionValue = callExpressionToMock.getException();
-//            in(objectRoutine)
-//                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
-//                    .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(exceptionValue))
-//                    .endStatement();
-//
-//        } else {
-//            if (returnValue.getCreaterExpression() == null) {
-//                in(objectRoutine).assignVariable(returnValue).fromRecordedValue().endStatement();
-//            } else {
-//                MethodCallExpression createrExpression = returnValue.getCreaterExpression();
-//
-//                VariableContainer arguments = createrExpression.getArguments();
-//                for (Parameter parameter : arguments.all()) {
-//                    in(objectRoutine)
-//                            .assignVariable(parameter)
-//                            .fromRecordedValue()
-//                            .endStatement();
-//                }
-//
-//
-//                in(objectRoutine)
-//                        .assignVariable(createrExpression.getReturnValue())
-//                        .writeExpression(createrExpression)
-//                        .endStatement();
-//            }
-//
-//            in(objectRoutine)
-//                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(callExpressionToMock))
-//                    .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
-//                    .endStatement();
-//        }
-//
-//
-//    }
-
-    private static PendingStatement in(ObjectRoutineScript objectRoutine) {
-        return new PendingStatement(objectRoutine);
     }
 
 
