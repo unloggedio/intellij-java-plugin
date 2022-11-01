@@ -1,16 +1,18 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.client.SessionInstance;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.JsonFramework;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.TestFramework;
-import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
-import java.io.IOException;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 public class TestCandidateCustomizeView {
 
@@ -55,25 +57,34 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel());
         setDefaultSelection();
 
-        generateButton.addActionListener((e) -> {
-            try {
-                generateWithSelectedOptions();
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                InsidiousNotification.notifyMessage("Failed to generate test case - " + ex.getMessage(), NotificationType.ERROR);
-                throw new RuntimeException(ex);
-            }
-        });
+        generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
 
+//    private void removeDefaultSelectionListeners()
+//    {
+//        TreeSelectionListener[] listeners = this.testCandidateTree.getTreeSelectionListeners();
+//        for (int i=0;i<listeners.length;i++)
+//        {
+//            //System.out.println("Listener - "+i+", "+listeners[i].toString());
+//            this.testCandidateTree.removeTreeSelectionListener(listeners[i]);
+//        }
+//    }
 
-    private void setDefaultSelection() {
+    private void setDefaultSelection()
+    {
         int level1_rowcount = this.testCandidateTree.getRowCount();
-        //select all l1 nodes
-        for (int i = 0; i < level1_rowcount; i++) {
-            TreePath path = this.testCandidateTree.getPathForRow(i);
-            this.testCandidateTree.addSelectionPath(path);
+        try
+        {
+            TreePath firstCandidate = this.testCandidateTree.getPathForRow(1);
+            TreePath lastCandidate = this.testCandidateTree.getPathForRow(level1_rowcount-1);
+            this.testCandidateTree.addSelectionPaths(new TreePath[]{firstCandidate, lastCandidate});
+
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception selecting default candidate nodes");
+            return;
         }
         //select the first and last nodes of each row
         TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
@@ -81,36 +92,69 @@ public class TestCandidateCustomizeView {
         ArrayList<TreePath> leafPaths = new ArrayList<TreePath>();
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
 
-        for (int i = 1; i < paths.length; i++) {
+        for(int i=0;i< paths.length;i++)
+        {
             Object selectedNode = paths[i].getLastPathComponent();
             int count = model.getChildCount(selectedNode);
 
             try {
-
-                leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, 0)));
-                leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, count - 1)));
-            } catch (Exception e) {
-                System.out.println("Exception e -> " + e);
+                for(int j=0;j<count;j++)
+                {
+                    leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, j)));
+                }
+            }
+            catch (Exception e)
+            {
+                System.out.println("Exception e -> "+e);
             }
         }
-        for (TreePath path : leafPaths) {
+        for(TreePath path : leafPaths)
+        {
             this.testCandidateTree.addSelectionPath(path);
         }
     }
 
-    private void printSelections() {
+    private void printSelections()
+    {
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-        for (int i = 0; i < paths.length; i++) {
-            System.out.println("Selection : " + i + " " + paths[i].toString());
+        for(int i=0;i<paths.length;i++)
+        {
+            System.out.println("Selection : "+i+" "+paths[i].toString());
         }
+    }
+
+    private void setupGenerationConfiguration()
+    {
+        TreePath[] paths = this.testCandidateTree.getSelectionPaths();
+        LinkedList<TestCandidateMetadata> candidates = new LinkedList<TestCandidateMetadata>();
+        LinkedList<MethodCallExpression> calls = new LinkedList<MethodCallExpression>();
+        for(TreePath path : paths)
+        {
+            //candidate metadata
+            if(path.getPathCount()==2)
+            {
+                TestCandidateMetadata candidate = (TestCandidateMetadata) path.getLastPathComponent();
+                candidates.add(candidate);
+            }
+            //method call
+            else if(path.getPathCount()==3)
+            {
+                MethodCallExpression call = (MethodCallExpression) path.getLastPathComponent();
+                calls.add(call);
+            }
+        }
+
+        this.testGenerationConfiguration.setTestCandidateMetadataList(candidates);
+        this.testGenerationConfiguration.setCallExpressionList(calls);
     }
 
     private void cancelAndBack() {
         testActionListener.cancel();
     }
 
-    private void generateWithSelectedOptions() throws IOException {
+    private void generateWithSelectedOptions() {
         printSelections();
+        setupGenerationConfiguration();
         testActionListener.generateTestCase(testGenerationConfiguration);
     }
 
