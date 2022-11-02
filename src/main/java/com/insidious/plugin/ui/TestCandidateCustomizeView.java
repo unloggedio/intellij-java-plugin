@@ -54,7 +54,7 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setCellRenderer(cellRenderer);
 
         //removeDefaultSelectionListeners();
-        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel());
+        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel(candidateTree));
         setDefaultSelection();
 
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
@@ -82,27 +82,7 @@ public class TestCandidateCustomizeView {
             System.out.println("Exception selecting default candidate nodes");
             return;
         }
-        //select the first and last nodes of each row
-        TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
-
-        ArrayList<TreePath> leafPaths = new ArrayList<TreePath>();
-        TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-
-        for (int i = 0; i < paths.length; i++) {
-            Object selectedNode = paths[i].getLastPathComponent();
-            int count = model.getChildCount(selectedNode);
-
-            try {
-                for (int j = 0; j < count; j++) {
-                    leafPaths.add(paths[i].pathByAddingChild(model.getChild(selectedNode, j)));
-                }
-            } catch (Exception e) {
-                System.out.println("Exception e -> " + e);
-            }
-        }
-        for (TreePath path : leafPaths) {
-            this.testCandidateTree.addSelectionPath(path);
-        }
+        //selection model selects all calls under candidate, no need to explicitly select them anymore
     }
 
     private void printSelections() {
