@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -9,6 +10,7 @@ import java.awt.*;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TestCandidateMetadataView {
@@ -27,7 +29,8 @@ public class TestCandidateMetadataView {
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
             TestCaseService testCaseService,
-            TestSelectionListener candidateSelectionListener
+            TestSelectionListener candidateSelectionListener,
+            SessionInstance sessionInstance
     ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.testCaseService = testCaseService;
@@ -51,7 +54,7 @@ public class TestCandidateMetadataView {
 //        String entryDateTimeStamp =  format.format(date);
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+testCandidateMetadata.getCallsList().size()+ " Methods called, "+timeInMs+" ms | ");
+        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms | ");
         generateTestCaseButton.addActionListener(e -> generateTestCase());
     }
 
@@ -75,4 +78,14 @@ public class TestCandidateMetadataView {
         this.candidateNumber.setText("Candidate "+candidateNumberIndex);
     }
 
+    private int getMethodCallsForCandidate(TestCandidateMetadata testCandidateMetadata, SessionInstance sessionInstance, MethodCallExpression mainMethod)
+    {
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(testCandidateMetadata.getTestSubject().getValue(),
+                testCandidateMetadata.getCallTimeNanoSecond(), mainMethod.getId(), false);
+
+        TestCandidateMetadata candidate = sessionInstance.getTestCandidateById(candidates.get(candidates.size()-1).getEntryProbeIndex());
+        int methodCalls = candidate.getCallsList().size();
+
+        return methodCalls;
+    }
 }
