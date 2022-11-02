@@ -29,6 +29,8 @@ public class TestCaseWriter {
                 } else {
                     parameterStringBuilder.append("false");
                 }
+            } else if (parameter.isPrimitiveType()) {
+                parameterStringBuilder.append(parameter.getValue());
             } else if (parameter.getName() != null) {
                 parameterStringBuilder.append(parameter.getName());
             } else {
@@ -70,6 +72,8 @@ public class TestCaseWriter {
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
+            } else if (parameter.isPrimitiveType()) {
+                compareAgainst = parameter.getValue();
             } else if (parameter.getName() != null) {
                 compareAgainst = parameter.getName();
             } else {

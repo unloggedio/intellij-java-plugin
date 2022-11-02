@@ -163,7 +163,7 @@ public class MethodCallExpression implements Expression {
 //        }
         if (arguments != null) {
             for (Parameter parameter : arguments) {
-                if (parameter.isBooleanType()) {
+                if (parameter.isPrimitiveType()) {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
@@ -357,14 +357,14 @@ public class MethodCallExpression implements Expression {
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
                 if (argument.getName() != null) {
-                    if (argument.isBooleanType()) {
+                    if (argument.isPrimitiveType()) {
                         // boolean values to be used directly without their names
                         // since a lot of them conflict with each other
                         continue;
                     }
 
-                    if ((argument.getType().length() == 1 || argument.getType().startsWith("java.lang."))
-                            && !argument.getType().contains(".Object")
+                    if ((argument.getType().length() == 1 ||
+                            argument.getType().startsWith("java.lang.")) && !argument.getType().contains(".Object")
                     ) {
                         in(objectRoutine).assignVariable(argument).fromRecordedValue(testCaseGenerationConfiguration, testGenerationState).endStatement();
                     }
@@ -381,7 +381,9 @@ public class MethodCallExpression implements Expression {
 
         } else {
             if (returnValue.getCreatorExpression() == null) {
-                if (!returnValue.isBooleanType()) {
+                if (!returnValue.isPrimitiveType()) {
+                    // if it is not a primitive type, then we assign to a variable first and
+                    // then use the variable in actual usage
                     in(objectRoutine)
                             .assignVariable(returnValue)
                             .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)

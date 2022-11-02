@@ -1,7 +1,7 @@
 package com.insidious.plugin.factory;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
@@ -91,7 +91,7 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private TestCaseService testCaseService;
     private Project project;

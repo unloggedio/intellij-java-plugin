@@ -245,6 +245,9 @@ public class PendingStatement {
 
 
         String statement = statementBuilder.toString();
+        if (statement.length() < 1) {
+            return;
+        }
         objectRoutine.addStatement(statement, statementParameters);
     }
 

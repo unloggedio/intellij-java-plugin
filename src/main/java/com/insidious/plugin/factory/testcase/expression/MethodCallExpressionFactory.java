@@ -117,9 +117,15 @@ public class MethodCallExpressionFactory {
     }
 
     public static Expression MockitoThen(Parameter returnValue) {
-        MethodCallExpression thenReturn = MethodCallExpression("thenReturn", null,
-                VariableContainer.from(List.of(returnValue)),
-                null);
+        List<Parameter> valueToReturn;
+        if (returnValue.isPrimitiveType()) {
+            returnValue.clearNames();
+            valueToReturn = List.of(returnValue);
+        } else {
+            valueToReturn = List.of(returnValue);
+        }
+        MethodCallExpression thenReturn = MethodCallExpression(
+                "thenReturn", null, VariableContainer.from(valueToReturn), null);
         thenReturn.setMethodAccess(Opcodes.ACC_PUBLIC);
         return thenReturn;
 
