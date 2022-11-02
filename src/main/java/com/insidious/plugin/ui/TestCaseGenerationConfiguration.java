@@ -1,10 +1,8 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.JsonFramework;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.ResourceEmbedMode;
-import com.insidious.plugin.pojo.TestFramework;
+import com.insidious.plugin.pojo.*;
+import com.squareup.javapoet.ClassName;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -20,9 +18,10 @@ import java.util.List;
 public class TestCaseGenerationConfiguration {
 
 
-    private  List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
-    private  List<MethodCallExpression> callExpressionList = new LinkedList<>();
+    private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
+    private List<MethodCallExpression> callExpressionList = new LinkedList<>();
     private TestFramework testFramework = TestFramework.JUNIT5;
+    private MockFramework mockFramework = MockFramework.MOCKITO;
     private JsonFramework jsonFramework = JsonFramework.GSON;
 
     private ResourceEmbedMode resourceEmbedMode = ResourceEmbedMode.IN_FILE;
@@ -34,8 +33,16 @@ public class TestCaseGenerationConfiguration {
         return testCandidateMetadataList;
     }
 
+    public void setTestCandidateMetadataList(List<TestCandidateMetadata> testCandidateMetadataList) {
+        this.testCandidateMetadataList = testCandidateMetadataList;
+    }
+
     public List<MethodCallExpression> getCallExpressionList() {
         return callExpressionList;
+    }
+
+    public void setCallExpressionList(List<MethodCallExpression> callExpressionList) {
+        this.callExpressionList = callExpressionList;
     }
 
     public TestFramework getTestFramework() {
@@ -62,11 +69,12 @@ public class TestCaseGenerationConfiguration {
         this.resourceEmbedMode = resourceEmbedMode;
     }
 
-    public void setTestCandidateMetadataList(List<TestCandidateMetadata> testCandidateMetadataList) {
-        this.testCandidateMetadataList = testCandidateMetadataList;
+    public ClassName getTestBeforeAnnotationType() {
+        return testFramework.getBeforeAnnotationType();
     }
 
-    public void setCallExpressionList(List<MethodCallExpression> callExpressionList) {
-        this.callExpressionList = callExpressionList;
+    public ClassName getTestAnnotationType() {
+        return ClassName.bestGuess("org.junit.Test");
     }
+
 }

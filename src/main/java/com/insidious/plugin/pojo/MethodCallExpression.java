@@ -251,7 +251,7 @@ public class MethodCallExpression implements Expression {
         returnSubjectExpectedObject.setValue(-1L);
         in(objectRoutineScript)
                 .writeExpression(MethodCallExpressionFactory
-                        .MockitoAssert(returnSubjectExpectedObject, mainMethodReturnValue))
+                        .MockitoAssert(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
                 .endStatement();
 
     }

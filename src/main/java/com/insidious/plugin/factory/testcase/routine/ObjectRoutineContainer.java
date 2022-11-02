@@ -197,7 +197,7 @@ public class ObjectRoutineContainer {
         container.getObjectRoutines().add(builderMethodScript);
 
         builderMethodScript.setRoutineName("setup");
-        builderMethodScript.addAnnotation(ClassName.bestGuess("org.junit.Before"));
+        builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
         builderMethodScript.addException(Exception.class);
         builderMethodScript.addModifiers(Modifier.PUBLIC);
 

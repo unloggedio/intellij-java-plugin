@@ -84,9 +84,9 @@ public class ObjectRoutine {
 
         scriptContainer.setCreatedVariables(createdVariables.clone());
 
-        List<ClassName> annotations = List.of(ClassName.bestGuess("org.junit.Test"));
+        List<ClassName> annotations = List.of(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {
-            annotations = List.of(ClassName.bestGuess("org.junit.Before"));
+            annotations = List.of(generationConfiguration.getTestBeforeAnnotationType());
         }
         annotations.forEach(scriptContainer::addAnnotation);
 
@@ -115,5 +115,6 @@ public class ObjectRoutine {
         return scriptContainer;
 
     }
+
 
 }

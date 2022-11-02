@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.ConstructorType;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
 import org.objectweb.asm.Opcodes;
 
@@ -15,16 +16,16 @@ import java.util.List;
 public class MethodCallExpressionFactory {
 
     public static final Parameter MockitoClass;
-    public static final Parameter AssertClass;
+//    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
 
     static {
         MockitoClass = makeParameter("Mockito", "org.mockito.Mockito", ConstructorType.SINGLETON);
-        AssertClass = makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON);
+//        AssertClass = makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON);
         GsonClass = makeParameter("gson", "com.google.gson.Gson", ConstructorType.INIT);
     }
 
-    private static Parameter makeParameter(String name, String type, ConstructorType constructorType) {
+    public static Parameter makeParameter(String name, String type, ConstructorType constructorType) {
         Parameter param = new Parameter();
         param.setName(name);
         param.setType(type);
@@ -154,10 +155,12 @@ public class MethodCallExpressionFactory {
         return toJson;
     }
 
-    public static Expression MockitoAssert(Parameter returnValue, Parameter returnSubjectInstanceName) {
-        MethodCallExpression assertEquals = MethodCallExpression("assertEquals", AssertClass,
-                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)),
-                null
+    public static Expression MockitoAssert(
+            Parameter returnValue,
+            Parameter returnSubjectInstanceName,
+            TestCaseGenerationConfiguration testConfiguration) {
+        MethodCallExpression assertEquals = MethodCallExpression(testConfiguration.getTestFramework().AssertEqualMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(), VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
         );
         assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
         return assertEquals;
@@ -165,8 +168,7 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression FromJson(Parameter object) {
         MethodCallExpression fromJson = MethodCallExpression("fromJson", GsonClass,
-                VariableContainer.from(List.of(object)),
-                null);
+                VariableContainer.from(List.of(object)), null);
         fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
         return fromJson;
     }
