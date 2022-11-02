@@ -133,7 +133,7 @@ public class CandidateMetadataFactory {
                     mockedCalls.put(mockedCallSignature, true);
                     objectRoutineScript.addComment("");
                 }
-                objectRoutineScript.addComment("");
+//                objectRoutineScript.addComment("");
             }
 
 
