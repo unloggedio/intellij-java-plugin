@@ -4,7 +4,6 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
-import com.insidious.plugin.pojo.ConstructorType;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -16,20 +15,19 @@ import java.util.List;
 public class MethodCallExpressionFactory {
 
     public static final Parameter MockitoClass;
-//    public static final Parameter AssertClass;
+    //    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
 
     static {
-        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito", ConstructorType.SINGLETON);
-//        AssertClass = makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON);
-        GsonClass = makeParameter("gson", "com.google.gson.Gson", ConstructorType.INIT);
+        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito");
+//        AssertClass = makeParameter("Assert", "org.junit.Assert");
+        GsonClass = makeParameter("gson", "com.google.gson.Gson");
     }
 
-    public static Parameter makeParameter(String name, String type, ConstructorType constructorType) {
+    public static Parameter makeParameter(String name, String type) {
         Parameter param = new Parameter();
         param.setName(name);
         param.setType(type);
-        param.setConstructorType(constructorType);
         return param;
     }
 
@@ -176,15 +174,6 @@ public class MethodCallExpressionFactory {
     public static MethodCallExpression FromJsonFetchedFromFile(Parameter object) {
         MethodCallExpression fromJson = MethodCallExpression("ValueOf", null,
                 VariableContainer.from(List.of(object)),
-                null);
-        fromJson.setStaticCall(true);
-        fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
-        return fromJson;
-    }
-
-    public static MethodCallExpression LoadResources(Parameter targetClassName, Parameter targetMethodName) {
-        MethodCallExpression fromJson = MethodCallExpression("LoadResources", null,
-                VariableContainer.from(List.of(targetClassName, targetMethodName)),
                 null);
         fromJson.setStaticCall(true);
         fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);

@@ -18,15 +18,23 @@ import java.util.List;
 public class TestCaseGenerationConfiguration {
 
 
+    private final TestFramework testFramework;
+    private final MockFramework mockFramework;
+    private final JsonFramework jsonFramework;
+    private final ResourceEmbedMode resourceEmbedMode;
     private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
     private List<MethodCallExpression> callExpressionList = new LinkedList<>();
-    private TestFramework testFramework = TestFramework.JUNIT5;
-    private MockFramework mockFramework = MockFramework.MOCKITO;
-    private JsonFramework jsonFramework = JsonFramework.GSON;
 
-    private ResourceEmbedMode resourceEmbedMode = ResourceEmbedMode.IN_FILE;
-
-    public TestCaseGenerationConfiguration() {
+    public TestCaseGenerationConfiguration(
+            TestFramework testFramework,
+            MockFramework mockFramework,
+            JsonFramework jsonFramework,
+            ResourceEmbedMode resourceEmbedMode
+    ) {
+        this.testFramework = testFramework;
+        this.mockFramework = mockFramework;
+        this.jsonFramework = jsonFramework;
+        this.resourceEmbedMode = resourceEmbedMode;
     }
 
     public List<TestCandidateMetadata> getTestCandidateMetadataList() {
@@ -49,32 +57,33 @@ public class TestCaseGenerationConfiguration {
         return testFramework;
     }
 
-    public void setTestFramework(TestFramework testFramework) {
-        this.testFramework = testFramework;
-    }
+//    public void setTestFramework(TestFramework testFramework) {
+//        this.testFramework = testFramework;
+//    }
 
     public JsonFramework getJsonFramework() {
         return jsonFramework;
     }
 
-    public void setJsonFramework(JsonFramework jsonFramework) {
-        this.jsonFramework = jsonFramework;
-    }
+//    public void setJsonFramework(JsonFramework jsonFramework) {
+//        this.jsonFramework = jsonFramework;
+//    }
 
     public ResourceEmbedMode getResourceEmbedMode() {
         return resourceEmbedMode;
     }
 
-    public void setResourceEmbedMode(ResourceEmbedMode resourceEmbedMode) {
-        this.resourceEmbedMode = resourceEmbedMode;
-    }
+//    public void setResourceEmbedMode(ResourceEmbedMode resourceEmbedMode) {
+//        this.resourceEmbedMode = resourceEmbedMode;
+//    }
 
     public ClassName getTestBeforeAnnotationType() {
         return testFramework.getBeforeAnnotationType();
     }
 
     public ClassName getTestAnnotationType() {
-        return ClassName.bestGuess("org.junit.Test");
+        return testFramework.getTestAnnotationType();
     }
+
 
 }

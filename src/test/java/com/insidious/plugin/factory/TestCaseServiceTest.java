@@ -17,10 +17,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.insidious.plugin.pojo.ObjectWithTypeInfo;
-import com.insidious.plugin.pojo.SearchQuery;
-import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
@@ -460,7 +457,9 @@ public class TestCaseServiceTest {
                         testCandidateMetadata.getTestSubject().getType(), "<init>", true);
 
         list.add(testCandidateMetadata);
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration();
+        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+        );
         generationConfiguration.getTestCandidateMetadataList().addAll(list);
         for (TestCandidateMetadata candidateMetadata : list) {
             generationConfiguration.getCallExpressionList().addAll(candidateMetadata.getCallsList());

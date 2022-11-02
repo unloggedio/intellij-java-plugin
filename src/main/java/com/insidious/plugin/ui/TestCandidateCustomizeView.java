@@ -3,15 +3,12 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.JsonFramework;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.TestFramework;
+import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
 import javax.swing.tree.TreePath;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class TestCandidateCustomizeView {
@@ -41,10 +38,8 @@ public class TestCandidateCustomizeView {
         this.testCandidateMetadata = testCandidateMetadata;
         this.sessionInstance = sessionInstance;
         this.testActionListener = testActionListener;
-        this.testGenerationConfiguration = new TestCaseGenerationConfiguration();
-
-        testGenerationConfiguration.setTestFramework(TestFramework.JUNIT5);
-        testGenerationConfiguration.setJsonFramework(JsonFramework.GSON);
+        this.testGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE);
 
         TestCandidateTreeModel candidateTree = new TestCandidateTreeModel(
                 testCandidateMetadata, testGenerationConfiguration, sessionInstance);
@@ -79,8 +74,8 @@ public class TestCandidateCustomizeView {
             this.testCandidateTree.addSelectionPaths(new TreePath[]{firstCandidate, lastCandidate});
 
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("Exception selecting default candidate nodes");
-            return;
         }
         //selection model selects all calls under candidate, no need to explicitly select them anymore
     }
