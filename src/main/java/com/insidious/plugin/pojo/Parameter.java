@@ -116,6 +116,10 @@ public class Parameter {
         }
     }
 
+    public void clearNames() {
+        this.names.clear();
+    }
+
     public void addNames(Collection<String> name) {
         name = name.stream().filter(e -> !e.startsWith("(") && e.length() > 0).collect(Collectors.toList());
         this.names.addAll(name);
@@ -267,5 +271,22 @@ public class Parameter {
 
     public boolean isBooleanType() {
         return type != null && (type.equals("Z") || type.equals("java.lang.Boolean"));
+    }
+
+    public boolean isPrimitiveType() {
+        // types which are java can build just using their values
+        return type != null &&
+                (type.length() == 1
+                        || type.startsWith("java.lang.Boolean")
+                        || type.startsWith("java.lang.Integer")
+                        || type.startsWith("java.lang.Long")
+                        || type.startsWith("java.lang.Short")
+                        || type.startsWith("java.lang.Char")
+                        || type.startsWith("java.lang.Double")
+                        || type.startsWith("java.lang.Float")
+                        || type.startsWith("java.lang.Number")
+                        || type.startsWith("java.lang.Void")
+                        || type.startsWith("java.lang.Byte")
+                );
     }
 }
