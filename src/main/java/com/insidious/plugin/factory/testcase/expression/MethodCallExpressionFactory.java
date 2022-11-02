@@ -89,6 +89,7 @@ public class MethodCallExpressionFactory {
 
 
         MethodCallExpression mock = new MethodCallExpression("mock", MockitoClass, List.of(whenExpression), null, 0);
+        mock.setStaticCall(true);
         mock.setMethodAccess(Opcodes.ACC_PUBLIC);
         return mock;
 
@@ -160,6 +161,7 @@ public class MethodCallExpressionFactory {
         MethodCallExpression assertEquals = MethodCallExpression(testConfiguration.getTestFramework().AssertEqualMethod(),
                 testConfiguration.getTestFramework().AssertClassParameter(), VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
         );
+        assertEquals.setStaticCall(true);
         assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
         return assertEquals;
     }

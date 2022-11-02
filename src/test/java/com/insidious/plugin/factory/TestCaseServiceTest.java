@@ -443,8 +443,11 @@ public class TestCaseServiceTest {
 
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
+//        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
+//                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
+
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.PatientLeadService", "changePatientForCase", true);
+                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
 
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
 //                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);

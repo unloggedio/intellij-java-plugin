@@ -94,7 +94,7 @@ public class Parameter {
         if (type == null) {
             return;
         }
-        if (this.type == null) {
+        if (this.type == null || this.type.endsWith(".Object")) {
             this.type = type;
         }
     }

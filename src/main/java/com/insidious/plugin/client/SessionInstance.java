@@ -2211,7 +2211,8 @@ public class SessionInstance {
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
                                 isModified = false;
-                                if (existingParameter.getValue() != 0) {
+                                if (existingParameter.getValue() != 0 || existingParameter.getType() == null ||
+                                        existingParameter.getType().endsWith(".Object")) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
                                     // TODO: This is getting ugly, but
                                     // we need some way to prefer some kind of events/probes combination
@@ -2225,7 +2226,7 @@ public class SessionInstance {
                                     // instead of storing the event/probe
                                     if (existingParameter.getProbeInfo() == null ||
                                             (!existingParameter.getProbeInfo().getEventType().equals(PUT_INSTANCE_FIELD_VALUE)
-                                            && !existingParameter.getProbeInfo().getEventType().equals(GET_INSTANCE_FIELD_RESULT))) {
+                                                    && !existingParameter.getProbeInfo().getEventType().equals(GET_INSTANCE_FIELD_RESULT))) {
                                         existingParameter.setProbeInfo(probeInfo);
                                         existingParameter.setProb(dataEvent);
                                         isModified = true;
@@ -2534,7 +2535,8 @@ public class SessionInstance {
 
                                 isModified = false;
                                 saveProbe = true;
-                                if (existingParameter.getValue() != 0) {
+                                if (existingParameter.getValue() != 0 || existingParameter.getType() == null ||
+                                        existingParameter.getType().endsWith(".Object")) {
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
                                     saveProbe = true;

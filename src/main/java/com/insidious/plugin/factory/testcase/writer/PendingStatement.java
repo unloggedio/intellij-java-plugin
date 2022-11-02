@@ -140,8 +140,7 @@ public class PendingStatement {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
 
-                if (Objects.equals(callExpressionSubject.getName(), "Mockito")
-                        || Objects.equals(callExpressionSubject.getName(), "Assert")) {
+                if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(").append(parameterString).append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
                     statementParameters.add(methodCallExpression.getMethodName());
