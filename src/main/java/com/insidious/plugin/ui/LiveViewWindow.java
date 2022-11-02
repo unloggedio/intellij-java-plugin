@@ -142,7 +142,7 @@ public class LiveViewWindow implements TreeSelectionListener,
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
-                    testCandidateMetadata, testCaseService, this);
+                    testCandidateMetadata, testCaseService, this, sessionInstance);
             testCandidatePreviewPanel.setCandidateNumberIndex((i + 1));
             Component contentPanel = testCandidatePreviewPanel.getContentPanel();
             gridPanel.add(contentPanel, constraints);
