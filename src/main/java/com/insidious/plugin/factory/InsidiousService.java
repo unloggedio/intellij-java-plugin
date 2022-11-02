@@ -875,9 +875,9 @@ public class InsidiousService implements Disposable {
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
-            singleWindowView = new SingleWindowView(project, this);
-            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
-            contentManager.addContent(singleWindowContent);
+//            singleWindowView = new SingleWindowView(project, this);
+//            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+//            contentManager.addContent(singleWindowContent);
 
             liveViewWindow = new LiveViewWindow(project, this);
             Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
