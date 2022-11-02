@@ -4,13 +4,13 @@ import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFact
 import com.squareup.javapoet.ClassName;
 
 public enum TestFramework {
-    JUNIT4(MethodCallExpressionFactory.makeParameter(
-            "Assert", "org.junit.Assert", ConstructorType.SINGLETON),
+    JUNIT4(
+            MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON),
             "assertEquals",
             ClassName.bestGuess("org.junit.Before")
     ),
-    JUNIT5(MethodCallExpressionFactory.makeParameter(
-            "Assert", "org.junit.Assert", ConstructorType.SINGLETON),
+    JUNIT5(
+            MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert", ConstructorType.SINGLETON),
             "assertEquals",
             ClassName.bestGuess("org.junit.Before")
     );

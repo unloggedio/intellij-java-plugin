@@ -68,7 +68,7 @@ public class Parameter {
         newParam.setNames(e.getNames());
 
         newParam.setTemplateMap(transformedTemplateMap);
-        newParam.setConstructorType(e.getConstructorType());
+//        newParam.setConstructorType(e.getConstructorType());
         newParam.setProbeInfo(e.getProbeInfo());
         newParam.setValue(e.getValue());
         return newParam;
@@ -97,7 +97,7 @@ public class Parameter {
         }
 
         newParam.setTemplateMap(transformedTemplateMap);
-        newParam.setConstructorType(parameter.getConstructorType());
+//        newParam.setConstructorType(parameter.getConstructorType());
         newParam.setValue((long) parameter.getValue());
 
 
@@ -206,13 +206,13 @@ public class Parameter {
         this.probeInfo = ProbeInfo.FromProbeInfo(probeInfo);
     }
 
-    public ConstructorType getConstructorType() {
-        return constructorType;
-    }
-
-    public void setConstructorType(ConstructorType constructorType) {
-        this.constructorType = constructorType;
-    }
+//    public ConstructorType getConstructorType() {
+//        return constructorType;
+//    }
+//
+//    public void setConstructorType(ConstructorType constructorType) {
+//        this.constructorType = constructorType;
+//    }
 
     public MethodCallExpression getCreatorExpression() {
         return creatorExpression;

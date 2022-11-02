@@ -34,7 +34,7 @@ public class Parameter {
     private String stringValue = null;
     private int index;
     private DataInfo dataInfo;
-    private ConstructorType constructorType;
+//    private ConstructorType constructorType;
     private MethodCallExpression creatorExpression;
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
@@ -177,13 +177,13 @@ public class Parameter {
 
     }
 
-    public ConstructorType getConstructorType() {
-        return constructorType;
-    }
-
-    public void setConstructorType(ConstructorType constructorType) {
-        this.constructorType = constructorType;
-    }
+//    public ConstructorType getConstructorType() {
+//        return constructorType;
+//    }
+//
+//    public void setConstructorType(ConstructorType constructorType) {
+//        this.constructorType = constructorType;
+//    }
 
     public MethodCallExpression getCreatorExpression() {
         return creatorExpression;
