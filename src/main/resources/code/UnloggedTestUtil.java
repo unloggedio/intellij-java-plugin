@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
-    private final static Gson gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd HH:mm:ss.S").create();
+    private final static Gson gson = new GsonBuilder().serializeNulls().create();
     public static String testResourceFilePath = null;
     private static JsonObject sourceObject = null;
 
