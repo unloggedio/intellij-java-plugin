@@ -299,7 +299,7 @@ public class PendingStatement {
         }
 
         if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
-
+            // primitive variable types
             Parameter parameter = lhsExpression;
 
 
@@ -333,6 +333,7 @@ public class PendingStatement {
             }
 
         } else {
+            // non primitive variable types need to be reconstructed from the JSON values
             if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
                 this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
             } else if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
@@ -340,7 +341,6 @@ public class PendingStatement {
                 String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
                 lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
                 this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(lhsExpression));
-
 
             } else {
                 throw new RuntimeException("this never happened");

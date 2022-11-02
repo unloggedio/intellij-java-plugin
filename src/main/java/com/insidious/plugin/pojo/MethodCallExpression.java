@@ -17,6 +17,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -114,7 +115,10 @@ public class MethodCallExpression implements Expression {
     }
 
     @Override
-    public void writeTo(ObjectRoutineScript objectRoutineScript, TestCaseGenerationConfiguration testConfiguration, TestGenerationState testGenerationState) {
+    public void writeTo(
+            ObjectRoutineScript objectRoutineScript,
+            TestCaseGenerationConfiguration testConfiguration,
+            TestGenerationState testGenerationState) {
 
         Parameter mainMethodReturnValue = getReturnValue();
         if (mainMethodReturnValue == null) {
@@ -194,21 +198,38 @@ public class MethodCallExpression implements Expression {
         byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
 
 
-        Parameter returnSubjectExpectedJsonString = null;
-        if (serializedBytes.length > 0) {
-            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+        Parameter returnSubjectExpectedObject = null;
+        // not sure why there was a if condition since both the blocks are same ?
+//        if (serializedBytes.length > 0) {
+        returnSubjectExpectedObject = ParameterFactory.createParameter(
+                returnSubjectInstanceName + "Expected", mainMethodReturnValue.getType());
+
+        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
             in(objectRoutineScript)
-                    .assignVariable(returnSubjectExpectedJsonString)
+                    .assignVariable(returnSubjectExpectedObject)
                     .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
                     .endStatement();
-        } else {
-            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+
+        } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+
+            String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
+            mainMethodReturnValue.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(mainMethodReturnValue);
 
             in(objectRoutineScript)
-                    .assignVariable(returnSubjectExpectedJsonString)
-                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+                    .assignVariable(returnSubjectExpectedObject)
+                    .writeExpression(jsonFromFileCall)
                     .endStatement();
         }
+
+//        } else {
+//            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
+//
+//            in(objectRoutineScript)
+//                    .assignVariable(returnSubjectExpectedJsonString)
+//                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+//                    .endStatement();
+//        }
 
 
         // reconstruct object from the serialized form to an object instance in the
@@ -216,17 +237,19 @@ public class MethodCallExpression implements Expression {
         // round ? Maybe serializing the object and then comparing the serialized
         // string forms would be more readable ? string comparison would fail if the
         // serialization has fields serialized in random order
-        Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
-        in(objectRoutineScript)
-                .assignVariable(returnSubjectJsonString)
-                .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
-                .endStatement();
+
+        // CHANGE -> we will compare the objects directly, and not their JSON values
+//        Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
+//        in(objectRoutineScript)
+//                .assignVariable(returnSubjectJsonString)
+//                .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
+//                .endStatement();
 
 
-        returnSubjectExpectedJsonString.setValue(-1L);
+        returnSubjectExpectedObject.setValue(-1L);
         in(objectRoutineScript)
                 .writeExpression(MethodCallExpressionFactory
-                        .MockitoAssert(returnSubjectExpectedJsonString, returnSubjectJsonString))
+                        .MockitoAssert(returnSubjectExpectedObject, mainMethodReturnValue))
                 .endStatement();
 
     }

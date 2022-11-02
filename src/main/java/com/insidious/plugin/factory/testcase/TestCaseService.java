@@ -40,6 +40,11 @@ public class TestCaseService {
         ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
 
 
+        return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
+    }
+
+    @NotNull
+    private static TestCaseUnit buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
         TypeSpec.Builder typeSpecBuilder = TypeSpec

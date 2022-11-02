@@ -11,7 +11,9 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ParameterFactory {
@@ -848,6 +850,13 @@ public class ParameterFactory {
         Parameter parameter = new Parameter();
         parameter.setName(s);
         parameter.setType("java.lang.String");
+        return parameter;
+    }
+
+    public static Parameter createParameter(String parameterName, String parameterType) {
+        Parameter parameter = new Parameter();
+        parameter.setName(parameterName);
+        parameter.setType(parameterType);
         return parameter;
     }
 
