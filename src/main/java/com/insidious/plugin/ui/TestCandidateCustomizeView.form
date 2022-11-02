@@ -111,6 +111,7 @@
                   <background color="-15658735"/>
                   <disabledTextColor color="-15658735"/>
                   <editable value="false"/>
+                  <margin top="5" left="5" bottom="5" right="5"/>
                   <text value="method a, b, c and d were called before method d.   Check what’s needed to create a test case for method d."/>
                 </properties>
               </component>

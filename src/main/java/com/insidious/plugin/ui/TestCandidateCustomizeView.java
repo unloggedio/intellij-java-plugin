@@ -52,6 +52,8 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel(candidateTree));
         setDefaultSelection();
 
+        setDocumentationText();
+
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
@@ -104,6 +106,30 @@ public class TestCandidateCustomizeView {
             }
         }
 
+        System.out.println("Comparing Candidates ");
+        System.out.println("[Existing candidates: ] "+this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
+        System.out.println("[New candidates: ] "+candidates.toString());
+        if(this.testGenerationConfiguration.getTestCandidateMetadataList().equals(candidates))
+        {
+            System.out.println("[]Candidates are equal");
+        }
+        else
+        {
+            System.out.println("[]Candidates are not equal");
+        }
+
+        System.out.println("Comparing Calls ");
+        System.out.println("[Existing Calls: ] "+this.testGenerationConfiguration.getCallExpressionList().toString());
+        System.out.println("[New calls: ] "+calls.toString());
+        if(this.testGenerationConfiguration.getCallExpressionList().equals(calls))
+        {
+            System.out.println("[]Calls are equal");
+        }
+        else
+        {
+            System.out.println("[]Calls are not equal");
+        }
+
         this.testGenerationConfiguration.setTestCandidateMetadataList(candidates);
         this.testGenerationConfiguration.setCallExpressionList(calls);
     }
@@ -113,8 +139,8 @@ public class TestCandidateCustomizeView {
     }
 
     private void generateWithSelectedOptions() {
-        printSelections();
-//        setupGenerationConfiguration();
+        //printSelections();
+        setupGenerationConfiguration();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (IOException e) {
@@ -125,6 +151,12 @@ public class TestCandidateCustomizeView {
 
     public JPanel getContentPanel() {
         return mainPanel;
+    }
+
+    public void setDocumentationText()
+    {
+        TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
+        this.documentationTextArea.setText(model.getDocumentationText());
     }
 
 }
