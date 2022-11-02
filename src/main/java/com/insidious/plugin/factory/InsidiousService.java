@@ -68,6 +68,7 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
@@ -75,6 +76,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -629,6 +631,8 @@ public class InsidiousService implements Disposable {
                 try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
+                VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(Path.of(testResourcesFilePath).toUri().toString());
             }
 
 
@@ -1138,5 +1142,29 @@ public class InsidiousService implements Disposable {
 
     public Project getProject() {
         return project;
+    }
+
+    public void ensureTestUtilClass() throws IOException {
+        String testOutputDirPath = project.getBasePath() + "/src/test/java/io/unlogged";
+        File dirPath = new File(testOutputDirPath);
+        if (!dirPath.exists()) {
+            dirPath.mkdirs();
+        }
+
+        String utilFilePath = testOutputDirPath + "/UnloggedTestUtils.java";
+        File utilFile = new File(utilFilePath);
+        if (utilFile.exists()) {
+            // util file already exist
+            return;
+        }
+        try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
+            InputStream testUtilClassCode = this.getClass().getClassLoader().getResourceAsStream("code/UnloggedTestUtil.java");
+            assert testUtilClassCode != null;
+            IOUtils.copy(testUtilClassCode, writer);
+        }
+        @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath()).toUri().toString());
+
+
     }
 }

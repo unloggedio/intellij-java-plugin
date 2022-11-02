@@ -1,4 +1,4 @@
-package com.unlogged;
+package io.unlogged;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -10,6 +10,10 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
+ * UnloggedTestUtils.Version: V0
+ */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
     private final static Gson gson = new GsonBuilder().serializeNulls().setDateFormat("yyyy-MM-dd HH:mm:ss.S").create();
@@ -33,7 +37,7 @@ public class UnloggedTestUtils {
         sourceObject = gson.fromJson(stringSource, JsonObject.class);
     }
 
-    public static <T> T FromRecords(String key, Type type) {
+    public static <T> T ValueOf(String key, Type type) {
         return gson.fromJson(sourceObject.get(key).toString(), type);
     }
 }

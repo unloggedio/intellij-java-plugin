@@ -174,6 +174,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws IOException {
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
         TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+        insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
     }
 
