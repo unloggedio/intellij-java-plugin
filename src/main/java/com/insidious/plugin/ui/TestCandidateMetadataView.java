@@ -6,7 +6,11 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -57,13 +61,28 @@ public class TestCandidateMetadataView {
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
 //        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms | ");
+
+        this.contentPanel.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent me) {
+                hoverStateManager(me,true);
+            }
+            public void mouseExited(MouseEvent me)
+            {
+                hoverStateManager(me,false);
+            }
+        });
+
         testCandidateName.setText(getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms");
         generateTestCaseButton.addActionListener(e -> generateTestCase());
+        contentPanel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent me) {
+                generateTestCase();
+            }
+        });
+
     }
 
-    private void generateTestCase() {
-        candidateSelectionListener.onSelect(testCandidateMetadata);
-    }
+    private void generateTestCase() {candidateSelectionListener.onSelect(testCandidateMetadata);}
 
     public Component getContentPanel() {
         return contentPanel;
@@ -97,4 +116,26 @@ public class TestCandidateMetadataView {
             return 0;
         }
     }
+
+    private void hoverStateManager(MouseEvent me, boolean mouseEntered)
+    {
+        if(mouseEntered)
+        {
+            Color color = new Color(1,204,245);
+            Border border = new LineBorder(color);
+            contentPanel.setBorder(border);
+//            color = new Color(1,204,245,10);
+//            contentPanel.setBackground(color);
+        }
+        else
+        {
+            Color color = new Color(187,187,187);
+            Border border = new LineBorder(color);
+            contentPanel.setBorder(border);
+//            color = new Color(60,63,65);
+//            contentPanel.setBackground(color);
+
+        }
+    }
+
 }

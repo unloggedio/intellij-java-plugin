@@ -7,7 +7,11 @@ import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
+import java.awt.*;
 import java.io.IOException;
 import java.util.LinkedList;
 
@@ -28,6 +32,7 @@ public class TestCandidateCustomizeView {
     private JPanel buttonsPanel;
     private JLabel descriptionText;
     private JTextPane documentationTextArea;
+    private JSplitPane splitPane;
     private CustomizeViewTreeCellRenderer cellRenderer;
 
     public TestCandidateCustomizeView(
@@ -53,6 +58,7 @@ public class TestCandidateCustomizeView {
         setDefaultSelection();
 
         setDocumentationText();
+        setDividerColor();
 
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
@@ -159,5 +165,28 @@ public class TestCandidateCustomizeView {
         this.documentationTextArea.setText(model.getDocumentationText());
     }
 
+    private void setDividerColor()
+    {
+        splitPane.setUI(new BasicSplitPaneUI()
+        {
+            @Override
+            public BasicSplitPaneDivider createDefaultDivider()
+            {
+                return new BasicSplitPaneDivider(this)
+                {
+                    public void setBorder(Border b) {}
+
+                    @Override
+                    public void paint(Graphics g)
+                    {
+                        Color teal = new Color(1,204,245);
+                        g.setColor(teal);
+                        g.fillRect(0, 0, getSize().width, getSize().height);
+                        super.paint(g);
+                    }
+                };
+            }
+        });
+    }
 }
 

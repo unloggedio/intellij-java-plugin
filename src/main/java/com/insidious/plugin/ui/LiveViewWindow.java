@@ -21,8 +21,11 @@ import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
+import javax.swing.plaf.basic.BasicSplitPaneDivider;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.List;
@@ -41,6 +44,9 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JSplitPane splitPanel;
     private JScrollPane mainTreeScrollPanel;
     private JPanel topControlPanel;
+    private JPanel candidateParentPanel;
+    private JPanel headingPanel;
+    private JLabel headingText;
     private JPanel candidateListPanel;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
@@ -63,6 +69,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
+        setDividerColor();
     }
 
     @NotNull
@@ -138,8 +145,9 @@ public class LiveViewWindow implements TreeSelectionListener,
         if (testCandidateMetadataList.size() > GridRows) {
             GridRows = testCandidateMetadataList.size();
         }
-        JPanel gridPanel = new JPanel(new GridLayout(GridRows, 1));
-        //this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
+        GridLayout gridLayout = new GridLayout(GridRows,1);
+        gridLayout.setVgap(8);
+        JPanel gridPanel = new JPanel(gridLayout);
         for (int i = 0; i < testCandidateMetadataList.size(); i++) {
             TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
             GridConstraints constraints = new GridConstraints();
@@ -157,6 +165,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         if (testCandidateMetadataList.size() <= 4) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
+        headingText.setText("Test Candidates for "+methodNode.getMethodName());
         this.candidateListPanel.revalidate();
     }
 
@@ -169,10 +178,8 @@ public class LiveViewWindow implements TreeSelectionListener,
         this.candidateListPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(1);
-
         candidateListPanel.add(testCandidateView.getContentPanel(), constraints);
         this.candidateListPanel.revalidate();
-
 
     }
 
@@ -222,5 +229,29 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void cancel() {
         loadTestCandidateConfigView(selectedTestCandidateAggregate);
+    }
+
+    private void setDividerColor()
+    {
+        splitPanel.setUI(new BasicSplitPaneUI()
+        {
+            @Override
+            public BasicSplitPaneDivider createDefaultDivider()
+            {
+                return new BasicSplitPaneDivider(this)
+                {
+                    public void setBorder(Border b) {}
+
+                    @Override
+                    public void paint(Graphics g)
+                    {
+                        Color teal = new Color(1,204,245);
+                        g.setColor(teal);
+                        g.fillRect(0, 0, getSize().width, getSize().height);
+                        super.paint(g);
+                    }
+                };
+            }
+        });
     }
 }
