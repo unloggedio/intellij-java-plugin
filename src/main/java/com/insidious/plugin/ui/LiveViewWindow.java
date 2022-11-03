@@ -135,7 +135,12 @@ public class LiveViewWindow implements TreeSelectionListener,
                         methodNode.getClassName(), methodNode.getMethodName(), false);
 
         this.candidateListPanel.removeAll();
-        JPanel gridPanel = new JPanel(new GridLayout(testCandidateMetadataList.size(), 1));
+        int GridRows=6;
+        if(testCandidateMetadataList.size()>GridRows)
+        {
+            GridRows=testCandidateMetadataList.size();
+        }
+        JPanel gridPanel = new JPanel(new GridLayout(GridRows, 1));
         //this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
         for (int i = 0; i < testCandidateMetadataList.size(); i++) {
             TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
@@ -151,6 +156,10 @@ public class LiveViewWindow implements TreeSelectionListener,
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         candidateListPanel.setPreferredSize(scrollPane.getSize());
         candidateListPanel.add(scrollPane, BorderLayout.CENTER);
+        if(testCandidateMetadataList.size()<=4)
+        {
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        }
         this.candidateListPanel.revalidate();
     }
 

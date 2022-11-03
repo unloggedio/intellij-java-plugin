@@ -23,6 +23,8 @@ public class TestCandidateMetadataView {
     private JPanel labelPanel;
     private JPanel buttonPanel;
     private JLabel candidateNumber;
+    private JPanel cardPanel;
+    private JPanel borderParent;
 
     private Dimension contentPanelDimensions = new Dimension(-1,30);
 
@@ -54,7 +56,8 @@ public class TestCandidateMetadataView {
 //        String entryDateTimeStamp =  format.format(date);
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms | ");
+//        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms | ");
+        testCandidateName.setText(getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms");
         generateTestCaseButton.addActionListener(e -> generateTestCase());
     }
 
@@ -80,12 +83,18 @@ public class TestCandidateMetadataView {
 
     private int getMethodCallsForCandidate(TestCandidateMetadata testCandidateMetadata, SessionInstance sessionInstance, MethodCallExpression mainMethod)
     {
-        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(testCandidateMetadata.getTestSubject().getValue(),
-                testCandidateMetadata.getCallTimeNanoSecond(), mainMethod.getId(), false);
+        try {
+            List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(testCandidateMetadata.getTestSubject().getValue(),
+                    testCandidateMetadata.getCallTimeNanoSecond(), mainMethod.getId(), false);
 
-        TestCandidateMetadata candidate = sessionInstance.getTestCandidateById(candidates.get(candidates.size()-1).getEntryProbeIndex());
-        int methodCalls = candidate.getCallsList().size();
-
-        return methodCalls;
+            TestCandidateMetadata candidate = sessionInstance.getTestCandidateById(candidates.get(candidates.size() - 1).getEntryProbeIndex());
+            int methodCalls = candidate.getCallsList().size();
+            return methodCalls;
+        }
+        catch(Exception e)
+        {
+            System.out.println("Error fetching method calls for "+testCandidateMetadata.toString());
+            return 0;
+        }
     }
 }
