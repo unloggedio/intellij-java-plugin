@@ -175,7 +175,7 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() {
+    private List<File> refreshSessionArchivesList() throws IOException {
         if (sessionDirectory.listFiles() == null) {
             return List.of();
         }
@@ -209,20 +209,20 @@ public class SessionInstance {
 
 
         probeInfoMap = new HashMap<>();
-        classInfoMap = new HashMap<>();
+//        classInfoMap = new HashMap<>();
         methodInfoMap = new HashMap<>();
 
         classWeaveInfo.classInfo().forEach(e -> {
 
             checkProgressIndicator(null, "Loading class: " + e.className());
 
-            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
-            classInfoMap.put(e.classId(), classInfo);
+//            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
+//            classInfoMap.put(e.classId(), classInfo);
 
             checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
 
             e.methodList().forEach(m -> {
-                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.getClassName());
+                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, e.className().value());
                 methodInfoMap.put(m.methodId(), methodInfo);
             });
 
@@ -231,6 +231,8 @@ public class SessionInstance {
             });
 
         });
+        classWeaveInfo._io().close();
+        classWeaveInfo = null;
 
 
         sessionFiles.removeAll(filesToRemove);
@@ -452,7 +454,7 @@ public class SessionInstance {
 
     }
 
-    private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) {
+    private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
 
         KaitaiInsidiousClassWeaveParser classWeaveInfo1;
         logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
@@ -464,8 +466,9 @@ public class SessionInstance {
             return null;
         }
 //        logger.warn("Class weave information from " + sessionFile.getName() + " is " + fileBytes.getBytes().length + " bytes");
-        classWeaveInfo1 = new KaitaiInsidiousClassWeaveParser(
-                new ByteBufferKaitaiStream(fileBytes.getBytes()));
+        ByteBufferKaitaiStream io = new ByteBufferKaitaiStream(fileBytes.getBytes());
+        classWeaveInfo1 = new KaitaiInsidiousClassWeaveParser(io);
+        io.close();
         return classWeaveInfo1;
     }
 
@@ -540,8 +543,10 @@ public class SessionInstance {
         ZipEntry entry = null;
         while ((entry = indexArchive.getNextEntry()) != null) {
             String entryName = entry.getName();
+            indexArchive.closeEntry();
             files.add(entryName);
         }
+        indexArchive.close();
         files = files.stream().filter(e -> e.contains("@")).map(e -> e.split("@")[1]).collect(Collectors.toList());
         Collections.sort(files);
         zipFileListMap.put(sessionFile.getName(), files);
@@ -626,7 +631,9 @@ public class SessionInstance {
             if (cacheEntries.containsKey(cacheKey)) {
                 String name = cacheEntries.get(cacheKey);
                 File cacheFile = new File(cacheFileLocation);
-                byte[] bytes = IOUtils.toByteArray(new FileInputStream(cacheFile));
+                FileInputStream inputStream = new FileInputStream(cacheFile);
+                byte[] bytes = IOUtils.toByteArray(inputStream);
+                inputStream.close();
                 return new NameWithBytes(name, bytes);
             }
 
@@ -634,12 +641,6 @@ public class SessionInstance {
             indexArchive = new ZipInputStream(sessionFileInputStream);
 
 
-//            long filterValueLong = 0;
-//            try {
-//                filterValueLong = Long.parseLong(pathName);
-//            } catch (Exception ignored) {
-//
-//            }
 
             ZipEntry entry = null;
             while ((entry = indexArchive.getNextEntry()) != null) {
@@ -662,6 +663,13 @@ public class SessionInstance {
                 }
             }
         } catch (Exception e) {
+            if (indexArchive != null) {
+                try {
+                    indexArchive.close();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             e.printStackTrace();
             logger.warn("failed to create file [" + pathName + "] on disk from" +
                     " archive[" + sessionFile.getName() + "]");
@@ -1399,18 +1407,20 @@ public class SessionInstance {
         return eventsIndex;
     }
 
-    private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) {
-        NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(
-                sessionArchive, archiveFile);
+    private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
+        logger.warn("Read events from file: " + archiveFile);
+        NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
 
         assert bytesWithName != null;
 
 
-        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(
-                new ByteBufferKaitaiStream(bytesWithName.getBytes()));
+        ByteBufferKaitaiStream kaitaiStream = new ByteBufferKaitaiStream(bytesWithName.getBytes());
+        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(kaitaiStream);
 
 
-        return eventsContainer.event().entries();
+        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event().entries();
+        kaitaiStream.close();
+        return events;
     }
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
@@ -1818,7 +1828,7 @@ public class SessionInstance {
 
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
-        assert classInfoMap.size() > 0;
+//        assert classInfoMap.size() > 0;
         assert probeInfoMap.size() > 0;
         assert methodInfoMap.size() > 0;
 
@@ -1836,9 +1846,9 @@ public class SessionInstance {
         Map<String, LogFile> logFileMap = getLogFileMap(daoService);
         Map<String, List<LogFile>> filesByArchive = logFileMap.values().stream().collect(Collectors.groupingBy(LogFile::getArchiveName));
 
-        List<Integer> existingProbes = new LinkedList<>();
+        Set<Integer> existingProbes = new HashSet<>();
         try {
-            existingProbes = daoService.getProbes();
+            existingProbes = new HashSet<>(daoService.getProbes());
         } catch (SQLiteException se) {
             logger.warn("no existing probes found - " + se.getMessage());
         }
@@ -1910,7 +1920,8 @@ public class SessionInstance {
 
                 boolean processedAllFiles = true;
                 DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService, archiveIndex);
-                checkProgressIndicator("Processing thread " + (threadsProcessed.size() + 1) + " / " + (threadsPending.size() + threadsProcessed.size()), null);
+                checkProgressIndicator("Processing thread " +
+                        (threadsProcessed.size() + 1) + " / " + (1 + threadsPending.size() + threadsProcessed.size()), null);
 
                 for (String logFile : archiveFiles) {
                     checkProgressIndicator(null, "Reading events from  " + logFile);
@@ -2612,6 +2623,11 @@ public class SessionInstance {
                     logger.warn("[" + logFile + "] Took [" + timeInMs + " ms] to process ["
                             + eventsSublist.size() + " events] => "
                             + (1000 * eventsSublist.size()) / timeInMs + " events per second");
+                    logger.debug("parameterContainer = " + parameterContainer.all().size()
+                            + ",  eventsToSave = " + eventsToSave.size()
+                            + ",  probesToSave = " + probesToSave.size()
+                    );
+                    eventsSublist = null;
 
 //                    logger.warn("Saving [" + eventsToSave.size() + " events] [" + probesToSave.size() + " probes]");
 
