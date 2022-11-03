@@ -127,13 +127,18 @@ public class TestCandidateTreeModel implements TreeModel {
     public String getDocumentationText()
     {
         StringBuilder text = new StringBuilder();
-        text.append("The Following Methods - \n");
-        for(int i=0;i<candidateList.size()-1;i++)
+        int candidateListSize = candidateList.size();
+        if(candidateListSize>0)
         {
-            text.append((i+1)+". "+candidateList.get(i).toString()+"\n");
+            text.append("The Following Methods - \n");
+            for(int i=0;i<candidateList.size()-1;i++)
+            {
+                text.append((i+1)+". "+candidateList.get(i).toString()+"\n");
+            }
+            text.append("\nwere called before \n");
+
+            text.append(candidateList.get(candidateList.size()-1).toString()+"\n\n");
         }
-        text.append("\nwere called before \n");
-        text.append(candidateList.get(candidateList.size()-1).toString()+"\n\n");
 
         text.append("• Using the checkboxes on the left, select the methods to assert.\n");
         text.append("• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");

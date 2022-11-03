@@ -140,7 +140,7 @@ public class TestCandidateCustomizeView {
 
     private void generateWithSelectedOptions() {
         //printSelections();
-        setupGenerationConfiguration();
+        //setupGenerationConfiguration();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (IOException e) {
