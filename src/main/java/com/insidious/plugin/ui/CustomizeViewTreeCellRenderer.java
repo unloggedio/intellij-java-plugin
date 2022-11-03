@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.intellij.openapi.util.IconLoader;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -12,6 +13,7 @@ import java.util.Vector;
 public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
     private JCheckBox checkboxRenderer = new JCheckBox();
     private DefaultTreeCellRenderer rootRenderer = new DefaultTreeCellRenderer();
+    Icon icon = IconLoader.getIcon("icons/png/method_v1.png", CustomizeViewTreeCellRenderer.class);
 
     Color selectionBorderColor, selectionForeground, selectionBackground,
             textForeground, textBackground;
@@ -89,6 +91,8 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
                 }
                 else
                 {
+                    rootRenderer.setOpenIcon(icon);
+                    rootRenderer.setClosedIcon(icon);
                     returnValue = rootRenderer.getTreeCellRendererComponent(tree,
                             value, selected, expanded, leaf, row, hasFocus);
                 }
