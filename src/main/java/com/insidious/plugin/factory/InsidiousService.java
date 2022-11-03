@@ -644,8 +644,16 @@ public class InsidiousService implements Disposable {
             File testcaseFile = new File(testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
 
             try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+//                @NotNull PsiTypeCodeFragment codePsiElement = JavaCodeFragmentFactory
+//                        .getInstance(project)
+//                        .createTypeCodeFragment(testCaseScript.getCode(), null, true);
+//                @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(codePsiElement.getTextRange());
+//                CodeStyleManager.getInstance(project).reformatText(codePsiElement, ranges);
+//                out.write(codePsiElement.getText().getBytes(StandardCharsets.UTF_8));
+//                FormatterServiceImpl formatterService = new FormatterServiceImpl();
+//                String formattedSource = formatterService.formatSourceReflowStringsAndFixImports(testCaseScript.getCode());
                 out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 InsidiousNotification.notifyMessage(
                         "Failed to write test case: " + testCaseScript + " -> "
                                 + e.getMessage(), NotificationType.ERROR
@@ -653,8 +661,7 @@ public class InsidiousService implements Disposable {
             }
 
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                    .refreshAndFindFileByUrl(
-                            Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
+                    .refreshAndFindFileByUrl(Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
             if (newFile == null) {
                 return null;
             }
@@ -665,10 +672,20 @@ public class InsidiousService implements Disposable {
 
             FileEditorManager.getInstance(project).openFile(newFile, true, true);
 
+//            ApplicationManager.getApplication().runWriteAction(new Runnable() {
+//                @Override
+//                public void run() {
+//                    @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
+//                    @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
+//                    CodeStyleManager.getInstance(project).reformatText(testFilePsiInstance, ranges);
+//                }
+//            });
+
+
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;
         }
-        VirtualFileManager.getInstance().syncRefresh();
+//        VirtualFileManager.getInstance().syncRefresh();
         return null;
     }
 
@@ -1165,6 +1182,11 @@ public class InsidiousService implements Disposable {
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
                 .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath()).toUri().toString());
 
+//        @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
+//        @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
+//        CodeStyleManager.getInstance(project).reformatText(testFilePsiInstance, ranges);
+
+//        @NotNull PsiElement formattedCode = CodeStyleManagerImpl.getInstance(project).reformat(testFilePsiInstance);
 
     }
 }

@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String SIGN_IN_URL = "/api/auth/signin";
     public static final String SIGN_UP_URL = "/api/auth/signup";
+    public static final String FORMAT_CODE_URL = "/api/format/java";
     public static final String PROJECTS_URL = "/api/data/projects";
     public static final String PROJECT_URL = "/api/data/project";
     public static final String PROJECT_EXECUTIONS_URL = "/executions";

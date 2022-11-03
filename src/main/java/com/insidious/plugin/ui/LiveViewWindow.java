@@ -8,14 +8,13 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.tree.TreeUtil;
@@ -26,7 +25,6 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.List;
 
 public class LiveViewWindow implements TreeSelectionListener,
@@ -98,7 +96,8 @@ public class LiveViewWindow implements TreeSelectionListener,
                                     testCaseService = new TestCaseService(sessionInstance);
 
                                     testCaseService.processLogFiles();
-                                    treeModel = new LiveViewTestCandidateListTree(insidiousService.getClient().getSessionInstance());
+                                    treeModel = new LiveViewTestCandidateListTree(
+                                            project, insidiousService.getClient().getSessionInstance());
                                     mainTree.setModel(treeModel);
 
                                 } catch (Exception ex) {
@@ -135,10 +134,9 @@ public class LiveViewWindow implements TreeSelectionListener,
                         methodNode.getClassName(), methodNode.getMethodName(), false);
 
         this.candidateListPanel.removeAll();
-        int GridRows=6;
-        if(testCandidateMetadataList.size()>GridRows)
-        {
-            GridRows=testCandidateMetadataList.size();
+        int GridRows = 6;
+        if (testCandidateMetadataList.size() > GridRows) {
+            GridRows = testCandidateMetadataList.size();
         }
         JPanel gridPanel = new JPanel(new GridLayout(GridRows, 1));
         //this.candidateListPanel.setLayout(new GridLayout(testCandidateMetadataList.size(), 1));
@@ -156,8 +154,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         candidateListPanel.setPreferredSize(scrollPane.getSize());
         candidateListPanel.add(scrollPane, BorderLayout.CENTER);
-        if(testCandidateMetadataList.size()<=4)
-        {
+        if (testCandidateMetadataList.size() <= 4) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
         this.candidateListPanel.revalidate();
@@ -179,12 +176,47 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     }
 
+    private void checkProgressIndicator(String text1, String text2) {
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+            if (text2 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text2);
+            }
+            if (text1 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator().setText(text1);
+            }
+        }
+    }
+
+
     @Override
-    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws IOException {
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-        TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
-        insidiousService.ensureTestUtilClass();
-        insidiousService.saveTestSuite(testSuite);
+    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) {
+
+        try {
+            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
+                @Override
+                protected Void compute(@NotNull ProgressIndicator indicator) throws Exception {
+
+                    Parameter testSubject = generationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
+                    checkProgressIndicator("Generating test case: " + testSubject.getType(),
+                            "With " + generationConfiguration.getTestCandidateMetadataList().size() + " candidates," +
+                                    " mocking " + generationConfiguration.getCallExpressionList().size());
+                    @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+
+                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+                    insidiousService.ensureTestUtilClass();
+                    insidiousService.saveTestSuite(testSuite);
+                    return null;
+                }
+            });
+        } catch (Exception e) {
+            InsidiousNotification.notifyMessage(
+                    "Failed to generated test case - " + e.getMessage(), NotificationType.ERROR
+            );
+        }
+
     }
 
     @Override

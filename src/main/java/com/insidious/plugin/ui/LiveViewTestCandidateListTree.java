@@ -5,10 +5,15 @@ import com.insidious.plugin.client.TestCandidateMethodAggregate;
 import com.insidious.plugin.client.VideobugTreeClassAggregateNode;
 import com.insidious.plugin.client.VideobugTreePackageAggregateNode;
 import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.Project;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -30,13 +35,24 @@ public class LiveViewTestCandidateListTree implements TreeModel {
     private final List<VideobugTreeClassAggregateNode> videobugTreeClassAggregateNodes;
     private final Map<String, List<VideobugTreeClassAggregateNode>> classAggregatesByPackageName;
     private final List<VideobugTreePackageAggregateNode> packageAggregates;
+    private final Project project;
 
-    public LiveViewTestCandidateListTree(SessionInstance sessionInstance) {
+    public LiveViewTestCandidateListTree(Project project, SessionInstance sessionInstance) throws Exception {
         String sessionNodeLabel = "Packages";
+        this.project = project;
         this.sessionInstance = sessionInstance;
 
         rootNode = new DefaultMutableTreeNode(sessionNodeLabel);
-        videobugTreeClassAggregateNodes = sessionInstance.getTestCandidateAggregates();
+        videobugTreeClassAggregateNodes = ProgressManager.getInstance().run(
+                new Task.WithResult<List<VideobugTreeClassAggregateNode>, Exception>(project, "Unlogged", false) {
+                    @Override
+                    protected List<VideobugTreeClassAggregateNode> compute(@NotNull ProgressIndicator indicator) throws Exception {
+//                        checkProgressIndicator("Loading candidates available for test", null);
+                        return sessionInstance.getTestCandidateAggregates();
+                    }
+                });
+
+//        videobugTreeClassAggregateNodes = sessionInstance.getTestCandidateAggregates();
 
         packageAggregates = new LinkedList<>();
 
@@ -83,8 +99,23 @@ public class LiveViewTestCandidateListTree implements TreeModel {
             VideobugTreeClassAggregateNode classAggregateNode = (VideobugTreeClassAggregateNode) parent;
             List<TestCandidateMethodAggregate> methodAggregateList = sessionClassMethodMap.get(classAggregateNode.getClassName());
             if (methodAggregateList == null) {
-                methodAggregateList = sessionInstance
-                        .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());
+
+                try {
+                    methodAggregateList = ProgressManager.getInstance().run(
+                            new Task.WithResult<List<TestCandidateMethodAggregate>, Exception>(project, "Unlogged", false) {
+                                @Override
+                                protected List<TestCandidateMethodAggregate> compute(@NotNull ProgressIndicator indicator) {
+                                    //                                checkProgressIndicator("Loading candidates available for test", null);
+                                    return sessionInstance
+                                            .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());
+                                }
+                            });
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage("Failed to load test candidate methods - " + e.getMessage(), NotificationType.ERROR);
+                    return List.of();
+                }
+
+
                 Collections.sort(methodAggregateList);
                 sessionClassMethodMap.put(classAggregateNode.getClassName(), methodAggregateList);
             }
@@ -122,21 +153,6 @@ public class LiveViewTestCandidateListTree implements TreeModel {
 
     }
 
-    private void checkProgressIndicator(String text1, String text2) {
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                throw new ProcessCanceledException();
-            }
-            if (text2 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text2);
-            }
-            if (text1 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text1);
-            }
-        }
-    }
-
-
     @Override
     public int getChildCount(Object parent) {
         if (parent == rootNode) {
@@ -155,7 +171,7 @@ public class LiveViewTestCandidateListTree implements TreeModel {
             VideobugTreeClassAggregateNode classAggregateNode = (VideobugTreeClassAggregateNode) parent;
             List<TestCandidateMethodAggregate> methodAggregateList = sessionClassMethodMap.get(classAggregateNode.getClassName());
             if (methodAggregateList == null) {
-                methodAggregateList= sessionInstance
+                methodAggregateList = sessionInstance
                         .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());
                 sessionClassMethodMap.put(classAggregateNode.getClassName(), methodAggregateList);
             }
@@ -241,7 +257,7 @@ public class LiveViewTestCandidateListTree implements TreeModel {
             VideobugTreeClassAggregateNode classAggregateNode = (VideobugTreeClassAggregateNode) parent;
             List<TestCandidateMethodAggregate> methodAggregateList = sessionClassMethodMap.get(classAggregateNode.getClassName());
             if (methodAggregateList == null) {
-                methodAggregateList= sessionInstance
+                methodAggregateList = sessionInstance
                         .getTestCandidateAggregatesByClassName(classAggregateNode.getClassName());
                 sessionClassMethodMap.put(classAggregateNode.getClassName(), methodAggregateList);
             }
