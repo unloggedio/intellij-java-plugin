@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -205,6 +206,10 @@ public class ObjectRoutineContainer {
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
         Parameter mainSubject = getTestSubject();
+        if (mainSubject.getName() == null) {
+            mainSubject.setName(ClassTypeUtils.createVariableName(mainSubject.getType()));
+        }
+
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
 

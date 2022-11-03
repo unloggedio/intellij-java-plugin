@@ -6,6 +6,7 @@ import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
@@ -44,7 +45,10 @@ public class TestCaseService {
     }
 
     @NotNull
-    private static TestCaseUnit buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
+    private static TestCaseUnit buildTestUnitFromScript(
+            ObjectRoutineContainer objectRoutineContainer,
+            ObjectRoutineScriptContainer testCaseScript
+    ) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
         TypeSpec.Builder typeSpecBuilder = TypeSpec

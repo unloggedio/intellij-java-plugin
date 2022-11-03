@@ -96,7 +96,7 @@ public class ObjectRoutine {
         VariableContainer variableContainer = new VariableContainer();
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            variableContainer.all().addAll(candidateVariables.all());
+            candidateVariables.all().forEach(variableContainer::add);
             testGenerationState.setVariableContainer(variableContainer);
             ObjectRoutineScript script = CandidateMetadataFactory
                     .toObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);

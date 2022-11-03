@@ -217,7 +217,13 @@ public class PendingStatement {
             if (expression instanceof MethodCallExpression) {
                 MethodCallExpression methodCallExpression = (MethodCallExpression) expression;
 
-
+                if (methodCallExpression.getSubject() != null) {
+                    Parameter existingVariable = objectRoutine.getCreatedVariables()
+                            .getParametersById(methodCallExpression.getSubject().getValue());
+                    if (existingVariable != null) {
+                        methodCallExpression.setSubject(existingVariable);
+                    }
+                }
                 writeCallStatement(methodCallExpression, statementBuilder, statementParameters, i);
 
             } else if (expression instanceof StringExpression) {
