@@ -58,6 +58,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -116,6 +117,7 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
+    private int TOOL_WINDOW_HEIGHT=390;
 
     public InsidiousService(Project project) {
         try {
@@ -872,7 +874,8 @@ public class InsidiousService implements Disposable {
         if (this.toolWindow == null) {
             return;
         }
-
+        ToolWindowEx ex = (ToolWindowEx) toolWindow;
+        ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator().getHeight());
         ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {
             credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);

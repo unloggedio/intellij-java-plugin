@@ -20,9 +20,9 @@
           <splitpane id="146ea" binding="splitPane">
             <constraints/>
             <properties>
-              <dividerLocation value="304"/>
+              <dividerLocation value="480"/>
               <dividerSize value="2"/>
-              <lastDividerLocation value="480"/>
+              <lastDividerLocation value="304"/>
               <maximumSize width="2147483647" height="300"/>
               <preferredSize width="464" height="280"/>
             </properties>
