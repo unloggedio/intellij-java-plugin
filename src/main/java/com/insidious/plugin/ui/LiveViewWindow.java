@@ -9,7 +9,6 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.util.LoggerUtil;
@@ -27,6 +26,8 @@ import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -99,6 +100,13 @@ public class LiveViewWindow implements TreeSelectionListener,
                             @Override
                             public void success(List<ExecutionSession> executionSessionList) {
                                 try {
+                                    if (executionSessionList.size() == 0) {
+                                        headingText.setText("No session found. Run your application with unlogged agent to record a new session.");
+                                        mainTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode("No session")));
+                                        return;
+                                    } else {
+                                        headingText.setText("Select a class and method to start generating test case for it.");
+                                    }
                                     ExecutionSession executionSession = executionSessionList.get(0);
                                     sessionInstance = new SessionInstance(executionSession);
                                     insidiousService.getClient().setSessionInstance(sessionInstance);
@@ -147,7 +155,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         if (testCandidateMetadataList.size() > GridRows) {
             GridRows = testCandidateMetadataList.size();
         }
-        GridLayout gridLayout = new GridLayout(GridRows,1);
+        GridLayout gridLayout = new GridLayout(GridRows, 1);
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
         for (int i = 0; i < testCandidateMetadataList.size(); i++) {
@@ -167,7 +175,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         if (testCandidateMetadataList.size() <= 4) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
-        headingText.setText("Test Candidates for "+methodNode.getMethodName());
+        headingText.setText("Test Candidates for " + methodNode.getMethodName());
         this.candidateListPanel.revalidate();
     }
 
@@ -209,7 +217,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
 
-        UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated",null);
+        UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated", null);
 
 //        try {
 //            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
@@ -241,21 +249,17 @@ public class LiveViewWindow implements TreeSelectionListener,
         loadTestCandidateConfigView(selectedTestCandidateAggregate);
     }
 
-    private void setDividerColor()
-    {
-        splitPanel.setUI(new BasicSplitPaneUI()
-        {
+    private void setDividerColor() {
+        splitPanel.setUI(new BasicSplitPaneUI() {
             @Override
-            public BasicSplitPaneDivider createDefaultDivider()
-            {
-                return new BasicSplitPaneDivider(this)
-                {
-                    public void setBorder(Border b) {}
+            public BasicSplitPaneDivider createDefaultDivider() {
+                return new BasicSplitPaneDivider(this) {
+                    public void setBorder(Border b) {
+                    }
 
                     @Override
-                    public void paint(Graphics g)
-                    {
-                        Color teal = new Color(1,204,245);
+                    public void paint(Graphics g) {
+                        Color teal = new Color(1, 204, 245);
                         g.setColor(teal);
                         g.fillRect(0, 0, getSize().width, getSize().height);
                         super.paint(g);

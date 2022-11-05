@@ -2060,7 +2060,8 @@ public class SessionInstance {
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 existingParameter.setProbeInfo(probeInfo);
                                 existingParameter.setProb(dataEvent);
-                                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields().add(existingParameter);
+                                testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1)
+                                        .getFields().add(existingParameter);
                                 callStack.get(callStack.size() - 1).setUsesFields(true);
                                 if (!isModified) {
                                     existingParameter = null;
