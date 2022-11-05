@@ -77,18 +77,6 @@ public class TestCaseService {
             typeSpecBuilder.addMethod(methodSpec);
         }
 
-        try {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("test_case_lines", testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
-//        System.out.println("size : "+eventProperties.toString());
-            UsageInsightTracker.getInstance().RecordEvent("TestCaseSize",eventProperties);
-        }
-        catch (Exception e)
-        {
-            System.out.println("Failed to record number of lines. Statements length : "+
-                    testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
-        }
-
         typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
         if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
@@ -114,6 +102,26 @@ public class TestCaseService {
                 .addStaticImport(ClassName.bestGuess("io.unlogged.UnloggedTestUtils"), "*")
                 .build();
 
+        try {
+            JSONObject eventProperties = new JSONObject();
+            int number_of_lines = testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size();
+
+            eventProperties.put("test_case_lines", number_of_lines);
+            if(number_of_lines<=1)
+            {
+                UsageInsightTracker.getInstance().RecordEvent("EmptyTestCaseGenerated",eventProperties);
+            }
+            else
+            {
+                UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated",null);
+                UsageInsightTracker.getInstance().RecordEvent("TestCaseSize",eventProperties);
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failed to record number of lines. Statements length : "+
+                    testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
+        }
 
         return new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
