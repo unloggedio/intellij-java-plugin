@@ -277,6 +277,10 @@ public class Parameter {
         return type != null && (type.equals("Z") || type.equals("java.lang.Boolean"));
     }
 
+    public boolean isStringType() {
+        return type != null && (type.equals("java.lang.String"));
+    }
+
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
         return type != null &&

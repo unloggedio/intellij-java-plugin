@@ -38,6 +38,9 @@ public class TestCaseWriter {
                 parameterValue = parameter.getValue();
                 String stringValue = parameter.getStringValue();
                 if (stringValue == null) {
+                    if (!parameter.isPrimitiveType() && parameter.getValue() == 0) {
+                        parameterValue = "null";
+                    }
                     parameterStringBuilder.append(parameterValue);
                 } else {
                     parameterStringBuilder.append(stringValue);

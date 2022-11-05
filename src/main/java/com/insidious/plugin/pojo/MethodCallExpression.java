@@ -163,7 +163,7 @@ public class MethodCallExpression implements Expression {
 //        }
         if (arguments != null) {
             for (Parameter parameter : arguments) {
-                if (parameter.isPrimitiveType()) {
+                if (parameter.isPrimitiveType() || parameter.getValue() < 1) {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
