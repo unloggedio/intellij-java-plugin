@@ -2,9 +2,11 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -146,13 +148,16 @@ public class TestCandidateCustomizeView {
     }
 
     private void generateWithSelectedOptions() {
-        //printSelections();
-        //setupGenerationConfiguration();
+        setupGenerationConfiguration();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(), NotificationType.ERROR);
+
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message",e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerationFailed",eventProperties);
         }
     }
 

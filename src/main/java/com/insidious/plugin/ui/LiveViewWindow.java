@@ -209,8 +209,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
 
-        UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated",null);
-
 //        try {
 //            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
 //                @Override
