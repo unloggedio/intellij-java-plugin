@@ -8,17 +8,19 @@ import java.util.stream.Collectors;
 
 public class KaitaiUtils {
 
+    private final static Descriptor[] DescriptorValues = Descriptor.values();
+
     @NotNull
     public static DataInfo toDataInfo(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
-        String descriptorValue = e.valueDescriptor().value();
+//        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 
-        Descriptor valueDesc = Descriptor.Object;
-        if (!descriptorValue.startsWith("L")) {
-            valueDesc = Descriptor.get(descriptorValue);
-        }
+        Descriptor valueDesc = DescriptorValues[e.valueDescriptor().ordinal()];
+//        if (!descriptorValue.startsWith("L")) {
+//            valueDesc = Descriptor.get(descriptorValue);
+//        }
         long lineNumber = e.lineNumber();
 
-        EventType eventType = EventType.valueOf(e.eventType().value());
+        EventType eventType = EventType.valueOf(e.eventType().name());
         long instructionIndex = e.instructionIndex();
         if (eventType.equals(EventType.RESERVED)) {
             lineNumber = -1;
@@ -35,18 +37,17 @@ public class KaitaiUtils {
     }
 
 
-
     @NotNull
     public static ProbeInfoDocument toProbeInfoDocument(KaitaiInsidiousClassWeaveParser.ProbeInfo e) {
-        String descriptorValue = e.valueDescriptor().value();
+//        String descriptorValue = DescriptorValues[e.valueDescriptor().ordinal()].getString();
 
-        Descriptor valueDesc = Descriptor.Object;
-        if (!descriptorValue.startsWith("L")) {
-            valueDesc = Descriptor.get(descriptorValue);
-        }
+        Descriptor valueDesc = DescriptorValues[e.valueDescriptor().ordinal()];
+//        if (!descriptorValue.startsWith("L")) {
+//            valueDesc = Descriptor.get(descriptorValue);
+//        }
         long lineNumber = e.lineNumber();
 
-        EventType eventType = EventType.valueOf(e.eventType().value());
+        EventType eventType = EventType.valueOf(e.eventType().name());
         long instructionIndex = e.instructionIndex();
         if (eventType.equals(EventType.RESERVED)) {
             lineNumber = -1;
@@ -58,7 +59,7 @@ public class KaitaiUtils {
         probeInfoDocument.setClassId(Math.toIntExact(e.classId()));
         probeInfoDocument.setDataId(Math.toIntExact(e.dataId()));
         probeInfoDocument.setLine(Math.toIntExact(lineNumber));
-        probeInfoDocument.setEventType(EventType.valueOf(e.eventType().value()));
+        probeInfoDocument.setEventType(eventType);
         probeInfoDocument.setMethodId(Math.toIntExact(e.methodId()));
         probeInfoDocument.setValueDesc(valueDesc);
         probeInfoDocument.setInstructionIndex(Math.toIntExact(instructionIndex));

@@ -28,6 +28,7 @@ import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.List;
 
 public class LiveViewWindow implements TreeSelectionListener,
@@ -199,30 +200,37 @@ public class LiveViewWindow implements TreeSelectionListener,
 
 
     @Override
-    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) {
+    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws IOException {
 
-        try {
-            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
-                @Override
-                protected Void compute(@NotNull ProgressIndicator indicator) throws Exception {
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
-                    Parameter testSubject = generationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
-                    checkProgressIndicator("Generating test case: " + testSubject.getType(),
-                            "With " + generationConfiguration.getTestCandidateMetadataList().size() + " candidates," +
-                                    " mocking " + generationConfiguration.getCallExpressionList().size());
-                    @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+        insidiousService.ensureTestUtilClass();
+        insidiousService.saveTestSuite(testSuite);
 
-                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
-                    insidiousService.ensureTestUtilClass();
-                    insidiousService.saveTestSuite(testSuite);
-                    return null;
-                }
-            });
-        } catch (Exception e) {
-            InsidiousNotification.notifyMessage(
-                    "Failed to generated test case - " + e.getMessage(), NotificationType.ERROR
-            );
-        }
+
+//        try {
+//            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
+//                @Override
+//                protected Void compute(@NotNull ProgressIndicator indicator) throws Exception {
+//
+//                    Parameter testSubject = generationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
+//                    checkProgressIndicator("Generating test case: " + testSubject.getType(),
+//                            "With " + generationConfiguration.getTestCandidateMetadataList().size() + " candidates," +
+//                                    " mocking " + generationConfiguration.getCallExpressionList().size());
+//                    @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+//
+//                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+//                    insidiousService.ensureTestUtilClass();
+//                    insidiousService.saveTestSuite(testSuite);
+//                    return null;
+//                }
+//            });
+//        } catch (Exception e) {
+//            InsidiousNotification.notifyMessage(
+//                    "Failed to generated test case - " + e.getMessage(), NotificationType.ERROR
+//            );
+//        }
 
     }
 

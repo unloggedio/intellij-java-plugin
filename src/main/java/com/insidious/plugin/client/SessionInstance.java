@@ -456,7 +456,7 @@ public class SessionInstance {
 
     private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
 
-        KaitaiInsidiousClassWeaveParser classWeaveInfo1;
+        KaitaiInsidiousClassWeaveParser classWeaveInfo1 = null;
         logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
         NameWithBytes fileBytes =
                 createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
@@ -700,7 +700,7 @@ public class SessionInstance {
                 .flatMap(Collection::stream)
                 .filter(e -> eventTypes.size() == 0 ||
                         // dont check contains if the list is empty
-                        eventTypes.contains(EventType.valueOf(e.eventType().value())))
+                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
                 .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
 
 
@@ -1380,7 +1380,7 @@ public class SessionInstance {
 
             classInfo.probeList()
                     .stream()
-                    .filter(e -> !Objects.equals(e.eventType().value(), EventType.RESERVED.toString()))
+                    .filter(e -> !Objects.equals(e.eventType().name(), EventType.RESERVED.toString()))
                     .map(KaitaiUtils::toDataInfo)
                     .forEach(dataInfoList::add);
 
