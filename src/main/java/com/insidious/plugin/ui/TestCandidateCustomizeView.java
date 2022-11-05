@@ -33,6 +33,7 @@ public class TestCandidateCustomizeView {
     private JLabel descriptionText;
     private JTextPane documentationTextArea;
     private JSplitPane splitPane;
+    private JScrollPane scrollParent;
     private CustomizeViewTreeCellRenderer cellRenderer;
 
     public TestCandidateCustomizeView(

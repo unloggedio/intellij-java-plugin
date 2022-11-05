@@ -34,7 +34,7 @@ public class Parameter {
     private String stringValue = null;
     private int index;
     private DataInfo dataInfo;
-//    private ConstructorType constructorType;
+    //    private ConstructorType constructorType;
     private MethodCallExpression creatorExpression;
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
@@ -97,6 +97,10 @@ public class Parameter {
         if (this.type == null || this.type.endsWith(".Object")) {
             this.type = type;
         }
+    }
+
+    public void setTypeForced(String type) {
+        this.type = type;
     }
 
     public String getName() {
