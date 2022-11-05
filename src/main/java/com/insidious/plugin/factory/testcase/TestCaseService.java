@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase;
 
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -17,6 +18,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import java.util.Collection;
 import java.util.List;
@@ -73,6 +75,18 @@ public class TestCaseService {
             }
             MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
             typeSpecBuilder.addMethod(methodSpec);
+        }
+
+        try {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("test_case_lines", testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
+//        System.out.println("size : "+eventProperties.toString());
+            UsageInsightTracker.getInstance().RecordEvent("TestCaseSize",eventProperties);
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failed to record number of lines. Statements length : "+
+                    testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
         }
 
         typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());

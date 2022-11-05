@@ -6,6 +6,7 @@ import com.insidious.plugin.client.TestCandidateMethodAggregate;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.Parameter;
@@ -208,6 +209,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
 
+        UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated",null);
 
 //        try {
 //            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
