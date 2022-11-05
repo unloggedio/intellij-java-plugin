@@ -12,6 +12,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 
@@ -78,8 +79,13 @@ public class ObjectRoutine {
             TestCaseGenerationConfiguration generationConfiguration,
             TestGenerationState testGenerationState
     ) {
+        TestCandidateMetadata lastCandidate = generationConfiguration
+                .getTestCandidateMetadataList()
+                .get(generationConfiguration.getTestCandidateMetadataList().size() - 1);
+
+        MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
-                "testAs" + VariableContainer.upperInstanceName(routineName)
+                "testMethod" + StringUtil.toTitleCase(lastCandidateMainMethod.getMethodName())
         );
 
         scriptContainer.setCreatedVariables(createdVariables.clone());

@@ -126,8 +126,14 @@ public class CandidateMetadataFactory {
                     if (methodCallExpression.getException() != null || mockedCalls.containsKey(mockedCallSignature)) {
                         continue;
                     }
-                    methodCallExpression.getReturnValue().getClosestName(
-                            methodCallExpression.getSubject().getType(), methodCallExpression.getMethodName());
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    returnValue.getClosestName(methodCallExpression.getSubject().getType(),
+                            methodCallExpression.getMethodName());
+
+                    if (returnValue.isPrimitiveType()) {
+                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo().getAttribute("Type", returnValue.getType())));
+                    }
+
                     methodCallExpression.writeCommentTo(objectRoutineScript);
                     methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
                     mockedCalls.put(mockedCallSignature, true);
@@ -162,7 +168,17 @@ public class CandidateMetadataFactory {
 
                         mockedCalls.put(mockedCallSignature, true);
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
-                        if (!methodCallExpression.getReturnValue().getType().equals("V")) {
+
+                        Parameter returnValue = methodCallExpression.getReturnValue();
+                        returnValue.getClosestName(methodCallExpression.getSubject().getType(),
+                                methodCallExpression.getMethodName());
+
+                        if (returnValue.isPrimitiveType()) {
+                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo().getAttribute("Type", returnValue.getType())));
+                        }
+
+
+                        if (!returnValue.getType().equals("V")) {
                             methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
                         }
 

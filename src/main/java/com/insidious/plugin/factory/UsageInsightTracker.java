@@ -9,16 +9,22 @@ import java.util.Locale;
 import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
 public class UsageInsightTracker {
-    private final Amplitude amplitudeClient;
-
     private static final String OS_NAME = System.getProperty("os.name");
     private static final String OS_VERSION = System.getProperty("os.version");
     private static final String LANGUAGE = Locale.getDefault().getLanguage();
     private static final String JAVA_VERSION = Locale.getDefault().getLanguage();
     private static final String OS_TAG = OS_NAME + ":" + OS_VERSION;
-    private static UsageInsightTracker instance;
     private static final Object lock = new Object();
+    private static UsageInsightTracker instance;
+    private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
+
+    private UsageInsightTracker() {
+        amplitudeClient = Amplitude.getInstance("PLUGIN");
+//        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
+        amplitudeClient.init("993c17091c853700ea386f71df5fb72c");
+        versionManager = new VersionManager();
+    }
 
     public static UsageInsightTracker getInstance() {
         if (instance != null) {
@@ -29,15 +35,8 @@ public class UsageInsightTracker {
                 return instance;
             }
             instance = new UsageInsightTracker();
-            return instance;
         }
-    }
-
-    private UsageInsightTracker() {
-        amplitudeClient = Amplitude.getInstance("PLUGIN");
-//        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
-        amplitudeClient.init("993c17091c853700ea386f71df5fb72c");
-        versionManager = new VersionManager();
+        return instance;
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
