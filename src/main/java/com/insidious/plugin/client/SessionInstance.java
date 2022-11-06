@@ -21,6 +21,7 @@ import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -42,6 +43,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 import org.sqlite.SQLiteException;
 
 import java.io.File;
@@ -49,6 +51,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -1826,6 +1829,8 @@ public class SessionInstance {
 
     public void scanDataAndBuildReplay() throws Exception {
 
+        long scanStart = System.currentTimeMillis();
+
         LinkedList<File> sessionArchivesLocal = new LinkedList<>(this.sessionArchives);
 
 //        assert classInfoMap.size() > 0;
@@ -2688,9 +2693,46 @@ public class SessionInstance {
         }
         databasePipe.close();
         daoService.close();
+        try {
+            long scanEndtime = System.currentTimeMillis();
+            float scanTime = (scanEndtime-scanStart)/1000;
+            File sessionDir = new File(this.sessionDirectory.getParent());
+            long size_folder = getFolderSize(sessionDir);
+            long archives_size =0;
+            for(File f : this.sessionArchives)
+            {
+                long sizeInBytes = f.length();
+                archives_size+=sizeInBytes;
+            }
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("session_scan_time",scanTime);
+            eventProperties.put("session_folder_size",(size_folder/1000000));
+            eventProperties.put("session_scanned_archives_size",(archives_size/1000000));
+            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics",eventProperties);
+        }
+        catch(Exception e)
+        {
+            logger.error("Exception recording folder size and scan time : "+e);
+            e.printStackTrace();
+        }
+
 
     }
 
+    private long getFolderSize(File folder)
+    {
+        long length = 0;
+        File[] files = folder.listFiles();
+        for (int i = 0; i < files.length; i++) {
+            if (files[i].isFile()) {
+                length += files[i].length();
+            }
+            else {
+                length += getFolderSize(files[i]);
+            }
+        }
+        return length;
+    }
 
     public DaoService getDaoService() {
         return daoService;
