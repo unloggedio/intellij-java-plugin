@@ -107,7 +107,7 @@
                   </grid>
                 </children>
               </grid>
-              <grid id="5a828" binding="configPanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+              <grid id="5a828" binding="configPanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                 <margin top="8" left="8" bottom="8" right="8"/>
                 <constraints>
                   <splitpane position="right"/>
@@ -115,22 +115,6 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <component id="ad5e4" class="javax.swing.JTextPane" binding="documentationTextArea">
-                    <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="2" use-parent-layout="false">
-                        <preferred-size width="150" height="50"/>
-                      </grid>
-                    </constraints>
-                    <properties>
-                      <background color="-13487566"/>
-                      <disabledTextColor color="-13487566"/>
-                      <editable value="false"/>
-                      <font name="JetBrains Mono"/>
-                      <foreground color="-16659211"/>
-                      <margin top="8" left="8" bottom="8" right="8"/>
-                      <text value="method a, b, c and d were called before method d.   Check what’s needed to create a test case for method d."/>
-                    </properties>
-                  </component>
                   <component id="13070" class="javax.swing.JLabel" binding="descriptionText">
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="2" use-parent-layout="false"/>
@@ -139,15 +123,27 @@
                       <text value="Documentation"/>
                     </properties>
                   </component>
-                  <grid id="e741e" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
+                  <scrollpane id="eaeb4">
                     <constraints>
-                      <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties/>
                     <border type="none"/>
-                    <children/>
-                  </grid>
+                    <children>
+                      <component id="ad5e4" class="javax.swing.JTextPane" binding="documentationTextArea">
+                        <constraints/>
+                        <properties>
+                          <background color="-13487566"/>
+                          <disabledTextColor color="-13487566"/>
+                          <editable value="false"/>
+                          <font name="JetBrains Mono"/>
+                          <foreground color="-16659211"/>
+                          <margin top="8" left="8" bottom="8" right="8"/>
+                          <text value="method a, b, c and d were called before method d.   Check what’s needed to create a test case for method d."/>
+                        </properties>
+                      </component>
+                    </children>
+                  </scrollpane>
                 </children>
               </grid>
             </children>
