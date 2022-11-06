@@ -27,6 +27,7 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
     private final Icon sessionIcon;
     private InsidiousService insidiousService;
     private Icon onlineIcon;
+    private Icon errorIcon;
 
     public VideobugTreeCellRenderer(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -40,6 +41,8 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
         this.packageIcon = IconLoader.getIcon("icons/png/package_v1.png",
                 VideobugTreeCellRenderer.class);
         this.classIcon = IconLoader.getIcon("icons/png/class_v1.png",
+                VideobugTreeCellRenderer.class);
+        this.errorIcon = IconLoader.getIcon("/icons/png/load_Error.png",
                 VideobugTreeCellRenderer.class);
     }
 
@@ -94,6 +97,12 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
         else if(userObject instanceof TestCandidateMethodAggregate)
         {
             renderer.setLeafIcon(methodIcon);
+        }
+        else if(userObject instanceof DefaultMutableTreeNode)
+        {
+            renderer.setOpenIcon(errorIcon);
+            renderer.setClosedIcon(errorIcon);
+            renderer.setLeafIcon(errorIcon);
         }
         else {
             String text = String.format("%s", userObject);
