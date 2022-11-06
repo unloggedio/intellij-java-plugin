@@ -158,8 +158,10 @@ public class MethodCallExpressionFactory {
             Parameter returnValue,
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
-        MethodCallExpression assertEquals = MethodCallExpression(testConfiguration.getTestFramework().AssertEqualMethod(),
-                testConfiguration.getTestFramework().AssertClassParameter(), VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
+        MethodCallExpression assertEquals = MethodCallExpression(
+                testConfiguration.getTestFramework().AssertEqualMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
+                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
         );
         assertEquals.setStaticCall(true);
         assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);

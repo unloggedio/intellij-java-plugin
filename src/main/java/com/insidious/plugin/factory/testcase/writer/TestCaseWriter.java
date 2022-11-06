@@ -111,4 +111,49 @@ public class TestCaseWriter {
     }
 
 
+    /**
+     * @param variableContainer list of parameters to be arranged
+     * @return a string which is comma separated values to be passed to a method
+     */
+    public static String createMethodParametersStringWithNames(List<Parameter> variableContainer) {
+        if (variableContainer == null) {
+            return "";
+        }
+        StringBuilder parameterStringBuilder = new StringBuilder();
+
+        for (int i = 0; i < variableContainer.size(); i++) {
+            Parameter parameter = variableContainer.get(i);
+
+            if (i > 0) {
+                parameterStringBuilder.append(", ");
+            }
+
+            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+                parameterStringBuilder.append("any()");
+            } else if (parameter.isBooleanType()) {
+                if (parameter.getValue() == 1) {
+                    parameterStringBuilder.append("true");
+                } else {
+                    parameterStringBuilder.append("false");
+                }
+            } else if (parameter.getName() != null) {
+                parameterStringBuilder.append(parameter.getName());
+            } else {
+                Object parameterValue;
+                parameterValue = parameter.getValue();
+                String stringValue = parameter.getStringValue();
+                if (stringValue == null) {
+                    if (!parameter.isPrimitiveType() && parameter.getValue() == 0) {
+                        parameterValue = "null";
+                    }
+                    parameterStringBuilder.append(parameterValue);
+                } else {
+                    parameterStringBuilder.append(stringValue);
+                }
+            }
+        }
+        @NotNull String parameterString = parameterStringBuilder.toString();
+        return parameterString;
+
+    }
 }

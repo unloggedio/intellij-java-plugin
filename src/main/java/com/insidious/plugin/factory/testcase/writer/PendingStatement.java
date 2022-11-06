@@ -136,6 +136,27 @@ public class PendingStatement {
             statementParameters.add(methodCallExpression.getMethodName());
             statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0).getType())));
 
+        } else if (methodCallExpression.getMethodName().equals("assertEquals")) {
+            Parameter callExpressionSubject = methodCallExpression.getSubject();
+            if (callExpressionSubject != null) {
+                parameterString = TestCaseWriter.createMethodParametersStringWithNames(methodCallExpression.getArguments());
+                if (methodCallExpression.isStaticCall()) {
+                    statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(methodCallExpression.getMethodName());
+                } else {
+                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(methodCallExpression.getMethodName());
+
+                }
+            } else {
+                if (i > 0) {
+                    statementBuilder.append(".");
+                }
+                statementBuilder.append("$L(").append(parameterString).append(")");
+                statementParameters.add(methodCallExpression.getMethodName());
+            }
         } else {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
