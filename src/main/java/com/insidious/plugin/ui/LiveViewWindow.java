@@ -6,7 +6,6 @@ import com.insidious.plugin.client.TestCandidateMethodAggregate;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
@@ -51,6 +50,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JPanel headingPanel;
     private JLabel headingText;
     private JPanel candidateListPanel;
+    private JButton copyVMParameterButton;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
@@ -67,12 +67,23 @@ public class LiveViewWindow implements TreeSelectionListener,
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
+        copyVMParameterButton.addActionListener(e -> copyVMParameter());
         try {
             loadSession();
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
         setDividerColor();
+    }
+
+    public static String[] splitByLength(String str, int size) {
+        return (size < 1 || str == null) ? null : str.split("(?<=\\G.{" + size + "})");
+    }
+
+    private void copyVMParameter() {
+        String vmParamString = insidiousService.getJavaAgentString();
+        insidiousService.copyToClipboard(vmParamString);
+
     }
 
     @NotNull
@@ -91,6 +102,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                 new Task.WithResult<LiveViewTestCandidateListTree, Exception>(project, "Unlogged", true) {
                     @Override
                     protected LiveViewTestCandidateListTree compute(@NotNull ProgressIndicator indicator) throws Exception {
+                        checkProgressIndicator("Loading session", null);
                         insidiousService.getClient().getProjectSessions(new GetProjectSessionsCallback() {
                             @Override
                             public void error(String message) {
@@ -101,7 +113,17 @@ public class LiveViewWindow implements TreeSelectionListener,
                             public void success(List<ExecutionSession> executionSessionList) {
                                 try {
                                     if (executionSessionList.size() == 0) {
-                                        headingText.setText("No session found. Run your application with unlogged agent to record a new session.");
+                                        String javaAgentVMString = insidiousService.getJavaAgentString();
+                                        String[] parts = splitByLength(javaAgentVMString, 160);
+                                        assert parts != null;
+                                        StringBuilder text = new StringBuilder("<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
+                                                "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
+                                                "Use the following VM parameter to start your application with unlogged java agent:<br />");
+                                        for (String part : parts) {
+                                            text.append(part).append("<br />");
+                                        }
+
+                                        headingText.setText(text.toString());
                                         mainTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode("No session")));
                                         return;
                                     } else {
@@ -132,7 +154,6 @@ public class LiveViewWindow implements TreeSelectionListener,
     public JComponent getContent() {
         return mainPanel;
     }
-
 
     @Override
     public void valueChanged(TreeSelectionEvent e) {

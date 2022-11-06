@@ -74,6 +74,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -82,6 +85,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.DateFormat;
+import java.util.List;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -117,7 +121,7 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
-    private int TOOL_WINDOW_HEIGHT=390;
+    private int TOOL_WINDOW_HEIGHT = 390;
 
     public InsidiousService(Project project) {
         try {
@@ -143,7 +147,6 @@ public class InsidiousService implements Disposable {
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
 
             ReadAction.run(this::getProjectPackageName);
-//            threadPool.submit(this::startDebugSession);
 
             ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
             ReadAction.run(this::initiateUI);
@@ -158,8 +161,20 @@ public class InsidiousService implements Disposable {
         }
     }
 
+    public void copyToClipboard(String string) {
+        StringSelection selection = new StringSelection(string);
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, selection);
+        System.out.println(selection);
+    }
+
     private void setupNewExceptionListener() {
-        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toSet());
+        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap
+                .entrySet()
+                .stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
         this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
             final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
 
@@ -258,7 +273,8 @@ public class InsidiousService implements Disposable {
         }
 
         if (!Constants.VIDEOBUG_AGENT_PATH.toFile().exists() && !overwrite) {
-            InsidiousNotification.notifyMessage("java agent does not exist, downloading to $HOME/.videobug/videobug-java-agent.jar. Please wait for download to finish.", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage("Downloading Unlogged java agent jar to $HOME/.videobug/videobug-java-agent.jar",
+                    NotificationType.INFORMATION);
         }
 
         if (Constants.VIDEOBUG_AGENT_PATH.toFile().exists()) {
@@ -496,10 +512,6 @@ public class InsidiousService implements Disposable {
         this.client.createProject(projectName, newProjectCallback);
     }
 
-    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
-        this.client.getProjectToken(projectTokenCallback);
-    }
-
 //    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
 //
 //        TestSuite testSuite = ProgressManager.getInstance().run(new Task.WithResult<TestSuite, Exception>(project,
@@ -617,6 +629,10 @@ public class InsidiousService implements Disposable {
 //
 //
 //    }
+
+    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
+        this.client.getProjectToken(projectTokenCallback);
+    }
 
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
@@ -784,7 +800,6 @@ public class InsidiousService implements Disposable {
 
     }
 
-
     private synchronized void startDebugSession() {
         logger.info("start debug session");
         if (true) {
@@ -822,7 +837,6 @@ public class InsidiousService implements Disposable {
     public void setDebugProcess(InsidiousJavaDebugProcess debugProcess) {
         this.debugProcess = debugProcess;
     }
-
 
     public void setDebugSession(XDebugSession session) {
         this.debugSession = session;
@@ -883,7 +897,6 @@ public class InsidiousService implements Disposable {
 //            }
 //        }
     }
-
 
     private void initiateUI() {
         logger.info("initiate ui");
@@ -972,7 +985,13 @@ public class InsidiousService implements Disposable {
     private void setAppTokenOnUi() {
         logger.info("set app token - " + appToken + " with package name " + packageName);
 
-        String[] vmParamsToAdd = new String[]{"--add-opens=java.base/java.util=ALL-UNNAMED", "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=" + (packageName == null ? DEFAULT_PACKAGE_NAME : packageName.replaceAll("\\.", "/")) + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video") + ",token=" + appToken + "\""};
+        String[] vmParamsToAdd = new String[]{
+                "--add-opens=java.base/java.util=ALL-UNNAMED", "-javaagent:\""
+                + Constants.VIDEOBUG_AGENT_PATH + "=i=" + DEFAULT_PACKAGE_NAME
+//                + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video")
+//                + ",token=" + "localhost-token"
+                + "\""
+        };
 
         javaAgentString = String.join(" ", vmParamsToAdd);
 
