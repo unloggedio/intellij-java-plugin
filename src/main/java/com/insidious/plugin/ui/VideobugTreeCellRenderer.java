@@ -100,8 +100,6 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
         }
         else if(userObject instanceof DefaultMutableTreeNode)
         {
-            renderer.setOpenIcon(errorIcon);
-            renderer.setClosedIcon(errorIcon);
             renderer.setLeafIcon(errorIcon);
         }
         else {
