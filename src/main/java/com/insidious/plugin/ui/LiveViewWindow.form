@@ -47,6 +47,7 @@
               <foreground color="-1"/>
               <opaque value="true"/>
               <text value="Copy VM parameter"/>
+              <visible value="false"/>
             </properties>
           </component>
         </children>

@@ -113,6 +113,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                             public void success(List<ExecutionSession> executionSessionList) {
                                 try {
                                     if (executionSessionList.size() == 0) {
+                                        copyVMParameterButton.setVisible(true);
                                         String javaAgentVMString = insidiousService.getJavaAgentString();
                                         String[] parts = splitByLength(javaAgentVMString, 160);
                                         assert parts != null;
@@ -128,6 +129,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                         return;
                                     } else {
                                         headingText.setText("Select a class and method to start generating test case for it.");
+                                        copyVMParameterButton.setVisible(false);
                                     }
                                     ExecutionSession executionSession = executionSessionList.get(0);
                                     sessionInstance = new SessionInstance(executionSession);
