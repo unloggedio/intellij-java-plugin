@@ -90,7 +90,11 @@ public class TestCaseWriter {
                     && !parameterType.contains(".Object"))
             ) {
                 if (parameter.isBooleanType()) {
-                    if (compareAgainst.equals("0")) {
+                    if (compareAgainst.equals("0")
+                            || compareAgainst.equals(0L) // compare specifically to 0L, since comparing
+                                                         // with 0 (int) sometimes (always) turn out to be false
+                            || compareAgainst.equals(0)
+                    ) {
                         compareAgainst = "false";
                     } else {
                         compareAgainst = "true";
