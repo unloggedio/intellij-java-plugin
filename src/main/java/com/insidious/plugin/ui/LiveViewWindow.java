@@ -132,6 +132,9 @@ public class LiveViewWindow implements TreeSelectionListener,
                                         copyVMParameterButton.setVisible(false);
                                     }
                                     ExecutionSession executionSession = executionSessionList.get(0);
+                                    if (sessionInstance != null) {
+                                        sessionInstance.close();
+                                    }
                                     sessionInstance = new SessionInstance(executionSession);
                                     insidiousService.getClient().setSessionInstance(sessionInstance);
                                     testCaseService = new TestCaseService(sessionInstance);

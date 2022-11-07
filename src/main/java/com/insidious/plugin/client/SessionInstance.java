@@ -51,7 +51,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -79,6 +78,7 @@ public class SessionInstance {
     private final DatabasePipe databasePipe;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
+    private final ExecutorService executorPool;
     private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex archiveIndex;
     private Map<Long, DataInfo> probeInfoMap;
@@ -111,7 +111,7 @@ public class SessionInstance {
         }
 
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>());
-        ExecutorService executorPool = Executors.newFixedThreadPool(4);
+        executorPool = Executors.newFixedThreadPool(4);
 
         createObjectInfoIndex();
 //        createProbeInfoIndex();
@@ -642,7 +642,6 @@ public class SessionInstance {
 
             FileInputStream sessionFileInputStream = new FileInputStream(sessionFile);
             indexArchive = new ZipInputStream(sessionFileInputStream);
-
 
 
             ZipEntry entry = null;
@@ -1823,7 +1822,8 @@ public class SessionInstance {
         }
 
 
-        return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoMap, probeInfoMap, stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
+        return new ReplayData(null, filteredDataEventsRequest, dataEventList, classInfoMap,
+                probeInfoMap, stringInfoMap, objectInfoMap, typeInfoMap, methodInfoMap);
 
     }
 
@@ -2695,39 +2695,34 @@ public class SessionInstance {
         daoService.close();
         try {
             long scanEndtime = System.currentTimeMillis();
-            float scanTime = (scanEndtime-scanStart)/1000;
+            float scanTime = (scanEndtime - scanStart) / 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
             long size_folder = getFolderSize(sessionDir);
-            long archives_size =0;
-            for(File f : this.sessionArchives)
-            {
+            long archives_size = 0;
+            for (File f : this.sessionArchives) {
                 long sizeInBytes = f.length();
-                archives_size+=sizeInBytes;
+                archives_size += sizeInBytes;
             }
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("session_scan_time",scanTime);
-            eventProperties.put("session_folder_size",(size_folder/1000000));
-            eventProperties.put("session_scanned_archives_size",(archives_size/1000000));
-            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics",eventProperties);
-        }
-        catch(Exception e)
-        {
-            logger.error("Exception recording folder size and scan time : "+e);
+            eventProperties.put("session_scan_time", scanTime);
+            eventProperties.put("session_folder_size", (size_folder / 1000000));
+            eventProperties.put("session_scanned_archives_size", (archives_size / 1000000));
+            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
+        } catch (Exception e) {
+            logger.error("Exception recording folder size and scan time : " + e);
             e.printStackTrace();
         }
 
 
     }
 
-    private long getFolderSize(File folder)
-    {
+    private long getFolderSize(File folder) {
         long length = 0;
         File[] files = folder.listFiles();
         for (int i = 0; i < files.length; i++) {
             if (files[i].isFile()) {
                 length += files[i].length();
-            }
-            else {
+            } else {
                 length += getFolderSize(files[i]);
             }
         }
@@ -2817,6 +2812,15 @@ public class SessionInstance {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId) {
         return daoService.getTestCandidateById(testCandidateId);
+    }
+
+    public void close() throws Exception {
+        executorPool.shutdownNow();
+        daoService.close();
+        archiveIndex = null;
+        if (classWeaveInfo != null && classWeaveInfo._io() != null) {
+            classWeaveInfo._io().close();
+        }
     }
 
     class DatabasePipe implements Runnable {
