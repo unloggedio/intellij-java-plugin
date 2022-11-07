@@ -101,16 +101,6 @@ public class ObjectRoutineContainer {
         return constructor;
     }
 
-    public ObjectRoutine getRoutineByName(String name) {
-        for (ObjectRoutine objectRoutine : this.objectRoutines) {
-            if (objectRoutine.getRoutineName().equals(name)) {
-                return objectRoutine;
-            }
-        }
-        return null;
-
-    }
-
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
         if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName().equals("<init>")) {
             constructor.addMetadata(newTestCaseMetadata);
