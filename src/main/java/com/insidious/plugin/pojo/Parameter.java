@@ -7,6 +7,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -297,4 +298,15 @@ public class Parameter {
                         || type.startsWith("java.lang.Byte")
                 );
     }
+
+    @NotNull
+    public static Parameter cloneParameter(Parameter parameter) {
+        Parameter buildWithJson = new Parameter();
+        buildWithJson.setName(parameter.getName());
+        buildWithJson.setTemplateMap(parameter.getTemplateMap());
+        buildWithJson.setType(parameter.getType());
+        buildWithJson.setContainer(parameter.isContainer());
+        return buildWithJson;
+    }
+
 }

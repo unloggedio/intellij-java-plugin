@@ -16,6 +16,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
@@ -215,24 +216,17 @@ public class MethodCallExpression implements Expression {
         } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
 
             String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-            mainMethodReturnValue.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(mainMethodReturnValue);
+            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+            DataEventWithSessionId prob = new DataEventWithSessionId();
+            prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+            jsonParameter.setProb(prob);
+            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedObject)
                     .writeExpression(jsonFromFileCall)
                     .endStatement();
         }
-
-//        } else {
-//            returnSubjectExpectedJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "ExpectedJson");
-//
-//            in(objectRoutineScript)
-//                    .assignVariable(returnSubjectExpectedJsonString)
-//                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
-//                    .endStatement();
-//        }
-
 
         // reconstruct object from the serialized form to an object instance in the
         // test method to compare it with the new object, or do it the other way

@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -12,6 +13,7 @@ import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -373,8 +375,14 @@ public class PendingStatement {
             } else if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
 
                 String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
-                lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(lhsExpression));
+//                lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+                Parameter buildWithJson = Parameter.cloneParameter(lhsExpression);
+                DataEventWithSessionId prob = new DataEventWithSessionId();
+                prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+                buildWithJson.setProb(prob);
+                buildWithJson.setName(nameForObject);
+
+                this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
 
             } else {
                 throw new RuntimeException("this never happened");
@@ -385,4 +393,5 @@ public class PendingStatement {
 
         return this;
     }
+
 }
