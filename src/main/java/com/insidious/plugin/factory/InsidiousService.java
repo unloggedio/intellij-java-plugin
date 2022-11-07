@@ -116,7 +116,7 @@ public class InsidiousService implements Disposable {
     private ToolWindow toolWindow;
     private CredentialAttributes insidiousCredentials;
     private String appToken;
-    private String javaAgentString;
+    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
