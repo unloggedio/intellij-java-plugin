@@ -7,6 +7,7 @@ import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 
@@ -39,5 +40,38 @@ public class UnloggedTestUtils {
 
     public static <T> T ValueOf(String key, Type type) {
         return gson.fromJson(sourceObject.get(key).toString(), type);
+    }
+
+    public static void injectField(Object targetInstance, String name, Object targetObject) throws
+            Exception {
+        Class<?> aClass;
+        if (targetInstance instanceof Class) {
+            aClass = (Class) targetInstance;
+            while (!aClass.equals(Object.class)) {
+                try {
+                    Field targetField = aClass.getDeclaredField(name);
+                    targetField.setAccessible(true);
+                    targetField.set(targetInstance, targetObject);
+                } catch (NoSuchFieldException nsfe) {
+                    // nothing to set
+                }
+                aClass = aClass.getSuperclass();
+            }
+
+        } else {
+            aClass = targetInstance.getClass();
+
+            while (!aClass.equals(Object.class)) {
+                try {
+                    Field targetField = aClass.getDeclaredField(name);
+                    targetField.setAccessible(true);
+                    targetField.set(targetInstance, targetObject);
+                } catch (NoSuchFieldException nsfe) {
+                    // nothing to set
+                }
+                aClass = aClass.getSuperclass();
+            }
+
+        }
     }
 }

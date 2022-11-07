@@ -214,14 +214,19 @@ public class ObjectRoutineContainer {
         classVariableContainer.add(mainSubject);
 
 
+        Parameter testUtilClassSubject = new Parameter();
+        testUtilClassSubject.setType("io.unlogged.UnloggedTestUtil");
+        testUtilClassSubject.setName("UnloggedTestUtil");
         for (Parameter parameter : allFields) {
 
             container.addField(parameter);
 
             classVariableContainer.add(parameter);
-            MethodCallExpression.in(builderMethodScript).writeExpression(
-                    new MethodCallExpression("injectField", null,
-                            List.of(mainSubject, parameter), null, 0)).endStatement();
+            MethodCallExpression injectMethodCall = new MethodCallExpression(
+                    "injectField", testUtilClassSubject,
+                    List.of(mainSubject, parameter), null, 0);
+            injectMethodCall.setStaticCall(true);
+            MethodCallExpression.in(builderMethodScript).writeExpression(injectMethodCall).endStatement();
 
         }
 
