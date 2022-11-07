@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V0
+ * UnloggedTestUtils.Version: V1
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";

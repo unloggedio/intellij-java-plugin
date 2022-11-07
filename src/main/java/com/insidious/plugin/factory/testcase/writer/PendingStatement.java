@@ -108,18 +108,22 @@ public class PendingStatement {
             }
 
         } else if (methodCallExpression.getMethodName().equals("injectField")
-                && methodCallExpression.getSubject() == null) {
+                && methodCallExpression.isStaticCall()
+                && methodCallExpression.getSubject() != null
+                && methodCallExpression.getSubject().getType().equals("io.unlogged.UnloggedTestUtils")
+        ) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
 
 
             Parameter injectionTarget = variables.get(0);
+            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject().getType()));
             if (injectionTarget.getName() != null) {
-                statementBuilder.append("injectField($L, $S, $L)");
+                statementBuilder.append("$T.injectField($L, $S, $L)");
                 statementParameters.add(injectionTarget.getName());
             } else if (injectionTarget.getType() != null) {
-                statementBuilder.append("injectField($T.class, $S, $L)");
+                statementBuilder.append("$T.injectField($T.class, $S, $L)");
                 statementParameters.add(ClassName.bestGuess(injectionTarget.getType()));
             }
 

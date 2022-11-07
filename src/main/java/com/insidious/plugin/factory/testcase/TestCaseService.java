@@ -77,7 +77,7 @@ public class TestCaseService {
             typeSpecBuilder.addMethod(methodSpec);
         }
 
-        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
+//        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
         if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
             typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());

@@ -81,6 +81,14 @@ public class TestCaseWriter {
                 compareAgainst = parameter.getName();
             } else {
                 compareAgainst = parameter.getValue();
+                if (parameter.isStringType()) {
+                    if (parameter.getProb().getSerializedValue() != null &&
+                            parameter.getProb().getSerializedValue().length > 0) {
+                        compareAgainst = new String(parameter.getProb().getSerializedValue());
+                    } else if (parameter.getValue() == 0L) {
+                        compareAgainst = "null";
+                    }
+                }
             }
 
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
@@ -92,7 +100,7 @@ public class TestCaseWriter {
                 if (parameter.isBooleanType()) {
                     if (compareAgainst.equals("0")
                             || compareAgainst.equals(0L) // compare specifically to 0L, since comparing
-                                                         // with 0 (int) sometimes (always) turn out to be false
+                            // with 0 (int) sometimes (always) turn out to be false
                             || compareAgainst.equals(0)
                     ) {
                         compareAgainst = "false";
