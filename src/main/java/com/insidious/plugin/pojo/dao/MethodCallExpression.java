@@ -28,7 +28,7 @@ public class MethodCallExpression {
 
     @DatabaseField
     private boolean usesFields;
-    @DatabaseField(foreign = true)
+    @DatabaseField(foreign = true, index = true)
     private Parameter subject;
 
     @DatabaseField(foreign = true)
@@ -39,7 +39,7 @@ public class MethodCallExpression {
     private DataEventWithSessionId entryProbe;
     @DatabaseField
     private int callStack;
-    @DatabaseField
+    @DatabaseField(index = true)
     private int methodAccess;
     @DatabaseField
     private String argumentProbes;

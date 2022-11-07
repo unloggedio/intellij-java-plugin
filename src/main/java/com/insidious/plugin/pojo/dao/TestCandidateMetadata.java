@@ -15,9 +15,9 @@ public class TestCandidateMetadata {
     private String methodCallExpressions;
     @DatabaseField
     private String fields;
-    @DatabaseField(foreign = true)
+    @DatabaseField(foreign = true, index = true)
     private MethodCallExpression mainMethod;
-    @DatabaseField(foreign = true)
+    @DatabaseField(foreign = true, index = true)
     private Parameter testSubject;
     @DatabaseField
     private long callTimeNanoSecond;

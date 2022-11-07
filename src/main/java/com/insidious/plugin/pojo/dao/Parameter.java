@@ -43,7 +43,6 @@ public class Parameter {
     private int index;
     @DatabaseField(foreign = true)
     private ProbeInfo probeInfo;
-    private ConstructorType constructorType;
     @DatabaseField(foreign = true)
     private MethodCallExpression creatorExpression;
     private Map<String, Parameter> templateMap = new HashMap<>();
