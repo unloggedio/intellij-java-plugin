@@ -39,6 +39,9 @@ public class UnloggedTestUtils {
     }
 
     public static <T> T ValueOf(String key, Type type) {
+        if (!sourceObject.keySet().contains(key)) {
+            return null;
+        }
         return gson.fromJson(sourceObject.get(key).toString(), type);
     }
 
