@@ -215,8 +215,8 @@ public class ObjectRoutineContainer {
 
 
         Parameter testUtilClassSubject = new Parameter();
-        testUtilClassSubject.setType("io.unlogged.UnloggedTestUtil");
-        testUtilClassSubject.setName("UnloggedTestUtil");
+        testUtilClassSubject.setType("io.unlogged.UnloggedTestUtils");
+        testUtilClassSubject.setName("UnloggedTestUtils");
         for (Parameter parameter : allFields) {
 
             container.addField(parameter);
