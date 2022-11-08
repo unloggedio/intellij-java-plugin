@@ -248,48 +248,48 @@ public class VideobugLocalClient implements VideobugClientInterface {
         threadPoolExecutor5Seconds.shutdown();
     }
 
-    @Override
-    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
-
-
-        threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (1 < 2) {
-                    return;
-                }
-
-                List<ExecutionSession> sessions = getLocalSessions();
-                ExecutionSession executionSession = sessions.get(0);
-                try {
-                    setSessionInstance(new SessionInstance(executionSession));
-                } catch (SQLException | IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                queryTracePointsByTypes(SearchQuery.ByType(typeNameList),
-                        sessionInstance.getExecutionSession().getSessionId(), 2,
-                        new ClientCallBack<TracePoint>() {
-                            @Override
-                            public void error(ExceptionResponse errorResponse) {
-                                logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
-                            }
-
-                            @Override
-                            public void success(Collection<TracePoint> tracePoints) {
-                                if (tracePoints.size() > 0) {
-                                    videobugExceptionCallback.onNewTracePoints(tracePoints);
-                                }
-                            }
-
-                            @Override
-                            public void completed() {
-
-                            }
-                        });
-            }
-        }, 5, 5, TimeUnit.SECONDS);
-    }
+//    @Override
+//    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
+//
+//
+//        threadPoolExecutor5Seconds.scheduleAtFixedRate(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (1 < 2) {
+//                    return;
+//                }
+//
+//                List<ExecutionSession> sessions = getLocalSessions();
+//                ExecutionSession executionSession = sessions.get(0);
+//                try {
+//                    setSessionInstance(new SessionInstance(executionSession));
+//                } catch (SQLException | IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//                queryTracePointsByTypes(SearchQuery.ByType(typeNameList),
+//                        sessionInstance.getExecutionSession().getSessionId(), 2,
+//                        new ClientCallBack<TracePoint>() {
+//                            @Override
+//                            public void error(ExceptionResponse errorResponse) {
+//                                logger.info("failed to query traces by type in scheduler: " + errorResponse.getMessage());
+//                            }
+//
+//                            @Override
+//                            public void success(Collection<TracePoint> tracePoints) {
+//                                if (tracePoints.size() > 0) {
+//                                    videobugExceptionCallback.onNewTracePoints(tracePoints);
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void completed() {
+//
+//                            }
+//                        });
+//            }
+//        }, 5, 5, TimeUnit.SECONDS);
+//    }
 
     @Override
     public void getMethods(String sessionId,

@@ -30,6 +30,18 @@ public class ObjectRoutineScript {
     private String routineName;
     private VariableContainer createdVariables = new VariableContainer();
 
+    @Override
+    public String toString() {
+        return "ObjectRoutineScript{" +
+                "statements=" + statements +
+                ", exceptions=" + exceptions +
+                ", annotations=" + annotations +
+                ", modifiers=" + modifiers +
+                ", routineName='" + routineName + '\'' +
+                ", createdVariables=" + createdVariables +
+                '}';
+    }
+
     public ObjectRoutineScript(String routineName) {
         this.routineName = routineName;
     }
@@ -78,13 +90,8 @@ public class ObjectRoutineScript {
         return routineName;
     }
 
-    public void writeToMethodSpecBuilder(MethodSpec.Builder methodBuilder) {
-        for (Pair<CodeLine, Object[]> statement : getStatements()) {
-            statement.getFirst().writeTo(methodBuilder, statement.getSecond());
-        }
-    }
-
     public MethodSpec.Builder toMethodSpec() {
+        logger.info("Build method spec with method name: " + this.routineName);
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(this.routineName);
 
         methodBuilder.addExceptions(this.exceptions);

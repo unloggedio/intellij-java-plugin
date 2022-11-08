@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class TestCaseService {
-    private final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final SessionInstance sessionInstance;
 
 
@@ -69,8 +69,10 @@ public class TestCaseService {
         }
 
 
+        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
+        logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName().equals("<init>")) {
+            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;
             }
             MethodSpec methodSpec = objectRoutine.toMethodSpec().build();

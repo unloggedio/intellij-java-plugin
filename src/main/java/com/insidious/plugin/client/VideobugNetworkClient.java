@@ -656,12 +656,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     }
 
-    @Override
-    public void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback) {
-//        throw new RuntimeException("not implemented");
-        // todo
-    }
-
 
     @Override
     public void queryTracePointsByEventType(SearchQuery searchQuery,

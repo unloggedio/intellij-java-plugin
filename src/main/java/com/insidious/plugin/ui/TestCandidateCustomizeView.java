@@ -14,7 +14,6 @@ import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.io.IOException;
 import java.util.LinkedList;
 
 public class TestCandidateCustomizeView {
@@ -115,29 +114,23 @@ public class TestCandidateCustomizeView {
             }
         }
 
-        System.out.println("Comparing Candidates ");
-        System.out.println("[Existing candidates: ] "+this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
-        System.out.println("[New candidates: ] "+candidates.toString());
-        if(this.testGenerationConfiguration.getTestCandidateMetadataList().equals(candidates))
-        {
-            System.out.println("[]Candidates are equal");
-        }
-        else
-        {
-            System.out.println("[]Candidates are not equal");
-        }
+//        System.out.println("Comparing Candidates ");
+//        System.out.println("[Existing candidates: ] " + this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
+//        System.out.println("[New candidates: ] " + candidates.toString());
+//        if (this.testGenerationConfiguration.getTestCandidateMetadataList().equals(candidates)) {
+//            System.out.println("[]Candidates are equal");
+//        } else {
+//            System.out.println("[]Candidates are not equal");
+//        }
 
-        System.out.println("Comparing Calls ");
-        System.out.println("[Existing Calls: ] "+this.testGenerationConfiguration.getCallExpressionList().toString());
-        System.out.println("[New calls: ] "+calls.toString());
-        if(this.testGenerationConfiguration.getCallExpressionList().equals(calls))
-        {
-            System.out.println("[]Calls are equal");
-        }
-        else
-        {
-            System.out.println("[]Calls are not equal");
-        }
+//        System.out.println("Comparing Calls ");
+//        System.out.println("[Existing Calls: ] "+this.testGenerationConfiguration.getCallExpressionList().toString());
+//        System.out.println("[New calls: ] "+calls.toString());
+//        if (this.testGenerationConfiguration.getCallExpressionList().equals(calls)) {
+//            System.out.println("[]Calls are equal");
+//        } else {
+//            System.out.println("[]Calls are not equal");
+//        }
 
         this.testGenerationConfiguration.setTestCandidateMetadataList(candidates);
         this.testGenerationConfiguration.setCallExpressionList(calls);
@@ -156,8 +149,8 @@ public class TestCandidateCustomizeView {
             InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(), NotificationType.ERROR);
 
             JSONObject eventProperties = new JSONObject();
-            eventProperties.put("message",e.getMessage());
-            UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerationFailed",eventProperties);
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerationFailed", eventProperties);
         }
     }
 
@@ -165,27 +158,22 @@ public class TestCandidateCustomizeView {
         return mainPanel;
     }
 
-    public void setDocumentationText()
-    {
+    public void setDocumentationText() {
         TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
         this.documentationTextArea.setText(model.getDocumentationText());
     }
 
-    private void setDividerColor()
-    {
-        splitPane.setUI(new BasicSplitPaneUI()
-        {
+    private void setDividerColor() {
+        splitPane.setUI(new BasicSplitPaneUI() {
             @Override
-            public BasicSplitPaneDivider createDefaultDivider()
-            {
-                return new BasicSplitPaneDivider(this)
-                {
-                    public void setBorder(Border b) {}
+            public BasicSplitPaneDivider createDefaultDivider() {
+                return new BasicSplitPaneDivider(this) {
+                    public void setBorder(Border b) {
+                    }
 
                     @Override
-                    public void paint(Graphics g)
-                    {
-                        Color teal = new Color(1,204,245);
+                    public void paint(Graphics g) {
+                        Color teal = new Color(1, 204, 245);
                         g.setColor(teal);
                         g.fillRect(0, 0, getSize().width, getSize().height);
                         super.paint(g);

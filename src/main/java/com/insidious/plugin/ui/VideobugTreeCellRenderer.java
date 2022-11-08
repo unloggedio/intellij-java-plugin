@@ -58,30 +58,30 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
 //            String text = String.format(SPAN_FORMAT, "#d6caf0", probeInfoModel);
             String text = probeInfoModel.toString();
 //            text += " [" + String.format(SPAN_FORMAT, "orange", pp.getRole()) + "]";
-            renderer.setText("<html>" + text + "</html>");
+            renderer.setText(text);
 //            this.setIcon(employeeIcon);
         } else if (userObject instanceof TreeClassInfoModel) {
             TreeClassInfoModel classInfoModel = (TreeClassInfoModel) userObject;
 //            String text = String.format(SPAN_FORMAT, "#aba497", classInfoModel);
             String text = classInfoModel.toString();
-            renderer.setText("<html>" + text + "</html>");
+            renderer.setText(text);
             renderer.setIcon(classIcon);
         } else if (userObject instanceof ExecutionSession) {
             ExecutionSession executionSession = (ExecutionSession) userObject;
 //            String text = String.format(SPAN_FORMAT, "#aba497", executionSession);
             String text = executionSession.toString();
             renderer.setIcon(this.sessionIcon);
-            renderer.setText("<html>" + text + "</html>");
+            renderer.setText(text);
         } else if (userObject instanceof MethodInfoModel) {
             MethodInfoModel methodInfoModel  = (MethodInfoModel) userObject;
 //            String text = String.format(SPAN_FORMAT, "#719775", methodInfoModel);
             String text = methodInfoModel.toString();
-            renderer.setText("<html>" + text + "</html>");
+            renderer.setText(text);
             renderer.setIcon(methodIcon);
         } else if (userObject instanceof PackageInfoModel) {
             PackageInfoModel packageInfoModel  = (PackageInfoModel) userObject;
             String text = String.format(SPAN_FORMAT, "#719775", packageInfoModel);
-            renderer.setText("<html>" + text + "</html>");
+            renderer.setText(packageInfoModel.toString());
             renderer.setIcon(packageIcon);
         }
         else if(userObject instanceof VideobugTreePackageAggregateNode)

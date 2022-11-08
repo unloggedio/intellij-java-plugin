@@ -215,27 +215,29 @@ public class SessionInstance {
 //        classInfoMap = new HashMap<>();
         methodInfoMap = new HashMap<>();
 
-        classWeaveInfo.classInfo().forEach(e -> {
+        classWeaveInfo.classInfo().forEach(classInfo -> {
 
-            checkProgressIndicator(null, "Loading class: " + e.className());
+            checkProgressIndicator(null, "Loading class: " + classInfo.className());
 
 //            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
 //            classInfoMap.put(e.classId(), classInfo);
 
-            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
+            checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
 
-            e.methodList().forEach(m -> {
-                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, e.className().value());
+            classInfo.methodList().forEach(m -> {
+                MethodInfo methodInfo = KaitaiUtils.toMethodInfo(m, classInfo.className().value());
                 methodInfoMap.put(m.methodId(), methodInfo);
             });
+            classInfo.methodList().clear();
 
-            e.probeList().forEach(r -> {
+            classInfo.probeList().forEach(r -> {
                 probeInfoMap.put(r.dataId(), KaitaiUtils.toDataInfo(r));
             });
+            classInfo.probeList().clear();
 
         });
         classWeaveInfo._io().close();
-        classWeaveInfo = null;
+//        classWeaveInfo = null;
 
 
         sessionFiles.removeAll(filesToRemove);

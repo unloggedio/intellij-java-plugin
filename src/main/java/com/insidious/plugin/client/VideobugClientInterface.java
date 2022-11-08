@@ -87,7 +87,7 @@ public interface VideobugClientInterface {
 
     void close();
 
-    void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
+//    void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 
 
     void getMethods(String sessionId, Integer typeId,

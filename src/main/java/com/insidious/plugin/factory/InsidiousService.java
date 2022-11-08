@@ -122,6 +122,8 @@ public class InsidiousService implements Disposable {
     private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
     private int TOOL_WINDOW_HEIGHT = 390;
+    private Content singleWindowContent;
+    private boolean rawViewAdded = false;
 
     public InsidiousService(Project project) {
         try {
@@ -168,75 +170,75 @@ public class InsidiousService implements Disposable {
         System.out.println(selection);
     }
 
-    private void setupNewExceptionListener() {
-        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap
-                .entrySet()
-                .stream()
-                .filter(Map.Entry::getValue)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-        this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
-            final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
-
-            @Override
-            public void onNewTracePoints(Collection<TracePoint> tracePoints) {
-                if (mostRecentTracePoints.size() > 0) {
-                    List<TracePoint> newTracePoints = new LinkedList<>();
-                    for (TracePoint tracePoint : tracePoints) {
-                        if (!mostRecentTracePoints.contains(tracePoint)) {
-                            newTracePoints.add(tracePoint);
-                        }
-                    }
-                    mostRecentTracePoints.clear();
-                    mostRecentTracePoints.addAll(tracePoints);
-                    if (newTracePoints.size() == 0) {
-                        return;
-                    }
-                    tracePoints = newTracePoints;
-                } else {
-                    mostRecentTracePoints.addAll(tracePoints);
-                }
-
-                String messageContent = "Got " + tracePoints.size() + " new matching trace points";
-                StringBuilder messageBuilder = new StringBuilder();
-                Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(TracePoint::getClassname));
-                for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
-                    String className = classTracePoint.getKey();
-                    List<TracePoint> classTracePoints = classTracePoint.getValue();
-                    Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(Collectors.groupingBy(TracePoint::getExceptionClass));
-
-                    for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
-                        String exceptionClassName = exceptionTracePoint.getKey();
-                        Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue().stream().collect(Collectors.groupingBy(TracePoint::getLineNumber));
-
-                        for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
-
-                            String[] exceptionClassNameParts = exceptionClassName.split("\\.");
-                            String[] classNameParts = className.split("/");
-                            messageBuilder.append(lineExceptionPoints.getValue().size());
-                            messageBuilder.append(" ");
-                            messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
-                            messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
-                            messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
-                            messageBuilder.append("<br>");
-                        }
-
-
-                    }
-
-
-                }
-
-
-//                    Notification notification = InsidiousNotification.
-//                            balloonNotificationGroup.createNotification("New exception",
-//                                    "These just happened",
-//                                    messageBuilder.toString(), NotificationType.INFORMATION);
-//                    Notifications.Bus.notify(notification);
-//                    getHorBugTable().setTracePoints(tracePoints);
-            }
-        });
-    }
+//    private void setupNewExceptionListener() {
+//        Set<String> exceptionClassList = insidiousConfiguration.exceptionClassMap
+//                .entrySet()
+//                .stream()
+//                .filter(Map.Entry::getValue)
+//                .map(Map.Entry::getKey)
+//                .collect(Collectors.toSet());
+////        this.client.onNewException(exceptionClassList, new VideobugExceptionCallback() {
+////            final Set<TracePoint> mostRecentTracePoints = new HashSet<>();
+////
+////            @Override
+////            public void onNewTracePoints(Collection<TracePoint> tracePoints) {
+////                if (mostRecentTracePoints.size() > 0) {
+////                    List<TracePoint> newTracePoints = new LinkedList<>();
+////                    for (TracePoint tracePoint : tracePoints) {
+////                        if (!mostRecentTracePoints.contains(tracePoint)) {
+////                            newTracePoints.add(tracePoint);
+////                        }
+////                    }
+////                    mostRecentTracePoints.clear();
+////                    mostRecentTracePoints.addAll(tracePoints);
+////                    if (newTracePoints.size() == 0) {
+////                        return;
+////                    }
+////                    tracePoints = newTracePoints;
+////                } else {
+////                    mostRecentTracePoints.addAll(tracePoints);
+////                }
+////
+////                String messageContent = "Got " + tracePoints.size() + " new matching trace points";
+////                StringBuilder messageBuilder = new StringBuilder();
+////                Map<String, List<TracePoint>> pointsByClass = tracePoints.stream().collect(Collectors.groupingBy(TracePoint::getClassname));
+////                for (Map.Entry<String, List<TracePoint>> classTracePoint : pointsByClass.entrySet()) {
+////                    String className = classTracePoint.getKey();
+////                    List<TracePoint> classTracePoints = classTracePoint.getValue();
+////                    Map<String, List<TracePoint>> tracePointsByException = classTracePoints.stream().collect(Collectors.groupingBy(TracePoint::getExceptionClass));
+////
+////                    for (Map.Entry<String, List<TracePoint>> exceptionTracePoint : tracePointsByException.entrySet()) {
+////                        String exceptionClassName = exceptionTracePoint.getKey();
+////                        Map<Long, List<TracePoint>> pointsByLine = exceptionTracePoint.getValue().stream().collect(Collectors.groupingBy(TracePoint::getLineNumber));
+////
+////                        for (Map.Entry<Long, List<TracePoint>> lineExceptionPoints : pointsByLine.entrySet()) {
+////
+////                            String[] exceptionClassNameParts = exceptionClassName.split("\\.");
+////                            String[] classNameParts = className.split("/");
+////                            messageBuilder.append(lineExceptionPoints.getValue().size());
+////                            messageBuilder.append(" ");
+////                            messageBuilder.append(exceptionClassNameParts[exceptionClassNameParts.length - 1]);
+////                            messageBuilder.append(" on line ").append(lineExceptionPoints.getKey());
+////                            messageBuilder.append(" in ").append("<a>").append(classNameParts[classNameParts.length - 1]).append("</a>");
+////                            messageBuilder.append("<br>");
+////                        }
+////
+////
+////                    }
+////
+////
+////                }
+////
+////
+//////                    Notification notification = InsidiousNotification.
+//////                            balloonNotificationGroup.createNotification("New exception",
+//////                                    "These just happened",
+//////                                    messageBuilder.toString(), NotificationType.INFORMATION);
+//////                    Notifications.Bus.notify(notification);
+//////                    getHorBugTable().setTracePoints(tracePoints);
+////            }
+////        });
+//    }
 
     private XDebugSession getActiveDebugSession(XDebugSession[] debugSessions) {
         for (XDebugSession session : debugSessions) {
@@ -912,9 +914,8 @@ public class InsidiousService implements Disposable {
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
-//            singleWindowView = new SingleWindowView(project, this);
-//            Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
-//            contentManager.addContent(singleWindowContent);
+            singleWindowView = new SingleWindowView(project, this);
+            singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
             liveViewWindow = new LiveViewWindow(project, this);
             Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
@@ -1210,5 +1211,15 @@ public class InsidiousService implements Disposable {
 
 //        @NotNull PsiElement formattedCode = CodeStyleManagerImpl.getInstance(project).reformat(testFilePsiInstance);
 
+    }
+
+
+    public void attachRawView() {
+        if (rawViewAdded) {
+            return;
+        }
+        rawViewAdded = true;
+        ContentManager contentManager = this.toolWindow.getContentManager();
+        contentManager.addContent(singleWindowContent);
     }
 }

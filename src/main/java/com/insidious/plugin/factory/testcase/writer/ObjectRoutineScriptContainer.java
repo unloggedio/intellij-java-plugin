@@ -32,6 +32,18 @@ public class ObjectRoutineScriptContainer {
     private List<Parameter> fields = new LinkedList<>();
     private String testMethodName;
 
+    @Override
+    public String toString() {
+        return "ObjectRoutineScriptContainer{" +
+                "objectRoutines=" + objectRoutines +
+                ", testGenerationState=" + testGenerationState +
+                ", currentRoutine=" + currentRoutine +
+                ", constructor=" + constructor +
+                ", name='" + name + '\'' +
+                ", fields=" + fields +
+                ", testMethodName='" + testMethodName + '\'' +
+                '}';
+    }
 
     public ObjectRoutineScriptContainer(String packageName, TestGenerationState testGenerationState) {
         this.testGenerationState = testGenerationState;
