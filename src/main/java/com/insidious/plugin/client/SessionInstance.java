@@ -34,6 +34,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -178,7 +179,7 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() throws IOException {
+    private List<File> refreshSessionArchivesList() throws IOException, SQLException {
         if (sessionDirectory.listFiles() == null) {
             return List.of();
         }
@@ -212,15 +213,44 @@ public class SessionInstance {
 
 
         probeInfoMap = new HashMap<>();
-//        classInfoMap = new HashMap<>();
         methodInfoMap = new HashMap<>();
 
+        Map<String, Long> existingTypeInformation = daoService.getTypesMap();
+
+        checkProgressIndicator(null, "Loading " + classWeaveInfo.classCount() + " class information");
         classWeaveInfo.classInfo().forEach(classInfo -> {
 
-            checkProgressIndicator(null, "Loading class: " + classInfo.className());
 
 //            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
 //            classInfoMap.put(e.classId(), classInfo);
+
+            if (!existingTypeInformation.containsKey(classInfo.className().value())) {
+                com.insidious.plugin.pojo.dao.TypeInfo typeInfoForDb = new com.insidious.plugin.pojo.dao.TypeInfo();
+                typeInfoForDb.setId(classInfo.classId());
+                typeInfoForDb.setContainer(classInfo.container().value());
+
+                ArrayList<KaitaiInsidiousClassWeaveParser.StrWithLen> interfaceClasses = classInfo.interfaceNames();
+                List<String> interfaceIds = new ArrayList<>(classInfo.interfaceNames().size());
+                for (KaitaiInsidiousClassWeaveParser.StrWithLen interfaceName : classInfo.interfaceNames()) {
+                    interfaceIds.add(interfaceName.value());
+                }
+
+                typeInfoForDb.setInterfaces(Strings.join(interfaceIds, ","));
+                typeInfoForDb.setFileName(classInfo.fileName().value());
+                typeInfoForDb.setSignature(classInfo.signature().value());
+                if (existingTypeInformation.containsKey(classInfo.superclass().value())) {
+                    typeInfoForDb.setSuperClass(existingTypeInformation.get(classInfo.superclass().value()));
+                }
+                typeInfoForDb.setClassLoaderIdentifier(classInfo.classLoaderIdentifier().value());
+                typeInfoForDb.setName(classInfo.className().value());
+                try {
+                    daoService.createType(typeInfoForDb);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(e);
+                }
+                existingTypeInformation.put(classInfo.className().value(), classInfo.classId());
+            }
 
             checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
 
@@ -1354,7 +1384,7 @@ public class SessionInstance {
         return typeIds;
     }
 
-    public List<String> getArchiveNamesList() throws IOException {
+    public List<String> getArchiveNamesList() throws IOException, SQLException {
         return refreshSessionArchivesList()
                 .stream()
                 .map(File::getName)

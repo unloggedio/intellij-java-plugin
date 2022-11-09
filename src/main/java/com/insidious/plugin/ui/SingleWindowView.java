@@ -135,7 +135,7 @@ public class SingleWindowView implements TreeExpansionListener, TreeWillExpandLi
             TreeClassInfoModel treeNode = (TreeClassInfoModel) selectedNode;
             try {
                 informationPanel.doSearch(treeNode.getClassName().replaceAll("/", "."));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
 

@@ -27,6 +27,9 @@
     <actions>
         <!-- Add your actions here -->
 
+        <action class="com.insidious.plugin.actions.ShowRawView">
+            <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F9"/>
+        </action>
 
         <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"
                 class="com.insidious.plugin.actions.JumpBack">

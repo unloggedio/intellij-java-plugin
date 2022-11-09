@@ -76,7 +76,7 @@ public class SingleClassInfoWindow {
                 if (searchQuery != null && searchQuery.length() > 0) {
                     try {
                         doSearch(searchQuery);
-                    } catch (IOException ex) {
+                    } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
                 }
@@ -114,7 +114,7 @@ public class SingleClassInfoWindow {
 
     }
 
-    public void doSearch(String searchQuery) throws IOException {
+    public void doSearch(String searchQuery) throws Exception {
         clearResults();
         searchQueryTextField.setText(searchQuery);
 

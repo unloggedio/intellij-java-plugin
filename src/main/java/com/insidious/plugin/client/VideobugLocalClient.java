@@ -319,7 +319,7 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public List<String> getSessionArchiveList(String sessionId) throws IOException {
+    public List<String> getSessionArchiveList(String sessionId) throws Exception {
         checkSession(sessionId);
         return this.sessionInstance.getArchiveNamesList();
 

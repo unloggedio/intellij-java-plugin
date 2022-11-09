@@ -70,6 +70,7 @@ public class DaoService {
     private final Dao<ArchiveFile, Long> archiveFileDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
+    private final Dao<TypeInfo, Integer> typeInfoDao;
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
@@ -82,6 +83,7 @@ public class DaoService {
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
+        typeInfoDao = DaoManager.createDao(connectionSource, TypeInfo.class);
 
     }
 
@@ -310,7 +312,7 @@ public class DaoService {
                 returnParam.setProb(returnDataEvent);
                 returnParam.setProbeInfo(getProbeInfoById(returnDataEvent.getDataId()));
 
-                if (returnParam.getType() != null &&  returnDataEvent.getSerializedValue().length == 0) {
+                if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
                     switch (returnParam.getType()) {
                         case "okhttp3.Response":
                             List<com.insidious.plugin.pojo.MethodCallExpression> callsOnReturnParameter =
@@ -481,12 +483,30 @@ public class DaoService {
     }
 
     public List<Integer> getProbes() throws SQLException {
-        return probeInfoDao.queryBuilder().selectColumns("dataId").query().stream().map(ProbeInfo::getDataId).collect(Collectors.toList());
+        return probeInfoDao.queryBuilder()
+                .selectColumns("dataId")
+                .query()
+                .stream()
+                .map(ProbeInfo::getDataId)
+                .collect(Collectors.toList());
+    }
+
+    public Map<String, Long> getTypesMap() throws SQLException {
+        return typeInfoDao.queryBuilder()
+                .selectColumns("id", "name")
+                .query()
+                .stream()
+                .collect(Collectors.toMap(TypeInfo::getName, TypeInfo::getId));
     }
 
     public void createOrUpdateCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
-            methodCallExpressionDao.create(callsToSave.stream().map(MethodCallExpression::FromMCE).collect(Collectors.toList()));
+            methodCallExpressionDao.create(
+                    callsToSave
+                            .stream()
+                            .map(MethodCallExpression::FromMCE)
+                            .collect(Collectors.toList())
+            );
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -502,9 +522,10 @@ public class DaoService {
         }
     }
 
-    public void createOrUpdateTestCandidate(Collection<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candiateToSave) {
+    public void createOrUpdateTestCandidate(
+            Collection<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidatesToSave) {
         try {
-            testCandidateDao.create(candiateToSave.stream()
+            testCandidateDao.create(candidatesToSave.stream()
                     .map(TestCandidateMetadata::FromTestCandidateMetadata)
                     .collect(Collectors.toList()));
         } catch (SQLException e) {
@@ -610,13 +631,12 @@ public class DaoService {
         }
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> getTestCandidatesForClass(String className) {
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidatesForClass(String className) {
         try {
             long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
 
-            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = getTestCandidateForSubjectId(result);
-
-            return results;
+            return getTestCandidateForSubjectId(result);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -721,5 +741,9 @@ public class DaoService {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
+
+    public void createType(TypeInfo typeInfoForDb) throws SQLException {
+        typeInfoDao.create(typeInfoForDb);
     }
 }

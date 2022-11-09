@@ -13,80 +13,35 @@ import java.io.IOException;
 public class TypeInfo {
 
     @DatabaseField(id = true)
-    String id;
-    String sessionId;
+    long id;
     @DatabaseField
     private String interfaces;
     @DatabaseField
-    private long typeId;
-    @DatabaseField
-    private String typeNameFromClass;
+    private String name;
     @DatabaseField
     private String classLocation;
     @DatabaseField
-    private int superClass;
+    private long superClass;
     @DatabaseField
-    private int componentType;
+    private String container;
     @DatabaseField
     private String classLoaderIdentifier;
+    private String fileName;
+    private String signature;
 
     public TypeInfo() {
     }
 
-    public TypeInfo(String sessionId, long typeId, String typeNameFromClass,
+    public TypeInfo(int id, String name,
                     String classLocation, int superClass,
-                    int componentType, String classLoaderIdentifier, int[] interfaces) {
-        this.sessionId = sessionId;
-        this.typeId = typeId;
-        this.typeNameFromClass = typeNameFromClass;
+                    String container, String classLoaderIdentifier, int[] interfaces) {
+        this.id = id;
+        this.name = name;
         this.classLocation = classLocation;
         this.superClass = superClass;
-        this.componentType = componentType;
+        this.container = container;
         this.classLoaderIdentifier = classLoaderIdentifier;
         this.interfaces = Strings.join(interfaces, ",");
-    }
-
-    public static TypeInfo fromBytes(byte[] typeBytes) {
-        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(typeBytes));
-        try {
-            int typeId = dis.readInt();
-            int nameLength = dis.readInt();
-
-            byte[] typeNameBytes = new byte[nameLength];
-            int readLength = dis.read(typeNameBytes);
-            assert readLength == nameLength;
-            String typeName = new String(typeNameBytes);
-
-            int classLocationLength = dis.readInt();
-            byte[] classLocationBytes = new byte[classLocationLength];
-            readLength = dis.read(classLocationBytes);
-            assert readLength == classLocationLength;
-
-            String classLocation = new String(classLocationBytes);
-
-            int superClass = dis.readInt();
-            int componentClass = dis.readInt();
-
-            int classLoaderIdentifierLength = dis.readInt();
-            byte[] classLoaderIdentifierBytes = new byte[classLoaderIdentifierLength];
-            readLength = dis.read(classLoaderIdentifierBytes);
-            assert readLength == classLoaderIdentifierLength;
-            String classLoaderIdentifier = new String(classLoaderIdentifierBytes);
-
-
-            int interfaceCount = dis.readInt();
-            int[] interfaces = new int[interfaceCount];
-            for (int i = 0; i < interfaceCount; i++) {
-                int interfaceId = dis.readInt();
-                interfaces[i] = interfaceId;
-            }
-
-            return new TypeInfo("", typeId, typeName,
-                    classLocation, superClass, componentClass, classLoaderIdentifier, interfaces);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            throw new RuntimeException(ex);
-        }
     }
 
     public String getInterfaces() {
@@ -97,36 +52,20 @@ public class TypeInfo {
         this.interfaces = interfaces;
     }
 
-    public String getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(long id) {
         this.id = id;
     }
 
-    public String getSessionId() {
-        return sessionId;
+    public String getName() {
+        return name;
     }
 
-    public void setSessionId(String sessionId) {
-        this.sessionId = sessionId;
-    }
-
-    public long getTypeId() {
-        return typeId;
-    }
-
-    public void setTypeId(long typeId) {
-        this.typeId = typeId;
-    }
-
-    public String getTypeNameFromClass() {
-        return typeNameFromClass;
-    }
-
-    public void setTypeNameFromClass(String typeNameFromClass) {
-        this.typeNameFromClass = typeNameFromClass;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getClassLocation() {
@@ -137,20 +76,20 @@ public class TypeInfo {
         this.classLocation = classLocation;
     }
 
-    public int getSuperClass() {
+    public long getSuperClass() {
         return superClass;
     }
 
-    public void setSuperClass(int superClass) {
+    public void setSuperClass(long superClass) {
         this.superClass = superClass;
     }
 
-    public int getComponentType() {
-        return componentType;
+    public String getContainer() {
+        return container;
     }
 
-    public void setComponentType(int componentType) {
-        this.componentType = componentType;
+    public void setContainer(String container) {
+        this.container = container;
     }
 
     public String getClassLoaderIdentifier() {
@@ -159,5 +98,21 @@ public class TypeInfo {
 
     public void setClassLoaderIdentifier(String classLoaderIdentifier) {
         this.classLoaderIdentifier = classLoaderIdentifier;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getSignature() {
+        return signature;
+    }
+
+    public void setSignature(String signature) {
+        this.signature = signature;
     }
 }

@@ -145,30 +145,15 @@ public class MethodCallExpression implements Expression {
                 Long.valueOf(getReturnValue().getProb().getNanoTime() / (1000000)).intValue() + "ms");
 
         List<Parameter> arguments = getArguments();
-        // not writing comments which describe the parameters
-        // not very useful
-//        if (arguments != null && arguments.size() > 0) {
-//
-//            objectRoutineScript.addComment("");
-//            for (Parameter parameter : arguments) {
-//                if (parameter.getName() == null &&
-//                        parameter.getProb() != null &&
-//                        parameter.getProb().getSerializedValue().length > 0
-//                ) {
-//                }
-//                objectRoutineScript.addParameterComment(parameter);
-//            }
-//            objectRoutineScript.addComment("");
-//            objectRoutineScript.addComment("");
-//
-//        }
         if (arguments != null) {
             for (Parameter parameter : arguments) {
                 if (parameter.isPrimitiveType() || parameter.getValue() < 1) {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
-                in(objectRoutineScript).assignVariable(parameter).fromRecordedValue(testConfiguration, testGenerationState).endStatement();
+                in(objectRoutineScript).assignVariable(parameter)
+                        .fromRecordedValue(testConfiguration, testGenerationState)
+                        .endStatement();
             }
         }
 
