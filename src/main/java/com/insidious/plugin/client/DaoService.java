@@ -43,17 +43,15 @@ public class DaoService {
 
     public static final String CALLS_TO_MOCK_SELECT_QUERY = "select mc.*\n" +
             "from method_call mc\n" +
-            "         join parameter subject on subject.value == mc.subject_id" +
-            "         join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "         left join parameter subject on subject.value == mc.subject_id\n" +
+            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "where id in (CALL_IDS)\n" +
-            "  and subject.type not like 'java.lang%'\n" +
-            "  and subject.type not like 'org.springframework%' " +
-            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)" +
-            "  and pi.eventType != 'CALL_PARAM'\n" +
-            "  and pi.eventType != 'CALL'\n" +
-            "  and pi.eventType != 'CALL_RETURN'\n" +
-            "  and names != '';\n" +
-            "\n";
+            "  and (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "  and (subject.type is null or subject.type not like 'org.springframework%')\n" +
+            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
+            "  and (pi.eventType is null or pi.eventType != 'CALL_RETURN')\n" +
+            "  and (names is null or names != '')";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +

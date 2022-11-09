@@ -149,29 +149,35 @@ public class CandidateMetadataFactory {
 
                 for (MethodCallExpression methodCallExpression : staticCallsList) {
 
-                    Parameter subject = methodCallExpression.getSubject();
+                    // we have a call SQSUseCase.values(0 args), which returns an array, at callStack 10 when the main callStack is at 4
+                    // so the expected call stack should be 5, but we cannot check that since the callStack value with 6 is a valid call to be mocked
+                    // but this call which return an array should not be mocked
+                    // probably need to exclude calls from inside of <clinit>
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    if (returnValue.getName() == null) {
+                        continue;
+                    }
+
+
+                    Parameter staticCallSubjectMockInstance = methodCallExpression.getSubject();
 
                     String mockedCallSignature = buildCallSignature(methodCallExpression);
 
                     if (!mockedCalls.containsKey(mockedCallSignature)) {
-                        if (!objectRoutineScript.getCreatedVariables().contains(subject.getName())) {
-                            subject.setContainer(true);
+                        if (!objectRoutineScript.getCreatedVariables().contains(staticCallSubjectMockInstance.getName())) {
+                            staticCallSubjectMockInstance.setContainer(true);
                             Parameter childParameter = new Parameter();
-                            childParameter.setType(subject.getType());
-                            subject.setType("org.mockito.MockedStatic");
-                            subject.getTemplateMap().put("E", childParameter);
-                            in(objectRoutineScript)
-                                    .assignVariable(subject)
-                                    .writeExpression(
-                                            MethodCallExpressionFactory.MockStaticClass(
-                                                    ClassName.bestGuess(childParameter.getType())))
-                                    .endStatement();
+                            childParameter.setType(staticCallSubjectMockInstance.getType());
+                            staticCallSubjectMockInstance.setType("org.mockito.MockedStatic");
+                            staticCallSubjectMockInstance.getTemplateMap().put("E", childParameter);
+
+                            objectRoutineScript.addStaticMock(staticCallSubjectMockInstance);
                         }
 
                         mockedCalls.put(mockedCallSignature, true);
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
 
-                        Parameter returnValue = methodCallExpression.getReturnValue();
+
                         returnValue.getNameForUse(
                                 methodCallExpression.getMethodName());
 

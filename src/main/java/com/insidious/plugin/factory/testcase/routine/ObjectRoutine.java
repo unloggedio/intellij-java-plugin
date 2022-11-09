@@ -107,6 +107,7 @@ public class ObjectRoutine {
             ObjectRoutineScript script = CandidateMetadataFactory
                     .toObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
             scriptContainer.getStatements().addAll(script.getStatements());
+            scriptContainer.getStaticMocks().addAll(script.getStaticMocks());
         }
 
         if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {

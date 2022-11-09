@@ -2054,6 +2054,7 @@ public class SessionInstance {
                                 break;
 
                             case GET_STATIC_FIELD:
+                                callStack.get(callStack.size() - 1).setUsesFields(true);
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null) {
                                     nameFromProbe = probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null));

@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
@@ -29,6 +30,7 @@ public class ObjectRoutineScript {
     private final Set<Modifier> modifiers = new HashSet<>();
     private String routineName;
     private VariableContainer createdVariables = new VariableContainer();
+    private List<Parameter> staticMocks = new ArrayList<>();
 
     @Override
     public String toString() {
@@ -124,5 +126,13 @@ public class ObjectRoutineScript {
 
     public void addModifiers(Modifier aPublic) {
         this.modifiers.add(aPublic);
+    }
+
+    public List<Parameter> getStaticMocks() {
+        return staticMocks;
+    }
+
+    public void addStaticMock(Parameter staticCallSubjectMockInstance) {
+        this.staticMocks.add(staticCallSubjectMockInstance);
     }
 }

@@ -4,6 +4,7 @@ package com.insidious.plugin.factory.testcase.routine;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.Expression;
+import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
@@ -21,6 +22,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 /**
  * A convenient container for list of ObjectRoutine. we always have one constructor routine for
@@ -228,6 +231,20 @@ public class ObjectRoutineContainer {
             ObjectRoutineScript objectScript =
                     objectRoutine.toObjectScript(classVariableContainer.clone(), generationConfiguration, testGenerationState);
             container.getObjectRoutines().add(objectScript);
+
+            List<Parameter> staticMocks = objectScript.getStaticMocks();
+            for (Parameter staticMock : staticMocks) {
+                container.addField(staticMock);
+                classVariableContainer.add(staticMock);
+                in(builderMethodScript)
+                        .assignVariable(staticMock)
+                        .writeExpression(
+                                MethodCallExpressionFactory.MockStaticClass(
+                                        ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType())))
+                        .endStatement();
+
+            }
+
 
             String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList().get(
                     objectRoutine.getTestCandidateList().size() - 1).getMainMethod()).getMethodName();
