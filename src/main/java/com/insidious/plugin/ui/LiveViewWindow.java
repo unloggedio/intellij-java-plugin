@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.ui.dialogBox.TestCaseDialogWrapper;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -243,8 +244,8 @@ public class LiveViewWindow implements TreeSelectionListener,
         insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
 
-//        UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated", null);
-
+        InsidiousNotification.notifyMessage("Testcase generated for "+testCaseUnit.getTestMethodName(), NotificationType.INFORMATION);
+        
 //        try {
 //            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
 //                @Override
