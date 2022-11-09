@@ -192,11 +192,19 @@ public class MethodCallExpression implements Expression {
         returnSubjectExpectedObject = ParameterFactory.createParameter(
                 returnSubjectInstanceName + "Expected", mainMethodReturnValue.getType());
 
-        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
-            in(objectRoutineScript)
-                    .assignVariable(returnSubjectExpectedObject)
-                    .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
-                    .endStatement();
+        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
+            if (returnSubjectExpectedObject.isPrimitiveType()) {
+                in(objectRoutineScript)
+                        .assignVariable(returnSubjectExpectedObject)
+                        .fromRecordedValue(testConfiguration, testGenerationState)
+                        .endStatement();
+
+            } else {
+                in(objectRoutineScript)
+                        .assignVariable(returnSubjectExpectedObject)
+                        .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+                        .endStatement();
+            }
 
         } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
 

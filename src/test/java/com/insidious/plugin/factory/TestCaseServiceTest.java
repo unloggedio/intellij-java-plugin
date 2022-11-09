@@ -450,7 +450,8 @@ public class TestCaseServiceTest {
 //                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.DiagnosticsService", "getAllDiagnosticsDetailsWithCache", true);
+                "com.ayu.cabeza.service.PatientProfileService",
+                "processForWhatsappCallback", true);
 
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
 //                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);

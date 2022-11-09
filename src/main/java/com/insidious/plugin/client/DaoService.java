@@ -310,7 +310,9 @@ public class DaoService {
 
                 DataEventWithSessionId returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
                 returnParam.setProb(returnDataEvent);
-                returnParam.setProbeInfo(getProbeInfoById(returnDataEvent.getDataId()));
+                DataInfo eventProbe = getProbeInfoById(returnDataEvent.getDataId());
+                returnParam.setProbeInfo(eventProbe);
+                returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
 
                 if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
                     switch (returnParam.getType()) {

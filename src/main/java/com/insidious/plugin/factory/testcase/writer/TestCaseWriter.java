@@ -142,14 +142,14 @@ public class TestCaseWriter {
 
             if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
                 parameterStringBuilder.append("any()");
+            } else if (parameter.getName() != null) {
+                parameterStringBuilder.append(parameter.getName());
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1 || parameter.getValue() == 1L) {
                     parameterStringBuilder.append("true");
                 } else {
                     parameterStringBuilder.append("false");
                 }
-            } else if (parameter.getName() != null) {
-                parameterStringBuilder.append(parameter.getName());
             } else {
                 Object parameterValue;
                 parameterValue = parameter.getValue();
