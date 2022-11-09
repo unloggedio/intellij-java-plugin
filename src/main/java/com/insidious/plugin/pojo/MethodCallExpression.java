@@ -175,6 +175,9 @@ public class MethodCallExpression implements Expression {
         }
 
 
+        if (mainMethodReturnValue.getType().equals("V")) {
+            return;
+        }
         String returnSubjectInstanceName = mainMethodReturnValue.getNameForUse(this.methodName);
 
 

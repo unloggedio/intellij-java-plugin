@@ -127,10 +127,13 @@ public class Parameter {
     }
 
     public void setName(String name) {
+        if (name == null) {
+            return;
+        }
         if (name.startsWith("(")) {
             return;
         }
-        if (name != null && !this.names.contains(name)) {
+        if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
         }
