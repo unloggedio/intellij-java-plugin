@@ -189,8 +189,11 @@ public class MethodCallExpression implements Expression {
         Parameter returnSubjectExpectedObject = null;
         // not sure why there was a if condition since both the blocks are same ?
 //        if (serializedBytes.length > 0) {
-        returnSubjectExpectedObject = ParameterFactory.createParameter(
-                returnSubjectInstanceName + "Expected", mainMethodReturnValue.getType());
+        String expectedParameterName = returnSubjectInstanceName + "Expected";
+        returnSubjectExpectedObject = Parameter.cloneParameter(mainMethodReturnValue);
+        // we will set a new name for this parameter
+        returnSubjectExpectedObject.clearNames();
+        returnSubjectExpectedObject.setName(expectedParameterName);
 
         if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
             if (returnSubjectExpectedObject.isPrimitiveType()) {

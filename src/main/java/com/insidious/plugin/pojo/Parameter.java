@@ -55,6 +55,8 @@ public class Parameter {
         buildWithJson.setTemplateMap(parameter.getTemplateMap());
         buildWithJson.setType(parameter.getType());
         buildWithJson.setContainer(parameter.isContainer());
+        buildWithJson.setProbeInfo(parameter.getProbeInfo());
+        buildWithJson.setProb(parameter.getProb());
         return buildWithJson;
     }
 
