@@ -17,10 +17,7 @@ import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.insidious.plugin.pojo.MethodCallExpression.in;
@@ -223,6 +220,7 @@ public class ObjectRoutineContainer {
 
         }
 
+        Map<String, Parameter> staticMocks = new HashMap<>();
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
             if (objectRoutine.getRoutineName().equals("<init>")) {
                 continue;
@@ -232,17 +230,12 @@ public class ObjectRoutineContainer {
                     objectRoutine.toObjectScript(classVariableContainer.clone(), generationConfiguration, testGenerationState);
             container.getObjectRoutines().add(objectScript);
 
-            List<Parameter> staticMocks = objectScript.getStaticMocks();
-            for (Parameter staticMock : staticMocks) {
-                container.addField(staticMock);
-                classVariableContainer.add(staticMock);
-                in(builderMethodScript)
-                        .assignVariable(staticMock)
-                        .writeExpression(
-                                MethodCallExpressionFactory.MockStaticClass(
-                                        ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType())))
-                        .endStatement();
-
+            List<Parameter> staticMockList = objectScript.getStaticMocks();
+            for (Parameter staticMock : staticMockList) {
+                if (!staticMocks.containsKey(staticMock.getType())) {
+                    staticMocks.put(staticMock.getType(), staticMock);
+                    classVariableContainer.add(staticMock);
+                }
             }
 
 
@@ -250,6 +243,23 @@ public class ObjectRoutineContainer {
                     objectRoutine.getTestCandidateList().size() - 1).getMainMethod()).getMethodName();
 
             container.setTestMethodName(testMethodName);
+        }
+
+        for (Parameter staticMock : staticMocks.values()) {
+            staticMock.setContainer(true);
+            Parameter childParameter = new Parameter();
+            childParameter.setType(staticMock.getType());
+            staticMock.setTypeForced("org.mockito.MockedStatic");
+            staticMock.getTemplateMap().put("E", childParameter);
+
+            container.addField(staticMock);
+
+            in(builderMethodScript)
+                    .assignVariable(staticMock)
+                    .writeExpression(
+                            MethodCallExpressionFactory.MockStaticClass(
+                                    ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType())))
+                    .endStatement();
         }
 
 

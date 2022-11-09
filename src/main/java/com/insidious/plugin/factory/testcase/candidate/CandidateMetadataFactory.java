@@ -165,13 +165,15 @@ public class CandidateMetadataFactory {
 
                     if (!mockedCalls.containsKey(mockedCallSignature)) {
                         if (!objectRoutineScript.getCreatedVariables().contains(staticCallSubjectMockInstance.getName())) {
-                            staticCallSubjectMockInstance.setContainer(true);
+                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(staticCallSubjectMockInstance);
+
+                            subjectStaticFieldMock.setContainer(true);
                             Parameter childParameter = new Parameter();
                             childParameter.setType(staticCallSubjectMockInstance.getType());
-                            staticCallSubjectMockInstance.setType("org.mockito.MockedStatic");
-                            staticCallSubjectMockInstance.getTemplateMap().put("E", childParameter);
+                            subjectStaticFieldMock.setType("org.mockito.MockedStatic");
+                            subjectStaticFieldMock.getTemplateMap().put("E", childParameter);
 
-                            objectRoutineScript.addStaticMock(staticCallSubjectMockInstance);
+                            objectRoutineScript.addStaticMock(subjectStaticFieldMock);
                         }
 
                         mockedCalls.put(mockedCallSignature, true);

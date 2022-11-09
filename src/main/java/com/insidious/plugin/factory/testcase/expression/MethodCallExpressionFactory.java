@@ -107,6 +107,7 @@ public class MethodCallExpressionFactory {
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic", MockitoClass, List.of(whenExpression), null, 0);
         mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
+        mockStatic.setStaticCall(true);
         return mockStatic;
 
     }

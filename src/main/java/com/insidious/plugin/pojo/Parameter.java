@@ -6,6 +6,8 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -233,10 +235,17 @@ public class Parameter {
         if (fieldType.contains("$")) {
             fieldType = fieldType.substring(0, fieldType.indexOf('$'));
         }
-        return FieldSpec.builder(
-                ClassName.bestGuess(fieldType),
+        TypeName fieldTypeName = ClassName.bestGuess(fieldType);
+        if (isContainer) {
+            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
+                    ClassName.bestGuess(getTemplateMap().get("E").getType()));
+        }
+
+        FieldSpec.Builder builder = FieldSpec.builder(
+                fieldTypeName,
                 getName(), Modifier.PRIVATE
         );
+        return builder;
     }
 
     public void setTemplateParameter(String e, Parameter nextValueParam) {
