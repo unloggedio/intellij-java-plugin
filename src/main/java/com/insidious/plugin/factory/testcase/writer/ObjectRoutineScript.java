@@ -80,12 +80,6 @@ public class ObjectRoutineScript {
         this.routineName = routineName;
     }
 
-    public void addParameterComment(Parameter parameter) {
-        addComment("Parameter [" + parameter.getName() + "] => " +
-                "Object:" + parameter.getValue() + " of type " + parameter.getType());
-
-    }
-
     public String getName() {
         return routineName;
     }

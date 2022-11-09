@@ -31,8 +31,8 @@ public class TestCaseWriter {
                 }
             } else if (parameter.isPrimitiveType()) {
                 parameterStringBuilder.append(parameter.getValue());
-            } else if (parameter.getName() != null) {
-                parameterStringBuilder.append(parameter.getName());
+            } else if (parameter.getNameForUse(null) != null) {
+                parameterStringBuilder.append(parameter.getNameForUse(null));
             } else {
                 Object parameterValue;
                 parameterValue = parameter.getValue();
@@ -77,8 +77,8 @@ public class TestCaseWriter {
                 compareAgainst = "";
             } else if (parameter.isPrimitiveType()) {
                 compareAgainst = parameter.getValue();
-            } else if (parameter.getName() != null) {
-                compareAgainst = parameter.getName();
+            } else if (parameter.getNameForUse(null) != null) {
+                compareAgainst = parameter.getNameForUse(null);
             } else {
                 compareAgainst = parameter.getValue();
                 if (parameter.isStringType()) {
@@ -142,8 +142,8 @@ public class TestCaseWriter {
 
             if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
                 parameterStringBuilder.append("any()");
-            } else if (parameter.getName() != null) {
-                parameterStringBuilder.append(parameter.getName());
+            } else if (parameter.getNameForUse(null) != null) {
+                parameterStringBuilder.append(parameter.getNameForUse(null));
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1 || parameter.getValue() == 1L) {
                     parameterStringBuilder.append("true");

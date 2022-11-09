@@ -95,7 +95,9 @@ public class CandidateMetadataFactory {
                     // this is potentially a bug, and the fix is inside scan implementation
                     continue;
                 }
-                if (e.getReturnValue().getType() == null || e.getReturnValue().getProb() == null) {
+                if (e.getReturnValue().getType() == null
+                        || e.getReturnValue().getType().equals("V")
+                        || e.getReturnValue().getProb() == null) {
                     // either the function has no return value (need not be mocked) or
                     // we failed to identify the return value in the scan, in that case this is a bug
                     continue;

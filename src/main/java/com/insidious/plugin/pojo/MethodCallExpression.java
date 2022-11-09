@@ -7,7 +7,6 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
@@ -176,7 +175,7 @@ public class MethodCallExpression implements Expression {
         }
 
 
-        String returnSubjectInstanceName = mainMethodReturnValue.getName();
+        String returnSubjectInstanceName = mainMethodReturnValue.getNameForUse(this.methodName);
 
 
         //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
@@ -254,7 +253,7 @@ public class MethodCallExpression implements Expression {
 
         String subjectName = "";
         if (subject != null) {
-            subjectName = getSubject().getName();
+            subjectName = getSubject().getNameForUse(null);
         }
         if (returnValue != null) {
 
@@ -276,7 +275,7 @@ public class MethodCallExpression implements Expression {
                     returnValue.setName(existingVariableById.getName());
                 }
             } else {
-                if (returnValue.getName() == null) {
+                if (returnValue.getNameForUse(methodName) == null) {
                     returnValue.setName(variableName);
                 }
             }
@@ -284,7 +283,7 @@ public class MethodCallExpression implements Expression {
 
             String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType()).simpleName();
             objectRoutine.addComment(
-                    returnValueType + " " + returnValue.getName()
+                    returnValueType + " " + returnValue.getNameForUse(getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");
         } else if (exception != null) {
             objectRoutine.addComment(
@@ -346,7 +345,14 @@ public class MethodCallExpression implements Expression {
         List<Parameter> argsContainer = getArguments();
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
-                if (argument.getName() != null) {
+                Parameter existingParameter = objectRoutine.getCreatedVariables().getParameterByValue(argument.getValue());
+                String nameForUse;
+                if (existingParameter != null && existingParameter.getName() != null) {
+                    nameForUse = argument.getNameForUse(existingParameter.getName());
+                } else {
+                    nameForUse = argument.getNameForUse(methodName);
+                }
+                if (nameForUse != null) {
                     if (argument.isPrimitiveType()) {
                         // boolean values to be used directly without their names
                         // since a lot of them conflict with each other
@@ -356,7 +362,10 @@ public class MethodCallExpression implements Expression {
                     if ((argument.getType().length() == 1 ||
                             argument.getType().startsWith("java.lang.")) && !argument.getType().contains(".Object")
                     ) {
-                        in(objectRoutine).assignVariable(argument).fromRecordedValue(testCaseGenerationConfiguration, testGenerationState).endStatement();
+                        in(objectRoutine)
+                                .assignVariable(argument)
+                                .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                                .endStatement();
                     }
                 }
             }

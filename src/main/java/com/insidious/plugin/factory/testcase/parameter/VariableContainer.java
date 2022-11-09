@@ -51,7 +51,7 @@ public class VariableContainer {
         if (byValue == null) {
             this.parameterList.add(parameter);
             if (parameter.getProb() != null) {
-                parameterMap.put(parameter.getProb().getValue(), parameter);
+                parameterMap.put(parameter.getValue(), parameter);
             }
         } else if (parameter.getProb() != null) {
 
@@ -80,7 +80,7 @@ public class VariableContainer {
                     // existing value matches new value
                 } else {
                     this.parameterList.add(parameter);
-                    parameterMap.put(parameter.getProb().getValue(), parameter);
+                    parameterMap.put(parameter.getValue(), parameter);
                 }
 
             }
@@ -113,23 +113,6 @@ public class VariableContainer {
                 .anyMatch(e ->
                         e.getName() != null && e.getName().equals(variableName)
                 );
-    }
-
-    public String createVariableName(String className) {
-        if (className.contains(".")) {
-            String[] classnamePart = className.split("\\.");
-            className = classnamePart[classnamePart.length - 1];
-        } else if (className.contains("/")) {
-            String[] classnamePart = className.split("/");
-            className = classnamePart[classnamePart.length - 1];
-        }
-        for (int i = 0; i < 100; i++) {
-            String variableName = lowerInstanceName(className) + "Instance" + i;
-            if (!contains(variableName)) {
-                return variableName;
-            }
-        }
-        throw new RuntimeException("could not generate name for the variable");
     }
 
     public Collection<String> getNames() {
@@ -173,5 +156,12 @@ public class VariableContainer {
             parameter = new Parameter(eventValue);
         }
         return parameter;
+    }
+
+    public void remove(Parameter existingParameter) {
+        Parameter byValue = parameterMap.get(existingParameter.getValue());
+        parameterMap.remove(byValue.getValue());
+        parameterList.remove(byValue);
+
     }
 }

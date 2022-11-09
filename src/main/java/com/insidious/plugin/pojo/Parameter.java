@@ -278,6 +278,9 @@ public class Parameter {
         }
         int matchedDistance = 99999;
         String matchedString = names.get(0);
+        if (methodName == null) {
+            methodName = matchedString;
+        }
         for (String name : names) {
             int distance = StringUtils.getLevenshteinDistance(name, methodName);
             if (distance < matchedDistance) {

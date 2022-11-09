@@ -53,7 +53,7 @@ public class PendingStatement {
             if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap().get("E") != null) {
 
                 statementBuilder.append("$L.$L($S, new $T<$T<$T>>(){}.getType())");
-                statementParameters.add(methodCallExpression.getSubject().getName());
+                statementParameters.add(methodCallExpression.getSubject().getNameForUse(null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
@@ -69,7 +69,7 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
-                statementParameters.add(methodCallExpression.getSubject().getName());
+                statementParameters.add(methodCallExpression.getSubject().getNameForUse(null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
@@ -121,16 +121,19 @@ public class PendingStatement {
 
             Parameter injectionTarget = variables.get(0);
             statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject().getType()));
-            if (injectionTarget.getName() != null) {
+            String targetNameForScript = injectionTarget.getName();
+            if (targetNameForScript != null) {
                 statementBuilder.append("$T.injectField($L, $S, $L)");
-                statementParameters.add(injectionTarget.getName());
+                statementParameters.add(targetNameForScript);
             } else if (injectionTarget.getType() != null) {
                 statementBuilder.append("$T.injectField($T.class, $S, $L)");
                 statementParameters.add(ClassName.bestGuess(injectionTarget.getType()));
             }
 
-            statementParameters.add(variables.get(1).getName());
-            statementParameters.add(variables.get(1).getName());
+            Parameter secondArgument = variables.get(1);
+            String secondArgumentNameForUse = secondArgument.getNameForUse(null);
+            statementParameters.add(secondArgumentNameForUse);
+            statementParameters.add(secondArgumentNameForUse);
 
         } else if (methodCallExpression.getMethodName().equals("thenThrow")
                 && methodCallExpression.getSubject() == null) {
@@ -206,7 +209,7 @@ public class PendingStatement {
 
         if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType().equals("V")) {
 
-            if (lhsExpression.getName() == null) {
+            if (lhsExpression.getNameForUse(null) == null) {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
@@ -217,7 +220,7 @@ public class PendingStatement {
 
 
                 @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
-                if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getName())) {
+                if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getNameForUse(null))) {
                     objectRoutine.getCreatedVariables().add(lhsExpression);
                     if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
                         statementBuilder.append("$T<$T>").append(" ");
@@ -230,10 +233,18 @@ public class PendingStatement {
                         statementParameters.add(lhsTypeName);
                     }
 
+                } else {
+                    Parameter existingParameter = objectRoutine
+                            .getCreatedVariables()
+                            .getParameterByName(lhsExpression.getNameForUse(null));
+                    if (existingParameter != lhsExpression) {
+                        objectRoutine.getCreatedVariables().remove(existingParameter);
+                        objectRoutine.getCreatedVariables().add(lhsExpression);
+                    }
                 }
                 statementBuilder.append("$L");
 
-                statementParameters.add(lhsExpression.getName());
+                statementParameters.add(lhsExpression.getNameForUse(null));
 
                 statementBuilder.append(" = ");
             }
@@ -308,7 +319,7 @@ public class PendingStatement {
 
         Parameter variableExistingParameter = objectRoutine
                 .getCreatedVariables()
-                .getParameterByName(lhsExpression.getName());
+                .getParameterByName(lhsExpression.getNameForUse(null));
 
         if (variableExistingParameter != null) {
 
