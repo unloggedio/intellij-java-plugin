@@ -10,11 +10,14 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeWillExpandListener;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TestCandidateCustomizeView {
 
@@ -56,7 +59,9 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setCellRenderer(cellRenderer);
 
         //removeDefaultSelectionListeners();
-        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel(candidateTree));
+        this.testCandidateTree.setToggleClickCount(0);
+        this.testCandidateTree.addTreeWillExpandListener(treeWillExpandListener);
+        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel(candidateTree,testGenerationConfiguration));
         setDefaultSelection();
 
         setDocumentationText();
@@ -91,57 +96,40 @@ public class TestCandidateCustomizeView {
     }
 
     private void printSelections() {
+        System.out.println("Selections - ");
         TreePath[] paths = this.testCandidateTree.getSelectionPaths();
         for (int i = 0; i < paths.length; i++) {
             System.out.println("Selection : " + i + " " + paths[i].toString());
         }
     }
 
-    private void setupGenerationConfiguration() {
-        TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-        LinkedList<TestCandidateMetadata> candidates = new LinkedList<TestCandidateMetadata>();
-        LinkedList<MethodCallExpression> calls = new LinkedList<MethodCallExpression>();
-        for (TreePath path : paths) {
-            //candidate metadata
-            if (path.getPathCount() == 2) {
-                TestCandidateMetadata candidate = (TestCandidateMetadata) path.getLastPathComponent();
-                candidates.add(candidate);
-            }
-            //method call
-            else if (path.getPathCount() == 3) {
-                MethodCallExpression call = (MethodCallExpression) path.getLastPathComponent();
-                calls.add(call);
-            }
-        }
-
-//        System.out.println("Comparing Candidates ");
-//        System.out.println("[Existing candidates: ] " + this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
-//        System.out.println("[New candidates: ] " + candidates.toString());
-//        if (this.testGenerationConfiguration.getTestCandidateMetadataList().equals(candidates)) {
-//            System.out.println("[]Candidates are equal");
-//        } else {
-//            System.out.println("[]Candidates are not equal");
-//        }
-
-//        System.out.println("Comparing Calls ");
-//        System.out.println("[Existing Calls: ] "+this.testGenerationConfiguration.getCallExpressionList().toString());
-//        System.out.println("[New calls: ] "+calls.toString());
-//        if (this.testGenerationConfiguration.getCallExpressionList().equals(calls)) {
-//            System.out.println("[]Calls are equal");
-//        } else {
-//            System.out.println("[]Calls are not equal");
-//        }
-
-        this.testGenerationConfiguration.setTestCandidateMetadataList(candidates);
-        this.testGenerationConfiguration.setCallExpressionList(calls);
-    }
-
     private void cancelAndBack() {
         testActionListener.cancel();
     }
 
+    private void printConfigDetails()
+    {
+        System.out.println("[Candidates length ]"+this.testGenerationConfiguration.getTestCandidateMetadataList().size());
+        System.out.println("[Config - Candidates] "+this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
+        System.out.println("[Calls length ]"+this.testGenerationConfiguration.getCallExpressionList().size());
+        System.out.println("[Config - Calls] "+this.testGenerationConfiguration.getCallExpressionList().toString());
+    }
+
+    private void sortCandidates()
+    {
+        TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
+        List<TestCandidateMetadata> refCandidates_order = new ArrayList<>();
+        refCandidates_order.addAll(model.getCandidateList());
+
+        List<TestCandidateMetadata> fallback= this.testGenerationConfiguration.getTestCandidateMetadataList();
+        refCandidates_order.removeIf(p -> !fallback.contains(p));
+//        System.out.println("[Sorted] "+refCandidates_order.toString());
+        this.testGenerationConfiguration.setTestCandidateMetadataList(refCandidates_order);
+    }
+
     private void generateWithSelectedOptions() {
-        setupGenerationConfiguration();
+        printConfigDetails();
+        sortCandidates();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {
@@ -182,5 +170,19 @@ public class TestCandidateCustomizeView {
             }
         });
     }
+
+    TreePath[] fallBackPaths = null;
+    TreeWillExpandListener treeWillExpandListener = new TreeWillExpandListener() {
+        public void treeWillCollapse(TreeExpansionEvent treeExpansionEvent) {
+            fallBackPaths = testCandidateTree.getSelectionPaths();
+        }
+
+        public void treeWillExpand(TreeExpansionEvent treeExpansionEvent) {
+            if(fallBackPaths!=null)
+            {
+                testCandidateTree.setSelectionPaths(fallBackPaths);
+            }
+        }
+    };
 }
 

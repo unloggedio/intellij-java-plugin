@@ -243,7 +243,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         insidiousService.ensureTestUtilClass();
         insidiousService.saveTestSuite(testSuite);
 
-        InsidiousNotification.notifyMessage("Testcase generated for "+testCaseUnit.getTestMethodName(), NotificationType.INFORMATION);
+        InsidiousNotification.notifyMessage("Testcase generated for "+testCaseUnit.getTestMethodName()+"()", NotificationType.INFORMATION);
 
 //        try {
 //            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {

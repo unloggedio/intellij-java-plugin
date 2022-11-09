@@ -37,14 +37,15 @@ public class TestCandidateTreeModel implements TreeModel {
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
                 selectedCandidate.getCallTimeNanoSecond(), mainMethod.getId(), false);
 
+
         for (TestCandidateMetadata candidate : candidates) {
             TestCandidateMetadata candidateWithCalls = getTestCandidateById(candidate.getEntryProbeIndex());
             candidateList.add(candidateWithCalls);
-            // add all candidates to default selected, or just first and last ?
-            testGenerationConfiguration.getTestCandidateMetadataList().add(candidateWithCalls);
-            // add all calls of all test candidate to be mocked
-            testGenerationConfiguration.getCallExpressionList().addAll(candidateWithCalls.getCallsList());
         }
+
+        // add all candidates to default selected, or just first and last ?
+        // adding only the first and last to sync with the tree
+        // Default selection now happens with ui default setup for checkbox tree
 
     }
 
@@ -122,6 +123,10 @@ public class TestCandidateTreeModel implements TreeModel {
     @Override
     public void removeTreeModelListener(TreeModelListener l) {
         this.treeModelListeners.remove(l);
+    }
+
+    public List<TestCandidateMetadata> getCandidateList() {
+        return candidateList;
     }
 
     public String getDocumentationText()
