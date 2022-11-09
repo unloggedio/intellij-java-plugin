@@ -127,7 +127,7 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     Parameter returnValue = methodCallExpression.getReturnValue();
-                    returnValue.getClosestName(methodCallExpression.getSubject().getType(),
+                    returnValue.getNameForUse(
                             methodCallExpression.getMethodName());
 
                     if (returnValue.isPrimitiveType()) {
@@ -170,7 +170,7 @@ public class CandidateMetadataFactory {
                         objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
 
                         Parameter returnValue = methodCallExpression.getReturnValue();
-                        returnValue.getClosestName(methodCallExpression.getSubject().getType(),
+                        returnValue.getNameForUse(
                                 methodCallExpression.getMethodName());
 
                         if (returnValue.isPrimitiveType()) {

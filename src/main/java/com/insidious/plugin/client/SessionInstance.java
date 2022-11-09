@@ -215,7 +215,7 @@ public class SessionInstance {
         probeInfoMap = new HashMap<>();
         methodInfoMap = new HashMap<>();
 
-        Map<String, Long> existingTypeInformation = daoService.getTypesMap();
+//        Map<String, Long> existingTypeInformation = daoService.getTypesMap();
 
         checkProgressIndicator(null, "Loading " + classWeaveInfo.classCount() + " class information");
         classWeaveInfo.classInfo().forEach(classInfo -> {
@@ -224,33 +224,33 @@ public class SessionInstance {
 //            ClassInfo classInfo = KaitaiUtils.toClassInfo(e);
 //            classInfoMap.put(e.classId(), classInfo);
 
-            if (!existingTypeInformation.containsKey(classInfo.className().value())) {
-                com.insidious.plugin.pojo.dao.TypeInfo typeInfoForDb = new com.insidious.plugin.pojo.dao.TypeInfo();
-                typeInfoForDb.setId(classInfo.classId());
-                typeInfoForDb.setContainer(classInfo.container().value());
-
-                ArrayList<KaitaiInsidiousClassWeaveParser.StrWithLen> interfaceClasses = classInfo.interfaceNames();
-                List<String> interfaceIds = new ArrayList<>(classInfo.interfaceNames().size());
-                for (KaitaiInsidiousClassWeaveParser.StrWithLen interfaceName : classInfo.interfaceNames()) {
-                    interfaceIds.add(interfaceName.value());
-                }
-
-                typeInfoForDb.setInterfaces(Strings.join(interfaceIds, ","));
-                typeInfoForDb.setFileName(classInfo.fileName().value());
-                typeInfoForDb.setSignature(classInfo.signature().value());
-                if (existingTypeInformation.containsKey(classInfo.superclass().value())) {
-                    typeInfoForDb.setSuperClass(existingTypeInformation.get(classInfo.superclass().value()));
-                }
-                typeInfoForDb.setClassLoaderIdentifier(classInfo.classLoaderIdentifier().value());
-                typeInfoForDb.setName(classInfo.className().value());
-                try {
-                    daoService.createType(typeInfoForDb);
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
-                }
-                existingTypeInformation.put(classInfo.className().value(), classInfo.classId());
-            }
+//            if (!existingTypeInformation.containsKey(classInfo.className().value())) {
+//                com.insidious.plugin.pojo.dao.TypeInfo typeInfoForDb = new com.insidious.plugin.pojo.dao.TypeInfo();
+//                typeInfoForDb.setId(classInfo.classId());
+//                typeInfoForDb.setContainer(classInfo.container().value());
+//
+//                ArrayList<KaitaiInsidiousClassWeaveParser.StrWithLen> interfaceClasses = classInfo.interfaceNames();
+//                List<String> interfaceIds = new ArrayList<>(classInfo.interfaceNames().size());
+//                for (KaitaiInsidiousClassWeaveParser.StrWithLen interfaceName : classInfo.interfaceNames()) {
+//                    interfaceIds.add(interfaceName.value());
+//                }
+//
+//                typeInfoForDb.setInterfaces(Strings.join(interfaceIds, ","));
+//                typeInfoForDb.setFileName(classInfo.fileName().value());
+//                typeInfoForDb.setSignature(classInfo.signature().value());
+//                if (existingTypeInformation.containsKey(classInfo.superclass().value())) {
+//                    typeInfoForDb.setSuperClass(existingTypeInformation.get(classInfo.superclass().value()));
+//                }
+//                typeInfoForDb.setClassLoaderIdentifier(classInfo.classLoaderIdentifier().value());
+//                typeInfoForDb.setName(classInfo.className().value());
+//                try {
+//                    daoService.createType(typeInfoForDb);
+//                } catch (SQLException e) {
+//                    e.printStackTrace();
+//                    throw new RuntimeException(e);
+//                }
+//                existingTypeInformation.put(classInfo.className().value(), classInfo.classId());
+//            }
 
             checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
 

@@ -39,12 +39,23 @@ public class Parameter {
     private MethodCallExpression creatorExpression;
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
+    private String nameUsed;
 
     public Parameter(Long value) {
         this.value = value;
     }
 
     public Parameter() {
+    }
+
+    @NotNull
+    public static Parameter cloneParameter(Parameter parameter) {
+        Parameter buildWithJson = new Parameter();
+        buildWithJson.setName(parameter.getName());
+        buildWithJson.setTemplateMap(parameter.getTemplateMap());
+        buildWithJson.setType(parameter.getType());
+        buildWithJson.setContainer(parameter.isContainer());
+        return buildWithJson;
     }
 
     public boolean getException() {
@@ -169,6 +180,14 @@ public class Parameter {
         return dataInfo;
     }
 
+//    public ConstructorType getConstructorType() {
+//        return constructorType;
+//    }
+//
+//    public void setConstructorType(ConstructorType constructorType) {
+//        this.constructorType = constructorType;
+//    }
+
     public void setProbeInfo(DataInfo probeInfo) {
         if (this.dataInfo == null
                 || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
@@ -181,14 +200,6 @@ public class Parameter {
         }
 
     }
-
-//    public ConstructorType getConstructorType() {
-//        return constructorType;
-//    }
-//
-//    public void setConstructorType(ConstructorType constructorType) {
-//        this.constructorType = constructorType;
-//    }
 
     public MethodCallExpression getCreatorExpression() {
         return creatorExpression;
@@ -240,6 +251,9 @@ public class Parameter {
     }
 
     public boolean hasName(String name) {
+        if (nameUsed != null) {
+            return nameUsed.equals(name);
+        }
         if (name == null || this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
             return true;
         }
@@ -250,7 +264,10 @@ public class Parameter {
         return names;
     }
 
-    public String getClosestName(String type, String methodName) {
+    public String getNameForUse(String methodName) {
+        if (nameUsed != null) {
+            return nameUsed;
+        }
         if (names.size() < 1) {
             return null;
         }
@@ -270,6 +287,8 @@ public class Parameter {
             names.remove(matchedString);
             names.add(0, matchedString);
         }
+
+        nameUsed = matchedString;
 
         return matchedString;
     }
@@ -297,16 +316,6 @@ public class Parameter {
                         || type.startsWith("java.lang.Void")
                         || type.startsWith("java.lang.Byte")
                 );
-    }
-
-    @NotNull
-    public static Parameter cloneParameter(Parameter parameter) {
-        Parameter buildWithJson = new Parameter();
-        buildWithJson.setName(parameter.getName());
-        buildWithJson.setTemplateMap(parameter.getTemplateMap());
-        buildWithJson.setType(parameter.getType());
-        buildWithJson.setContainer(parameter.isContainer());
-        return buildWithJson;
     }
 
 }
