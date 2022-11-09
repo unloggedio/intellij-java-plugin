@@ -12,7 +12,7 @@ public class InsidiousNotification {
 
     public static void notifyMessage(String message, NotificationType notificationType) {
         Notifications.Bus.notify(
-                new Notification(InsidiousNotification.DISPLAY_ID, "VideoBug", message, notificationType)
+                new Notification(InsidiousNotification.DISPLAY_ID, "Unlogged", message, notificationType)
         );
     }
 
