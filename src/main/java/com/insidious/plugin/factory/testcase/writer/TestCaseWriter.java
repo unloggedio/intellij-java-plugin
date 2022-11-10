@@ -111,7 +111,7 @@ public class TestCaseWriter {
 
                 parameterStringBuilder.append("eq(" + compareAgainst + ")");
             } else {
-                parameterStringBuilder.append("any()");
+                parameterStringBuilder.append("any(" + parameterType + ".class)");
             }
 
 

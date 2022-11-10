@@ -72,9 +72,10 @@ public class MethodCallExpressionFactory {
         if (isStatic) {
             callSubject = mainSubject;
         }
-        return MethodCallExpression("when", callSubject,
+        MethodCallExpression callExpression = MethodCallExpression("when", callSubject,
                 VariableContainer.from(List.of(whenExpression)), null
         );
+        return callExpression;
 
     }
 

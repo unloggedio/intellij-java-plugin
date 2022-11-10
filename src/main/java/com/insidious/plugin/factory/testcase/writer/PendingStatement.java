@@ -13,17 +13,19 @@ import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PendingStatement {
     public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
     public static final ClassName LIST_CLASS = ClassName.bestGuess("java.util.List");
+    private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new LinkedList<>();
     private Parameter lhsExpression;
@@ -166,6 +168,43 @@ public class PendingStatement {
                 statementBuilder.append("$L(").append(parameterString).append(")");
                 statementParameters.add(methodCallExpression.getMethodName());
             }
+        } else if (methodCallExpression.getMethodName().equals("when")) {
+            // we need to disect the parameters inside the any() parameters and add them as proper class references
+            // subject.methodName(any(com.package.AClass.class), any(ano.ther.package.BClass.class))
+
+            Matcher matcher = anyRegexPicker.matcher(parameterString);
+            List<Object> trailingParameters = new LinkedList<>();
+            while (matcher.find()) {
+                String matchedString = matcher.group();
+                String className = matcher.group(1);
+                ClassName classNameType = ClassName.bestGuess(className.split("\\.class")[0]);
+                int matchedStartIndex = parameterString.indexOf(matchedString);
+                parameterString = parameterString.substring(0, matchedStartIndex) + "any($T.class)" +
+                        parameterString.substring(matchedStartIndex + matchedString.length());
+//                parameterString = parameterString.replaceFirst(matchedString, "$T.class");
+                trailingParameters.add(classNameType);
+            }
+            Parameter callExpressionSubject = methodCallExpression.getSubject();
+            if (callExpressionSubject != null) {
+
+                if (methodCallExpression.isStaticCall()) {
+                    statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(methodCallExpression.getMethodName());
+                } else {
+                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(methodCallExpression.getMethodName());
+
+                }
+            } else {
+                if (i > 0) {
+                    statementBuilder.append(".");
+                }
+                statementBuilder.append("$L(").append(parameterString).append(")");
+                statementParameters.add(methodCallExpression.getMethodName());
+            }
+            statementParameters.addAll(trailingParameters);
         } else {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
