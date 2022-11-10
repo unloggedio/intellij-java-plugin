@@ -30,7 +30,14 @@ public class TestCaseWriter {
                     parameterStringBuilder.append("false");
                 }
             } else if (parameter.isPrimitiveType()) {
-                parameterStringBuilder.append(parameter.getValue());
+                if (parameter.getProb() != null &&
+                        parameter.getType().startsWith("java.lang") &&
+                        parameter.getProb().getSerializedValue().length > 0) {
+                    String serializedValue = new String(parameter.getProb().getSerializedValue());
+                    parameterStringBuilder.append(serializedValue);
+                } else {
+                    parameterStringBuilder.append(parameter.getValue());
+                }
             } else if (parameter.getNameForUse(null) != null) {
                 parameterStringBuilder.append(parameter.getNameForUse(null));
             } else {

@@ -267,7 +267,7 @@ public class SessionInstance {
 
         });
         classWeaveInfo._io().close();
-//        classWeaveInfo = null;
+        classWeaveInfo = null;
 
 
         sessionFiles.removeAll(filesToRemove);

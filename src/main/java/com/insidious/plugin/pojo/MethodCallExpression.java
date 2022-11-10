@@ -339,7 +339,9 @@ public class MethodCallExpression implements Expression {
 
         // we don't want to write a mock call if the return value is null
         // since mocked classes return null by default and this mocking just adds noise to the generated test case
-        if (returnValue.getProb() != null) {
+        // but if the return value was a boxed primitive (like Integer), then the mock return 0 by default instead of null
+        // so we need to add an explicit call to return null for them and not return early here
+        if (returnValue.getProb() != null && !returnValue.isPrimitiveType()) {
             if (new String(returnValue.getProb().getSerializedValue()).equals("null")) {
                 return;
             }
