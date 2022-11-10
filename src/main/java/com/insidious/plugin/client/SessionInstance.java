@@ -236,7 +236,7 @@ public class SessionInstance {
         AtomicInteger counter = new AtomicInteger(0);
         final long totalClassCount = classWeaveInfo.classCount();
         classWeaveInfo.classInfo().forEach(classInfo -> {
-            logger.warn("Reading class info: " + classInfo.classId());
+//            logger.warn("Reading class info: " + classInfo.classId());
 //            checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
             int current = counter.addAndGet(1);
             checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
