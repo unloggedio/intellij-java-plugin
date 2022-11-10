@@ -670,11 +670,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getMethods(String sessionId, Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
-
-    }
-
-    @Override
     public void getObjectsByType(SearchQuery searchQuery, String sessionId, ClientCallBack<ObjectWithTypeInfo> clientCallBack) {
 
     }

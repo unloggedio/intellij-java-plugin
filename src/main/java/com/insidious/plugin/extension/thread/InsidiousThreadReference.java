@@ -613,7 +613,8 @@ public class InsidiousThreadReference implements ThreadReference {
 
             Long classId = classInfoEntry.getKey();
             ClassInfo classInfo = classInfoEntry.getValue();
-            List<DataInfo> probes = classInfo.getDataInfoList();
+            // note for future reader: we are breaking this to make the classInfo class serializable (maybe)
+            List<DataInfo> probes = List.of(); // classInfo.getDataInfoList();
             if (probes == null) {
                 continue;
             }

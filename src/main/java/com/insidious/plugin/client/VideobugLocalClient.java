@@ -6,7 +6,6 @@ import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataResponse;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
@@ -290,13 +289,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 //            }
 //        }, 5, 5, TimeUnit.SECONDS);
 //    }
-
-    @Override
-    public void getMethods(String sessionId,
-                           Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
-        checkSession(sessionId);
-        this.sessionInstance.getMethods(typeId, tracePointsCallback);
-    }
 
     /**
      * find all unique objects of given class types

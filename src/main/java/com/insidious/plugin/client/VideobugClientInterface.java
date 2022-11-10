@@ -89,10 +89,6 @@ public interface VideobugClientInterface {
 
 //    void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
 
-
-    void getMethods(String sessionId, Integer typeId,
-                    ClientCallBack<TestCandidate> tracePointsCallback);
-
     void getObjectsByType(SearchQuery searchQuery, String sessionId,
                           ClientCallBack<ObjectWithTypeInfo> clientCallBack);
 

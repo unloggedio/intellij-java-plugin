@@ -2,11 +2,8 @@ package com.insidious.plugin.client;
 
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
-import com.googlecode.cqengine.index.offheap.OffHeapIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
-import com.googlecode.cqengine.persistence.composite.CompositePersistence;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
-import com.googlecode.cqengine.persistence.offheap.OffHeapPersistence;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
 import com.insidious.common.FilteredDataEventsRequest;
@@ -22,7 +19,10 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.cache.ArchiveIndex;
 import com.insidious.plugin.client.exception.ClassInfoNotFoundException;
-import com.insidious.plugin.client.pojo.*;
+import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.client.pojo.ExecutionSession;
+import com.insidious.plugin.client.pojo.NameWithBytes;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -41,6 +41,8 @@ import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import io.kaitai.struct.ByteBufferKaitaiStream;
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -64,7 +66,8 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.googlecode.cqengine.query.QueryFactory.*;
+import static com.googlecode.cqengine.query.QueryFactory.in;
+import static com.googlecode.cqengine.query.QueryFactory.startsWith;
 import static com.insidious.common.weaver.EventType.GET_INSTANCE_FIELD_RESULT;
 import static com.insidious.common.weaver.EventType.PUT_INSTANCE_FIELD_VALUE;
 import static com.insidious.plugin.client.DatFileType.*;
@@ -81,15 +84,15 @@ public class SessionInstance {
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
-    private KaitaiInsidiousClassWeaveParser classWeaveInfo;
+    //    private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex archiveIndex;
     //    private Map<Long, DataInfo> probeInfoMap;
 //    private Map<Long, ClassInfo> classInfoMap;
     //    private Map<Long, MethodInfo> methodInfoMap;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
-    private ConcurrentIndexedCollection<DataInfo> probeInfoIndex;
-    private ConcurrentIndexedCollection<MethodInfo> methodInfoIndex;
-    private ConcurrentIndexedCollection<ClassInfo> classInfoIndex;
+    private ChronicleMap<Integer, DataInfo> probeInfoIndex;
+    private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
+    private ChronicleMap<Integer, ClassInfo> classInfoIndex;
 
     public SessionInstance(ExecutionSession executionSession) throws SQLException, IOException {
         this.sessionDirectory = Path.of(executionSession.getPath()).toFile();
@@ -195,7 +198,9 @@ public class SessionInstance {
         logger.info("found [" + sessionFiles.size() + "] session archives");
 
         List<File> filesToRemove = new LinkedList<>();
-        for (int i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
+        int i;
+        KaitaiInsidiousClassWeaveParser classWeaveInfo = null;
+        for (i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
             classWeaveInfo = readClassWeaveInfo(sessionFiles.get(i));
 
             NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i), INDEX_TYPE_DAT_FILE.getFileName());
@@ -223,38 +228,43 @@ public class SessionInstance {
 
 //        Map<String, Long> existingTypeInformation = daoService.getTypesMap();
 
-        checkProgressIndicator(null, "Loading " + classWeaveInfo.classCount() + " class information");
+        if (classWeaveInfo == null) {
+            throw new RuntimeException("Class weave information not found in the session");
+        }
 
-        classWeaveInfo.classInfo().parallelStream().forEach(classInfo -> {
+
+        AtomicInteger counter = new AtomicInteger(0);
+        final long totalClassCount = classWeaveInfo.classCount();
+        classWeaveInfo.classInfo().forEach(classInfo -> {
             logger.warn("Reading class info: " + classInfo.classId());
-            checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
+//            checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
+            int current = counter.addAndGet(1);
+            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
 
-            ResultSet<ClassInfo> classResult = classInfoIndex.retrieve(equal(ClassInfo.CLASS_ID, (int) classInfo.classId()));
-            int resultSize = classResult.size();
-            classResult.close();
-            if (resultSize > 0) {
+            ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
+            if (existingClassInfo != null) {
                 return;
             }
 
             ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
-            classInfoIndex.add(classInfo1);
+            classInfoIndex.put(classInfo1.getClassId(), classInfo1);
 
 
             final String className = classInfo.className().value();
 
-            List<MethodInfo> methodInfoList = classInfo
+            Map<Integer, MethodInfo> methodInfoMap = classInfo
                     .methodList()
                     .stream()
                     .map(methodInfo -> KaitaiUtils.toMethodInfo(methodInfo, className))
-                    .toList();
-            methodInfoIndex.addAll(methodInfoList);
+                    .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
+            methodInfoIndex.putAll(methodInfoMap);
 
-            List<DataInfo> probes = classInfo
+            Map<Integer, DataInfo> probesMap = classInfo
                     .probeList()
                     .stream()
                     .map(KaitaiUtils::toDataInfo)
-                    .toList();
-            probeInfoIndex.addAll(probes);
+                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
+            probeInfoIndex.putAll(probesMap);
         });
         classWeaveInfo._io().close();
         classWeaveInfo = null;
@@ -265,67 +275,90 @@ public class SessionInstance {
         return sessionFiles;
     }
 
-    private void createObjectInfoIndex() {
-        File objectIndexFile = Path.of(executionSession.getPath(), "object_index.dat").toFile();
-        DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence =
-                DiskPersistence.onPrimaryKeyInFile(ObjectInfoDocument.OBJECT_ID, objectIndexFile);
-
-        objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
-        objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
-    }
-
-    private ConcurrentIndexedCollection<DataInfo> createProbeInfoIndex() {
-        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
-
-        CompositePersistence<DataInfo, Integer> persistence = CompositePersistence.of(
-                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile),
-                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
-        );
-
-        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
-
-        ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-//        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
-        return probeInfoIndex1;
-    }
+    private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() {
 
 
-    private ConcurrentIndexedCollection<MethodInfo> createMethodInfoIndex() {
-        File objectIndexFile = Path.of(executionSession.getPath(), "method_index.dat").toFile();
+        ChronicleMapBuilder<Integer, DataInfo> probeInfoMapBuilder =
+                ChronicleMapBuilder.of(Integer.class, DataInfo.class)
+                        .name("probe-info-map")
+                        .averageValue(new DataInfo())
+                        .entries(1_000_000);
+        return probeInfoMapBuilder.create();
 
-        CompositePersistence<MethodInfo, Integer> persistence = CompositePersistence.of(
-                DiskPersistence.onPrimaryKeyInFile(MethodInfo.METHOD_ID, objectIndexFile),
-                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID)
-        );
-
-        OffHeapPersistence<MethodInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID);
-
-        ConcurrentIndexedCollection<MethodInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-//        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(MethodInfo.METHOD_ID));
-        return probeInfoIndex1;
+//
+//        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
+//
+//        CompositePersistence<DataInfo, Integer> persistence = CompositePersistence.of(
+//                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile),
+//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
+//        );
+//
+//        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
+//
+//        ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
+//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
+//        return probeInfoIndex1;
     }
 
 
-    private ConcurrentIndexedCollection<ClassInfo> createClassInfoIndex() {
-        File objectIndexFile = Path.of(executionSession.getPath(), "class_index.dat").toFile();
+    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() {
 
-        CompositePersistence<ClassInfo, Integer> persistence = CompositePersistence.of(
-                DiskPersistence.onPrimaryKeyInFile(ClassInfo.CLASS_ID, objectIndexFile),
-                OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID)
-        );
+        ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder =
+                ChronicleMapBuilder.of(Integer.class, MethodInfo.class)
+                        .name("method-info-map")
+                        .averageValue(new MethodInfo(1, 2, "class-name",
+                                "method-name", "methoddesc", 5, "source-file-name",
+                                "method-hash"))
+                        .entries(100_000);
+        return probeInfoMapBuilder.create();
 
-        DiskPersistence<ClassInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-                DiskPersistence.onPrimaryKeyInFile(ClassInfo.CLASS_ID, objectIndexFile);
 
-        ConcurrentIndexedCollection<ClassInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-//        probeInfoIndex1.addIndex(NavigableIndex.onAttribute(DataInfo.PROBE_ID));
-        return probeInfoIndex1;
+//        File objectIndexFile = Path.of(executionSession.getPath(), "method_index.dat").toFile();
+//
+//        CompositePersistence<MethodInfo, Integer> persistence = CompositePersistence.of(
+//                DiskPersistence.onPrimaryKeyInFile(MethodInfo.METHOD_ID, objectIndexFile),
+//                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID)
+//        );
+//
+//        OffHeapPersistence<MethodInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+//                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID);
+//
+//        ConcurrentIndexedCollection<MethodInfo> probeInfoIndex1 =
+//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(MethodInfo.METHOD_ID));
+//        return probeInfoIndex1;
+    }
+
+
+    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() {
+
+        ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder =
+                ChronicleMapBuilder.of(Integer.class, ClassInfo.class)
+                        .name("method-info-map")
+                        .averageValue(
+                                new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal,
+                                        "hashvalue", "class-loader-identifier", new String[]{"classinterface-1"},
+                                        "super-class-name", "signaure")
+                        )
+                        .entries(100_000);
+        return probeInfoMapBuilder.create();
+
+//        File objectIndexFile = Path.of(executionSession.getPath(), "class_index.dat").toFile();
+//
+//        CompositePersistence<ClassInfo, Integer> persistence = CompositePersistence.of(
+//                DiskPersistence.onPrimaryKeyInFile(ClassInfo.CLASS_ID, objectIndexFile),
+//                OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID)
+//        );
+//
+//        OffHeapPersistence<ClassInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+//                OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID);
+//
+//        ConcurrentIndexedCollection<ClassInfo> probeInfoIndex1 =
+//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+////        probeInfoIndex1.addIndex(NavigableIndex.onAttribute(DataInfo.PROBE_ID));
+//        return probeInfoIndex1;
     }
 
 
@@ -514,12 +547,13 @@ public class SessionInstance {
 
     private List<DataInfo> getProbeInfo(Set<Long> dataId) throws IOException {
 
+        throw new RuntimeException("who is using this");
 
-        return classWeaveInfo.classInfo().stream()
-                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
-                .flatMap(Collection::stream)
-                .filter(e -> dataId.contains(e.dataId()))
-                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
+//        return classWeaveInfo.classInfo().stream()
+//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+//                .flatMap(Collection::stream)
+//                .filter(e -> dataId.contains(e.dataId()))
+//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
 
     }
 
@@ -543,11 +577,11 @@ public class SessionInstance {
 
     private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
 
-        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
-            if (classInfo.classId() == classId) {
-                return classInfo;
-            }
-        }
+//        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
+//            if (classInfo.classId() == classId) {
+//                return classInfo;
+//            }
+//        }
         throw new ClassInfoNotFoundException(classId);
     }
 
@@ -763,14 +797,15 @@ public class SessionInstance {
 
     private List<DataInfo> queryProbeFromFileByEventType(File sessionFile,
                                                          Collection<EventType> eventTypes) {
-        return classWeaveInfo.classInfo().stream()
-                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
-                .flatMap(Collection::stream)
-                .filter(e -> eventTypes.size() == 0 ||
-                        // dont check contains if the list is empty
-                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
-                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
+//        return classWeaveInfo.classInfo().stream()
+//                .map(KaitaiInsidiousClassWeaveParser.ClassInfo::probeList)
+//                .flatMap(Collection::stream)
+//                .filter(e -> eventTypes.size() == 0 ||
+//                        // dont check contains if the list is empty
+//                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
+//                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
 
+        return List.of();
 
     }
 
@@ -1183,18 +1218,18 @@ public class SessionInstance {
 
         checkProgressIndicator(null, "Loading class mappings for data events");
 
-        classWeaveInfo.classInfo().forEach(e -> {
-
-            checkProgressIndicator(null, "Loading class: " + e.className());
-
-            classInfo.put(e.classId(), KaitaiUtils.toClassInfo(e));
-
-            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
-
-            e.probeList().forEach(r -> {
-                dataInfo.put(r.dataId(), KaitaiUtils.toDataInfo(r));
-            });
-        });
+//        classWeaveInfo.classInfo().forEach(e -> {
+//
+//            checkProgressIndicator(null, "Loading class: " + e.className());
+//
+//            classInfo.put(e.classId(), KaitaiUtils.toClassInfo(e));
+//
+//            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
+//
+//            e.probeList().forEach(r -> {
+//                dataInfo.put(r.dataId(), KaitaiUtils.toDataInfo(r));
+//            });
+//        });
 
         Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
         Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
@@ -1269,31 +1304,31 @@ public class SessionInstance {
 
     public void getMethods(Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
 
-        if (classWeaveInfo == null) {
-            ExceptionResponse errorResponse = new ExceptionResponse();
-            errorResponse.setMessage("session not found [" + executionSession.getSessionId() + "]");
-            tracePointsCallback.error(errorResponse);
-            return;
-        }
-        classWeaveInfo
-                .classInfo()
-                .forEach(classInfo -> {
-
-                    if (classInfo.classId() != typeId) {
-                        return;
-                    }
-                    ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
-                    tracePointsCallback.success(
-                            classInfo.methodList()
-                                    .stream().map(e -> KaitaiUtils.toMethodInfo(e,
-                                            classInfo.className().value()))
-                                    .map(methodInfo ->
-                                            new TestCandidate(methodInfo,
-                                                    classInfoContainer,
-                                                    0, null))
-                                    .collect(Collectors.toSet()));
-                });
-        tracePointsCallback.completed();
+//        if (classWeaveInfo == null) {
+//            ExceptionResponse errorResponse = new ExceptionResponse();
+//            errorResponse.setMessage("session not found [" + executionSession.getSessionId() + "]");
+//            tracePointsCallback.error(errorResponse);
+//            return;
+//        }
+//        classWeaveInfo
+//                .classInfo()
+//                .forEach(classInfo -> {
+//
+//                    if (classInfo.classId() != typeId) {
+//                        return;
+//                    }
+//                    ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
+//                    tracePointsCallback.success(
+//                            classInfo.methodList()
+//                                    .stream().map(e -> KaitaiUtils.toMethodInfo(e,
+//                                            classInfo.className().value()))
+//                                    .map(methodInfo ->
+//                                            new TestCandidate(methodInfo,
+//                                                    classInfoContainer,
+//                                                    0, null))
+//                                    .collect(Collectors.toSet()));
+//                });
+//        tracePointsCallback.completed();
     }
 
     public void
@@ -1434,25 +1469,25 @@ public class SessionInstance {
         List<DataInfo> dataInfoList = new LinkedList<>();
 
 
-        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
-            i += 1;
-            checkProgressIndicator(null,
-                    "Parsing class [ " + i + " of " + classInfoList.size() + " ]");
-            ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
-            classInfoList.add(classInfoContainer);
-
-            classInfo.methodList()
-                    .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
-                            classInfo.className().value()))
-                    .forEach(methodInfoList::add);
-
-            classInfo.probeList()
-                    .stream()
-                    .filter(e -> !Objects.equals(e.eventType().name(), EventType.RESERVED.toString()))
-                    .map(KaitaiUtils::toDataInfo)
-                    .forEach(dataInfoList::add);
-
-        }
+//        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
+//            i += 1;
+//            checkProgressIndicator(null,
+//                    "Parsing class [ " + i + " of " + classInfoList.size() + " ]");
+//            ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
+//            classInfoList.add(classInfoContainer);
+//
+//            classInfo.methodList()
+//                    .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
+//                            classInfo.className().value()))
+//                    .forEach(methodInfoList::add);
+//
+//            classInfo.probeList()
+//                    .stream()
+//                    .filter(e -> !Objects.equals(e.eventType().name(), EventType.RESERVED.toString()))
+//                    .map(KaitaiUtils::toDataInfo)
+//                    .forEach(dataInfoList::add);
+//
+//        }
 
         return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
     }
@@ -1932,6 +1967,8 @@ public class SessionInstance {
 
         Map<String, Boolean> objectIndexRead = new HashMap<>();
 
+        int currentFile = 0;
+        int totalFileCount = 0;
         while (threadsPending.size() > 0) {
 
             List<MethodCallExpression> callStack = new LinkedList<>();
@@ -1971,6 +2008,7 @@ public class SessionInstance {
                 if (archiveFiles.size() == 0) {
                     archiveFiles = listArchiveFiles(sessionArchive);
                 }
+                totalFileCount += archiveFiles.size();
 
                 if (archiveFiles.size() == 0) {
                     archiveFile.setStatus(COMPLETED);
@@ -1992,15 +2030,16 @@ public class SessionInstance {
 
                 boolean processedAllFiles = true;
                 DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService, archiveIndex);
-                checkProgressIndicator("Processing thread " +
-                        (threadsProcessed.size() + 1) + " / " + (1 + threadsPending.size() + threadsProcessed.size()), null);
-
                 for (String logFile : archiveFiles) {
-                    checkProgressIndicator(null, "Reading events from  " + logFile);
+
 
                     if (!logFile.endsWith(".selog")) {
                         continue;
                     }
+
+                    currentFile++;
+                    checkProgressIndicator(null, "Processing file " + currentFile + " / " + totalFileCount);
+
 
                     LogFile logFileEntry = logFileMap.get(logFile);
                     if (logFileEntry != null && logFileEntry.getStatus().equals(COMPLETED)) {
@@ -2038,10 +2077,7 @@ public class SessionInstance {
                         final long eventValue = eventBlock.valueId();
 
 //                        DataInfo probeInfo = probeInfoMap.get(eventBlock.probeId());
-                        ResultSet<DataInfo> result = probeInfoIndex.retrieve(equal(DataInfo.PROBE_ID, (int) eventBlock.probeId()));
-                        DataInfo probeInfo = result.iterator().next();
-                        result.close();
-
+                        DataInfo probeInfo = probeInfoIndex.get((int) eventBlock.probeId());
                         Parameter existingParameter = null;
                         boolean saveProbe = false;
                         MethodCallExpression exceptionCallExpression;
@@ -2331,9 +2367,9 @@ public class SessionInstance {
                             case METHOD_ENTRY:
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
 
-                                ResultSet<MethodInfo> methodInfoResult = methodInfoIndex.retrieve(equal(MethodInfo.METHOD_ID, probeInfo.getMethodId()));
-                                MethodInfo methodInfo = methodInfoResult.iterator().next();
-                                methodInfoResult.close();
+                                MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
+//                                MethodInfo methodInfo = methodInfoResult.iterator().next();
+//                                methodInfoResult.close();
 
 //                                MethodInfo methodInfo = methodInfoMap.get((long) probeInfo.getMethodId());
 //                                if (methodInfo.getMethodName().equals("getAllDoctors")) {
@@ -2894,22 +2930,23 @@ public class SessionInstance {
         executorPool.shutdownNow();
         daoService.close();
 
+        classInfoIndex.close();
+        probeInfoIndex.close();
+        methodInfoIndex.close();
+
         archiveIndex = null;
-        if (classWeaveInfo != null && classWeaveInfo._io() != null) {
-            classWeaveInfo._io().close();
-        }
     }
 
     class DatabasePipe implements Runnable {
 
         private final LinkedTransferQueue<Parameter> parameterQueue;
+        private final ArrayBlockingQueue<Boolean> isSaving = new ArrayBlockingQueue<>(1);
+        private final List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
+        private final List<DataInfo> dataInfoList = new LinkedList<>();
+        private final List<MethodCallExpression> methodCallToSave = new LinkedList<>();
+        private final List<MethodCallExpression> methodCallToUpdate = new LinkedList<>();
+        private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
         private boolean stop = false;
-        private ArrayBlockingQueue<Boolean> isSaving = new ArrayBlockingQueue<>(1);
-        private List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
-        private List<DataInfo> dataInfoList = new LinkedList<>();
-        private List<MethodCallExpression> methodCallToSave = new LinkedList<>();
-        private List<MethodCallExpression> methodCallToUpdate = new LinkedList<>();
-        private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
 
         public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue) {
             this.parameterQueue = parameterQueue;
