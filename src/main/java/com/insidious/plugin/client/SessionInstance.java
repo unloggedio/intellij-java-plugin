@@ -283,11 +283,11 @@ public class SessionInstance {
                 OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
         );
 
-//        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
+        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
 
         ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(persistence);
+                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
 //        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
         return probeInfoIndex1;
     }
@@ -301,11 +301,11 @@ public class SessionInstance {
                 OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID)
         );
 
-//        OffHeapPersistence<MethodInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID);
+        OffHeapPersistence<MethodInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID);
 
         ConcurrentIndexedCollection<MethodInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(persistence);
+                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
 //        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(MethodInfo.METHOD_ID));
         return probeInfoIndex1;
     }
@@ -319,11 +319,11 @@ public class SessionInstance {
                 OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID)
         );
 
-//        DiskPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile);
+        DiskPersistence<ClassInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
+                DiskPersistence.onPrimaryKeyInFile(ClassInfo.CLASS_ID, objectIndexFile);
 
         ConcurrentIndexedCollection<ClassInfo> probeInfoIndex1 =
-                new ConcurrentIndexedCollection<>(persistence);
+                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
 //        probeInfoIndex1.addIndex(NavigableIndex.onAttribute(DataInfo.PROBE_ID));
         return probeInfoIndex1;
     }
