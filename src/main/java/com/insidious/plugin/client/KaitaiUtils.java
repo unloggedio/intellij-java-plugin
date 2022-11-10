@@ -72,7 +72,7 @@ public class KaitaiUtils {
         String[] interfaceList = classInfo.interfaceNames()
                 .stream()
                 .map(KaitaiInsidiousClassWeaveParser.StrWithLen::value)
-                .collect(Collectors.toList())
+                .toList()
                 .toArray(new String[]{});
         return new ClassInfo((int) classInfo.classId(),
                 classInfo.container().value(),
