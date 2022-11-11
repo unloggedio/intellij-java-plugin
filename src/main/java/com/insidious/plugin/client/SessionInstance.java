@@ -2295,15 +2295,15 @@ public class SessionInstance {
                                 saveProbe = true;
                                 isModified = false;
 
-                                if (existingParameter.getValue() != 0 && existingParameter.getProbeInfo() == null) {
+                                if (existingParameter.getProbeInfo() == null) {
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
                                     isModified = eventValue != 0;
                                 }
-                                if (existingParameter.getValue() != 0 && (existingParameter.getType() == null || existingParameter.getType()
+                                if ((existingParameter.getType() == null || existingParameter.getType()
                                         .equals("java.lang.Object"))) {
-                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V"))));
+                                    existingParameter.setType(
+                                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V")));
                                     isModified = eventValue != 0;
                                 }
 
@@ -2337,10 +2337,10 @@ public class SessionInstance {
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
                                 isModified = false;
-                                if (existingParameter.getValue() != 0 || (existingParameter.getType() == null || existingParameter.getType()
+                                if ((existingParameter.getType() == null || existingParameter.getType()
                                         .endsWith(".Object"))) {
-                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+                                    existingParameter.setType(
+                                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
                                     // TODO: This is getting ugly, but
                                     // we need some way to prefer some kind of events/probes combination
                                     // over other kind of events/probes
@@ -2680,7 +2680,7 @@ public class SessionInstance {
 
                                 isModified = false;
                                 saveProbe = true;
-                                if (existingParameter.getValue() != 0 && (existingParameter.getType() == null || existingParameter.getType()
+                                if ((existingParameter.getType() == null || existingParameter.getType()
                                         .endsWith(".Object"))) {
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
@@ -2752,7 +2752,7 @@ public class SessionInstance {
                                 existingProbes.add(probeInfo.getDataId());
                             }
                         }
-                                if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
+                        if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
                             parameterContainer.add(existingParameter);
                         }
                     }
