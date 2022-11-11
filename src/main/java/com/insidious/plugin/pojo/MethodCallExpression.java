@@ -141,7 +141,7 @@ public class MethodCallExpression implements Expression {
         }
         objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
                 "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
-                Long.valueOf((getReturnValue().getProb().getRecordedAt() - getSubject().getProb().getRecordedAt() ) / (1000000)).intValue() +
+                Long.valueOf((getReturnValue().getProb().getRecordedAt() - getEntryProbe().getRecordedAt() ) / (1000000)).intValue() +
                 "ms");
 
         List<Parameter> arguments = getArguments();

@@ -11,9 +11,6 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.Format;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +27,7 @@ public class TestCandidateMetadataView {
     private JPanel cardPanel;
     private JPanel borderParent;
 
-    private Dimension contentPanelDimensions = new Dimension(-1,30);
+    private Dimension contentPanelDimensions = new Dimension(-1, 30);
 
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
@@ -51,28 +48,23 @@ public class TestCandidateMetadataView {
 
         MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
 
-        long entryTime=mainMethod.getEntryProbe().getNanoTime();
-        long callTime=testCandidateMetadata.getCallTimeNanoSecond();
-        long timeInMs=TimeUnit.NANOSECONDS.toMillis(callTime);
-//        long timeS=TimeUnit.NANOSECONDS.toSeconds(71314710088602L);
-//        Date date = new Date("71314710088602");
-//        Format format = new SimpleDateFormat("yyyy MM dd HH:mm:ss");
-//        String entryDateTimeStamp =  format.format(date);
+//        long entryTime = mainMethod.getEntryProbe().getNanoTime();
+        long callTime = testCandidateMetadata.getCallTimeNanoSecond();
+        long timeInMs = TimeUnit.NANOSECONDS.toMillis(callTime);
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-
-//        testCandidateName.setText(mainMethod.getMethodName() + " at " + mainMethod.getEntryProbe().getNanoTime() + " | "+getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms | ");
 
         this.contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent me) {
-                hoverStateManager(me,true);
+                hoverStateManager(me, true);
             }
-            public void mouseExited(MouseEvent me)
-            {
-                hoverStateManager(me,false);
+
+            public void mouseExited(MouseEvent me) {
+                hoverStateManager(me, false);
             }
         });
 
-        testCandidateName.setText(getMethodCallsForCandidate(this.testCandidateMetadata,sessionInstance,mainMethod)+ " Methods called, "+timeInMs+" ms");
+        testCandidateName.setText(
+                this.testCandidateMetadata.getCallsList().size() + " methods called, " + timeInMs + " ms");
         generateTestCaseButton.addActionListener(e -> generateTestCase());
         contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
@@ -82,7 +74,9 @@ public class TestCandidateMetadataView {
 
     }
 
-    private void generateTestCase() {candidateSelectionListener.onSelect(testCandidateMetadata);}
+    private void generateTestCase() {
+        candidateSelectionListener.onSelect(testCandidateMetadata);
+    }
 
     public Component getContentPanel() {
         return contentPanel;
@@ -97,39 +91,17 @@ public class TestCandidateMetadataView {
     }
 
     public void setCandidateNumberIndex(int candidateNumberIndex) {
-        this.candidateNumber.setText("Candidate "+candidateNumberIndex);
+        this.candidateNumber.setText("Candidate " + candidateNumberIndex);
     }
-
-    private int getMethodCallsForCandidate(TestCandidateMetadata testCandidateMetadata, SessionInstance sessionInstance, MethodCallExpression mainMethod)
-    {
-        try {
-            List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(testCandidateMetadata.getTestSubject().getValue(),
-                    testCandidateMetadata.getCallTimeNanoSecond(), mainMethod.getId(), false);
-
-            TestCandidateMetadata candidate = sessionInstance.getTestCandidateById(candidates.get(candidates.size() - 1).getEntryProbeIndex());
-            int methodCalls = candidate.getCallsList().size();
-            return methodCalls;
-        }
-        catch(Exception e)
-        {
-            System.out.println("Error fetching method calls for "+testCandidateMetadata.toString());
-            return 0;
-        }
-    }
-
-    private void hoverStateManager(MouseEvent me, boolean mouseEntered)
-    {
-        if(mouseEntered)
-        {
-            Color color = new Color(1,204,245);
+    private void hoverStateManager(MouseEvent me, boolean mouseEntered) {
+        if (mouseEntered) {
+            Color color = new Color(1, 204, 245);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
 //            color = new Color(1,204,245,10);
 //            contentPanel.setBackground(color);
-        }
-        else
-        {
-            Color color = new Color(187,187,187);
+        } else {
+            Color color = new Color(187, 187, 187);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
 //            color = new Color(60,63,65);

@@ -14,6 +14,7 @@ import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.util.PerformanceSensitive;
 import org.jetbrains.annotations.NotNull;
 
 import java.sql.SQLException;
@@ -127,12 +128,12 @@ public class DaoService {
         converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
         converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getId()));
 
-        List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
+        List<Long> calls = testCandidateMetadata.getCallsList();
+        List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(calls.size());
         if (loadCalls) {
-            List<Long> calls = testCandidateMetadata.getCallsList();
+            logger.warn("\tloading " + calls.size() + " call methods");
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionToMock(
                     calls);
-            logger.warn("\tloading " + calls.size() + " call methods");
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null ||
                         methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
@@ -148,6 +149,12 @@ public class DaoService {
                 } else {
                     logger.debug("skip call - " + methodCallExpressionById.getId());
                 }
+            }
+        } else {
+            for (Long call : calls) {
+                com.insidious.plugin.pojo.MethodCallExpression mce = new com.insidious.plugin.pojo.MethodCallExpression();
+                mce.setId(call);
+                callsList.add(mce);
             }
         }
 
@@ -179,7 +186,7 @@ public class DaoService {
             GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
                     .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
-                    results.getResults().stream().map(this::convertDbMCE).collect(Collectors.toList());
+                    results.getResults().parallelStream().map(this::convertDbMCE).collect(Collectors.toList());
             results.close();
             return callsList;
         } catch (Exception e) {
