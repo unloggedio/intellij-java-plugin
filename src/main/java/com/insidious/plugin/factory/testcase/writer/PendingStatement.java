@@ -29,7 +29,6 @@ public class PendingStatement {
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new LinkedList<>();
     private Parameter lhsExpression;
-    private Parameter expectingException;
 
     public PendingStatement(ObjectRoutineScript objectRoutine) {
         this.objectRoutine = objectRoutine;
@@ -75,11 +74,13 @@ public class PendingStatement {
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
-                statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
+                statementParameters.add(
+                        ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
             }
 
-        } else if (methodCallExpression.getMethodName().equals("ValueOf") && methodCallExpression.getSubject() == null) {
+        } else if (methodCallExpression.getMethodName()
+                .equals("ValueOf") && methodCallExpression.getSubject() == null) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
@@ -107,7 +108,8 @@ public class PendingStatement {
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
-                statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
+                statementParameters.add(
+                        ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
             }
 
@@ -150,7 +152,8 @@ public class PendingStatement {
         } else if (methodCallExpression.getMethodName().equals("assertEquals")) {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
-                parameterString = TestCaseWriter.createMethodParametersStringWithNames(methodCallExpression.getArguments());
+                parameterString = TestCaseWriter.createMethodParametersStringWithNames(
+                        methodCallExpression.getArguments());
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(").append(parameterString).append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
@@ -245,48 +248,47 @@ public class PendingStatement {
         List<Object> statementParameters = new LinkedList<>();
 
         boolean isExceptionExcepted = false;
+        if (lhsExpression != null && lhsExpression.getProbeInfo() != null &&
+                lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+            isExceptionExcepted = true;
+        }
 
-        if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType().equals("V")) {
+        if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType()
+                .equals("V") && !isExceptionExcepted) {
 
             if (lhsExpression.getNameForUse(null) == null) {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            if (lhsExpression.getProbeInfo() != null &&
-                    lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-                isExceptionExcepted = true;
-            } else {
-
-
-                @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
-                if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getNameForUse(null))) {
-                    objectRoutine.getCreatedVariables().add(lhsExpression);
-                    if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
-                        statementBuilder.append("$T<$T>").append(" ");
-                        statementParameters.add(lhsTypeName);
-                        Parameter templateParameter = lhsExpression.getTemplateMap().get("E");
-                        String templateType = templateParameter.getType();
-                        statementParameters.add(ClassName.bestGuess(templateType));
-                    } else {
-                        statementBuilder.append("$T").append(" ");
-                        statementParameters.add(lhsTypeName);
-                    }
-
+            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
+                    ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
+            if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getNameForUse(null))) {
+                objectRoutine.getCreatedVariables().add(lhsExpression);
+                if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
+                    statementBuilder.append("$T<$T>").append(" ");
+                    statementParameters.add(lhsTypeName);
+                    Parameter templateParameter = lhsExpression.getTemplateMap().get("E");
+                    String templateType = templateParameter.getType();
+                    statementParameters.add(ClassName.bestGuess(templateType));
                 } else {
-                    Parameter existingParameter = objectRoutine
-                            .getCreatedVariables()
-                            .getParameterByName(lhsExpression.getNameForUse(null));
-                    if (existingParameter != lhsExpression) {
-                        objectRoutine.getCreatedVariables().remove(existingParameter);
-                        objectRoutine.getCreatedVariables().add(lhsExpression);
-                    }
+                    statementBuilder.append("$T").append(" ");
+                    statementParameters.add(lhsTypeName);
                 }
-                statementBuilder.append("$L");
 
-                statementParameters.add(lhsExpression.getNameForUse(null));
-
-                statementBuilder.append(" = ");
+            } else {
+                Parameter existingParameter = objectRoutine
+                        .getCreatedVariables()
+                        .getParameterByName(lhsExpression.getNameForUse(null));
+                if (existingParameter != lhsExpression) {
+                    objectRoutine.getCreatedVariables().remove(existingParameter);
+                    objectRoutine.getCreatedVariables().add(lhsExpression);
+                }
             }
+            statementBuilder.append("$L");
+
+            statementParameters.add(lhsExpression.getNameForUse(null));
+
+            statementBuilder.append(" = ");
         }
 
         int i = 0;
@@ -316,12 +318,14 @@ public class PendingStatement {
         if (isExceptionExcepted) {
             StringBuilder tryCatchEnclosure = new StringBuilder();
             tryCatchEnclosure
-                    .append("        try {\n")
-                    .append("            ").append("// this is going to throw exception <>\n")
-                    .append("            ").append(statementBuilder).append(";\n")
-                    .append("        } catch ($T e) {\n")
-                    .append("            \n")
-                    .append("        }\n");
+                    .append("try {\n")
+                    .append("    ").append("// this is going to throw exception <")
+                    .append(lhsExpression.getType())
+                    .append(">\n")
+                    .append("    ").append(statementBuilder).append(";\n")
+                    .append("} catch ($T e) {\n")
+                    .append(" \n")
+                    .append("}\n");
             statementParameters.add(ClassName.bestGuess(lhsExpression.getType()));
             statementBuilder = tryCatchEnclosure;
         }

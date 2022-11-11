@@ -130,7 +130,8 @@ public class DaoService {
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new LinkedList<>();
         if (loadCalls) {
             List<Long> calls = testCandidateMetadata.getCallsList();
-            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionToMock(calls);
+            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb = getMethodCallExpressionToMock(
+                    calls);
             logger.warn("\tloading " + calls.size() + " call methods");
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null ||
@@ -140,7 +141,8 @@ public class DaoService {
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
-                        || "INVOKEVIRTUAL".equals(methodCallExpressionById.getEntryProbeInfo().getAttribute("Instruction", ""))
+                        || "INVOKEVIRTUAL".equals(
+                        methodCallExpressionById.getEntryProbeInfo().getAttribute("Instruction", ""))
                 ) {
                     callsList.add(methodCallExpressionById);
                 } else {
@@ -163,7 +165,8 @@ public class DaoService {
 
     private List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionByIds(List<Long> callIds) {
         try {
-            List<MethodCallExpression> callsFromDb = methodCallExpressionDao.queryBuilder().where().in("id", callIds).query();
+            List<MethodCallExpression> callsFromDb = methodCallExpressionDao.queryBuilder().where().in("id", callIds)
+                    .query();
             return callsFromDb.stream().map(this::convertDbMCE).collect(Collectors.toList());
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -310,7 +313,10 @@ public class DaoService {
                 returnParam.setProb(returnDataEvent);
                 DataInfo eventProbe = getProbeInfoById(returnDataEvent.getDataId());
                 returnParam.setProbeInfo(eventProbe);
-                returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+                String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
+                if (typeFromProbe != null) {
+                    returnParam.setTypeForced(typeFromProbe);
+                }
 
                 if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
                     switch (returnParam.getType()) {
@@ -335,7 +341,8 @@ public class DaoService {
                             // since the ResponseBody is also not serializable
                             List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
                                     getMethodCallExpressionOnParameter(bodyParameter.getReturnValue().getValue());
-                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName().equals("string")) {
+                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName()
+                                    .equals("string")) {
                                 // we wanted the return value from the "string" call on ResponseBody
                                 // but, we did not find that method call, so we cannot reconstruct the response from the
                                 // http call, so just throw for now until we come across a real scenario where
@@ -669,7 +676,8 @@ public class DaoService {
 
         try {
             List<TestCandidateMethodAggregate> results = new LinkedList<>();
-            GenericRawResults<String[]> rows = testCandidateDao.queryRaw(TEST_CANDIDATE_METHOD_AGGREGATE_QUERY, typeName);
+            GenericRawResults<String[]> rows = testCandidateDao.queryRaw(TEST_CANDIDATE_METHOD_AGGREGATE_QUERY,
+                    typeName);
             for (String[] result : rows.getResults()) {
                 results.add(
                         new TestCandidateMethodAggregate(typeName, result[0], Integer.valueOf(result[1]))
@@ -693,7 +701,8 @@ public class DaoService {
         try {
 
             GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
-                    .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className, methodName);
+                    .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
+                            methodName);
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
 

@@ -2500,6 +2500,12 @@ public class SessionInstance {
                                 exceptionCallExpression = callStack.get(callStack.size() - 1);
                                 entryProbeEventType = exceptionCallExpression.getEntryProbeInfo().getEventType();
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
+                                if (existingParameter.getType() == null) {
+                                    String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
+                                                    objectInfoIndex.get(existingParameter.getValue()).getTypeId())
+                                            .getTypeName());
+                                    existingParameter.setType(typeName);
+                                }
 
                                 existingParameter.setProbeInfo(probeInfo);
                                 existingParameter.setProb(dataEvent);
