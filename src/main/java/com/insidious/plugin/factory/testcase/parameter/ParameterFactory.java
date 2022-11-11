@@ -75,9 +75,7 @@ public class ParameterFactory {
         for (int i = eventIndex + direction; i < dataEventCount
                 && i > -1; i += direction) {
             DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
-            DataInfo historyEventProbe = replayData.getProbeInfoMap().get(
-                    String.valueOf(historyEvent.getDataId())
-            );
+            DataInfo historyEventProbe = replayData.getProbeInfo(historyEvent.getDataId());
             ClassInfo currentClassInfo =
                     replayData.getClassInfo(historyEventProbe.getClassId());
             MethodInfo methodInfoLocal = replayData.getMethodInfo(historyEventProbe.getMethodId());
@@ -158,9 +156,9 @@ public class ParameterFactory {
         }
 
 
-        String eventProbeIdString = String.valueOf(event.getDataId());
-        String eventValueString = String.valueOf(event.getValue());
-        DataInfo probeInfo = replayData.getProbeInfoMap().get(event.getDataId());
+//        String eventProbeIdString = String.valueOf(event.getDataId());
+//        String eventValueString = String.valueOf(event.getValue());
+        DataInfo probeInfo = replayData.getProbeInfo(event.getDataId());
         ObjectInfo objectInfo = replayData.getObjectInfoMap().get(event.getValue());
 //        Set<String> typeHierarchy = new HashSet<>();
 
@@ -344,9 +342,7 @@ public class ParameterFactory {
         for (int i = eventIndex + direction; i < dataEventCount
                 && i > -1; i += direction) {
             DataEventWithSessionId historyEvent = replayData.getDataEvents().get(i);
-            DataInfo historyEventProbe = replayData.getProbeInfoMap().get(
-                    String.valueOf(historyEvent.getDataId())
-            );
+            DataInfo historyEventProbe = replayData.getProbeInfo(historyEvent.getDataId());
             ClassInfo currentClassInfo =
                     replayData.getClassInfo(historyEventProbe.getClassId());
             MethodInfo methodInfoLocal = replayData.getMethodInfo(historyEventProbe.getMethodId());
@@ -397,13 +393,13 @@ public class ParameterFactory {
                         paramIndex -= 1;
                         continue;
                     }
-                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(String.valueOf(historyEvent.getValue()));
+                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(historyEvent.getValue());
                     if (oInfo == null) {
                         logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
                                 "check");
                         break;
                     }
-                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
+                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(oInfo.getTypeId());
                     String typeName = oTypeInfo.getTypeNameFromClass();
                     String typeNameRaw = typeName.replaceAll("\\.", "/");
                     String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
@@ -553,13 +549,13 @@ public class ParameterFactory {
                         paramIndex -= 1;
                         continue;
                     }
-                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(String.valueOf(historyEvent.getValue()));
+                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(historyEvent.getValue());
                     if (oInfo == null) {
                         logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
                                 "check");
                         break;
                     }
-                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
+                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(oInfo.getTypeId());
                     String typeName = oTypeInfo.getTypeNameFromClass();
                     String typeNameRaw = ClassTypeUtils.getDescriptorName(typeName);
                     String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);
@@ -790,13 +786,13 @@ public class ParameterFactory {
                         paramIndex -= 1;
                         continue;
                     }
-                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(String.valueOf(historyEvent.getValue()));
+                    ObjectInfo oInfo = replayData.getObjectInfoMap().get(historyEvent.getValue());
                     if (oInfo == null) {
                         logger.warn("object info is null [" + historyEvent.getValue() + "], gotta " +
                                 "check");
                         break;
                     }
-                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(String.valueOf(oInfo.getTypeId()));
+                    TypeInfo oTypeInfo = replayData.getTypeInfoMap().get(oInfo.getTypeId());
                     String typeName = oTypeInfo.getTypeNameFromClass();
                     String typeNameRaw = ClassTypeUtils.getDescriptorName(typeName);
                     String newVariableInstanceName = ClassTypeUtils.createVariableName(typeNameRaw);

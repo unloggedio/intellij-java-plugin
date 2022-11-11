@@ -22,27 +22,28 @@ import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
 
 public class ArchiveIndex {
-    private ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
-    private ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
+    private final ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
+    private final ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
     private ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex;
 
-    public ArchiveIndex(
-            ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex,
-            ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex,
-            ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex,
-            Map<Long, ClassInfo> classInfoMap) {
+    public ArchiveIndex(ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex, ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex, ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex, Map<Long, ClassInfo> classInfoMap) {
         this.typeInfoIndex = typeInfoIndex;
         this.stringInfoIndex = stringInfoIndex;
         this.objectInfoIndex = objectInfoIndex;
     }
 
+    public ConcurrentIndexedCollection<TypeInfoDocument> getTypeInfoIndex() {
+        return typeInfoIndex;
+    }
 
     @NotNull
     public List<Long> getStringIdsFromStringValues(String value) {
         Query<StringInfoDocument> query = equal(StringInfoDocument.STRING_VALUE, value);
         ResultSet<StringInfoDocument> searchResult = stringInfoIndex.retrieve(query);
-        List<Long> collect = searchResult.stream().map(StringInfoDocument::getStringId).collect(Collectors.toList());
+        List<Long> collect = searchResult.stream()
+                .map(StringInfoDocument::getStringId)
+                .collect(Collectors.toList());
         searchResult.close();
         return collect;
     }
@@ -66,8 +67,7 @@ public class ArchiveIndex {
         Stream<ObjectInfoDocument> stream = retrieve.stream();
 
         Map<Long, ObjectInfo> collect = new HashMap<>();
-        stream
-                .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
+        stream.map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
                 .forEach(e -> {
                     collect.put(e.getObjectId(), e);
                 });
@@ -111,7 +111,8 @@ public class ArchiveIndex {
     }
 
     public Map<String, ObjectInfo> getObjectsByTypeIds(Set<Integer> typeIds) {
-        return objectInfoIndex.stream().filter(e -> typeIds.contains(e.getTypeId()))
+        return objectInfoIndex.stream()
+                .filter(e -> typeIds.contains(e.getTypeId()))
                 .map(e -> new ObjectInfo(e.getObjectId(), e.getTypeId(), 0))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getObjectId()), r -> r));
     }
@@ -121,8 +122,7 @@ public class ArchiveIndex {
         Query<StringInfoDocument> query = in(StringInfoDocument.STRING_ID, valueIds);
         ResultSet<StringInfoDocument> retrieve = stringInfoIndex.retrieve(query);
         Stream<StringInfoDocument> stream = retrieve.stream();
-        Map<String, StringInfo> collect = stream
-                .map(e -> new StringInfo(e.getStringId(), e.getString()))
+        Map<String, StringInfo> collect = stream.map(e -> new StringInfo(e.getStringId(), e.getString()))
                 .collect(Collectors.toMap(e -> String.valueOf(e.getStringId()), r -> r));
         retrieve.close();
         return collect;
@@ -133,8 +133,7 @@ public class ArchiveIndex {
         Query<StringInfoDocument> query = in(StringInfoDocument.STRING_ID, valueIds);
         ResultSet<StringInfoDocument> retrieve = stringInfoIndex.retrieve(query);
         Stream<StringInfoDocument> stream = retrieve.stream();
-        Map<Long, StringInfo> collect = stream
-                .map(e -> new StringInfo(e.getStringId(), e.getString()))
+        Map<Long, StringInfo> collect = stream.map(e -> new StringInfo(e.getStringId(), e.getString()))
                 .collect(Collectors.toMap(StringInfo::getStringId, r -> r));
         retrieve.close();
         return collect;
@@ -168,8 +167,7 @@ public class ArchiveIndex {
                     if (typeInfo.getComponentType() != -1) {
                         superClasses.add(typeInfo.getComponentType());
                     }
-                    if (typeInfo.getInterfaces() != null
-                            && typeInfo.getInterfaces().length > 0) {
+                    if (typeInfo.getInterfaces() != null && typeInfo.getInterfaces().length > 0) {
                         for (int anInterface : typeInfo.getInterfaces()) {
                             superClasses.add(anInterface);
                         }
@@ -177,7 +175,8 @@ public class ArchiveIndex {
                     }
 
                     return typeInfo;
-                }).findFirst();
+                })
+                .findFirst();
         retrieve.close();
         if (returnValue.isEmpty()) {
             return null;
@@ -228,8 +227,7 @@ public class ArchiveIndex {
                     if (typeInfo.getComponentType() != -1) {
                         superClasses.add(typeInfo.getComponentType());
                     }
-                    if (typeInfo.getInterfaces() != null
-                            && typeInfo.getInterfaces().length > 0) {
+                    if (typeInfo.getInterfaces() != null && typeInfo.getInterfaces().length > 0) {
                         for (int anInterface : typeInfo.getInterfaces()) {
                             superClasses.add(anInterface);
                         }
@@ -254,11 +252,11 @@ public class ArchiveIndex {
     }
 
 
-    public Map<Long, TypeInfo> getTypesByIdWithLongKeys(Set<Integer> valueIds) {
+    public Map<Integer, TypeInfo> getTypesByIdWithLongKeys(Set<Integer> valueIds) {
 
         Query<TypeInfoDocument> query = in(TypeInfoDocument.TYPE_ID, valueIds);
         ResultSet<TypeInfoDocument> retrieve = typeInfoIndex.retrieve(query);
-        final Map<Long, TypeInfo> collect = new HashMap<>();
+        final Map<Integer, TypeInfo> collect = new HashMap<>();
         HashSet<Integer> superClasses = new HashSet<>();
         retrieve.stream()
                 .map(e -> {
@@ -270,8 +268,7 @@ public class ArchiveIndex {
                     if (typeInfo.getComponentType() != -1) {
                         superClasses.add(typeInfo.getComponentType());
                     }
-                    if (typeInfo.getInterfaces() != null
-                            && typeInfo.getInterfaces().length > 0) {
+                    if (typeInfo.getInterfaces() != null && typeInfo.getInterfaces().length > 0) {
                         for (int anInterface : typeInfo.getInterfaces()) {
                             superClasses.add(anInterface);
                         }
@@ -287,7 +284,7 @@ public class ArchiveIndex {
 
         if (superClasses.size() > 0) {
             superClasses.removeAll(valueIds);
-            Map<Long, TypeInfo> superClassesTypes = getTypesByIdWithLongKeys(superClasses);
+            Map<Integer, TypeInfo> superClassesTypes = getTypesByIdWithLongKeys(superClasses);
             collect.putAll(superClassesTypes);
         }
 

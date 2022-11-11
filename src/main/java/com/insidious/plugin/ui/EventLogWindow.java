@@ -23,7 +23,9 @@ import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 import java.util.Vector;
 
@@ -151,7 +153,7 @@ public class EventLogWindow {
                 Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
 
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
-                DataInfo probeInfo = replayData.getProbeInfoMap().get(selectedEvent.getDataId());
+                DataInfo probeInfo = replayData.getProbeInfo(selectedEvent.getDataId());
 
                 InsidiousUtils.focusProbeLocationInEditor(probeInfo,
                         replayData.getClassInfo(probeInfo.getClassId()).getClassName(), insidiousService);
@@ -259,7 +261,7 @@ public class EventLogWindow {
 
         PageInfo pageInfo = filterRequest.getPageInfo();
 
-        pageInfo.setBufferSize(Integer.valueOf(String.valueOf(bufferSize.getValue())));
+        pageInfo.setBufferSize(Integer.parseInt(String.valueOf(bufferSize.getValue())));
 
         filterRequest.setPageInfo(pageInfo);
         ReplayData replayData1 = service.getClient().fetchObjectHistoryByObjectId(filterRequest);
@@ -282,7 +284,7 @@ public class EventLogWindow {
         for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
             Vector<Object> rowVector = new Vector<>(6);
 
-            DataInfo probeInfo = replayData.getProbeInfoMap().get(dataEvent.getDataId());
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
             ObjectInfo objectInfo = replayData.getObjectInfoMap().get(dataEvent.getValue());
             String eventType = probeInfo.getEventType().toString();
 

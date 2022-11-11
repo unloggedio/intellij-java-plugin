@@ -85,12 +85,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.DateFormat;
+import java.util.Date;
 import java.util.List;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
@@ -922,7 +923,6 @@ public class InsidiousService implements Disposable {
             contentManager.addContent(liveWindowContent);
 
             setupProject();
-            return;
         }
 
 //        Content rawViewContent2 = contentManager.findContent("Raw");

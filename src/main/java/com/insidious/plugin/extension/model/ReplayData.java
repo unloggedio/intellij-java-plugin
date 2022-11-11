@@ -17,6 +17,7 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.text.StringUtil;
+import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,24 +26,24 @@ public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
     private final FilteredDataEventsRequest filteredDataEventsRequest;
     List<DataEventWithSessionId> dataEvents;
-    Map<Long, ClassInfo> classInfoMap;
-    Map<Long, DataInfo> probeInfoMap;
+    ChronicleMap<Integer, ClassInfo> classInfoMap;
+    ChronicleMap<Integer, DataInfo> probeInfoMap;
     Map<Long, StringInfo> stringInfoMap;
     Map<Long, ObjectInfo> objectInfoMap;
-    Map<Long, TypeInfo> typeInfoMap;
-    Map<Long, MethodInfo> methodInfoMap;
+    Map<Integer, TypeInfo> typeInfoMap;
+    ChronicleMap<Integer, MethodInfo> methodInfoMap;
     private VideobugClientInterface client;
 
     public ReplayData(
             VideobugClientInterface client,
             FilteredDataEventsRequest filteredDataEventsRequest,
             List<DataEventWithSessionId> dataList,
-            Map<Long, ClassInfo> classInfo,
-            Map<Long, DataInfo> dataInfo,
+            ChronicleMap<Integer, ClassInfo> classInfo,
+            ChronicleMap<Integer, DataInfo> dataInfo,
             Map<Long, StringInfo> stringInfo,
             Map<Long, ObjectInfo> objectInfoMap,
-            Map<Long, TypeInfo> typeInfoMap,
-            Map<Long, MethodInfo> methodInfoMap
+            Map<Integer, TypeInfo> typeInfoMap,
+            ChronicleMap<Integer, MethodInfo> methodInfoMap
     ) {
         this.client = client;
         this.filteredDataEventsRequest = filteredDataEventsRequest;
@@ -55,15 +56,11 @@ public class ReplayData {
         this.methodInfoMap = methodInfoMap;
     }
 
-    public Map<Long, MethodInfo> getMethodInfoMap() {
-        return methodInfoMap;
-    }
-
     public Map<Long, ObjectInfo> getObjectInfoMap() {
         return objectInfoMap;
     }
 
-    public Map<Long, TypeInfo> getTypeInfoMap() {
+    public Map<Integer, TypeInfo> getTypeInfoMap() {
         return typeInfoMap;
     }
 
@@ -93,20 +90,12 @@ public class ReplayData {
         this.client = client;
     }
 
-    public Map<Long, ClassInfo> getClassInfoMap() {
+    public Map<Integer, ClassInfo> getClassInfoMap() {
         return classInfoMap;
-    }
-
-    public Map<Long, DataInfo> getProbeInfoMap() {
-        return probeInfoMap;
     }
 
     public Map<Long, StringInfo> getStringInfoMap() {
         return stringInfoMap;
-    }
-
-    public FilteredDataEventsRequest getFilteredDataEventsRequest() {
-        return filteredDataEventsRequest;
     }
 
     public ReplayData fetchEventsPre(DataEventWithSessionId event, int size) throws SessionNotSelectedException {
@@ -435,7 +424,7 @@ public class ReplayData {
     }
 
     public DataInfo getProbeInfo(long id) {
-        return probeInfoMap.get(id);
+        return probeInfoMap.get((int)id);
     }
 
     public TypeInfo getTypeInfo(long id) {
@@ -451,57 +440,11 @@ public class ReplayData {
     }
 
     public ClassInfo getClassInfo(long id) {
-        return classInfoMap.get(id);
+        return classInfoMap.get((int)id);
     }
 
     public MethodInfo getMethodInfo(long methodId) {
-        return methodInfoMap.get(methodId);
-    }
-
-    public void mergeReplayData(ReplayData replayEventsAfter) {
-        List<DataEventWithSessionId> afterEvents = replayEventsAfter.getDataEvents();
-
-
-        if (this.filteredDataEventsRequest.getPageInfo().isDesc()) {
-
-
-            if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isAsc()) {
-                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
-                afterEvents.remove(0);
-                Collections.reverse(afterEvents);
-                this.dataEvents.addAll(0, afterEvents);
-            } else if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isDesc()) {
-                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
-                afterEvents.remove(0);
-                Collections.reverse(afterEvents);
-                this.dataEvents.addAll(0, afterEvents);
-
-            }
-
-        } else if (this.filteredDataEventsRequest.getPageInfo().isAsc()) {
-
-            if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isAsc()) {
-                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
-                afterEvents.remove(0);
-                Collections.reverse(afterEvents);
-                this.dataEvents.addAll(0, afterEvents);
-            } else if (replayEventsAfter.filteredDataEventsRequest.getPageInfo().isDesc()) {
-                assert afterEvents.get(0).getNanoTime() == this.dataEvents.get(0).getNanoTime();
-                afterEvents.remove(0);
-                Collections.reverse(afterEvents);
-                this.dataEvents.addAll(0, afterEvents);
-
-            }
-
-        }
-
-
-        this.classInfoMap.putAll(replayEventsAfter.getClassInfoMap());
-        this.probeInfoMap.putAll(replayEventsAfter.getProbeInfoMap());
-        this.methodInfoMap.putAll(replayEventsAfter.getMethodInfoMap());
-        this.stringInfoMap.putAll(replayEventsAfter.getStringInfoMap());
-        this.objectInfoMap.putAll(replayEventsAfter.getObjectInfoMap());
-        this.typeInfoMap.putAll(replayEventsAfter.getTypeInfoMap());
+        return methodInfoMap.get((int)methodId);
     }
 
     public ReplayData getPreviousPage() throws SessionNotSelectedException {

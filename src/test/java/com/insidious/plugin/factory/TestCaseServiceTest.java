@@ -5,14 +5,12 @@ import com.google.gson.JsonElement;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
-import com.insidious.plugin.callbacks.ClientCallBack;
 import com.insidious.plugin.client.DaoService;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.DataResponse;
-import com.insidious.plugin.client.pojo.ExceptionResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -31,14 +29,9 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class TestCaseServiceTest {
 
@@ -188,9 +181,9 @@ public class TestCaseServiceTest {
         for (int i = 0; i < dataEvents.size(); i++) {
             DataEventWithSessionId dataEvent = dataEvents.get(i);
 
-            DataInfo probeInfo = replayData.getProbeInfoMap().get(dataEvent.getDataId());
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
 
-            ClassInfo classInfo = replayData.getClassInfoMap().get((long) probeInfo.getClassId());
+            ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
             String logLine = "#" + i + ": [" + dataEvent.getNanoTime() + "]["
                     + probeInfo.getEventType() + "] ["
                     + classInfo.getClassName().replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +

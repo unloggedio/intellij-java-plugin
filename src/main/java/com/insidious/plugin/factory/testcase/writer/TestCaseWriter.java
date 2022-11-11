@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,7 +22,8 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+            if (parameter.getType() != null && parameter.getType()
+                    .endsWith("[]")) {
                 parameterStringBuilder.append("any()");
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1) {
@@ -31,9 +33,12 @@ public class TestCaseWriter {
                 }
             } else if (parameter.isPrimitiveType()) {
                 if (parameter.getProb() != null &&
-                        parameter.getType().startsWith("java.lang") &&
-                        parameter.getProb().getSerializedValue().length > 0) {
-                    String serializedValue = new String(parameter.getProb().getSerializedValue());
+                        parameter.getType()
+                                .startsWith("java.lang") &&
+                        parameter.getProb()
+                                .getSerializedValue().length > 0) {
+                    String serializedValue = new String(parameter.getProb()
+                            .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
                 } else {
                     parameterStringBuilder.append(parameter.getValue());
@@ -89,9 +94,12 @@ public class TestCaseWriter {
             } else {
                 compareAgainst = parameter.getValue();
                 if (parameter.isStringType()) {
-                    if (parameter.getProb().getSerializedValue() != null &&
-                            parameter.getProb().getSerializedValue().length > 0) {
-                        compareAgainst = new String(parameter.getProb().getSerializedValue());
+                    if (parameter.getProb()
+                            .getSerializedValue() != null &&
+                            parameter.getProb()
+                                    .getSerializedValue().length > 0) {
+                        compareAgainst = new String(parameter.getProb()
+                                .getSerializedValue());
                     } else if (parameter.getValue() == 0L) {
                         compareAgainst = "null";
                     }
@@ -147,7 +155,8 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+            if (parameter.getType() != null && parameter.getType()
+                    .endsWith("[]")) {
                 parameterStringBuilder.append("any()");
             } else if (parameter.getNameForUse(null) != null) {
                 parameterStringBuilder.append(parameter.getNameForUse(null));

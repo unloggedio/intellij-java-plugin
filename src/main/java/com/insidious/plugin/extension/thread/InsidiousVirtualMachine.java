@@ -22,9 +22,9 @@ import java.util.Map;
 public class InsidiousVirtualMachine implements VirtualMachine {
 
     private static final Logger logger = LoggerUtil.getInstance(InsidiousVirtualMachine.class);
+    private final Project project;
     private InsidiousThreadGroupReference threadReferenceGroup;
     private ReplayData replayData;
-    private final Project project;
 
     public InsidiousVirtualMachine(Project project) {
         this.project = project;
@@ -508,9 +508,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
-                    "Creating frames from: " + this.replayData.getDataEvents().size()
-                            + " events across " + this.replayData.getClassInfoMap().size() + " class file, for " +
-                            this.replayData.getProbeInfoMap().size() + " probes");
+                    "Creating frames from: " + this.replayData.getDataEvents().size() + " events");
         }
 
 

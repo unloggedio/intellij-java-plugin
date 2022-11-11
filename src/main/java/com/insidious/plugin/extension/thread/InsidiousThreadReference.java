@@ -28,8 +28,6 @@ public class InsidiousThreadReference implements ThreadReference {
     private static final Logger logger = LoggerUtil.getInstance(InsidiousThreadReference.class);
     private final ThreadGroupReference threadGroupReference;
     private final ReplayData replayData;
-    private final Map<Long, DataInfo> dataInfoMap;
-    private final Map<Long, ClassInfo> classInfoMap;
     private final Map<Long, StringInfo> stringInfoMap;
     private final Map<String, InsidiousField> typeFieldMap = new HashMap<>();
     private final Map<String, InsidiousClassTypeReference> classTypeMap;
@@ -51,11 +49,7 @@ public class InsidiousThreadReference implements ThreadReference {
         eventProperties.put("classname", tracePoint.getClassname());
         eventProperties.put("sessionId", tracePoint.getExecutionSession().getSessionId());
         eventProperties.put("filename", tracePoint.getFilename());
-        eventProperties.put("classCount", replayData.getClassInfoMap().size());
         eventProperties.put("eventsCount", replayData.getDataEvents().size());
-        eventProperties.put("probesCount", replayData.getProbeInfoMap().size());
-        eventProperties.put("stringsCount", replayData.getStringInfoMap().size());
-        eventProperties.put("typesCount", replayData.getTypeInfoMap().size());
         eventProperties.put("objectsCount", replayData.getObjectInfoMap().size());
         UsageInsightTracker.getInstance().RecordEvent("ConstructThreadReference", eventProperties);
 
@@ -71,8 +65,6 @@ public class InsidiousThreadReference implements ThreadReference {
         );
 
 
-        dataInfoMap = this.replayData.getProbeInfoMap();
-        classInfoMap = this.replayData.getClassInfoMap();
         stringInfoMap = this.replayData.getStringInfoMap();
 
         this.classTypeMap = buildClassTypeReferences();
@@ -119,14 +111,14 @@ public class InsidiousThreadReference implements ThreadReference {
         for (int index = 0; index < subList.size(); index++) {
             DataEventWithSessionId dataEvent = subList.get(index);
             String dataId = String.valueOf(dataEvent.getDataId());
-            DataInfo probeInfo = dataInfoMap.get(dataId);
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
             int classId = probeInfo.getClassId();
-            ClassInfo classInfo = classInfoMap.get(String.valueOf(classId));
-            ObjectInfo objectInfo = this.replayData.getObjectInfoMap().get(String.valueOf(dataEvent.getValue()));
-            TypeInfo typeInfo = null;
-            if (objectInfo != null) {
-                typeInfo = this.replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
-            }
+            ClassInfo classInfo = replayData.getClassInfo(classId);
+//            ObjectInfo objectInfo = this.replayData.getObjectInfoMap().get(dataEvent.getValue());
+//            TypeInfo typeInfo = null;
+//            if (objectInfo != null) {
+//                typeInfo = this.replayData.getTypeInfoMap().get(String.valueOf(objectInfo.getTypeId()));
+//            }
             long receiverObjectId = 0;
             InsidiousObjectReference receiverObject;
 
@@ -261,8 +253,8 @@ public class InsidiousThreadReference implements ThreadReference {
                         continue;
                     }
                     DataInfo parentDataInfo
-                            = this.replayData.getProbeInfoMap().get(
-                            Util.getAttribute(probeInfo.getAttributes(), "NewParent", "0"));
+                            = this.replayData.getProbeInfo(
+                            Long.parseLong(Util.getAttribute(probeInfo.getAttributes(), "NewParent", "0")));
                     String classTypeOfNewObject = "java/lang/Object";
                     if (parentDataInfo == null) {
                         logger.warn("no data info for parent of new object created - " + probeInfo);
@@ -608,10 +600,9 @@ public class InsidiousThreadReference implements ThreadReference {
         Map<String, InsidiousClassTypeReference> classMap = new HashMap<>();
         Map<String, Map<String, String>> classFieldsMap = new HashMap<>();
 
-        for (Map.Entry<Long, ClassInfo> classInfoEntry
-                : replayData.getClassInfoMap().entrySet()) {
+        for (Map.Entry<Integer, ClassInfo> classInfoEntry : replayData.getClassInfoMap().entrySet()) {
 
-            Long classId = classInfoEntry.getKey();
+            Integer classId = classInfoEntry.getKey();
             ClassInfo classInfo = classInfoEntry.getValue();
             // note for future reader: we are breaking this to make the classInfo class serializable (maybe)
             List<DataInfo> probes = List.of(); // classInfo.getDataInfoList();
@@ -695,8 +686,7 @@ public class InsidiousThreadReference implements ThreadReference {
 
 
         String variableSignature = Util.getAttribute(probeInfo.getAttributes(), "Type", null);
-        ClassInfo classInfo
-                = this.replayData.getClassInfoMap().get(String.valueOf(probeInfo.getClassId()));
+//        ClassInfo classInfo = this.replayData.getClassInfo(probeInfo.getClassId());
         long objectId = 0;
 
         char typeFirstCharacter = variableSignature.charAt(0);
@@ -1009,8 +999,7 @@ public class InsidiousThreadReference implements ThreadReference {
         if (size < 0) {
             for (int i = position; i < dataEvents.size(); i++) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
-                DataInfo dataInfo = replayData.getProbeInfoMap().get
-                        (String.valueOf(dataEventWithSessionId.getDataId()));
+                DataInfo dataInfo = replayData.getProbeInfo(dataEventWithSessionId.getDataId());
                 if (!EventType.LINE_NUMBER.equals(dataInfo.getEventType())) {
                     continue;
                 }
@@ -1023,7 +1012,7 @@ public class InsidiousThreadReference implements ThreadReference {
             for (int i = position; i > 0; i--) {
                 DataEventWithSessionId dataEventWithSessionId = dataEvents.get(i);
                 DataInfo dataInfo
-                        = replayData.getProbeInfoMap().get(String.valueOf(dataEventWithSessionId.getDataId()));
+                        = replayData.getProbeInfo(dataEventWithSessionId.getDataId());
                 if (!dataInfo.getEventType().equals(EventType.LINE_NUMBER)) {
                     continue;
                 }
