@@ -16,7 +16,7 @@ public class InsidiousServiceTest {
 
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath()).thenReturn("D:\\workspace\\code\\insidious\\plugin");
-        InsidiousService insidiousService = new InsidiousService(project);
+//        InsidiousService insidiousService = new InsidiousService(project);
 
 
 

@@ -38,7 +38,7 @@ build:
 
 test:
   stage: test
-  script: gradle check --scan
+  script: ./gradlew check
   cache:
     key: "$CI_COMMIT_REF_NAME"
     policy: pull

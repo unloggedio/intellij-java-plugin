@@ -123,34 +123,34 @@ public class TestCaseServiceTest {
 //
 //    }
 
-    @Test
-    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException, IOException {
+//    @Test
+//    void testPrintObjectHistory() throws SessionNotSelectedException, SQLException, IOException {
+//
+//        Long objectId = Long.valueOf(909497978);
+////        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
+//
+//        printObjectHistory(objectId);
+//
+//    }
 
-        Long objectId = Long.valueOf(909497978);
-//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
-
-        printObjectHistory(objectId);
-
-    }
-
-    @Test
-    void testPrintEventsByProbeIds() {
-
-        List<Long> probeIds = List.of(909497978L);
-
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-
-
-        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
-
-//        client.fetchDataEvents()
-
-        Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
-    }
+//    @Test
+//    void testPrintEventsByProbeIds() {
+//
+//        List<Long> probeIds = List.of(909497978L);
+//
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+//
+//
+//        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
+//
+////        client.fetchDataEvents()
+//
+//        Mockito.when(session.getCreatedAt()).thenThrow(Exception.class);
+//    }
 
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException, IOException {
 
@@ -213,118 +213,118 @@ public class TestCaseServiceTest {
 
     }
 
-    @Test
-    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException, IOException {
+//    @Test
+//    void testPrintObjectsByType() throws InterruptedException, SessionNotSelectedException, SQLException, IOException {
+//
+//        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
+//
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+////        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
+//
+////        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
+//
+////        List<TestCandidate> testCandidateList = new LinkedList<>();
+//        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
+//
+//
+//        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
+//
+//        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
+//
+//        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+//        ExecutionSession session = sessions.getItems().get(0);
+//
+//
+//        client.getObjectsByType(
+//                searchQuery, session.getSessionId(), new ClientCallBack<ObjectWithTypeInfo>() {
+//                    @Override
+//                    public void error(ExceptionResponse errorResponse) {
+//
+//                    }
+//
+//                    @Override
+//                    public void success(Collection<ObjectWithTypeInfo> tracePoints) {
+//                        allObjects.addAll(tracePoints);
+//                    }
+//
+//                    @Override
+//                    public void completed() {
+//                        waiter.offer("done");
+//                    }
+//                }
+//        );
+//        waiter.take();
+//
+//        Map<Long, List<ObjectWithTypeInfo>> objectsGroupedByType = allObjects.stream().collect(Collectors.groupingBy(e -> e.getObjectInfo().getTypeId()));
+//
+//        System.out.println("Found [" + objectsGroupedByType.size() + "] type starting with [" + searchQuery.getQuery() + "]");
+//        for (Long typeId : objectsGroupedByType.keySet()) {
+//            List<ObjectWithTypeInfo> objects = objectsGroupedByType.get(typeId);
+//            System.out.println(objects.size() + " objects of type [" + typeId + "] -> "
+//                    + objects.get(0).getTypeInfo().getTypeNameFromClass());
+//        }
+//
+//
+//        for (ObjectWithTypeInfo allObject : allObjects) {
+//            System.out.println("Object [" + allObject.getObjectInfo().getObjectId()
+//                    + "] -> " + " [TypeId:" + allObject.getObjectInfo().getTypeId() + "]"
+//                    + allObject.getTypeInfo().getTypeNameFromClass());
+//            System.out.println("");
+//            System.out.println("");
+//            printObjectHistory(allObject.getObjectInfo().getObjectId());
+//            System.out.println("");
+//            System.out.println("");
+//            System.out.println("######################################");
+//            System.out.println("######################################");
+//        }
+//
+//
+//    }
 
-        List<String> targetClasses = List.of("com.appsmith.server.services.UserDataServiceImpl");
-
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-//        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
-
-//        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
-
-//        List<TestCandidate> testCandidateList = new LinkedList<>();
-        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
-
-
-        SearchQuery searchQuery = SearchQuery.ByType(targetClasses);
-
-        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
-
-        DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems().get(0);
-
-
-        client.getObjectsByType(
-                searchQuery, session.getSessionId(), new ClientCallBack<ObjectWithTypeInfo>() {
-                    @Override
-                    public void error(ExceptionResponse errorResponse) {
-
-                    }
-
-                    @Override
-                    public void success(Collection<ObjectWithTypeInfo> tracePoints) {
-                        allObjects.addAll(tracePoints);
-                    }
-
-                    @Override
-                    public void completed() {
-                        waiter.offer("done");
-                    }
-                }
-        );
-        waiter.take();
-
-        Map<Long, List<ObjectWithTypeInfo>> objectsGroupedByType = allObjects.stream().collect(Collectors.groupingBy(e -> e.getObjectInfo().getTypeId()));
-
-        System.out.println("Found [" + objectsGroupedByType.size() + "] type starting with [" + searchQuery.getQuery() + "]");
-        for (Long typeId : objectsGroupedByType.keySet()) {
-            List<ObjectWithTypeInfo> objects = objectsGroupedByType.get(typeId);
-            System.out.println(objects.size() + " objects of type [" + typeId + "] -> "
-                    + objects.get(0).getTypeInfo().getTypeNameFromClass());
-        }
-
-
-        for (ObjectWithTypeInfo allObject : allObjects) {
-            System.out.println("Object [" + allObject.getObjectInfo().getObjectId()
-                    + "] -> " + " [TypeId:" + allObject.getObjectInfo().getTypeId() + "]"
-                    + allObject.getTypeInfo().getTypeNameFromClass());
-            System.out.println("");
-            System.out.println("");
-            printObjectHistory(allObject.getObjectInfo().getObjectId());
-            System.out.println("");
-            System.out.println("");
-            System.out.println("######################################");
-            System.out.println("######################################");
-        }
-
-
-    }
-
-    @Test
-    public void printClassProbes() {
-
-
-        Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
-//        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
-
-
-        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
-
-
-        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
-
-        ClassWeaveInfo sessionWeaveInfo = client.getSessionClassWeave(session.getSessionId());
-
-        for (String targetClass : targetClasses) {
-
-            ClassInfo classInfo = sessionWeaveInfo.getClassInfoByName(targetClass.replaceAll("\\" +
-                    ".", "/"));
-
-
-            List<DataInfo> classProbes = sessionWeaveInfo.getProbesByClassId(classInfo.getClassId());
-
-            System.out.println("## " + classInfo.getClassName());
-
-            for (int i = 0; i < classProbes.size(); i++) {
-                DataInfo classProbe = classProbes.get(i);
-
-                System.out.println("#" + i + ": " + classProbe.getDataId() + " [" + classProbe.getEventType() + "] on line ["
-                        + classProbe.getLine() + "] -> " + classProbe.getAttributes());
-
-            }
-
-
-        }
-
-    }
+//    @Test
+//    public void printClassProbes() {
+//
+//
+//        Project project = Mockito.mock(Project.class);
+//        Mockito.when(project.getBasePath()).thenReturn("./");
+//
+//        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+////        VideobugLocalClient client = new VideobugLocalClient("D:\\workspace\\code\\appsmith\\videobug");
+//
+//
+//        ExecutionSession session = client.fetchProjectSessions().getItems().get(0);
+//
+//
+//        List<String> targetClasses = List.of("com.appsmith.server.services.ce.UserDataServiceCEImpl");
+//
+//        ClassWeaveInfo sessionWeaveInfo = client.getSessionClassWeave(session.getSessionId());
+//
+//        for (String targetClass : targetClasses) {
+//
+//            ClassInfo classInfo = sessionWeaveInfo.getClassInfoByName(targetClass.replaceAll("\\" +
+//                    ".", "/"));
+//
+//
+//            List<DataInfo> classProbes = sessionWeaveInfo.getProbesByClassId(classInfo.getClassId());
+//
+//            System.out.println("## " + classInfo.getClassName());
+//
+//            for (int i = 0; i < classProbes.size(); i++) {
+//                DataInfo classProbe = classProbes.get(i);
+//
+//                System.out.println("#" + i + ": " + classProbe.getDataId() + " [" + classProbe.getEventType() + "] on line ["
+//                        + classProbe.getLine() + "] -> " + classProbe.getAttributes());
+//
+//            }
+//
+//
+//        }
+//
+//    }
 
     void testMono() {
 
@@ -436,6 +436,9 @@ public class TestCaseServiceTest {
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        if (sessions.getItems().size() == 0) {
+            return;
+        }
         ExecutionSession session = sessions.getItems().get(0);
         SessionInstance sessionInstance = new SessionInstance(session);
         client.setSessionInstance(sessionInstance);
@@ -489,6 +492,9 @@ public class TestCaseServiceTest {
         VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
+        if (sessions.getItems().size() == 0) {
+            return;
+        }
         ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session));
         client.getSessionInstance().scanDataAndBuildReplay();
