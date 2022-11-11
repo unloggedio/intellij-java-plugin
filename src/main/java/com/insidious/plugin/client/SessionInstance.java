@@ -2337,8 +2337,8 @@ public class SessionInstance {
                                 dataEvent = createDataEventFromBlock(fileThreadId, eventBlock);
                                 MethodCallExpression currentMethodCallExpression = callStack.get(callStack.size() - 1);
                                 isModified = false;
-                                if (existingParameter.getValue() != 0 || existingParameter.getType() == null || existingParameter.getType()
-                                        .endsWith(".Object")) {
+                                if (existingParameter.getValue() != 0 || (existingParameter.getType() == null || existingParameter.getType()
+                                        .endsWith(".Object"))) {
                                     existingParameter.setType(ClassTypeUtils.getDottedClassName(
                                             ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
                                     // TODO: This is getting ugly, but
@@ -2680,8 +2680,8 @@ public class SessionInstance {
 
                                 isModified = false;
                                 saveProbe = true;
-                                if (existingParameter.getValue() != 0 || existingParameter.getType() == null || existingParameter.getType()
-                                        .endsWith(".Object")) {
+                                if (existingParameter.getValue() != 0 && (existingParameter.getType() == null || existingParameter.getType()
+                                        .endsWith(".Object"))) {
                                     existingParameter.setProbeInfo(probeInfo);
                                     existingParameter.setProb(dataEvent);
                                     saveProbe = true;
@@ -2752,7 +2752,7 @@ public class SessionInstance {
                                 existingProbes.add(probeInfo.getDataId());
                             }
                         }
-                        if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
+                                if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
                             parameterContainer.add(existingParameter);
                         }
                     }
