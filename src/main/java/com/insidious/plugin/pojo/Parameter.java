@@ -225,22 +225,6 @@ public class Parameter {
         this.creatorExpression = createrExpression;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        Parameter parameter = (Parameter) o;
-
-//        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
-        return type != null ? type.equals(parameter.type) : parameter.type == null;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, type);
-    }
-
     public FieldSpec.Builder toFieldSpec() {
         String fieldType = getType();
         if (fieldType.contains("$")) {
