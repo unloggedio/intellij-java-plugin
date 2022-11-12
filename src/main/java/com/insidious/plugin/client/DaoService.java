@@ -36,7 +36,7 @@ public class DaoService {
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ? and (mc.methodAccess & 1 == 1)\n" +
+            "where p.type = ? and (mc.methodAccess & 1 == 1) and mc.returnValue_id != 0\n" +
             "and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";

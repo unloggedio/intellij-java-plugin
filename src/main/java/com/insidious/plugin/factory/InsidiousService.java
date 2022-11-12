@@ -1229,12 +1229,43 @@ public class InsidiousService implements Disposable {
             dirPath.mkdirs();
         }
 
+        // yikes right
+        try {
+
+
+            String oldFolderPath = project.getBasePath() + "/src/test/java/io.unlogged";
+            String oldFilePath = project.getBasePath() + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
+            File oldFolder = Path.of(oldFolderPath).toFile();
+            File oldUtilFile = Path.of(oldFilePath).toFile();
+            if (oldUtilFile.exists()) {
+                @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath()).toUri().toString());
+                oldUtilFile.delete();
+                oldFolder.delete();
+                if (oldFileInstance != null) {
+                    oldFileInstance.refresh(true, false);
+                }
+                @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath()).toUri().toString());
+                if (oldFolderInstance != null) {
+                    oldFolderInstance.refresh(true, false);
+                }
+
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Failed to delete the old version of the file: " + e.getMessage());
+            // this is absolutely almost a mess
+        }
+
         String utilFilePath = testOutputDirPath + "/UnloggedTestUtils.java";
         File utilFile = new File(utilFilePath);
         if (utilFile.exists()) {
             // util file already exist
             return;
         }
+
+
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass().getClassLoader()
                     .getResourceAsStream("code/UnloggedTestUtil.java");
@@ -1243,6 +1274,8 @@ public class InsidiousService implements Disposable {
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
                 .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath()).toUri().toString());
+
+        newFile.refresh(true, false);
 
 //        @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
 //        @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
