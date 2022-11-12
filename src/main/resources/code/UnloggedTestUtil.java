@@ -31,6 +31,11 @@ public class UnloggedTestUtils {
         readFileJson();
     }
 
+    public static void loadResources(Class<?> className, String patientLeadService) throws IOException {
+        testResourceFilePath = UNLOGGED_FIXTURES_PATH + className.getSimpleName() + "/" + patientLeadService + ".json";
+        readFileJson();
+    }
+
     public static void readFileJson() throws IOException {
         InputStream inputStream = UnloggedTestUtils.class.getClassLoader().getResourceAsStream(testResourceFilePath);
         assert inputStream != null;
@@ -39,6 +44,13 @@ public class UnloggedTestUtils {
     }
 
     public static <T> T ValueOf(String key, Type type) {
+        if (!sourceObject.keySet().contains(key)) {
+            return null;
+        }
+        return gson.fromJson(sourceObject.get(key).toString(), type);
+    }
+
+    public static <T> T valueOf(String key, Type type) {
         if (!sourceObject.keySet().contains(key)) {
             return null;
         }
