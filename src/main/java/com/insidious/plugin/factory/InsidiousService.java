@@ -1252,7 +1252,7 @@ public class InsidiousService implements Disposable {
                 }
 
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             logger.error("Failed to delete the old version of the file: " + e.getMessage());
             // this is absolutely almost a mess

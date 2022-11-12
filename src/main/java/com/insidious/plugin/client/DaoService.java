@@ -820,6 +820,17 @@ public class DaoService {
     public void createOrUpdateParameter(List<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
             for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
+                Parameter existingParameter = parameterDao.queryForId(parameter.getValue());
+                if (existingParameter != null) {
+                    String[] existingNames = existingParameter.getNames();
+                    List<String> newNames = parameter.getNamesList();
+                    for (String existingName : existingNames) {
+                        if (!newNames.contains(existingName)) {
+                            newNames.add(existingName);
+                        }
+                    }
+                }
+
                 Parameter e = Parameter.fromParameter(parameter);
                 parameterDao.createOrUpdate(e);
             }
