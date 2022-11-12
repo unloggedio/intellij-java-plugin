@@ -75,7 +75,8 @@ public class VariableContainer {
                 String newValueString = new String(newSerializedValue);
                 if (existingValueString.length() > 0 &&
                         newValueString.length() > 0 &&
-                        existingValueString.equals(newValueString)
+                        existingValueString.equals(newValueString) &&
+                        Objects.equals(parameter.getNameForUse(null), byValue.getNameForUse(null))
                 ) {
                     // existing value matches new value
                 } else {
