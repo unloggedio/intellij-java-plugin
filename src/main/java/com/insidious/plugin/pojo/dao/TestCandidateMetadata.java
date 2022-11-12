@@ -35,15 +35,13 @@ public class TestCandidateMetadata {
                 com.insidious.plugin.pojo.MethodCallExpression::getId).collect(Collectors.toList()));
 
         newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-                .map(e -> (long) e.getValue()).collect(Collectors.toList()));
+                .map(com.insidious.plugin.pojo.Parameter::getValue).collect(Collectors.toList()));
 
         newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
 
         newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression)
                 testCandidateMetadata.getMainMethod()));
 
-//        newCandidate.setVariables(testCandidateMetadata.getVariables().all()
-//                .stream().map(e -> (long) e.getValue()).collect(Collectors.toList()));
 
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(Math.toIntExact(testCandidateMetadata.getEntryProbeIndex()));
@@ -99,10 +97,6 @@ public class TestCandidateMetadata {
 
     public void setCallList(List<Long> callsList) {
         this.methodCallExpressions = Strings.join(callsList, ",");
-    }
-
-    public String getFullyQualifiedClassname() {
-        return getMainMethod().getSubject().getType();
     }
 
     public Parameter getTestSubject() {

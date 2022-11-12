@@ -111,7 +111,12 @@ public class VariableContainer {
     public boolean contains(String variableName) {
         return this.parameterList.stream()
                 .anyMatch(e ->
-                        e.getName() != null && e.getName().equals(variableName)
+                        {
+                            if (e.getName() == null) return false;
+                            if (e.getName().equals(variableName)) return true;
+                            String nameForUse = e.getNameForUse(null);
+                            return nameForUse == null || nameForUse.equals(variableName);
+                        }
                 );
     }
 

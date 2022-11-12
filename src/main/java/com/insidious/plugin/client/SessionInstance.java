@@ -1949,6 +1949,7 @@ public class SessionInstance {
 
         int currentFile = 0;
         int totalFileCount = 0;
+        String fieldType;
         while (threadsPending.size() > 0) {
 
             List<MethodCallExpression> callStack = new LinkedList<>();
@@ -2111,7 +2112,12 @@ public class SessionInstance {
                                 break;
 
                             case GET_STATIC_FIELD:
-                                callStack.get(callStack.size() - 1).setUsesFields(true);
+                                fieldType = ClassTypeUtils.getDottedClassName(
+                                        probeInfo.getAttribute("Type", null));
+                                if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
+                                } else {
+                                    callStack.get(callStack.size() - 1).setUsesFields(true);
+                                }
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null) {
                                     nameFromProbe = probeInfo.getAttribute("Name",
@@ -2161,7 +2167,13 @@ public class SessionInstance {
                                 existingParameter.setProb(dataEvent);
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
                                         .add(existingParameter);
-                                callStack.get(callStack.size() - 1).setUsesFields(true);
+                                fieldType = ClassTypeUtils.getDottedClassName(
+                                        probeInfo.getAttribute("Type", null));
+                                if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
+                                } else {
+
+                                    callStack.get(callStack.size() - 1).setUsesFields(true);
+                                }
                                 if (!isModified) {
                                     existingParameter = null;
                                 }

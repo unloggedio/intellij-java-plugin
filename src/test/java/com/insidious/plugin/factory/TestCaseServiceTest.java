@@ -446,11 +446,15 @@ public class TestCaseServiceTest {
 //                "com.repyute.helper.snaphrm.SnapHrmHelper", "createLendingProfile", true);
 
         List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
-                "com.ayu.cabeza.service.PatientLeadService",
-                "createLead", true);
+                "com.ayu.cabeza.service.LoyaltyCardService",
+                "generateCardForCustomer", true);
 
 //        List<TestCandidateMetadata> candidateList = testCaseService.getTestCandidatesForMethod(
 //                "com.repyute.service.paybooks.PaybooksService", "getLendingProfile", true);
+
+        if (candidateList.size() == 0) {
+            return;
+        }
 
         TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
         testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex());

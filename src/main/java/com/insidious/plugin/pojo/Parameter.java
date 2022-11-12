@@ -3,11 +3,7 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.TestGenerationState;
-import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -26,7 +22,6 @@ import java.util.stream.Collectors;
  * event also from where the information was identified
  */
 public class Parameter {
-    private final List<String> names = new LinkedList<>();
     private final VariableContainer variableContainer = new VariableContainer();
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
@@ -38,6 +33,7 @@ public class Parameter {
     String type;
     boolean exception;
     DataEventWithSessionId prob;
+    private List<String> names = new LinkedList<>();
     private String stringValue = null;
     private int index;
     private DataInfo dataInfo;
@@ -57,7 +53,7 @@ public class Parameter {
     @NotNull
     public static Parameter cloneParameter(Parameter parameter) {
         Parameter buildWithJson = new Parameter();
-        buildWithJson.setName(parameter.getName());
+        buildWithJson.setNamesList(new ArrayList<>(parameter.getNamesList()));
         buildWithJson.setTemplateMap(parameter.getTemplateMap());
         buildWithJson.setType(parameter.getType());
         buildWithJson.setContainer(parameter.isContainer());
@@ -141,6 +137,14 @@ public class Parameter {
             name = name.replace('$', 'D');
             this.names.add(0, name);
         }
+    }
+
+    public List<String> getNamesList() {
+        return names;
+    }
+
+    public void setNamesList(List<String> namesList) {
+        this.names = namesList;
     }
 
     public void clearNames() {
@@ -261,7 +265,8 @@ public class Parameter {
     }
 
     public void addName(String nameForParameter) {
-        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith("(") || nameForParameter.length() < 1) {
+        if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith(
+                "(") || nameForParameter.length() < 1) {
             return;
         }
         nameForParameter = nameForParameter.replace('$', 'D');

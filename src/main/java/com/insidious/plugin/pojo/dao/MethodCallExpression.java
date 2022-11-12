@@ -2,8 +2,6 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
-import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -28,15 +26,15 @@ public class MethodCallExpression {
 
     @DatabaseField
     private boolean usesFields;
-    @DatabaseField(foreign = true, index = true)
-    private Parameter subject;
+    @DatabaseField
+    private long subject_id;
 
-    @DatabaseField(foreign = true)
-    private ProbeInfo entryProbeInfo;
-    @DatabaseField(foreign = true)
-    private Parameter returnValue;
-    @DatabaseField(foreign = true)
-    private DataEventWithSessionId entryProbe;
+    @DatabaseField
+    private int entryProbeInfo_id;
+    @DatabaseField
+    private long returnValue_id;
+    @DatabaseField
+    private long entryProbe_id;
     @DatabaseField
     private int callStack;
     @DatabaseField(index = true)
@@ -52,14 +50,14 @@ public class MethodCallExpression {
 
     public MethodCallExpression(
             String methodName,
-            Parameter subject,
+            long subject,
             List<Long> arguments,
-            Parameter returnValue
+            long returnValue_id
     ) {
         this.methodName = methodName;
-        this.subject = subject;
+        this.subject_id = subject;
         this.arguments = Strings.join(arguments, ",");
-        this.returnValue = returnValue;
+        this.returnValue_id = returnValue_id;
     }
 
     public static MethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
@@ -67,19 +65,23 @@ public class MethodCallExpression {
             return null;
         }
 
+        com.insidious.plugin.pojo.Parameter returnValue1 = methodCallExpression.getReturnValue();
+        long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
+        com.insidious.plugin.pojo.Parameter subject1 = methodCallExpression.getSubject();
+        long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
         MethodCallExpression methodCallExpression1 = new MethodCallExpression(
                 methodCallExpression.getMethodName(),
-                Parameter.fromParameter(methodCallExpression.getSubject()),
+                subjectParameterValue,
                 methodCallExpression.getArguments()
                         .stream()
-                        .map(e1 -> (long) e1.getValue())
+                        .map(com.insidious.plugin.pojo.Parameter::getValue)
                         .collect(Collectors.toList()),
-                Parameter.fromParameter(methodCallExpression.getReturnValue())
+                returnParameterValue
         );
-        methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbe_id(methodCallExpression.getEntryProbe());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfo(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -95,7 +97,6 @@ public class MethodCallExpression {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
                 methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
         );
-        methodCallExpression1.setEntryProbe(methodCallExpression.getEntryProbe());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
@@ -113,24 +114,24 @@ public class MethodCallExpression {
         this.id = id;
     }
 
-    public ProbeInfo getEntryProbeInfo() {
-        return entryProbeInfo;
+    public int getEntryProbeInfo_id() {
+        return entryProbeInfo_id;
     }
 
-    public void setEntryProbeInfo(DataInfo entryProbeInfo) {
-        this.entryProbeInfo = ProbeInfo.FromProbeInfo(entryProbeInfo);
+    public void setEntryProbeInfo_id(DataInfo entryProbeInfo_id) {
+        this.entryProbeInfo_id = entryProbeInfo_id.getDataId();
     }
 
     public void setEntryProbeInfo(ProbeInfo entryProbeInfo) {
-        this.entryProbeInfo = entryProbeInfo;
+        this.entryProbeInfo_id = entryProbeInfo.getDataId();
     }
 
-    public Parameter getSubject() {
-        return subject;
+    public long getSubject() {
+        return subject_id;
     }
 
     public void setSubject(Parameter testSubject) {
-        this.subject = testSubject;
+        this.subject_id = testSubject.value;
     }
 
     public List<Long> getArguments() {
@@ -149,44 +150,16 @@ public class MethodCallExpression {
         this.arguments = arguments;
     }
 
-    public Parameter getReturnValue() {
-        return returnValue;
+    public long getReturnValue_id() {
+        return returnValue_id;
     }
 
-    public void setReturnValue(Parameter returnValue) {
-        this.returnValue = returnValue;
+    public void setReturnValue_id(Parameter returnValue_id) {
+        this.returnValue_id = returnValue_id.value;
     }
 
     public String getMethodName() {
         return methodName;
-    }
-
-    public Parameter getException() {
-        if (returnValue.getException()) {
-            return returnValue;
-        }
-        return null;
-    }
-
-    @Override
-    public String toString() {
-
-        String owner = null;
-        if (subject != null && subject.getProbeInfo() != null) {
-            String methodCallOwner = subject.getProbeInfo().getAttribute("Owner", null);
-            if (methodCallOwner != null) {
-                owner = "[" + methodCallOwner + "]";
-            }
-        }
-        String name = "";
-        if (subject != null) {
-            name = subject.getName() + ".";
-        }
-        return ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ?
-                "" : (returnValue.getName() + " [" + returnValue.getValue() + "]" + "  == ")) +
-                "[" + name + methodName + "(" + (arguments == null ? "0" : arguments.length()) + " arguments)" + "]" +
-                (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "") +
-                (owner == null ? "" : owner);
     }
 
     public void setIsStatic(boolean aStatic) {
@@ -201,12 +174,12 @@ public class MethodCallExpression {
         isStaticCall = staticCall;
     }
 
-    public DataEventWithSessionId getEntryProbe() {
-        return entryProbe;
+    public long getEntryProbe_id() {
+        return entryProbe_id;
     }
 
-    public void setEntryProbe(DataEventWithSessionId entryProbe) {
-        this.entryProbe = entryProbe;
+    public void setEntryProbe_id(DataEventWithSessionId entryProbe_id) {
+        this.entryProbe_id = entryProbe_id.getNanoTime();
     }
 
     public int getCallStack() {
@@ -248,6 +221,7 @@ public class MethodCallExpression {
     public void setReturnDataEvent(long returnDataEvent) {
         this.returnDataEvent = returnDataEvent;
     }
+
     public boolean getUsesFields() {
         return usesFields;
     }

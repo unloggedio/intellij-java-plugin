@@ -2,7 +2,6 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.pojo.ConstructorType;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -30,8 +29,8 @@ public class Parameter {
     String type;
     @DatabaseField
     boolean exception;
-    @DatabaseField(foreign = true)
-    DataEventWithSessionId prob;
+    @DatabaseField
+    long prob_id;
     /**
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
@@ -41,10 +40,10 @@ public class Parameter {
     private String stringValue;
     @DatabaseField
     private int index;
-    @DatabaseField(foreign = true)
-    private ProbeInfo probeInfo;
-    @DatabaseField(foreign = true)
-    private MethodCallExpression creatorExpression;
+    @DatabaseField
+    private int probeInfo_id;
+    @DatabaseField
+    private long creatorExpression_id;
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
 
@@ -56,7 +55,7 @@ public class Parameter {
         newParam.setContainer(e.isContainer());
         newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
         newParam.setException(e.getException());
-        newParam.setProb(e.getProb());
+        newParam.setProb_id(e.getProb());
         newParam.setType(e.getType());
         Map<String, com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
         Map<String, Parameter> transformedTemplateMap = new HashMap<>();
@@ -68,7 +67,7 @@ public class Parameter {
 
         newParam.setTemplateMap(transformedTemplateMap);
 //        newParam.setConstructorType(e.getConstructorType());
-        newParam.setProbeInfo(e.getProbeInfo());
+        newParam.setProbeInfo_id(e.getProbeInfo());
         newParam.setValue(e.getValue());
         return newParam;
     }
@@ -85,7 +84,6 @@ public class Parameter {
         newParam.setContainer(parameter.isContainer());
 //        newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
 //        newParam.setException(e.getException());
-        newParam.setProb(parameter.getProb());
         newParam.setType(parameter.getType());
         newParam.addNames(Arrays.asList(parameter.getNames()));
         Map<String, Parameter> templateMap1 = parameter.getTemplateMap();
@@ -135,8 +133,8 @@ public class Parameter {
                         (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
-                        ", probeInfo=" + probeInfo +
-                        ", prob=" + prob +
+                        ", probeInfo=" + probeInfo_id +
+                        ", prob=" + prob_id +
                         '}';
     }
 
@@ -178,15 +176,12 @@ public class Parameter {
         this.stringValue = value;
     }
 
-    public DataEventWithSessionId getProb() {
-        return prob;
+    public long getProb_id() {
+        return prob_id;
     }
 
-    public void setProb(DataEventWithSessionId prob) {
-        this.prob = prob;
-        if (value == null && prob != null) {
-            value = prob.getValue();
-        }
+    public void setProb_id(DataEventWithSessionId prob_id) {
+        this.prob_id = prob_id.getNanoTime();
     }
 
     public int getIndex() {
@@ -197,12 +192,12 @@ public class Parameter {
         this.index = index;
     }
 
-    public ProbeInfo getProbeInfo() {
-        return probeInfo;
+    public int getProbeInfo_id() {
+        return probeInfo_id;
     }
 
-    public void setProbeInfo(DataInfo probeInfo) {
-        this.probeInfo = ProbeInfo.FromProbeInfo(probeInfo);
+    public void setProbeInfo_id(DataInfo probeInfo_id) {
+        this.probeInfo_id = probeInfo_id.getDataId();
     }
 
 //    public ConstructorType getConstructorType() {
@@ -213,13 +208,15 @@ public class Parameter {
 //        this.constructorType = constructorType;
 //    }
 
-    public MethodCallExpression getCreatorExpression() {
-        return creatorExpression;
+    public long getCreatorExpression_id() {
+        return creatorExpression_id;
     }
 
     public void setCreator(MethodCallExpression createrExpression) {
-
-        this.creatorExpression = createrExpression;
+        if (createrExpression == null) {
+            return;
+        }
+        this.creatorExpression_id = createrExpression.getId();
     }
 
     @Override

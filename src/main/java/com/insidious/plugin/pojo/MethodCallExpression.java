@@ -472,6 +472,10 @@ public class MethodCallExpression implements Expression {
         this.argumentProbes = argumentProbes;
     }
 
+    public void setArguments(List<Parameter> arguments) {
+        this.arguments = arguments;
+    }
+
     public void addArgument(Parameter existingParameter) {
         arguments.add(existingParameter);
     }

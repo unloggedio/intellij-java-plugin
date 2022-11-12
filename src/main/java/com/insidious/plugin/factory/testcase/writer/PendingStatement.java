@@ -434,6 +434,7 @@ public class PendingStatement {
                 DataEventWithSessionId prob = new DataEventWithSessionId();
                 prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
                 buildWithJson.setProb(prob);
+                buildWithJson.clearNames();
                 buildWithJson.setName(nameForObject);
 
                 this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
