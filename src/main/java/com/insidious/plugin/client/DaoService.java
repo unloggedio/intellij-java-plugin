@@ -323,84 +323,82 @@ public class DaoService {
                 methodCallExpression.setArgumentProbes(argumentProbes);
 
 
-                if (dbMce.getReturnValue_id() != 0) {
-                    com.insidious.plugin.pojo.Parameter returnParam;
-                    returnParam = parameterMap.get(dbMce.getReturnValue_id());
-                    if (returnParam == null) {
-                        returnParam = new com.insidious.plugin.pojo.Parameter();
-                    } else {
-                        returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
-                    }
-                    methodCallExpression.setReturnValue(returnParam);
-
-                    DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
-                    returnParam.setProb(returnDataEvent);
-                    DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
-                    returnParam.setProbeInfo(eventProbe);
-                    String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
-                    if (typeFromProbe != null) {
-                        returnParam.setTypeForced(typeFromProbe);
-                    }
-
-                    if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
-                        switch (returnParam.getType()) {
-                            case "okhttp3.Response":
-                                List<com.insidious.plugin.pojo.MethodCallExpression> callsOnReturnParameter =
-                                        this.getMethodCallExpressionOnParameter(returnParam.getValue());
-
-                                Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
-                                        = callsOnReturnParameter
-                                        .stream()
-                                        .filter(e -> e.getMethodName().equals("body"))
-                                        .findFirst();
-
-                                if (bodyResponseParameter.isEmpty()) {
-                                    throw new RuntimeException("expecting a body call on the " +
-                                            "return parameter okhttp3.Response was not found");
-                                }
-                                com.insidious.plugin.pojo.MethodCallExpression bodyParameter =
-                                        bodyResponseParameter.get();
-
-                                // we need the return value on this return parameter which is going to be the actual body
-                                // since the ResponseBody is also not serializable
-                                List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
-                                        this.getMethodCallExpressionOnParameter(
-                                                bodyParameter.getReturnValue().getValue());
-                                if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName()
-                                        .equals("string")) {
-                                    // we wanted the return value from the "string" call on ResponseBody
-                                    // but, we did not find that method call, so we cannot reconstruct the response from the
-                                    // http call, so just throw for now until we come across a real scenario where
-                                    // this is happening
-                                    throw new RuntimeException("expected 'string' call on the ResponseBody " +
-                                            "object was not found - " + methodCallExpression);
-                                }
-
-                                com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
-
-                                VariableContainer variableContainer = VariableContainer.from(
-                                        List.of(stringCall.getReturnValue())
-                                );
-
-                                // TODO: also use header and code method call response to create more accurate response
-
-                                com.insidious.plugin.pojo.MethodCallExpression buildOkHttpResponseFromString =
-                                        MethodCallExpressionFactory.MethodCallExpression(
-                                                "buildOkHttpResponseFromString",
-                                                null, variableContainer, returnParam);
-
-                                returnParam.setCreator(buildOkHttpResponseFromString);
-                                break;
-                            default:
-                                // now we can end up in this call recursively
-                                // so instead of throwing, lets return ?
-                                break;
-//                            throw new RuntimeException("return value serialized value is empty - " + convertedCallExpression);
-                        }
-                    }
-
-                    methodCallExpression.setReturnDataEvent(returnDataEvent);
+                com.insidious.plugin.pojo.Parameter returnParam;
+                returnParam = parameterMap.get(dbMce.getReturnValue_id());
+                if (returnParam == null) {
+                    returnParam = new com.insidious.plugin.pojo.Parameter();
+                } else {
+                    returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
                 }
+                methodCallExpression.setReturnValue(returnParam);
+
+                DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
+                returnParam.setProb(returnDataEvent);
+                DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
+                returnParam.setProbeInfo(eventProbe);
+                String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
+                if (typeFromProbe != null) {
+                    returnParam.setTypeForced(typeFromProbe);
+                }
+
+                if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
+                    switch (returnParam.getType()) {
+                        case "okhttp3.Response":
+                            List<com.insidious.plugin.pojo.MethodCallExpression> callsOnReturnParameter =
+                                    this.getMethodCallExpressionOnParameter(returnParam.getValue());
+
+                            Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
+                                    = callsOnReturnParameter
+                                    .stream()
+                                    .filter(e -> e.getMethodName().equals("body"))
+                                    .findFirst();
+
+                            if (bodyResponseParameter.isEmpty()) {
+                                throw new RuntimeException("expecting a body call on the " +
+                                        "return parameter okhttp3.Response was not found");
+                            }
+                            com.insidious.plugin.pojo.MethodCallExpression bodyParameter =
+                                    bodyResponseParameter.get();
+
+                            // we need the return value on this return parameter which is going to be the actual body
+                            // since the ResponseBody is also not serializable
+                            List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
+                                    this.getMethodCallExpressionOnParameter(
+                                            bodyParameter.getReturnValue().getValue());
+                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName()
+                                    .equals("string")) {
+                                // we wanted the return value from the "string" call on ResponseBody
+                                // but, we did not find that method call, so we cannot reconstruct the response from the
+                                // http call, so just throw for now until we come across a real scenario where
+                                // this is happening
+                                throw new RuntimeException("expected 'string' call on the ResponseBody " +
+                                        "object was not found - " + methodCallExpression);
+                            }
+
+                            com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
+
+                            VariableContainer variableContainer = VariableContainer.from(
+                                    List.of(stringCall.getReturnValue())
+                            );
+
+                            // TODO: also use header and code method call response to create more accurate response
+
+                            com.insidious.plugin.pojo.MethodCallExpression buildOkHttpResponseFromString =
+                                    MethodCallExpressionFactory.MethodCallExpression(
+                                            "buildOkHttpResponseFromString",
+                                            null, variableContainer, returnParam);
+
+                            returnParam.setCreator(buildOkHttpResponseFromString);
+                            break;
+                        default:
+                            // now we can end up in this call recursively
+                            // so instead of throwing, lets return ?
+                            break;
+//                            throw new RuntimeException("return value serialized value is empty - " + convertedCallExpression);
+                    }
+                }
+
+                methodCallExpression.setReturnDataEvent(returnDataEvent);
 
                 methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
                 methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
