@@ -57,7 +57,7 @@ public class CandidateMetadataFactory {
                     continue;
                 }
                 if (e.getReturnValue() == null) {
-                    logger.warn("MCE to mock without a return value - " + e);
+                    logger.info("MCE to mock without a return value - " + e);
                     continue;
                 }
                 if (e.isStaticCall() && e.getUsesFields()) {

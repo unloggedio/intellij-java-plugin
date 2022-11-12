@@ -55,9 +55,9 @@ public class ObjectRoutineContainer {
         for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
 
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
-                continue;
-            }
+//            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
+//                continue;
+//            }
             if (methodInfo.getMethodName().equals("<init>")) {
                 constructor.setTestCandidateList(testCandidateMetadata);
             } else {

@@ -69,7 +69,6 @@ public class DaoService {
     private final Dao<ArchiveFile, Long> archiveFileDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
-    private final Dao<TypeInfo, Integer> typeInfoDao;
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
@@ -82,7 +81,6 @@ public class DaoService {
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
-        typeInfoDao = DaoManager.createDao(connectionSource, TypeInfo.class);
 
     }
 
@@ -777,14 +775,6 @@ public class DaoService {
                 .collect(Collectors.toList());
     }
 
-    public Map<String, Long> getTypesMap() throws SQLException {
-        return typeInfoDao.queryBuilder()
-                .selectColumns("id", "name")
-                .query()
-                .stream()
-                .collect(Collectors.toMap(TypeInfo::getName, TypeInfo::getId));
-    }
-
     public void createOrUpdateCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
         try {
             methodCallExpressionDao.create(
@@ -1029,9 +1019,5 @@ public class DaoService {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-    }
-
-    public void createType(TypeInfo typeInfoForDb) throws SQLException {
-        typeInfoDao.create(typeInfoForDb);
     }
 }

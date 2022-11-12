@@ -230,8 +230,6 @@ public class SessionInstance {
         AtomicInteger counter = new AtomicInteger(0);
         final long totalClassCount = classWeaveInfo.classCount();
         classWeaveInfo.classInfo().forEach(classInfo -> {
-//            logger.warn("Reading class info: " + classInfo.classId());
-//            checkProgressIndicator(null, "Loading " + classInfo.probeCount() + " probes in class: " + classInfo.className());
             int current = counter.addAndGet(1);
             checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
 
@@ -241,7 +239,6 @@ public class SessionInstance {
             }
 
             ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
-            classInfoIndex.put(classInfo1.getClassId(), classInfo1);
 
 
             final String className = classInfo.className().value();
@@ -249,6 +246,18 @@ public class SessionInstance {
             Map<Integer, MethodInfo> methodInfoMap = classInfo.methodList().stream()
                     .map(methodInfo -> KaitaiUtils.toMethodInfo(methodInfo, className))
                     .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
+            boolean isEnum = false;
+            for (MethodInfo methodInfo : methodInfoMap.values()) {
+                if (methodInfo.getMethodName().equals("values")
+                        && methodInfo.getMethodDesc().equals("()[L" + methodInfo.getClassName() + ";")
+                        && methodInfo.getAccess() == 9) {
+                    isEnum = true;
+                }
+            }
+            classInfo1.setEnum(isEnum);
+            classInfoIndex.put(classInfo1.getClassId(), classInfo1);
+
+
             methodInfoIndex.putAll(methodInfoMap);
 
             Map<Integer, DataInfo> probesMap = classInfo.probeList().stream().map(KaitaiUtils::toDataInfo)
@@ -2116,7 +2125,10 @@ public class SessionInstance {
                                         probeInfo.getAttribute("Type", null));
                                 if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
                                 } else {
-                                    callStack.get(callStack.size() - 1).setUsesFields(true);
+                                    ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                                    if (!classInfo.isEnum()) {
+                                        callStack.get(callStack.size() - 1).setUsesFields(true);
+                                    }
                                 }
                                 existingParameter = parameterContainer.getParameterByValue(eventValue);
                                 if (existingParameter != null) {
@@ -2171,8 +2183,10 @@ public class SessionInstance {
                                         probeInfo.getAttribute("Type", null));
                                 if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
                                 } else {
-
-                                    callStack.get(callStack.size() - 1).setUsesFields(true);
+                                    ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                                    if (!classInfo.isEnum()) {
+                                        callStack.get(callStack.size() - 1).setUsesFields(true);
+                                    }
                                 }
                                 if (!isModified) {
                                     existingParameter = null;

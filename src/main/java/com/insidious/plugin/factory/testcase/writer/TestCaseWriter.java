@@ -124,11 +124,15 @@ public class TestCaseWriter {
                     }
                 }
 
-                parameterStringBuilder.append("eq(" + compareAgainst + ")");
+                parameterStringBuilder.append("eq(").append(compareAgainst).append(")");
             } else {
-                parameterStringBuilder.append("any(" +
-                        ClassTypeUtils.getJavaClassName(parameterType)
-                        + ".class)");
+                if (parameter.getValue() == 0) {
+                    parameterStringBuilder.append("any()");
+                } else {
+                    parameterStringBuilder.append("any(")
+                            .append(ClassTypeUtils.getJavaClassName(parameterType))
+                            .append(".class)");
+                }
             }
 
 
