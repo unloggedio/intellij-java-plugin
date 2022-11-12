@@ -154,9 +154,9 @@ public class CandidateMetadataFactory {
                     // but this call which return an array should not be mocked
                     // probably need to exclude calls from inside of <clinit>
                     Parameter returnValue = methodCallExpression.getReturnValue();
-                    if (returnValue.getName() == null) {
-                        continue;
-                    }
+//                    if (returnValue.getName() == null) {
+//                        continue;
+//                    }
 
 
                     Parameter staticCallSubjectMockInstance = methodCallExpression.getSubject();
