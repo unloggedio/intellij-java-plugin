@@ -77,10 +77,7 @@ import org.json.JSONObject;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -92,6 +89,8 @@ import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
@@ -475,26 +474,27 @@ public class InsidiousService implements Disposable {
             currentModule = ModuleManager.getInstance(project).getModules()[0];
         }
 
+        String currentModuleName = currentModule.getName();
         try {
-            logger.info("try to set project to - " + currentModule.getName());
-            client.setProject(currentModule.getName());
+            logger.info("try to set project to - " + currentModuleName);
+            client.setProject(currentModuleName);
             generateAppToken();
         } catch (ProjectDoesNotExistException e1) {
-            createProject(currentModule.getName(), new NewProjectCallback() {
+            createProject(currentModuleName, new NewProjectCallback() {
                 @Override
                 public void error(String errorMessage) {
 
                     logger.error("failed to create project - {}", errorMessage);
 
                     InsidiousNotification.notifyMessage(
-                            "Failed to create new project for [" + currentModule.getName() + "] on server [" + insidiousConfiguration.serverUrl,
+                            "Failed to create new project for [" + currentModuleName + "] on server [" + insidiousConfiguration.serverUrl,
                             NotificationType.ERROR);
 
                 }
 
                 @Override
                 public void success(String projectId) {
-                    logger.info("created new project for " + currentModule.getName() + " -> " + projectId);
+                    logger.info("created new project for " + currentModuleName + " -> " + projectId);
                     ApplicationManager.getApplication().invokeLater(() -> setupProject());
                 }
             });
@@ -1261,8 +1261,17 @@ public class InsidiousService implements Disposable {
         String utilFilePath = testOutputDirPath + "/UnloggedTestUtils.java";
         File utilFile = new File(utilFilePath);
         if (utilFile.exists()) {
+            String utilFileContents = IOUtils.toString(new FileInputStream(utilFile), StandardCharsets.UTF_8);
+            Pattern versionCaptureRegex = Pattern.compile("UnloggedTestUtils.Version: V([0-9]+)");
+            Matcher versionMatcher = versionCaptureRegex.matcher(utilFileContents);
+            if (versionMatcher.find()) {
+                int version = Integer.parseInt(versionMatcher.group(1));
+                if (version == 1) {
+                    return;
+                }
+            }
             // util file already exist
-            return;
+            utilFile.delete();
         }
 
 
