@@ -19,6 +19,16 @@ public class TestCandidateMetadata {
     private long entryProbeIndex;
     private long exitProbeIndex;
 
+    private boolean isUIselected = false;
+
+    public boolean isUIselected() {
+        return isUIselected;
+    }
+
+    public void setUIselected(boolean UIselected) {
+        isUIselected = UIselected;
+    }
+
     public long getExitProbeIndex() {
         return exitProbeIndex;
     }
