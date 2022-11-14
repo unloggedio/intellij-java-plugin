@@ -63,7 +63,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
         this.selectSession.addActionListener(selectSessionActionListener());
 
-        cellRenderer = new VideobugTreeCellRenderer(insidiousService);
+        cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
