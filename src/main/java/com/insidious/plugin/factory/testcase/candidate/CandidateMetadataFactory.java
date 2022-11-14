@@ -42,6 +42,7 @@ public class CandidateMetadataFactory {
     ) {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer());
 
+        Parameter testTarget = testConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
 
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
 
@@ -63,6 +64,11 @@ public class CandidateMetadataFactory {
                 if (e.isStaticCall() && e.getUsesFields()) {
                     // all static calls need to be mocked
                     // even if they have no return value
+                    if (e.getSubject().getType().equals(testTarget.getType())) {
+                        // we do not want to mock static calls on the class itself being tested
+                        // since we most likely have injected all the fields anyways
+                        continue;
+                    }
                     staticCallsList.add(e);
                     continue;
                 }
