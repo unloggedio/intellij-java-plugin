@@ -18,18 +18,12 @@ public class SingleWindowView {
     public static final String CLASSES_LABEL = "Classes";
     private final Project project;
     private final InsidiousService insidiousService;
-    private final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
-    private final VideobugTreeCellRenderer cellRenderer;
+    private static final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
     private final GridConstraints constraints;
-    private VideobugTreeModel treeModel;
     private JButton refreshButton;
     private JPanel mainPanel;
     private JPanel filterPanel;
-//    private JSplitPane resultPanel;
-//    private JPanel infoPanel;
     private JPanel eventViewerPanel;
-    private SingleClassInfoWindow informationPanel;
-//    private JScrollPane detailedView;
     private EventLogWindow eventViewer;
 
     public SingleWindowView(Project project, InsidiousService insidiousService) {
@@ -50,9 +44,6 @@ public class SingleWindowView {
 //        mainTree.addTreeSelectionListener(SingleWindowView.this);
 //        treeModel = new VideobugTreeModel(insidiousService);
 //        mainTree.setModel(treeModel);
-
-
-        cellRenderer = new VideobugTreeCellRenderer(insidiousService);
 
 //        mainTree.setCellRenderer(cellRenderer);
 //        TreeUtil.installActions(mainTree);

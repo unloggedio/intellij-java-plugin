@@ -1468,27 +1468,6 @@ public class SessionInstance {
         List<MethodInfo> methodInfoList = new LinkedList<>();
         List<DataInfo> dataInfoList = new LinkedList<>();
 
-
-//        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
-//            i += 1;
-//            checkProgressIndicator(null,
-//                    "Parsing class [ " + i + " of " + classInfoList.size() + " ]");
-//            ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
-//            classInfoList.add(classInfoContainer);
-//
-//            classInfo.methodList()
-//                    .stream().map(e1 -> KaitaiUtils.toMethodInfo(e1,
-//                            classInfo.className().value()))
-//                    .forEach(methodInfoList::add);
-//
-//            classInfo.probeList()
-//                    .stream()
-//                    .filter(e -> !Objects.equals(e.eventType().name(), EventType.RESERVED.toString()))
-//                    .map(KaitaiUtils::toDataInfo)
-//                    .forEach(dataInfoList::add);
-//
-//        }
-
         return new ClassWeaveInfo(classInfoList, methodInfoList, dataInfoList);
     }
 
