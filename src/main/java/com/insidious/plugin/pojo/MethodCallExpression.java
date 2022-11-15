@@ -39,6 +39,8 @@ public class MethodCallExpression implements Expression {
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
 
+    private boolean isUIselected = false;
+
     public MethodCallExpression() {
     }
 
@@ -53,6 +55,14 @@ public class MethodCallExpression implements Expression {
         this.arguments = arguments;
         this.returnValue = returnValue;
         this.callStack = size;
+    }
+
+    public boolean isUIselected() {
+        return isUIselected;
+    }
+
+    public void setUIselected(boolean UIselected) {
+        isUIselected = UIselected;
     }
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {

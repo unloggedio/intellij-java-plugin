@@ -6,6 +6,7 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
+import org.antlr.v4.runtime.tree.Tree;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -16,8 +17,12 @@ import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class TestCandidateCustomizeView {
 
@@ -58,41 +63,119 @@ public class TestCandidateCustomizeView {
         cellRenderer = new CustomizeViewTreeCellRenderer();
         this.testCandidateTree.setCellRenderer(cellRenderer);
 
-        //removeDefaultSelectionListeners();
         this.testCandidateTree.setToggleClickCount(0);
-        this.testCandidateTree.addTreeWillExpandListener(treeWillExpandListener);
-        this.testCandidateTree.setSelectionModel(new CustomCheckboxSelectionModel(candidateTree,testGenerationConfiguration));
         setDefaultSelection();
-
         setDocumentationText();
         setDividerColor();
+
+        this.testCandidateTree.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent me) {
+                handleSelections(me);
+            }
+        });
 
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
 
-//    private void removeDefaultSelectionListeners()
-//    {
-//        TreeSelectionListener[] listeners = this.testCandidateTree.getTreeSelectionListeners();
-//        for (int i=0;i<listeners.length;i++)
-//        {
-//            //System.out.println("Listener - "+i+", "+listeners[i].toString());
-//            this.testCandidateTree.removeTreeSelectionListener(listeners[i]);
-//        }
-//    }
+    private void handleSelections(MouseEvent me)
+    {
+        TreePath lastPath = this.testCandidateTree.getPathForLocation(me.getX(), me.getY());
+        if(lastPath==null)
+        {
+            return;
+        }
+        if(lastPath.getPathCount()==2)
+        {
+            TestCandidateMetadata metadata = (TestCandidateMetadata) lastPath.getLastPathComponent();
+            metadata.setUIselected(!metadata.isUIselected());
+            if(this.testGenerationConfiguration.getTestCandidateMetadataList().contains(metadata))
+            {
+                if(!metadata.isUIselected())
+                {
+                    this.testGenerationConfiguration.getTestCandidateMetadataList().remove(metadata);
+                }
+            }
+            else
+            {
+                if(metadata.isUIselected())
+                {
+                    this.testGenerationConfiguration.getTestCandidateMetadataList().add(metadata);
+                }
+            }
+            bulkSetCallStatus(metadata,metadata.isUIselected());
+        }
+        else if(lastPath.getPathCount()==3)
+        {
+            MethodCallExpression mce = (MethodCallExpression) lastPath.getLastPathComponent();
+            mce.setUIselected(!mce.isUIselected());
+            if(this.testGenerationConfiguration.getCallExpressionList().contains(mce))
+            {
+                if(!mce.isUIselected())
+                {
+                    this.testGenerationConfiguration.getCallExpressionList().remove(mce);
+                }
+            }
+            else
+            {
+                if(mce.isUIselected())
+                {
+                    this.testGenerationConfiguration.getCallExpressionList().add(mce);
+                }
+            }
+        }
+        refreshTree();
+        this.testCandidateTree.scrollPathToVisible(lastPath);
+    }
+
+    private void bulkSetCallStatus(TestCandidateMetadata metadata, boolean status)
+    {
+        List<MethodCallExpression> calls = metadata.getCallsList();
+        for(MethodCallExpression call : calls)
+        {
+            call.setUIselected(status);
+            if(this.testGenerationConfiguration.getCallExpressionList().contains(call))
+            {
+                this.testGenerationConfiguration.getCallExpressionList().remove(call);
+            }
+            else
+            {
+                this.testGenerationConfiguration.getCallExpressionList().add(call);
+            }
+        }
+    }
+
+    private void refreshTree()
+    {
+        List<TreePath> paths = Arrays.asList(this.testCandidateTree.getSelectionPaths());
+        if(paths.contains(this.testCandidateTree.getPathForRow(0)))
+        {
+            this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
+        }
+        else
+        {
+            this.testCandidateTree.addSelectionPath(this.testCandidateTree.getPathForRow(0));
+            this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
+        }
+    }
 
     private void setDefaultSelection() {
         int level1_rowcount = this.testCandidateTree.getRowCount();
         try {
-            TreePath firstCandidate = this.testCandidateTree.getPathForRow(1);
-            TreePath lastCandidate = this.testCandidateTree.getPathForRow(level1_rowcount - 1);
-            this.testCandidateTree.addSelectionPaths(new TreePath[]{firstCandidate, lastCandidate});
+            TestCandidateMetadata firstCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(1).getLastPathComponent();
+            TestCandidateMetadata lastCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(level1_rowcount - 1).getLastPathComponent();
+            firstCandidate.setUIselected(true);
+            lastCandidate.setUIselected(true);
+            this.testGenerationConfiguration.getTestCandidateMetadataList().add(firstCandidate);
+            this.testGenerationConfiguration.getTestCandidateMetadataList().add(lastCandidate);
+            bulkSetCallStatus(firstCandidate,firstCandidate.isUIselected());
+            bulkSetCallStatus(lastCandidate,lastCandidate.isUIselected());
 
+            //refreshTree();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Exception selecting default candidate nodes");
         }
-        //selection model selects all calls under candidate, no need to explicitly select them anymore
     }
 
     private void printSelections() {
@@ -123,13 +206,12 @@ public class TestCandidateCustomizeView {
 
         List<TestCandidateMetadata> fallback= this.testGenerationConfiguration.getTestCandidateMetadataList();
         refCandidates_order.removeIf(p -> !fallback.contains(p));
-//        System.out.println("[Sorted] "+refCandidates_order.toString());
         this.testGenerationConfiguration.setTestCandidateMetadataList(refCandidates_order);
     }
 
     private void generateWithSelectedOptions() {
-        printConfigDetails();
         sortCandidates();
+        printConfigDetails();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {
@@ -170,19 +252,5 @@ public class TestCandidateCustomizeView {
             }
         });
     }
-
-    TreePath[] fallBackPaths = null;
-    TreeWillExpandListener treeWillExpandListener = new TreeWillExpandListener() {
-        public void treeWillCollapse(TreeExpansionEvent treeExpansionEvent) {
-            fallBackPaths = testCandidateTree.getSelectionPaths();
-        }
-
-        public void treeWillExpand(TreeExpansionEvent treeExpansionEvent) {
-            if(fallBackPaths!=null)
-            {
-                testCandidateTree.setSelectionPaths(fallBackPaths);
-            }
-        }
-    };
 }
 

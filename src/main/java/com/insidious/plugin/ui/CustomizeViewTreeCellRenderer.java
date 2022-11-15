@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.intellij.openapi.util.IconLoader;
 
 import javax.swing.*;
@@ -48,11 +49,7 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
         String stringValue = tree.convertValueToText(value, selected,
                     expanded, leaf, row, false);
         checkboxRenderer.setText(stringValue);
-        checkboxRenderer.setSelected(false);
-
         checkboxRenderer.setEnabled(tree.isEnabled());
-
-        checkboxRenderer.setSelected(selected);
             if (selected) {
                 checkboxRenderer.setForeground(selectionForeground);
                 checkboxRenderer.setBackground(selectionBackground);
@@ -63,14 +60,10 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
 
             if(leaf)
             {
-                if ((value != null) && (value instanceof DefaultMutableTreeNode)) {
-                    Object userObject = ((DefaultMutableTreeNode) value)
-                            .getUserObject();
-                    if (userObject instanceof CheckBoxNode) {
-                        CheckBoxNode node = (CheckBoxNode) userObject;
-                        checkboxRenderer.setText(node.getText());
-                        checkboxRenderer.setSelected(node.isSelected());
-                    }
+                if(value != null && value instanceof MethodCallExpression)
+                {
+                    boolean isSelected = ((MethodCallExpression) value).isUIselected();
+                    checkboxRenderer.setSelected(isSelected);
                 }
                 returnValue = checkboxRenderer;
             }
@@ -78,14 +71,10 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
             {
                 if(value instanceof TestCandidateTreeModel.RootNode == false) //not root
                 {
-                    if ((value != null) && (value instanceof DefaultMutableTreeNode)) {
-                        Object userObject = ((DefaultMutableTreeNode) value)
-                                .getUserObject();
-                        if (userObject instanceof CheckBoxNode) {
-                            CheckBoxNode node = (CheckBoxNode) userObject;
-                            checkboxRenderer.setText(node.getText());
-                            checkboxRenderer.setSelected(node.isSelected());
-                        }
+                    if(value instanceof TestCandidateMetadata)
+                    {
+                        boolean isSelected= ((TestCandidateMetadata) value).isUIselected();
+                        checkboxRenderer.setSelected(isSelected);
                     }
                     returnValue = checkboxRenderer;
                 }
@@ -98,36 +87,6 @@ public class CustomizeViewTreeCellRenderer implements TreeCellRenderer {
                 }
             }
         return returnValue;
-    }
-}
-
-class CheckBoxNode {
-    String text;
-    boolean selected;
-
-    public CheckBoxNode(String text, boolean selected) {
-        this.text = text;
-        this.selected = selected;
-    }
-
-    public boolean isSelected() {
-        return selected;
-    }
-
-    public void setSelected(boolean newValue) {
-        selected = newValue;
-    }
-
-    public String getText() {
-        return text;
-    }
-
-    public void setText(String newValue) {
-        text = newValue;
-    }
-
-    public String toString() {
-        return getClass().getName() + "[" + text + "/" + selected + "]";
     }
 }
 

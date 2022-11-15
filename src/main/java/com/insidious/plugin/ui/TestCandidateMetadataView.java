@@ -98,15 +98,10 @@ public class TestCandidateMetadataView {
             Color color = new Color(1, 204, 245);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
-//            color = new Color(1,204,245,10);
-//            contentPanel.setBackground(color);
         } else {
             Color color = new Color(187, 187, 187);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
-//            color = new Color(60,63,65);
-//            contentPanel.setBackground(color);
-
         }
     }
 
