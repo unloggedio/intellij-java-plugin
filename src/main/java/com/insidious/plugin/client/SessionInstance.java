@@ -1908,7 +1908,6 @@ public class SessionInstance {
 
         checkProgressIndicator(null, "Loading class mappings to scan events");
 
-        AtomicInteger index = new AtomicInteger(0);
         List<Long> valueStack = new LinkedList<>();
 
         Map<String, VariableContainer> classStaticFieldMap = new HashMap<>();
