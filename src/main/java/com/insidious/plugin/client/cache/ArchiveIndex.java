@@ -12,20 +12,24 @@ import com.insidious.common.weaver.ObjectInfo;
 import com.insidious.common.weaver.StringInfo;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.ProbeInfoDocument;
+import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.googlecode.cqengine.query.QueryFactory.equal;
-import static com.googlecode.cqengine.query.QueryFactory.in;
+import static com.googlecode.cqengine.query.QueryFactory.*;
 
 public class ArchiveIndex {
     private final ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex;
     private final ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex;
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex;
     private ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex;
+    private static final Logger logger = LoggerUtil.getInstance(ArchiveIndex.class);
 
     public ArchiveIndex(ConcurrentIndexedCollection<TypeInfoDocument> typeInfoIndex, ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex, ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex, Map<Long, ClassInfo> classInfoMap) {
         this.typeInfoIndex = typeInfoIndex;
@@ -302,5 +306,24 @@ public class ArchiveIndex {
 
     public void setProbeInfoIndex(ConcurrentIndexedCollection<ProbeInfoDocument> probeInfoIndex) {
         this.probeInfoIndex = probeInfoIndex;
+    }
+
+    public Set<Integer> queryTypeIdsByName(SearchQuery searchQuery) {
+        String query = (String) searchQuery.getQuery();
+
+        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query);
+        if (query.endsWith("*")) {
+            typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query.substring(0, query.length() - 1));
+        }
+
+        ResultSet<TypeInfoDocument> searchResult = Types().retrieve(typeQuery);
+        Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
+        searchResult.close();
+        logger.info("type query [" + searchQuery + "] matched [" + typeIds.size() + "] items");
+
+        if (typeIds.size() == 0) {
+            return Set.of();
+        }
+        return typeIds;
     }
 }

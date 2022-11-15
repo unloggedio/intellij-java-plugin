@@ -58,7 +58,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -67,7 +69,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static com.googlecode.cqengine.query.QueryFactory.in;
-import static com.googlecode.cqengine.query.QueryFactory.startsWith;
 import static com.insidious.common.weaver.EventType.GET_INSTANCE_FIELD_RESULT;
 import static com.insidious.common.weaver.EventType.PUT_INSTANCE_FIELD_VALUE;
 import static com.insidious.plugin.client.DatFileType.*;
@@ -84,7 +85,6 @@ public class SessionInstance {
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
-    //    private KaitaiInsidiousClassWeaveParser classWeaveInfo;
     private ArchiveIndex archiveIndex;
 
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
@@ -110,20 +110,16 @@ public class SessionInstance {
                 TableUtils.createTable(connectionSource, DataEventWithSessionId.class);
                 TableUtils.createTable(connectionSource, LogFile.class);
                 TableUtils.createTable(connectionSource, ArchiveFile.class);
-                TableUtils.createTable(connectionSource, com.insidious.plugin.pojo.dao.TypeInfo.class);
             } catch (SQLException sqlException) {
                 logger.warn("probably table already exists: " + sqlException);
             }
         }
 
-        databasePipe = new DatabasePipe(new LinkedTransferQueue<>());
+        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
         executorPool = Executors.newFixedThreadPool(4);
 
-//        createObjectInfoIndex();
         this.sessionArchives = refreshSessionArchivesList();
         executorPool.submit(databasePipe);
-//        archiveIndex.setObjectInfoIndex(objectInfoIndex);
-//        archiveIndex.setProbeInfoIndex(probeInfoIndex);
 
     }
 
@@ -181,7 +177,7 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() throws IOException, SQLException {
+    private List<File> refreshSessionArchivesList() throws IOException {
         if (sessionDirectory.listFiles() == null) {
             return List.of();
         }
@@ -248,9 +244,8 @@ public class SessionInstance {
                     .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
             boolean isEnum = false;
             for (MethodInfo methodInfo : methodInfoMap.values()) {
-                if (methodInfo.getMethodName().equals("values")
-                        && methodInfo.getMethodDesc().equals("()[L" + methodInfo.getClassName() + ";")
-                        && methodInfo.getAccess() == 9) {
+                if (methodInfo.getMethodName().equals("values") && methodInfo.getMethodDesc()
+                        .equals("()[L" + methodInfo.getClassName() + ";") && methodInfo.getAccess() == 9) {
                     isEnum = true;
                 }
             }
@@ -271,133 +266,62 @@ public class SessionInstance {
         return sessionFiles;
     }
 
-    private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() {
+    private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
 
-
+        File probeIndexFile = Path.of(executionSession.getPath(), "index.probe.dat").toFile();
         ChronicleMapBuilder<Integer, DataInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                 DataInfo.class).name("probe-info-map").averageValue(new DataInfo()).entries(1_000_000);
-        return probeInfoMapBuilder.create();
+        return probeInfoMapBuilder.createOrRecoverPersistedTo(probeIndexFile, true);
 
-//
-//        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
-//
-//        CompositePersistence<DataInfo, Integer> persistence = CompositePersistence.of(
-//                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile),
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
-//        );
-//
-//        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
-//
-//        ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
-//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
-//        return probeInfoIndex1;
     }
 
 
-    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() {
+    private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 
+        File typeIndexFile = Path.of(executionSession.getPath(), "index.type.dat").toFile();
 
         ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         TypeInfoDocument.class).name("type-info-map")
                 .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100])).entries(20_000);
-        return probeInfoMapBuilder.create();
+        return probeInfoMapBuilder.createOrRecoverPersistedTo(typeIndexFile, true);
 
-//
-//        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
-//
-//        CompositePersistence<DataInfo, Integer> persistence = CompositePersistence.of(
-//                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile),
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
-//        );
-//
-//        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
-//
-//        ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
-//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
-//        return probeInfoIndex1;
     }
 
 
-    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() {
+    private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
 
+        File objectIndexFile = Path.of(executionSession.getPath(), "index.object.dat").toFile();
 
         ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
                         ObjectInfoDocument.class).name("object-info-map").averageValue(new ObjectInfoDocument(1, 1))
                 .entries(10_000_000);
-        return probeInfoMapBuilder.create();
+        return probeInfoMapBuilder.createOrRecoverPersistedTo(objectIndexFile, true);
 
-//
-//        File objectIndexFile = Path.of(executionSession.getPath(), "probe_index.dat").toFile();
-//
-//        CompositePersistence<DataInfo, Integer> persistence = CompositePersistence.of(
-//                DiskPersistence.onPrimaryKeyInFile(DataInfo.PROBE_ID, objectIndexFile),
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID)
-//        );
-//
-//        OffHeapPersistence<DataInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(DataInfo.PROBE_ID);
-//
-//        ConcurrentIndexedCollection<DataInfo> probeInfoIndex1 =
-//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(DataInfo.PROBE_ID));
-//        return probeInfoIndex1;
     }
 
 
-    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() {
+    private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
 
+        File methodIndexFile = Path.of(executionSession.getPath(), "index.method.dat").toFile();
         ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         MethodInfo.class).name("method-info-map").averageValue(
                         new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name", "method-hash"))
                 .entries(100_000);
-        return probeInfoMapBuilder.create();
+        return probeInfoMapBuilder.createOrRecoverPersistedTo(methodIndexFile, true);
 
-
-//        File objectIndexFile = Path.of(executionSession.getPath(), "method_index.dat").toFile();
-//
-//        CompositePersistence<MethodInfo, Integer> persistence = CompositePersistence.of(
-//                DiskPersistence.onPrimaryKeyInFile(MethodInfo.METHOD_ID, objectIndexFile),
-//                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID)
-//        );
-
-//
-//        OffHeapPersistence<MethodInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(MethodInfo.METHOD_ID);
-//
-//        ConcurrentIndexedCollection<MethodInfo> probeInfoIndex1 =
-//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-////        probeInfoIndex1.addIndex(OffHeapIndex.onAttribute(MethodInfo.METHOD_ID));
-//        return probeInfoIndex1;
     }
 
 
-    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() {
+    private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
 
+        File classIndexFile = Path.of(executionSession.getPath(), "index.class.dat").toFile();
         ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         ClassInfo.class).name("class-info-map").averageValue(
                         new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
                                 "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name", "signaure"))
                 .entries(10_000);
-        return probeInfoMapBuilder.create();
+        return probeInfoMapBuilder.createOrRecoverPersistedTo(classIndexFile, true);
 
-//        File objectIndexFile = Path.of(executionSession.getPath(), "class_index.dat").toFile();
-//
-//        CompositePersistence<ClassInfo, Integer> persistence = CompositePersistence.of(
-//                DiskPersistence.onPrimaryKeyInFile(ClassInfo.CLASS_ID, objectIndexFile),
-//                OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID)
-//        );
-//
-//        OffHeapPersistence<ClassInfo, Integer> objectInfoDocumentIntegerDiskPersistence =
-//                OffHeapPersistence.onPrimaryKey(ClassInfo.CLASS_ID);
-//
-//        ConcurrentIndexedCollection<ClassInfo> probeInfoIndex1 =
-//                new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-////        probeInfoIndex1.addIndex(NavigableIndex.onAttribute(DataInfo.PROBE_ID));
-//        return probeInfoIndex1;
     }
 
 
@@ -414,7 +338,7 @@ public class SessionInstance {
             logger.info("initialize index for archive: " + sessionArchive.getAbsolutePath());
 
 
-            ArchiveIndex index = null;
+            ArchiveIndex index;
             try {
                 index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
             } catch (Exception e) {
@@ -440,8 +364,8 @@ public class SessionInstance {
         List<TracePoint> tracePointList = new LinkedList<>();
         NameWithBytes bytes;
         ArchiveFilesIndex eventsIndex = null;
-        ArchiveIndex objectIndex = null;
-        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
+        ArchiveIndex objectIndex;
+        Map<String, TypeInfo> typeInfoMap;
         Map<Long, ObjectInfo> objectInfoMap = new HashMap<>();
         try {
             checkProgressIndicator(null,
@@ -483,7 +407,7 @@ public class SessionInstance {
             checkProgressIndicator(null, "Matching events for item " + currentIndex + " of " + valueIds.size());
 
             boolean archiveHasSeenValue = finalEventsIndex.hasValueId(valueId);
-            List<UploadFile> matchedFilesForString = new LinkedList<>();
+            List<UploadFile> matchedFilesForString;
             logger.info("value [" + valueId + "] found in archive: [" + archiveHasSeenValue + "]");
 
             if (archiveHasSeenValue) {
@@ -499,7 +423,6 @@ public class SessionInstance {
             }
         });
         Map<Long, ObjectInfo> finalObjectInfoMap = objectInfoMap;
-        Map<String, TypeInfo> finalTypeInfoMap = typeInfoMap;
         logger.info("matched [" + matchedFiles.size() + "] files");
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
@@ -550,7 +473,7 @@ public class SessionInstance {
                         int classId = dataInfo.getClassId();
                         KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
 
-                        ObjectInfo objectInfo = finalObjectInfoMap.get(String.valueOf(e1.getValue()));
+                        ObjectInfo objectInfo = finalObjectInfoMap.get(e1.getValue());
                         TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
 
                         TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(), dataInfo.getDataId(),
@@ -604,14 +527,13 @@ public class SessionInstance {
 
     private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
 
-        KaitaiInsidiousClassWeaveParser classWeaveInfo1 = null;
+        KaitaiInsidiousClassWeaveParser classWeaveInfo1;
         logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
         NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
         if (fileBytes == null) {
             logger.debug("failed to read class weave info from " + "sessionFile [" + sessionFile.getName() + "]");
             return null;
         }
-//        logger.warn("Class weave information from " + sessionFile.getName() + " is " + fileBytes.getBytes().length + " bytes");
         ByteBufferKaitaiStream io = new ByteBufferKaitaiStream(fileBytes.getBytes());
         classWeaveInfo1 = new KaitaiInsidiousClassWeaveParser(io);
         io.close();
@@ -681,7 +603,7 @@ public class SessionInstance {
 
         ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
 
-        ZipEntry entry = null;
+        ZipEntry entry;
         while ((entry = indexArchive.getNextEntry()) != null) {
             String entryName = entry.getName();
             indexArchive.closeEntry();
@@ -744,8 +666,8 @@ public class SessionInstance {
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE)) {
-            KaitaiInsidiousClassWeaveParser classWeave = new KaitaiInsidiousClassWeaveParser(
-                    new ByteBufferKaitaiStream(bytes));
+//            KaitaiInsidiousClassWeaveParser classWeave = new KaitaiInsidiousClassWeaveParser(
+//                    new ByteBufferKaitaiStream(bytes));
             throw new RuntimeException("this is not to be used");
 //            for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeave.classInfo()) {
 //                classInfoMap.put(classInfo.classId(), KaitaiUtils.toClassInfo(classInfo));
@@ -781,7 +703,7 @@ public class SessionInstance {
             indexArchive = new ZipInputStream(sessionFileInputStream);
 
 
-            ZipEntry entry = null;
+            ZipEntry entry;
             while ((entry = indexArchive.getNextEntry()) != null) {
                 String entryName = entry.getName();
                 logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
@@ -1013,153 +935,6 @@ public class SessionInstance {
         }
     }
 
-    private void getTracePointsByProbeIdsWithoutIndex(File sessionArchive, Set<Integer> probeIds, ClientCallBack<TracePoint> tracePointsCallback) {
-        logger.info("Query for probeIds [" + probeIds.toString() + "]");
-        List<TracePoint> tracePointList = new LinkedList<>();
-        NameWithBytes bytes;
-        Integer[] probeIdArray = new Integer[probeIds.size()];
-        int k = 0;
-        for (Integer probeId : probeIds) {
-            probeIdArray[k] = probeId;
-            k++;
-        }
-
-        ArchiveFilesIndex eventsIndex = null;
-        ArchiveIndex objectIndex = null;
-        try {
-            checkProgressIndicator(null,
-                    "Loading events index " + sessionArchive.getName() + " to match against " + probeIds.size() + " values");
-            bytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, INDEX_EVENTS_DAT_FILE.getFileName());
-            if (bytes == null) {
-                return;
-            }
-            eventsIndex = readEventIndex(bytes.getBytes());
-
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-
-        Map<String, TypeInfo> typeInfoMap = new HashMap<>();
-        Map<String, ObjectInfo> objectInfoMap = new HashMap<>();
-
-
-        HashMap<String, UploadFile> matchedFiles = new HashMap<>();
-        AtomicInteger counter = new AtomicInteger();
-        probeIds.forEach(probeId -> {
-            int currentIndex = counter.addAndGet(1);
-
-            List<UploadFile> matchedFilesForString = new LinkedList<>();
-
-            checkProgressIndicator(null, "Events matched in " + sessionArchive.getName());
-            try {
-                matchedFilesForString = listArchiveFiles(sessionArchive).stream().filter(e -> e.endsWith("selog"))
-                        .map(e -> {
-                            UploadFile uploadFile = new UploadFile(e, 0, null, null);
-                            uploadFile.setProbeIds(probeIdArray);
-                            return uploadFile;
-                        }).collect(Collectors.toList());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            for (UploadFile uploadFile : matchedFilesForString) {
-                String filePath = uploadFile.getPath();
-                int threadId = getThreadIdFromFileName(Path.of(filePath).getFileName().toString());
-                UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
-                uploadFileToAdd.setProbeIds(new Integer[]{probeId});
-
-                if (matchedFiles.containsKey(filePath)) {
-                    Integer[] existingProbes = matchedFiles.get(filePath).getProbeIds();
-                    ArrayList<Integer> arrayList = new ArrayList<>(Arrays.asList(existingProbes));
-                    if (!arrayList.contains(probeId)) {
-                        arrayList.add(probeId);
-                        matchedFiles.get(filePath).setProbeIds(arrayList.toArray(Integer[]::new));
-                    }
-
-                } else {
-                    matchedFiles.put(filePath, uploadFile);
-                }
-
-            }
-        });
-        logger.info("matched [" + matchedFiles.size() + "] files");
-
-
-        for (UploadFile matchedFile : matchedFiles.values()) {
-            try {
-
-                checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
-                String fileName = Path.of(matchedFile.getPath()).getFileName().toString();
-
-                NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, fileName);
-                if (fileBytes == null) {
-                    List<String> fileList = listArchiveFiles(sessionArchive);
-                    logger.error(
-                            String.format("matched file not found " + "inside the session archive [%s] -> [%s] -> [%s]",
-                                    fileName, sessionArchive, fileList));
-                    throw new RuntimeException("matched file not found inside the session archive -> " + fileList);
-                }
-                long timestamp = Long.parseLong(fileBytes.getName().split("@")[0]);
-                int threadId = Integer.parseInt(fileBytes.getName().split("-")[2].split("\\.")[0]);
-
-
-                List<DataEventWithSessionId> dataEvents = getDataEventsFromPathByProbeIds(fileBytes.getBytes(),
-                        matchedFile.getProbeIds());
-
-                checkProgressIndicator(null,
-                        "Filtering " + dataEvents.size() + " events from file " + matchedFile.getPath());
-                List<TracePoint> matchedTracePoints = dataEvents.stream().map(e1 -> {
-
-                    try {
-                        List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
-                        logger.debug("data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
-
-                        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-                            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
-                                return null;
-                            }
-                        }
-
-
-                        DataInfo dataInfo = dataInfoList.get(0);
-                        int classId = dataInfo.getClassId();
-                        KaitaiInsidiousClassWeaveParser.ClassInfo classInfo = getClassInfo(classId);
-
-                        ObjectInfo objectInfo = objectInfoMap.get(String.valueOf(e1.getValue()));
-                        String typeName = "<na>";
-                        if (objectInfo != null) {
-                            TypeInfo typeInfo = getTypeInfo(objectInfo.getTypeId());
-                            typeName = typeInfo.getTypeNameFromClass();
-                        }
-
-                        TracePoint tracePoint = new TracePoint(classId, dataInfo.getLine(), dataInfo.getDataId(),
-                                threadId, e1.getValue(), classInfo.fileName().value(), classInfo.className().value(),
-                                typeName, timestamp, e1.getNanoTime());
-
-                        tracePoint.setExecutionSession(executionSession);
-                        return tracePoint;
-                    } catch (ClassInfoNotFoundException | Exception ex) {
-                        logger.error("failed to get data probe information", ex);
-                    }
-                    return null;
-
-
-                }).filter(Objects::nonNull).collect(Collectors.toList());
-                tracePointList.addAll(matchedTracePoints);
-
-                checkProgressIndicator(null, tracePointList.size() + " matched...");
-
-
-            } catch (IOException ex) {
-                logger.error("exception while creating trace points in file[" + matchedFile.path + "]", ex);
-            }
-
-        }
-        if (tracePointList.size() != 0) {
-            tracePointList.forEach(e -> e.setExecutionSession(executionSession));
-            tracePointsCallback.success(tracePointList);
-        }
-    }
-
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
 
         Set<Integer> ids = Set.of(probeIds);
@@ -1233,20 +1008,6 @@ public class SessionInstance {
 
         checkProgressIndicator(null, "Loading class mappings for data events");
 
-//        classWeaveInfo.classInfo().forEach(e -> {
-//
-//            checkProgressIndicator(null, "Loading class: " + e.className());
-//
-//            classInfo.put(e.classId(), KaitaiUtils.toClassInfo(e));
-//
-//            checkProgressIndicator(null, "Loading " + e.probeCount() + " probes in class: " + e.className());
-//
-//            e.probeList().forEach(r -> {
-//                dataInfo.put(r.dataId(), KaitaiUtils.toDataInfo(r));
-//            });
-//        });
-
-        Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId).collect(Collectors.toSet());
         Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue).collect(Collectors.toSet());
 
 
@@ -1320,35 +1081,6 @@ public class SessionInstance {
                 stringInfo, objectInfo, typeInfo, methodInfoIndex);
     }
 
-    public void getMethods(Integer typeId, ClientCallBack<TestCandidate> tracePointsCallback) {
-
-//        if (classWeaveInfo == null) {
-//            ExceptionResponse errorResponse = new ExceptionResponse();
-//            errorResponse.setMessage("session not found [" + executionSession.getSessionId() + "]");
-//            tracePointsCallback.error(errorResponse);
-//            return;
-//        }
-//        classWeaveInfo
-//                .classInfo()
-//                .forEach(classInfo -> {
-//
-//                    if (classInfo.classId() != typeId) {
-//                        return;
-//                    }
-//                    ClassInfo classInfoContainer = KaitaiUtils.toClassInfo(classInfo);
-//                    tracePointsCallback.success(
-//                            classInfo.methodList()
-//                                    .stream().map(e -> KaitaiUtils.toMethodInfo(e,
-//                                            classInfo.className().value()))
-//                                    .map(methodInfo ->
-//                                            new TestCandidate(methodInfo,
-//                                                    classInfoContainer,
-//                                                    0, null))
-//                                    .collect(Collectors.toSet()));
-//                });
-//        tracePointsCallback.completed();
-    }
-
     public void getObjectsByType(SearchQuery searchQuery, ClientCallBack<ObjectWithTypeInfo> clientCallBack) {
 
         checkProgressIndicator("Looking for objects by class: " + searchQuery.getQuery(), null);
@@ -1401,13 +1133,13 @@ public class SessionInstance {
         checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
 
 
-        Set<Integer> typeIds = queryTypeIdsByName(searchQuery);
+        Set<Integer> typeIds = archiveIndex.queryTypeIdsByName(searchQuery);
 
 
         checkProgressIndicator(null, "Loading matched objects");
 
 
-        NameWithBytes objectIndexFileBytes = null;
+        NameWithBytes objectIndexFileBytes;
         objectIndexFileBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                 INDEX_OBJECT_DAT_FILE.getFileName());
         if (objectIndexFileBytes == null) {
@@ -1416,7 +1148,7 @@ public class SessionInstance {
         }
 
 
-        ArchiveIndex objectIndex = null;
+        ArchiveIndex objectIndex;
         try {
             objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
         } catch (IOException e) {
@@ -1437,33 +1169,13 @@ public class SessionInstance {
         return objects;
     }
 
-    private Set<Integer> queryTypeIdsByName(SearchQuery searchQuery) {
-        String query = (String) searchQuery.getQuery();
-
-        Query<TypeInfoDocument> typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query);
-        if (query.endsWith("*")) {
-            typeQuery = startsWith(TypeInfoDocument.TYPE_NAME, query.substring(0, query.length() - 1));
-        }
-
-        ResultSet<TypeInfoDocument> searchResult = archiveIndex.Types().retrieve(typeQuery);
-        Set<Integer> typeIds = searchResult.stream().map(TypeInfoDocument::getTypeId).collect(Collectors.toSet());
-        searchResult.close();
-        logger.info("type query [" + searchQuery + "] matched [" + typeIds.size() + "] items");
-
-        if (typeIds.size() == 0) {
-            return Set.of();
-        }
-        return typeIds;
-    }
-
-    public List<String> getArchiveNamesList() throws IOException, SQLException {
+    public List<String> getArchiveNamesList() throws IOException {
         return refreshSessionArchivesList().stream().map(File::getName).collect(Collectors.toList());
     }
 
     public ClassWeaveInfo getClassWeaveInfo() {
 
 
-        int i = 0;
         List<ClassInfo> classInfoList = new LinkedList<>();
         List<MethodInfo> methodInfoList = new LinkedList<>();
         List<DataInfo> dataInfoList = new LinkedList<>();
@@ -1479,7 +1191,7 @@ public class SessionInstance {
             logger.warn("failed to read events index from : " + sessionArchive.getName());
             return null;
         }
-        ArchiveFilesIndex eventsIndex = null;
+        ArchiveFilesIndex eventsIndex;
         try {
             eventsIndex = readEventIndex(eventIndexBytes.getBytes());
         } catch (IOException e) {
@@ -1531,18 +1243,12 @@ public class SessionInstance {
 
         checkProgressIndicator(null, "Loading class mappings for object history");
 
-
-//        logger.warn("classInfoMap size: " + classInfoMap.size());
-//        logger.warn("methodInfoMap size: " + methodInfoMap.size());
-//        logger.warn("probeInfoMap size: " + probeInfoMap.size());
-
-
         final AtomicLong previousEventAt = new AtomicLong(-1);
 
         Set<Long> remainingObjectIds = new HashSet<>();
         Set<Long> remainingStringIds = new HashSet<>();
 
-        Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap();
+        Map<String, SELogFileMetadata> fileEventIdPairs = new HashMap<>();
 
         for (File sessionArchive : sessionArchivesLocal) {
             logger.warn("open archive [" + sessionArchive.getName() + "]");
@@ -1572,11 +1278,10 @@ public class SessionInstance {
 
 
             try {
-                List<String> archiveFiles = new LinkedList<>();
+                List<String> archiveFiles;
 
                 if (objectId != -1) {
 //                    logger.info("Files were matched: " + matchedFiles);
-                    String splitAt = "\\\\";
 
                     archiveFiles = new LinkedList<>();
                     for (String s : matchedFiles.keySet()) {
@@ -1642,6 +1347,7 @@ public class SessionInstance {
 
                     }
 
+                    assert metadata != null;
                     if (filteredDataEventsRequest.getNanotime() != -1) {
                         if (pageInfo.isAsc()) {
                             if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
@@ -1678,8 +1384,8 @@ public class SessionInstance {
                     List<DataEventWithSessionId> dataEventGroupedList = eventsSublist.stream().filter(e -> {
                                 long currentFirstEventAt = previousEventAt.get();
 
-                                long currentEventId = -1;
-                                long valueId = -1;
+                                long currentEventId;
+                                long valueId;
 
                                 KaitaiInsidiousEventParser.DetailedEventBlock detailedEventBlock = e.block();
                                 currentEventId = detailedEventBlock.eventId();
@@ -1750,8 +1456,6 @@ public class SessionInstance {
             }
 
 
-            Set<Long> probeIds = dataEventList.stream().map(DataEventWithSessionId::getDataId)
-                    .collect(Collectors.toSet());
             Set<Long> valueIds = dataEventList.stream().map(DataEventWithSessionId::getValue)
                     .collect(Collectors.toSet());
 
@@ -1761,7 +1465,7 @@ public class SessionInstance {
             assert stringsIndexBytes != null;
 
 
-            ArchiveIndex stringIndex = null;
+            ArchiveIndex stringIndex;
             try {
                 stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
             } catch (IOException e) {
@@ -1786,7 +1490,7 @@ public class SessionInstance {
             NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                     INDEX_OBJECT_DAT_FILE.getFileName());
             assert objectIndexBytes != null;
-            ArchiveIndex objectsIndex = null;
+            ArchiveIndex objectsIndex;
             try {
                 objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             } catch (IOException e) {
@@ -1831,13 +1535,12 @@ public class SessionInstance {
         // did not find earlier since the object was probably created earlier
         if (remainingObjectIds.size() > 0 || remainingStringIds.size() > 0) {
 
-            Set<Long> objectIds = remainingObjectIds;
             for (File sessionArchive : sessionArchivesLocal) {
 
                 NameWithBytes objectIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
                 assert objectIndexBytes != null;
-                ArchiveIndex objectsIndex = null;
+                ArchiveIndex objectsIndex;
                 try {
                     objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
                 } catch (IOException e) {
@@ -1846,12 +1549,13 @@ public class SessionInstance {
                 }
 
 
-                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(objectIds);
+                Map<Long, ObjectInfo> sessionObjectsInfo = objectsIndex.getObjectsByObjectIdWithLongKeys(
+                        remainingObjectIds);
                 if (sessionObjectsInfo.size() > 0) {
 //                    logger.warn("expected [" + objectIds.size() + "] results but got only " + sessionObjectsInfo.size());
 
                     sessionObjectsInfo.values().stream().map(ObjectInfo::getObjectId).collect(Collectors.toList())
-                            .forEach(objectIds::remove);
+                            .forEach(remainingObjectIds::remove);
                 }
                 objectInfoMap.putAll(sessionObjectsInfo);
 
@@ -1861,7 +1565,7 @@ public class SessionInstance {
                 assert stringsIndexBytes != null;
 
 
-                ArchiveIndex stringIndex = null;
+                ArchiveIndex stringIndex;
                 try {
                     stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
                 } catch (IOException e) {
@@ -2099,8 +1803,7 @@ public class SessionInstance {
                                 break;
 
                             case GET_STATIC_FIELD:
-                                fieldType = ClassTypeUtils.getDottedClassName(
-                                        probeInfo.getAttribute("Type", null));
+                                fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
                                 if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
                                 } else {
                                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
@@ -2157,8 +1860,7 @@ public class SessionInstance {
                                 existingParameter.setProb(dataEvent);
                                 testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
                                         .add(existingParameter);
-                                fieldType = ClassTypeUtils.getDottedClassName(
-                                        probeInfo.getAttribute("Type", null));
+                                fieldType = ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null));
                                 if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
                                 } else {
                                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
@@ -2771,26 +2473,9 @@ public class SessionInstance {
                             "[" + logFile + "] Took [" + timeInMs + " ms] to process [" + eventsSublist.size() + " events] => " + (1000 * eventsSublist.size()) / timeInMs + " events per second");
                     logger.debug("parameterContainer = " + parameterContainer.all()
                             .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
-                    eventsSublist = null;
-
-//                    logger.warn("Saving [" + eventsToSave.size() + " events] [" + probesToSave.size() + " probes]");
-
-                    // using the database pipe for saving events results in some gap between the database actually
-                    // being updated and the time when we query the database for this same item immediately obviously
-                    // which breaks the scan implementation because it was expecting updated information and got stale
-                    // information from db, because we did not wait for the update to happen.
-//                    databasePipe.addDataEvents(eventsToSave);
-//                    databasePipe.addProbeInfo(probesToSave);
-//                    databasePipe.addMethodCallsToSave(callsToSave);
-//                    databasePipe.addMethodCallsToUpdate(callsToUpdate);
-//                    databasePipe.addTestCandidates(candidatesToSave);
 
                     daoService.createOrUpdateDataEvent(eventsToSave);
                     daoService.createOrUpdateProbeInfo(probesToSave);
-
-                    // this is saving/updating all parameters every single time.
-                    // need to save/update only modified parameters
-
                     daoService.createOrUpdateCall(callsToSave);
                     daoService.updateCalls(callsToUpdate);
                     daoService.createOrUpdateTestCandidate(candidatesToSave);
@@ -2799,7 +2484,7 @@ public class SessionInstance {
                     daoService.updateLogFile(logFileEntry);
 
                 }
-                // there would a need to verify that the parameter types we have identified from probes are consistent
+                // we can potentially verify that the parameter types we have identified from probes are consistent
                 // with the information we have in the object -> type index.
                 // the information in objectInfo ->  typeInfo would be more specific than the information we get from
                 // probe attributes
@@ -2833,7 +2518,7 @@ public class SessionInstance {
         daoService.close();
         try {
             long scanEndtime = System.currentTimeMillis();
-            float scanTime = (scanEndtime - scanStart) / 1000;
+            float scanTime = ((float) scanEndtime - (float) scanStart) / (float) 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
             long size_folder = getFolderSize(sessionDir);
             long archives_size = 0;
@@ -2867,10 +2552,6 @@ public class SessionInstance {
         return length;
     }
 
-    public DaoService getDaoService() {
-        return daoService;
-    }
-
     private long eventId(KaitaiInsidiousEventParser.Block lastEvent) {
         KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = lastEvent.block();
         return eventBlock.eventId();
@@ -2878,12 +2559,9 @@ public class SessionInstance {
 
     public void queryTracePointsByTypes(SearchQuery searchQuery, ClientCallBack<TracePoint> clientCallBack) {
 
-        int totalCount = sessionArchives.size();
-        int currentCount = 0;
         int totalMatched = 0;
 
         for (File sessionArchive : sessionArchives) {
-            currentCount++;
 
             checkProgressIndicator("Checking archive " + sessionArchive.getName(), null);
 
@@ -2913,16 +2591,12 @@ public class SessionInstance {
 
     public void queryTracePointsByValue(SearchQuery searchQuery, ClientCallBack<TracePoint> getProjectSessionErrorsCallback) {
         checkProgressIndicator("Searching locally by value [" + searchQuery.getQuery() + "]", null);
-        Collection<TracePoint> tracePointList = new LinkedList<>();
+        Collection<TracePoint> tracePointList;
 
         tracePointList = queryTracePointsByValue(searchQuery);
 
         getProjectSessionErrorsCallback.success(tracePointList);
 
-    }
-
-    public List<TestCandidateMetadata> getTestCandidatesForClass(String className) {
-        return daoService.getTestCandidatesForClass(className);
     }
 
     public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
@@ -2956,132 +2630,4 @@ public class SessionInstance {
         archiveIndex = null;
     }
 
-    class DatabasePipe implements Runnable {
-
-        private final LinkedTransferQueue<Parameter> parameterQueue;
-        private final ArrayBlockingQueue<Boolean> isSaving = new ArrayBlockingQueue<>(1);
-        private final List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
-        private final List<DataInfo> dataInfoList = new LinkedList<>();
-        private final List<MethodCallExpression> methodCallToSave = new LinkedList<>();
-        private final List<MethodCallExpression> methodCallToUpdate = new LinkedList<>();
-        private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
-        private boolean stop = false;
-
-        public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue) {
-            this.parameterQueue = parameterQueue;
-        }
-
-        @Override
-        public void run() {
-            while (!stop) {
-                Parameter param = null;
-                try {
-                    param = parameterQueue.poll(1, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    logger.warn("database pipe interrupted - " + e.getMessage());
-                    throw new RuntimeException(e);
-                }
-
-                if (dataInfoList.size() > 0) {
-                    Collection<DataInfo> saving = new LinkedList<>();
-                    dataInfoList.removeAll(saving);
-                    daoService.createOrUpdateProbeInfo(saving);
-                }
-
-                if (eventsToSave.size() > 0) {
-                    Collection<DataEventWithSessionId> saving = new LinkedList<>();
-                    eventsToSave.removeAll(saving);
-                    daoService.createOrUpdateDataEvent(saving);
-                }
-                if (methodCallToSave.size() > 0) {
-                    Collection<MethodCallExpression> saving = new LinkedList<>();
-                    methodCallToSave.removeAll(saving);
-                    daoService.createOrUpdateCall(saving);
-                }
-                if (methodCallToUpdate.size() > 0) {
-                    Collection<MethodCallExpression> saving = new LinkedList<>();
-                    methodCallToUpdate.removeAll(saving);
-                    daoService.updateCalls(saving);
-                }
-                if (testCandidateMetadataList.size() > 0) {
-                    Collection<TestCandidateMetadata> saving = new LinkedList<>();
-                    testCandidateMetadataList.removeAll(saving);
-                    daoService.createOrUpdateTestCandidate(saving);
-                }
-
-                if (param == null) {
-                    continue;
-                }
-                List<Parameter> batch = new LinkedList<>();
-                parameterQueue.drainTo(batch);
-                batch.add(param);
-                logger.warn("Saving " + batch.size() + " parameters");
-                daoService.createOrUpdateParameter(batch);
-            }
-            isSaving.offer(true);
-        }
-
-        public void close() throws InterruptedException {
-            stop = true;
-            isSaving.take();
-            logger.warn("saving after close");
-            List<Parameter> batch = new LinkedList<>();
-            parameterQueue.drainTo(batch);
-            daoService.createOrUpdateParameter(batch);
-
-
-            if (dataInfoList.size() > 0) {
-                Collection<DataInfo> saving = new LinkedList<>();
-                dataInfoList.removeAll(saving);
-                daoService.createOrUpdateProbeInfo(saving);
-            }
-
-            if (eventsToSave.size() > 0) {
-                Collection<DataEventWithSessionId> saving = new LinkedList<>();
-                eventsToSave.removeAll(saving);
-                daoService.createOrUpdateDataEvent(saving);
-            }
-            if (methodCallToSave.size() > 0) {
-                Collection<MethodCallExpression> saving = new LinkedList<>();
-                methodCallToSave.removeAll(saving);
-                daoService.createOrUpdateCall(saving);
-            }
-            if (methodCallToUpdate.size() > 0) {
-                Collection<MethodCallExpression> saving = new LinkedList<>();
-                methodCallToUpdate.removeAll(saving);
-                daoService.updateCalls(saving);
-            }
-            if (testCandidateMetadataList.size() > 0) {
-                Collection<TestCandidateMetadata> saving = new LinkedList<>();
-                testCandidateMetadataList.removeAll(saving);
-                daoService.createOrUpdateTestCandidate(saving);
-            }
-
-        }
-
-        public void addParameters(List<Parameter> all) {
-            parameterQueue.addAll(all);
-        }
-
-        public void addDataEvents(List<DataEventWithSessionId> events) {
-            eventsToSave.addAll(events);
-        }
-
-        public void addProbeInfo(List<DataInfo> probesToSave) {
-            dataInfoList.addAll(probesToSave);
-        }
-
-        public void addMethodCallsToSave(Set<MethodCallExpression> callsToSave) {
-            methodCallToSave.addAll(callsToSave);
-        }
-
-        public void addMethodCallsToUpdate(Set<MethodCallExpression> callsToUpdate) {
-            methodCallToUpdate.addAll(callsToUpdate);
-        }
-
-        public void addTestCandidates(List<TestCandidateMetadata> candidatesToSave) {
-            testCandidateMetadataList.addAll(candidatesToSave);
-        }
-    }
 }
