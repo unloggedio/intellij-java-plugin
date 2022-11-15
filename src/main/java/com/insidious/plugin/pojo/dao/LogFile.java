@@ -14,6 +14,9 @@ public class LogFile implements Comparable<LogFile> {
     @DatabaseField
     String status;
 
+    @DatabaseField
+    private int threadId;
+
     public LogFile() {
     }
 
@@ -50,5 +53,13 @@ public class LogFile implements Comparable<LogFile> {
     @Override
     public int compareTo(@NotNull LogFile o) {
         return this.name.compareTo(o.name);
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
+    }
+
+    public int getThreadId() {
+        return threadId;
     }
 }

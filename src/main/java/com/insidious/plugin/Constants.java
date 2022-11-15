@@ -15,4 +15,6 @@ public class Constants {
     public static final Path VIDEOBUG_AGENT_PATH = Path.of(VIDEOBUG_HOME_PATH.toAbsolutePath().toString(), AGENT_JAR_NAME);
 
 
+    public static final String COMPLETED = "completed";
+    public static final String PENDING = "pending";
 }

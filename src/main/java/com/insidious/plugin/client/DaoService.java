@@ -1,10 +1,14 @@
 package com.insidious.plugin.client;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -13,6 +17,7 @@ import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
 import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
+import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -61,12 +66,14 @@ public class DaoService {
             "  and mc.methodName = ?\n" +
             "order by mc.methodName;";
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
+    private final static Gson gson = new Gson();
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> methodCallExpressionDao;
     private final Dao<Parameter, Long> parameterDao;
     private final Dao<LogFile, Long> logFilesDao;
-    private final Dao<ArchiveFile, Long> archiveFileDao;
+    private final Dao<ArchiveFile, String> archiveFileDao;
+    private final Dao<ThreadState, Integer> threadStateDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
 
@@ -80,7 +87,9 @@ public class DaoService {
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
+        threadStateDao = DaoManager.createDao(connectionSource, ThreadState.class);
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
+        TableUtils.createTableIfNotExists(connectionSource, ThreadState.class);
 
     }
 
@@ -99,7 +108,8 @@ public class DaoService {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                     convertTestCandidateMetadata(testCandidateMetadata, true);
             com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
-            if (!mainMethod.getMethodName().equals("<init>")) {
+            if (!mainMethod.getMethodName()
+                    .equals("<init>")) {
                 if (!mainMethod.isMethodPublic()) {
                     continue;
                 }
@@ -123,8 +133,10 @@ public class DaoService {
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
-        converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject().getValue()));
-        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod().getId()));
+        converted.setTestSubject(getParameterByValue((Long) testCandidateMetadata.getTestSubject()
+                .getValue()));
+        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()
+                .getId()));
 
         List<Long> calls = testCandidateMetadata.getCallsList();
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(calls.size());
@@ -134,14 +146,17 @@ public class DaoService {
                     getMethodCallExpressionToMockFast(calls);
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null ||
-                        methodCallExpressionById.getSubject().getType().startsWith("java.lang")) {
+                        methodCallExpressionById.getSubject()
+                                .getType()
+                                .startsWith("java.lang")) {
                     continue;
                 }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
                         || "INVOKEVIRTUAL".equals(
-                        methodCallExpressionById.getEntryProbeInfo().getAttribute("Instruction", ""))
+                        methodCallExpressionById.getEntryProbeInfo()
+                                .getAttribute("Instruction", ""))
                 ) {
                     callsList.add(methodCallExpressionById);
                 } else {
@@ -160,7 +175,8 @@ public class DaoService {
         logger.warn("\tloading " + fieldParameters.size() + " fields");
         for (Long fieldParameterValue : fieldParameters) {
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
-            converted.getFields().add(fieldParameter);
+            converted.getFields()
+                    .add(fieldParameter);
         }
 
 
@@ -169,13 +185,18 @@ public class DaoService {
     }
 
     private List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionByIds(List<Long> callIds) {
-        long start = Date.from(Instant.now()).getTime();
+        long start = Date.from(Instant.now())
+                .getTime();
         try {
-            List<MethodCallExpression> callsFromDb = methodCallExpressionDao.queryBuilder().where().in("id", callIds)
+            List<MethodCallExpression> callsFromDb = methodCallExpressionDao.queryBuilder()
+                    .where()
+                    .in("id", callIds)
                     .query();
-            List<com.insidious.plugin.pojo.MethodCallExpression> collect = callsFromDb.stream().map(this::convertDbMCE)
+            List<com.insidious.plugin.pojo.MethodCallExpression> collect = callsFromDb.stream()
+                    .map(this::convertDbMCE)
                     .collect(Collectors.toList());
-            long end = Date.from(Instant.now()).getTime();
+            long end = Date.from(Instant.now())
+                    .getTime();
             logger.warn("Load calls took: " + (end - start));
             return collect;
         } catch (SQLException e) {
@@ -184,16 +205,20 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMock(List<Long> callIds) {
-        long start = Date.from(Instant.now()).getTime();
+        long start = Date.from(Instant.now())
+                .getTime();
         try {
             String query = CALLS_TO_MOCK_SELECT_QUERY.replace("CALL_IDS", StringUtils.join(callIds, ","));
             GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
                     .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
             List<MethodCallExpression> results1 = results.getResults();
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
-                    results1.parallelStream().map(this::convertDbMCE).collect(Collectors.toList());
+                    results1.parallelStream()
+                            .map(this::convertDbMCE)
+                            .collect(Collectors.toList());
             results.close();
-            long end = Date.from(Instant.now()).getTime();
+            long end = Date.from(Instant.now())
+                    .getTime();
             logger.warn("Load calls took: " + (end - start));
             return callsList;
         } catch (Exception e) {
@@ -203,7 +228,8 @@ public class DaoService {
 
 
     public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(List<Long> callIds) {
-        long start = Date.from(Instant.now()).getTime();
+        long start = Date.from(Instant.now())
+                .getTime();
         try {
             String query = CALLS_TO_MOCK_SELECT_QUERY.replace("CALL_IDS", StringUtils.join(callIds, ","));
             GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
@@ -214,7 +240,9 @@ public class DaoService {
                     .collect(Collectors.toMap(MethodCallExpression::getId, e -> e));
             results.close();
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
-                    mceList.parallelStream().map(MethodCallExpression::ToMCE).collect(Collectors.toList());
+                    mceList.parallelStream()
+                            .map(MethodCallExpression::ToMCE)
+                            .collect(Collectors.toList());
 
 //            List<com.insidious.plugin.pojo.MethodCallExpression> callsList1 =
 //                    mceList.parallelStream().map(this::convertDbMCE).collect(Collectors.toList());
@@ -263,7 +291,8 @@ public class DaoService {
                     .collect(Collectors.toMap(Parameter::getValue, e -> e));
 
             List<com.insidious.plugin.pojo.Parameter> parameters = dbParameters.stream()
-                    .map(Parameter::toParameter).collect(Collectors.toList());
+                    .map(Parameter::toParameter)
+                    .collect(Collectors.toList());
 
             for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
                 Parameter dbParameter = dbParameterMap.get(parameter.getValue());
@@ -298,7 +327,8 @@ public class DaoService {
                 List<Long> dbMceArguments = dbMce.getArguments();
                 for (int i = 0; i < dbMceArguments.size(); i++) {
                     Long argument = dbMceArguments.get(i);
-                    DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes().get(i));
+                    DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
+                            .get(i));
                     DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getDataId());
                     com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
                     if (paramArgument == null) {
@@ -350,7 +380,8 @@ public class DaoService {
                             Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
                                     = callsOnReturnParameter
                                     .stream()
-                                    .filter(e -> e.getMethodName().equals("body"))
+                                    .filter(e -> e.getMethodName()
+                                            .equals("body"))
                                     .findFirst();
 
                             if (bodyResponseParameter.isEmpty()) {
@@ -364,8 +395,10 @@ public class DaoService {
                             // since the ResponseBody is also not serializable
                             List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
                                     this.getMethodCallExpressionOnParameter(
-                                            bodyParameter.getReturnValue().getValue());
-                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName()
+                                            bodyParameter.getReturnValue()
+                                                    .getValue());
+                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0)
+                                    .getMethodName()
                                     .equals("string")) {
                                 // we wanted the return value from the "string" call on ResponseBody
                                 // but, we did not find that method call, so we cannot reconstruct the response from the
@@ -406,7 +439,8 @@ public class DaoService {
 
 
             results.close();
-            long end = Date.from(Instant.now()).getTime();
+            long end = Date.from(Instant.now())
+                    .getTime();
             logger.warn("Load calls took: " + (end - start));
             return callsList;
         } catch (Exception e) {
@@ -461,7 +495,9 @@ public class DaoService {
         String query = "select * from probe_info where dataid in (" + StringUtils.join(values, ",") + ")";
 
         GenericRawResults<ProbeInfo> queryResult = probeInfoDao.queryRaw(query, probeInfoDao.getRawRowMapper());
-        List<DataInfo> resultList = queryResult.getResults().stream().map(ProbeInfo::ToProbeInfo)
+        List<DataInfo> resultList = queryResult.getResults()
+                .stream()
+                .map(ProbeInfo::ToProbeInfo)
                 .collect(Collectors.toList());
         queryResult.close();
         return new ArrayList<>(resultList);
@@ -608,7 +644,8 @@ public class DaoService {
                             Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
                                     = callsOnReturnParameter
                                     .stream()
-                                    .filter(e -> e.getMethodName().equals("body"))
+                                    .filter(e -> e.getMethodName()
+                                            .equals("body"))
                                     .findFirst();
 
                             if (bodyResponseParameter.isEmpty()) {
@@ -621,8 +658,10 @@ public class DaoService {
                             // we need the return value on this return parameter which is going to be the actual body
                             // since the ResponseBody is also not serializable
                             List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
-                                    this.getMethodCallExpressionOnParameter(bodyParameter.getReturnValue().getValue());
-                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0).getMethodName()
+                                    this.getMethodCallExpressionOnParameter(bodyParameter.getReturnValue()
+                                            .getValue());
+                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0)
+                                    .getMethodName()
                                     .equals("string")) {
                                 // we wanted the return value from the "string" call on ResponseBody
                                 // but, we did not find that method call, so we cannot reconstruct the response from the
@@ -686,7 +725,9 @@ public class DaoService {
             }
 
 
-            return callListFromDb.stream().map(this::convertDbMCE).collect(Collectors.toList());
+            return callListFromDb.stream()
+                    .map(this::convertDbMCE)
+                    .collect(Collectors.toList());
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -809,7 +850,9 @@ public class DaoService {
 
     public void createOrUpdateProbeInfo(Collection<DataInfo> probeInfo) {
         try {
-            probeInfoDao.create(probeInfo.stream().map(ProbeInfo::FromProbeInfo).collect(Collectors.toList()));
+            probeInfoDao.create(probeInfo.stream()
+                    .map(ProbeInfo::FromProbeInfo)
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -840,8 +883,10 @@ public class DaoService {
 
     public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
         try {
-            return parameterDao.queryForEq("type", typeName).stream()
-                    .map(Parameter::toParameter).collect(Collectors.toList());
+            return parameterDao.queryForEq("type", typeName)
+                    .stream()
+                    .map(Parameter::toParameter)
+                    .collect(Collectors.toList());
         } catch (SQLException e) {
             e.printStackTrace();
             return List.of();
@@ -894,6 +939,18 @@ public class DaoService {
     public List<ArchiveFile> getArchiveList() {
         try {
             return archiveFileDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return List.of();
+        }
+    }
+
+    public List<ThreadProcessingState> getThreadList() {
+        try {
+            return threadStateDao.queryForAll()
+                    .stream()
+                    .map(e -> new ThreadProcessingState(1))
+                    .collect(Collectors.toList());
         } catch (SQLException e) {
             e.printStackTrace();
             return List.of();
@@ -1003,9 +1060,12 @@ public class DaoService {
     getTestCandidates(long value, long entryProbeIndex, long mainMethodId, boolean loadCalls) {
         try {
             List<TestCandidateMetadata> candidates = testCandidateDao.queryBuilder()
-                    .where().eq("testSubject_id", value)
-                    .and().le("entryProbeIndex", entryProbeIndex)
-                    .and().le("mainMethod_id", mainMethodId)
+                    .where()
+                    .eq("testSubject_id", value)
+                    .and()
+                    .le("entryProbeIndex", entryProbeIndex)
+                    .and()
+                    .le("mainMethod_id", mainMethodId)
                     .query();
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
 
@@ -1028,5 +1088,49 @@ public class DaoService {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
+
+    public ArchiveFile getArchiveFileByName(String name) throws SQLException {
+        return archiveFileDao.queryForId(name);
+    }
+
+    public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
+        ThreadState daoThreadState = new ThreadState();
+        daoThreadState.setThreadId(threadState.getThreadId());
+        daoThreadState.setCallStack(gson.toJson(threadState.getCallStack()));
+        daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
+        daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
+        threadStateDao.create(daoThreadState);
+    }
+
+    @NotNull Map<String, ArchiveFile> getArchiveFileMap() {
+        List<ArchiveFile> archiveFileList = getArchiveList();
+        Map<String, ArchiveFile> archiveFileMap = new HashMap<>();
+        for (ArchiveFile archiveFile : archiveFileList) {
+            archiveFileMap.put(archiveFile.getName(), archiveFile);
+        }
+        return archiveFileMap;
+    }
+
+    public List<LogFile> getPendingLogFilesToProcess() throws SQLException {
+        return logFilesDao.queryForEq("status", Constants.PENDING);
+    }
+
+    public ThreadProcessingState getThreadState(Integer threadId) throws SQLException {
+        ThreadState threadState = threadStateDao.queryForId(threadId);
+        ThreadProcessingState threadProcessingState = new ThreadProcessingState(threadId);
+        threadProcessingState.setCallStack(gson.fromJson(threadState.getCallStack(),
+                new TypeToken<ArrayList<com.insidious.plugin.pojo.MethodCallExpression>>() {
+                }.getType()));
+        threadProcessingState.setNextNewObjectType(
+                gson.fromJson(threadState.getNextNewObjectStack(), new TypeToken<ArrayList<String>>() {
+                }.getType())
+        );
+        threadProcessingState.setValueStack(
+                gson.fromJson(threadState.getValueStack(), new TypeToken<ArrayList<String>>() {
+                }.getType())
+
+        );
+        return threadProcessingState;
     }
 }
