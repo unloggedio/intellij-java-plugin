@@ -51,6 +51,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JLabel headingText;
     private JPanel candidateListPanel;
     private JButton copyVMParameterButton;
+    private JProgressBar candidateLoadProgressbar;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
@@ -74,6 +75,8 @@ public class LiveViewWindow implements TreeSelectionListener,
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
         setDividerColor();
+//        UIManager.put("ProgressBar.background", Color.WHITE);
+//        UIManager.put("ProgressBar.foreground", new Color(254, 100, 216));
     }
 
     public static String[] splitByLength(String str, int size) {
@@ -207,18 +210,28 @@ public class LiveViewWindow implements TreeSelectionListener,
         this.candidateListPanel.revalidate();
     }
 
+    private void setLoadingState(boolean status)
+    {
+        candidateLoadProgressbar.setVisible(status);
+    }
     @Override
     public void onSelect(TestCandidateMetadata testCandidateMetadata) {
-
-        TestCandidateCustomizeView testCandidateView = new TestCandidateCustomizeView(
-                testCandidateMetadata, sessionInstance, this);
-        this.candidateListPanel.removeAll();
-        this.candidateListPanel.setLayout(new GridLayout(1, 1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(1);
-        candidateListPanel.add(testCandidateView.getContentPanel(), constraints);
-        this.candidateListPanel.revalidate();
-
+        try {
+            setLoadingState(true);
+            TestCandidateCustomizeView testCandidateView = new TestCandidateCustomizeView(
+                    testCandidateMetadata, sessionInstance, this);
+            this.candidateListPanel.removeAll();
+            this.candidateListPanel.setLayout(new GridLayout(1, 1));
+            GridConstraints constraints = new GridConstraints();
+            constraints.setRow(1);
+            candidateListPanel.add(testCandidateView.getContentPanel(), constraints);
+            this.candidateListPanel.revalidate();
+            setLoadingState(false);
+        }
+        catch(Exception e)
+        {
+            setLoadingState(false);
+        }
     }
 
     private void checkProgressIndicator(String text1, String text2) {
