@@ -1,6 +1,8 @@
 package com.insidious.plugin.pojo;
 
 
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,6 +11,7 @@ public class ThreadProcessingState {
     private int threadId;
     private List<MethodCallExpression> callStack = new LinkedList<>();
     private List<String> nextNewObjectType = new LinkedList<>();
+    private List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
 
     public ThreadProcessingState(int threadId) {
         this.threadId = threadId;
@@ -76,5 +79,29 @@ public class ThreadProcessingState {
 
     public Long popValue() {
         return valueStack.remove(valueStack.size() - 1);
+    }
+
+    public TestCandidateMetadata getTopCandidate() {
+        return testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
+    }
+
+    public TestCandidateMetadata popTopCandidate() {
+        return testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
+    }
+
+    public void pushTopCandidate(TestCandidateMetadata testCandidateMetadata) {
+        testCandidateMetadataStack.add(testCandidateMetadata);
+    }
+
+    public int candidateSize() {
+        return testCandidateMetadataStack.size();
+    }
+
+    public List<TestCandidateMetadata> getCandidateStack() {
+        return testCandidateMetadataStack;
+    }
+
+    public void setCandidateStack(List<TestCandidateMetadata> candidateStack) {
+        this.testCandidateMetadataStack = candidateStack;
     }
 }

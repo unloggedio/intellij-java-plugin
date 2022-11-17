@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
  * event also from where the information was identified
  */
 public class Parameter {
-    private final VariableContainer variableContainer = new VariableContainer();
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
@@ -64,14 +63,6 @@ public class Parameter {
 
     public boolean getException() {
         return exception;
-    }
-
-    public void addField(Parameter parameter) {
-        this.variableContainer.add(parameter);
-    }
-
-    public VariableContainer getFields() {
-        return this.variableContainer;
     }
 
     public boolean isContainer() {

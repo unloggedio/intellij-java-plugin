@@ -14,6 +14,8 @@ public class ThreadState {
     private String valueStack;
     @DatabaseField
     private String nextNewObjectStack;
+    @DatabaseField
+    private String candidateStack;
 
     public int getThreadId() {
         return threadId;
@@ -45,5 +47,13 @@ public class ThreadState {
 
     public void setNextNewObjectStack(String nextNewObjectStack) {
         this.nextNewObjectStack = nextNewObjectStack;
+    }
+
+    public String getCandidateStack() {
+        return candidateStack;
+    }
+
+    public void setCandidateStack(String candidateStack) {
+        this.candidateStack = candidateStack;
     }
 }

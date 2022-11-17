@@ -17,8 +17,8 @@ public class MockFactory {
             // we want to create the objects from java.lang.* namespace using their real values, so
             // in the test case it looks something like
             // Integer varName = value;
-            TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(callSubject);
-            return testCaseMetadata;
+//            TestCandidateMetadata testCaseMetadata = buildTestCandidateForBaseClass(callSubject);
+            return null;
         } else {
             // need to move this out to a configurable list of classes which need not
             // be mocked and ideally we already know a way to construct them
@@ -31,32 +31,32 @@ public class MockFactory {
         }
     }
 
-    private static TestCandidateMetadata buildTestCandidateForBaseClass(Parameter parameter) {
-
-        String javaClassName;
-        if (parameter.getType().length() > 1) {
-            String[] nameParts = parameter.getType().split(";")[0].split("/");
-            javaClassName = nameParts[nameParts.length - 1];
-        } else {
-            javaClassName = parameter.getProbeInfo().getValueDesc().name();
-        }
-
-        TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
-
-        testCandidateMetadata.setTestSubject(null);
-//        Parameter returnStringParam = new Parameter();
-
-
-//        testCandidateMetadata.setFullyQualifiedClassname("java.lang." + javaClassName);
-//        testCandidateMetadata.setPackageName("java.lang");
-//        testCandidateMetadata.setTestMethodName("<init>");
-//        testCandidateMetadata.setUnqualifiedClassname(javaClassName);
-
-        testCandidateMetadata.setMainMethod(
-                MethodCallExpressionFactory.PlainValueExpression(String.valueOf(parameter.getValue()))
-        );
-        return testCandidateMetadata;
-    }
+//    private static TestCandidateMetadata buildTestCandidateForBaseClass(Parameter parameter) {
+//
+//        String javaClassName;
+//        if (parameter.getType().length() > 1) {
+//            String[] nameParts = parameter.getType().split(";")[0].split("/");
+//            javaClassName = nameParts[nameParts.length - 1];
+//        } else {
+//            javaClassName = parameter.getProbeInfo().getValueDesc().name();
+//        }
+//
+//        TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
+//
+//        testCandidateMetadata.setTestSubject(null);
+////        Parameter returnStringParam = new Parameter();
+//
+//
+////        testCandidateMetadata.setFullyQualifiedClassname("java.lang." + javaClassName);
+////        testCandidateMetadata.setPackageName("java.lang");
+////        testCandidateMetadata.setTestMethodName("<init>");
+////        testCandidateMetadata.setUnqualifiedClassname(javaClassName);
+//
+//        testCandidateMetadata.setMainMethod(
+//                MethodCallExpressionFactory.PlainValueExpression(String.valueOf(parameter.getValue()))
+//        );
+//        return testCandidateMetadata;
+//    }
 
 
     private static TestCandidateMetadata buildMockCandidateForBaseClass(

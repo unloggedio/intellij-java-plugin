@@ -13,7 +13,7 @@ import java.util.List;
 public class TestCandidateMetadata {
     private List<MethodCallExpression> methodCallExpressions = new LinkedList<>();
     private VariableContainer fields = new VariableContainer();
-    private Expression mainMethod;
+    private MethodCallExpression mainMethod;
     private Parameter testSubject;
     private long callTimeNanoSecond;
     private long entryProbeIndex;
@@ -41,7 +41,7 @@ public class TestCandidateMetadata {
         return mainMethod;
     }
 
-    public void setMainMethod(Expression mainMethod) {
+    public void setMainMethod(MethodCallExpression mainMethod) {
         this.mainMethod = mainMethod;
     }
 
@@ -54,7 +54,8 @@ public class TestCandidateMetadata {
     }
 
     public void addAllFields(VariableContainer fieldsContainer) {
-        fieldsContainer.all().forEach(this.fields::add);
+        fieldsContainer.all()
+                .forEach(this.fields::add);
     }
 
     public void setCallList(List<MethodCallExpression> callsList) {
@@ -65,7 +66,8 @@ public class TestCandidateMetadata {
         if (testSubject != null && testSubject.getType() != null) {
             return testSubject.getType();
         }
-        return ((MethodCallExpression) getMainMethod()).getSubject().getType();
+        return ((MethodCallExpression) getMainMethod()).getSubject()
+                .getType();
     }
 
     public Parameter getTestSubject() {

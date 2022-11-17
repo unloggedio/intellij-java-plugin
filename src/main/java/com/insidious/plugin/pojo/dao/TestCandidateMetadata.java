@@ -28,7 +28,8 @@ public class TestCandidateMetadata {
     @DatabaseField
     private String variables;
 
-    public static TestCandidateMetadata FromTestCandidateMetadata(com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
+    public static TestCandidateMetadata FromTestCandidateMetadata(
+            com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
         TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
         newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(

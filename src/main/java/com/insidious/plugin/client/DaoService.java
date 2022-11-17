@@ -1094,15 +1094,6 @@ public class DaoService {
         return archiveFileDao.queryForId(name);
     }
 
-    public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
-        ThreadState daoThreadState = new ThreadState();
-        daoThreadState.setThreadId(threadState.getThreadId());
-        daoThreadState.setCallStack(gson.toJson(threadState.getCallStack()));
-        daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
-        daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
-        threadStateDao.create(daoThreadState);
-    }
-
     @NotNull Map<String, ArchiveFile> getArchiveFileMap() {
         List<ArchiveFile> archiveFileList = getArchiveList();
         Map<String, ArchiveFile> archiveFileMap = new HashMap<>();
@@ -1118,6 +1109,9 @@ public class DaoService {
 
     public ThreadProcessingState getThreadState(Integer threadId) throws SQLException {
         ThreadState threadState = threadStateDao.queryForId(threadId);
+        if (threadState == null) {
+            return new ThreadProcessingState(threadId);
+        }
         ThreadProcessingState threadProcessingState = new ThreadProcessingState(threadId);
         threadProcessingState.setCallStack(gson.fromJson(threadState.getCallStack(),
                 new TypeToken<ArrayList<com.insidious.plugin.pojo.MethodCallExpression>>() {
@@ -1131,6 +1125,23 @@ public class DaoService {
                 }.getType())
 
         );
+        threadProcessingState.setCandidateStack(
+                gson.fromJson(threadState.getCandidateStack(), new TypeToken<ArrayList<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>>() {
+                }.getType())
+
+        );
         return threadProcessingState;
     }
+
+
+    public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
+        ThreadState daoThreadState = new ThreadState();
+        daoThreadState.setThreadId(threadState.getThreadId());
+        daoThreadState.setCallStack(gson.toJson(threadState.getCallStack()));
+        daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
+        daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
+        daoThreadState.setCandidateStack(gson.toJson(threadState.getCandidateStack()));
+        threadStateDao.createOrUpdate(daoThreadState);
+    }
+
 }
