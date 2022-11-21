@@ -49,11 +49,11 @@ public class ThreadProcessingState {
         return callStack.size();
     }
 
-    public void addCall(MethodCallExpression methodCall) {
+    public void pushCall(MethodCallExpression methodCall) {
         callStack.add(methodCall);
     }
 
-    public MethodCallExpression popTopCall() {
+    public MethodCallExpression popCall() {
         return callStack.remove(callStack.size() - 1);
     }
 

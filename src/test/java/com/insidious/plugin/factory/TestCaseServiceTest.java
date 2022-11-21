@@ -494,7 +494,9 @@ public class TestCaseServiceTest {
         }
         ExecutionSession session = sessions.getItems().get(0);
         client.setSessionInstance(new SessionInstance(session));
-        client.getSessionInstance().scanDataAndBuildReplay();
+        SessionInstance sessionInstance = client.getSessionInstance();
+        sessionInstance.scanDataAndBuildReplay();
+        sessionInstance.close();
 
     }
 

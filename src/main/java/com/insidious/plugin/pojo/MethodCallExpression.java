@@ -17,12 +17,13 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
-public class MethodCallExpression implements Expression {
+public class MethodCallExpression implements Expression, Serializable {
 
     private static final Logger logger = LoggerUtil.getInstance(MethodCallExpression.class);
     private int callStack;

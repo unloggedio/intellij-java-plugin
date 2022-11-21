@@ -27,7 +27,7 @@ import com.insidious.plugin.client.pojo.NameWithBytes;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
+import com.insidious.plugin.factory.testcase.parameter.ChronicleVariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.dao.ArchiveFile;
@@ -279,6 +279,7 @@ public class SessionInstance {
 
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
 
+        checkProgressIndicator(null, "Loading probe info index");
         File probeIndexFile = Path.of(executionSession.getPath(), "index.probe.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, DataInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
@@ -286,13 +287,14 @@ public class SessionInstance {
                 .name("probe-info-map")
                 .averageValue(new DataInfo())
                 .entries(1_000_000);
-        return probeInfoMapBuilder.createOrRecoverPersistedTo(probeIndexFile, true);
+        return probeInfoMapBuilder.createPersistedTo(probeIndexFile);
 
     }
 
 
     private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 
+        checkProgressIndicator(null, "Loading type info index");
         File typeIndexFile = Path.of(executionSession.getPath(), "index.type.dat")
                 .toFile();
 
@@ -301,13 +303,14 @@ public class SessionInstance {
                 .name("type-info-map")
                 .averageValue(new TypeInfoDocument(1, "Type-name-class", new byte[100]))
                 .entries(20_000);
-        return probeInfoMapBuilder.createOrRecoverPersistedTo(typeIndexFile, true);
+        return probeInfoMapBuilder.createPersistedTo(typeIndexFile);
 
     }
 
 
     private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
 
+        checkProgressIndicator(null, "Loading object info index");
         File objectIndexFile = Path.of(executionSession.getPath(), "index.object.dat")
                 .toFile();
 
@@ -315,14 +318,49 @@ public class SessionInstance {
                         ObjectInfoDocument.class)
                 .name("object-info-map")
                 .averageValue(new ObjectInfoDocument(1, 1))
-                .entries(10_000_000);
-        return probeInfoMapBuilder.createOrRecoverPersistedTo(objectIndexFile, true);
+                .entries(1_000_000);
+        return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
+
+    }
+
+
+    private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
+
+        File parameterIndexFile = Path.of(executionSession.getPath(), "index.parameter.dat")
+                .toFile();
+
+        Parameter averageValue = new Parameter(1L);
+        averageValue.setType("com.package.class.sub.package.ClassName");
+        averageValue.setProbeInfo(new DataInfo(1, 2, 3, 4, 5,
+                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing"));
+        DataEventWithSessionId prob = new DataEventWithSessionId(1L);
+        prob.setNanoTime(1L);
+        prob.setSerializedValue(new byte[1000]);
+        prob.setRecordedAt(1L);
+        prob.setDataId(1);
+        prob.setThreadId(1L);
+        averageValue.setProb(prob);
+
+        averageValue.setName("name1");
+        averageValue.setName("name2");
+        averageValue.setName("name4");
+        HashMap<String, Parameter> transformedTemplateMap = new HashMap<>();
+        transformedTemplateMap.put("E", new Parameter(1L));
+        averageValue.setTemplateMap(transformedTemplateMap);
+
+        ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
+                        Parameter.class)
+                .name("parameter-info-map")
+                .averageValue(averageValue)
+                .entries(1_000_000);
+        return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
 
     }
 
 
     private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
 
+        checkProgressIndicator(null, "Loading method info index");
         File methodIndexFile = Path.of(executionSession.getPath(), "index.method.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
@@ -332,13 +370,14 @@ public class SessionInstance {
                         new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
                                 "method-hash"))
                 .entries(100_000);
-        return probeInfoMapBuilder.createOrRecoverPersistedTo(methodIndexFile, true);
+        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
 
     }
 
 
     private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
 
+        checkProgressIndicator(null, "Loading class info index");
         File classIndexFile = Path.of(executionSession.getPath(), "index.class.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
@@ -349,7 +388,7 @@ public class SessionInstance {
                                 "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
                                 "signaure"))
                 .entries(10_000);
-        return probeInfoMapBuilder.createOrRecoverPersistedTo(classIndexFile, true);
+        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
 
     }
 
@@ -1766,13 +1805,20 @@ public class SessionInstance {
         Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                 .collect(Collectors.groupingBy(LogFile::getThreadId));
 
+        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+        ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
+
         for (Integer threadId : logFilesByThreadMap.keySet()) {
             List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
             ThreadProcessingState threadState = daoService.getThreadState(threadId);
-            processPendingThreadFiles(threadState, logFiles);
+            processPendingThreadFiles(threadState, logFiles, parameterContainer);
         }
 
 
+        Collection<Parameter> allParameters = parameterIndex.values();
+        daoService.createOrUpdateParameter(allParameters);
+
+        parameterIndex.close();
         databasePipe.close();
         daoService.close();
         try {
@@ -1799,7 +1845,8 @@ public class SessionInstance {
 
     private void processPendingThreadFiles(
             ThreadProcessingState threadState,
-            List<LogFile> archiveLogFiles
+            List<LogFile> archiveLogFiles,
+            ChronicleVariableContainer parameterContainer
     ) throws IOException, SQLException {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
@@ -1827,7 +1874,6 @@ public class SessionInstance {
         long currentCallId = daoService.getMaxCallId();
 
 
-        DatabaseVariableContainer parameterContainer = new DatabaseVariableContainer(daoService, archiveIndex);
         for (int i = 0; i < archiveLogFiles.size(); i++) {
             LogFile logFile = archiveLogFiles.get(i);
 
@@ -2125,8 +2171,10 @@ public class SessionInstance {
                         String methodName = probeInfo.getAttribute("Name", null);
 
 //                        logger.warn("Method " + methodName + ": " + currentCallId);
+                        currentCallId++;
                         methodCall = new MethodCallExpression(methodName, existingParameter, new LinkedList<>(),
                                 null, threadState.getCallStackSize());
+                        methodCall.setId(currentCallId);
                         methodCall.setEntryProbeInfo(probeInfo);
                         methodCall.setEntryProbe(dataEvent);
 
@@ -2136,7 +2184,7 @@ public class SessionInstance {
                         }
 
 
-                        threadState.addCall(methodCall);
+                        threadState.pushCall(methodCall);
                         addMethodToCandidate(threadState, methodCall);
                         if (!isModified) {
                             existingParameter = null;
@@ -2242,10 +2290,12 @@ public class SessionInstance {
                             saveProbe = true;
                             methodCall.setEntryProbeInfo(probeInfo);
                             methodCall.setEntryProbe(dataEvent);
+                            currentCallId++;
+                            methodCall.setId(currentCallId);
                             if (threadState.candidateSize() > 0) {
                                 addMethodToCandidate(threadState, methodCall);
                             }
-                            threadState.addCall(methodCall);
+                            threadState.pushCall(methodCall);
                         } else {
                             saveProbe = true;
 //                                    methodCall.setEntryProbeInfo(probeInfo);
@@ -2324,14 +2374,14 @@ public class SessionInstance {
                         if (entryProbeEventType == EventType.CALL) {
                             // we need to pop two calls here, since the CALL will not have a matching call_return
 //
-                            MethodCallExpression topCall = threadState.popTopCall();
+                            MethodCallExpression topCall = threadState.popCall();
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
                             theCallWhichJustReturned.set(topCall);
                             if (threadState.getTopCall() == threadState.getTopCandidate()
                                     .getMainMethod()) {
-                                topCall = threadState.popTopCall();
+                                topCall = threadState.popCall();
                                 topCall.setReturnValue(existingParameter);
                                 topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
@@ -2342,7 +2392,7 @@ public class SessionInstance {
 
                         } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
                             // we need to pop only 1 call here from the stack
-                            MethodCallExpression topCall = threadState.popTopCall();
+                            MethodCallExpression topCall = threadState.popCall();
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
@@ -2423,7 +2473,7 @@ public class SessionInstance {
                         } else if (entryProbeEventType == EventType.METHOD_ENTRY || probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
                             // we can pop the current call here since we never had the CALL event in the first place
                             // this might be going out of our hands
-                            MethodCallExpression topCall = threadState.popTopCall();
+                            MethodCallExpression topCall = threadState.popCall();
 
 
                             if (topCall.getMethodName()
@@ -2514,7 +2564,7 @@ public class SessionInstance {
                         if (entryEventType == EventType.CALL) {
                             // we pop it now
 
-                            MethodCallExpression topCall = threadState.popTopCall();
+                            MethodCallExpression topCall = threadState.popCall();
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
@@ -2581,10 +2631,10 @@ public class SessionInstance {
             logger.debug("parameterContainer = " + parameterContainer.all()
                     .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
 
-            for (MethodCallExpression methodCallExpression : callsToSave) {
-                currentCallId++;
-                methodCallExpression.setId(currentCallId);
-            }
+//            for (MethodCallExpression methodCallExpression : callsToSave) {
+//                currentCallId++;
+//                methodCallExpression.setId(currentCallId);
+//            }
 
             daoService.createOrUpdateDataEvent(eventsToSave);
             daoService.createOrUpdateProbeInfo(probesToSave);
@@ -2595,8 +2645,9 @@ public class SessionInstance {
             logFile.setStatus(Constants.COMPLETED);
             daoService.updateLogFile(logFile);
             daoService.createOrUpdateDataEvent(threadState);
-            databasePipe.addParameters(parameterContainer.all());
-//            break;
+//            Collection<Parameter> beingSaved = parameterContainer.all();
+//            databasePipe.addParameters(beingSaved);
+            break;
         }
         // we can potentially verify that the parameter types we have identified from probes are consistent
         // with the information we have in the object -> type index.
@@ -2711,6 +2762,8 @@ public class SessionInstance {
         classInfoIndex.close();
         probeInfoIndex.close();
         methodInfoIndex.close();
+        typeInfoIndex.close();
+        objectInfoIndex.close();
 
         archiveIndex = null;
     }

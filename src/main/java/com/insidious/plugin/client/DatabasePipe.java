@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
@@ -28,6 +29,7 @@ class DatabasePipe implements Runnable {
     private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
     private boolean stop = false;
     private DaoService daoService;
+    private DatabaseVariableContainer variableContainer;
 
     public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue, DaoService daoService) {
         this.parameterQueue = parameterQueue;
@@ -81,6 +83,7 @@ class DatabasePipe implements Runnable {
             batch.add(param);
             logger.warn("Saving " + batch.size() + " parameters");
             daoService.createOrUpdateParameter(batch);
+            variableContainer.getBeingSaved().removeAll(batch);
         }
         isSaving.offer(true);
     }
@@ -92,8 +95,9 @@ class DatabasePipe implements Runnable {
         List<Parameter> batch = new LinkedList<>();
         parameterQueue.drainTo(batch);
         daoService.createOrUpdateParameter(batch);
-
-
+        if (variableContainer != null) {
+            variableContainer.getBeingSaved().removeAll(batch);
+        }
         if (dataInfoList.size() > 0) {
             Collection<DataInfo> saving = new LinkedList<>();
             dataInfoList.removeAll(saving);
@@ -123,7 +127,7 @@ class DatabasePipe implements Runnable {
 
     }
 
-    public void addParameters(List<Parameter> all) {
+    public void addParameters(Collection<Parameter> all) {
         parameterQueue.addAll(all);
     }
 

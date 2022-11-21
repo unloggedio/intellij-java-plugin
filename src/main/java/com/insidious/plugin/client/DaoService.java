@@ -21,6 +21,7 @@ import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
@@ -65,6 +66,12 @@ public class DaoService {
             "where p.type = ?\n" +
             "  and mc.methodName = ?\n" +
             "order by mc.methodName;";
+    public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
+    }.getType();
+    public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
+    }.getType();
+    public static final Type LIST_MCE_TYPE = new TypeToken<ArrayList<MethodCallExpression>>() {
+    }.getType();
     private final static Logger logger = LoggerUtil.getInstance(DaoService.class);
     private final static Gson gson = new Gson();
     private final ConnectionSource connectionSource;
@@ -236,209 +243,8 @@ public class DaoService {
                     .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
 
             List<MethodCallExpression> mceList = results.getResults();
-            Map<Long, MethodCallExpression> dbMceMap = mceList.stream()
-                    .collect(Collectors.toMap(MethodCallExpression::getId, e -> e));
             results.close();
-            List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
-                    mceList.parallelStream()
-                            .map(MethodCallExpression::ToMCE)
-                            .collect(Collectors.toList());
-
-//            List<com.insidious.plugin.pojo.MethodCallExpression> callsList1 =
-//                    mceList.parallelStream().map(this::convertDbMCE).collect(Collectors.toList());
-
-            Set<Long> probesToLoad = new HashSet<>();
-            Set<Integer> probeInfoToLoad = new HashSet<>();
-            Set<Long> parametersToLoad = new HashSet<>();
-
-            for (MethodCallExpression methodCallExpression : mceList) {
-
-
-                parametersToLoad.add(methodCallExpression.getSubject());
-                parametersToLoad.addAll(methodCallExpression.getArguments());
-                parametersToLoad.add(methodCallExpression.getReturnValue_id());
-
-                probesToLoad.add(methodCallExpression.getEntryProbe_id());
-                probesToLoad.addAll(methodCallExpression.getArgumentProbes());
-                probesToLoad.add(methodCallExpression.getReturnDataEvent());
-
-                probeInfoToLoad.add(methodCallExpression.getEntryProbeInfo_id());
-            }
-
-
-            List<Parameter> dbParameters = getParameterByValue(parametersToLoad);
-
-            for (Parameter parameter : dbParameters) {
-                probesToLoad.add(parameter.getProb_id());
-                probeInfoToLoad.add(parameter.getProbeInfo_id());
-            }
-
-            List<DataEventWithSessionId> allProbes = getProbes(probesToLoad);
-            for (DataEventWithSessionId allProbe : allProbes) {
-                probeInfoToLoad.add((int) allProbe.getDataId());
-            }
-
-
-            List<DataInfo> allProbesInfo = getProbesInfo(probeInfoToLoad);
-
-            Map<Long, DataEventWithSessionId> probesMap = allProbes.stream()
-                    .collect(Collectors.toMap(DataEventWithSessionId::getNanoTime, e -> e));
-
-            Map<Integer, DataInfo> probeInfoMap = allProbesInfo.stream()
-                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
-
-            Map<Object, Parameter> dbParameterMap = dbParameters.stream()
-                    .collect(Collectors.toMap(Parameter::getValue, e -> e));
-
-            List<com.insidious.plugin.pojo.Parameter> parameters = dbParameters.stream()
-                    .map(Parameter::toParameter)
-                    .collect(Collectors.toList());
-
-            for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
-                Parameter dbParameter = dbParameterMap.get(parameter.getValue());
-                parameter.setProb(probesMap.get(dbParameter.getProb_id()));
-                parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
-            }
-
-            Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = parameters.stream()
-                    .collect(Collectors.toMap(com.insidious.plugin.pojo.Parameter::getValue, e -> e));
-
-            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsList) {
-
-                MethodCallExpression dbMce = dbMceMap.get(methodCallExpression.getId());
-
-                if (methodCallExpression.isStaticCall()) {
-                    DataInfo entryProbeInfo = probeInfoMap.get(dbMce.getEntryProbeInfo_id());
-                    com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
-                    staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
-                    staticSubject.setProb(probesMap.get(dbMce.getEntryProbe_id()));
-                    staticSubject.setProbeInfo(entryProbeInfo);
-                    staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
-                    methodCallExpression.setSubject(staticSubject);
-
-                } else {
-                    methodCallExpression.setSubject(
-                            com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject())));
-                }
-
-
-                List<com.insidious.plugin.pojo.Parameter> arguments = new LinkedList<>();
-
-                List<Long> dbMceArguments = dbMce.getArguments();
-                for (int i = 0; i < dbMceArguments.size(); i++) {
-                    Long argument = dbMceArguments.get(i);
-                    DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
-                            .get(i));
-                    DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getDataId());
-                    com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
-                    if (paramArgument == null) {
-                        paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
-                    } else {
-                        paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
-                    }
-                    paramArgument.setProbeInfo(probeInfo);
-                    paramArgument.setTypeForced(
-                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
-                    paramArgument.setProb(dataEvent);
-
-                    arguments.add(paramArgument);
-                }
-
-                methodCallExpression.setArguments(arguments);
-                List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
-                for (Long argumentProbe : dbMce.getArgumentProbes()) {
-                    argumentProbes.add(probesMap.get(argumentProbe));
-                }
-
-                methodCallExpression.setArgumentProbes(argumentProbes);
-
-
-                com.insidious.plugin.pojo.Parameter returnParam;
-                returnParam = parameterMap.get(dbMce.getReturnValue_id());
-                if (returnParam == null) {
-                    returnParam = new com.insidious.plugin.pojo.Parameter();
-                } else {
-                    returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
-                }
-                methodCallExpression.setReturnValue(returnParam);
-
-                DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
-                returnParam.setProb(returnDataEvent);
-                DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
-                returnParam.setProbeInfo(eventProbe);
-                String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
-                if (typeFromProbe != null) {
-                    returnParam.setTypeForced(typeFromProbe);
-                }
-
-                if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
-                    switch (returnParam.getType()) {
-                        case "okhttp3.Response":
-                            List<com.insidious.plugin.pojo.MethodCallExpression> callsOnReturnParameter =
-                                    this.getMethodCallExpressionOnParameter(returnParam.getValue());
-
-                            Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
-                                    = callsOnReturnParameter
-                                    .stream()
-                                    .filter(e -> e.getMethodName()
-                                            .equals("body"))
-                                    .findFirst();
-
-                            if (bodyResponseParameter.isEmpty()) {
-                                throw new RuntimeException("expecting a body call on the " +
-                                        "return parameter okhttp3.Response was not found");
-                            }
-                            com.insidious.plugin.pojo.MethodCallExpression bodyParameter =
-                                    bodyResponseParameter.get();
-
-                            // we need the return value on this return parameter which is going to be the actual body
-                            // since the ResponseBody is also not serializable
-                            List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
-                                    this.getMethodCallExpressionOnParameter(
-                                            bodyParameter.getReturnValue()
-                                                    .getValue());
-                            if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0)
-                                    .getMethodName()
-                                    .equals("string")) {
-                                // we wanted the return value from the "string" call on ResponseBody
-                                // but, we did not find that method call, so we cannot reconstruct the response from the
-                                // http call, so just throw for now until we come across a real scenario where
-                                // this is happening
-                                throw new RuntimeException("expected 'string' call on the ResponseBody " +
-                                        "object was not found - " + methodCallExpression);
-                            }
-
-                            com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
-
-                            VariableContainer variableContainer = VariableContainer.from(
-                                    List.of(stringCall.getReturnValue())
-                            );
-
-                            // TODO: also use header and code method call response to create more accurate response
-
-                            com.insidious.plugin.pojo.MethodCallExpression buildOkHttpResponseFromString =
-                                    MethodCallExpressionFactory.MethodCallExpression(
-                                            "buildOkHttpResponseFromString",
-                                            null, variableContainer, returnParam);
-
-                            returnParam.setCreator(buildOkHttpResponseFromString);
-                            break;
-                        default:
-                            // now we can end up in this call recursively
-                            // so instead of throwing, lets return ?
-                            break;
-//                            throw new RuntimeException("return value serialized value is empty - " + convertedCallExpression);
-                    }
-                }
-
-                methodCallExpression.setReturnDataEvent(returnDataEvent);
-
-                methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
-                methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
-            }
-
-
-            results.close();
+            List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(mceList);
             long end = Date.from(Instant.now())
                     .getTime();
             logger.warn("Load calls took: " + (end - start));
@@ -446,6 +252,212 @@ public class DaoService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @NotNull
+    private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(
+            List<MethodCallExpression> mceList
+    ) throws Exception {
+        Map<Long, MethodCallExpression> dbMceMap = mceList.stream()
+                .collect(Collectors.toMap(MethodCallExpression::getId, e -> e));
+        List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
+                mceList.parallelStream()
+                        .map(MethodCallExpression::ToMCE)
+                        .collect(Collectors.toList());
+
+//            List<com.insidious.plugin.pojo.MethodCallExpression> callsList1 =
+//                    mceList.parallelStream().map(this::convertDbMCE).collect(Collectors.toList());
+
+        Set<Long> probesToLoad = new HashSet<>();
+        Set<Integer> probeInfoToLoad = new HashSet<>();
+        Set<Long> parametersToLoad = new HashSet<>();
+
+        for (MethodCallExpression methodCallExpression : mceList) {
+
+
+            parametersToLoad.add(methodCallExpression.getSubject());
+            parametersToLoad.addAll(methodCallExpression.getArguments());
+            parametersToLoad.add(methodCallExpression.getReturnValue_id());
+
+            probesToLoad.add(methodCallExpression.getEntryProbe_id());
+            probesToLoad.addAll(methodCallExpression.getArgumentProbes());
+            probesToLoad.add(methodCallExpression.getReturnDataEvent());
+
+            probeInfoToLoad.add(methodCallExpression.getEntryProbeInfo_id());
+        }
+
+
+        List<Parameter> dbParameters = getParameterByValue(parametersToLoad);
+
+        for (Parameter parameter : dbParameters) {
+            probesToLoad.add(parameter.getProb_id());
+            probeInfoToLoad.add(parameter.getProbeInfo_id());
+        }
+
+        List<DataEventWithSessionId> allProbes = getProbes(probesToLoad);
+        for (DataEventWithSessionId allProbe : allProbes) {
+            probeInfoToLoad.add((int) allProbe.getDataId());
+        }
+
+
+        List<DataInfo> allProbesInfo = getProbesInfo(probeInfoToLoad);
+
+        Map<Long, DataEventWithSessionId> probesMap = allProbes.stream()
+                .collect(Collectors.toMap(DataEventWithSessionId::getNanoTime, e -> e));
+
+        Map<Integer, DataInfo> probeInfoMap = allProbesInfo.stream()
+                .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
+
+        Map<Object, Parameter> dbParameterMap = dbParameters.stream()
+                .collect(Collectors.toMap(Parameter::getValue, e -> e));
+
+        List<com.insidious.plugin.pojo.Parameter> parameters = dbParameters.stream()
+                .map(Parameter::toParameter)
+                .collect(Collectors.toList());
+
+        for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
+            Parameter dbParameter = dbParameterMap.get(parameter.getValue());
+            parameter.setProb(probesMap.get(dbParameter.getProb_id()));
+            parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
+        }
+
+        Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = parameters.stream()
+                .collect(Collectors.toMap(com.insidious.plugin.pojo.Parameter::getValue, e -> e));
+
+        for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsList) {
+
+            MethodCallExpression dbMce = dbMceMap.get(methodCallExpression.getId());
+
+            if (methodCallExpression.isStaticCall()) {
+                DataInfo entryProbeInfo = probeInfoMap.get(dbMce.getEntryProbeInfo_id());
+                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
+                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
+                staticSubject.setProb(probesMap.get(dbMce.getEntryProbe_id()));
+                staticSubject.setProbeInfo(entryProbeInfo);
+                staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
+                methodCallExpression.setSubject(staticSubject);
+
+            } else {
+                methodCallExpression.setSubject(
+                        com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject())));
+            }
+
+
+            List<com.insidious.plugin.pojo.Parameter> arguments = new LinkedList<>();
+
+            List<Long> dbMceArguments = dbMce.getArguments();
+            for (int i = 0; i < dbMceArguments.size(); i++) {
+                Long argument = dbMceArguments.get(i);
+                DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
+                        .get(i));
+                DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getDataId());
+                com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
+                if (paramArgument == null) {
+                    paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
+                } else {
+                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
+                }
+                paramArgument.setProbeInfo(probeInfo);
+                paramArgument.setTypeForced(
+                        ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                paramArgument.setProb(dataEvent);
+
+                arguments.add(paramArgument);
+            }
+
+            methodCallExpression.setArguments(arguments);
+            List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
+            for (Long argumentProbe : dbMce.getArgumentProbes()) {
+                argumentProbes.add(probesMap.get(argumentProbe));
+            }
+
+            methodCallExpression.setArgumentProbes(argumentProbes);
+
+
+            com.insidious.plugin.pojo.Parameter returnParam;
+            returnParam = parameterMap.get(dbMce.getReturnValue_id());
+            if (returnParam == null) {
+                returnParam = new com.insidious.plugin.pojo.Parameter();
+            } else {
+                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
+            }
+            methodCallExpression.setReturnValue(returnParam);
+
+            DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
+            returnParam.setProb(returnDataEvent);
+            DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
+            returnParam.setProbeInfo(eventProbe);
+            String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
+            if (typeFromProbe != null) {
+                returnParam.setTypeForced(typeFromProbe);
+            }
+
+            if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
+                switch (returnParam.getType()) {
+                    case "okhttp3.Response":
+                        List<com.insidious.plugin.pojo.MethodCallExpression> callsOnReturnParameter =
+                                this.getMethodCallExpressionOnParameter(returnParam.getValue());
+
+                        Optional<com.insidious.plugin.pojo.MethodCallExpression> bodyResponseParameter
+                                = callsOnReturnParameter
+                                .stream()
+                                .filter(e -> e.getMethodName()
+                                        .equals("body"))
+                                .findFirst();
+
+                        if (bodyResponseParameter.isEmpty()) {
+                            throw new RuntimeException("expecting a body call on the " +
+                                    "return parameter okhttp3.Response was not found");
+                        }
+                        com.insidious.plugin.pojo.MethodCallExpression bodyParameter =
+                                bodyResponseParameter.get();
+
+                        // we need the return value on this return parameter which is going to be the actual body
+                        // since the ResponseBody is also not serializable
+                        List<com.insidious.plugin.pojo.MethodCallExpression> responseBodyCalls =
+                                this.getMethodCallExpressionOnParameter(
+                                        bodyParameter.getReturnValue()
+                                                .getValue());
+                        if (responseBodyCalls.size() == 0 || !responseBodyCalls.get(0)
+                                .getMethodName()
+                                .equals("string")) {
+                            // we wanted the return value from the "string" call on ResponseBody
+                            // but, we did not find that method call, so we cannot reconstruct the response from the
+                            // http call, so just throw for now until we come across a real scenario where
+                            // this is happening
+                            throw new RuntimeException("expected 'string' call on the ResponseBody " +
+                                    "object was not found - " + methodCallExpression);
+                        }
+
+                        com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
+
+                        VariableContainer variableContainer = VariableContainer.from(
+                                List.of(stringCall.getReturnValue())
+                        );
+
+                        // TODO: also use header and code method call response to create more accurate response
+
+                        com.insidious.plugin.pojo.MethodCallExpression buildOkHttpResponseFromString =
+                                MethodCallExpressionFactory.MethodCallExpression(
+                                        "buildOkHttpResponseFromString",
+                                        null, variableContainer, returnParam);
+
+                        returnParam.setCreator(buildOkHttpResponseFromString);
+                        break;
+                    default:
+                        // now we can end up in this call recursively
+                        // so instead of throwing, lets return ?
+                        break;
+//                            throw new RuntimeException("return value serialized value is empty - " + convertedCallExpression);
+                }
+            }
+
+            methodCallExpression.setReturnDataEvent(returnDataEvent);
+
+            methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
+            methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
+        }
+        return callsList;
     }
 
 
@@ -858,7 +870,30 @@ public class DaoService {
         }
     }
 
-    public void createOrUpdateParameter(List<com.insidious.plugin.pojo.Parameter> parameterList) {
+    public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
+        try {
+            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
+                Parameter existingParameter = parameterDao.queryForId(parameter.getValue());
+                if (existingParameter != null) {
+                    String[] existingNames = existingParameter.getNames();
+                    List<String> newNames = parameter.getNamesList();
+                    for (String existingName : existingNames) {
+                        if (!newNames.contains(existingName)) {
+                            newNames.add(existingName);
+                        }
+                    }
+                }
+
+                Parameter e = Parameter.fromParameter(parameter);
+                parameterDao.createOrUpdate(e);
+            }
+            logger.warn("updated " + parameterList.size() + " parameters");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void createParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
             for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
                 Parameter existingParameter = parameterDao.queryForId(parameter.getValue());
@@ -1107,29 +1142,36 @@ public class DaoService {
         return logFilesDao.queryForEq("status", Constants.PENDING);
     }
 
-    public ThreadProcessingState getThreadState(Integer threadId) throws SQLException {
+    public ThreadProcessingState getThreadState(Integer threadId) throws Exception {
         ThreadState threadState = threadStateDao.queryForId(threadId);
         if (threadState == null) {
             return new ThreadProcessingState(threadId);
         }
         ThreadProcessingState threadProcessingState = new ThreadProcessingState(threadId);
-        threadProcessingState.setCallStack(gson.fromJson(threadState.getCallStack(),
-                new TypeToken<ArrayList<com.insidious.plugin.pojo.MethodCallExpression>>() {
-                }.getType()));
+
+        List<MethodCallExpression> dbCallStack = gson.fromJson(threadState.getCallStack(), LIST_MCE_TYPE);
+
+        @NotNull List<com.insidious.plugin.pojo.MethodCallExpression> callStack = buildFromDbMce(dbCallStack);
+
+
+        threadProcessingState.setCallStack(callStack);
         threadProcessingState.setNextNewObjectType(
-                gson.fromJson(threadState.getNextNewObjectStack(), new TypeToken<ArrayList<String>>() {
-                }.getType())
+                gson.fromJson(threadState.getNextNewObjectStack(), LIST_STRING_TYPE)
         );
         threadProcessingState.setValueStack(
-                gson.fromJson(threadState.getValueStack(), new TypeToken<ArrayList<String>>() {
-                }.getType())
+                gson.fromJson(threadState.getValueStack(), LIST_STRING_TYPE)
 
         );
-        threadProcessingState.setCandidateStack(
-                gson.fromJson(threadState.getCandidateStack(), new TypeToken<ArrayList<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>>() {
-                }.getType())
+        List<TestCandidateMetadata> dbCandidateStack = gson.fromJson(threadState.getCandidateStack(),
+                LIST_CANDIDATE_TYPE);
 
-        );
+        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidateStack =
+                dbCandidateStack.stream()
+                        .map(TestCandidateMetadata::toTestCandidate)
+                        .collect(Collectors.toList());
+
+
+        threadProcessingState.setCandidateStack(candidateStack);
         return threadProcessingState;
     }
 
@@ -1137,10 +1179,24 @@ public class DaoService {
     public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
         ThreadState daoThreadState = new ThreadState();
         daoThreadState.setThreadId(threadState.getThreadId());
-        daoThreadState.setCallStack(gson.toJson(threadState.getCallStack()));
+
+        List<com.insidious.plugin.pojo.MethodCallExpression> callStack = threadState.getCallStack();
+        List<MethodCallExpression> callStackList = callStack.stream()
+                .map(MethodCallExpression::FromMCE)
+                .collect(Collectors.toList());
+
+
+        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidateStack = threadState.getCandidateStack();
+
+        List<TestCandidateMetadata> dbCandidateStack = candidateStack.stream()
+                .map(TestCandidateMetadata::FromTestCandidateMetadata)
+                .collect(Collectors.toList());
+
+        daoThreadState.setCandidateStack(gson.toJson(dbCandidateStack));
+
+        daoThreadState.setCallStack(gson.toJson(callStackList));
         daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
         daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
-        daoThreadState.setCandidateStack(gson.toJson(threadState.getCandidateStack()));
         threadStateDao.createOrUpdate(daoThreadState);
     }
 

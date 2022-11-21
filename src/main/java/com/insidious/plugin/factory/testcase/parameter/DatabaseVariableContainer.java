@@ -15,7 +15,8 @@ public class DatabaseVariableContainer {
     private final DaoService daoService;
     private final ArchiveIndex archiveIndex;
     private long variableContainerId;
-    private Map<Long, Boolean> ensuredParameters = new HashMap<>();
+    private final Map<Long, Boolean> ensuredParameters = new HashMap<>();
+    private final List<Parameter> beingSaved = Collections.synchronizedList(new ArrayList<>());
 
     public DatabaseVariableContainer(DaoService daoService, ArchiveIndex archiveIndex) {
         this.daoService = daoService;
@@ -23,12 +24,14 @@ public class DatabaseVariableContainer {
     }
 
     public static String upperInstanceName(String methodName) {
-        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
+        return methodName.substring(0, 1)
+                .toUpperCase() + methodName.substring(1);
     }
 
     public static String lowerInstanceName(String methodName) {
         int lowerIndex = 1;
-        return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
+        return methodName.substring(0, lowerIndex)
+                .toLowerCase() + methodName.substring(1);
     }
 
     public static DatabaseVariableContainer from(List<Parameter> callArguments) {
@@ -63,7 +66,8 @@ public class DatabaseVariableContainer {
         if (byValue == null) {
             this.parameterList.add(parameter);
             if (parameter.getProb() != null) {
-                parameterMap.put(parameter.getProb().getValue(), parameter);
+                parameterMap.put(parameter.getProb()
+                        .getValue(), parameter);
             }
             return;
         }
@@ -86,7 +90,8 @@ public class DatabaseVariableContainer {
 //                }
 //            } else {
             this.parameterList.add(parameter);
-            parameterMap.put(parameter.getProb().getValue(), parameter);
+            parameterMap.put(parameter.getProb()
+                    .getValue(), parameter);
 //            }
 
         }
@@ -104,7 +109,8 @@ public class DatabaseVariableContainer {
     public List<Parameter> getParametersByType(String typename) {
         return this.parameterList
                 .stream()
-                .filter(e -> e.getType().equals(typename))
+                .filter(e -> e.getType()
+                        .equals(typename))
                 .collect(Collectors.toList());
     }
 
@@ -116,7 +122,8 @@ public class DatabaseVariableContainer {
     public boolean contains(String variableName) {
         return this.parameterList.stream()
                 .anyMatch(e -> e.getName() != null &&
-                        e.getName().equals(variableName));
+                        e.getName()
+                                .equals(variableName));
     }
 
     public String createVariableName(String className) {
@@ -137,7 +144,9 @@ public class DatabaseVariableContainer {
     }
 
     public Collection<String> getNames() {
-        return parameterList.stream().map(Parameter::getName).collect(Collectors.toList());
+        return parameterList.stream()
+                .map(Parameter::getName)
+                .collect(Collectors.toList());
     }
 
     public int count() {
@@ -175,6 +184,19 @@ public class DatabaseVariableContainer {
         Parameter parameter = this.parameterMap.get(eventValue);
         if (parameter == null) {
             try {
+
+                synchronized (beingSaved) {
+                    Optional<Parameter> isBeingSaved = beingSaved.stream()
+                            .filter(e -> e.getValue() == eventValue)
+                            .findFirst();
+                    if (isBeingSaved.isPresent()) {
+                        Parameter e = isBeingSaved.get();
+                        parameterList.add(e);
+                        parameterMap.put(e.getValue(), e);
+                        return e;
+                    }
+                }
+
                 Parameter paramFromDatabase = daoService.getParameterByValue(eventValue);
                 if (paramFromDatabase != null) {
                     parameterMap.put(eventValue, paramFromDatabase);
@@ -216,7 +238,8 @@ public class DatabaseVariableContainer {
             // this is the case of some generated class name containing $$
             // and stuff (array types we have excluded earlier) like a proxy object
             // selecting the right type gets very tricky
-            if (!parameterType.getTypeNameFromClass().contains("$")) {
+            if (!parameterType.getTypeNameFromClass()
+                    .contains("$")) {
                 throw new RuntimeException("this one has no $$$");
             }
             return;
@@ -243,10 +266,23 @@ public class DatabaseVariableContainer {
             return;
         }
         ensuredParameters.put(existingParameter.getValue(), true);
-        if (existingParameter.getType().length() < 2 || existingParameter.getType().endsWith("]")) {
+        if (existingParameter.getType()
+                .length() < 2 || existingParameter.getType()
+                .endsWith("]")) {
             return;
         }
         existingParameter.setType(parameterType.getTypeNameFromClass());
 
     }
+
+    public List<Parameter> getBeingSaved() {
+        return beingSaved;
+    }
+
+    public <E> void setBeingSaved(List<Parameter> beingSaved) {
+        synchronized (this.beingSaved) {
+            this.beingSaved.addAll(beingSaved);
+        }
+    }
+
 }

@@ -3,7 +3,6 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -12,6 +11,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * test subject or the return value from the function. Store the corresponding probeInfo and
  * event also from where the information was identified
  */
-public class Parameter {
+public class Parameter implements Serializable {
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
@@ -84,7 +84,9 @@ public class Parameter {
     @Override
     public String toString() {
         return
-                names.stream().findFirst().orElse("<n/a>") +
+                names.stream()
+                        .findFirst()
+                        .orElse("<n/a>") +
                         (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
@@ -143,7 +145,9 @@ public class Parameter {
     }
 
     public void addNames(Collection<String> name) {
-        name = name.stream().filter(e -> !e.startsWith("(") && e.length() > 0).collect(Collectors.toList());
+        name = name.stream()
+                .filter(e -> !e.startsWith("(") && e.length() > 0)
+                .collect(Collectors.toList());
         this.names.addAll(name);
     }
 
@@ -196,8 +200,10 @@ public class Parameter {
 
     public void setProbeInfo(DataInfo probeInfo) {
         if (this.dataInfo == null
-                || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
-                || probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || !this.dataInfo.getEventType()
+                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || probeInfo.getEventType()
+                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
         ) {
             this.dataInfo = probeInfo;
         }
@@ -224,7 +230,8 @@ public class Parameter {
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (isContainer) {
             fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(getTemplateMap().get("E").getType()));
+                    ClassName.bestGuess(getTemplateMap().get("E")
+                            .getType()));
         }
 
         FieldSpec.Builder builder = FieldSpec.builder(
