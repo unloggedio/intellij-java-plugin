@@ -143,7 +143,7 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
 
-        objectRoutineScript.addComment("");
+//        objectRoutineScript.addComment("");
 
 
         DataEventWithSessionId mainMethodReturnValueProbe = mainMethodReturnValue.getProb();

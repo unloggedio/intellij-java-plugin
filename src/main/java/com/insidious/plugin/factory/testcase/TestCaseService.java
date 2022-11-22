@@ -7,7 +7,6 @@ import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
@@ -34,19 +33,6 @@ public class TestCaseService {
     }
 
     @NotNull
-    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
-
-        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
-
-        createFieldMocks(objectRoutineContainer);
-
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
-
-
-        return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
-    }
-
-    @NotNull
     private static TestCaseUnit buildTestUnitFromScript(
             ObjectRoutineContainer objectRoutineContainer,
             ObjectRoutineScriptContainer testCaseScript
@@ -60,28 +46,35 @@ public class TestCaseService {
                         javax.lang.model.element.Modifier.FINAL
                 );
 
-        typeSpecBuilder.addField(objectRoutineContainer.getTestSubject().toFieldSpec().build());
+        typeSpecBuilder.addField(objectRoutineContainer.getTestSubject()
+                .toFieldSpec()
+                .build());
         for (Parameter field : testCaseScript.getFields()) {
             if (field == null) {
                 continue;
             }
-            typeSpecBuilder.addField(field.toFieldSpec().build());
+            typeSpecBuilder.addField(field.toFieldSpec()
+                    .build());
         }
 
 
-        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
+        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines()
+                .size());
         logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
+            if (objectRoutine.getName()
+                    .equalsIgnoreCase("<init>")) {
                 continue;
             }
-            MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
+            MethodSpec methodSpec = objectRoutine.toMethodSpec()
+                    .build();
             typeSpecBuilder.addMethod(methodSpec);
         }
 
 //        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.")
+                .size() > 0) {
             typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
         }
 
@@ -106,28 +99,48 @@ public class TestCaseService {
 
         try {
             JSONObject eventProperties = new JSONObject();
-            int number_of_lines = testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size();
+            int number_of_lines = testCaseScript.getObjectRoutines()
+                    .get(testCaseScript.getObjectRoutines()
+                            .size() - 1)
+                    .getStatements()
+                    .size();
 
             eventProperties.put("test_case_lines", number_of_lines);
-            if(number_of_lines<=1)
-            {
-                UsageInsightTracker.getInstance().RecordEvent("EmptyTestCaseGenerated",eventProperties);
+            if (number_of_lines <= 1) {
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("EmptyTestCaseGenerated", eventProperties);
+            } else {
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("TestCaseGenerated", null);
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("TestCaseSize", eventProperties);
             }
-            else
-            {
-                UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerated",null);
-                UsageInsightTracker.getInstance().RecordEvent("TestCaseSize",eventProperties);
-            }
-        }
-        catch (Exception e)
-        {
-            System.out.println("Failed to record number of lines. Statements length : "+
-                    testCaseScript.getObjectRoutines().get(testCaseScript.getObjectRoutines().size()-1).getStatements().size());
+        } catch (Exception e) {
+            System.out.println("Failed to record number of lines. Statements length : " +
+                    testCaseScript.getObjectRoutines()
+                            .get(testCaseScript.getObjectRoutines()
+                                    .size() - 1)
+                            .getStatements()
+                            .size());
         }
 
-        return new TestCaseUnit(javaFile.toString(),
+        TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
-                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState());
+                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(), testClassSpec);
+        return testCaseUnit;
+    }
+
+    @NotNull
+    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
+
+        ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
+
+        createFieldMocks(objectRoutineContainer);
+
+        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
+
+
+        return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
     }
 
     public void createFieldMocks(
@@ -137,7 +150,8 @@ public class TestCaseService {
 
         VariableContainer fields = VariableContainer.from(
                 objectRoutineContainer
-                        .getObjectRoutines().stream()
+                        .getObjectRoutines()
+                        .stream()
                         .map(ObjectRoutine::getTestCandidateList)
                         .flatMap(Collection::stream)
                         .map(TestCandidateMetadata::getFields)

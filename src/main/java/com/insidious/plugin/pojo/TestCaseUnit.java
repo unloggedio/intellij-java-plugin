@@ -1,6 +1,7 @@
 package com.insidious.plugin.pojo;
 
 import com.insidious.plugin.factory.testcase.TestGenerationState;
+import com.squareup.javapoet.TypeSpec;
 
 public class TestCaseUnit {
 
@@ -9,18 +10,24 @@ public class TestCaseUnit {
     private final String packageName;
     private final String className;
     private final TestGenerationState testGenerationState;
+    private TypeSpec testClassSpec;
     private final String testMethodName;
+
+    public TypeSpec getTestClassSpec() {
+        return testClassSpec;
+    }
 
     public TestCaseUnit(String code, String packageName,
                         String className,
                         String testMethodName,
-                        TestGenerationState testGenerationState
-    ) {
+                        TestGenerationState testGenerationState,
+                        TypeSpec testClassSpec) {
         this.code = code;
         this.packageName = packageName;
         this.className = className;
         this.testMethodName = testMethodName;
         this.testGenerationState = testGenerationState;
+        this.testClassSpec = testClassSpec;
     }
 
     public String getTestMethodName() {

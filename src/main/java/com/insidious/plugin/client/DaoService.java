@@ -83,6 +83,7 @@ public class DaoService {
     private final Dao<ThreadState, Integer> threadStateDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
+    private String fieldA;
 
     public DaoService(ConnectionSource connectionSource) throws SQLException {
         this.connectionSource = connectionSource;
@@ -1200,4 +1201,11 @@ public class DaoService {
         threadStateDao.createOrUpdate(daoThreadState);
     }
 
+    public void setFieldA(String fieldA) {
+        this.fieldA = fieldA;
+    }
+
+    public String getFieldA() {
+        return fieldA;
+    }
 }

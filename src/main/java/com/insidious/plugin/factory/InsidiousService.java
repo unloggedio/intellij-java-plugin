@@ -1,5 +1,11 @@
 package com.insidious.plugin.factory;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -69,6 +75,7 @@ import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
+import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -98,7 +105,8 @@ import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCreden
 public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting()
+            .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private TestCaseService testCaseService;
     private Project project;
@@ -133,20 +141,25 @@ public class InsidiousService implements Disposable {
             ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
             logger.info("started insidious service - project name - " + project.getName());
-            if (ModuleManager.getInstance(project).getModules().length == 0) {
+            if (ModuleManager.getInstance(project)
+                    .getModules().length == 0) {
                 logger.warn("no module found in the project");
             } else {
-                currentModule = ModuleManager.getInstance(project).getModules()[0];
+                currentModule = ModuleManager.getInstance(project)
+                        .getModules()[0];
                 logger.info("current module - " + currentModule.getName());
             }
 
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
-            Path.of(pathToSessions).toFile().mkdirs();
+            Path.of(pathToSessions)
+                    .toFile()
+                    .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions);
             this.testCaseService = new TestCaseService(client.getSessionInstance());
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
-            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
+            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
+                    .getDebugSessions());
 
             ReadAction.run(this::getProjectPackageName);
 
@@ -165,7 +178,8 @@ public class InsidiousService implements Disposable {
 
     public void copyToClipboard(String string) {
         StringSelection selection = new StringSelection(string);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard = Toolkit.getDefaultToolkit()
+                .getSystemClipboard();
         clipboard.setContents(selection, selection);
         System.out.println(selection);
     }
@@ -271,16 +285,19 @@ public class InsidiousService implements Disposable {
         }
 
         if (overwrite) {
-            Constants.VIDEOBUG_AGENT_PATH.toFile().delete();
+            Constants.VIDEOBUG_AGENT_PATH.toFile()
+                    .delete();
         }
 
-        if (!Constants.VIDEOBUG_AGENT_PATH.toFile().exists() && !overwrite) {
+        if (!Constants.VIDEOBUG_AGENT_PATH.toFile()
+                .exists() && !overwrite) {
             InsidiousNotification.notifyMessage(
                     "Downloading Unlogged java agent jar to $HOME/.videobug/videobug-java-agent.jar",
                     NotificationType.INFORMATION);
         }
 
-        if (Constants.VIDEOBUG_AGENT_PATH.toFile().exists()) {
+        if (Constants.VIDEOBUG_AGENT_PATH.toFile()
+                .exists()) {
             return;
         }
 
@@ -346,7 +363,8 @@ public class InsidiousService implements Disposable {
     }
 
     public void init() {
-        ApplicationManager.getApplication().invokeLater(this::initiateUI);
+        ApplicationManager.getApplication()
+                .invokeLater(this::initiateUI);
 
 //        if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
 //            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " + insidiousConfiguration.getServerUrl());
@@ -403,7 +421,8 @@ public class InsidiousService implements Disposable {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("email", usernameText);
         eventProperties.put("server", serverUrl);
-        UsageInsightTracker.getInstance().RecordEvent("SignInAttempt", eventProperties);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("SignInAttempt", eventProperties);
 
         insidiousConfiguration.setServerUrl(serverUrl);
         insidiousConfiguration.setUsername(usernameText);
@@ -419,7 +438,8 @@ public class InsidiousService implements Disposable {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("email", usernameText);
                     eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance().RecordEvent("SignInFailed", eventProperties);
+                    UsageInsightTracker.getInstance()
+                            .RecordEvent("SignInFailed", eventProperties);
 
 
                     InsidiousNotification.notifyMessage(
@@ -436,19 +456,22 @@ public class InsidiousService implements Disposable {
                     JSONObject eventProperties = new JSONObject();
                     eventProperties.put("email", usernameText);
                     eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance().RecordEvent("SignInSuccess", eventProperties);
+                    UsageInsightTracker.getInstance()
+                            .RecordEvent("SignInSuccess", eventProperties);
 
 
                     Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
                     insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-                    PasswordSafe.getInstance().set(insidiousCredentials, credentials);
+                    PasswordSafe.getInstance()
+                            .set(insidiousCredentials, credentials);
 
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        InsidiousNotification.notifyMessage(
-                                "VideoBug logged in at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
-                                NotificationType.INFORMATION);
+                    ApplicationManager.getApplication()
+                            .invokeLater(() -> {
+                                InsidiousNotification.notifyMessage(
+                                        "VideoBug logged in at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
+                                        NotificationType.INFORMATION);
 
-                    });
+                            });
                 }
             });
 
@@ -465,13 +488,15 @@ public class InsidiousService implements Disposable {
             InsidiousNotification.notifyMessage("Failed to connect with server - " + e.getMessage(),
                     NotificationType.ERROR);
         }
-        ApplicationManager.getApplication().invokeLater(this::initiateUI);
+        ApplicationManager.getApplication()
+                .invokeLater(this::initiateUI);
     }
 
     private void setupProject() {
 
         if (currentModule == null) {
-            currentModule = ModuleManager.getInstance(project).getModules()[0];
+            currentModule = ModuleManager.getInstance(project)
+                    .getModules()[0];
         }
 
         String currentModuleName = currentModule.getName();
@@ -495,7 +520,8 @@ public class InsidiousService implements Disposable {
                 @Override
                 public void success(String projectId) {
                     logger.info("created new project for " + currentModuleName + " -> " + projectId);
-                    ApplicationManager.getApplication().invokeLater(() -> setupProject());
+                    ApplicationManager.getApplication()
+                            .invokeLater(() -> setupProject());
                 }
             });
 
@@ -655,8 +681,10 @@ public class InsidiousService implements Disposable {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
 
 
-            Map<String, JsonElement> valueResourceMap = testCaseScript.getTestGenerationState().getValueResourceMap();
-            if (valueResourceMap.values().size() > 0) {
+            Map<String, JsonElement> valueResourceMap = testCaseScript.getTestGenerationState()
+                    .getValueResourceMap();
+            if (valueResourceMap.values()
+                    .size() > 0) {
                 String testResourcesDirPath =
                         project.getBasePath() + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
@@ -667,45 +695,176 @@ public class InsidiousService implements Disposable {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
                 VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(testResourcesFilePath).toUri().toString());
+                        .refreshAndFindFileByUrl(Path.of(testResourcesFilePath)
+                                .toUri()
+                                .toString());
             }
 
 
             String testOutputDirPath =
                     project.getBasePath() + "/src/test/java/"
-                            + testCaseScript.getPackageName().replaceAll("\\.", "/");
+                            + testCaseScript.getPackageName()
+                            .replaceAll("\\.", "/");
             File outputDir = new File(testOutputDirPath);
             outputDir.mkdirs();
             File testcaseFile = new File(testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
 
-            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
-//                @NotNull PsiTypeCodeFragment codePsiElement = JavaCodeFragmentFactory
-//                        .getInstance(project)
-//                        .createTypeCodeFragment(testCaseScript.getCode(), null, true);
-//                @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(codePsiElement.getTextRange());
-//                CodeStyleManager.getInstance(project).reformatText(codePsiElement, ranges);
-//                out.write(codePsiElement.getText().getBytes(StandardCharsets.UTF_8));
-//                FormatterServiceImpl formatterService = new FormatterServiceImpl();
-//                String formattedSource = formatterService.formatSourceReflowStringsAndFixImports(testCaseScript.getCode());
-                out.write(testCaseScript.getCode().getBytes(StandardCharsets.UTF_8));
-            } catch (Exception e) {
-                InsidiousNotification.notifyMessage(
-                        "Failed to write test case: " + testCaseScript + " -> "
-                                + e.getMessage(), NotificationType.ERROR
-                );
+
+            if (!testcaseFile.exists()) {
+
+
+                try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                    out.write(testCaseScript.getCode()
+                            .getBytes(StandardCharsets.UTF_8));
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to write test case: " + testCaseScript + " -> "
+                                    + e.getMessage(), NotificationType.ERROR
+                    );
+                }
+
+
+            } else {
+                JavaParser javaParser = new JavaParser(new ParserConfiguration());
+                ParseResult<CompilationUnit> parsedFile = javaParser.parse(
+                        testcaseFile);
+                if (parsedFile.getResult()
+                        .isEmpty()) {
+                    InsidiousNotification.notifyMessage("Failed to parse existing test case in the file, unable to " +
+                            "add new test case", NotificationType.ERROR);
+                    return null;
+                }
+                CompilationUnit existingCompilationUnit = parsedFile.getResult()
+                        .get();
+                ClassOrInterfaceDeclaration classDeclaration = existingCompilationUnit.getClassByName(
+                                testCaseScript.getClassName())
+                        .get();
+
+                TypeSpec newTestSpec = testCaseScript.getTestClassSpec();
+
+                CompilationUnit newCompilationUnit = javaParser.parse(testCaseScript.getCode())
+                        .getResult()
+                        .get();
+
+                MethodDeclaration newMethodDeclaration =
+                        newCompilationUnit.getClassByName(testCaseScript.getClassName())
+                                .get()
+                                .getMethodsByName(newTestSpec.methodSpecs.get(1).name)
+                                .get(0);
+
+                JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
+
+//                for (FieldSpec fieldSpec : newTestSpec.fieldSpecs) {
+//
+//                    Optional<FieldDeclaration> existingField = classDeclaration.getFieldByName(
+//                            fieldSpec.name);
+//                    if (existingField.isPresent()) {
+//                        continue;
+//                    }
+//
+//
+//                    Modifier.Keyword[] keywords = new Modifier.Keyword[fieldSpec.modifiers.size()];
+//                    int i = 0;
+//                    for (javax.lang.model.element.Modifier modifier : fieldSpec.modifiers) {
+//                        Modifier.Keyword mKeyword = Modifier.Keyword.valueOf(modifier.name()
+//                                .toUpperCase());
+//                        keywords[i] = mKeyword;
+//                        i++;
+//                    }
+//
+//                    classDeclaration.addField(fieldSpec.type.toString(), fieldSpec.name, keywords);
+//                }
+//                String[] importsListStatement = testCaseScript.getCode()
+//                        .split("public final class")[0].split("\n");
+//                for (String s : importsListStatement) {
+//                    if (s.startsWith("import")) {
+//                        boolean isStatic = false;
+//                        String[] parts = s.split(" ");
+//                        String importedName = parts[parts.length - 1].split(";")[0];
+//                        if (parts.length > 2) {
+//                            if (parts[1].equals("static")) {
+//                                isStatic = true;
+//                            }
+//                        }
+//                        boolean isAstriskImport = false;
+//                        if (importedName.endsWith("*")) {
+//                            isAstriskImport = true;
+//                            importedName = importedName.substring(0, importedName.length() - 2);
+//                        }
+//                        existingCompilationUnit.addImport(importedName, isStatic, isAstriskImport);
+//                    }
+//                }
+
+
+//                List<MethodDeclaration> existingMethod = classDeclaration
+//                        .getMethodsByName(newMethodDeclaration.getName()
+//                                .asString());
+//                if (existingMethod.size() > 0) {
+//                    int i = 1;
+//
+//                    String methodName = newMethodDeclaration.getName()
+//                            .asString();
+//                    while (existingMethod.size() > 0) {
+//                        methodName = newMethodDeclaration.getName()
+//                                .asString() + i;
+//                        existingMethod = classDeclaration
+//                                .getMethodsByName(methodName);
+//                        i++;
+//                    }
+//
+//                    MethodDeclaration newMethod = classDeclaration.addMethod(methodName);
+//                    newMethod.setBody(newMethodDeclaration.getBody()
+//                            .get());
+//                    newMethod.setType(newMethodDeclaration.getType());
+//                    newMethod.setModifiers(newMethodDeclaration.getModifiers());
+//                    newMethod.setThrownExceptions(newMethodDeclaration.getThrownExceptions());
+//                    for (AnnotationExpr annotation : newMethodDeclaration.getAnnotations()) {
+//                        newMethod.addAnnotation(annotation);
+//                    }
+//
+//
+//                    // method exists
+//                } else {
+////                    classDeclaration.getMethods().add(newMethodDeclaration);
+//                    MethodDeclaration newMethod = classDeclaration.addMethod(newMethodDeclaration.getNameAsString());
+//                    newMethod.setBody(newMethodDeclaration.getBody()
+//                            .get());
+//                    newMethod.setType(newMethodDeclaration.getType());
+//                    newMethod.setModifiers(newMethodDeclaration.getModifiers());
+//                    newMethod.setThrownExceptions(newMethodDeclaration.getThrownExceptions());
+////                    newMethod.resolve();
+//                }
+
+                try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                    out.write(existingCompilationUnit.toString()
+                            .getBytes(StandardCharsets.UTF_8));
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to write test case: " + testCaseScript + " -> "
+                                    + e.getMessage(), NotificationType.ERROR
+                    );
+                }
+
+
             }
 
+
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                    .refreshAndFindFileByUrl(Path.of(testcaseFile.getAbsolutePath()).toUri().toString());
+                    .refreshAndFindFileByUrl(Path.of(testcaseFile.getAbsolutePath())
+                            .toUri()
+                            .toString());
             if (newFile == null) {
                 return null;
             }
+            newFile.refresh(true, false);
 
 
             FileContentUtil.reparseFiles(project, List.of(newFile), true);
-            @Nullable Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
+            @Nullable Document newDocument = FileDocumentManager.getInstance()
+                    .getDocument(newFile);
 
-            FileEditorManager.getInstance(project).openFile(newFile, true, true);
+            FileEditorManager.getInstance(project)
+                    .openFile(newFile, true, true);
 
 //            ApplicationManager.getApplication().runWriteAction(new Runnable() {
 //                @Override
@@ -729,16 +888,20 @@ public class InsidiousService implements Disposable {
 
         refreshSession();
         if (this.client.getCurrentSession() == null) {
-            UsageInsightTracker.getInstance().RecordEvent("Get" + searchQuery.getQueryType() + "NoSession", null);
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("Get" + searchQuery.getQueryType() + "NoSession", null);
             loadSession();
             return;
         }
 
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("query", searchQuery.getQuery());
-        eventProperties.put("sessionId", client.getCurrentSession().getSessionId());
-        eventProperties.put("projectId", client.getCurrentSession().getProjectId());
-        UsageInsightTracker.getInstance().RecordEvent("GetTracesByValue", eventProperties);
+        eventProperties.put("sessionId", client.getCurrentSession()
+                .getSessionId());
+        eventProperties.put("projectId", client.getCurrentSession()
+                .getProjectId());
+        UsageInsightTracker.getInstance()
+                .RecordEvent("GetTracesByValue", eventProperties);
 
         insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
                 0);
@@ -747,75 +910,80 @@ public class InsidiousService implements Disposable {
         long start = System.currentTimeMillis();
         SearchResultsCallbackHandler searchResultsHandler = new SearchResultsCallbackHandler(searchQuery);
 
-        ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
-            public void run(@NotNull ProgressIndicator indicator) {
+        ProgressManager.getInstance()
+                .run(new Task.Modal(project, "Unlogged", true) {
+                    public void run(@NotNull ProgressIndicator indicator) {
 
-                List<ExecutionSession> sessionList =
-                        null;
-                try {
-                    sessionList = client.fetchProjectSessions().getItems();
-                } catch (APICallException | IOException e) {
-                    InsidiousNotification.notifyMessage("Failed to get " +
-                            "project sessions", NotificationType.ERROR);
-                    return;
-                }
-                if (sessionList.size() > 10) {
-                    sessionList = sessionList.subList(0, 10);
-                }
+                        List<ExecutionSession> sessionList =
+                                null;
+                        try {
+                            sessionList = client.fetchProjectSessions()
+                                    .getItems();
+                        } catch (APICallException | IOException e) {
+                            InsidiousNotification.notifyMessage("Failed to get " +
+                                    "project sessions", NotificationType.ERROR);
+                            return;
+                        }
+                        if (sessionList.size() > 10) {
+                            sessionList = sessionList.subList(0, 10);
+                        }
 
 
-                indicator.setText("Searching across " + sessionList.size() + " session");
-                indicator.setText2("Filtering by class types");
-                AtomicInteger done = new AtomicInteger(0);
+                        indicator.setText("Searching across " + sessionList.size() + " session");
+                        indicator.setText2("Filtering by class types");
+                        AtomicInteger done = new AtomicInteger(0);
 
-                for (ExecutionSession executionSession : sessionList) {
-                    switch (searchQuery.getQueryType()) {
-                        case BY_TYPE:
-                            client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1,
-                                    searchResultsHandler);
-                            break;
-                        case BY_VALUE:
-                            client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(),
-                                    searchResultsHandler);
-                            break;
-                        case BY_PROBE:
-                            client.queryTracePointsByEventType(searchQuery,
-                                    executionSession.getSessionId(), searchResultsHandler);
-                            break;
+                        for (ExecutionSession executionSession : sessionList) {
+                            switch (searchQuery.getQueryType()) {
+                                case BY_TYPE:
+                                    client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1,
+                                            searchResultsHandler);
+                                    break;
+                                case BY_VALUE:
+                                    client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(),
+                                            searchResultsHandler);
+                                    break;
+                                case BY_PROBE:
+                                    client.queryTracePointsByEventType(searchQuery,
+                                            executionSession.getSessionId(), searchResultsHandler);
+                                    break;
+                            }
+
+                        }
+
+                        while (client instanceof VideobugNetworkClient &&
+                                searchResultsHandler.getDoneCount() != sessionList.size()) {
+                            try {
+                                Thread.sleep(300);
+                            } catch (InterruptedException e) {
+                                throw new ProcessCanceledException(e);
+                            }
+                        }
+
+                        if (searchQuery.getQueryType()
+                                .equals(QueryType.BY_TYPE)) {
+                            searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
+                        } else {
+                            searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
+                            insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+                                    searchResultsHandler.getResults()
+                                            .size());
+                            searchByValueWindow.updateQueryList();
+                        }
+
+                        if (searchResultsHandler.getResults()
+                                .size() == 0) {
+
+                            JSONObject eventProperties = new JSONObject();
+                            eventProperties.put("query", searchQuery.getQuery());
+                            UsageInsightTracker.getInstance()
+                                    .RecordEvent("NoResult" + searchQuery.getQueryType(), eventProperties);
+
+                            InsidiousNotification.notifyMessage("No data events matched", NotificationType.INFORMATION);
+                        }
+
                     }
-
-                }
-
-                while (client instanceof VideobugNetworkClient &&
-                        searchResultsHandler.getDoneCount() != sessionList.size()) {
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        throw new ProcessCanceledException(e);
-                    }
-                }
-
-                if (searchQuery.getQueryType().equals(QueryType.BY_TYPE)) {
-                    searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
-                } else {
-                    searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                    insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
-                            searchResultsHandler.getResults().size());
-                    searchByValueWindow.updateQueryList();
-                }
-
-                if (searchResultsHandler.getResults().size() == 0) {
-
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("query", searchQuery.getQuery());
-                    UsageInsightTracker.getInstance()
-                            .RecordEvent("NoResult" + searchQuery.getQueryType(), eventProperties);
-
-                    InsidiousNotification.notifyMessage("No data events matched", NotificationType.INFORMATION);
-                }
-
-            }
-        });
+                });
 
 
     }
@@ -826,7 +994,8 @@ public class InsidiousService implements Disposable {
             return;
         }
 
-        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class).getDebugSessions());
+        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
+                .getDebugSessions());
 
 
         if (debugSession != null) {
@@ -834,20 +1003,24 @@ public class InsidiousService implements Disposable {
         }
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("module", currentModule.getName());
-        UsageInsightTracker.getInstance().RecordEvent("StartDebugSession", eventProperties);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("StartDebugSession", eventProperties);
 
         @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
-                InsidiousRunConfigType.class).createTemplateConfiguration(project);
+                        InsidiousRunConfigType.class)
+                .createTemplateConfiguration(project);
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            try {
-                ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
-                        runConfiguration).build();
-                ProgramRunnerUtil.executeConfiguration(env, false, false);
-            } catch (Throwable e) {
-                logger.error("failed to execute configuration", e);
-            }
-        });
+        ApplicationManager.getApplication()
+                .invokeLater(() -> {
+                    try {
+                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
+                                        runConfiguration)
+                                .build();
+                        ProgramRunnerUtil.executeConfiguration(env, false, false);
+                    } catch (Throwable e) {
+                        logger.error("failed to execute configuration", e);
+                    }
+                });
 
 
     }
@@ -883,30 +1056,39 @@ public class InsidiousService implements Disposable {
     }
 
     public void showCredentialsWindow() {
-        ApplicationManager.getApplication().invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                Content exceptionContent = toolWindow.getContentManager().findContent("Exceptions");
-                Content traceContent = toolWindow.getContentManager().findContent("Traces");
-                if (exceptionContent != null) {
-                    toolWindow.getContentManager().removeContent(exceptionContent, true);
-                }
-                if (traceContent != null) {
-                    toolWindow.getContentManager().removeContent(traceContent, true);
-                }
-                ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
-                ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
-                Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(), "Credentials",
-                        false);
-                toolWindow.getContentManager().addContent(credentialContent);
-            }
-        });
+        ApplicationManager.getApplication()
+                .invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Content exceptionContent = toolWindow.getContentManager()
+                                .findContent("Exceptions");
+                        Content traceContent = toolWindow.getContentManager()
+                                .findContent("Traces");
+                        if (exceptionContent != null) {
+                            toolWindow.getContentManager()
+                                    .removeContent(exceptionContent, true);
+                        }
+                        if (traceContent != null) {
+                            toolWindow.getContentManager()
+                                    .removeContent(traceContent, true);
+                        }
+                        ContentFactory contentFactory = ApplicationManager.getApplication()
+                                .getService(ContentFactory.class);
+                        ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
+                        Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(),
+                                "Credentials",
+                                false);
+                        toolWindow.getContentManager()
+                                .addContent(credentialContent);
+                    }
+                });
     }
 
     private void addAgentToRunConfig() {
 
 
-        List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class).getAllSettings();
+        List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class)
+                .getAllSettings();
 
 //        for (RunnerAndConfigurationSettings runSetting : allSettings) {
 //            logger.info("runner config - " + runSetting.getName());
@@ -923,12 +1105,14 @@ public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+        ContentFactory contentFactory = ApplicationManager.getApplication()
+                .getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
         ToolWindowEx ex = (ToolWindowEx) toolWindow;
-        ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator().getHeight());
+        ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
+                .getHeight());
         ContentManager contentManager = this.toolWindow.getContentManager();
         if (credentialsToolbarWindow == null) {
             credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
@@ -1000,7 +1184,8 @@ public class InsidiousService implements Disposable {
     }
 
     public String getVideoBugAgentPath() {
-        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath().toString();
+        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath()
+                .toString();
     }
 
     private void setAppTokenOnUi() {
@@ -1027,35 +1212,38 @@ public class InsidiousService implements Disposable {
     public void loadSession() throws IOException {
 
         if (currentModule == null) {
-            currentModule = ModuleManager.getInstance(project).getModules()[0];
+            currentModule = ModuleManager.getInstance(project)
+                    .getModules()[0];
         }
 
         this.client.getProjectSessions(new GetProjectSessionsCallback() {
             @Override
             public void error(String message) {
                 logger.error("failed to load project sessions - {}", message);
-                ApplicationManager.getApplication().invokeLater(() -> InsidiousNotification.notifyMessage(
-                        "No sessions found for module [" + currentModule.getName() + "]",
-                        NotificationType.INFORMATION));
+                ApplicationManager.getApplication()
+                        .invokeLater(() -> InsidiousNotification.notifyMessage(
+                                "No sessions found for module [" + currentModule.getName() + "]",
+                                NotificationType.INFORMATION));
             }
 
             @Override
             public void success(List<ExecutionSession> executionSessionList) {
                 logger.info("got [" + executionSessionList.size() + "] sessions for project");
                 if (executionSessionList.size() == 0) {
-                    ApplicationManager.getApplication().invokeLater(() -> {
+                    ApplicationManager.getApplication()
+                            .invokeLater(() -> {
 
-                        if (InsidiousNotification.balloonNotificationGroup != null) {
-                            InsidiousNotification.notifyMessage(
-                                    "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent",
-                                    NotificationType.INFORMATION);
-                        } else {
+                                if (InsidiousNotification.balloonNotificationGroup != null) {
+                                    InsidiousNotification.notifyMessage(
+                                            "No sessions found for project " + currentModule.getName() + ". Start recording new sessions with the java agent",
+                                            NotificationType.INFORMATION);
+                                } else {
 
-                            InsidiousNotification.notifyMessage(
-                                    "No sessions found" + " for project " + currentModule.getName() + " start recording new sessions with the java agent",
-                                    NotificationType.INFORMATION);
-                        }
-                    });
+                                    InsidiousNotification.notifyMessage(
+                                            "No sessions found" + " for project " + currentModule.getName() + " start recording new sessions with the java agent",
+                                            NotificationType.INFORMATION);
+                                }
+                            });
                     return;
                 }
                 try {
@@ -1080,50 +1268,54 @@ public class InsidiousService implements Disposable {
         eventProperties.put("lineNumber", selectedTrace.getLineNumber());
         eventProperties.put("threadId", selectedTrace.getThreadId());
 
-        UsageInsightTracker.getInstance().RecordEvent("FetchByTracePoint", eventProperties);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("FetchByTracePoint", eventProperties);
 
         if (debugSession == null || getActiveDebugSession(
-                project.getService(XDebuggerManager.class).getDebugSessions()) == null) {
-            UsageInsightTracker.getInstance().RecordEvent("StartDebugSessionAtSelectTracepoint", null);
+                project.getService(XDebuggerManager.class)
+                        .getDebugSessions()) == null) {
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("StartDebugSessionAtSelectTracepoint", null);
             pendingSelectTrace = selectedTrace;
             startDebugSession();
             return;
         }
 
-        ProgressManager.getInstance().run(new Task.Modal(project, "Unlogged", true) {
-            public void run(@NotNull ProgressIndicator indicator) {
+        ProgressManager.getInstance()
+                .run(new Task.Modal(project, "Unlogged", true) {
+                    public void run(@NotNull ProgressIndicator indicator) {
 
-                try {
-                    logger.info("set trace point in connector => " + selectedTrace.getClassname());
-                    indicator.setText(
-                            "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
-                                    .format(new Date(selectedTrace.getNanoTime())));
-                    if (connector != null) {
-                        connector.setTracePoint(selectedTrace, indicator);
-                    } else {
-                        pendingTrace = selectedTrace;
+                        try {
+                            logger.info("set trace point in connector => " + selectedTrace.getClassname());
+                            indicator.setText(
+                                    "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
+                                            .format(new Date(selectedTrace.getNanoTime())));
+                            if (connector != null) {
+                                connector.setTracePoint(selectedTrace, indicator);
+                            } else {
+                                pendingTrace = selectedTrace;
+                            }
+
+
+                        } catch (ProcessCanceledException pce) {
+                            throw pce;
+                        } catch (Exception e) {
+                            logger.error("failed to set trace point", e);
+                            InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
+                                    NotificationType.ERROR);
+                            return;
+                        } finally {
+                            indicator.stop();
+                        }
+
+                        if (debugSession.isPaused()) {
+                            debugSession.resume();
+                        }
+                        debugSession.pause();
+
+
                     }
-
-
-                } catch (ProcessCanceledException pce) {
-                    throw pce;
-                } catch (Exception e) {
-                    logger.error("failed to set trace point", e);
-                    InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
-                            NotificationType.ERROR);
-                    return;
-                } finally {
-                    indicator.stop();
-                }
-
-                if (debugSession.isPaused()) {
-                    debugSession.resume();
-                }
-                debugSession.pause();
-
-
-            }
-        });
+                });
 
 
     }
@@ -1171,34 +1363,41 @@ public class InsidiousService implements Disposable {
         client.setProject(currentModule.getName());
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems().size() == 0) {
+        if (sessions.getItems()
+                .size() == 0) {
             InsidiousNotification.notifyMessage("No sessions available for module [" + currentModule.getName() + "]",
                     NotificationType.ERROR);
             return;
         }
         if (client.getCurrentSession() == null || !client.getCurrentSession()
-                .getSessionId().equals(sessions.getItems().get(0).getSessionId())) {
-            client.setSessionInstance(new SessionInstance(sessions.getItems().get(0)));
+                .getSessionId()
+                .equals(sessions.getItems()
+                        .get(0)
+                        .getSessionId())) {
+            client.setSessionInstance(new SessionInstance(sessions.getItems()
+                    .get(0)));
         }
     }
 
     public void initiateUseLocal() {
         client = new VideobugLocalClient(Constants.VIDEOBUG_HOME_PATH + "/sessions");
-        UsageInsightTracker.getInstance().RecordEvent("InitiateUseLocal", null);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("InitiateUseLocal", null);
 
 
         ReadAction.run(() -> this.ensureAgentJar(false));
         ReadAction.run(InsidiousService.this::setupProject);
 
-        ApplicationManager.getApplication().invokeLater(() -> {
-            InsidiousService.this.initiateUI();
-            InsidiousNotification.notifyMessage(
-                    "VideoBug logged in at [" + "disk://localhost" + "] for module [" + currentModule.getName() + "]",
-                    NotificationType.INFORMATION);
-            Messages.showMessageDialog(
-                    "Copy the JVM parameter and configure it for your application" + " and start running your application to start record.",
-                    "Videobug", Messages.getInformationIcon());
-        });
+        ApplicationManager.getApplication()
+                .invokeLater(() -> {
+                    InsidiousService.this.initiateUI();
+                    InsidiousNotification.notifyMessage(
+                            "VideoBug logged in at [" + "disk://localhost" + "] for module [" + currentModule.getName() + "]",
+                            NotificationType.INFORMATION);
+                    Messages.showMessageDialog(
+                            "Copy the JVM parameter and configure it for your application" + " and start running your application to start record.",
+                            "Videobug", Messages.getInformationIcon());
+                });
     }
 
     @Override
@@ -1212,7 +1411,8 @@ public class InsidiousService implements Disposable {
 
 
     public void generateAndUploadReport() {
-        UsageInsightTracker.getInstance().RecordEvent("DiagnosticReport", null);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("DiagnosticReport", null);
         DiagnosticService diagnosticService = new DiagnosticService(new VersionManager(), this.project,
                 this.currentModule);
         diagnosticService.generateAndUploadReport();
@@ -1235,18 +1435,24 @@ public class InsidiousService implements Disposable {
 
             String oldFolderPath = project.getBasePath() + "/src/test/java/io.unlogged";
             String oldFilePath = project.getBasePath() + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
-            File oldFolder = Path.of(oldFolderPath).toFile();
-            File oldUtilFile = Path.of(oldFilePath).toFile();
+            File oldFolder = Path.of(oldFolderPath)
+                    .toFile();
+            File oldUtilFile = Path.of(oldFilePath)
+                    .toFile();
             if (oldUtilFile.exists()) {
                 @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath()).toUri().toString());
+                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                                .toUri()
+                                .toString());
                 oldUtilFile.delete();
                 oldFolder.delete();
                 if (oldFileInstance != null) {
                     oldFileInstance.refresh(true, false);
                 }
                 @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath()).toUri().toString());
+                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                                .toUri()
+                                .toString());
                 if (oldFolderInstance != null) {
                     oldFolderInstance.refresh(true, false);
                 }
@@ -1276,13 +1482,16 @@ public class InsidiousService implements Disposable {
 
 
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
-            InputStream testUtilClassCode = this.getClass().getClassLoader()
+            InputStream testUtilClassCode = this.getClass()
+                    .getClassLoader()
                     .getResourceAsStream("code/UnloggedTestUtil.java");
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath()).toUri().toString());
+                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                        .toUri()
+                        .toString());
 
         newFile.refresh(true, false);
 

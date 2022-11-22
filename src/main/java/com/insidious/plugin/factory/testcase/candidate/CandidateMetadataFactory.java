@@ -219,7 +219,7 @@ public class CandidateMetadataFactory {
         } else {
             testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
-        objectRoutineScript.addComment("");
+//        objectRoutineScript.addComment("");
         return objectRoutineScript;
 
     }

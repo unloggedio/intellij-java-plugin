@@ -1808,7 +1808,11 @@ public class SessionInstance {
         ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
         ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
-        for (Integer threadId : logFilesByThreadMap.keySet()) {
+        Set<Integer> allThreads = logFilesByThreadMap.keySet();
+        int i = 0;
+        for (Integer threadId : allThreads) {
+            i++;
+            checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
             List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
             ThreadProcessingState threadState = daoService.getThreadState(threadId);
             processPendingThreadFiles(threadState, logFiles, parameterContainer);
