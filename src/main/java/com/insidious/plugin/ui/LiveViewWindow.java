@@ -102,7 +102,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     public void loadSession() throws Exception {
         treeModel = ProgressManager.getInstance().run(
-                new Task.WithResult<LiveViewTestCandidateListTree, Exception>(project, "Unlogged", true) {
+                new Task.WithResult<LiveViewTestCandidateListTree, Exception>(project, "Unlogged, Inc.", true) {
                     @Override
                     protected LiveViewTestCandidateListTree compute(@NotNull ProgressIndicator indicator) throws Exception {
                         checkProgressIndicator("Loading session", null);
