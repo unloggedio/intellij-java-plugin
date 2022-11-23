@@ -178,11 +178,24 @@ public class MethodCallExpressionFactory {
     }
 
     public static MethodCallExpression FromJsonFetchedFromFile(Parameter object) {
-        MethodCallExpression fromJson = MethodCallExpression("ValueOf", null,
+        MethodCallExpression valueOf = MethodCallExpression("ValueOf", null,
                 VariableContainer.from(List.of(object)),
                 null);
-        fromJson.setStaticCall(true);
-        fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
-        return fromJson;
+        valueOf.setStaticCall(true);
+        valueOf.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return valueOf;
+    }
+
+    public static MethodCallExpression CloseStaticMock(Parameter object){
+        Parameter closeExpression = new Parameter();
+        closeExpression.setValue("");
+
+        // TODO : need to add params ? do we need param inside close method of @AfterEach
+        MethodCallExpression close = MethodCallExpression("close", object,
+                VariableContainer.from(List.of(closeExpression)),
+                null);
+
+        close.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return close;
     }
 }
