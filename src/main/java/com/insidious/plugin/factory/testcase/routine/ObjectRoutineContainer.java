@@ -192,16 +192,6 @@ public class ObjectRoutineContainer {
         builderMethodScript.addException(Exception.class);
         builderMethodScript.addModifiers(Modifier.PUBLIC);
 
-        // For setting the method with @After / @AfterEach Annotation
-        VariableContainer finishedVariableContainer = new VariableContainer();
-        ObjectRoutineScript cleanUpMethodScript = new ObjectRoutineScript(finishedVariableContainer);
-
-        container.getObjectRoutines().add(cleanUpMethodScript);
-
-        cleanUpMethodScript.setRoutineName("finished");
-        cleanUpMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
-        cleanUpMethodScript.addException(Exception.class);
-        cleanUpMethodScript.addModifiers(Modifier.PUBLIC);
 
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
 
@@ -245,13 +235,6 @@ public class ObjectRoutineContainer {
                 if (!staticMocks.containsKey(staticMock.getType())) {
                     staticMocks.put(staticMock.getType(), staticMock);
                     classVariableContainer.add(staticMock);
-
-                    // Writing inside @AfterEach "finished" function
-                    // Close Static Mock functions
-                    in(cleanUpMethodScript)
-                            .writeExpression(
-                                    MethodCallExpressionFactory.CloseStaticMock(staticMock))
-                            .endStatement();
                 }
             }
 
