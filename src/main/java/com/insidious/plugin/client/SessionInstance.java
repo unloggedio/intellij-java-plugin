@@ -2645,7 +2645,7 @@ public class SessionInstance {
             daoService.createOrUpdateDataEvent(threadState);
 //            Collection<Parameter> beingSaved = parameterContainer.all();
 //            databasePipe.addParameters(beingSaved);
-            break;
+//            break;
         }
         // we can potentially verify that the parameter types we have identified from probes are consistent
         // with the information we have in the object -> type index.
