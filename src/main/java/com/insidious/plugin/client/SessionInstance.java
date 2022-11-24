@@ -1855,8 +1855,6 @@ public class SessionInstance {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
-        AtomicReference<MethodCallExpression> theCallWhichJustReturned = new AtomicReference<>();
-
         int threadId = threadState.getThreadId();
 
         for (LogFile logFile : archiveLogFiles) {
@@ -2382,14 +2380,14 @@ public class SessionInstance {
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
-                            theCallWhichJustReturned.set(topCall);
+                            threadState.setMostRecentReturnedCall(topCall);
                             if (threadState.getTopCall() == threadState.getTopCandidate()
                                     .getMainMethod()) {
                                 topCall = threadState.popCall();
                                 topCall.setReturnValue(existingParameter);
                                 topCall.setReturnDataEvent(dataEvent);
                                 callsToSave.add(topCall);
-                                theCallWhichJustReturned.set(topCall);
+                                threadState.setMostRecentReturnedCall(topCall);
                             } else {
                                 logger.warn("not popping second call");
                             }
@@ -2400,7 +2398,7 @@ public class SessionInstance {
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
-                            theCallWhichJustReturned.set(topCall);
+                            threadState.setMostRecentReturnedCall(topCall);
 
                         } else {
                             throw new RuntimeException(
@@ -2489,7 +2487,7 @@ public class SessionInstance {
                             }
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
-                            theCallWhichJustReturned.set(topCall);
+                            threadState.setMostRecentReturnedCall(topCall);
 
                         } else {
                             throw new RuntimeException(
@@ -2572,7 +2570,7 @@ public class SessionInstance {
                             topCall.setReturnValue(existingParameter);
                             topCall.setReturnDataEvent(dataEvent);
                             callsToSave.add(topCall);
-                            theCallWhichJustReturned.set(topCall);
+                            threadState.setMostRecentReturnedCall(topCall);
 
                         } else if (entryEventType == EventType.METHOD_ENTRY) {
                             // this is probably not a matching event
@@ -2590,7 +2588,7 @@ public class SessionInstance {
                         threadState.pushNextNewObjectType(nextNewObjectType);
                         break;
                     case NEW_OBJECT_CREATED:
-                        MethodCallExpression theCallThatJustEnded = theCallWhichJustReturned.get();
+                        MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();
                         String upcomingObjectType = threadState.popNextNewObjectType();
                         existingParameter = theCallThatJustEnded.getSubject();
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -2635,14 +2633,10 @@ public class SessionInstance {
             logger.debug("parameterContainer = " + parameterContainer.all()
                     .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
 
-//            for (MethodCallExpression methodCallExpression : callsToSave) {
-//                currentCallId++;
-//                methodCallExpression.setId(currentCallId);
-//            }
-
             daoService.createOrUpdateDataEvent(eventsToSave);
             daoService.createOrUpdateProbeInfo(probesToSave);
             daoService.createOrUpdateCall(callsToSave);
+            daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
             daoService.updateCalls(callsToUpdate);
             daoService.createOrUpdateTestCandidate(candidatesToSave);
 
@@ -2651,7 +2645,7 @@ public class SessionInstance {
             daoService.createOrUpdateDataEvent(threadState);
 //            Collection<Parameter> beingSaved = parameterContainer.all();
 //            databasePipe.addParameters(beingSaved);
-//            break;
+            break;
         }
         // we can potentially verify that the parameter types we have identified from probes are consistent
         // with the information we have in the object -> type index.

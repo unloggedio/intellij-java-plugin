@@ -16,6 +16,8 @@ public class ThreadState {
     private String nextNewObjectStack;
     @DatabaseField
     private String candidateStack;
+    @DatabaseField
+    private long mostRecentReturnedCall;
 
     public int getThreadId() {
         return threadId;
@@ -55,5 +57,13 @@ public class ThreadState {
 
     public void setCandidateStack(String candidateStack) {
         this.candidateStack = candidateStack;
+    }
+
+    public void setMostRecentReturnedCall(long mostRecentReturnedCall) {
+        this.mostRecentReturnedCall = mostRecentReturnedCall;
+    }
+
+    public long getMostRecentReturnedCall() {
+        return mostRecentReturnedCall;
     }
 }

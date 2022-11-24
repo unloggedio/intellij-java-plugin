@@ -10,8 +10,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@DatabaseTable(tableName = "method_call")
-public class MethodCallExpression {
+@DatabaseTable(tableName = "incomplete_method_call")
+public class IncompleteMethodCallExpression {
 
     @DatabaseField(id = true)
     private long id;
@@ -45,10 +45,10 @@ public class MethodCallExpression {
     private long returnDataEvent;
 
 
-    public MethodCallExpression() {
+    public IncompleteMethodCallExpression() {
     }
 
-    public MethodCallExpression(
+    public IncompleteMethodCallExpression(
             String methodName,
             long subject,
             List<Long> arguments,
@@ -60,7 +60,7 @@ public class MethodCallExpression {
         this.returnValue_id = returnValue_id;
     }
 
-    public static MethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
+    public static IncompleteMethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
             return null;
         }
@@ -69,7 +69,7 @@ public class MethodCallExpression {
         long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
         com.insidious.plugin.pojo.Parameter subject1 = methodCallExpression.getSubject();
         long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
-        MethodCallExpression methodCallExpression1 = new MethodCallExpression(
+        IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
                 methodCallExpression.getArguments()
@@ -86,12 +86,9 @@ public class MethodCallExpression {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
-                .stream()
-                .map(DataEventWithSessionId::getNanoTime)
-                .collect(Collectors.toList()));
+                .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
         }
         return methodCallExpression1;
     }
@@ -122,26 +119,10 @@ public class MethodCallExpression {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
-                .stream()
-                .map(DataEventWithSessionId::getNanoTime)
-                .collect(Collectors.toList()));
+                .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
         }
-        return methodCallExpression1;
-    }
-
-    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpression methodCallExpression) {
-        com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
-                methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
-        );
-        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
-        methodCallExpression1.setId(methodCallExpression.getId());
-        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-
         return methodCallExpression1;
     }
 

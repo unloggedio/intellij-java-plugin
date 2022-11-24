@@ -15,10 +15,10 @@ public class TestCandidateMetadata {
     private String methodCallExpressions;
     @DatabaseField
     private String fields;
-    @DatabaseField(foreign = true, index = true)
-    private MethodCallExpression mainMethod;
-    @DatabaseField(foreign = true, index = true)
-    private Parameter testSubject;
+    @DatabaseField(index = true)
+    private long mainMethod_id;
+    @DatabaseField(index = true)
+    private long testSubject_id;
     @DatabaseField
     private long callTimeNanoSecond;
     @DatabaseField(id = true)
@@ -77,12 +77,12 @@ public class TestCandidateMetadata {
         this.exitProbeIndex = exitProbeIndex;
     }
 
-    public com.insidious.plugin.pojo.dao.MethodCallExpression getMainMethod() {
-        return mainMethod;
+    public long getMainMethod() {
+        return mainMethod_id;
     }
 
-    public void setMainMethod(com.insidious.plugin.pojo.dao.MethodCallExpression mainMethod) {
-        this.mainMethod = mainMethod;
+    public void setMainMethod(MethodCallExpression mainMethod) {
+        this.mainMethod_id = mainMethod.getId();
     }
 
     public List<Long> getFields() {
@@ -100,12 +100,15 @@ public class TestCandidateMetadata {
         this.methodCallExpressions = Strings.join(callsList, ",");
     }
 
-    public Parameter getTestSubject() {
-        return testSubject;
+    public long getTestSubject() {
+        return testSubject_id;
     }
 
     public void setTestSubject(Parameter testSubject) {
-        this.testSubject = testSubject;
+        if (testSubject == null) {
+            return;
+        }
+        this.testSubject_id = (long) testSubject.getValue();
     }
 
     public long getCallTimeNanoSecond() {
@@ -126,8 +129,8 @@ public class TestCandidateMetadata {
     @Override
     public String toString() {
         return "TCM[" + entryProbeIndex + " - " + exitProbeIndex + "]{" +
-                "mainMethod=" + mainMethod +
-                ", testSubject=" + testSubject +
+                "mainMethod=" + mainMethod_id +
+                ", testSubject=" + testSubject_id +
                 ", methodCallExpressions=" + methodCallExpressions +
                 ", fields=" + fields +
                 ", callTimeNanoSecond=" + callTimeNanoSecond +

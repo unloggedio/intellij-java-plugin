@@ -12,6 +12,7 @@ public class ThreadProcessingState {
     private List<MethodCallExpression> callStack = new LinkedList<>();
     private List<String> nextNewObjectType = new LinkedList<>();
     private List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
+    private MethodCallExpression mostRecentReturnedCall;
 
     public ThreadProcessingState(int threadId) {
         this.threadId = threadId;
@@ -103,5 +104,13 @@ public class ThreadProcessingState {
 
     public void setCandidateStack(List<TestCandidateMetadata> candidateStack) {
         this.testCandidateMetadataStack = candidateStack;
+    }
+
+    public void setMostRecentReturnedCall(MethodCallExpression mostRecentReturnedCall) {
+        this.mostRecentReturnedCall = mostRecentReturnedCall;
+    }
+
+    public MethodCallExpression getMostRecentReturnedCall() {
+        return mostRecentReturnedCall;
     }
 }
