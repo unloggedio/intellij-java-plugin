@@ -72,6 +72,9 @@ public class TestCaseGenerationConfiguration {
     public ClassName getTestBeforeAnnotationType() {
         return testFramework.getBeforeAnnotationType();
     }
+    public ClassName getTestAfterAnnotationType() {
+        return testFramework.getAfterAnnotationType();
+    }
 
     public ClassName getTestAnnotationType() {
         return testFramework.getTestAnnotationType();

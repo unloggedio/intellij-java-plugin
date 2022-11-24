@@ -8,29 +8,34 @@ public enum TestFramework {
             MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert"),
             "assertEquals",
             ClassName.bestGuess("org.junit.Before"),
+            ClassName.bestGuess("org.junit.After"),
             ClassName.bestGuess("org.junit.Test")
     ),
     JUNIT5(
             MethodCallExpressionFactory.makeParameter("Assertions", "org.junit.jupiter.api.Assertions"),
             "assertEquals",
             ClassName.bestGuess("org.junit.jupiter.api.BeforeEach"),
+            ClassName.bestGuess("org.junit.jupiter.api.AfterEach"),
             ClassName.bestGuess("org.junit.jupiter.api.Test")
     );
 
     private final Parameter assertClassParameter;
     private final String assertEqualMethodName;
     private final ClassName beforeAnnotationType;
+    private final ClassName afterAnnotationType;
     private final ClassName testAnnotationType;
 
     TestFramework(
             Parameter assertClassParameter,
             String assertEqualMethodName,
             ClassName beforeAnnotationType,
+            ClassName afterAnnotationType,
             ClassName testAnnotationType
     ) {
         this.assertClassParameter = assertClassParameter;
         this.assertEqualMethodName = assertEqualMethodName;
         this.beforeAnnotationType = beforeAnnotationType;
+        this.afterAnnotationType = afterAnnotationType;
         this.testAnnotationType = testAnnotationType;
     }
 
@@ -44,6 +49,10 @@ public enum TestFramework {
 
     public ClassName getBeforeAnnotationType() {
         return beforeAnnotationType;
+    }
+
+    public ClassName getAfterAnnotationType() {
+        return afterAnnotationType;
     }
 
     public ClassName getTestAnnotationType() {
