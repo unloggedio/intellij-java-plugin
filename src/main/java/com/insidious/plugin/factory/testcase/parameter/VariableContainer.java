@@ -98,6 +98,14 @@ public class VariableContainer {
         }
         return null;
     }
+    public Parameter getParameterByNameAndType(String name,String type) {
+        for (Parameter parameter : this.parameterList) {
+            if (parameter.hasName(name) && parameter.getType().equals(type)) {
+                return parameter;
+            }
+        }
+        return null;
+    }
 
     public List<Parameter> getParametersByType(String typename) {
         return this.parameterList.stream()

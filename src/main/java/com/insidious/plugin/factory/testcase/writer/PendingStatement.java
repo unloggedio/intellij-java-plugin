@@ -247,11 +247,8 @@ public class PendingStatement {
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new LinkedList<>();
 
-        boolean isExceptionExcepted = false;
-        if (lhsExpression != null && lhsExpression.getProbeInfo() != null &&
-                lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-            isExceptionExcepted = true;
-        }
+        boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
+                lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
 
         if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType()
                 .equals("V") && !isExceptionExcepted) {
@@ -262,7 +259,10 @@ public class PendingStatement {
 
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
-            if (!objectRoutine.getCreatedVariables().contains(lhsExpression.getNameForUse(null))) {
+
+            if (!objectRoutine.getCreatedVariables()
+                    .contains(lhsExpression.getNameForUse(null)) ) {
+
                 objectRoutine.getCreatedVariables().add(lhsExpression);
                 if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
                     statementBuilder.append("$T<$T>").append(" ");
@@ -271,14 +271,20 @@ public class PendingStatement {
                     String templateType = templateParameter.getType();
                     statementParameters.add(ClassName.bestGuess(templateType));
                 } else {
+                    // Add expr for Type and its statement Param ;
+                    // eg: statementBuilder:[ $T ] , statementParameter: [ String ]  => String var
                     statementBuilder.append("$T").append(" ");
                     statementParameters.add(lhsTypeName);
                 }
 
             } else {
+                // if param exists,
                 Parameter existingParameter = objectRoutine
                         .getCreatedVariables()
                         .getParameterByName(lhsExpression.getNameForUse(null));
+
+                // Checking if these variables point to the same
+                // if not then updating with the latest object i.e. lhsExpression
                 if (existingParameter != lhsExpression) {
                     objectRoutine.getCreatedVariables().remove(existingParameter);
                     objectRoutine.getCreatedVariables().add(lhsExpression);
@@ -360,9 +366,24 @@ public class PendingStatement {
         }
         String targetClassname = lhsExpression.getType();
 
+        String lhsExprName = lhsExpression.getNameForUse(null);
         Parameter variableExistingParameter = objectRoutine
                 .getCreatedVariables()
-                .getParameterByName(lhsExpression.getNameForUse(null));
+                .getParameterByNameAndType(lhsExprName,lhsExpression.getType());
+
+        Parameter variableWithSameNameExistingParam = objectRoutine
+                .getCreatedVariables()
+                .getParameterByName(lhsExprName);
+        // If the type and the parameters does not match
+        // then We should have a new name for the variable,
+        // and it should be redeclare =>
+        // eg "String var" instead of "var"
+        // this is handled in the endStatement()
+        if (variableWithSameNameExistingParam != null){
+            // todo: Use a better algo to get this name
+            String newName = generateNameForParameter(lhsExpression);
+            lhsExpression.setName(newName);
+        }
 
         if (variableExistingParameter != null) {
 
