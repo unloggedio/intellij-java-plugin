@@ -4,6 +4,7 @@ package com.insidious.plugin.factory.testcase.writer;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
@@ -23,6 +24,7 @@ public class ObjectRoutineScriptContainer {
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutineScript.class);
     private final List<ObjectRoutineScript> objectRoutines = new LinkedList<>();
     private final TestGenerationState testGenerationState;
+    private final TestCaseGenerationConfiguration generationConfiguration;
     private ObjectRoutineScript currentRoutine;
     private ObjectRoutineScript constructor = newRoutine("<init>");
     /**
@@ -31,6 +33,14 @@ public class ObjectRoutineScriptContainer {
     private String name;
     private List<Parameter> fields = new LinkedList<>();
     private String testMethodName;
+
+    public ObjectRoutineScriptContainer(String packageName,
+                                        TestGenerationState testGenerationState,
+                                        TestCaseGenerationConfiguration generationConfiguration
+    ) {
+        this.testGenerationState = testGenerationState;
+        this.generationConfiguration = generationConfiguration;
+    }
 
     @Override
     public String toString() {
@@ -43,10 +53,6 @@ public class ObjectRoutineScriptContainer {
                 ", fields=" + fields +
                 ", testMethodName='" + testMethodName + '\'' +
                 '}';
-    }
-
-    public ObjectRoutineScriptContainer(String packageName, TestGenerationState testGenerationState) {
-        this.testGenerationState = testGenerationState;
     }
 
     public String getName() {
@@ -73,13 +79,14 @@ public class ObjectRoutineScriptContainer {
     public ObjectRoutineScript newRoutine(String routineName) {
         assert routineName != null;
         for (ObjectRoutineScript objectRoutine : this.objectRoutines) {
-            if (objectRoutine.getRoutineName().equals(routineName)) {
+            if (objectRoutine.getRoutineName()
+                    .equals(routineName)) {
                 this.currentRoutine = objectRoutine;
                 return objectRoutine;
             }
         }
 
-        ObjectRoutineScript newRoutine = new ObjectRoutineScript(routineName);
+        ObjectRoutineScript newRoutine = new ObjectRoutineScript(routineName, generationConfiguration);
         this.objectRoutines.add(newRoutine);
         this.currentRoutine = newRoutine;
         return newRoutine;
@@ -97,11 +104,11 @@ public class ObjectRoutineScriptContainer {
         return this.fields;
     }
 
-    public void setTestMethodName(String testMethodName) {
-        this.testMethodName = testMethodName;
-    }
-
     public String getTestMethodName() {
         return testMethodName;
+    }
+
+    public void setTestMethodName(String testMethodName) {
+        this.testMethodName = testMethodName;
     }
 }

@@ -11,12 +11,14 @@ public class VariableContainer {
     private long variableContainerId;
 
     public static String upperInstanceName(String methodName) {
-        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
+        return methodName.substring(0, 1)
+                .toUpperCase() + methodName.substring(1);
     }
 
     public static String lowerInstanceName(String methodName) {
         int lowerIndex = 1;
-        return methodName.substring(0, lowerIndex).toLowerCase() + methodName.substring(1);
+        return methodName.substring(0, lowerIndex)
+                .toLowerCase() + methodName.substring(1);
     }
 
     public static VariableContainer from(List<Parameter> callArguments) {
@@ -55,22 +57,29 @@ public class VariableContainer {
             }
         } else if (parameter.getProb() != null) {
 
-            if (byValue.getName() != null && byValue.getName().equals(parameter.getName())) {
-                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
+            if (byValue.getName() != null && byValue.getName()
+                    .equals(parameter.getName())) {
+                byte[] newSerializedValue = parameter.getProb()
+                        .getSerializedValue();
                 if (newSerializedValue == null || newSerializedValue.length == 0) {
                     return;
                 }
-                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
+                byte[] existingSerializedValue = byValue.getProb()
+                        .getSerializedValue();
                 if (existingSerializedValue == null || existingSerializedValue.length == 0) {
                     byValue.setProb(parameter.getProb());
-                } else if (byValue.getProb().getNanoTime() < parameter.getProb().getNanoTime()) {
+                } else if (byValue.getProb()
+                        .getNanoTime() < parameter.getProb()
+                        .getNanoTime()) {
                     byValue.setProb(parameter.getProb());
                 }
             } else {
 
 
-                byte[] newSerializedValue = parameter.getProb().getSerializedValue();
-                byte[] existingSerializedValue = byValue.getProb().getSerializedValue();
+                byte[] newSerializedValue = parameter.getProb()
+                        .getSerializedValue();
+                byte[] existingSerializedValue = byValue.getProb()
+                        .getSerializedValue();
                 String existingValueString = new String(existingSerializedValue);
                 String newValueString = new String(newSerializedValue);
                 if (existingValueString.length() > 0 &&
@@ -98,9 +107,11 @@ public class VariableContainer {
         }
         return null;
     }
-    public Parameter getParameterByNameAndType(String name,String type) {
+
+    public Parameter getParameterByNameAndType(String name, String type) {
         for (Parameter parameter : this.parameterList) {
-            if (parameter.hasName(name) && parameter.getType().equals(type)) {
+            if (parameter.hasName(name) && parameter.getType()
+                    .equals(type)) {
                 return parameter;
             }
         }
@@ -109,7 +120,8 @@ public class VariableContainer {
 
     public List<Parameter> getParametersByType(String typename) {
         return this.parameterList.stream()
-                .filter(e -> e.getType().equals(typename))
+                .filter(e -> e.getType()
+                        .equals(typename))
                 .collect(Collectors.toList());
     }
 
@@ -122,7 +134,8 @@ public class VariableContainer {
                 .anyMatch(e ->
                         {
                             if (e.getName() == null) return false;
-                            if (e.getName().equals(variableName)) return true;
+                            if (e.getName()
+                                    .equals(variableName)) return true;
                             String nameForUse = e.getNameForUse(null);
                             return nameForUse == null || nameForUse.equals(variableName);
                         }
@@ -130,7 +143,9 @@ public class VariableContainer {
     }
 
     public Collection<String> getNames() {
-        return parameterList.stream().map(Parameter::getName).collect(Collectors.toList());
+        return parameterList.stream()
+                .map(Parameter::getName)
+                .collect(Collectors.toList());
     }
 
     public int count() {
@@ -175,7 +190,15 @@ public class VariableContainer {
     public void remove(Parameter existingParameter) {
         Parameter byValue = parameterMap.get(existingParameter.getValue());
         parameterMap.remove(byValue.getValue());
-        parameterList.remove(byValue);
+        List<Parameter> toRemove = new LinkedList<>();
+        for (Parameter parameter : parameterList) {
+            if (parameter.hasName(
+                    existingParameter.getName()) && parameter.getValue() == existingParameter.getValue()) {
+                toRemove.add(parameter);
+            }
+        }
+
+        parameterList.removeAll(toRemove);
 
     }
 }

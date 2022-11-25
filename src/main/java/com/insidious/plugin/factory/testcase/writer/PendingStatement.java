@@ -34,35 +34,45 @@ public class PendingStatement {
         this.objectRoutine = objectRoutine;
     }
 
-    private static void writeCallStatement(
+    private void writeCallStatement(
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
             List<Object> statementParameters, int i
     ) {
         String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
-        if (methodCallExpression.getMethodName().equals("<init>")) {
+        if (methodCallExpression.getMethodName()
+                .equals("<init>")) {
             assert i == 0;
-            statementBuilder.append("new $T(").append(parameterString).append(")");
-            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject().getType()));
-        } else if (methodCallExpression.getMethodName().equals("fromJson")
-                && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
+            statementBuilder.append("new $T(")
+                    .append(parameterString)
+                    .append(")");
+            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
+                    .getType()));
+        } else if (methodCallExpression.getMethodName()
+                .equals("fromJson")
+                && methodCallExpression.getSubject()
+                .equals(MethodCallExpressionFactory.GsonClass)) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
 
             Parameter objectToDeserialize = variables.get(0);
 
-            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap().get("E") != null) {
+            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap()
+                    .get("E") != null) {
 
                 statementBuilder.append("$L.$L($S, new $T<$T<$T>>(){}.getType())");
-                statementParameters.add(methodCallExpression.getSubject().getNameForUse(null));
+                statementParameters.add(methodCallExpression.getSubject()
+                        .getNameForUse(null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
-                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(new String(objectToDeserialize.getProb()
+                        .getSerializedValue()));
 
                 statementParameters.add(TYPE_TOKEN_CLASS);
                 statementParameters.add(LIST_CLASS);
 
-                Parameter templateParameter = objectToDeserialize.getTemplateMap().get("E");
+                Parameter templateParameter = objectToDeserialize.getTemplateMap()
+                        .get("E");
                 String templateParameterType = templateParameter.getType();
                 ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
                 statementParameters.add(parameterClassName);
@@ -70,10 +80,12 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
-                statementParameters.add(methodCallExpression.getSubject().getNameForUse(null));
+                statementParameters.add(methodCallExpression.getSubject()
+                        .getNameForUse(null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
-                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(new String(objectToDeserialize.getProb()
+                        .getSerializedValue()));
                 statementParameters.add(
                         ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
@@ -87,17 +99,20 @@ public class PendingStatement {
 
             Parameter objectToDeserialize = variables.get(0);
 
-            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap().get("E") != null) {
+            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap()
+                    .get("E") != null) {
 
                 statementBuilder.append("$L($S, new $T<$T<$T>>(){}.getType())");
                 statementParameters.add(methodCallExpression.getMethodName());
 
-                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(new String(objectToDeserialize.getProb()
+                        .getSerializedValue()));
 
                 statementParameters.add(TYPE_TOKEN_CLASS);
                 statementParameters.add(LIST_CLASS);
 
-                Parameter templateParameter = objectToDeserialize.getTemplateMap().get("E");
+                Parameter templateParameter = objectToDeserialize.getTemplateMap()
+                        .get("E");
                 String templateParameterType = templateParameter.getType();
                 ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
                 statementParameters.add(parameterClassName);
@@ -107,16 +122,20 @@ public class PendingStatement {
                 statementBuilder.append("$L($S, $T.class)");
                 statementParameters.add(methodCallExpression.getMethodName());
 
-                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(new String(objectToDeserialize.getProb()
+                        .getSerializedValue()));
                 statementParameters.add(
                         ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
             }
 
-        } else if (methodCallExpression.getMethodName().equals("injectField")
+        } else if (methodCallExpression.getMethodName()
+                .equals("injectField")
                 && methodCallExpression.isStaticCall()
                 && methodCallExpression.getSubject() != null
-                && methodCallExpression.getSubject().getType().equals("io.unlogged.UnloggedTestUtils")
+                && methodCallExpression.getSubject()
+                .getType()
+                .equals("io.unlogged.UnloggedTestUtils")
         ) {
 
 
@@ -124,7 +143,8 @@ public class PendingStatement {
 
 
             Parameter injectionTarget = variables.get(0);
-            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject().getType()));
+            statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
+                    .getType()));
             String targetNameForScript = injectionTarget.getName();
             if (targetNameForScript != null) {
                 statementBuilder.append("$T.injectField($L, $S, $L)");
@@ -139,7 +159,8 @@ public class PendingStatement {
             statementParameters.add(secondArgumentNameForUse);
             statementParameters.add(secondArgumentNameForUse);
 
-        } else if (methodCallExpression.getMethodName().equals("thenThrow")
+        } else if (methodCallExpression.getMethodName()
+                .equals("thenThrow")
                 && methodCallExpression.getSubject() == null) {
 
 
@@ -147,19 +168,25 @@ public class PendingStatement {
 
             statementBuilder.append(".$L($T.class)");
             statementParameters.add(methodCallExpression.getMethodName());
-            statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0).getType())));
+            statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
+                    .getType())));
 
-        } else if (methodCallExpression.getMethodName().equals("assertEquals")) {
+        } else if (methodCallExpression.getMethodName()
+                .equals("assertEquals")) {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
                 parameterString = TestCaseWriter.createMethodParametersStringWithNames(
                         methodCallExpression.getArguments());
                 if (methodCallExpression.isStaticCall()) {
-                    statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$T.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
                     statementParameters.add(methodCallExpression.getMethodName());
                 } else {
-                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$L.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(callExpressionSubject.getName());
                     statementParameters.add(methodCallExpression.getMethodName());
 
@@ -168,10 +195,13 @@ public class PendingStatement {
                 if (i > 0) {
                     statementBuilder.append(".");
                 }
-                statementBuilder.append("$L(").append(parameterString).append(")");
+                statementBuilder.append("$L(")
+                        .append(parameterString)
+                        .append(")");
                 statementParameters.add(methodCallExpression.getMethodName());
             }
-        } else if (methodCallExpression.getMethodName().equals("when")) {
+        } else if (methodCallExpression.getMethodName()
+                .equals("when")) {
             // we need to disect the parameters inside the any() parameters and add them as proper class references
             // subject.methodName(any(com.package.AClass.class), any(ano.ther.package.BClass.class))
 
@@ -191,11 +221,15 @@ public class PendingStatement {
             if (callExpressionSubject != null) {
 
                 if (methodCallExpression.isStaticCall()) {
-                    statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$T.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
                     statementParameters.add(methodCallExpression.getMethodName());
                 } else {
-                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$L.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(callExpressionSubject.getName());
                     statementParameters.add(methodCallExpression.getMethodName());
 
@@ -204,20 +238,69 @@ public class PendingStatement {
                 if (i > 0) {
                     statementBuilder.append(".");
                 }
-                statementBuilder.append("$L(").append(parameterString).append(")");
+                statementBuilder.append("$L(")
+                        .append(parameterString)
+                        .append(")");
                 statementParameters.add(methodCallExpression.getMethodName());
             }
             statementParameters.addAll(trailingParameters);
+        } else if (methodCallExpression.getMethodName()
+                .equals("mockStatic")) {
+            Parameter callExpressionSubject = methodCallExpression.getSubject();
+            parameterString = parameterString + ", $T.CALLS_REAL_METHODS";
+            if (callExpressionSubject != null) {
+
+                if (methodCallExpression.isStaticCall()) {
+                    statementBuilder.append("$T.$L(")
+                            .append(parameterString)
+                            .append(")");
+                    statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+                    statementParameters.add(methodCallExpression.getMethodName());
+
+                    // TODO: need to pick from test generation config and not
+                    statementParameters.add(ClassName.bestGuess(
+                            objectRoutine.getGenerationConfiguration()
+                                    .getMockFramework()
+                                    .getMockClassParameter()
+                                    .getType()
+                    ));
+                } else {
+                    statementBuilder.append("$L.$L(")
+                            .append(parameterString)
+                            .append(")");
+                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(ClassName.bestGuess(
+                            objectRoutine.getGenerationConfiguration()
+                                    .getMockFramework()
+                                    .getMockClassParameter()
+                                    .getType()
+                    ));
+                }
+            } else {
+                if (i > 0) {
+                    statementBuilder.append(".");
+                }
+                statementBuilder.append("$L(")
+                        .append(parameterString)
+                        .append(")");
+                statementParameters.add(methodCallExpression.getMethodName());
+            }
         } else {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
 
                 if (methodCallExpression.isStaticCall()) {
-                    statementBuilder.append("$T.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$T.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
                     statementParameters.add(methodCallExpression.getMethodName());
                 } else {
-                    statementBuilder.append("$L.$L(").append(parameterString).append(")");
+                    statementBuilder.append("$L.$L(")
+                            .append(parameterString)
+                            .append(")");
                     statementParameters.add(callExpressionSubject.getName());
                     statementParameters.add(methodCallExpression.getMethodName());
 
@@ -226,7 +309,9 @@ public class PendingStatement {
                 if (i > 0) {
                     statementBuilder.append(".");
                 }
-                statementBuilder.append("$L(").append(parameterString).append(")");
+                statementBuilder.append("$L(")
+                        .append(parameterString)
+                        .append(")");
                 statementParameters.add(methodCallExpression.getMethodName());
             }
         }
@@ -248,7 +333,8 @@ public class PendingStatement {
         List<Object> statementParameters = new LinkedList<>();
 
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
-                lhsExpression.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
+                lhsExpression.getProbeInfo()
+                        .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
 
         if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType()
                 .equals("V") && !isExceptionExcepted) {
@@ -261,19 +347,24 @@ public class PendingStatement {
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
             if (!objectRoutine.getCreatedVariables()
-                    .contains(lhsExpression.getNameForUse(null)) ) {
+                    .contains(lhsExpression.getNameForUse(null))) {
 
-                objectRoutine.getCreatedVariables().add(lhsExpression);
-                if (lhsExpression.isContainer() && lhsExpression.getTemplateMap().get("E") != null) {
-                    statementBuilder.append("$T<$T>").append(" ");
+                objectRoutine.getCreatedVariables()
+                        .add(lhsExpression);
+                if (lhsExpression.isContainer() && lhsExpression.getTemplateMap()
+                        .get("E") != null) {
+                    statementBuilder.append("$T<$T>")
+                            .append(" ");
                     statementParameters.add(lhsTypeName);
-                    Parameter templateParameter = lhsExpression.getTemplateMap().get("E");
+                    Parameter templateParameter = lhsExpression.getTemplateMap()
+                            .get("E");
                     String templateType = templateParameter.getType();
                     statementParameters.add(ClassName.bestGuess(templateType));
                 } else {
                     // Add expr for Type and its statement Param ;
                     // eg: statementBuilder:[ $T ] , statementParameter: [ String ]  => String var
-                    statementBuilder.append("$T").append(" ");
+                    statementBuilder.append("$T")
+                            .append(" ");
                     statementParameters.add(lhsTypeName);
                 }
 
@@ -286,8 +377,10 @@ public class PendingStatement {
                 // Checking if these variables point to the same
                 // if not then updating with the latest object i.e. lhsExpression
                 if (existingParameter != lhsExpression) {
-                    objectRoutine.getCreatedVariables().remove(existingParameter);
-                    objectRoutine.getCreatedVariables().add(lhsExpression);
+                    objectRoutine.getCreatedVariables()
+                            .remove(existingParameter);
+                    objectRoutine.getCreatedVariables()
+                            .add(lhsExpression);
                 }
             }
             statementBuilder.append("$L");
@@ -305,7 +398,8 @@ public class PendingStatement {
                 if (!methodCallExpression.isStaticCall()
                         && methodCallExpression.getSubject() != null) {
                     Parameter existingVariable = objectRoutine.getCreatedVariables()
-                            .getParametersById(methodCallExpression.getSubject().getValue());
+                            .getParametersById(methodCallExpression.getSubject()
+                                    .getValue());
                     if (existingVariable != null) {
                         methodCallExpression.setSubject(existingVariable);
                     }
@@ -325,10 +419,13 @@ public class PendingStatement {
             StringBuilder tryCatchEnclosure = new StringBuilder();
             tryCatchEnclosure
                     .append("try {\n")
-                    .append("    ").append("// this is going to throw exception <")
+                    .append("    ")
+                    .append("// this is going to throw exception <")
                     .append(lhsExpression.getType())
                     .append(">\n")
-                    .append("    ").append(statementBuilder).append(";\n")
+                    .append("    ")
+                    .append(statementBuilder)
+                    .append(";\n")
                     .append("} catch ($T e) {\n")
                     .append(" \n")
                     .append("}\n");
@@ -350,7 +447,8 @@ public class PendingStatement {
             variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
         }
         for (int i = 0; i < 100; i++) {
-            if (!objectRoutine.getCreatedVariables().contains(variableName + i)) {
+            if (!objectRoutine.getCreatedVariables()
+                    .contains(variableName + i)) {
                 return variableName + i;
             }
         }
@@ -369,7 +467,7 @@ public class PendingStatement {
         String lhsExprName = lhsExpression.getNameForUse(null);
         Parameter variableExistingParameter = objectRoutine
                 .getCreatedVariables()
-                .getParameterByNameAndType(lhsExprName,lhsExpression.getType());
+                .getParameterByNameAndType(lhsExprName, lhsExpression.getType());
 
         Parameter variableWithSameNameExistingParam = objectRoutine
                 .getCreatedVariables()
@@ -379,21 +477,25 @@ public class PendingStatement {
         // and it should be redeclare =>
         // eg "String var" instead of "var"
         // this is handled in the endStatement()
-        if (variableWithSameNameExistingParam != null){
-            // todo: Use a better algo to get this name
-            String newName = generateNameForParameter(lhsExpression);
-            lhsExpression.setName(newName);
-        }
+//        if (variableWithSameNameExistingParam != null){
+//            // todo: Use a better algo to get this name
+//            String newName = generateNameForParameter(lhsExpression);
+//            lhsExpression.setName(newName);
+//        }
 
         if (variableExistingParameter != null) {
 
             Object existingValue = variableExistingParameter.getValue();
             Object newValue = lhsExpression.getValue();
 
-            if (variableExistingParameter.getProb().getSerializedValue() != null
-                    && variableExistingParameter.getProb().getSerializedValue().length > 0) {
-                existingValue = new String(variableExistingParameter.getProb().getSerializedValue());
-                newValue = new String(lhsExpression.getProb().getSerializedValue());
+            if (variableExistingParameter.getProb()
+                    .getSerializedValue() != null
+                    && variableExistingParameter.getProb()
+                    .getSerializedValue().length > 0) {
+                existingValue = new String(variableExistingParameter.getProb()
+                        .getSerializedValue());
+                newValue = new String(lhsExpression.getProb()
+                        .getSerializedValue());
             }
 
             if (Objects.equals(existingValue, newValue)) {
@@ -433,8 +535,10 @@ public class PendingStatement {
 
                 }
 
-            } else if (parameter.getProb().getSerializedValue().length > 0) {
-                String stringValue = new String(parameter.getProb().getSerializedValue());
+            } else if (parameter.getProb()
+                    .getSerializedValue().length > 0) {
+                String stringValue = new String(parameter.getProb()
+                        .getSerializedValue());
                 stringValue = stringValue.replaceAll("\\$", "\\$\\$");
 
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
@@ -445,9 +549,11 @@ public class PendingStatement {
 
         } else {
             // non primitive variable types need to be reconstructed from the JSON values
-            if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
+            if (generationConfiguration.getResourceEmbedMode()
+                    .equals(ResourceEmbedMode.IN_CODE)) {
                 this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
-            } else if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+            } else if (generationConfiguration.getResourceEmbedMode()
+                    .equals(ResourceEmbedMode.IN_FILE)) {
 
                 String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
 //                lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));

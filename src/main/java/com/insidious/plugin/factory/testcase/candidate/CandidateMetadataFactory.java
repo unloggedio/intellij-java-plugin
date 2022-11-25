@@ -1,12 +1,8 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
-import com.insidious.common.weaver.ClassInfo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
-import com.insidious.common.weaver.MethodInfo;
-import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.extension.model.DirectionType;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.extension.model.ScanResult;
@@ -23,14 +19,11 @@ import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 public class CandidateMetadataFactory {
     public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -40,9 +33,12 @@ public class CandidateMetadataFactory {
             TestGenerationState testGenerationState,
             TestCaseGenerationConfiguration testConfiguration
     ) {
-        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer());
+        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
+                testConfiguration);
 
-        Parameter testTarget = testConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
+        Parameter testTarget = testConfiguration.getTestCandidateMetadataList()
+                .get(0)
+                .getTestSubject();
 
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
 
@@ -50,10 +46,13 @@ public class CandidateMetadataFactory {
 
 
             Collection<MethodCallExpression> callToMock = new ArrayList<>();
-            List<MethodCallExpression> staticCallsList = new LinkedList<>();
+            Set<MethodCallExpression> staticCallsList = new HashSet<>();
+
+            Map<String, Boolean> mockedStaticTypes = new HashMap<>();
 
             for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
-                if (!testConfiguration.getCallExpressionList().contains(e)) {
+                if (!testConfiguration.getCallExpressionList()
+                        .contains(e)) {
                     logger.warn("Skip unselected call expression to be mocked - " + e);
                     continue;
                 }
@@ -64,21 +63,27 @@ public class CandidateMetadataFactory {
                 if (e.isStaticCall() && e.getUsesFields()) {
                     // all static calls need to be mocked
                     // even if they have no return value
-                    if (e.getSubject().getType().equals(testTarget.getType())) {
+                    if (e.getSubject()
+                            .getType()
+                            .equals(testTarget.getType())) {
                         // we do not want to mock static calls on the class itself being tested
                         // since we most likely have injected all the fields anyways
                         continue;
                     }
                     staticCallsList.add(e);
+                    mockedStaticTypes.put(e.getSubject()
+                            .getType(), true);
                     continue;
                 }
-                if (e.getSubject().getType().startsWith("com.google.")) {
+                if (e.getSubject()
+                        .getType()
+                        .startsWith("com.google.")) {
                     continue;
                 }
                 if (!e.isMethodPublic() && !e.isMethodProtected()) {
                     continue;
                 }
-                DataInfo entryProbeInfo = e.getEntryProbeInfo();
+//                DataInfo entryProbeInfo = e.getEntryProbeInfo();
 //                if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
 //                        && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
 //                ) {
@@ -91,7 +96,8 @@ public class CandidateMetadataFactory {
 //                    testCandidateMetadata.getFields().add(e.getReturnValue());
 //                    continue;
 //                }
-                if (e.getMethodName().startsWith("<")) {
+                if (e.getMethodName()
+                        .startsWith("<")) {
                     // constructors need not be mocked
                     continue;
                 }
@@ -101,19 +107,28 @@ public class CandidateMetadataFactory {
                     // this is potentially a bug, and the fix is inside scan implementation
                     continue;
                 }
-                if (e.getReturnValue().getType() == null
-                        || e.getReturnValue().getType().equals("V")
-                        || e.getReturnValue().getProb() == null) {
+                if (e.getReturnValue()
+                        .getType() == null
+                        || e.getReturnValue()
+                        .getType()
+                        .equals("V")
+                        || e.getReturnValue()
+                        .getProb() == null) {
                     // either the function has no return value (need not be mocked) or
                     // we failed to identify the return value in the scan, in that case this is a bug
                     continue;
                 }
-                if (e.getSubject().getType().contains("com.google")) {
+                if (e.getSubject()
+                        .getType()
+                        .contains("com.google")) {
                     // this is hard coded to skip mocking Gson class
                     continue;
                 }
 
-                if (testCandidateMetadata.getFields().getParametersById(e.getSubject().getProb().getValue()) == null) {
+                if (testCandidateMetadata.getFields()
+                        .getParametersById(e.getSubject()
+                                .getProb()
+                                .getValue()) == null) {
                     // the subject should ideally be one of the already identified fields.
                     continue;
                 }
@@ -122,6 +137,20 @@ public class CandidateMetadataFactory {
                 callToMock.add(e);
 
             }
+
+            // this makes the test case worse instead of better, as a lot of static calls might end up in the test
+            // case which have these variables in parameters which are not final but need to be final because we have
+            // to match the call based on a syntax like methoCall(eq(value1), any(Class.class))
+//            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+//
+//                if (methodCallExpression.isStaticCall() && mockedStaticTypes.containsKey(
+//                        methodCallExpression.getSubject()
+//                                .getType())) {
+//                    staticCallsList.add(methodCallExpression);
+//                }
+//
+//            }
+
 
             Map<String, Boolean> mockedCalls = testGenerationState.getMockedCallsMap();
             if (callToMock.size() > 0) {
@@ -139,7 +168,8 @@ public class CandidateMetadataFactory {
                             methodCallExpression.getMethodName());
 
                     if (returnValue.isPrimitiveType()) {
-                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo().getAttribute("Type", returnValue.getType())));
+                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
+                                .getAttribute("Type", returnValue.getType())));
                     }
 
                     methodCallExpression.writeCommentTo(objectRoutineScript);
@@ -170,14 +200,17 @@ public class CandidateMetadataFactory {
                     String mockedCallSignature = buildCallSignature(methodCallExpression);
 
                     if (!mockedCalls.containsKey(mockedCallSignature)) {
-                        if (!objectRoutineScript.getCreatedVariables().contains(staticCallSubjectMockInstance.getName())) {
-                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(staticCallSubjectMockInstance);
+                        if (!objectRoutineScript.getCreatedVariables()
+                                .contains(staticCallSubjectMockInstance.getName())) {
+                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
+                                    staticCallSubjectMockInstance);
 
                             subjectStaticFieldMock.setContainer(true);
                             Parameter childParameter = new Parameter();
                             childParameter.setType(staticCallSubjectMockInstance.getType());
                             subjectStaticFieldMock.setType("org.mockito.MockedStatic");
-                            subjectStaticFieldMock.getTemplateMap().put("E", childParameter);
+                            subjectStaticFieldMock.getTemplateMap()
+                                    .put("E", childParameter);
 
                             objectRoutineScript.addStaticMock(subjectStaticFieldMock);
                         }
@@ -190,12 +223,15 @@ public class CandidateMetadataFactory {
                                 methodCallExpression.getMethodName());
 
                         if (returnValue.isPrimitiveType()) {
-                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo().getAttribute("Type", returnValue.getType())));
+                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
+                                    .getAttribute("Type", returnValue.getType())));
                         }
 
 
-                        if (!returnValue.getType().equals("V")) {
-                            methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
+                        if (!returnValue.getType()
+                                .equals("V")) {
+                            methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration,
+                                    testGenerationState);
                         }
 
                     }
@@ -206,18 +242,22 @@ public class CandidateMetadataFactory {
 
             }
 
-            if (mainMethod.getMethodName().equals("<init>")) {
-                objectRoutineScript.getCreatedVariables().add(mainMethod.getSubject());
+            if (mainMethod.getMethodName()
+                    .equals("<init>")) {
+                objectRoutineScript.getCreatedVariables()
+                        .add(mainMethod.getSubject());
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
-            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue().getType() != null) {
+            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue()
+                    .getType() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }
 
 
         } else {
-            testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            testCandidateMetadata.getMainMethod()
+                    .writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
 //        objectRoutineScript.addComment("");
         return objectRoutineScript;
@@ -234,7 +274,8 @@ public class CandidateMetadataFactory {
                 .append(methodCallExpression.getMethodName());
 
         for (Parameter parameter : methodCallExpression.getArguments()) {
-            callBuilder.append(new String(parameter.getProb().getSerializedValue()));
+            callBuilder.append(new String(parameter.getProb()
+                    .getSerializedValue()));
         }
         return callBuilder.toString();
     }
@@ -254,9 +295,11 @@ public class CandidateMetadataFactory {
                 scanRequest.addListener(EventType.CALL_RETURN, (index, matchedStack) -> {
 
 
-                    DataEventWithSessionId callReturnEvent = replayData.getDataEvents().get(index);
+                    DataEventWithSessionId callReturnEvent = replayData.getDataEvents()
+                            .get(index);
                     int callEventIndex = replayData.getPreviousProbeIndex(index);
-                    DataEventWithSessionId callEvent = replayData.getDataEvents().get(callEventIndex);
+                    DataEventWithSessionId callEvent = replayData.getDataEvents()
+                            .get(callEventIndex);
                     DataInfo callEventProbe = replayData.getProbeInfo(callEvent.getDataId());
                     if (callEventProbe.getEventType() != EventType.CALL) {
                         return;
@@ -285,7 +328,8 @@ public class CandidateMetadataFactory {
                                         "string we are looking for");
                             }
                             Parameter responseBodyProbeInstance = responseBodyProbe.get();
-                            if (responseBodyProbeInstance.getProb().getValue() != callEvent.getValue()) {
+                            if (responseBodyProbeInstance.getProb()
+                                    .getValue() != callEvent.getValue()) {
                                 logger.warn("this is not the response body string from the object" +
                                         " we are building: " + callEvent + " -- " + callEventProbe);
                                 return;
@@ -298,7 +342,8 @@ public class CandidateMetadataFactory {
                             if (!methodName.equals("body")) {
                                 return;
                             }
-                            if (callEvent.getValue() != targetParameter.getProb().getValue()) {
+                            if (callEvent.getValue() != targetParameter.getProb()
+                                    .getValue()) {
                                 logger.warn("this is not the response body from the object we are" +
                                         " building: " + callEvent + " -- " + callEventProbe);
                                 return;
@@ -347,12 +392,14 @@ public class CandidateMetadataFactory {
                 AtomicInteger nextValueProbe = new AtomicInteger(-1);
                 AtomicReference<Parameter> containedParameterIterator = new AtomicReference<>();
                 AtomicReference<Parameter> nextValueParameter = new AtomicReference<>();
-                identifyIteratorScanRequest.addListener(targetParameter.getProb().getValue(),
+                identifyIteratorScanRequest.addListener(targetParameter.getProb()
+                                .getValue(),
 
                         new EventMatchListener() {
                             @Override
                             public void eventMatched(Integer index, int matchedStack) {
-                                DataEventWithSessionId event = replayData.getDataEvents().get(index);
+                                DataEventWithSessionId event = replayData.getDataEvents()
+                                        .get(index);
                                 DataInfo probeInfo = replayData.getProbeInfo(
                                         event.getDataId()
                                 );
@@ -381,7 +428,8 @@ public class CandidateMetadataFactory {
                                                     nextProbeIndex, replayData, 0, null);
                                             containedParameterIterator.set(returnParam);
 
-                                            identifyIteratorScanRequest.addListener(returnParam.getProb().getValue()
+                                            identifyIteratorScanRequest.addListener(returnParam.getProb()
+                                                            .getValue()
                                                     , this);
                                             iteratorProbe.set(index);
 
@@ -390,18 +438,22 @@ public class CandidateMetadataFactory {
                                             if (iteratorProbe.get() == -1) {
                                                 return;
                                             }
-                                            if (event.getValue() == containedParameterIterator.get().getProb().getValue()) {
+                                            if (event.getValue() == containedParameterIterator.get()
+                                                    .getProb()
+                                                    .getValue()) {
                                                 int nextProbeIndex1 = replayData.getNextProbeIndex(index);
                                                 callReturnProbe = replayData.getDataEvents()
                                                         .get(nextProbeIndex1);
-                                                callReturnProbeInfo = replayData.getProbeInfo(callReturnProbe.getDataId());
+                                                callReturnProbeInfo = replayData.getProbeInfo(
+                                                        callReturnProbe.getDataId());
                                                 assert callReturnProbeInfo.getEventType() == EventType.CALL_RETURN;
                                                 nextValueProbe.set(index);
 
                                                 containedParameter = ParameterFactory.createMethodArgumentParameter(
                                                         nextProbeIndex1, replayData, 0, null
                                                 );
-                                                identifyIteratorScanRequest.addListener(callReturnProbe.getValue(), this);
+                                                identifyIteratorScanRequest.addListener(callReturnProbe.getValue(),
+                                                        this);
                                                 nextValueParameter.set(containedParameter);
 
                                             }
@@ -410,20 +462,25 @@ public class CandidateMetadataFactory {
                                     if (nextValueParameter.get() == null) {
                                         return;
                                     }
-                                    if (event.getValue() != nextValueParameter.get().getProb().getValue()) {
+                                    if (event.getValue() != nextValueParameter.get()
+                                            .getProb()
+                                            .getValue()) {
                                         return;
                                     }
                                     Parameter paramWithNameAndType = ParameterFactory.createMethodArgumentParameter(
                                             index, replayData, 0, null
                                     );
-                                    if (paramWithNameAndType.getName().startsWith("\\(")) {
+                                    if (paramWithNameAndType.getName()
+                                            .startsWith("\\(")) {
                                         return;
                                     }
                                     if (paramWithNameAndType.getType() != null) {
                                         Parameter existingValue = nextValueParameter.get();
-                                        paramWithNameAndType.getProb().setSerializedValue(
-                                                existingValue.getProb().getSerializedValue()
-                                        );
+                                        paramWithNameAndType.getProb()
+                                                .setSerializedValue(
+                                                        existingValue.getProb()
+                                                                .getSerializedValue()
+                                                );
                                         nextValueParameter.set(paramWithNameAndType);
                                         identifyIteratorScanRequest.abort();
                                     }

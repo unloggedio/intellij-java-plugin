@@ -35,7 +35,7 @@ import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.notification.*;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -1985,7 +1985,9 @@ public class SessionInstance {
                     case GET_STATIC_FIELD:
                         String fieldType1 = ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", null));
-                        if (fieldType1.startsWith("org.slf4j") || fieldType1.startsWith("com.google")) {
+                        if (fieldType1.startsWith("org.slf4j")
+                                || fieldType1.startsWith("cwom.google")
+                                || fieldType1.startsWith("org.joda.time")) {
                         } else {
                             ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
                             if (!classInfo.isEnum()) {
@@ -2610,6 +2612,9 @@ public class SessionInstance {
                         String nextNewObjectType = ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", "V"));
                         threadState.pushNextNewObjectType(nextNewObjectType);
+                        if (nextNewObjectType.equals("java.util.Date")) {
+                            threadState.getTopCall().setUsesFields(true);
+                        }
                         break;
                     case NEW_OBJECT_CREATED:
                         MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();

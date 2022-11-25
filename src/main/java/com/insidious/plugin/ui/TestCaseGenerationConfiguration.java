@@ -19,6 +19,11 @@ public class TestCaseGenerationConfiguration {
 
 
     private final TestFramework testFramework;
+
+    public MockFramework getMockFramework() {
+        return mockFramework;
+    }
+
     private final MockFramework mockFramework;
     private final JsonFramework jsonFramework;
     private final ResourceEmbedMode resourceEmbedMode;

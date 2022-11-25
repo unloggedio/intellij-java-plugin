@@ -391,7 +391,7 @@ public class MethodCallExpression implements Expression, Serializable {
         if (returnValue.getException()) {
             Parameter exceptionValue = getException();
             in(objectRoutine)
-                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this))
+                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getGenerationConfiguration()))
                     .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(exceptionValue))
                     .endStatement();
 
@@ -424,7 +424,7 @@ public class MethodCallExpression implements Expression, Serializable {
             }
 
             in(objectRoutine)
-                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this))
+                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getTestConfiguration()))
                     .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
                     .endStatement();
         }

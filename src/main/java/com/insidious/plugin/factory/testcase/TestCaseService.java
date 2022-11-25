@@ -166,7 +166,8 @@ public class TestCaseService {
 
         // gotta mock'em all
         for (Parameter fieldParameter : fields.all()) {
-            TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter);
+            TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
+                    objectRoutineContainer.getGenerationConfiguration());
             constructor.addMetadata(metadata);
 
             if (fieldParameter.getName() != null && objectRoutineContainer.getName() == null) {

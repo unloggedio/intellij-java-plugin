@@ -14,12 +14,12 @@ import java.util.List;
 
 public class MethodCallExpressionFactory {
 
-    public static final Parameter MockitoClass;
+//    public static final Parameter MockitoClass;
     //    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
 
     static {
-        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito");
+//        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito");
 //        AssertClass = makeParameter("Assert", "org.junit.Assert");
         GsonClass = makeParameter("gson", "com.google.gson.Gson");
     }
@@ -45,7 +45,8 @@ public class MethodCallExpressionFactory {
         return new StringExpression(s);
     }
 
-    public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression) {
+    public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression,
+                                                   TestCaseGenerationConfiguration configuration) {
 
         Parameter mainSubject = methodCallExpression.getSubject();
         DataInfo subjectProbeInfo = mainSubject.getProbeInfo();
@@ -68,7 +69,7 @@ public class MethodCallExpressionFactory {
         whenExpression.setValue(param1);
 
 
-        Parameter callSubject = MockitoClass;
+        Parameter callSubject = configuration.getMockFramework().getMockClassParameter();
         if (isStatic) {
             callSubject = mainSubject;
         }
@@ -79,7 +80,7 @@ public class MethodCallExpressionFactory {
 
     }
 
-    public static MethodCallExpression MockClass(ClassName targetClassname) {
+    public static MethodCallExpression MockClass(ClassName targetClassname, TestCaseGenerationConfiguration configuration) {
 
         String param1 = targetClassname.simpleName() + ".class";
 
@@ -89,14 +90,15 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        MethodCallExpression mock = new MethodCallExpression("mock", MockitoClass, List.of(whenExpression), null, 0);
+        MethodCallExpression mock = new MethodCallExpression("mock",
+                configuration.getMockFramework().getMockClassParameter(), List.of(whenExpression), null, 0);
         mock.setStaticCall(true);
         mock.setMethodAccess(Opcodes.ACC_PUBLIC);
         return mock;
 
     }
 
-    public static MethodCallExpression MockStaticClass(ClassName targetClassname) {
+    public static MethodCallExpression MockStaticClass(ClassName targetClassname, TestCaseGenerationConfiguration configuration) {
 
         String param1 = targetClassname.simpleName() + ".class";
 
@@ -106,7 +108,8 @@ public class MethodCallExpressionFactory {
         whenExpression.setProb(new DataEventWithSessionId());
 
 
-        MethodCallExpression mockStatic = new MethodCallExpression("mockStatic", MockitoClass, List.of(whenExpression), null, 0);
+        MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",
+                configuration.getMockFramework().getMockClassParameter(), List.of(whenExpression), null, 0);
         mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
         mockStatic.setStaticCall(true);
         return mockStatic;

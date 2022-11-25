@@ -171,7 +171,8 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutineScriptContainer toRoutineScript() {
         TestGenerationState testGenerationState = new TestGenerationState();
-        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName, testGenerationState);
+        ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName,
+                testGenerationState, generationConfiguration);
         container.setName(getName());
 
 
@@ -258,13 +259,13 @@ public class ObjectRoutineContainer {
                     .assignVariable(staticMock)
                     .writeExpression(
                             MethodCallExpressionFactory.MockStaticClass(
-                                    ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType())))
+                                    ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType()), generationConfiguration))
                     .endStatement();
         }
 
         // For setting the method with @After / @AfterEach Annotation
         VariableContainer finishedVariableContainer = new VariableContainer();
-        ObjectRoutineScript cleanUpMethodScript = new ObjectRoutineScript(finishedVariableContainer);
+        ObjectRoutineScript cleanUpMethodScript = new ObjectRoutineScript(finishedVariableContainer, generationConfiguration);
 
         cleanUpMethodScript.setRoutineName("finished");
         cleanUpMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
@@ -306,4 +307,7 @@ public class ObjectRoutineContainer {
         this.packageName = packageName;
     }
 
+    public TestCaseGenerationConfiguration getGenerationConfiguration() {
+        return generationConfiguration;
+    }
 }

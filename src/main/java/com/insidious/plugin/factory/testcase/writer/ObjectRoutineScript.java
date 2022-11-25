@@ -1,10 +1,10 @@
 package com.insidious.plugin.factory.testcase.writer;
 
-import com.insidious.plugin.extension.descriptor.renderer.InsidiousDebuggerTreeNodeImpl;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
@@ -29,7 +29,9 @@ public class ObjectRoutineScript {
     private final Set<AnnotationSpec> annotations = new HashSet<>();
     private final Set<Modifier> modifiers = new HashSet<>();
     private String routineName;
+    private TestCaseGenerationConfiguration generationConfiguration;
     private VariableContainer createdVariables = new VariableContainer();
+    private TestCaseGenerationConfiguration testConfiguration;
     private List<Parameter> staticMocks = new ArrayList<>();
 
     @Override
@@ -44,12 +46,22 @@ public class ObjectRoutineScript {
                 '}';
     }
 
-    public ObjectRoutineScript(String routineName) {
-        this.routineName = routineName;
+    public TestCaseGenerationConfiguration getGenerationConfiguration() {
+        return generationConfiguration;
     }
 
-    public ObjectRoutineScript(VariableContainer createdVariables) {
+    public ObjectRoutineScript(String routineName, TestCaseGenerationConfiguration generationConfiguration) {
+        this.routineName = routineName;
+        this.generationConfiguration = generationConfiguration;
+    }
+
+    public TestCaseGenerationConfiguration getTestConfiguration() {
+        return testConfiguration;
+    }
+
+    public ObjectRoutineScript(VariableContainer createdVariables, TestCaseGenerationConfiguration testConfiguration) {
         this.createdVariables = createdVariables;
+        this.testConfiguration = testConfiguration;
     }
 
     public void addStatement(String s, Object... args) {
