@@ -269,6 +269,11 @@ public class Parameter implements Serializable {
         return names;
     }
 
+    /*
+     * WIP:
+     * Best Possible Name to Use for a variable (field) in TestCase Script
+     * @returns String
+     */
     public String getNameForUse(String methodName) {
         if (nameUsed != null) {
             return nameUsed;
@@ -280,10 +285,14 @@ public class Parameter implements Serializable {
             return names.get(0);
         }
         int matchedDistance = 99999;
+
         String matchedString = names.get(0);
         if (methodName == null) {
             methodName = matchedString;
         }
+
+        // select the string at least different from names[0]
+        // and put it to the top
         for (String name : names) {
             int distance = StringUtils.getLevenshteinDistance(name, methodName);
             if (distance < matchedDistance) {
