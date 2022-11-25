@@ -71,7 +71,7 @@ public class JavaParserUtils {
                 existingType.addMember(newMethod);
             } else {
                 MethodDeclaration existingMethodDeclaration = existingMethod.get(0);
-                if (methodName.equals("setup") || methodName.equals("close")) {
+                if (methodName.equals("setup") || methodName.equals("finished")) {
                     // merge methods
                     mergeMethods(existingMethodDeclaration, newMethod);
                 } else {
