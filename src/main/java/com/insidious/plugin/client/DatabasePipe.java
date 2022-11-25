@@ -30,6 +30,7 @@ class DatabasePipe implements Runnable {
     private boolean stop = false;
     private DaoService daoService;
     private DatabaseVariableContainer variableContainer;
+    private boolean isRunning;
 
     public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue, DaoService daoService) {
         this.parameterQueue = parameterQueue;
@@ -38,6 +39,7 @@ class DatabasePipe implements Runnable {
 
     @Override
     public void run() {
+        isRunning = true;
         while (!stop) {
             Parameter param;
             try {
@@ -83,20 +85,24 @@ class DatabasePipe implements Runnable {
             batch.add(param);
             logger.warn("Saving " + batch.size() + " parameters");
             daoService.createOrUpdateParameter(batch);
-            variableContainer.getBeingSaved().removeAll(batch);
+            variableContainer.getBeingSaved()
+                    .removeAll(batch);
         }
         isSaving.offer(true);
     }
 
     public void close() throws InterruptedException {
-        stop = true;
-        isSaving.take();
+        if (isRunning) {
+            stop = true;
+            isSaving.take();
+        }
         logger.warn("saving after close");
         List<Parameter> batch = new LinkedList<>();
         parameterQueue.drainTo(batch);
         daoService.createOrUpdateParameter(batch);
         if (variableContainer != null) {
-            variableContainer.getBeingSaved().removeAll(batch);
+            variableContainer.getBeingSaved()
+                    .removeAll(batch);
         }
         if (dataInfoList.size() > 0) {
             Collection<DataInfo> saving = new LinkedList<>();

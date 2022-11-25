@@ -290,33 +290,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
 //        }, 5, 5, TimeUnit.SECONDS);
 //    }
 
-    /**
-     * find all unique objects of given class types
-     *
-     * @param searchQuery    class type query
-     * @param clientCallBack results go here
-     */
-    @Override
-    public void getObjectsByType(
-            SearchQuery searchQuery,
-            String sessionId,
-            ClientCallBack<ObjectWithTypeInfo> clientCallBack
-    ) {
-
-
-        checkSession(sessionId);
-        this.sessionInstance.getObjectsByType(searchQuery, clientCallBack);
-
-
-    }
-
-    @Override
-    public List<String> getSessionArchiveList(String sessionId) throws Exception {
-        checkSession(sessionId);
-        return this.sessionInstance.getArchiveNamesList();
-
-    }
-
     @Override
     public ClassWeaveInfo getSessionClassWeave(String sessionId) {
         checkSession(sessionId);
@@ -354,10 +327,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
         return this.sessionInstance.getTypeInfo(type);
     }
 
-    @Override
-    public List<TypeInfoDocument> getAllTypes(String sessionId) {
-        return this.sessionInstance.getAllTypes();
-    }
 
     @Override
     public SessionInstance getSessionInstance() {
@@ -367,11 +336,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void setSessionInstance(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
-    }
-
-    @Override
-    public TestCaseService getSessionTestCaseService() {
-        return new TestCaseService(sessionInstance);
     }
 
 }

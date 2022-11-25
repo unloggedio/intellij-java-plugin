@@ -87,19 +87,9 @@ public interface VideobugClientInterface {
 
     void close();
 
-//    void onNewException(Collection<String> typeNameList, VideobugExceptionCallback videobugExceptionCallback);
-
-    void getObjectsByType(SearchQuery searchQuery, String sessionId,
-                          ClientCallBack<ObjectWithTypeInfo> clientCallBack);
-
-    List<String> getSessionArchiveList(String sessionId) throws IOException, Exception;
-
-
     TypeInfo getTypeInfoByName(String sessionId, String type);
 
-    List<TypeInfoDocument> getAllTypes(String sessionId);
 
     SessionInstance getSessionInstance();
 
-    TestCaseService getSessionTestCaseService();
 }

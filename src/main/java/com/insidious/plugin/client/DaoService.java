@@ -1363,8 +1363,10 @@ public class DaoService {
     public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
         ThreadState daoThreadState = new ThreadState();
         daoThreadState.setThreadId(threadState.getThreadId());
-        daoThreadState.setMostRecentReturnedCall(threadState.getMostRecentReturnedCall()
-                .getId());
+        if (threadState.getMostRecentReturnedCall() != null) {
+            daoThreadState.setMostRecentReturnedCall(threadState.getMostRecentReturnedCall()
+                    .getId());
+        }
 
         List<com.insidious.plugin.pojo.MethodCallExpression> callStack = threadState.getCallStack();
         @NotNull String callStackList = Strings.join(callStack.stream()

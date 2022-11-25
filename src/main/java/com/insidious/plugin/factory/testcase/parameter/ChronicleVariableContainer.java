@@ -14,6 +14,7 @@ public class ChronicleVariableContainer {
 
 
     public void add(Parameter parameter) {
+        parameter.setModified(true);
         long value = parameter.getValue();
         Parameter byValue = parameterMap.get(value);
         if (byValue == null) {

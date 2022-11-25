@@ -24,6 +24,7 @@ import com.insidious.plugin.client.pojo.ArchiveFilesIndex;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -34,6 +35,7 @@ import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.*;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -62,7 +64,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -76,13 +77,14 @@ public class SessionInstance {
     private static final Logger logger = LoggerUtil.getInstance(SessionInstance.class);
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
-    private final List<File> sessionArchives;
     private final Map<String, String> cacheEntries = new HashMap<>();
     private final DatabasePipe databasePipe;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
     private final Map<String, Boolean> objectIndexRead = new HashMap<>();
+    private final ZipConsumer zipConsumer;
+    private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
 
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
@@ -117,7 +119,7 @@ public class SessionInstance {
         }
 
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
-        ZipConsumer zipConsumer = new ZipConsumer(daoService, sessionDirectory);
+        zipConsumer = new ZipConsumer(daoService, sessionDirectory);
         executorPool = Executors.newFixedThreadPool(4);
 
         this.sessionArchives = refreshSessionArchivesList();
@@ -192,6 +194,10 @@ public class SessionInstance {
         List<File> filesToRemove = new LinkedList<>();
         int i;
         KaitaiInsidiousClassWeaveParser classWeaveInfo = null;
+        if (typeInfoIndex != null) {
+            return sessionFiles;
+        }
+
         typeInfoIndex = createTypeInfoIndex();
         objectInfoIndex = createObjectInfoIndex();
         for (i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
@@ -225,6 +231,14 @@ public class SessionInstance {
         }
 
 
+        refreshWeaveInformation(classWeaveInfo);
+
+        sessionFiles.removeAll(filesToRemove);
+        Collections.sort(sessionFiles);
+        return sessionFiles;
+    }
+
+    private void refreshWeaveInformation(KaitaiInsidiousClassWeaveParser classWeaveInfo) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
         final long totalClassCount = classWeaveInfo.classCount();
         checkProgressIndicator("Loading class mappings to scan events", null);
@@ -271,10 +285,6 @@ public class SessionInstance {
                 });
         classWeaveInfo._io()
                 .close();
-
-        sessionFiles.removeAll(filesToRemove);
-        Collections.sort(sessionFiles);
-        return sessionFiles;
     }
 
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
@@ -834,7 +844,7 @@ public class SessionInstance {
                     throw new RuntimeException(ex);
                 }
             }
-            e.printStackTrace();
+            // e.printStackTrace();
             logger.warn(
                     "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
             return null;
@@ -847,6 +857,14 @@ public class SessionInstance {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             if (ProgressIndicatorProvider.getGlobalProgressIndicator()
                     .isCanceled()) {
+                try {
+                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
+                    // able ot read it on next refresh/load
+                    close();
+                } catch (Exception e) {
+                    // now this is just very weird
+                    throw new RuntimeException(e);
+                }
                 throw new ProcessCanceledException();
             }
             if (text2 != null) {
@@ -1329,12 +1347,6 @@ public class SessionInstance {
         return objects;
     }
 
-    public List<String> getArchiveNamesList() throws IOException {
-        return refreshSessionArchivesList().stream()
-                .map(File::getName)
-                .collect(Collectors.toList());
-    }
-
     public ClassWeaveInfo getClassWeaveInfo() {
 
 
@@ -1798,12 +1810,19 @@ public class SessionInstance {
 
     public void scanDataAndBuildReplay() throws Exception {
 
+//        this.sessionArchives = refreshSessionArchivesList();
         long scanStart = System.currentTimeMillis();
+//        executorPool.submit(databasePipe);
+//        executorPool.submit(zipConsumer);
 
         List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
 
         Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                 .collect(Collectors.groupingBy(LogFile::getThreadId));
+        if (logFilesByThreadMap.size() == 0) {
+            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
+            return;
+        }
 
         ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
         ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
@@ -1819,22 +1838,27 @@ public class SessionInstance {
         }
 
 
-        Collection<Parameter> allParameters = parameterIndex.values();
+        Collection<Parameter> allParameters = parameterIndex.values()
+                .stream()
+                .filter(Parameter::isModified)
+                .collect(
+                        Collectors.toList());
+        checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
         daoService.createOrUpdateParameter(allParameters);
 
         parameterIndex.close();
-        databasePipe.close();
-        daoService.close();
         try {
             long scanEndTime = System.currentTimeMillis();
             float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
             long size_folder = getFolderSize(sessionDir);
             long archives_size = 0;
-            for (File f : this.sessionArchives) {
-                long sizeInBytes = f.length();
-                archives_size += sizeInBytes;
-            }
+            // sessionArchives list is going to be stale now
+            // need to calcualte this in a different way
+//            for (File f : this.sessionArchives) {
+//                long sizeInBytes = f.length();
+//                archives_size += sizeInBytes;
+//            }
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("session_scan_time", scanTime);
             eventProperties.put("session_folder_size", (size_folder / 1000000));
@@ -2754,6 +2778,7 @@ public class SessionInstance {
     }
 
     public void close() throws Exception {
+        databasePipe.close();
         executorPool.shutdownNow();
         daoService.close();
 

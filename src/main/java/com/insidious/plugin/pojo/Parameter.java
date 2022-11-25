@@ -41,6 +41,7 @@ public class Parameter implements Serializable {
     private Map<String, Parameter> templateMap = new HashMap<>();
     private boolean isContainer = false;
     private String nameUsed;
+    private boolean modified;
 
     public Parameter(Long value) {
         this.value = value;
@@ -326,4 +327,11 @@ public class Parameter implements Serializable {
                 );
     }
 
+    public void setModified(boolean modified) {
+        this.modified = modified;
+    }
+
+    public boolean isModified() {
+        return modified;
+    }
 }

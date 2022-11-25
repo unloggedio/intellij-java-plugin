@@ -38,31 +38,46 @@ class ZipConsumer implements Runnable {
         logger.info("zip consumer started for path: " + sessionDirectory.getPath());
         while (true) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
                 checkNewFiles();
             } catch (InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
-
         }
-
     }
 
     private void checkNewFiles() throws IOException {
         List<File> sessionArchiveList = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
                 .sorted(Comparator.comparing(File::getName))
-                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
+                .filter(e -> e.getName()
+                        .endsWith(".zip") && e.getName()
+                        .startsWith("index-"))
                 .collect(Collectors.toList());
         for (File sessionArchive : sessionArchiveList) {
             ArchiveFile dbEntry = archiveFileMap.get(sessionArchive.getName());
             if (dbEntry == null) {
+
+                List<String> logFilesNameList;
+                try {
+                    logFilesNameList = listArchiveFiles(sessionArchive);
+                } catch (Exception e) {
+                    // probably an incomplete zip file
+                    // we will read it later when it is complete
+                    continue;
+                }
+                if (logFilesNameList.size() == 0) {
+                    // probably an incomplete zip file
+                    // we will read it later when it is complete
+                    continue;
+                }
+
+
                 dbEntry = new ArchiveFile();
                 dbEntry.setName(sessionArchive.getName());
                 dbEntry.setStatus(PENDING);
                 archiveFileMap.put(sessionArchive.getName(), dbEntry);
                 daoService.updateArchiveFile(dbEntry);
 
-                List<String> logFilesNameList = listArchiveFiles(sessionArchive);
 
                 for (String logFileName : logFilesNameList) {
                     LogFile logFile = new LogFile();
