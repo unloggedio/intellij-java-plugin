@@ -6,13 +6,10 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
-import org.antlr.v4.runtime.tree.Tree;
 import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
-import javax.swing.event.TreeExpansionEvent;
-import javax.swing.event.TreeWillExpandListener;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
@@ -22,7 +19,6 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TestCandidateCustomizeView {
 
@@ -78,49 +74,40 @@ public class TestCandidateCustomizeView {
         cancelButton.addActionListener((e) -> cancelAndBack());
     }
 
-    private void handleSelections(MouseEvent me)
-    {
+    private void handleSelections(MouseEvent me) {
         TreePath lastPath = this.testCandidateTree.getPathForLocation(me.getX(), me.getY());
-        if(lastPath==null)
-        {
+        if (lastPath == null) {
             return;
         }
-        if(lastPath.getPathCount()==2)
-        {
+        if (lastPath.getPathCount() == 2) {
             TestCandidateMetadata metadata = (TestCandidateMetadata) lastPath.getLastPathComponent();
             metadata.setUIselected(!metadata.isUIselected());
-            if(this.testGenerationConfiguration.getTestCandidateMetadataList().contains(metadata))
-            {
-                if(!metadata.isUIselected())
-                {
-                    this.testGenerationConfiguration.getTestCandidateMetadataList().remove(metadata);
+            if (this.testGenerationConfiguration.getTestCandidateMetadataList()
+                    .contains(metadata)) {
+                if (!metadata.isUIselected()) {
+                    this.testGenerationConfiguration.getTestCandidateMetadataList()
+                            .remove(metadata);
+                }
+            } else {
+                if (metadata.isUIselected()) {
+                    this.testGenerationConfiguration.getTestCandidateMetadataList()
+                            .add(metadata);
                 }
             }
-            else
-            {
-                if(metadata.isUIselected())
-                {
-                    this.testGenerationConfiguration.getTestCandidateMetadataList().add(metadata);
-                }
-            }
-            bulkSetCallStatus(metadata,metadata.isUIselected());
-        }
-        else if(lastPath.getPathCount()==3)
-        {
+            bulkSetCallStatus(metadata, metadata.isUIselected());
+        } else if (lastPath.getPathCount() == 3) {
             MethodCallExpression mce = (MethodCallExpression) lastPath.getLastPathComponent();
             mce.setUIselected(!mce.isUIselected());
-            if(this.testGenerationConfiguration.getCallExpressionList().contains(mce))
-            {
-                if(!mce.isUIselected())
-                {
-                    this.testGenerationConfiguration.getCallExpressionList().remove(mce);
+            if (this.testGenerationConfiguration.getCallExpressionList()
+                    .contains(mce)) {
+                if (!mce.isUIselected()) {
+                    this.testGenerationConfiguration.getCallExpressionList()
+                            .remove(mce);
                 }
-            }
-            else
-            {
-                if(mce.isUIselected())
-                {
-                    this.testGenerationConfiguration.getCallExpressionList().add(mce);
+            } else {
+                if (mce.isUIselected()) {
+                    this.testGenerationConfiguration.getCallExpressionList()
+                            .add(mce);
                 }
             }
         }
@@ -128,32 +115,26 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.scrollPathToVisible(lastPath);
     }
 
-    private void bulkSetCallStatus(TestCandidateMetadata metadata, boolean status)
-    {
+    private void bulkSetCallStatus(TestCandidateMetadata metadata, boolean status) {
         List<MethodCallExpression> calls = metadata.getCallsList();
-        for(MethodCallExpression call : calls)
-        {
+        for (MethodCallExpression call : calls) {
             call.setUIselected(status);
-            if(this.testGenerationConfiguration.getCallExpressionList().contains(call))
-            {
-                this.testGenerationConfiguration.getCallExpressionList().remove(call);
-            }
-            else
-            {
-                this.testGenerationConfiguration.getCallExpressionList().add(call);
+            if (this.testGenerationConfiguration.getCallExpressionList()
+                    .contains(call)) {
+                this.testGenerationConfiguration.getCallExpressionList()
+                        .remove(call);
+            } else {
+                this.testGenerationConfiguration.getCallExpressionList()
+                        .add(call);
             }
         }
     }
 
-    private void refreshTree()
-    {
+    private void refreshTree() {
         List<TreePath> paths = Arrays.asList(this.testCandidateTree.getSelectionPaths());
-        if(paths.contains(this.testCandidateTree.getPathForRow(0)))
-        {
+        if (paths.contains(this.testCandidateTree.getPathForRow(0))) {
             this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
-        }
-        else
-        {
+        } else {
             this.testCandidateTree.addSelectionPath(this.testCandidateTree.getPathForRow(0));
             this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
         }
@@ -162,14 +143,19 @@ public class TestCandidateCustomizeView {
     private void setDefaultSelection() {
         int level1_rowcount = this.testCandidateTree.getRowCount();
         try {
-            TestCandidateMetadata firstCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(1).getLastPathComponent();
-            TestCandidateMetadata lastCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(level1_rowcount - 1).getLastPathComponent();
+            TestCandidateMetadata firstCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(1)
+                    .getLastPathComponent();
+            TestCandidateMetadata lastCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(
+                            level1_rowcount - 1)
+                    .getLastPathComponent();
             firstCandidate.setUIselected(true);
             lastCandidate.setUIselected(true);
-            this.testGenerationConfiguration.getTestCandidateMetadataList().add(firstCandidate);
-            this.testGenerationConfiguration.getTestCandidateMetadataList().add(lastCandidate);
-            bulkSetCallStatus(firstCandidate,firstCandidate.isUIselected());
-            bulkSetCallStatus(lastCandidate,lastCandidate.isUIselected());
+            this.testGenerationConfiguration.getTestCandidateMetadataList()
+                    .add(firstCandidate);
+            this.testGenerationConfiguration.getTestCandidateMetadataList()
+                    .add(lastCandidate);
+            bulkSetCallStatus(firstCandidate, firstCandidate.isUIselected());
+            bulkSetCallStatus(lastCandidate, lastCandidate.isUIselected());
 
             //refreshTree();
         } catch (Exception e) {
@@ -190,21 +176,23 @@ public class TestCandidateCustomizeView {
         testActionListener.cancel();
     }
 
-    private void printConfigDetails()
-    {
-        System.out.println("[Candidates length ]"+this.testGenerationConfiguration.getTestCandidateMetadataList().size());
-        System.out.println("[Config - Candidates] "+this.testGenerationConfiguration.getTestCandidateMetadataList().toString());
-        System.out.println("[Calls length ]"+this.testGenerationConfiguration.getCallExpressionList().size());
-        System.out.println("[Config - Calls] "+this.testGenerationConfiguration.getCallExpressionList().toString());
+    private void printConfigDetails() {
+        System.out.println("[Candidates length ]" + this.testGenerationConfiguration.getTestCandidateMetadataList()
+                .size());
+        System.out.println("[Config - Candidates] " + this.testGenerationConfiguration.getTestCandidateMetadataList()
+                .toString());
+        System.out.println("[Calls length ]" + this.testGenerationConfiguration.getCallExpressionList()
+                .size());
+        System.out.println("[Config - Calls] " + this.testGenerationConfiguration.getCallExpressionList()
+                .toString());
     }
 
-    private void sortCandidates()
-    {
+    private void sortCandidates() {
         TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
         List<TestCandidateMetadata> refCandidates_order = new ArrayList<>();
         refCandidates_order.addAll(model.getCandidateList());
 
-        List<TestCandidateMetadata> fallback= this.testGenerationConfiguration.getTestCandidateMetadataList();
+        List<TestCandidateMetadata> fallback = this.testGenerationConfiguration.getTestCandidateMetadataList();
         refCandidates_order.removeIf(p -> !fallback.contains(p));
         this.testGenerationConfiguration.setTestCandidateMetadataList(refCandidates_order);
     }
@@ -216,11 +204,13 @@ public class TestCandidateCustomizeView {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {
             e.printStackTrace();
-            InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(), NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(),
+                    NotificationType.ERROR);
 
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("message", e.getMessage());
-            UsageInsightTracker.getInstance().RecordEvent("TestCaseGenerationFailed", eventProperties);
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("TestCaseGenerationFailed", eventProperties);
         }
     }
 
