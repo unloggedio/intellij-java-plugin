@@ -199,7 +199,7 @@ public class TestCandidateCustomizeView {
 
     private void generateWithSelectedOptions() {
         sortCandidates();
-        printConfigDetails();
+//        printConfigDetails();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {

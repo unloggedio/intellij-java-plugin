@@ -35,10 +35,20 @@ import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.lang.jvm.JvmMethod;
+import com.intellij.lang.jvm.JvmParameter;
+import com.intellij.lang.jvm.types.JvmType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiPrimitiveType;
+import com.intellij.psi.PsiType;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -84,6 +94,7 @@ public class SessionInstance {
     private final ExecutorService executorPool;
     private final Map<String, Boolean> objectIndexRead = new HashMap<>();
     private final ZipConsumer zipConsumer;
+    private final Project project;
     private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
 
@@ -93,7 +104,8 @@ public class SessionInstance {
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
 
-    public SessionInstance(ExecutionSession executionSession) throws SQLException, IOException {
+    public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
+        this.project = project;
         this.sessionDirectory = Path.of(executionSession.getPath())
                 .toFile();
         this.executionSession = executionSession;
@@ -2613,7 +2625,8 @@ public class SessionInstance {
                                 probeInfo.getAttribute("Type", "V"));
                         threadState.pushNextNewObjectType(nextNewObjectType);
                         if (nextNewObjectType.equals("java.util.Date")) {
-                            threadState.getTopCall().setUsesFields(true);
+                            threadState.getTopCall()
+                                    .setUsesFields(true);
                         }
                         break;
                     case NEW_OBJECT_CREATED:
@@ -2778,8 +2791,97 @@ public class SessionInstance {
         return daoService.getTestCandidates(subjectId, entryProbeIndex, mainMethodId, loadCalls);
     }
 
-    public TestCandidateMetadata getTestCandidateById(Long testCandidateId) {
-        return daoService.getTestCandidateById(testCandidateId);
+    public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
+        TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
+        if (loadCalls) {
+            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+
+                Parameter callSubject = methodCallExpression.getSubject();
+                String subjectType = callSubject.getType();
+                if (subjectType.length() == 1) {
+                    continue;
+                }
+//                logger.warn("MCE: " + methodCallExpression.getMethodName());
+
+                PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
+                        .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+                if (classPsiInstance == null) {
+                    // if a class by this name was not found, then either we have a different project loaded
+                    // or the source code has been modified and the class have been renamed or deleted or moved
+                    // cant do much here
+                    logger.warn("Class not found in source code: " + subjectType);
+                    continue;
+                }
+                JvmMethod[] methodPsiInstanceList =
+                        classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+                if (methodPsiInstanceList.length == 0) {
+                    logger.warn(
+                            "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+                    continue;
+                }
+
+                List<Parameter> methodArguments = methodCallExpression.getArguments();
+                int expectedArgumentCount = methodArguments
+                        .size();
+                for (JvmMethod jvmMethod : methodPsiInstanceList) {
+
+                    int parameterCount = jvmMethod.getParameters().length;
+                    if (expectedArgumentCount != parameterCount) {
+                        // this is not the method which we are looking for
+                        // either this has been updated in the source code and so we wont find a matching method
+                        // or this is an overridden method
+                        continue;
+                    }
+
+                    JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+                    for (int i = 0; i < parameters.length; i++) {
+                        JvmParameter parameterFromSourceCode = parameters[i];
+                        Parameter parameterFromProbe = methodArguments.get(i);
+                        @NotNull JvmType typeFromSourceCode = parameterFromSourceCode.getType();
+                        if (typeFromSourceCode instanceof PsiPrimitiveType) {
+                            PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
+                        } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
+                            PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
+
+                            if (classReferenceType.hasParameters()) {
+                                PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+                                parameterFromProbe.setContainer(true);
+                                Map<String, Parameter> templateMap = parameterFromProbe.getTemplateMap();
+                                char templateChar = 'D';
+                                for (PsiType typeTemplateParameter : typeTemplateParameters) {
+                                    templateChar++;
+                                    Parameter value = new Parameter();
+                                    value.setType(typeTemplateParameter.getCanonicalText());
+                                    templateMap.put(String.valueOf(templateChar), value);
+                                }
+                            }
+                        }
+                    }
+
+                    Parameter returnParameter = methodCallExpression.getReturnValue();
+
+                    JvmType returnParameterType = jvmMethod.getReturnType();
+                    if (returnParameterType instanceof PsiPrimitiveType) {
+                        PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
+                    } else if (returnParameterType instanceof PsiClassReferenceType) {
+                        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
+                        if (classReferenceType.hasParameters()) {
+                            PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+                            returnParameter.setContainer(true);
+                            Map<String, Parameter> templateMap = returnParameter.getTemplateMap();
+                            char templateChar = 'D';
+                            for (PsiType typeTemplateParameter : typeTemplateParameters) {
+                                templateChar++;
+                                Parameter value = new Parameter();
+                                value.setType(typeTemplateParameter.getCanonicalText());
+                                templateMap.put(String.valueOf(templateChar), value);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return testCandidateMetadata;
     }
 
     public void close() throws Exception {

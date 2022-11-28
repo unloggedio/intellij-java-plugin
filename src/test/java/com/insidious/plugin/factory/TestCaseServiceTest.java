@@ -91,7 +91,8 @@ public class TestCaseServiceTest {
         System.out.println(testCaseUnit);
 
         StringSelection selection = new StringSelection(testCaseUnit.toString());
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Clipboard clipboard = Toolkit.getDefaultToolkit()
+                .getSystemClipboard();
         clipboard.setContents(selection, selection);
         System.out.println(selection);
     }
@@ -148,9 +149,11 @@ public class TestCaseServiceTest {
     private void printObjectHistory(Long objectId) throws SessionNotSelectedException, SQLException, IOException {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
+        Mockito.when(project.getBasePath())
+                .thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("USERPROFILE") + "/.videobug/sessions",
+                project);
 
 //        TestCaseService testCaseService = new TestCaseService(getDaoService("jdbc:sqlite:execution.db"), client);
 
@@ -163,10 +166,11 @@ public class TestCaseServiceTest {
 //        List<ObjectWithTypeInfo> allObjects = new LinkedList<>();
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        ExecutionSession session = sessions.getItems().get(0);
+        ExecutionSession session = sessions.getItems()
+                .get(0);
 
 
-        client.setSessionInstance(new SessionInstance(session));
+        client.setSessionInstance(new SessionInstance(session, project));
         FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
         filterRequest.setObjectId(objectId);
@@ -186,14 +190,18 @@ public class TestCaseServiceTest {
             ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
             String logLine = "#" + i + ": [" + dataEvent.getNanoTime() + "]["
                     + probeInfo.getEventType() + "] ["
-                    + classInfo.getClassName().replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +
+                    + classInfo.getClassName()
+                    .replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +
                     "";
 
-            ObjectInfo valueObjectInfo = replayData.getObjectInfoMap().get(dataEvent.getValue());
+            ObjectInfo valueObjectInfo = replayData.getObjectInfoMap()
+                    .get(dataEvent.getValue());
             if (valueObjectInfo != null) {
-                TypeInfo typeObjectInfo = replayData.getTypeInfoMap().get(valueObjectInfo.getTypeId());
+                TypeInfo typeObjectInfo = replayData.getTypeInfoMap()
+                        .get(valueObjectInfo.getTypeId());
                 logLine = logLine + " [" + typeObjectInfo.getTypeNameFromClass() + "]";
-                StringInfo stringValue = replayData.getStringInfoMap().get(dataEvent.getValue());
+                StringInfo stringValue = replayData.getStringInfoMap()
+                        .get(dataEvent.getValue());
                 if (stringValue != null) {
                     logLine = logLine + " [" + stringValue.getContent() + "]";
                 }
@@ -425,15 +433,18 @@ public class TestCaseServiceTest {
     @Test
     public void testGetTestCaseUnit() throws SQLException, IOException {
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+        Mockito.when(project.getBasePath())
+                .thenReturn("./");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems().size() == 0) {
+        if (sessions.getItems()
+                .size() == 0) {
             return;
         }
-        ExecutionSession session = sessions.getItems().get(0);
-        SessionInstance sessionInstance = new SessionInstance(session);
+        ExecutionSession session = sessions.getItems()
+                .get(0);
+        SessionInstance sessionInstance = new SessionInstance(session, project);
         client.setSessionInstance(sessionInstance);
 
 
@@ -457,24 +468,28 @@ public class TestCaseServiceTest {
         }
 
         TestCandidateMetadata testCandidateMetadata = candidateList.get(0);
-        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex());
+        testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
 
         List<TestCandidateMetadata> list =
                 sessionInstance.getTestCandidatesForMethod(
-                        testCandidateMetadata.getTestSubject().getType(), "<init>", true);
+                        testCandidateMetadata.getTestSubject()
+                                .getType(), "<init>", true);
 
         list.add(testCandidateMetadata);
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
-        generationConfiguration.getTestCandidateMetadataList().addAll(list);
+        generationConfiguration.getTestCandidateMetadataList()
+                .addAll(list);
         for (TestCandidateMetadata candidateMetadata : list) {
-            generationConfiguration.getCallExpressionList().addAll(candidateMetadata.getCallsList());
+            generationConfiguration.getCallExpressionList()
+                    .addAll(candidateMetadata.getCallsList());
         }
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
         copyTestCaseToClipboard(testCaseUnit);
-        Map<String, JsonElement> valueResourceMap = testCaseUnit.getTestGenerationState().getValueResourceMap();
+        Map<String, JsonElement> valueResourceMap = testCaseUnit.getTestGenerationState()
+                .getValueResourceMap();
         if (valueResourceMap.size() > 0) {
             System.out.println(new Gson().toJson(valueResourceMap));
         }
@@ -484,16 +499,19 @@ public class TestCaseServiceTest {
     public void testScanAndGenerateAll() throws Exception {
 
         Project project = Mockito.mock(Project.class);
-        Mockito.when(project.getBasePath()).thenReturn("./");
+        Mockito.when(project.getBasePath())
+                .thenReturn("./");
 
-        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions");
+        VideobugLocalClient client = new VideobugLocalClient(System.getenv("HOME") + "/.videobug/sessions", project);
 
         DataResponse<ExecutionSession> sessions = client.fetchProjectSessions();
-        if (sessions.getItems().size() == 0) {
+        if (sessions.getItems()
+                .size() == 0) {
             return;
         }
-        ExecutionSession session = sessions.getItems().get(0);
-        client.setSessionInstance(new SessionInstance(session));
+        ExecutionSession session = sessions.getItems()
+                .get(0);
+        client.setSessionInstance(new SessionInstance(session, project));
         SessionInstance sessionInstance = client.getSessionInstance();
         sessionInstance.scanDataAndBuildReplay();
         sessionInstance.close();

@@ -40,7 +40,7 @@ public class DiagnosticService {
     public void generateAndUploadReport() {
 
 
-        VideobugLocalClient localClient = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()));
+        VideobugLocalClient localClient = new VideobugLocalClient(Objects.requireNonNull(project.getBasePath()), project);
         StringBuilder reportBuilder = new StringBuilder();
         reportBuilder.append("hostname: ").append(HOSTNAME).append("\n");
         reportBuilder.append("version: ").append(versionManager.getVersion()).append("\n");

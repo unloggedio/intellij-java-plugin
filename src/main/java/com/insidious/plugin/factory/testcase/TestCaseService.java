@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -132,6 +133,16 @@ public class TestCaseService {
 
     @NotNull
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
+
+//        List<TestCandidateMetadata> candidates = generationConfiguration.getTestCandidateMetadataList();
+//        List<TestCandidateMetadata> loadedCandidateList = new LinkedList<>();
+//        for (TestCandidateMetadata candidate : candidates) {
+//            TestCandidateMetadata loadedCandidate = sessionInstance.getTestCandidateById(candidate.getEntryProbeIndex(),
+//                    true);
+//            loadedCandidateList.add(loadedCandidate);
+//        }
+//        generationConfiguration.setTestCandidateMetadataList(loadedCandidateList);
+
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 

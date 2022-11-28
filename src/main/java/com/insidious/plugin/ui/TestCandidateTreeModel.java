@@ -56,7 +56,7 @@ public class TestCandidateTreeModel implements TreeModel {
     }
 
     private TestCandidateMetadata getTestCandidateById(Long value) {
-        return sessionInstance.getTestCandidateById(value);
+        return sessionInstance.getTestCandidateById(value, true);
     }
 
     @Override

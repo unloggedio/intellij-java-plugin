@@ -1,7 +1,6 @@
 package com.insidious.plugin.client;
 
 import com.insidious.common.FilteredDataEventsRequest;
-import com.insidious.common.cqengine.TypeInfoDocument;
 import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
@@ -10,11 +9,13 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.factory.testcase.TestCaseService;
-import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.pojo.ClassWeaveInfo;
+import com.insidious.plugin.pojo.SearchQuery;
+import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class VideobugLocalClient implements VideobugClientInterface {
 
@@ -31,10 +31,12 @@ public class VideobugLocalClient implements VideobugClientInterface {
     private final String pathToSessions;
     private final VideobugNetworkClient networkClient;
     private final ScheduledExecutorService threadPoolExecutor5Seconds = Executors.newScheduledThreadPool(1);
+    private final Project project;
     private SessionInstance sessionInstance;
     private ProjectItem currentProject;
 
-    public VideobugLocalClient(String pathToSessions) {
+    public VideobugLocalClient(String pathToSessions, Project project) {
+        this.project = project;
         if (!pathToSessions.endsWith("/")) {
             pathToSessions = pathToSessions + "/";
         }
@@ -102,7 +104,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
             return List.of();
         }
         for (File file : sessionDirectories) {
-            if (file.isDirectory() && file.getName().contains("selogger")) {
+            if (file.isDirectory() && file.getName()
+                    .contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
                 executionSession.setSessionId(file.getName());
                 executionSession.setCreatedAt(new Date(file.lastModified()));
@@ -123,7 +126,8 @@ public class VideobugLocalClient implements VideobugClientInterface {
                 if (i == 0) {
                     continue;
                 }
-                deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId()).toFile());
+                deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId())
+                        .toFile());
             }
         }
 
@@ -196,14 +200,17 @@ public class VideobugLocalClient implements VideobugClientInterface {
 
     private void checkProgressIndicator(String text1, String text2) {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .isCanceled()) {
                 throw new ProcessCanceledException();
             }
             if (text2 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text2);
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2(text2);
             }
             if (text1 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(text1);
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2(text1);
             }
         }
     }
@@ -298,11 +305,13 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     private void checkSession(String sessionId) {
-        if (this.sessionInstance == null || !this.sessionInstance.getExecutionSession().getSessionId().equals(sessionId)) {
+        if (this.sessionInstance == null || !this.sessionInstance.getExecutionSession()
+                .getSessionId()
+                .equals(sessionId)) {
             ExecutionSession executionSession = new ExecutionSession();
             executionSession.setSessionId(sessionId);
             try {
-                this.setSessionInstance(new SessionInstance(executionSession));
+                this.setSessionInstance(new SessionInstance(executionSession, project));
             } catch (SQLException | IOException e) {
                 throw new RuntimeException(e);
             }

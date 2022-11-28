@@ -14,11 +14,13 @@ import java.util.regex.Pattern;
 public class ClassTypeUtils {
 
     public static String upperInstanceName(String methodName) {
-        return methodName.substring(0, 1).toUpperCase() + methodName.substring(1);
+        return methodName.substring(0, 1)
+                .toUpperCase() + methodName.substring(1);
     }
 
     public static String lowerInstanceName(String methodName) {
-        return methodName.substring(0, 1).toLowerCase() + methodName.substring(1);
+        return methodName.substring(0, 1)
+                .toLowerCase() + methodName.substring(1);
     }
 
     public static List<String> splitMethodDesc(String desc) {
@@ -35,7 +37,8 @@ public class ClassTypeUtils {
         } else {
             x0 = desc.substring(beginIndex + 1, endIndex);
         }
-        Pattern pattern = Pattern.compile("\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
+        Pattern pattern = Pattern.compile(
+                "\\[*L[^;]+;|\\[[ZBCSIFDJ]|[ZBCSIFDJ]"); //Regex for desc \[*L[^;]+;|\[[ZBCSIFDJ]|[ZBCSIFDJ]
         Matcher matcher = pattern.matcher(x0);
         List<String> listMatches = new LinkedList<>();
         while (matcher.find()) {
@@ -55,7 +58,8 @@ public class ClassTypeUtils {
         if (lastPart.contains("$")) {
             lastPart = lastPart.replace('$', 'S');
         }
-        lastPart = lastPart.substring(0, 1).toLowerCase() + lastPart.substring(1);
+        lastPart = lastPart.substring(0, 1)
+                .toLowerCase() + lastPart.substring(1);
         return lastPart;
     }
 
@@ -163,7 +167,8 @@ public class ClassTypeUtils {
             case 'D':
                 return ClassName.get(double.class);
             case 'L':
-                String returnValueClass = methodReturnValueType.substring(1).split(";")[0];
+                String returnValueClass = methodReturnValueType.substring(1)
+                        .split(";")[0];
                 return ClassName.bestGuess(returnValueClass.replace("/", "."));
             case '[':
                 String returnValueClass1 = methodReturnValueType.substring(1);

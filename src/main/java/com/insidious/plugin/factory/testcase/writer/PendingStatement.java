@@ -16,9 +16,7 @@ import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,25 +55,39 @@ public class PendingStatement {
 
             Parameter objectToDeserialize = variables.get(0);
 
-            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap()
-                    .get("E") != null) {
+            Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
+            if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
+                List<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                Collections.sort(templateKeys);
+                int count = templateKeys.size();
 
-                statementBuilder.append("$L.$L($S, new $T<$T<$T>>(){}.getType())");
+
+                StringBuilder templateString = new StringBuilder();
+                for (int j = 0; j < count; j++) {
+                    if (j > 0) {
+                        templateString.append(", ");
+                    }
+                    templateString.append("$T");
+                }
+                //                        1, 2, 3,      4, 5, 6
+                statementBuilder.append("$L.$L($S, new $T<$T<" + templateString + ">>(){}.getType())");
                 statementParameters.add(methodCallExpression.getSubject()
-                        .getNameForUse(null));
-                statementParameters.add(methodCallExpression.getMethodName());
+                        .getNameForUse(null));  // 1
+                statementParameters.add(methodCallExpression.getMethodName()); // 2
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
-                        .getSerializedValue()));
+                        .getSerializedValue())); // 3
 
-                statementParameters.add(TYPE_TOKEN_CLASS);
-                statementParameters.add(LIST_CLASS);
+                statementParameters.add(TYPE_TOKEN_CLASS); // 4
+                statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
-                Parameter templateParameter = objectToDeserialize.getTemplateMap()
-                        .get("E");
-                String templateParameterType = templateParameter.getType();
-                ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
-                statementParameters.add(parameterClassName);
+                for (String templateKey : templateKeys) {
+                    Parameter templateParameter = templateMap
+                            .get(templateKey);
+                    String templateParameterType = templateParameter.getType();
+                    ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
+                    statementParameters.add(parameterClassName); // 6
+                }
 
 
             } else {
@@ -99,23 +111,38 @@ public class PendingStatement {
 
             Parameter objectToDeserialize = variables.get(0);
 
-            if (objectToDeserialize.isContainer() && objectToDeserialize.getTemplateMap()
-                    .get("E") != null) {
+            Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
+            if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
 
-                statementBuilder.append("$L($S, new $T<$T<$T>>(){}.getType())");
-                statementParameters.add(methodCallExpression.getMethodName());
+                List<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                Collections.sort(templateKeys);
+                int count = templateKeys.size();
+
+
+                StringBuilder templateString = new StringBuilder();
+                for (int j = 0; j < count; j++) {
+                    if (j > 0) {
+                        templateString.append(", ");
+                    }
+                    templateString.append("$T");
+                }
+                //                        1, 2,      3, 4,    5
+                statementBuilder.append("$L($S, new $T<$T<" + templateString + ">>(){}.getType())");
+                statementParameters.add(methodCallExpression.getMethodName()); // 1
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
-                        .getSerializedValue()));
+                        .getSerializedValue())); // 2
 
-                statementParameters.add(TYPE_TOKEN_CLASS);
-                statementParameters.add(LIST_CLASS);
+                statementParameters.add(TYPE_TOKEN_CLASS); // 3
+                statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 4
 
-                Parameter templateParameter = objectToDeserialize.getTemplateMap()
-                        .get("E");
-                String templateParameterType = templateParameter.getType();
-                ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
-                statementParameters.add(parameterClassName);
+                for (String templateKey : templateKeys) {
+                    Parameter templateParameter = templateMap
+                            .get(templateKey);
+                    String templateParameterType = templateParameter.getType();
+                    ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
+                    statementParameters.add(parameterClassName); // 5
+                }
 
 
             } else {
@@ -441,9 +468,10 @@ public class PendingStatement {
         objectRoutine.addStatement(statement, statementParameters);
     }
 
-    private String generateNextName(String name){
+    private String generateNextName(String name) {
         for (int i = 0; i < 100; i++) {
-            if (!objectRoutine.getCreatedVariables().contains(name + i) ) {
+            if (!objectRoutine.getCreatedVariables()
+                    .contains(name + i)) {
                 return name + i;
             }
         }
@@ -486,7 +514,7 @@ public class PendingStatement {
         // and it should be redeclare =>
         // eg "String var" instead of "var"
         // this is handled in the endStatement()
-        if (sameNameParamExisting != null && variableExistingParameter == null){
+        if (sameNameParamExisting != null && variableExistingParameter == null) {
             // generate a next name from existing name
             //eg: name =>  name0 =>  name1
             String newName = generateNextName(sameNameParamExisting.getName());

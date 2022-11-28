@@ -1278,10 +1278,12 @@ public class DaoService {
     }
 
     public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
-    getTestCandidateById(Long testCandidateId) {
+    getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         try {
             TestCandidateMetadata dbCandidate = testCandidateDao.queryForId(testCandidateId);
-            return convertTestCandidateMetadata(dbCandidate, true);
+            com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata =
+                    convertTestCandidateMetadata(dbCandidate, loadCalls);
+            return testCandidateMetadata;
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

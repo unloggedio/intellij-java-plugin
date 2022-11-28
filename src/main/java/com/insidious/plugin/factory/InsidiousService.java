@@ -154,7 +154,7 @@ public class InsidiousService implements Disposable {
             Path.of(pathToSessions)
                     .toFile()
                     .mkdirs();
-            this.client = new VideobugLocalClient(pathToSessions);
+            this.client = new VideobugLocalClient(pathToSessions, project);
             this.testCaseService = new TestCaseService(client.getSessionInstance());
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
@@ -1247,7 +1247,7 @@ public class InsidiousService implements Disposable {
                     return;
                 }
                 try {
-                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0)));
+                    client.setSessionInstance(new SessionInstance(executionSessionList.get(0), project));
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage("Failed to set session - " + e.getMessage(),
                             NotificationType.ERROR);
@@ -1374,13 +1374,12 @@ public class InsidiousService implements Disposable {
                 .equals(sessions.getItems()
                         .get(0)
                         .getSessionId())) {
-            client.setSessionInstance(new SessionInstance(sessions.getItems()
-                    .get(0)));
+            client.setSessionInstance(new SessionInstance(sessions.getItems().get(0), project));
         }
     }
 
     public void initiateUseLocal() {
-        client = new VideobugLocalClient(Constants.VIDEOBUG_HOME_PATH + "/sessions");
+        client = new VideobugLocalClient(Constants.VIDEOBUG_HOME_PATH + "/sessions", project);
         UsageInsightTracker.getInstance()
                 .RecordEvent("InitiateUseLocal", null);
 
