@@ -2793,95 +2793,98 @@ public class SessionInstance {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
+        resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+                resolveTemplatesInCall(methodCallExpression);
+            }
+        }
+        return testCandidateMetadata;
+    }
 
-                Parameter callSubject = methodCallExpression.getSubject();
-                String subjectType = callSubject.getType();
-                if (subjectType.length() == 1) {
-                    continue;
-                }
-//                logger.warn("MCE: " + methodCallExpression.getMethodName());
+    private void resolveTemplatesInCall(MethodCallExpression methodCallExpression) {
+        Parameter callSubject = methodCallExpression.getSubject();
+        String subjectType = callSubject.getType();
+        if (subjectType.length() == 1) {
+            return;
+        }
 
-                PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
-                        .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
-                if (classPsiInstance == null) {
-                    // if a class by this name was not found, then either we have a different project loaded
-                    // or the source code has been modified and the class have been renamed or deleted or moved
-                    // cant do much here
-                    logger.warn("Class not found in source code: " + subjectType);
-                    continue;
-                }
-                JvmMethod[] methodPsiInstanceList =
-                        classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
-                if (methodPsiInstanceList.length == 0) {
-                    logger.warn(
-                            "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
-                    continue;
-                }
+        PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
+                .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        if (classPsiInstance == null) {
+            // if a class by this name was not found, then either we have a different project loaded
+            // or the source code has been modified and the class have been renamed or deleted or moved
+            // cant do much here
+            logger.warn("Class not found in source code: " + subjectType);
+            return;
+        }
+        JvmMethod[] methodPsiInstanceList =
+                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+        if (methodPsiInstanceList.length == 0) {
+            logger.warn(
+                    "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+            return;
+        }
 
-                List<Parameter> methodArguments = methodCallExpression.getArguments();
-                int expectedArgumentCount = methodArguments
-                        .size();
-                for (JvmMethod jvmMethod : methodPsiInstanceList) {
+        List<Parameter> methodArguments = methodCallExpression.getArguments();
+        int expectedArgumentCount = methodArguments
+                .size();
+        for (JvmMethod jvmMethod : methodPsiInstanceList) {
 
-                    int parameterCount = jvmMethod.getParameters().length;
-                    if (expectedArgumentCount != parameterCount) {
-                        // this is not the method which we are looking for
-                        // either this has been updated in the source code and so we wont find a matching method
-                        // or this is an overridden method
-                        continue;
-                    }
+            int parameterCount = jvmMethod.getParameters().length;
+            if (expectedArgumentCount != parameterCount) {
+                // this is not the method which we are looking for
+                // either this has been updated in the source code and so we wont find a matching method
+                // or this is an overridden method
+                continue;
+            }
 
-                    JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
-                    for (int i = 0; i < parameters.length; i++) {
-                        JvmParameter parameterFromSourceCode = parameters[i];
-                        Parameter parameterFromProbe = methodArguments.get(i);
-                        @NotNull JvmType typeFromSourceCode = parameterFromSourceCode.getType();
-                        if (typeFromSourceCode instanceof PsiPrimitiveType) {
-                            PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
-                        } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
-                            PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
+            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+            for (int i = 0; i < parameters.length; i++) {
+                JvmParameter parameterFromSourceCode = parameters[i];
+                Parameter parameterFromProbe = methodArguments.get(i);
+                @NotNull JvmType typeFromSourceCode = parameterFromSourceCode.getType();
+                if (typeFromSourceCode instanceof PsiPrimitiveType) {
+                    PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
+                } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
+                    PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
 
-                            if (classReferenceType.hasParameters()) {
-                                PsiType[] typeTemplateParameters = classReferenceType.getParameters();
-                                parameterFromProbe.setContainer(true);
-                                Map<String, Parameter> templateMap = parameterFromProbe.getTemplateMap();
-                                char templateChar = 'D';
-                                for (PsiType typeTemplateParameter : typeTemplateParameters) {
-                                    templateChar++;
-                                    Parameter value = new Parameter();
-                                    value.setType(typeTemplateParameter.getCanonicalText());
-                                    templateMap.put(String.valueOf(templateChar), value);
-                                }
-                            }
-                        }
-                    }
-
-                    Parameter returnParameter = methodCallExpression.getReturnValue();
-
-                    JvmType returnParameterType = jvmMethod.getReturnType();
-                    if (returnParameterType instanceof PsiPrimitiveType) {
-                        PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
-                    } else if (returnParameterType instanceof PsiClassReferenceType) {
-                        PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
-                        if (classReferenceType.hasParameters()) {
-                            PsiType[] typeTemplateParameters = classReferenceType.getParameters();
-                            returnParameter.setContainer(true);
-                            Map<String, Parameter> templateMap = returnParameter.getTemplateMap();
-                            char templateChar = 'D';
-                            for (PsiType typeTemplateParameter : typeTemplateParameters) {
-                                templateChar++;
-                                Parameter value = new Parameter();
-                                value.setType(typeTemplateParameter.getCanonicalText());
-                                templateMap.put(String.valueOf(templateChar), value);
-                            }
+                    if (classReferenceType.hasParameters()) {
+                        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+                        parameterFromProbe.setContainer(true);
+                        Map<String, Parameter> templateMap = parameterFromProbe.getTemplateMap();
+                        char templateChar = 'D';
+                        for (PsiType typeTemplateParameter : typeTemplateParameters) {
+                            templateChar++;
+                            Parameter value = new Parameter();
+                            value.setType(typeTemplateParameter.getCanonicalText());
+                            templateMap.put(String.valueOf(templateChar), value);
                         }
                     }
                 }
             }
+
+            Parameter returnParameter = methodCallExpression.getReturnValue();
+
+            JvmType returnParameterType = jvmMethod.getReturnType();
+            if (returnParameterType instanceof PsiPrimitiveType) {
+                PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
+            } else if (returnParameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
+                if (classReferenceType.hasParameters()) {
+                    PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+                    returnParameter.setContainer(true);
+                    Map<String, Parameter> templateMap = returnParameter.getTemplateMap();
+                    char templateChar = 'D';
+                    for (PsiType typeTemplateParameter : typeTemplateParameters) {
+                        templateChar++;
+                        Parameter value = new Parameter();
+                        value.setType(typeTemplateParameter.getCanonicalText());
+                        templateMap.put(String.valueOf(templateChar), value);
+                    }
+                }
+            }
         }
-        return testCandidateMetadata;
     }
 
     public void close() throws Exception {
