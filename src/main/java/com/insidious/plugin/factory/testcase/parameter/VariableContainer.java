@@ -107,7 +107,6 @@ public class VariableContainer {
         }
         return null;
     }
-
     public Parameter getParameterByNameAndType(String name, String type) {
         for (Parameter parameter : this.parameterList) {
             if (parameter.hasName(name) && parameter.getType()

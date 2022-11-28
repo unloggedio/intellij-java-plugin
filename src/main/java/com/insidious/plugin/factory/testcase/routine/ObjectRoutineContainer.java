@@ -265,25 +265,25 @@ public class ObjectRoutineContainer {
 
         // For setting the method with @After / @AfterEach Annotation
         VariableContainer finishedVariableContainer = new VariableContainer();
-        ObjectRoutineScript cleanUpMethodScript = new ObjectRoutineScript(finishedVariableContainer, generationConfiguration);
+        ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer, generationConfiguration);
 
-        cleanUpMethodScript.setRoutineName("finished");
-        cleanUpMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
-        cleanUpMethodScript.addException(Exception.class);
-        cleanUpMethodScript.addModifiers(Modifier.PUBLIC);
+        afterEachMethodScript.setRoutineName("finished");
+        afterEachMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
+        afterEachMethodScript.addException(Exception.class);
+        afterEachMethodScript.addModifiers(Modifier.PUBLIC);
 
         // Writing inside @AfterEach "finished" function
         // Close Static Mock functions
         for (Parameter staticMock : staticMocks.values()) {
-            in(cleanUpMethodScript)
+            in(afterEachMethodScript)
                     .writeExpression(
                             MethodCallExpressionFactory.CloseStaticMock(staticMock))
                     .endStatement();
         }
 
         // Only add to test file only if the @AfterEach is not empty statements
-        if(cleanUpMethodScript.getStatements().size()>0) {
-            container.getObjectRoutines().add(cleanUpMethodScript);
+        if(afterEachMethodScript.getStatements().size()>0) {
+            container.getObjectRoutines().add(afterEachMethodScript);
         }
 
         return container;
