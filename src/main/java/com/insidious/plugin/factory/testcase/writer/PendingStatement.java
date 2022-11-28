@@ -441,6 +441,15 @@ public class PendingStatement {
         objectRoutine.addStatement(statement, statementParameters);
     }
 
+    private String generateNextName(String name){
+        for (int i = 0; i < 100; i++) {
+            if (!objectRoutine.getCreatedVariables().contains(name + i) ) {
+                return name + i;
+            }
+        }
+        return "thisNeverHappened";
+    }
+
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
@@ -469,7 +478,7 @@ public class PendingStatement {
                 .getCreatedVariables()
                 .getParameterByNameAndType(lhsExprName, lhsExpression.getType());
 
-        Parameter variableWithSameNameExistingParam = objectRoutine
+        Parameter sameNameParamExisting = objectRoutine
                 .getCreatedVariables()
                 .getParameterByName(lhsExprName);
         // If the type and the parameters does not match
@@ -477,11 +486,12 @@ public class PendingStatement {
         // and it should be redeclare =>
         // eg "String var" instead of "var"
         // this is handled in the endStatement()
-//        if (variableWithSameNameExistingParam != null){
-//            // todo: Use a better algo to get this name
-//            String newName = generateNameForParameter(lhsExpression);
-//            lhsExpression.setName(newName);
-//        }
+        if (sameNameParamExisting != null && variableExistingParameter == null){
+            // generate a next name from existing name
+            //eg: name =>  name0 =>  name1
+            String newName = generateNextName(sameNameParamExisting.getName());
+            lhsExpression.setName(newName);
+        }
 
         if (variableExistingParameter != null) {
 
