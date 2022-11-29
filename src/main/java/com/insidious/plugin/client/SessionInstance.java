@@ -2848,6 +2848,11 @@ public class SessionInstance {
                     PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
                 } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
                     PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
+                    if (!classReferenceType.getReference()
+                            .getQualifiedName()
+                            .equals(parameterFromProbe.getType())) {
+                        break;
+                    }
 
                     if (classReferenceType.hasParameters()) {
                         PsiType[] typeTemplateParameters = classReferenceType.getParameters();
@@ -2880,6 +2885,12 @@ public class SessionInstance {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
             } else if (returnParameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
+                if (!classReferenceType.getReference()
+                        .getQualifiedName()
+                        .equals(returnParameter.getType())) {
+                    continue;
+                }
+
                 if (classReferenceType.hasParameters()) {
                     PsiType[] typeTemplateParameters = classReferenceType.getParameters();
                     returnParameter.setContainer(true);

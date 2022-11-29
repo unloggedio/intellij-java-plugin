@@ -378,15 +378,30 @@ public class PendingStatement {
 
                 objectRoutine.getCreatedVariables()
                         .add(lhsExpression);
-                if (lhsExpression.isContainer() && lhsExpression.getTemplateMap()
-                        .get("E") != null) {
-                    statementBuilder.append("$T<$T>")
+                Map<String, Parameter> templateMap = lhsExpression.getTemplateMap();
+                if (lhsExpression.isContainer() && templateMap.size() > 0) {
+
+                    StringBuilder templateParams = new StringBuilder();
+                    LinkedList<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                    Collections.sort(templateKeys);
+                    for (int i = 0; i < templateKeys.size(); i++) {
+                        if (i > 0) {
+                            templateParams.append(", ");
+                        }
+//                        String templateKey = templateKeys.get(i);
+                        templateParams.append("$T");
+                    }
+
+
+                    statementBuilder.append("$T<" + templateParams.toString() + ">")
                             .append(" ");
                     statementParameters.add(lhsTypeName);
-                    Parameter templateParameter = lhsExpression.getTemplateMap()
-                            .get("E");
-                    String templateType = templateParameter.getType();
-                    statementParameters.add(ClassName.bestGuess(templateType));
+                    for (String templateKey : templateKeys) {
+                        Parameter templateParameter = templateMap.get(templateKey);
+                        String templateType = templateParameter.getType();
+                        statementParameters.add(ClassName.bestGuess(templateType));
+                    }
+
                 } else {
                     // Add expr for Type and its statement Param ;
                     // eg: statementBuilder:[ $T ] , statementParameter: [ String ]  => String var
@@ -555,7 +570,7 @@ public class PendingStatement {
 
 
             Object returnValue = parameter.getValue();
-            if (targetClassname.equals("Z")) {
+            if (targetClassname.equals("Z") || targetClassname.equals("java.lang.Boolean")) {
                 if (returnValue instanceof String) {
                     if (Objects.equals(returnValue, "0")) {
                         returnValue = "false";
