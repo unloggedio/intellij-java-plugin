@@ -1998,7 +1998,7 @@ public class SessionInstance {
                         String fieldType1 = ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", null));
                         if (fieldType1.startsWith("org.slf4j")
-                                || fieldType1.startsWith("cwom.google")
+                                || fieldType1.startsWith("com.google")
                                 || fieldType1.startsWith("org.joda.time")) {
                         } else {
                             ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
@@ -2858,7 +2858,16 @@ public class SessionInstance {
                             templateChar++;
                             Parameter value = new Parameter();
                             value.setType(typeTemplateParameter.getCanonicalText());
-                            templateMap.put(String.valueOf(templateChar), value);
+                            String templateKey = String.valueOf(templateChar);
+                            if (templateMap.containsKey(templateKey)) {
+                                Parameter existingValue = templateMap.get(templateKey);
+                                if (existingValue.getType()
+                                        .length() < 2) {
+                                    templateMap.put(templateKey, value);
+                                }
+                            } else {
+                                templateMap.put(templateKey, value);
+                            }
                         }
                     }
                 }
@@ -2880,7 +2889,16 @@ public class SessionInstance {
                         templateChar++;
                         Parameter value = new Parameter();
                         value.setType(typeTemplateParameter.getCanonicalText());
-                        templateMap.put(String.valueOf(templateChar), value);
+                        String templateKey = String.valueOf(templateChar);
+                        if (templateMap.containsKey(templateKey)) {
+                            Parameter existingValue = templateMap.get(templateKey);
+                            if (existingValue.getType()
+                                    .length() < 2) {
+                                templateMap.put(templateKey, value);
+                            }
+                        } else {
+                            templateMap.put(templateKey, value);
+                        }
                     }
                 }
             }
