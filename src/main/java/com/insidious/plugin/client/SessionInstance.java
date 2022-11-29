@@ -357,7 +357,7 @@ public class SessionInstance {
                 EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing"));
         DataEventWithSessionId prob = new DataEventWithSessionId(1L);
         prob.setNanoTime(1L);
-        prob.setSerializedValue(new byte[1000]);
+        prob.setSerializedValue(new byte[5000]);
         prob.setRecordedAt(1L);
         prob.setDataId(1);
         prob.setThreadId(1L);
