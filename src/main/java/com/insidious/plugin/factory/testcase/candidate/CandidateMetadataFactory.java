@@ -274,8 +274,9 @@ public class CandidateMetadataFactory {
                 .append(methodCallExpression.getMethodName());
 
         for (Parameter parameter : methodCallExpression.getArguments()) {
-            callBuilder.append(new String(parameter.getProb()
-                    .getSerializedValue()));
+//            byte[] serializedValue = parameter.getProb()
+//                    .getSerializedValue();
+            callBuilder.append(parameter.getValue());
         }
         return callBuilder.toString();
     }

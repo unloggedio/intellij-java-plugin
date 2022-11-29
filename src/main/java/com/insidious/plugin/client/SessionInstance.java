@@ -354,7 +354,7 @@ public class SessionInstance {
         Parameter averageValue = new Parameter(1L);
         averageValue.setType("com.package.class.sub.package.ClassName");
         averageValue.setProbeInfo(new DataInfo(1, 2, 3, 4, 5,
-                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing"));
+                EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
         DataEventWithSessionId prob = new DataEventWithSessionId(1L);
         prob.setNanoTime(1L);
         prob.setSerializedValue(new byte[5000]);
@@ -363,11 +363,13 @@ public class SessionInstance {
         prob.setThreadId(1L);
         averageValue.setProb(prob);
 
-        averageValue.setName("name1");
-        averageValue.setName("name2");
+        averageValue.setName("name1-name1-name1");
+        averageValue.setName("name2-name2");
         averageValue.setName("name4");
         HashMap<String, Parameter> transformedTemplateMap = new HashMap<>();
         transformedTemplateMap.put("E", new Parameter(1L));
+        transformedTemplateMap.put("F", new Parameter(1L));
+        transformedTemplateMap.put("G", new Parameter(1L));
         averageValue.setTemplateMap(transformedTemplateMap);
 
         ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
@@ -1853,8 +1855,7 @@ public class SessionInstance {
         Collection<Parameter> allParameters = parameterIndex.values()
                 .stream()
                 .filter(Parameter::isModified)
-                .collect(
-                        Collectors.toList());
+                .collect(Collectors.toList());
         checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
         daoService.createOrUpdateParameter(allParameters);
 
