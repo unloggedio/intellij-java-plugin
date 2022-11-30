@@ -483,15 +483,6 @@ public class PendingStatement {
         objectRoutine.addStatement(statement, statementParameters);
     }
 
-    private String generateNextName(String name) {
-        for (int i = 0; i < 100; i++) {
-            if (!objectRoutine.getCreatedVariables()
-                    .contains(name + i)) {
-                return name + i;
-            }
-        }
-        return "thisNeverHappened";
-    }
 
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
@@ -517,24 +508,11 @@ public class PendingStatement {
         String targetClassname = lhsExpression.getType();
 
         String lhsExprName = lhsExpression.getNameForUse(null);
+        // todo: prakhar : can I remove "variableExistingParameter" cause the check is also happening in
+        //  @Class MethodCallExpression
         Parameter variableExistingParameter = objectRoutine
                 .getCreatedVariables()
-                .getParameterByNameAndType(lhsExprName, lhsExpression.getType());
-
-        Parameter sameNameParamExisting = objectRoutine
-                .getCreatedVariables()
-                .getParameterByName(lhsExprName);
-        // If the type and the parameters does not match
-        // then We should have a new name for the variable,
-        // and it should be redeclare =>
-        // eg "String var" instead of "var"
-        // this is handled in the endStatement()
-        if (sameNameParamExisting != null && variableExistingParameter == null) {
-            // generate a next name from existing name
-            //eg: name =>  name0 =>  name1
-            String newName = generateNextName(sameNameParamExisting.getName());
-            lhsExpression.setName(newName);
-        }
+                .getParameterByNameAndType(lhsExprName, lhsExpression);
 
         if (variableExistingParameter != null) {
 

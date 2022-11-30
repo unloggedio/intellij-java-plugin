@@ -107,11 +107,15 @@ public class VariableContainer {
         }
         return null;
     }
-    public Parameter getParameterByNameAndType(String name, String type) {
+    public Parameter getParameterByNameAndType(String name, Parameter expr) {
         for (Parameter parameter : this.parameterList) {
             if (parameter.hasName(name) && parameter.getType()
-                    .equals(type)) {
-                return parameter;
+                    .equals(expr.getType())) {
+                // check if template map matches
+                // for cases like List<type> or Optional<type>
+                if(parameter.getTemplateMap().toString().equals(expr.getTemplateMap().toString())) {
+                    return parameter;
+                }
             }
         }
         return null;
