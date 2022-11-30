@@ -118,6 +118,44 @@ public class MethodCallExpression implements Expression, Serializable {
         return methodName;
     }
 
+    /*
+        if the name is already used in the script and,
+        if the parameter type and template map are not equal
+        then Generates a New Name,
+     */
+    private Parameter generateParameterName(Parameter parameter,ObjectRoutineScript ors){
+        String lhsExprName = parameter.getNameForUse(null);
+        Parameter variableExistingParameter = ors
+                .getCreatedVariables()
+                .getParameterByNameAndType(lhsExprName, parameter);
+
+        Parameter sameNameParamExisting = ors
+                .getCreatedVariables()
+                .getParameterByName(lhsExprName);
+        // If the type and the template map does not match
+        // then We should have a new name for the variable,
+        // and it should be redeclared =>
+        // eg "String var" instead of "var"
+        if (sameNameParamExisting != null && variableExistingParameter == null) {
+            // generate a next name from existing name
+            //eg: name =>  name0 =>  name1
+            String newName = generateNextName(ors, sameNameParamExisting.getName());
+            parameter.setName(newName);
+        }
+        return parameter;
+    }
+
+    // eg: name => name0 => name1 ... so on
+    private String generateNextName(ObjectRoutineScript ors,String name) {
+        for (int i = 0; i < 100; i++) {
+            if (!ors.getCreatedVariables()
+                    .contains(name + i)) {
+                return name + i;
+            }
+        }
+        return "thisNeverHappened";
+    }
+
     public Parameter getException() {
         if (returnValue != null && returnValue.exception) {
             return returnValue;
@@ -132,6 +170,9 @@ public class MethodCallExpression implements Expression, Serializable {
             TestGenerationState testGenerationState) {
 
         Parameter mainMethodReturnValue = getReturnValue();
+
+        mainMethodReturnValue = generateParameterName(mainMethodReturnValue,objectRoutineScript);
+
         if (mainMethodReturnValue == null) {
             logger.error("writing a call without a return value is skipped - " + this);
             return;
@@ -162,6 +203,9 @@ public class MethodCallExpression implements Expression, Serializable {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }
+
+                parameter = generateParameterName(parameter,objectRoutineScript);
+
                 in(objectRoutineScript).assignVariable(parameter)
                         .fromRecordedValue(testConfiguration, testGenerationState)
                         .endStatement();
@@ -200,7 +244,7 @@ public class MethodCallExpression implements Expression, Serializable {
         byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
 
 
-        Parameter returnSubjectExpectedObject = null;
+        Parameter returnSubjectExpectedObject;
         // not sure why there was a if condition since both the blocks are same ?
 //        if (serializedBytes.length > 0) {
         String expectedParameterName = returnSubjectInstanceName + "Expected";
@@ -398,6 +442,9 @@ public class MethodCallExpression implements Expression, Serializable {
         } else {
             if (returnValue.getCreatorExpression() == null) {
                 if (!returnValue.isPrimitiveType()) {
+                    //check if the same name is used already with different type
+                    returnValue = generateParameterName(returnValue,objectRoutine);
+
                     // if it is not a primitive type, then we assign to a variable first and
                     // then use the variable in actual usage
                     in(objectRoutine)
@@ -410,6 +457,9 @@ public class MethodCallExpression implements Expression, Serializable {
 
                 List<Parameter> arguments = creatorExpression.getArguments();
                 for (Parameter parameter : arguments) {
+                    //check if the same name is used already with different type
+                    parameter = generateParameterName(returnValue,objectRoutine);
+
                     in(objectRoutine)
                             .assignVariable(parameter)
                             .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
