@@ -681,7 +681,7 @@ public class InsidiousService implements Disposable {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
 
 
-            Map<String, JsonElement> valueResourceMap = testCaseScript.getTestGenerationState()
+            Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
             if (valueResourceMap.values()
                     .size() > 0) {

@@ -3,8 +3,11 @@ package com.insidious.plugin.factory.testcase;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,8 +24,9 @@ public class TestGenerationState {
     private static final Pattern ENDS_WITH_DIGITS = Pattern.compile("(.+)([0-9]+)$");
     private VariableContainer variableContainer;
     private Map<String, Boolean> mockedCallsMap = new HashMap<>();
-    private Map<String, JsonElement> valueResourceMap = new HashMap<>();
+    private Map<String, Object> valueResourceMap = new HashMap<>();
     private Map<String, String> valueResourceStringMap = new HashMap<>();
+    private Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
 
     public TestGenerationState() {
     }
@@ -43,7 +47,7 @@ public class TestGenerationState {
         this.mockedCallsMap = mockedCallsMap;
     }
 
-    public Map<String, JsonElement> getValueResourceMap() {
+    public Map<String, Object> getValueResourceMap() {
         return valueResourceMap;
     }
 
@@ -54,7 +58,8 @@ public class TestGenerationState {
             targetObjectName = matcher.group(1);
         }
 
-        String value = new String(lhsExpression.getProb().getSerializedValue());
+        String value = new String(lhsExpression.getProb()
+                .getSerializedValue());
         if (valueResourceStringMap.containsKey(value)) {
             valueResourceStringMap.get(value);
         }
@@ -62,7 +67,14 @@ public class TestGenerationState {
         for (int i = 0; i < 100; i++) {
             referenceNameForValue = targetObjectName + i;
             if (!valueResourceMap.containsKey(referenceNameForValue)) {
-                valueResourceMap.put(referenceNameForValue, gson.fromJson(value, JsonElement.class));
+                Object value1 = null;
+                try {
+                    value1 = gson.fromJson(value, JsonElement.class);
+                } catch (JsonSyntaxException jse) {
+                    value1 = value;
+                    logger.warn("Object was not serialized properly: " + value1 + " -> " + jse.getMessage());
+                }
+                valueResourceMap.put(referenceNameForValue, value1);
                 valueResourceStringMap.put(value, referenceNameForValue);
                 break;
             }

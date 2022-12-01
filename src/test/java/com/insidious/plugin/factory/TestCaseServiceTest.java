@@ -21,6 +21,7 @@ import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.deft.Obj;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -488,7 +489,7 @@ public class TestCaseServiceTest {
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
         copyTestCaseToClipboard(testCaseUnit);
-        Map<String, JsonElement> valueResourceMap = testCaseUnit.getTestGenerationState()
+        Map<String, Object> valueResourceMap = testCaseUnit.getTestGenerationState()
                 .getValueResourceMap();
         if (valueResourceMap.size() > 0) {
             System.out.println(new Gson().toJson(valueResourceMap));

@@ -275,7 +275,7 @@ public class EventLogWindow {
     private void updateTableData(ReplayData replayData1) {
         this.replayData = replayData1;
         Vector<Object> columnVector = new Vector<>(List.of(
-                "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String"
+                "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String", "Serialized"
         ));
         Vector<Vector<Object>> dataVector = new Vector<>(replayData.getDataEvents().size());
 
@@ -299,11 +299,16 @@ public class EventLogWindow {
             if (objectInfo != null) {
                 TypeInfo typeInfo = replayData.getTypeInfoMap().get(objectInfo.getTypeId());
                 rowVector.add(typeInfo.getTypeNameFromClass());
+            } else {
+                rowVector.add(".class.");
             }
             if (replayData.getStringInfoMap().containsKey(dataEvent.getValue())) {
                 StringInfo stringValue = replayData.getStringInfoMap().get(dataEvent.getValue());
                 rowVector.add(stringValue.getContent());
+            } else {
+                rowVector.add(".string.");
             }
+            rowVector.add(new String(dataEvent.getSerializedValue()));
 
 
             dataVector.add(rowVector);

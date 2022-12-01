@@ -294,6 +294,7 @@ public class ObjectRoutineContainer {
         return getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
