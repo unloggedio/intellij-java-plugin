@@ -76,7 +76,7 @@ public class MethodCallExpressionFactory {
         MethodCallExpression callExpression = MethodCallExpression("when", callSubject,
                 VariableContainer.from(List.of(whenExpression)), null
         );
-        callExpression.setStaticCall(true);
+//        callExpression.setStaticCall(true);
         return callExpression;
 
     }

@@ -438,7 +438,8 @@ public class PendingStatement {
                 MethodCallExpression methodCallExpression = (MethodCallExpression) expression;
 
                 if (!methodCallExpression.isStaticCall()
-                        && methodCallExpression.getSubject() != null) {
+                        && methodCallExpression.getSubject() != null && methodCallExpression.getSubject()
+                        .getValue() != 0) {
                     Parameter existingVariable = objectRoutine.getCreatedVariables()
                             .getParametersById(methodCallExpression.getSubject()
                                     .getValue());
