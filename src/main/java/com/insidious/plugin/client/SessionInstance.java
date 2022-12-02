@@ -2795,12 +2795,72 @@ public class SessionInstance {
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
+
+        // check if the param are ENUM
+        resolveEnumType((MethodCallExpression) testCandidateMetadata.getMainMethod());
+
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                 resolveTemplatesInCall(methodCallExpression);
             }
         }
         return testCandidateMetadata;
+    }
+
+    private void resolveEnumType(MethodCallExpression methodCallExpression){
+        Parameter callSubject = methodCallExpression.getSubject();
+        String subjectType = callSubject.getType();
+        //
+        if (subjectType.length() == 1) {
+            return;
+        }
+
+        PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
+                .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        if (classPsiInstance == null) {
+            // if a class by this name was not found, then either we have a different project loaded
+            // or the source code has been modified and the class have been renamed or deleted or moved
+            // cant do much here
+            logger.warn("Class not found in source code: " + subjectType);
+            return;
+        }
+        JvmMethod[] methodPsiInstanceList =
+                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+        if (methodPsiInstanceList.length == 0) {
+            logger.warn(
+                    "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+            return;
+        }
+
+        List<Parameter> methodArguments = methodCallExpression.getArguments();
+        int expectedArgumentCount = methodArguments
+                .size();
+        for (JvmMethod jvmMethod : methodPsiInstanceList) {
+
+            int parameterCount = jvmMethod.getParameters().length;
+            if (expectedArgumentCount != parameterCount) {
+                // this is not the method which we are looking for
+                // either this has been updated in the source code and so we wont find a matching method
+                // or this is an overridden method
+                continue;
+            }
+
+            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+            // to resolve generics
+            for (int i = 0; i < parameters.length; i++) {
+                JvmParameter parameterFromSourceCode = parameters[i];
+                Parameter parameterFromProbe = methodArguments.get(i);
+
+                //param is enum then we set it to enum type
+                // todo : Optimise this enum type search in classInfoIndex
+                for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()){
+                    String currParamType = parameterFromProbe.getType().replace('.','/');
+                    if (entry.getValue().getClassName().contains(currParamType)) {
+                        parameterFromProbe.setIsEnum(true);
+                    }
+                }
+            }
+        }
     }
 
     private void resolveTemplatesInCall(MethodCallExpression methodCallExpression) {
@@ -2841,6 +2901,7 @@ public class SessionInstance {
             }
 
             JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+            // to resolve generics
             for (int i = 0; i < parameters.length; i++) {
                 JvmParameter parameterFromSourceCode = parameters[i];
                 Parameter parameterFromProbe = methodArguments.get(i);

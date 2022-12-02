@@ -275,7 +275,6 @@ public class MethodCallExpression implements Expression, Serializable {
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
             jsonParameter.setProb(prob);
             MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
-
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedObject)
                     .writeExpression(jsonFromFileCall)
@@ -465,7 +464,6 @@ public class MethodCallExpression implements Expression, Serializable {
                             .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
                             .endStatement();
                 }
-
 
                 in(objectRoutine)
                         .assignVariable(creatorExpression.getReturnValue())

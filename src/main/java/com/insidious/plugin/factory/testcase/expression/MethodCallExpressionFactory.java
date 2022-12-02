@@ -3,11 +3,13 @@ package com.insidious.plugin.factory.testcase.expression;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.squareup.javapoet.ClassName;
+import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
 import java.util.List;
@@ -188,6 +190,17 @@ public class MethodCallExpressionFactory {
         valueOf.setStaticCall(true);
         valueOf.setMethodAccess(Opcodes.ACC_PUBLIC);
         return valueOf;
+    }
+
+    public static Expression createEnumExpression(Parameter enumParam) {
+
+         @Nullable String enumTypeName = ClassTypeUtils.createTypeFromName(
+                ClassTypeUtils.getJavaClassName(enumParam.getType())).toString();
+
+         PlainValueExpression enumExp = new PlainValueExpression(enumTypeName.substring(enumTypeName.lastIndexOf('.') + 1) +
+                "." + enumParam.getName());
+
+        return enumExp;
     }
 
     public static MethodCallExpression CloseStaticMock(Parameter object){
