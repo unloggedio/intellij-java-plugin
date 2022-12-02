@@ -6,6 +6,7 @@ import com.insidious.plugin.client.TestCandidateMethodAggregate;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
@@ -18,6 +19,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -170,8 +172,19 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                 } catch (Exception ex) {
                                                     ex.printStackTrace();
                                                     InsidiousNotification.notifyMessage(
-                                                            "Failed to set sessions - " + ex.getMessage(),
+                                                            "Failed to set sessions - " + ex.getMessage()
+                                                                    +"\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                                                             NotificationType.ERROR);
+                                                    try {
+                                                        JSONObject eventProperties = new JSONObject();
+                                                        eventProperties.put("exception", ex.getMessage());
+                                                        UsageInsightTracker.getInstance()
+                                                                .RecordEvent("ScanFailed", eventProperties);
+                                                    }
+                                                    catch(Exception e)
+                                                    {
+                                                        logger.error("Failed to send ScanFailed event to amplitude");
+                                                    }
                                                 }
                                             }
                                         });

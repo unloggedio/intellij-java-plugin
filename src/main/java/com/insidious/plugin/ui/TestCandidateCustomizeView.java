@@ -204,7 +204,8 @@ public class TestCandidateCustomizeView {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {
             e.printStackTrace();
-            InsidiousNotification.notifyMessage("Failed to generate test case - " + e.getMessage(),
+            InsidiousNotification.notifyMessage("Testcase Generation failed."
+                    +"\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                     NotificationType.ERROR);
 
             JSONObject eventProperties = new JSONObject();
