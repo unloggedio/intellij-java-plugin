@@ -249,7 +249,8 @@ public class CandidateMetadataFactory {
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
-            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue()
+            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue()!=null
+                    && mainMethod.getReturnValue()
                     .getType() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }

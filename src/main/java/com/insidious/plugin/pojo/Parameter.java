@@ -43,6 +43,16 @@ public class Parameter implements Serializable {
     private String nameUsed;
     private boolean modified;
 
+    private boolean isEnum = false;
+
+    public void setIsEnum(boolean isEnum){
+        this.isEnum = isEnum;
+    }
+
+    public boolean getIsEnum(){
+        return this.isEnum;
+    }
+
     public Parameter(Long value) {
         this.value = value;
     }

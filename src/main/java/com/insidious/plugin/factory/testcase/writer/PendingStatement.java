@@ -404,7 +404,7 @@ public class PendingStatement {
 
                 } else {
                     // Add expr for Type and its statement Param ;
-                    // eg: statementBuilder:[ $T ] , statementParameter: [ String ]  => String var
+                    // eg: statementBuilder:[ $T ] var , statementParameter: [ String ]  => String var
                     statementBuilder.append("$T")
                             .append(" ");
                     statementParameters.add(lhsTypeName);
@@ -506,6 +506,7 @@ public class PendingStatement {
         if (lhsExpression == null) {
             return this;
         }
+
         String targetClassname = lhsExpression.getType();
 
         String lhsExprName = lhsExpression.getNameForUse(null);
@@ -586,24 +587,26 @@ public class PendingStatement {
                 this.expressionList.add(MethodCallExpressionFactory.FromJson(lhsExpression));
             } else if (generationConfiguration.getResourceEmbedMode()
                     .equals(ResourceEmbedMode.IN_FILE)) {
-
-                String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
-//                lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                Parameter buildWithJson = Parameter.cloneParameter(lhsExpression);
-                DataEventWithSessionId prob = new DataEventWithSessionId();
-                prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-                buildWithJson.setProb(prob);
-                buildWithJson.clearNames();
-                buildWithJson.setName(nameForObject);
-
-                this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
+                // for enum type equate to EnumClass.ENUM and not ValueOf("ENUM0",Class.class)
+                if(lhsExpression.getIsEnum()){
+                    this.expressionList.add(MethodCallExpressionFactory.createEnumExpression(lhsExpression));
+                } else {
+                    String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
+//                    lhsExpression.getProb().setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+                    Parameter buildWithJson = Parameter.cloneParameter(lhsExpression);
+                    DataEventWithSessionId prob = new DataEventWithSessionId();
+                    prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+                    buildWithJson.setProb(prob);
+                    buildWithJson.clearNames();
+                    buildWithJson.setName(nameForObject);
+                    this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
+                }
 
             } else {
                 throw new RuntimeException("this never happened");
             }
 
         }
-
 
         return this;
     }
