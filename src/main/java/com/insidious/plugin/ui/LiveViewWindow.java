@@ -100,6 +100,12 @@ public class LiveViewWindow implements TreeSelectionListener,
                 InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
                         NotificationType.ERROR);
             }
+            finally
+            {
+                candidateListPanel.removeAll();
+                candidateListPanel.revalidate();
+                candidateListPanel.repaint();
+            }
         };
     }
 
