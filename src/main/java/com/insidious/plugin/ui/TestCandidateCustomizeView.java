@@ -131,13 +131,7 @@ public class TestCandidateCustomizeView {
     }
 
     private void refreshTree() {
-        List<TreePath> paths = Arrays.asList(this.testCandidateTree.getSelectionPaths());
-        if (paths.contains(this.testCandidateTree.getPathForRow(0))) {
-            this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
-        } else {
-            this.testCandidateTree.addSelectionPath(this.testCandidateTree.getPathForRow(0));
-            this.testCandidateTree.removeSelectionPath(this.testCandidateTree.getPathForRow(0));
-        }
+        this.testCandidateTree.repaint();
     }
 
     private void setDefaultSelection() {
