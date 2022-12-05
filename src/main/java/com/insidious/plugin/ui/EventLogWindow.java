@@ -31,7 +31,7 @@ import java.util.Vector;
 
 public class EventLogWindow {
     private final InsidiousService service;
-    private final int paginationSize = 100;
+    private final int paginationSize = 500;
     private ReplayData replayData;
     private DefaultTableModel tableModel = null;
     private JPanel filterPanel;
@@ -89,7 +89,7 @@ public class EventLogWindow {
                 String[] queryStringParts = queryString.trim().split(",");
                 FilteredDataEventsRequest filterRequest = new FilteredDataEventsRequest();
 
-                filterRequest.setPageInfo(new PageInfo(0, 100, PageInfo.Order.ASC));
+                filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
 
 
                 for (String queryStringPart : queryStringParts) {
@@ -112,11 +112,10 @@ public class EventLogWindow {
 
                             switch (operator) {
                                 case "<":
-                                    filterRequest.setPageInfo(new PageInfo(0, 100, PageInfo.Order.DESC));
+                                    filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.DESC));
                                     break;
                                 case ">":
-                                    filterRequest.setPageInfo(new PageInfo(0, 100,
-                                            PageInfo.Order.ASC));
+                                    filterRequest.setPageInfo(new PageInfo(0, paginationSize, PageInfo.Order.ASC));
                                     break;
                             }
 
@@ -275,12 +274,13 @@ public class EventLogWindow {
     private void updateTableData(ReplayData replayData1) {
         this.replayData = replayData1;
         Vector<Object> columnVector = new Vector<>(List.of(
-                "Event", "#Time", "#Line", "Value", "Attributes", "Value type", "String", "Serialized"
+                "Event", "Nano", "#EventId", "#Line", "Value", "Attributes", "Value type", "String", "Serialized"
         ));
         Vector<Vector<Object>> dataVector = new Vector<>(replayData.getDataEvents().size());
 
 
         int rowIndex = 0;
+        long previousRecordedAt = replayData.getDataEvents().get(0).getRecordedAt();
         for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
             Vector<Object> rowVector = new Vector<>(6);
 
@@ -291,6 +291,8 @@ public class EventLogWindow {
 
 //            rowVector.add(dataEvent.getRecordedAt());
             rowVector.add(eventType);
+            rowVector.add(dataEvent.getRecordedAt() + " (" + (dataEvent.getRecordedAt() - previousRecordedAt) + ")");
+            previousRecordedAt = dataEvent.getRecordedAt();
             rowVector.add(dataEvent.getNanoTime());
             rowVector.add(probeInfo.getLine());
             rowVector.add(Long.valueOf(dataEvent.getValue()).toString());
@@ -300,13 +302,13 @@ public class EventLogWindow {
                 TypeInfo typeInfo = replayData.getTypeInfoMap().get(objectInfo.getTypeId());
                 rowVector.add(typeInfo.getTypeNameFromClass());
             } else {
-                rowVector.add(".class.");
+                rowVector.add("");
             }
             if (replayData.getStringInfoMap().containsKey(dataEvent.getValue())) {
                 StringInfo stringValue = replayData.getStringInfoMap().get(dataEvent.getValue());
                 rowVector.add(stringValue.getContent());
             } else {
-                rowVector.add(".string.");
+                rowVector.add("");
             }
             rowVector.add(new String(dataEvent.getSerializedValue()));
 
