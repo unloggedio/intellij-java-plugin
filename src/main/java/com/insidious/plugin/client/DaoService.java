@@ -185,6 +185,9 @@ public class DaoService {
         List<Long> fieldParameters = testCandidateMetadata.getFields();
         logger.warn("\tloading " + fieldParameters.size() + " fields");
         for (Long fieldParameterValue : fieldParameters) {
+            if (fieldParameterValue == 0L) {
+                continue;
+            }
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
             converted.getFields()
                     .add(fieldParameter);
