@@ -32,7 +32,7 @@ public class Parameter implements Serializable {
     String type;
     boolean exception;
     DataEventWithSessionId prob;
-    private List<String> names = new LinkedList<>();
+    private List<String> names = new ArrayList<>();
     private String stringValue = null;
     private int index;
     private DataInfo dataInfo;
@@ -44,14 +44,6 @@ public class Parameter implements Serializable {
     private boolean modified;
 
     private boolean isEnum = false;
-
-    public void setIsEnum(boolean isEnum){
-        this.isEnum = isEnum;
-    }
-
-    public boolean getIsEnum(){
-        return this.isEnum;
-    }
 
     public Parameter(Long value) {
         this.value = value;
@@ -70,6 +62,14 @@ public class Parameter implements Serializable {
         buildWithJson.setProbeInfo(parameter.getProbeInfo());
         buildWithJson.setProb(parameter.getProb());
         return buildWithJson;
+    }
+
+    public boolean getIsEnum() {
+        return this.isEnum;
+    }
+
+    public void setIsEnum(boolean isEnum) {
+        this.isEnum = isEnum;
     }
 
     public boolean getException() {
@@ -140,6 +140,7 @@ public class Parameter implements Serializable {
         if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
+            this.nameUsed = name;
         }
     }
 
@@ -280,28 +281,32 @@ public class Parameter implements Serializable {
         return names;
     }
 
-    /*
+    /**
      * WIP:
      * Best Possible Name to Use for a variable (field) in TestCase Script
+     *
      * @returns String
      */
     public String getNameForUse(String methodName) {
-        if (nameUsed != null) {
-            return nameUsed;
-        }
-        if (names.size() < 1) {
+
+        if (nameUsed == null && names.size() == 0) {
             return null;
+        } else if (names.size() == 1) {
+            nameUsed = names.get(0);
+        } else {
+            nameUsed = getNameClosestToMethodName(methodName);
         }
-        if (names.size() < 2) {
-            return names.get(0);
-        }
+
+        return nameUsed;
+    }
+
+    private String getNameClosestToMethodName(String methodName) {
         int matchedDistance = 99999;
 
         String matchedString = names.get(0);
         if (methodName == null) {
             methodName = matchedString;
         }
-
         // select the string at least different from names[0]
         // and put it to the top
         for (String name : names) {
@@ -315,8 +320,6 @@ public class Parameter implements Serializable {
             names.remove(matchedString);
             names.add(0, matchedString);
         }
-
-        nameUsed = matchedString;
 
         return matchedString;
     }
@@ -346,11 +349,11 @@ public class Parameter implements Serializable {
                 );
     }
 
-    public void setModified(boolean modified) {
-        this.modified = modified;
-    }
-
     public boolean isModified() {
         return modified;
+    }
+
+    public void setModified(boolean modified) {
+        this.modified = modified;
     }
 }
