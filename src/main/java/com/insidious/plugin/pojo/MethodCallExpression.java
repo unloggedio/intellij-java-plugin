@@ -19,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,7 +36,7 @@ public class MethodCallExpression implements Expression, Serializable {
     private DataEventWithSessionId entryProbe;
     private int methodAccess;
     private long id;
-    private List<DataEventWithSessionId> argumentProbes = new LinkedList<>();
+    private List<DataEventWithSessionId> argumentProbes = new ArrayList<>();
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
 
