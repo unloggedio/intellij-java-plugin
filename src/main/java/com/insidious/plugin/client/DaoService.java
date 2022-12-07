@@ -636,7 +636,9 @@ public class DaoService {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
                 }
                 argument.setProbeInfo(eventProbe);
-                argument.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+                if(argument.getType()==null || argument.getType().equals("")) {
+                    argument.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+                }
                 argument.setProb(dataEvent);
                 convertedCallExpression.addArgument(argument);
                 convertedCallExpression.addArgumentProbe(dataEvent);
