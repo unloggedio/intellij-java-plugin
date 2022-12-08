@@ -263,27 +263,29 @@ public class ObjectRoutineContainer {
                     .endStatement();
         }
 
-        // For setting the method with @After / @AfterEach Annotation
-        VariableContainer finishedVariableContainer = new VariableContainer();
-        ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer, generationConfiguration);
+        if (staticMocks.size() > 0) {
+            // For setting the method with @After / @AfterEach Annotation
+            VariableContainer finishedVariableContainer = new VariableContainer();
+            ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer, generationConfiguration);
 
-        afterEachMethodScript.setRoutineName("finished");
-        afterEachMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
-        afterEachMethodScript.addException(Exception.class);
-        afterEachMethodScript.addModifiers(Modifier.PUBLIC);
+            afterEachMethodScript.setRoutineName("finished");
+            afterEachMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
+            afterEachMethodScript.addException(Exception.class);
+            afterEachMethodScript.addModifiers(Modifier.PUBLIC);
 
-        // Writing inside @AfterEach "finished" function
-        // Close Static Mock functions
-        for (Parameter staticMock : staticMocks.values()) {
-            in(afterEachMethodScript)
-                    .writeExpression(
-                            MethodCallExpressionFactory.CloseStaticMock(staticMock))
-                    .endStatement();
-        }
+            // Writing inside @AfterEach "finished" function
+            // Close Static Mock functions
+            for (Parameter staticMock : staticMocks.values()) {
+                in(afterEachMethodScript)
+                        .writeExpression(
+                                MethodCallExpressionFactory.CloseStaticMock(staticMock))
+                        .endStatement();
+            }
 
-        // Only add to test file only if the @AfterEach is not empty statements
-        if(afterEachMethodScript.getStatements().size()>0) {
-            container.getObjectRoutines().add(afterEachMethodScript);
+            // Only add to test file only if the @AfterEach is not empty statements
+            if (afterEachMethodScript.getStatements().size() > 0) {
+                container.getObjectRoutines().add(afterEachMethodScript);
+            }
         }
 
         return container;

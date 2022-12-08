@@ -40,6 +40,10 @@ public class TestCaseWriter {
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
+                    if (parameter.getType().equals("java.lang.Long")) {
+                        parameterStringBuilder.append("L");
+                    }
+
                 } else {
                     parameterStringBuilder.append(parameter.getValue());
                 }
