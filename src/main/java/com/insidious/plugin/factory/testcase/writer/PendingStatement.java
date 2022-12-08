@@ -357,7 +357,7 @@ public class PendingStatement {
     public void endStatement() {
 
         StringBuilder statementBuilder = new StringBuilder();
-        List<Object> statementParameters = new LinkedList<>();
+        List<Object> statementParameters = new ArrayList<>();
 
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
                 lhsExpression.getProbeInfo()
@@ -468,10 +468,31 @@ public class PendingStatement {
                     .append(">\n")
                     .append("    ")
                     .append(statementBuilder)
-                    .append(";\n")
-                    .append("} catch ($T e) {\n")
-                    .append(" \n")
+                    .append(";\n");
+
+            // todo: improve this mce code
+
+            // preparing to write mce for Assertions.assertFalse(true)
+            Parameter param = new Parameter();
+            param.setType("org.junit.jupiter.api.Assertions");
+
+            List<Parameter> paramL = new ArrayList<>(0);
+            Parameter p = new Parameter();
+            p.setType("java.lang.Boolean");
+            p.setValue(1L);
+            paramL.add(p);
+
+            MethodCallExpression mce = new MethodCallExpression("assertFalse", param, paramL, null, 0);
+            mce.setStaticCall(true);
+
+            // this line writes the Assertions.assertFalse(true)
+            writeCallStatement(mce, tryCatchEnclosure, statementParameters, 2);
+
+            // checks if Exception Type Matches
+            tryCatchEnclosure.append(";\n} catch (Exception e) {\n")
+                    .append("Assertions.assertEquals($T.class, e.getClass());\n")
                     .append("}\n");
+
             statementParameters.add(ClassName.bestGuess(lhsExpression.getType()));
             statementBuilder = tryCatchEnclosure;
         }
@@ -588,7 +609,7 @@ public class PendingStatement {
             } else if (generationConfiguration.getResourceEmbedMode()
                     .equals(ResourceEmbedMode.IN_FILE)) {
                 // for enum type equate to EnumClass.ENUM and not ValueOf("ENUM0",Class.class)
-                if(lhsExpression.getIsEnum()){
+                if (lhsExpression.getIsEnum()) {
                     this.expressionList.add(MethodCallExpressionFactory.createEnumExpression(lhsExpression));
                 } else {
                     String nameForObject = testGenerationState.addObjectToResource(lhsExpression);
