@@ -58,16 +58,16 @@ public class MethodCallExpression implements Expression, Serializable {
         this.callStack = size;
     }
 
+    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
+        return new PendingStatement(objectRoutine);
+    }
+
     public boolean isUIselected() {
         return isUIselected;
     }
 
     public void setUIselected(boolean UIselected) {
         isUIselected = UIselected;
-    }
-
-    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
-        return new PendingStatement(objectRoutine);
     }
 
     public boolean getUsesFields() {
@@ -106,6 +106,10 @@ public class MethodCallExpression implements Expression, Serializable {
         return arguments;
     }
 
+    public void setArguments(List<Parameter> arguments) {
+        this.arguments = arguments;
+    }
+
     public Parameter getReturnValue() {
         return returnValue;
     }
@@ -123,7 +127,7 @@ public class MethodCallExpression implements Expression, Serializable {
         if the parameter type and template map are not equal
         then Generates a New Name,
      */
-    private Parameter generateParameterName(Parameter parameter,ObjectRoutineScript ors){
+    private Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
         String lhsExprName = parameter.getNameForUse(null);
         Parameter variableExistingParameter = ors
                 .getCreatedVariables()
@@ -146,7 +150,7 @@ public class MethodCallExpression implements Expression, Serializable {
     }
 
     // eg: name => name0 => name1 ... so on
-    private String generateNextName(ObjectRoutineScript ors,String name) {
+    private String generateNextName(ObjectRoutineScript ors, String name) {
         for (int i = 0; i < 100; i++) {
             if (!ors.getCreatedVariables()
                     .contains(name + i)) {
@@ -171,7 +175,7 @@ public class MethodCallExpression implements Expression, Serializable {
 
         Parameter mainMethodReturnValue = getReturnValue();
 
-        mainMethodReturnValue = generateParameterName(mainMethodReturnValue,objectRoutineScript);
+        mainMethodReturnValue = generateParameterName(mainMethodReturnValue, objectRoutineScript);
 
         if (mainMethodReturnValue == null) {
             logger.error("writing a call without a return value is skipped - " + this);
@@ -193,7 +197,7 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
                 "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
-                Long.valueOf((getReturnValue().getProb().getRecordedAt() - getEntryProbe().getRecordedAt() ) / (1000000)).intValue() +
+                Long.valueOf((getReturnValue().getProb().getRecordedAt() - getEntryProbe().getRecordedAt()) / (1000000)).intValue() +
                 "ms");
 
         List<Parameter> arguments = getArguments();
@@ -204,7 +208,7 @@ public class MethodCallExpression implements Expression, Serializable {
                     continue;
                 }
 
-                parameter = generateParameterName(parameter,objectRoutineScript);
+                parameter = generateParameterName(parameter, objectRoutineScript);
 
                 in(objectRoutineScript).assignVariable(parameter)
                         .fromRecordedValue(testConfiguration, testGenerationState)
@@ -311,7 +315,7 @@ public class MethodCallExpression implements Expression, Serializable {
 
         String subjectName = "";
         if (subject != null) {
-            subjectName = getSubject().getNameForUse(null);
+            subjectName = getSubject().getNameForUse(this.methodName);
         }
         if (returnValue != null) {
 
@@ -442,7 +446,7 @@ public class MethodCallExpression implements Expression, Serializable {
             if (returnValue.getCreatorExpression() == null) {
                 if (!returnValue.isPrimitiveType()) {
                     //check if the same name is used already with different type
-                    returnValue = generateParameterName(returnValue,objectRoutine);
+                    returnValue = generateParameterName(returnValue, objectRoutine);
 
                     // if it is not a primitive type, then we assign to a variable first and
                     // then use the variable in actual usage
@@ -457,7 +461,7 @@ public class MethodCallExpression implements Expression, Serializable {
                 List<Parameter> arguments = creatorExpression.getArguments();
                 for (Parameter parameter : arguments) {
                     //check if the same name is used already with different type
-                    parameter = generateParameterName(returnValue,objectRoutine);
+                    parameter = generateParameterName(returnValue, objectRoutine);
 
                     in(objectRoutine)
                             .assignVariable(parameter)
@@ -529,10 +533,6 @@ public class MethodCallExpression implements Expression, Serializable {
 
     public void setArgumentProbes(List<DataEventWithSessionId> argumentProbes) {
         this.argumentProbes = argumentProbes;
-    }
-
-    public void setArguments(List<Parameter> arguments) {
-        this.arguments = arguments;
     }
 
     public void addArgument(Parameter existingParameter) {

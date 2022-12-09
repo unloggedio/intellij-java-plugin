@@ -2807,7 +2807,7 @@ public class SessionInstance {
         return testCandidateMetadata;
     }
 
-    private void resolveEnumType(MethodCallExpression methodCallExpression){
+    private void resolveEnumType(MethodCallExpression methodCallExpression) {
         Parameter callSubject = methodCallExpression.getSubject();
         String subjectType = callSubject.getType();
         //
@@ -2853,10 +2853,14 @@ public class SessionInstance {
 
                 //param is enum then we set it to enum type
                 // todo : Optimise this enum type search in classInfoIndex
-                for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()){
-                    String currParamType = parameterFromProbe.getType().replace('.','/');
-                    if (entry.getValue().getClassName().contains(currParamType)) {
-                        parameterFromProbe.setIsEnum(true);
+                for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
+                    String currParamType = parameterFromProbe.getType().replace('.', '/');
+                    ClassInfo currClassInfo = entry.getValue();
+                    if (currClassInfo.getClassName().equals(currParamType)) {
+                        // curr class info is present and is enum set param as enum
+                        if (currClassInfo.isEnum()) {
+                            parameterFromProbe.setIsEnum(true);
+                        }
                     }
                 }
             }
