@@ -287,15 +287,54 @@ public class Parameter implements Serializable {
      *
      * @returns String
      */
+//    public String getNameForUse(String methodName) {
+//        if (nameUsed != null) {
+//            return nameUsed;
+//        }
+//        if (names.size() < 1) {
+//            return null;
+//        }
+//        if (names.size() < 2) {
+//            return names.get(0);
+//        }
+//
+//        int matchedDistance = 99999;
+//
+//        String matchedString = names.get(0);
+//        if (methodName == null) {
+//            methodName = matchedString;
+//        }
+//        // select the string at least different from names[0]
+//        // and put it to the top
+//        for (String name : names) {
+//            int distance = StringUtils.getLevenshteinDistance(name, methodName);
+//            if (distance < matchedDistance) {
+//                matchedString = name;
+//                matchedDistance = distance;
+//            }
+//        }
+//        if (!matchedString.equals(names.get(0))) {
+//            names.remove(matchedString);
+//            names.add(0, matchedString);
+//        }
+//
+//        nameUsed = matchedString;
+//
+//        return matchedString;
+//    }
     public String getNameForUse(String methodName) {
-
         if (nameUsed == null && names.size() == 0) {
             return null;
-        } else if (names.size() == 1) {
-            nameUsed = names.get(0);
-        } else {
-            nameUsed = getNameClosestToMethodName(methodName);
         }
+
+        if (names.size() == 1 || methodName == null || methodName.equals("")) {
+            nameUsed = names.get(0);
+            return nameUsed;
+        }
+
+        nameUsed = getNameClosestToMethodName(methodName);
+        names.remove(nameUsed);
+        names.add(0, nameUsed);
 
         return nameUsed;
     }
