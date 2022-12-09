@@ -128,7 +128,7 @@ public class MethodCallExpression implements Expression, Serializable {
         then Generates a New Name,
      */
     private Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
-        String lhsExprName = parameter.getNameForUse(null);
+        String lhsExprName = parameter.getNameForUse(this.methodName);
         Parameter variableExistingParameter = ors
                 .getCreatedVariables()
                 .getParameterByNameAndType(lhsExprName, parameter);
