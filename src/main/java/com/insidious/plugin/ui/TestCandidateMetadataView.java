@@ -65,7 +65,7 @@ public class TestCandidateMetadataView {
 
         testCandidateName.setText(
                 this.testCandidateMetadata.getCallsList().size() + " methods called, " + timeInMs + " ms");
-        generateTestCaseButton.addActionListener(e -> generateTestCase());
+        generateTestCaseButton.addActionListener(e -> loadInputOutputInformation());
         contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
                 generateTestCase();
@@ -76,6 +76,11 @@ public class TestCandidateMetadataView {
 
     private void generateTestCase() {
         candidateSelectionListener.onSelect(testCandidateMetadata);
+    }
+
+    private void loadInputOutputInformation()
+    {
+        candidateSelectionListener.loadInputOutputInformation(testCandidateMetadata);
     }
 
     public Component getContentPanel() {
