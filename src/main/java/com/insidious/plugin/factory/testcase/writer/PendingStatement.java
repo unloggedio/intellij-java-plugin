@@ -510,7 +510,13 @@ public class PendingStatement {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
             variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
+
+            if (!objectRoutine.getCreatedVariables()
+                    .contains(variableName)) {
+                return variableName;
+            }
         }
+
         for (int i = 0; i < 100; i++) {
             if (!objectRoutine.getCreatedVariables()
                     .contains(variableName + i)) {
