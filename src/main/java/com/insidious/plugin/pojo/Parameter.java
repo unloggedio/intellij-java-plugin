@@ -342,7 +342,11 @@ public class Parameter implements Serializable {
     private String getNameClosestToMethodName(String methodName) {
         int matchedDistance = 99999;
 
-        String matchedString = names.get(0);
+        String topName = "";
+        if (names.size() > 0)
+            topName = names.get(0);
+
+        String matchedString = topName;
         if (methodName == null) {
             methodName = matchedString;
         }
@@ -355,7 +359,7 @@ public class Parameter implements Serializable {
                 matchedDistance = distance;
             }
         }
-        if (!matchedString.equals(names.get(0))) {
+        if (!matchedString.equals(topName)) {
             names.remove(matchedString);
             names.add(0, matchedString);
         }
