@@ -16,7 +16,7 @@ import java.util.List;
 
 public class MethodCallExpressionFactory {
 
-//    public static final Parameter MockitoClass;
+    //    public static final Parameter MockitoClass;
     //    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
 
@@ -194,16 +194,26 @@ public class MethodCallExpressionFactory {
 
     public static Expression createEnumExpression(Parameter enumParam) {
 
-         @Nullable String enumTypeName = ClassTypeUtils.createTypeFromName(
+        @Nullable String enumTypeName = ClassTypeUtils.createTypeFromName(
                 ClassTypeUtils.getJavaClassName(enumParam.getType())).toString();
 
-         PlainValueExpression enumExp = new PlainValueExpression(enumTypeName.substring(enumTypeName.lastIndexOf('.') + 1) +
-                "." + enumParam.getName());
+        String value = new String(enumParam.getProb().getSerializedValue());
+
+        value = value.replace("\"", "");
+
+        StringBuilder rhsExpressionBuilder = new StringBuilder();
+        String enumSimpleTypeName = enumTypeName.substring(enumTypeName.lastIndexOf('.') + 1);
+        rhsExpressionBuilder
+                .append(enumSimpleTypeName)
+                .append(".")
+                .append(value);
+
+        PlainValueExpression enumExp = new PlainValueExpression(rhsExpressionBuilder.toString());
 
         return enumExp;
     }
 
-    public static MethodCallExpression CloseStaticMock(Parameter object){
+    public static MethodCallExpression CloseStaticMock(Parameter object) {
         Parameter closeExpression = new Parameter();
         closeExpression.setValue("");
 
