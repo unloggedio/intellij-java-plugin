@@ -26,14 +26,16 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
     private JSplitPane mainSplitPane;
     private JPanel candidateListParent;
     private JPanel IOsectionParent;
-    private JPanel inputPanel;
-    private JPanel outputPanel;
-    private JSplitPane IOsplitter;
+    private JPanel IOgroup;
     private JPanel outputSP;
     private JPanel inputSP;
-    private JPanel buttonGroup;
     private JButton assertEqualsBtn;
+    private JPanel buttonGroup;
     private JButton assertNotEqualsBtn;
+    private JPanel inputPanel;
+    private JPanel outputPanel;
+    private JLabel inputLabelHeader;
+    private JLabel outputLabelHeader;
     private TestSelectionListener candidateSelectionListener;
     private TestCandidateMetadata lastSelectedCandidate;
 

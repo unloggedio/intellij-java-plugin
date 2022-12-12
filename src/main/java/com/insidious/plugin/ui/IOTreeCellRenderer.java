@@ -17,23 +17,26 @@ public class IOTreeCellRenderer implements TreeCellRenderer {
     @Override
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
 
-        if(value instanceof DefaultMutableTreeNode)
-        {
-            Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
-            if(userObject instanceof CandidateInformationWindow.ParameterInformation)
-            {
-                defaultTreeCellRenderer.setClosedIcon(topLevelIcon);
-                defaultTreeCellRenderer.setOpenIcon(topLevelIcon);
-                defaultTreeCellRenderer.setLeafIcon(topLevelIcon);
-            }
-            else
-            {
-                defaultTreeCellRenderer.setClosedIcon(noIconRef);
-                defaultTreeCellRenderer.setOpenIcon(noIconRef);
-                defaultTreeCellRenderer.setLeafIcon(noIconRef);
-            }
-        }
+//        if(value instanceof DefaultMutableTreeNode)
+//        {
+//            Object userObject = ((DefaultMutableTreeNode) value).getUserObject();
+//            if(userObject instanceof CandidateInformationWindow.ParameterInformation)
+//            {
+//                defaultTreeCellRenderer.setClosedIcon(topLevelIcon);
+//                defaultTreeCellRenderer.setOpenIcon(topLevelIcon);
+//                defaultTreeCellRenderer.setLeafIcon(topLevelIcon);
+//            }
+//            else
+//            {
+//                defaultTreeCellRenderer.setClosedIcon(noIconRef);
+//                defaultTreeCellRenderer.setOpenIcon(noIconRef);
+//                defaultTreeCellRenderer.setLeafIcon(noIconRef);
+//            }
+//        }
 
+        defaultTreeCellRenderer.setClosedIcon(null);
+        defaultTreeCellRenderer.setOpenIcon(null);
+        defaultTreeCellRenderer.setLeafIcon(null);
         return defaultTreeCellRenderer.getTreeCellRendererComponent(tree,
                 value, selected, expanded, leaf, row, hasFocus);
     }
