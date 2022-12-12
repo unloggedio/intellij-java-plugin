@@ -68,7 +68,7 @@ public class TestCandidateMetadataView {
         generateTestCaseButton.addActionListener(e -> loadInputOutputInformation());
         contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
-                generateTestCase();
+                loadInputOutputInformation();
             }
         });
 
@@ -80,6 +80,7 @@ public class TestCandidateMetadataView {
 
     private void loadInputOutputInformation()
     {
+        setSelectedState(true);
         candidateSelectionListener.loadInputOutputInformation(testCandidateMetadata);
     }
 
@@ -98,6 +99,23 @@ public class TestCandidateMetadataView {
     public void setCandidateNumberIndex(int candidateNumberIndex) {
         this.candidateNumber.setText("Candidate " + candidateNumberIndex);
     }
+
+    public void setSelectedState(boolean status)
+    {
+        if(status)
+        {
+            Color color = new Color(1, 204, 245);
+            Border border = new LineBorder(color);
+            contentPanel.setBorder(border);
+        }
+        else
+        {
+            Color color = new Color(187, 187, 187);
+            Border border = new LineBorder(color);
+            contentPanel.setBorder(border);
+        }
+    }
+
     private void hoverStateManager(MouseEvent me, boolean mouseEntered) {
         if (mouseEntered) {
             Color color = new Color(1, 204, 245);

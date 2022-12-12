@@ -79,6 +79,10 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
                     testCandidateMetadata, testCaseService, this, sessionInstance);
+            if(i==0)
+            {
+                testCandidatePreviewPanel.setSelectedState(true);
+            }
             testCandidatePreviewPanel.setCandidateNumberIndex((i + 1));
             Component contentPanel = testCandidatePreviewPanel.getContentPanel();
             gridPanel.add(contentPanel, constraints);
@@ -90,6 +94,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         if (testCandidateMetadataList.size() <= 4) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
+        loadInputOutputInformation(testCandidateMetadataList.get(0));
         this.candidateListParent.revalidate();
     }
 
