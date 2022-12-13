@@ -98,12 +98,11 @@ public class LiveViewWindow implements TreeSelectionListener,
         return e -> {
             try {
                 loadSession();
+//                bgTask();
             } catch (Exception ex) {
                 InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
                         NotificationType.ERROR);
-            }
-            finally
-            {
+            } finally {
                 candidateListPanel.removeAll();
                 candidateListPanel.revalidate();
                 candidateListPanel.repaint();
@@ -112,50 +111,51 @@ public class LiveViewWindow implements TreeSelectionListener,
     }
 
     public void loadSession() throws Exception {
-        treeModel = ProgressManager.getInstance()
-                .run(
-                        new Task.WithResult<LiveViewTestCandidateListTree, Exception>(project, "Unlogged, Inc.", true) {
-                            @Override
-                            protected LiveViewTestCandidateListTree compute(@NotNull ProgressIndicator indicator) throws Exception {
-                                checkProgressIndicator("Loading session", null);
-                                insidiousService.getClient()
-                                        .getProjectSessions(new GetProjectSessionsCallback() {
-                                            @Override
-                                            public void error(String message) {
-                                                InsidiousNotification.notifyMessage(
-                                                        "Failed to list sessions - " + message, NotificationType.ERROR);
+        Task.Backgroundable task =
+                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+
+
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        checkProgressIndicator("Loading session", null);
+                        insidiousService.getClient()
+                                .getProjectSessions(new GetProjectSessionsCallback() {
+                                    @Override
+                                    public void error(String message) {
+                                        InsidiousNotification.notifyMessage(
+                                                "Failed to list sessions - " + message, NotificationType.ERROR);
+                                    }
+
+                                    @Override
+                                    public void success(List<ExecutionSession> executionSessionList) {
+                                        try {
+                                            if (executionSessionList.size() == 0) {
+                                                copyVMParameterButton.setVisible(true);
+                                                String javaAgentVMString = insidiousService.getJavaAgentString();
+                                                String[] parts = splitByLength(javaAgentVMString, 160);
+                                                assert parts != null;
+                                                StringBuilder text = new StringBuilder(
+                                                        "<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
+                                                                "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
+                                                                "Use the following VM parameter to start your application with unlogged java agent:<br />");
+                                                for (String part : parts) {
+                                                    text.append(part)
+                                                            .append("<br />");
+                                                }
+                                                text.append("</html>");
+
+                                                headingText.setText(text.toString());
+                                                mainTree.setModel(new DefaultTreeModel(
+                                                        new DefaultMutableTreeNode("No session")));
+                                                return;
+                                            } else {
+                                                headingText.setText(
+                                                        "Select a class and method to start generating test case for it.");
+                                                copyVMParameterButton.setVisible(false);
                                             }
+                                            ExecutionSession executionSession = executionSessionList.get(0);
 
-                                            @Override
-                                            public void success(List<ExecutionSession> executionSessionList) {
-                                                try {
-                                                    if (executionSessionList.size() == 0) {
-                                                        copyVMParameterButton.setVisible(true);
-                                                        String javaAgentVMString = insidiousService.getJavaAgentString();
-                                                        String[] parts = splitByLength(javaAgentVMString, 160);
-                                                        assert parts != null;
-                                                        StringBuilder text = new StringBuilder(
-                                                                "<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
-                                                                        "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
-                                                                        "Use the following VM parameter to start your application with unlogged java agent:<br />");
-                                                        for (String part : parts) {
-                                                            text.append(part)
-                                                                    .append("<br />");
-                                                        }
-                                                        text.append("</html>");
-
-                                                        headingText.setText(text.toString());
-                                                        mainTree.setModel(new DefaultTreeModel(
-                                                                new DefaultMutableTreeNode("No session")));
-                                                        return;
-                                                    } else {
-                                                        headingText.setText(
-                                                                "Select a class and method to start generating test case for it.");
-                                                        copyVMParameterButton.setVisible(false);
-                                                    }
-                                                    ExecutionSession executionSession = executionSessionList.get(0);
-
-                                                    if (sessionInstance != null) {
+                                            if (sessionInstance != null) {
 //                                        if (sessionInstance.getExecutionSession().getSessionId().equals(executionSession.getSessionId())) {
 //                                            testCaseService.processLogFiles();
 //                                            treeModel = new LiveViewTestCandidateListTree(
@@ -163,42 +163,42 @@ public class LiveViewWindow implements TreeSelectionListener,
 //                                            mainTree.setModel(treeModel);
 //                                            return;
 //                                        }
-                                                        sessionInstance.close();
-                                                    }
-//                                    sessionInstance = null;
-                                                    sessionInstance = new SessionInstance(executionSession, project);
-                                                    insidiousService.getClient()
-                                                            .setSessionInstance(sessionInstance);
-                                                    testCaseService = new TestCaseService(sessionInstance);
-
-                                                    testCaseService.processLogFiles();
-                                                    treeModel = new LiveViewTestCandidateListTree(
-                                                            project, insidiousService.getClient()
-                                                            .getSessionInstance());
-                                                    mainTree.setModel(treeModel);
-
-                                                } catch (Exception ex) {
-                                                    ex.printStackTrace();
-                                                    InsidiousNotification.notifyMessage(
-                                                            "Failed to set sessions - " + ex.getMessage()
-                                                                    +"\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                                                            NotificationType.ERROR);
-                                                    try {
-                                                        JSONObject eventProperties = new JSONObject();
-                                                        eventProperties.put("exception", ex.getMessage());
-                                                        UsageInsightTracker.getInstance()
-                                                                .RecordEvent("ScanFailed", eventProperties);
-                                                    }
-                                                    catch(Exception e)
-                                                    {
-                                                        logger.error("Failed to send ScanFailed event to amplitude");
-                                                    }
-                                                }
+                                                sessionInstance.close();
                                             }
-                                        });
-                                return null;
-                            }
-                        });
+//                                    sessionInstance = null;
+                                            sessionInstance = new SessionInstance(executionSession, project);
+                                            insidiousService.getClient()
+                                                    .setSessionInstance(sessionInstance);
+                                            testCaseService = new TestCaseService(sessionInstance);
+
+                                            testCaseService.processLogFiles();
+                                            treeModel = new LiveViewTestCandidateListTree(
+                                                    project, insidiousService.getClient()
+                                                    .getSessionInstance());
+                                            mainTree.setModel(treeModel);
+
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                            InsidiousNotification.notifyMessage(
+                                                    "Failed to set sessions - " + ex.getMessage()
+                                                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                                                    NotificationType.ERROR);
+                                            try {
+                                                JSONObject eventProperties = new JSONObject();
+                                                eventProperties.put("exception", ex.getMessage());
+                                                UsageInsightTracker.getInstance()
+                                                        .RecordEvent("ScanFailed", eventProperties);
+                                            } catch (Exception e) {
+                                                logger.error("Failed to send ScanFailed event to amplitude");
+                                            }
+                                        }
+                                    }
+                                });
+                    }
+                };
+
+        ProgressManager.getInstance()
+                .run(task);
 
     }
 
