@@ -333,8 +333,6 @@ public class Parameter implements Serializable {
         }
 
         nameUsed = getNameClosestToMethodName(methodName);
-        names.remove(nameUsed);
-        names.add(0, nameUsed);
 
         return nameUsed;
     }

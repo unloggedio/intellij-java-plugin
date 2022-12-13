@@ -2,6 +2,7 @@ package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.constants.PrimitiveDataType;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -569,7 +570,6 @@ public class PendingStatement {
             // primitive variable types
             Parameter parameter = lhsExpression;
 
-
             Object returnValue = parameter.getValue();
             if (targetClassname.equals("Z") || targetClassname.equals("java.lang.Boolean")) {
                 if (returnValue instanceof String) {
@@ -595,6 +595,9 @@ public class PendingStatement {
                         .getSerializedValue());
                 stringValue = stringValue.replaceAll("\\$", "\\$\\$");
 
+                if (parameter.getType().equals(PrimitiveDataType.BOXED_LONG) || parameter.getType().equals(PrimitiveDataType.LONG)) {
+                    stringValue = stringValue + "L";
+                }
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
             } else {
                 String stringValue = String.valueOf(parameter.getValue());
