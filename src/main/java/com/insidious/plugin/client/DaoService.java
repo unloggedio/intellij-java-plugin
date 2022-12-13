@@ -257,6 +257,8 @@ public class DaoService {
             logger.warn("Load calls took: " + (end - start));
             return callsList;
         } catch (Exception e) {
+            logger.error(e.getMessage());
+            logger.error(e.getStackTrace());
             throw new RuntimeException(e);
         }
     }
@@ -365,8 +367,13 @@ public class DaoService {
                     paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
-                paramArgument.setTypeForced(
-                        ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+
+                // only set param type if the type is not already null or empty
+                if (paramArgument.getType() == null || paramArgument.getType().equals("")) {
+                    paramArgument.setTypeForced(
+                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                }
+
                 paramArgument.setProb(dataEvent);
 
                 arguments.add(paramArgument);

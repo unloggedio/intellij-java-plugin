@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.constants.PrimitiveDataType;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import org.jetbrains.annotations.NotNull;
@@ -17,13 +18,14 @@ public class TestCaseWriter {
 
         for (int i = 0; i < variableContainer.size(); i++) {
             Parameter parameter = variableContainer.get(i);
+            String paramType = parameter.getType();
 
             if (i > 0) {
                 parameterStringBuilder.append(", ");
             }
 
-            if (parameter.getType() != null && parameter.getType()
-                    .endsWith("[]")) {
+            if (paramType != null &&
+                    paramType.endsWith("[]")) {
                 parameterStringBuilder.append("any()");
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1) {
@@ -40,7 +42,8 @@ public class TestCaseWriter {
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
-                    if (parameter.getType().equals("java.lang.Long")) {
+                    if (paramType != null && paramType.equals(PrimitiveDataType.BOXED_LONG) ||
+                            paramType.equals(PrimitiveDataType.LONG)) {
                         parameterStringBuilder.append("L");
                     }
 
@@ -92,7 +95,18 @@ public class TestCaseWriter {
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
             } else if (parameter.isPrimitiveType()) {
-                compareAgainst = parameter.getValue();
+
+                if (parameter.getProb().getSerializedValue().length > 0) {
+                    compareAgainst = new String(parameter.getProb().getSerializedValue());
+                } else {
+                    compareAgainst = parameter.getValue();
+                }
+
+                if (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
+                        parameterType.equals(PrimitiveDataType.LONG)) {
+                    compareAgainst += "L";
+                }
+
             } else if (parameter.getNameForUse(null) != null) {
                 compareAgainst = parameter.getNameForUse(null);
             } else {
