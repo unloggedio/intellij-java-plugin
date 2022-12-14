@@ -26,7 +26,12 @@ public class TestCaseWriter {
 
             if (paramType != null &&
                     paramType.endsWith("[]")) {
-                parameterStringBuilder.append("any()");
+                // if the type of parameter is array like int[], long[] (i.e J[])
+                if (parameter.getNameForUse(null) != null)
+                    parameterStringBuilder.append(parameter.getNameForUse(null));
+                else
+                    parameterStringBuilder.append("any()");
+
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1) {
                     parameterStringBuilder.append("true");
@@ -42,8 +47,9 @@ public class TestCaseWriter {
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
-                    if (paramType != null && paramType.equals(PrimitiveDataType.BOXED_LONG) ||
-                            paramType.equals(PrimitiveDataType.LONG)) {
+                    if (paramType != null &&
+                            (paramType.equals(PrimitiveDataType.BOXED_LONG)
+                                    || paramType.equals(PrimitiveDataType.LONG))) {
                         parameterStringBuilder.append("L");
                     }
 
@@ -90,7 +96,7 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            Object compareAgainst = "";
+            Object compareAgainst;
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
@@ -102,8 +108,8 @@ public class TestCaseWriter {
                     compareAgainst = parameter.getValue();
                 }
 
-                if (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
-                        parameterType.equals(PrimitiveDataType.LONG)) {
+                if (parameterType != null && (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
+                        parameterType.equals(PrimitiveDataType.LONG))) {
                     compareAgainst += "L";
                 }
 
@@ -125,7 +131,10 @@ public class TestCaseWriter {
             }
 
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
-                parameterStringBuilder.append("eq(" + compareAgainst + ")");
+                parameterStringBuilder
+                        .append("eq(")
+                        .append(compareAgainst)
+                        .append(")");
             } else if (parameterType != null && compareAgainst != null
                     && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
                     && !parameterType.contains(".Object"))
@@ -181,7 +190,11 @@ public class TestCaseWriter {
 
             if (parameter.getType() != null && parameter.getType()
                     .endsWith("[]")) {
-                parameterStringBuilder.append("any()");
+                // if the type of parameter is array like int[], long[] (i.e J[])
+                if (parameter.getNameForUse(null) != null)
+                    parameterStringBuilder.append(parameter.getNameForUse(null));
+                else
+                    parameterStringBuilder.append("any()");
             } else if (parameter.getNameForUse(null) != null) {
                 parameterStringBuilder.append(parameter.getNameForUse(null));
             } else if (parameter.isBooleanType()) {
