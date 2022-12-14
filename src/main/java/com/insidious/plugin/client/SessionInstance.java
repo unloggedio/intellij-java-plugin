@@ -2969,7 +2969,8 @@ public class SessionInstance {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
             } else if (returnParameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
-                if (returnParameter.getType() != null && !classReferenceType.getReference()
+                if (returnParameter != null &&
+                        returnParameter.getType() != null && !classReferenceType.getReference()
                         .getQualifiedName()
                         .equals(returnParameter.getType())) {
                     continue;
