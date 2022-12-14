@@ -40,23 +40,20 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
     private TestCandidateMetadata lastSelectedCandidate;
 
     private IOTreeCellRenderer ioTreeCellRenderer = new IOTreeCellRenderer();
+
     public CandidateInformationWindow(
             List<TestCandidateMetadata> testCandidateMetadataList,
             TestCaseService testCaseService,
             TestSelectionListener candidateSelectionListener,
             SessionInstance sessionInstance
-    )
-    {
+    ) {
         this.candidateSelectionListener = candidateSelectionListener;
-        constructCandidatesList(testCandidateMetadataList,testCaseService,sessionInstance);
+        constructCandidatesList(testCandidateMetadataList, testCaseService, sessionInstance);
         assertEqualsBtn.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
-                if(lastSelectedCandidate!=null)
-                {
+                if (lastSelectedCandidate != null) {
                     onSelect(lastSelectedCandidate);
-                }
-                else
-                {
+                } else {
                     InsidiousNotification.notifyMessage("Please select a candidate first.",
                             NotificationType.ERROR);
                 }
@@ -65,8 +62,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     }
 
-    public void constructCandidatesList(List<TestCandidateMetadata> testCandidateMetadataList, TestCaseService testCaseService, SessionInstance sessionInstance)
-    {
+    public void constructCandidatesList(List<TestCandidateMetadata> testCandidateMetadataList, TestCaseService testCaseService, SessionInstance sessionInstance) {
         this.candidateListParent.removeAll();
         int GridRows = 6;
         if (testCandidateMetadataList.size() > GridRows) {
@@ -81,8 +77,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
                     testCandidateMetadata, testCaseService, this, sessionInstance);
-            if(i==0)
-            {
+            if (i == 0) {
                 testCandidatePreviewPanel.setSelectedState(true);
             }
             testCandidatePreviewPanel.setCandidateNumberIndex((i + 1));
@@ -96,12 +91,14 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         if (testCandidateMetadataList.size() <= 4) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
-        loadInputOutputInformation(testCandidateMetadataList.get(0));
+
+        if (testCandidateMetadataList.size() > 0) {
+            loadInputOutputInformation(testCandidateMetadataList.get(0));
+        }
         this.candidateListParent.revalidate();
     }
 
-    public JPanel getMainPanel()
-    {
+    public JPanel getMainPanel() {
         return this.mainPanel;
     }
 
@@ -117,14 +114,12 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         MethodCallExpression exp = (MethodCallExpression) testCandidateMetadata.getMainMethod();
         List<Parameter> args = exp.getArguments();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        for(Parameter arg : args)
-        {
+        for (Parameter arg : args) {
             inputRoot.add(constructNode(arg));
         }
         Parameter returnValue = exp.getReturnValue();
         DefaultMutableTreeNode outputroot = constructNode(returnValue);
-        try
-        {
+        try {
             inputSP.removeAll();
             outputSP.removeAll();
 
@@ -150,9 +145,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             this.outputSP.add(scrollPane1, BorderLayout.CENTER);
             outputTree.setCellRenderer(ioTreeCellRenderer);
             this.outputSP.revalidate();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             System.out.println("Exception generation IO tree");
             e.printStackTrace();
         }
@@ -163,135 +156,106 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     }
 
-    private DefaultMutableTreeNode constructNode(Parameter arg)
-    {
+    private DefaultMutableTreeNode constructNode(Parameter arg) {
         StringBuilder sb = new StringBuilder();
-        switch (arg.getType())
-        {
-            case "I" :
+        switch (arg.getType()) {
+            case "I":
                 String name = "";
-                if(arg.getName()!=null)
-                {
+                if (arg.getName() != null) {
                     name = arg.getName();
                 }
-                return new DefaultMutableTreeNode(new ParameterInformation("int", arg.getName(),""+ arg.getValue(),true));
-            case "J" :
+                return new DefaultMutableTreeNode(new ParameterInformation("int", arg.getName(), "" + arg.getValue(), true));
+            case "J":
                 name = "";
-                if(arg.getName()!=null)
-                {
+                if (arg.getName() != null) {
                     name = arg.getName();
                 }
-                return new DefaultMutableTreeNode(new ParameterInformation("long", arg.getName(),""+ arg.getValue(),true));
-            case "Z" :
+                return new DefaultMutableTreeNode(new ParameterInformation("long", arg.getName(), "" + arg.getValue(), true));
+            case "Z":
                 name = "";
-                if(arg.getName()!=null)
-                {
+                if (arg.getName() != null) {
                     name = arg.getName();
                 }
-                String booleanValue = (arg.getValue()==0 ? false : true) + "";
-                return new DefaultMutableTreeNode(new ParameterInformation("boolean", arg.getName(),booleanValue,true));
+                String booleanValue = (arg.getValue() == 0 ? false : true) + "";
+                return new DefaultMutableTreeNode(new ParameterInformation("boolean", arg.getName(), booleanValue, true));
 
             default:
                 String serializedValue = new String(arg.getProb().getSerializedValue());
-                if(serializedValue!=null) {
+                if (serializedValue != null) {
                     return buildJsonTree(serializedValue, arg);
-                }
-                else
-                {
-                    return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(arg.getType()), arg.getName(),"null",true));
+                } else {
+                    return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(arg.getType()), arg.getName(), "null", true));
                 }
         }
     }
 
-    private DefaultMutableTreeNode buildJsonTree(String source, Parameter parameter)
-    {
-        if(source.startsWith("{"))
-        {
-            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()),parameter.getName(),"",false)));
-        }
-        else if(source.startsWith("["))
-        {
-            return handleArray(new JSONArray(source),new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()),parameter.getName(),"",false)));
-        }
-        else
-        {
-            return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()),parameter.getName(),source,true));
+    private DefaultMutableTreeNode buildJsonTree(String source, Parameter parameter) {
+        if (source.startsWith("{")) {
+            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
+        } else if (source.startsWith("[")) {
+            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
+        } else {
+            return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), source, true));
         }
     }
 
-    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root)
-    {
+    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
         Set<String> keys = json.keySet();
-        for (String key : keys)
-        {
+        for (String key : keys) {
             String valueTemp = json.get(key).toString();
-            if(valueTemp.startsWith("{"))
-            {
+            if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
                 JSONObject subObj = new JSONObject(valueTemp);
                 handleObject(subObj, thisKey);
                 root.add(thisKey);
-            }
-            else if(valueTemp.startsWith("["))
-            {
+            } else if (valueTemp.startsWith("[")) {
                 //list
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
                 JSONArray subObjArray = new JSONArray(valueTemp);
                 handleArray(subObjArray, thisKey);
                 root.add(thisKey);
-            }
-            else
-            {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key+" : "+valueTemp);
+            } else {
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
                 root.add(thisKVpair);
             }
         }
         return root;
     }
 
-    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root)
-    {
-        for (int i=0;i<json.length();i++)
-        {
+    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
+        for (int i = 0; i < json.length(); i++) {
             String valueTemp = json.get(i).toString();
-            if(valueTemp.startsWith("{"))
-            {
+            if (valueTemp.startsWith("{")) {
                 //obj in obj
-                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i+" : ");
+                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
                 JSONObject subObj = new JSONObject(valueTemp);
                 handleObject(subObj, thisKey);
                 root.add(thisKey);
-            }
-            else
-            {
-                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i+" : "+valueTemp);
+            } else {
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
                 root.add(thisKVpair);
             }
         }
         return root;
     }
 
-    private String getSimpleType(String type)
-    {
+    private String getSimpleType(String type) {
         String[] parts = type.split("\\.");
-        if(parts.length>0)
-        {
-            return parts[parts.length-1];
+        if (parts.length > 0) {
+            return parts[parts.length - 1];
 
         }
         return type;
     }
 
-    class ParameterInformation
-    {
+    class ParameterInformation {
         public String type;
         public String name;
         public String value;
-        boolean showValue=false;
+        boolean showValue = false;
 
-        public ParameterInformation(String type, String name, String value, boolean showValue)
-        {
+        public ParameterInformation(String type, String name, String value, boolean showValue) {
             this.type = type;
             this.name = name;
             this.value = value;
@@ -300,7 +264,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
         @Override
         public String toString() {
-            return type+" "+((name==null)? "" : name)+((showValue)?" = "+((showValue) ? value : "") : "");
+            return type + " " + ((name == null) ? "" : name) + ((showValue) ? " = " + ((showValue) ? value : "") : "");
         }
     }
 }

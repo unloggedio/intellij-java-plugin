@@ -107,13 +107,14 @@ public class VariableContainer {
         }
         return null;
     }
+
     public Parameter getParameterByNameAndType(String name, Parameter expr) {
         for (Parameter parameter : this.parameterList) {
             if (parameter.hasName(name) && parameter.getType()
                     .equals(expr.getType())) {
                 // check if template map matches
                 // for cases like List<type> or Optional<type>
-                if(parameter.getTemplateMap().toString().equals(expr.getTemplateMap().toString())) {
+                if (parameter.getTemplateMap().toString().equals(expr.getTemplateMap().toString())) {
                     return parameter;
                 }
             }
@@ -192,8 +193,10 @@ public class VariableContainer {
 
     public void remove(Parameter existingParameter) {
         Parameter byValue = parameterMap.get(existingParameter.getValue());
-        parameterMap.remove(byValue.getValue());
-        List<Parameter> toRemove = new LinkedList<>();
+        if (byValue != null) {
+            parameterMap.remove(byValue.getValue());
+        }
+        List<Parameter> toRemove = new ArrayList<>();
         for (Parameter parameter : parameterList) {
             if (parameter.hasName(
                     existingParameter.getName()) && parameter.getValue() == existingParameter.getValue()) {
