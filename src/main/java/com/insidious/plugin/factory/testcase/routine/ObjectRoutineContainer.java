@@ -29,7 +29,7 @@ import static com.insidious.plugin.pojo.MethodCallExpression.in;
  */
 @AllArgsConstructor
 public class ObjectRoutineContainer {
-    private final List<ObjectRoutine> objectRoutines = new LinkedList<>();
+    private final List<ObjectRoutine> objectRoutines = new ArrayList<>();
     private final Parameter testSubject;
     private final TestCaseGenerationConfiguration generationConfiguration;
     private String packageName;
@@ -112,7 +112,7 @@ public class ObjectRoutineContainer {
     public List<Parameter> getVariablesOfType(final String className) {
 
 
-        List<Parameter> dependentImports = new LinkedList<>();
+        List<Parameter> dependentImports = new ArrayList<>();
         ObjectRoutineContainer orc = this;
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
 
@@ -149,7 +149,7 @@ public class ObjectRoutineContainer {
     }
 
     private List<Parameter> extractVariableOfType(String className, MethodCallExpression mainMethod) {
-        List<Parameter> dependentImports = new LinkedList<>();
+        List<Parameter> dependentImports = new ArrayList<>();
         MethodCallExpression mce = mainMethod;
         if (mce.getSubject() != null && mce.getSubject().getType() != null && mce.getSubject().getType().startsWith(className)) {
             dependentImports.add(mce.getSubject());
@@ -293,13 +293,30 @@ public class ObjectRoutineContainer {
 
     @NotNull
     private Set<? extends Parameter> collectFieldsFromRoutines() {
-        return getObjectRoutines().stream()
+        Set<Parameter> collect = getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
+
+        Set<Parameter> fields = new HashSet<>();
+
+        for (Parameter p : collect) {
+            boolean isPresent = false;
+            for (Parameter tempP : fields) {
+                if (tempP.getValue() == p.getValue() && tempP.getType().equals(p.getType())
+                        && tempP.getTemplateMap().toString().equals(p.getTemplateMap().toString())) {
+                    isPresent = true;
+                    break;
+                }
+            }
+            if (!isPresent)
+                fields.add(p);
+        }
+
+        return fields;
     }
 
     public String getPackageName() {
