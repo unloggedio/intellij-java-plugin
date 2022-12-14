@@ -42,6 +42,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
+import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -2818,8 +2819,14 @@ public class SessionInstance {
             return;
         }
 
-        PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
-                .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        PsiClass classPsiInstance = null;
+        try {
+            classPsiInstance = JavaPsiFacade.getInstance(project)
+                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        } catch (IndexNotReadyException e) {
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!", NotificationType.ERROR);
+        }
+
         if (classPsiInstance == null) {
             // if a class by this name was not found, then either we have a different project loaded
             // or the source code has been modified and the class have been renamed or deleted or moved
@@ -2877,8 +2884,15 @@ public class SessionInstance {
             return;
         }
 
-        PsiClass classPsiInstance = JavaPsiFacade.getInstance(project)
-                .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        PsiClass classPsiInstance = null;
+
+        try {
+            classPsiInstance = JavaPsiFacade.getInstance(project)
+                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+        } catch (IndexNotReadyException e) {
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!", NotificationType.ERROR);
+        }
+
         if (classPsiInstance == null) {
             // if a class by this name was not found, then either we have a different project loaded
             // or the source code has been modified and the class have been renamed or deleted or moved
@@ -2886,6 +2900,7 @@ public class SessionInstance {
             logger.warn("Class not found in source code: " + subjectType);
             return;
         }
+
         JvmMethod[] methodPsiInstanceList =
                 classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
         if (methodPsiInstanceList.length == 0) {
@@ -2954,7 +2969,7 @@ public class SessionInstance {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
             } else if (returnParameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
-                if (!classReferenceType.getReference()
+                if (returnParameter.getType() != null && !classReferenceType.getReference()
                         .getQualifiedName()
                         .equals(returnParameter.getType())) {
                     continue;
