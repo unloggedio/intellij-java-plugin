@@ -298,13 +298,22 @@ public class MethodCallExpression implements Expression, Serializable {
 //                .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
 //                .endStatement();
 
-
         returnSubjectExpectedObject.setValue(-1L);
-        in(objectRoutineScript)
-                .writeExpression(MethodCallExpressionFactory
-                        .MockitoAssert(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
-                .endStatement();
 
+
+        // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
+        // then use assertArrayEquals
+        if (returnSubjectExpectedObject.getType().endsWith("[]")) {
+            in(objectRoutineScript)
+                    .writeExpression(MethodCallExpressionFactory
+                            .MockitoAssertArrayEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
+                    .endStatement();
+        } else {
+            in(objectRoutineScript)
+                    .writeExpression(MethodCallExpressionFactory
+                            .MockitoAssertEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
+                    .endStatement();
+        }
     }
 
     public void writeCommentTo(ObjectRoutineScript objectRoutine) {

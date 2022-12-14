@@ -12,6 +12,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +27,7 @@ public class PendingStatement {
     public static final ClassName LIST_CLASS = ClassName.bestGuess("java.util.List");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private final ObjectRoutineScript objectRoutine;
-    private final List<Expression> expressionList = new LinkedList<>();
+    private final List<Expression> expressionList = new ArrayList<>();
     private Parameter lhsExpression;
 
     public PendingStatement(ObjectRoutineScript objectRoutine) {
@@ -58,7 +59,7 @@ public class PendingStatement {
 
             Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-                List<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                List<String> templateKeys = new ArrayList<>(templateMap.keySet());
                 Collections.sort(templateKeys);
                 int count = templateKeys.size();
 
@@ -99,6 +100,7 @@ public class PendingStatement {
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
+                //todo: check #108 and check it this creates a similar regression
                 statementParameters.add(
                         ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
@@ -107,7 +109,6 @@ public class PendingStatement {
         } else if (methodCallExpression.getMethodName()
                 .equals("ValueOf") && methodCallExpression.getSubject() == null) {
 
-
             List<? extends Parameter> variables = methodCallExpression.getArguments();
 
             Parameter objectToDeserialize = variables.get(0);
@@ -115,7 +116,7 @@ public class PendingStatement {
             Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
 
-                List<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                List<String> templateKeys = new ArrayList<>(templateMap.keySet());
                 Collections.sort(templateKeys);
                 int count = templateKeys.size();
 
@@ -152,8 +153,22 @@ public class PendingStatement {
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
-                statementParameters.add(
-                        ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
+
+                // handling case for int[],long[], Java ArrayType
+                String typeOfParam = ClassTypeUtils.getJavaClassName(objectToDeserialize.getType());
+                boolean isAJavaArrayType = false;
+
+                if (typeOfParam.endsWith("[]")) {
+                    typeOfParam = typeOfParam.substring(0, typeOfParam.indexOf("["));
+                    isAJavaArrayType = true;
+                }
+
+                TypeName paramTypeName = ClassTypeUtils.createTypeFromName(typeOfParam);
+                if (isAJavaArrayType) {
+                    statementParameters.add(ArrayTypeName.of(paramTypeName));
+                } else {
+                    statementParameters.add(ClassName.bestGuess(paramTypeName.toString()));
+                }
 
             }
 
@@ -196,6 +211,9 @@ public class PendingStatement {
 
             statementBuilder.append(".$L($T.class)");
             statementParameters.add(methodCallExpression.getMethodName());
+
+            /** todo: check #108 and check it this creates a similar regression
+             @see around line 160 */
             statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
                     .getType())));
 
@@ -234,7 +252,7 @@ public class PendingStatement {
             // subject.methodName(any(com.package.AClass.class), any(ano.ther.package.BClass.class))
 
             Matcher matcher = anyRegexPicker.matcher(parameterString);
-            List<Object> trailingParameters = new LinkedList<>();
+            List<Object> trailingParameters = new ArrayList<>();
             while (matcher.find()) {
                 String matchedString = matcher.group();
                 String className = matcher.group(1);
@@ -374,6 +392,12 @@ public class PendingStatement {
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
+            /** this typename handled for int[] byte[] long[] */
+            String lhsExprTypeString = lhsExpression != null ? lhsExpression.getType() : null;
+            if (lhsExprTypeString != null && lhsExprTypeString.endsWith("[]")) {
+                lhsTypeName = ArrayTypeName.of(lhsTypeName);
+            }
+
             if (!objectRoutine.getCreatedVariables()
                     .contains(lhsExpression.getNameForUse(null))) {
 
@@ -383,7 +407,7 @@ public class PendingStatement {
                 if (lhsExpression.isContainer() && templateMap.size() > 0) {
 
                     StringBuilder templateParams = new StringBuilder();
-                    LinkedList<String> templateKeys = new LinkedList<>(templateMap.keySet());
+                    ArrayList<String> templateKeys = new ArrayList<>(templateMap.keySet());
                     Collections.sort(templateKeys);
                     for (int i = 0; i < templateKeys.size(); i++) {
                         if (i > 0) {
@@ -483,6 +507,8 @@ public class PendingStatement {
             p.setValue(1L);
             paramL.add(p);
 
+            // todo: use this MethodCallExpressionFactory.MockitoAssertFalse(param,objectRoutine.getGenerationConfiguration());
+            //  to make the mce
             MethodCallExpression mce = new MethodCallExpression("assertFalse", param, paramL, null, 0);
             mce.setStaticCall(true);
 

@@ -162,7 +162,7 @@ public class MethodCallExpressionFactory {
         return toJson;
     }
 
-    public static Expression MockitoAssert(
+    public static Expression MockitoAssertEquals(
             Parameter returnValue,
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
@@ -174,6 +174,35 @@ public class MethodCallExpressionFactory {
         assertEquals.setStaticCall(true);
         assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
         return assertEquals;
+    }
+
+    public static Expression MockitoAssertArrayEquals(
+            Parameter returnValue,
+            Parameter returnSubjectInstanceName,
+            TestCaseGenerationConfiguration testConfiguration) {
+        MethodCallExpression assertArrayEquals = MethodCallExpression(
+                testConfiguration.getTestFramework().AssertArrayEqualsMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
+                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
+        );
+
+        assertArrayEquals.setStaticCall(true);
+        assertArrayEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return assertArrayEquals;
+    }
+
+    public static Expression MockitoAssertFalse(
+            Parameter paramInstanceName,
+            TestCaseGenerationConfiguration testConfiguration) {
+        MethodCallExpression assertFalse = MethodCallExpression(
+                testConfiguration.getTestFramework().AssertFalseMethod(),
+                testConfiguration.getTestFramework().AssertClassParameter(),
+                VariableContainer.from(List.of(paramInstanceName)), null
+        );
+
+        assertFalse.setStaticCall(true);
+        assertFalse.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return assertFalse;
     }
 
     public static MethodCallExpression FromJson(Parameter object) {
