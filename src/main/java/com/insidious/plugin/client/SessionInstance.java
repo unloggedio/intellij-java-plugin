@@ -308,7 +308,7 @@ public class SessionInstance {
                         DataInfo.class)
                 .name("probe-info-map")
                 .averageValue(new DataInfo())
-                .entries(1_000_000);
+                .entries(5_000_000);
         return probeInfoMapBuilder.createPersistedTo(probeIndexFile);
 
     }
@@ -723,15 +723,18 @@ public class SessionInstance {
         logger.warn("open archive [" + sessionFile + "]");
         List<String> files = new LinkedList<>();
 
-        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
+        try (FileInputStream fileInputStream = new FileInputStream(sessionFile)) {
+            ZipInputStream indexArchive = new ZipInputStream(fileInputStream);
 
-        ZipEntry entry;
-        while ((entry = indexArchive.getNextEntry()) != null) {
-            String entryName = entry.getName();
-            indexArchive.closeEntry();
-            files.add(entryName);
+            ZipEntry entry;
+            while ((entry = indexArchive.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                indexArchive.closeEntry();
+                files.add(entryName);
+            }
+            indexArchive.close();
         }
-        indexArchive.close();
+
         files = files.stream()
                 .filter(e -> e.contains("@"))
                 .map(e -> e.split("@")[1])
