@@ -158,6 +158,10 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     private DefaultMutableTreeNode constructNode(Parameter arg) {
         StringBuilder sb = new StringBuilder();
+        if(arg==null)
+        {
+            return null;
+        }
         switch (arg.getType()) {
             case "I":
                 String name = "";
