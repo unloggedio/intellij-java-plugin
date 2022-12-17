@@ -9,15 +9,11 @@ import com.intellij.notification.NotificationType;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.plaf.basic.BasicSplitPaneDivider;
-import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.TreePath;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class TestCandidateCustomizeView {
@@ -62,7 +58,7 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setToggleClickCount(0);
         setDefaultSelection();
         setDocumentationText();
-        setDividerColor();
+        UI_Utils.setDividerColorForSplitPane(splitPane,UI_Utils.teal);
 
         this.testCandidateTree.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
@@ -71,7 +67,9 @@ public class TestCandidateCustomizeView {
         });
 
         generateButton.addActionListener((e) -> generateWithSelectedOptions());
+        generateButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cancelButton.addActionListener((e) -> cancelAndBack());
+        cancelButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private void handleSelections(MouseEvent me) {
@@ -150,8 +148,6 @@ public class TestCandidateCustomizeView {
                     .add(lastCandidate);
             bulkSetCallStatus(firstCandidate, firstCandidate.isUIselected());
             bulkSetCallStatus(lastCandidate, lastCandidate.isUIselected());
-
-            //refreshTree();
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Exception selecting default candidate nodes");
@@ -193,7 +189,6 @@ public class TestCandidateCustomizeView {
 
     private void generateWithSelectedOptions() {
         sortCandidates();
-//        printConfigDetails();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
         } catch (Exception e) {
@@ -216,26 +211,6 @@ public class TestCandidateCustomizeView {
     public void setDocumentationText() {
         TestCandidateTreeModel model = (TestCandidateTreeModel) this.testCandidateTree.getModel();
         this.documentationTextArea.setText(model.getDocumentationText());
-    }
-
-    private void setDividerColor() {
-        splitPane.setUI(new BasicSplitPaneUI() {
-            @Override
-            public BasicSplitPaneDivider createDefaultDivider() {
-                return new BasicSplitPaneDivider(this) {
-                    public void setBorder(Border b) {
-                    }
-
-                    @Override
-                    public void paint(Graphics g) {
-                        Color teal = new Color(1, 204, 245);
-                        g.setColor(teal);
-                        g.fillRect(0, 0, getSize().width, getSize().height);
-                        super.paint(g);
-                    }
-                };
-            }
-        });
     }
 }
 

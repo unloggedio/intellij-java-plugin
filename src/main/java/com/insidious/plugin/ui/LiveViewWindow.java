@@ -22,11 +22,8 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.plaf.basic.BasicSplitPaneDivider;
-import javax.swing.plaf.basic.BasicSplitPaneUI;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
@@ -57,7 +54,8 @@ public class LiveViewWindow implements TreeSelectionListener,
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
-
+    static boolean isLoading =false;
+    Icon refreshDefaultIcon;
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
 
@@ -71,16 +69,14 @@ public class LiveViewWindow implements TreeSelectionListener,
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
         copyVMParameterButton.addActionListener(e -> copyVMParameter());
+        refreshDefaultIcon = this.selectSession.getIcon();
         try {
             loadSession();
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
-        Color teal = new Color(1, 204, 245);
-        setDividerColor(teal, splitPanel);
-//        Color gray = Color.GRAY;
-//        setDividerColor(gray,candidateInfoSplitPane);
-//        setDividerColor(gray,inputOutputParent);
+        UI_Utils.setDividerColorForSplitPane(splitPanel,UI_Utils.teal);
+        this.selectSession.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     public static String[] splitByLength(String str, int size) {
@@ -93,11 +89,26 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     }
 
+    private void updateRefreshButtonState()
+    {
+        this.selectSession.setEnabled(!isLoading);
+        if(isLoading)
+        {
+            UI_Utils.setGifIconForButton(this.selectSession,"loading-def.gif",refreshDefaultIcon);
+        }
+        else
+        {
+            this.selectSession.setIcon(refreshDefaultIcon);
+        }
+    }
     @NotNull
     private ActionListener selectSessionActionListener() {
         return e -> {
             try {
-                loadSession();
+                if(!isLoading)
+                {
+                    loadSession();
+                }
 //                bgTask();
             } catch (Exception ex) {
                 InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
@@ -111,10 +122,10 @@ public class LiveViewWindow implements TreeSelectionListener,
     }
 
     public void loadSession() throws Exception {
+        isLoading=true;
+        updateRefreshButtonState();
         Task.Backgroundable task =
                 new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-
-
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         checkProgressIndicator("Loading session", null);
@@ -122,6 +133,8 @@ public class LiveViewWindow implements TreeSelectionListener,
                                 .getProjectSessions(new GetProjectSessionsCallback() {
                                     @Override
                                     public void error(String message) {
+                                        isLoading=false;
+                                        updateRefreshButtonState();
                                         InsidiousNotification.notifyMessage(
                                                 "Failed to list sessions - " + message, NotificationType.ERROR);
                                     }
@@ -191,6 +204,11 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             } catch (Exception e) {
                                                 logger.error("Failed to send ScanFailed event to amplitude");
                                             }
+                                        }
+                                        finally
+                                        {
+                                            isLoading=false;
+                                            updateRefreshButtonState();
                                         }
                                     }
                                 });
@@ -319,24 +337,5 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void cancel() {
         loadTestCandidateConfigView(selectedTestCandidateAggregate);
-    }
-
-    private void setDividerColor(Color color, JSplitPane splitPanel) {
-        splitPanel.setUI(new BasicSplitPaneUI() {
-            @Override
-            public BasicSplitPaneDivider createDefaultDivider() {
-                return new BasicSplitPaneDivider(this) {
-                    public void setBorder(Border b) {
-                    }
-
-                    @Override
-                    public void paint(Graphics g) {
-                        g.setColor(color);
-                        g.fillRect(0, 0, getSize().width, getSize().height);
-                        super.paint(g);
-                    }
-                };
-            }
-        });
     }
 }

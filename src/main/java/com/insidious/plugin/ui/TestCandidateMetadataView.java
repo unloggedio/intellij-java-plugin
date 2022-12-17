@@ -45,14 +45,9 @@ public class TestCandidateMetadataView {
         this.generateTestCaseButton.setOpaque(false);
         this.generateTestCaseButton.setBorderPainted(false);
 
-
-        MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-
-//        long entryTime = mainMethod.getEntryProbe().getNanoTime();
         long callTime = testCandidateMetadata.getCallTimeNanoSecond();
         long timeInMs = TimeUnit.NANOSECONDS.toMillis(callTime);
         this.candidateNumber.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-
         this.contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent me) {
                 hoverStateManager(me, true);
@@ -71,6 +66,7 @@ public class TestCandidateMetadataView {
                 loadInputOutputInformation();
             }
         });
+        generateTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
     }
 
