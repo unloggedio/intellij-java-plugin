@@ -164,7 +164,12 @@ public class PendingStatement {
 
                 TypeName paramTypeName = ClassTypeUtils.createTypeFromName(typeOfParam);
                 if (isAJavaArrayType) {
-                    statementParameters.add(ArrayTypeName.of(paramTypeName));
+                    if (paramTypeName.isPrimitive()) {
+                        statementParameters.add(ArrayTypeName.of(paramTypeName));
+                    } else {
+                        String arrayTypeName = ArrayTypeName.of(paramTypeName).toString();
+                        statementParameters.add(ClassName.bestGuess(arrayTypeName));
+                    }
                 } else {
                     statementParameters.add(ClassName.bestGuess(paramTypeName.toString()));
                 }
@@ -626,7 +631,8 @@ public class PendingStatement {
                         .getSerializedValue());
                 stringValue = stringValue.replaceAll("\\$", "\\$\\$");
 
-                if (parameter.getType().equals(PrimitiveDataType.BOXED_LONG) || parameter.getType().equals(PrimitiveDataType.LONG)) {
+                if (!stringValue.equals("null") && (parameter.getType().equals(PrimitiveDataType.BOXED_LONG) ||
+                        parameter.getType().equals(PrimitiveDataType.LONG))) {
                     stringValue = stringValue + "L";
                 }
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
