@@ -140,7 +140,6 @@ public class Parameter implements Serializable {
         if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
-            this.nameUsed = name;
         }
     }
 
@@ -323,7 +322,11 @@ public class Parameter implements Serializable {
 //        return matchedString;
 //    }
     public String getNameForUse(String methodName) {
-        if (nameUsed == null && names.size() == 0) {
+        if (nameUsed != null) {
+            return nameUsed;
+        }
+
+        if (names.size() == 0) {
             return null;
         }
 

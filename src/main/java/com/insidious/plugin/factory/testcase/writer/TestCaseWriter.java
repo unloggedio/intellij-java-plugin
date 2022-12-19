@@ -32,6 +32,12 @@ public class TestCaseWriter {
                 else
                     parameterStringBuilder.append("any()");
 
+            } else if (parameter.getProb() != null
+                    && parameter.getProb().getSerializedValue().length > 0
+                    && (new String(parameter.getProb().getSerializedValue())).equals("null")) {
+
+                // if the serialized value is null just append null
+                parameterStringBuilder.append("null");
             } else if (parameter.isBooleanType()) {
                 if (parameter.getValue() == 1) {
                     parameterStringBuilder.append("true");
@@ -100,16 +106,23 @@ public class TestCaseWriter {
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
-            } else if (parameter.isPrimitiveType()) {
+            } else if (parameter.getProb() != null
+                    && parameter.getProb().getSerializedValue().length > 0
+                    && (new String(parameter.getProb().getSerializedValue())).equals("null")) {
 
-                if (parameter.getProb().getSerializedValue().length > 0) {
-                    compareAgainst = new String(parameter.getProb().getSerializedValue());
+                // if the serialized value is null just append null
+                compareAgainst = "null";
+            } else if (parameter.isPrimitiveType()) {
+                String serialisedValue = new String(parameter.getProb().getSerializedValue());
+                if (serialisedValue.length() > 0) {
+                    compareAgainst = serialisedValue;
                 } else {
                     compareAgainst = parameter.getValue();
                 }
 
-                if (parameterType != null && (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
-                        parameterType.equals(PrimitiveDataType.LONG))) {
+                if (parameterType != null &&
+                        (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
+                                parameterType.equals(PrimitiveDataType.LONG))) {
                     compareAgainst += "L";
                 }
 
