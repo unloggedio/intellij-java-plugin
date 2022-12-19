@@ -100,7 +100,6 @@ public class PendingStatement {
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
-                //todo: check #108 and check it this creates a similar regression
                 statementParameters.add(
                         ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
 
