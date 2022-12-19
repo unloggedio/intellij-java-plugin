@@ -143,7 +143,10 @@ public class MethodCallExpression implements Expression, Serializable {
         if (sameNameParamExisting != null && variableExistingParameter == null) {
             // generate a next name from existing name
             //eg: name =>  name0 =>  name1
-            String newName = generateNextName(ors, sameNameParamExisting.getName());
+            String oldName = sameNameParamExisting.getName();
+            String newName = generateNextName(ors, oldName);
+            parameter.getNamesList().remove(newName);
+            parameter.getNamesList().remove(oldName);
             parameter.setName(newName);
         }
         return parameter;

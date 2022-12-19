@@ -368,10 +368,11 @@ public class DaoService {
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
+                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", "V");
                 // only set param type if the type is not already null or empty
-                if (paramArgument.getType() == null || paramArgument.getType().equals("")) {
+                if (paramArgument.getType() == null || paramArgument.getType().equals("") || !paramArgTypeFromProbe.equals("V")) {
                     paramArgument.setTypeForced(
-                            ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                            ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe));
                 }
 
                 paramArgument.setProb(dataEvent);
@@ -643,8 +644,10 @@ public class DaoService {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
                 }
                 argument.setProbeInfo(eventProbe);
-                if (argument.getType() == null || argument.getType().equals("")) {
-                    argument.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+
+                String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
+                if (argument.getType() == null || argument.getType().equals("") || !argTypeFromProbe.equals("V")) {
+                    argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
                 convertedCallExpression.addArgument(argument);
@@ -664,9 +667,9 @@ public class DaoService {
                 returnParam.setProb(returnDataEvent);
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
                 returnParam.setProbeInfo(eventProbe);
-                String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
-                if (typeFromProbe != null) {
-                    returnParam.setTypeForced(typeFromProbe);
+                String typeFromProbe = eventProbe.getAttribute("Type", null);
+                if (returnParam.getType() == null || returnParam.getType().equals("") || typeFromProbe != null) {
+                    returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
                 }
 
                 if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
