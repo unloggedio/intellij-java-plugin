@@ -96,18 +96,17 @@ class ZipConsumer implements Runnable {
         logger.warn("open archive [" + sessionFile + "]");
         List<String> files = new LinkedList<>();
 
-        ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile));
-
-        ZipEntry entry;
-        while ((entry = indexArchive.getNextEntry()) != null) {
-            String entryName = entry.getName();
-            if (!entryName.contains("@")) {
-                continue;
+        try (ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile))) {
+            ZipEntry entry;
+            while ((entry = indexArchive.getNextEntry()) != null) {
+                String entryName = entry.getName();
+                if (!entryName.contains("@")) {
+                    continue;
+                }
+                indexArchive.closeEntry();
+                files.add(entryName.split("@")[1]);
             }
-            indexArchive.closeEntry();
-            files.add(entryName.split("@")[1]);
         }
-        indexArchive.close();
         Collections.sort(files);
         return files;
     }

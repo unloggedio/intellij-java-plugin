@@ -101,6 +101,13 @@ public class VersionManager {
                 log.warn("failed to load verion.properties file: " + e.getMessage());
             }
         }
+        if (inputStream != null) {
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                log.warn("a weird exception occurs: " + e.getMessage());
+            }
+        }
 
 
     }

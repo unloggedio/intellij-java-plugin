@@ -729,15 +729,14 @@ public class SessionInstance {
         List<String> files = new LinkedList<>();
 
         try (FileInputStream fileInputStream = new FileInputStream(sessionFile)) {
-            ZipInputStream indexArchive = new ZipInputStream(fileInputStream);
-
-            ZipEntry entry;
-            while ((entry = indexArchive.getNextEntry()) != null) {
-                String entryName = entry.getName();
-                indexArchive.closeEntry();
-                files.add(entryName);
+            try (ZipInputStream indexArchive = new ZipInputStream(fileInputStream)) {
+                ZipEntry entry;
+                while ((entry = indexArchive.getNextEntry()) != null) {
+                    String entryName = entry.getName();
+                    indexArchive.closeEntry();
+                    files.add(entryName);
+                }
             }
-            indexArchive.close();
         }
 
         files = files.stream()
@@ -822,51 +821,42 @@ public class SessionInstance {
         logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
         String cacheKey = sessionFile.getName() + pathName;
         String cacheFileLocation = this.sessionDirectory + "/cache/" + cacheKey + ".dat";
-        ZipInputStream indexArchive = null;
+//        ZipInputStream indexArchive = null;
         try {
 
             if (cacheEntries.containsKey(cacheKey)) {
                 String name = cacheEntries.get(cacheKey);
                 File cacheFile = new File(cacheFileLocation);
-                FileInputStream inputStream = new FileInputStream(cacheFile);
-                byte[] bytes = IOUtils.toByteArray(inputStream);
-                inputStream.close();
-                return new NameWithBytes(name, bytes);
-            }
-
-            FileInputStream sessionFileInputStream = new FileInputStream(sessionFile);
-            indexArchive = new ZipInputStream(sessionFileInputStream);
-
-
-            ZipEntry entry;
-            while ((entry = indexArchive.getNextEntry()) != null) {
-                String entryName = entry.getName();
-                logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
-                if (entryName.contains(pathName)) {
-                    byte[] fileBytes = IOUtils.toByteArray(indexArchive);
-
-                    File cacheFile = new File(cacheFileLocation);
-                    FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
-                    cacheEntries.put(cacheKey, entryName);
-
-                    NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
-                    logger.info(
-                            pathName + " file from " + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
-                    indexArchive.closeEntry();
-                    indexArchive.close();
-                    sessionFileInputStream.close();
-                    return nameWithBytes;
+                try(FileInputStream inputStream = new FileInputStream(cacheFile)) {
+                    byte[] bytes = IOUtils.toByteArray(inputStream);
+                    return new NameWithBytes(name, bytes);
                 }
             }
+
+            try(FileInputStream sessionFileInputStream = new FileInputStream(sessionFile)) {
+                try(ZipInputStream indexArchive = new ZipInputStream(sessionFileInputStream)) {
+                    ZipEntry entry;
+                    while ((entry = indexArchive.getNextEntry()) != null) {
+                        String entryName = entry.getName();
+                        logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
+                        if (entryName.contains(pathName)) {
+                            byte[] fileBytes = IOUtils.toByteArray(indexArchive);
+
+                            File cacheFile = new File(cacheFileLocation);
+                            FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
+                            cacheEntries.put(cacheKey, entryName);
+
+                            NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
+                            logger.info(
+                                    pathName + " file from " + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
+                            indexArchive.closeEntry();
+                            return nameWithBytes;
+                        }
+                    }
+                }
+            }
+
         } catch (Exception e) {
-            if (indexArchive != null) {
-                try {
-                    indexArchive.close();
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-            // e.printStackTrace();
             logger.warn(
                     "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
             return null;
