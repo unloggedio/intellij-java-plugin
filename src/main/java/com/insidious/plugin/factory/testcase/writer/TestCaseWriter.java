@@ -45,22 +45,16 @@ public class TestCaseWriter {
                     parameterStringBuilder.append("false");
                 }
             } else if (parameter.isPrimitiveType()) {
-                if (parameter.getProb() != null &&
-                        parameter.getType()
-                                .startsWith("java.lang") &&
-                        parameter.getProb()
-                                .getSerializedValue().length > 0) {
+                if (parameter.isBoxedPrimitiveType() &&
+                        parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0) {
+
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
-                    if (paramType != null &&
-                            (paramType.equals(PrimitiveDataType.BOXED_LONG)
-                                    || paramType.equals(PrimitiveDataType.LONG))) {
-                        parameterStringBuilder.append("L");
-                    }
 
+                    addParameterSuffix(parameterStringBuilder, paramType);
                 } else {
-                    parameterStringBuilder.append(parameter.getValue());
+                    makeParameterValueForPrimitiveType(parameterStringBuilder, parameter);
                 }
             } else if (parameter.getNameForUse(null) != null) {
                 parameterStringBuilder.append(parameter.getNameForUse(null));
@@ -77,7 +71,6 @@ public class TestCaseWriter {
                     parameterStringBuilder.append(stringValue);
                 }
             }
-
 
         }
 
@@ -102,7 +95,7 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            Object compareAgainst;
+            Object compareAgainst = null;
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
@@ -113,17 +106,18 @@ public class TestCaseWriter {
                 // if the serialized value is null just append null
                 compareAgainst = "null";
             } else if (parameter.isPrimitiveType()) {
-                String serialisedValue = new String(parameter.getProb().getSerializedValue());
-                if (serialisedValue.length() > 0) {
-                    compareAgainst = serialisedValue;
-                } else {
-                    compareAgainst = parameter.getValue();
-                }
+                if (parameter.isBoxedPrimitiveType()) {
+                    String serialisedValue = new String(parameter.getProb().getSerializedValue());
+                    if (serialisedValue.length() > 0) {
+                        compareAgainst = serialisedValue;
+                    } else {
+                        compareAgainst = parameter.getValue();
+                    }
 
-                if (parameterType != null &&
-                        (parameterType.equals(PrimitiveDataType.BOXED_LONG) ||
-                                parameterType.equals(PrimitiveDataType.LONG))) {
-                    compareAgainst += "L";
+                    addParameterSuffix(parameterStringBuilder, parameterType);
+                } else {
+
+                    makeParameterValueForPrimitiveType(parameterStringBuilder, parameter);
                 }
 
             } else if (parameter.getNameForUse(null) != null) {
@@ -149,9 +143,8 @@ public class TestCaseWriter {
                         .append(compareAgainst)
                         .append(")");
             } else if (parameterType != null && compareAgainst != null
-                    && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
-                    && !parameterType.contains(".Object"))
-            ) {
+                    && (parameter.isPrimitiveType()
+                    && !parameterType.contains(".Object"))) {
                 if (parameter.isBooleanType()) {
                     if (compareAgainst.equals("0")
                             || compareAgainst.equals(0L) // compare specifically to 0L, since comparing
@@ -174,13 +167,44 @@ public class TestCaseWriter {
                             .append(".class)");
                 }
             }
-
-
         }
 
 
         @NotNull String parameterString = parameterStringBuilder.toString();
         return parameterString;
+    }
+
+    private static void makeParameterValueForPrimitiveType(StringBuilder parameterStringBuilder, Parameter parameter) {
+        switch (parameter.getType()) {
+            case PrimitiveDataType.LONG:
+                parameterStringBuilder.append(parameter.getValue());
+                parameterStringBuilder.append("L");
+                break;
+            case PrimitiveDataType.DOUBLE:
+                parameterStringBuilder.append(Double.longBitsToDouble(parameter.getValue()));
+                parameterStringBuilder.append("D");
+                break;
+            case PrimitiveDataType.FLOAT:
+                parameterStringBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
+                parameterStringBuilder.append("F");
+                break;
+            default:
+                parameterStringBuilder.append(parameter.getValue());
+        }
+    }
+
+    private static void addParameterSuffix(StringBuilder parameterStringBuilder, String parameterType) {
+        switch (parameterType) {
+            case PrimitiveDataType.BOXED_LONG:
+                parameterStringBuilder.append("L");
+                break;
+            case PrimitiveDataType.BOXED_DOUBLE:
+                parameterStringBuilder.append("D");
+                break;
+            case PrimitiveDataType.BOXED_FLOAT:
+                parameterStringBuilder.append("F");
+                break;
+        }
     }
 
 

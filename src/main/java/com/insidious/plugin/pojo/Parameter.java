@@ -140,6 +140,7 @@ public class Parameter implements Serializable {
         if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
+            this.nameUsed = name;
         }
     }
 
@@ -379,18 +380,22 @@ public class Parameter implements Serializable {
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
         return type != null &&
-                (type.length() == 1
-                        || type.startsWith("java.lang.Boolean")
-                        || type.startsWith("java.lang.Integer")
-                        || type.startsWith("java.lang.Long")
-                        || type.startsWith("java.lang.Short")
-                        || type.startsWith("java.lang.Char")
-                        || type.startsWith("java.lang.Double")
-                        || type.startsWith("java.lang.Float")
-                        || type.startsWith("java.lang.Number")
-                        || type.startsWith("java.lang.Void")
-                        || type.startsWith("java.lang.Byte")
-                );
+                (type.length() == 1 || isBoxedPrimitiveType());
+
+    }
+
+    public boolean isBoxedPrimitiveType() {
+        return type != null && (type.startsWith("java.lang.Boolean")
+                || type.startsWith("java.lang.Integer")
+                || type.startsWith("java.lang.Long")
+                || type.startsWith("java.lang.Short")
+                || type.startsWith("java.lang.Char")
+                || type.startsWith("java.lang.Double")
+                || type.startsWith("java.lang.Float")
+                || type.startsWith("java.lang.Number")
+                || type.startsWith("java.lang.Void")
+                || type.startsWith("java.lang.Byte")
+        );
     }
 
     public boolean isModified() {

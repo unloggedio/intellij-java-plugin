@@ -10,7 +10,7 @@ rm jna-5.5.0.jar jna-platform-5.5.0.jar
 
 cd ../..
 
-zip -r -Z deflate plugin-${PLUGIN_VERSION}-nc.zip plugin/*
+zip -r -Z deflate plugin-${PLUGIN_VERSION}-all.zip plugin/*
 
 rm -rf plugin
 

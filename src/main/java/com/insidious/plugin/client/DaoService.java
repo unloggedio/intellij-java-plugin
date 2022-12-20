@@ -799,9 +799,9 @@ public class DaoService {
                 returnParam.setProb(returnDataEvent);
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
                 returnParam.setProbeInfo(eventProbe);
-                String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
-                if (typeFromProbe != null) {
-                    returnParam.setTypeForced(typeFromProbe);
+                String typeFromProbe = eventProbe.getAttribute("Type", null);
+                if (returnParam.getType() == null || returnParam.getType().equals("") || typeFromProbe != null) {
+                    returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
                 }
 
                 if (returnParam.getType() != null && returnDataEvent.getSerializedValue().length == 0) {
