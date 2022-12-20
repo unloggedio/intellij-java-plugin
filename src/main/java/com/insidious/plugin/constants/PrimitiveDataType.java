@@ -4,6 +4,7 @@ package com.insidious.plugin.constants;
 // keep adding more primitive data type here
 public class PrimitiveDataType {
 
+    public static final String VOID = "V";
     public static final String INTEGER = "I";
     public static final String LONG = "J";
     public static final String DOUBLE = "D";

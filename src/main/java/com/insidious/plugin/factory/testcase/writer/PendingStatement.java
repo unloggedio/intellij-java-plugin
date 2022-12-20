@@ -461,7 +461,6 @@ public class PendingStatement {
                         templateParams.append("$T");
                     }
 
-
                     statementBuilder
                             .append("$T<")
                             .append(templateParams)
@@ -666,7 +665,6 @@ public class PendingStatement {
                 serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");
 
                 serializedValue = addParameterSuffix(serializedValue, parameter.getType());
-
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             } else {
                 serializedValue = makeParameterValueForPrimitiveType(parameter);

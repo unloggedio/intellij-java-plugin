@@ -50,11 +50,11 @@ public class TestCaseWriter {
 
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
-                    parameterStringBuilder.append(serializedValue);
+                    serializedValue = addParameterSuffix(serializedValue, paramType);
 
-                    addParameterSuffix(parameterStringBuilder, paramType);
+                    parameterStringBuilder.append(serializedValue);
                 } else {
-                    makeParameterValueForPrimitiveType(parameterStringBuilder, parameter);
+                    parameterStringBuilder.append(makeParameterValueForPrimitiveType(parameter));
                 }
             } else if (parameter.getNameForUse(null) != null) {
                 parameterStringBuilder.append(parameter.getNameForUse(null));
@@ -114,10 +114,9 @@ public class TestCaseWriter {
                         compareAgainst = parameter.getValue();
                     }
 
-                    addParameterSuffix(parameterStringBuilder, parameterType);
+                    compareAgainst = addParameterSuffix(String.valueOf(compareAgainst), parameterType);
                 } else {
-
-                    makeParameterValueForPrimitiveType(parameterStringBuilder, parameter);
+                    compareAgainst = makeParameterValueForPrimitiveType(parameter);
                 }
 
             } else if (parameter.getNameForUse(null) != null) {
@@ -174,37 +173,41 @@ public class TestCaseWriter {
         return parameterString;
     }
 
-    private static void makeParameterValueForPrimitiveType(StringBuilder parameterStringBuilder, Parameter parameter) {
+    private static String makeParameterValueForPrimitiveType(Parameter parameter) {
+        StringBuilder valueBuilder = new StringBuilder();
+
         switch (parameter.getType()) {
             case PrimitiveDataType.LONG:
-                parameterStringBuilder.append(parameter.getValue());
-                parameterStringBuilder.append("L");
+                valueBuilder.append(parameter.getValue());
+                valueBuilder.append("L");
                 break;
             case PrimitiveDataType.DOUBLE:
-                parameterStringBuilder.append(Double.longBitsToDouble(parameter.getValue()));
-                parameterStringBuilder.append("D");
+                valueBuilder.append(Double.longBitsToDouble(parameter.getValue()));
+                valueBuilder.append("D");
                 break;
             case PrimitiveDataType.FLOAT:
-                parameterStringBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
-                parameterStringBuilder.append("F");
+                valueBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
+                valueBuilder.append("F");
                 break;
             default:
-                parameterStringBuilder.append(parameter.getValue());
+                valueBuilder.append(parameter.getValue());
         }
+        return valueBuilder.toString();
     }
 
-    private static void addParameterSuffix(StringBuilder parameterStringBuilder, String parameterType) {
+    private static String addParameterSuffix(String valueString, String parameterType) {
         switch (parameterType) {
             case PrimitiveDataType.BOXED_LONG:
-                parameterStringBuilder.append("L");
+                valueString += "L";
                 break;
             case PrimitiveDataType.BOXED_DOUBLE:
-                parameterStringBuilder.append("D");
+                valueString += "D";
                 break;
             case PrimitiveDataType.BOXED_FLOAT:
-                parameterStringBuilder.append("F");
+                valueString += "F";
                 break;
         }
+        return valueString;
     }
 
 
