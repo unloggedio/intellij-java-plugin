@@ -142,7 +142,7 @@ public class TestCaseWriter {
                         .append(compareAgainst)
                         .append(")");
             } else if (parameterType != null && compareAgainst != null
-                    && (parameter.isPrimitiveType()
+                    && (parameterType.length() == 1 || parameterType.startsWith("java.lang.")
                     && !parameterType.contains(".Object"))) {
                 if (parameter.isBooleanType()) {
                     if (compareAgainst.equals("0")
@@ -155,7 +155,6 @@ public class TestCaseWriter {
                         compareAgainst = "true";
                     }
                 }
-
                 parameterStringBuilder.append("eq(").append(compareAgainst).append(")");
             } else {
                 if (parameter.getValue() == 0) {

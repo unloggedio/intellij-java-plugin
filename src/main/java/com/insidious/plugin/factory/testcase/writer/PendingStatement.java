@@ -643,10 +643,10 @@ public class PendingStatement {
             return this;
         }
 
-        if (lhsExpression.isPrimitiveType()) {
+        if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
-            long returnValue = parameter.getValue();
+            Object returnValue = parameter.getValue();
 
             String serializedValue = "";
             if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
@@ -655,13 +655,13 @@ public class PendingStatement {
             if (serializedValue.equals("null")) {
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             } else if (parameter.isBooleanType()) {
-                if (returnValue == 1) {
+                if ((long) returnValue == 1L) {
                     this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("true"));
                 } else {
                     this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
                 }
 
-            } else if (parameter.isBoxedPrimitiveType() && !serializedValue.isEmpty()) {
+            } else if (!serializedValue.isEmpty()) {
                 serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");
 
                 serializedValue = addParameterSuffix(serializedValue, parameter.getType());
