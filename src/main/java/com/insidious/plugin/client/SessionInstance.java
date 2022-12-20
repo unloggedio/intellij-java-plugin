@@ -66,6 +66,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -153,6 +154,9 @@ public class SessionInstance {
         dataEvent.setRecordedAt(eventBlock.timestamp());
         dataEvent.setValue(eventBlock.valueId());
         dataEvent.setSerializedValue(eventBlock.serializedData());
+        // use the following instead if the serialized data is in binary form (eg using fst/kryo serializer)
+        //         dataEvent.setSerializedValue(Base64.getEncoder().encodeToString(eventBlock.serializedData()).getBytes(
+        //                StandardCharsets.UTF_8));
         return dataEvent;
     }
 

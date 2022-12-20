@@ -9,6 +9,7 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -71,7 +72,7 @@ public class TestGenerationState {
                 try {
                     value1 = gson.fromJson(value, JsonElement.class);
                 } catch (JsonSyntaxException jse) {
-                    value1 = value;
+                    value1 = new String(lhsExpression.getProb().getSerializedValue());
                     logger.warn("Object was not serialized properly: " + value1 + " -> " + jse.getMessage());
                 }
                 valueResourceMap.put(referenceNameForValue, value1);
