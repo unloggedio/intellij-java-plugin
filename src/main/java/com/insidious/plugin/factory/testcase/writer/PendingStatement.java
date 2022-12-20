@@ -2,7 +2,6 @@ package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.constants.PrimitiveDataType;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -12,6 +11,7 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.ParameterUtils;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
@@ -31,44 +31,6 @@ public class PendingStatement {
 
     public PendingStatement(ObjectRoutineScript objectRoutine) {
         this.objectRoutine = objectRoutine;
-    }
-
-    private static String makeParameterValueForPrimitiveType(Parameter parameter) {
-        StringBuilder stringBuilder = new StringBuilder();
-
-        switch (parameter.getType()) {
-            case PrimitiveDataType.LONG:
-                stringBuilder.append(parameter.getValue());
-                stringBuilder.append("L");
-                break;
-            case PrimitiveDataType.DOUBLE:
-                stringBuilder.append(Double.longBitsToDouble(parameter.getValue()));
-                stringBuilder.append("D");
-                break;
-            case PrimitiveDataType.FLOAT:
-                stringBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
-                stringBuilder.append("F");
-                break;
-            default:
-                stringBuilder.append(parameter.getValue());
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String addParameterSuffix(String valueString, String parameterType) {
-        switch (parameterType) {
-            case PrimitiveDataType.BOXED_LONG:
-                valueString += "L";
-                break;
-            case PrimitiveDataType.BOXED_DOUBLE:
-                valueString += "D";
-                break;
-            case PrimitiveDataType.BOXED_FLOAT:
-                valueString += "F";
-                break;
-        }
-        return valueString;
     }
 
     private void writeCallStatement(
@@ -646,7 +608,7 @@ public class PendingStatement {
         if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
-            Object returnValue = parameter.getValue();
+            long returnValue = parameter.getValue();
 
             String serializedValue = "";
             if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
@@ -655,7 +617,7 @@ public class PendingStatement {
             if (serializedValue.equals("null")) {
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             } else if (parameter.isBooleanType()) {
-                if ((long) returnValue == 1L) {
+                if (returnValue == 1L) {
                     this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("true"));
                 } else {
                     this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
@@ -664,10 +626,10 @@ public class PendingStatement {
             } else if (!serializedValue.isEmpty()) {
                 serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");
 
-                serializedValue = addParameterSuffix(serializedValue, parameter.getType());
+                serializedValue = ParameterUtils.addParameterTypeSuffix(serializedValue, parameter.getType());
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             } else {
-                serializedValue = makeParameterValueForPrimitiveType(parameter);
+                serializedValue = ParameterUtils.makeParameterValueForPrimitiveType(parameter);
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             }
 
