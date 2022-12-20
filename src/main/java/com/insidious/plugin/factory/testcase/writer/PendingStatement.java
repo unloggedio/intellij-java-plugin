@@ -24,7 +24,6 @@ import java.util.regex.Pattern;
 
 public class PendingStatement {
     public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
-    public static final ClassName LIST_CLASS = ClassName.bestGuess("java.util.List");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new ArrayList<>();
@@ -32,6 +31,44 @@ public class PendingStatement {
 
     public PendingStatement(ObjectRoutineScript objectRoutine) {
         this.objectRoutine = objectRoutine;
+    }
+
+    private static String makeParameterValueForPrimitiveType(Parameter parameter) {
+        StringBuilder stringBuilder = new StringBuilder();
+
+        switch (parameter.getType()) {
+            case PrimitiveDataType.LONG:
+                stringBuilder.append(parameter.getValue());
+                stringBuilder.append("L");
+                break;
+            case PrimitiveDataType.DOUBLE:
+                stringBuilder.append(Double.longBitsToDouble(parameter.getValue()));
+                stringBuilder.append("D");
+                break;
+            case PrimitiveDataType.FLOAT:
+                stringBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
+                stringBuilder.append("F");
+                break;
+            default:
+                stringBuilder.append(parameter.getValue());
+        }
+
+        return stringBuilder.toString();
+    }
+
+    private static String addParameterSuffix(String valueString, String parameterType) {
+        switch (parameterType) {
+            case PrimitiveDataType.BOXED_LONG:
+                valueString += "L";
+                break;
+            case PrimitiveDataType.BOXED_DOUBLE:
+                valueString += "D";
+                break;
+            case PrimitiveDataType.BOXED_FLOAT:
+                valueString += "F";
+                break;
+        }
+        return valueString;
     }
 
     private void writeCallStatement(
@@ -72,7 +109,10 @@ public class PendingStatement {
                     templateString.append("$T");
                 }
                 //                        1, 2, 3,      4, 5, 6
-                statementBuilder.append("$L.$L($S, new $T<$T<" + templateString + ">>(){}.getType())");
+                statementBuilder
+                        .append("$L.$L($S, new $T<$T<")
+                        .append(templateString)
+                        .append(">>(){}.getType())");
                 statementParameters.add(methodCallExpression.getSubject()
                         .getNameForUse(null));  // 1
                 statementParameters.add(methodCallExpression.getMethodName()); // 2
@@ -128,7 +168,10 @@ public class PendingStatement {
                     templateString.append("$T");
                 }
                 //                        1, 2,      3, 4,    5
-                statementBuilder.append("$L($S, new $T<$T<" + templateString + ">>(){}.getType())");
+                statementBuilder
+                        .append("$L($S, new $T<$T<")
+                        .append(templateString)
+                        .append(">>(){}.getType())");
                 statementParameters.add(methodCallExpression.getMethodName()); // 1
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
@@ -215,9 +258,6 @@ public class PendingStatement {
 
             statementBuilder.append(".$L($T.class)");
             statementParameters.add(methodCallExpression.getMethodName());
-
-            /** todo: check #108 and check it this creates a similar regression
-             @see around line 160 */
             statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
                     .getType())));
 
@@ -396,7 +436,7 @@ public class PendingStatement {
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
-            /** this typename handled for int[] byte[] long[] */
+            // this typename handled for int[] byte[] long[]
             String lhsExprTypeString = lhsExpression != null ? lhsExpression.getType() : null;
             if (lhsExprTypeString != null && lhsExprTypeString.endsWith("[]")) {
                 lhsTypeName = ArrayTypeName.of(lhsTypeName);
@@ -422,7 +462,10 @@ public class PendingStatement {
                     }
 
 
-                    statementBuilder.append("$T<" + templateParams.toString() + ">")
+                    statementBuilder
+                            .append("$T<")
+                            .append(templateParams)
+                            .append(">")
                             .append(" ");
                     statementParameters.add(lhsTypeName);
                     for (String templateKey : templateKeys) {
@@ -536,7 +579,6 @@ public class PendingStatement {
         objectRoutine.addStatement(statement, statementParameters);
     }
 
-
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
@@ -602,43 +644,33 @@ public class PendingStatement {
             return this;
         }
 
-        if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
+        if (lhsExpression.isPrimitiveType()) {
             // primitive variable types
             Parameter parameter = lhsExpression;
+            long returnValue = parameter.getValue();
 
-            Object returnValue = parameter.getValue();
-            if (targetClassname.equals("Z") || targetClassname.equals("java.lang.Boolean")) {
-                if (returnValue instanceof String) {
-                    if (Objects.equals(returnValue, "0")) {
-                        returnValue = "false";
-                    } else {
-                        returnValue = "true";
-                    }
-                    this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression((String) returnValue));
+            String serializedValue = "";
+            if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
+                serializedValue = new String(parameter.getProb().getSerializedValue());
 
-                } else if (returnValue instanceof Long) {
-                    if ((long) returnValue == 1) {
-                        this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("true"));
-                    } else {
-                        this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
-                    }
-
+            if (serializedValue.equals("null")) {
+                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
+            } else if (parameter.isBooleanType()) {
+                if (returnValue == 1) {
+                    this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("true"));
+                } else {
+                    this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
                 }
 
-            } else if (parameter.getProb()
-                    .getSerializedValue().length > 0) {
-                String stringValue = new String(parameter.getProb()
-                        .getSerializedValue());
-                stringValue = stringValue.replaceAll("\\$", "\\$\\$");
+            } else if (parameter.isBoxedPrimitiveType() && !serializedValue.isEmpty()) {
+                serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");
 
-                if (!stringValue.equals("null") && (parameter.getType().equals(PrimitiveDataType.BOXED_LONG) ||
-                        parameter.getType().equals(PrimitiveDataType.LONG))) {
-                    stringValue = stringValue + "L";
-                }
-                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
+                serializedValue = addParameterSuffix(serializedValue, parameter.getType());
+
+                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             } else {
-                String stringValue = String.valueOf(parameter.getValue());
-                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(stringValue));
+                serializedValue = makeParameterValueForPrimitiveType(parameter);
+                this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));
             }
 
         } else {
