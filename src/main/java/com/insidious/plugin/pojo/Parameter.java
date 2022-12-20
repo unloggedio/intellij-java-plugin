@@ -140,6 +140,7 @@ public class Parameter implements Serializable {
         if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
+            this.nameUsed = name;
         }
     }
 

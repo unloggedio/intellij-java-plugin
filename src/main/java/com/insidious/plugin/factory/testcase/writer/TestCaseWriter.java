@@ -46,10 +46,10 @@ public class TestCaseWriter {
                 }
             } else if (parameter.isPrimitiveType()) {
                 if (parameter.getProb() != null &&
-                        parameter.getType()
-                                .startsWith("java.lang") &&
+                        (paramType.startsWith("java.lang") || paramType.equals("D") || paramType.equals("F")) &&
                         parameter.getProb()
                                 .getSerializedValue().length > 0) {
+
                     String serializedValue = new String(parameter.getProb()
                             .getSerializedValue());
                     parameterStringBuilder.append(serializedValue);
@@ -77,7 +77,6 @@ public class TestCaseWriter {
                     parameterStringBuilder.append(stringValue);
                 }
             }
-
 
         }
 
