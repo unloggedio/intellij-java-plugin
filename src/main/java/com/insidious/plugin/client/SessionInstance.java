@@ -67,7 +67,6 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -828,18 +827,19 @@ public class SessionInstance {
             if (cacheEntries.containsKey(cacheKey)) {
                 String name = cacheEntries.get(cacheKey);
                 File cacheFile = new File(cacheFileLocation);
-                try(FileInputStream inputStream = new FileInputStream(cacheFile)) {
+                try (FileInputStream inputStream = new FileInputStream(cacheFile)) {
                     byte[] bytes = IOUtils.toByteArray(inputStream);
                     return new NameWithBytes(name, bytes);
                 }
             }
 
-            try(FileInputStream sessionFileInputStream = new FileInputStream(sessionFile)) {
-                try(ZipInputStream indexArchive = new ZipInputStream(sessionFileInputStream)) {
+            try (FileInputStream sessionFileInputStream = new FileInputStream(sessionFile)) {
+                try (ZipInputStream indexArchive = new ZipInputStream(sessionFileInputStream)) {
                     ZipEntry entry;
                     while ((entry = indexArchive.getNextEntry()) != null) {
                         String entryName = entry.getName();
-                        logger.debug(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(), entryName));
+                        logger.info(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(),
+                                entryName));
                         if (entryName.contains(pathName)) {
                             byte[] fileBytes = IOUtils.toByteArray(indexArchive);
 
@@ -2693,6 +2693,49 @@ public class SessionInstance {
             logger.debug("parameterContainer = " + parameterContainer.all()
                     .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
 
+            if (threadState.getCallStack()
+                    .size() > 50) {
+                StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
+                        "<html>There was an infinite recursion " +
+                                "detected. Events cannot be processed further for thread [" + threadId + "]. " +
+                                "You need to add @JsonManagedReference/@JsonBackReference annotation to identify " +
+                                "POJOs references forming a closed loop. Here is a list of last few calls from the stack: " +
+                                "<br/><br/>");
+                i = 0;
+                Map<Long, Integer> matchedProbe = new HashMap<>();
+                for (int j = 0; j < threadState.getCallStack()
+                        .size(); j++) {
+                    MethodCallExpression call = threadState.getCallStack()
+                            .get(j);
+                    long dataId = call.getEntryProbe()
+                            .getDataId();
+                    infiniteRecursionDetectedMessage
+                            .append("Probe [")
+                            .append(dataId)
+                            .append("][")
+                            .append(call.getEntryProbe()
+                                    .getNanoTime())
+                            .append("] call to ")
+                            .append(call.toString())
+                            .append("<br />");
+                    i++;
+                    if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
+                        break;
+                    }
+                    if (!matchedProbe.containsKey(dataId)) {
+                        matchedProbe.put(dataId, 0);
+                    }
+                    matchedProbe.put(dataId, matchedProbe.get(dataId) + 1);
+                    if (i > 30) {
+                        break;
+                    }
+                }
+                infiniteRecursionDetectedMessage.append("</html>");
+                InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
+                        NotificationType.ERROR);
+                return;
+            }
+
             daoService.createOrUpdateDataEvent(eventsToSave);
             daoService.createOrUpdateProbeInfo(probesToSave);
             daoService.createOrUpdateCall(callsToSave);
@@ -2837,7 +2880,8 @@ public class SessionInstance {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
-            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!", NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
+                    NotificationType.ERROR);
         }
 
         if (classPsiInstance == null) {
@@ -2877,9 +2921,11 @@ public class SessionInstance {
                 //param is enum then we set it to enum type
                 // todo : Optimise this enum type search in classInfoIndex
                 for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
-                    String currParamType = parameterFromProbe.getType().replace('.', '/');
+                    String currParamType = parameterFromProbe.getType()
+                            .replace('.', '/');
                     ClassInfo currClassInfo = entry.getValue();
-                    if (currClassInfo.getClassName().equals(currParamType)) {
+                    if (currClassInfo.getClassName()
+                            .equals(currParamType)) {
                         // curr class info is present and is enum set param as enum
                         if (currClassInfo.isEnum()) {
                             parameterFromProbe.setIsEnum(true);
@@ -2903,7 +2949,8 @@ public class SessionInstance {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
-            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!", NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
+                    NotificationType.ERROR);
         }
 
         if (classPsiInstance == null) {
