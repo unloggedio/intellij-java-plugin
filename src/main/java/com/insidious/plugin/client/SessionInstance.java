@@ -1901,10 +1901,21 @@ public class SessionInstance {
 
         // try to read the most recent object index from the archives we are about to process
         for (String lastArchiveName : archiveList) {
+            int archiveIndexNumber = Integer.parseInt(lastArchiveName.split("-")[1]);
             File lastSessionArchive = Path.of(executionSession.getPath(), lastArchiveName)
                     .toFile();
+            int latestIndexReadNumber = -1;
+            List<String> latestIndexRead = objectIndexRead.keySet()
+                    .stream()
+                    .sorted()
+                    .collect(Collectors.toList());
+            if (latestIndexRead.size() > 0) {
+                latestIndexReadNumber = Integer.parseInt(latestIndexRead.get(latestIndexRead.size() - 1)
+                        .split("-")[1]);
+            }
 
-            if (!objectIndexRead.containsKey(lastSessionArchive.getName())) {
+
+            if (latestIndexReadNumber < archiveIndexNumber && !objectIndexRead.containsKey(lastSessionArchive.getName())) {
                 objectIndexRead.put(lastSessionArchive.getName(), true);
                 NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(lastSessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
