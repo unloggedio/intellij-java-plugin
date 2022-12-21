@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
+import com.googlecode.cqengine.index.support.CloseableIterator;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
@@ -1892,19 +1893,37 @@ public class SessionInstance {
 
         int threadId = threadState.getThreadId();
 
-        for (LogFile logFile : archiveLogFiles) {
-            File sessionArchive = Path.of(executionSession.getPath(), logFile.getArchiveName())
+        List<String> archiveList = archiveLogFiles.stream()
+                .map(LogFile::getArchiveName)
+                .sorted()
+                .collect(Collectors.toList());
+        Collections.reverse(archiveList);
+
+        // try to read the most recent object index from the archives we are about to process
+        for (String lastArchiveName : archiveList) {
+            File lastSessionArchive = Path.of(executionSession.getPath(), lastArchiveName)
                     .toFile();
 
-            if (!objectIndexRead.containsKey(sessionArchive.getName())) {
-                objectIndexRead.put(sessionArchive.getName(), true);
-                NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(sessionArchive,
+            if (!objectIndexRead.containsKey(lastSessionArchive.getName())) {
+                objectIndexRead.put(lastSessionArchive.getName(), true);
+                NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(lastSessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
-                assert objectIndex != null;
+                if (objectIndex == null) {
+                    logger.error("failed to read object info index from: " + lastSessionArchive);
+                    continue;
+                }
+//                assert objectIndex != null;
                 ArchiveIndex archiveObjectIndex = readArchiveIndex(objectIndex.getBytes(), INDEX_OBJECT_DAT_FILE);
-                archiveObjectIndex.getObjectIndex()
-                        .parallelStream()
-                        .forEach(e -> objectInfoIndex.put(e.getObjectId(), e));
+                ConcurrentIndexedCollection<ObjectInfoDocument> objectIndex1 = archiveObjectIndex.getObjectIndex();
+                CloseableIterator<ObjectInfoDocument> closableIterator = objectIndex1.iterator();
+                while (closableIterator.hasNext()) {
+                    ObjectInfoDocument e = closableIterator.next();
+                    objectInfoIndex.put(e.getObjectId(), e);
+                }
+                closableIterator.close();
+            } else {
+                // we already have the latest object info index
+                break;
             }
         }
 
