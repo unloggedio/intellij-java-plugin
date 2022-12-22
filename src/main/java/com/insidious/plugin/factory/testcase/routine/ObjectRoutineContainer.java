@@ -251,7 +251,8 @@ public class ObjectRoutineContainer {
             Parameter childParameter = new Parameter();
             childParameter.setType(staticMock.getType());
             staticMock.setTypeForced("org.mockito.MockedStatic");
-            staticMock.getTemplateMap().put("E", childParameter);
+            childParameter.setName("E");
+            staticMock.getTemplateMap().add(childParameter);
 
             container.addField(staticMock);
 
@@ -259,7 +260,8 @@ public class ObjectRoutineContainer {
                     .assignVariable(staticMock)
                     .writeExpression(
                             MethodCallExpressionFactory.MockStaticClass(
-                                    ClassName.bestGuess(staticMock.getTemplateMap().get("E").getType()), generationConfiguration))
+                                    ClassName.bestGuess(staticMock.getTemplateMap().get(0).getType()),
+                                    generationConfiguration))
                     .endStatement();
         }
 

@@ -209,8 +209,9 @@ public class CandidateMetadataFactory {
                             Parameter childParameter = new Parameter();
                             childParameter.setType(staticCallSubjectMockInstance.getType());
                             subjectStaticFieldMock.setType("org.mockito.MockedStatic");
+                            childParameter.setName("E");
                             subjectStaticFieldMock.getTemplateMap()
-                                    .put("E", childParameter);
+                                    .add(childParameter);
 
                             objectRoutineScript.addStaticMock(subjectStaticFieldMock);
                         }
@@ -492,7 +493,8 @@ public class CandidateMetadataFactory {
 
                 replayData.ScanForValue(identifyIteratorScanRequest);
                 Parameter nextValueParam = nextValueParameter.get();
-                targetParameter.setTemplateParameter("E", nextValueParam);
+                nextValueParam.setName("E");
+                targetParameter.setTemplateParameter(nextValueParam);
 
                 return null;
             default:

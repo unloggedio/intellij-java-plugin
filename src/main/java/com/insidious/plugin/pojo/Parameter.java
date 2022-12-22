@@ -36,9 +36,8 @@ public class Parameter implements Serializable {
     private String stringValue = null;
     private int index;
     private DataInfo dataInfo;
-    //    private ConstructorType constructorType;
     private MethodCallExpression creatorExpression;
-    private Map<String, Parameter> templateMap = new HashMap<>();
+    private List<Parameter> templateMap = new ArrayList<>();
     private boolean isContainer = false;
     private String nameUsed;
     private boolean modified;
@@ -84,11 +83,11 @@ public class Parameter implements Serializable {
         isContainer = container;
     }
 
-    public Map<String, Parameter> getTemplateMap() {
+    public List<Parameter> getTemplateMap() {
         return templateMap;
     }
 
-    public void setTemplateMap(Map<String, Parameter> transformedTemplateMap) {
+    public void setTemplateMap(List<Parameter> transformedTemplateMap) {
         this.templateMap = transformedTemplateMap;
     }
 
@@ -202,14 +201,6 @@ public class Parameter implements Serializable {
         return dataInfo;
     }
 
-//    public ConstructorType getConstructorType() {
-//        return constructorType;
-//    }
-//
-//    public void setConstructorType(ConstructorType constructorType) {
-//        this.constructorType = constructorType;
-//    }
-
     public void setProbeInfo(DataInfo probeInfo) {
         if (this.dataInfo == null
                 || !this.dataInfo.getEventType()
@@ -242,7 +233,7 @@ public class Parameter implements Serializable {
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (isContainer) {
             fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(getTemplateMap().get("E")
+                    ClassName.bestGuess(getTemplateMap().get(0)
                             .getType()));
         }
 
@@ -253,9 +244,9 @@ public class Parameter implements Serializable {
         return builder;
     }
 
-    public void setTemplateParameter(String e, Parameter nextValueParam) {
+    public void setTemplateParameter(Parameter nextValueParam) {
         isContainer = true;
-        this.templateMap.put(e, nextValueParam);
+        this.templateMap.add(nextValueParam);
     }
 
     public void addName(String nameForParameter) {

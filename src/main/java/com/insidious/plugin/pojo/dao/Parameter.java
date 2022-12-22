@@ -6,10 +6,7 @@ import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -44,7 +41,7 @@ public class Parameter {
     private int probeInfo_id;
     @DatabaseField
     private long creatorExpression_id;
-    private Map<String, Parameter> templateMap = new HashMap<>();
+    private List<Parameter> templateMap = new ArrayList<>();
     private boolean isContainer = false;
 
     public static Parameter fromParameter(com.insidious.plugin.pojo.Parameter e) {
@@ -57,16 +54,14 @@ public class Parameter {
         newParam.setException(e.getException());
         newParam.setProb_id(e.getProb());
         newParam.setType(e.getType());
-        Map<String, com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
-        Map<String, Parameter> transformedTemplateMap = new HashMap<>();
-        for (String s : templateMap1.keySet()) {
-            com.insidious.plugin.pojo.Parameter param = templateMap1.get(s);
-            transformedTemplateMap.put(s, Parameter.fromParameter(param));
+        List<com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
+        List<Parameter> transformedTemplateMap = new ArrayList<>();
+        for (com.insidious.plugin.pojo.Parameter param : templateMap1) {
+            transformedTemplateMap.add(Parameter.fromParameter(param));
         }
         newParam.setNames(e.getNames());
 
         newParam.setTemplateMap(transformedTemplateMap);
-//        newParam.setConstructorType(e.getConstructorType());
         newParam.setProbeInfo_id(e.getProbeInfo());
         newParam.setValue(e.getValue());
         return newParam;
@@ -86,11 +81,10 @@ public class Parameter {
 //        newParam.setException(e.getException());
         newParam.setType(parameter.getType());
         newParam.addNames(Arrays.asList(parameter.getNames()));
-        Map<String, Parameter> templateMap1 = parameter.getTemplateMap();
-        Map<String, com.insidious.plugin.pojo.Parameter> transformedTemplateMap = new HashMap<>();
-        for (String s : templateMap1.keySet()) {
-            Parameter param = templateMap1.get(s);
-            transformedTemplateMap.put(s, Parameter.toParameter(param));
+        List<Parameter> templateMap1 = parameter.getTemplateMap();
+        List<com.insidious.plugin.pojo.Parameter> transformedTemplateMap = new ArrayList<>();
+        for (Parameter param : templateMap1) {
+            transformedTemplateMap.add(Parameter.toParameter(param));
         }
 
         newParam.setTemplateMap(transformedTemplateMap);
@@ -117,11 +111,11 @@ public class Parameter {
         isContainer = container;
     }
 
-    public Map<String, Parameter> getTemplateMap() {
+    public List<Parameter> getTemplateMap() {
         return templateMap;
     }
 
-    public void setTemplateMap(Map<String, Parameter> templateMap) {
+    public void setTemplateMap(List<Parameter> templateMap) {
         this.templateMap = templateMap;
     }
 
@@ -236,11 +230,5 @@ public class Parameter {
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }
-
-    public void setTemplateParameter(String e, Parameter nextValueParam) {
-        isContainer = true;
-        this.templateMap.put(e, nextValueParam);
-    }
-
 
 }

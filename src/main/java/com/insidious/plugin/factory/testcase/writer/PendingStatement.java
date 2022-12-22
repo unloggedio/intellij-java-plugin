@@ -18,9 +18,13 @@ import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PendingStatement {
     public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
@@ -56,10 +60,12 @@ public class PendingStatement {
 
             Parameter objectToDeserialize = variables.get(0);
 
-            Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
+            List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-                List<String> templateKeys = new ArrayList<>(templateMap.keySet());
-                Collections.sort(templateKeys);
+                List<String> templateKeys = templateMap.stream()
+                        .map(Parameter::getName)
+                        .sorted()
+                        .collect(Collectors.toList());
                 int count = templateKeys.size();
 
 
@@ -86,9 +92,14 @@ public class PendingStatement {
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
                 for (String templateKey : templateKeys) {
-                    Parameter templateParameter = templateMap
-                            .get(templateKey);
-                    String templateParameterType = templateParameter.getType();
+                    Optional<Parameter> templateParameter =
+                            templateMap.stream()
+                                    .filter(e -> e.getName()
+                                            .equals(templateKey))
+                                    .findFirst();
+                    assert templateParameter.isPresent();
+                    String templateParameterType = templateParameter.get()
+                            .getType();
                     ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
                     statementParameters.add(parameterClassName); // 6
                 }
@@ -114,11 +125,13 @@ public class PendingStatement {
 
             Parameter objectToDeserialize = variables.get(0);
 
-            Map<String, Parameter> templateMap = objectToDeserialize.getTemplateMap();
+            List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
 
-                List<String> templateKeys = new ArrayList<>(templateMap.keySet());
-                Collections.sort(templateKeys);
+                List<String> templateKeys = templateMap.stream()
+                        .map(Parameter::getName)
+                        .sorted()
+                        .collect(Collectors.toList());
                 int count = templateKeys.size();
 
 
@@ -143,9 +156,14 @@ public class PendingStatement {
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 4
 
                 for (String templateKey : templateKeys) {
-                    Parameter templateParameter = templateMap
-                            .get(templateKey);
-                    String templateParameterType = templateParameter.getType();
+                    Optional<Parameter> templateParameterOption =
+                            templateMap.stream()
+                                    .filter(e -> e.getName()
+                                            .equals(templateKey))
+                                    .findFirst();
+                    assert templateParameterOption.isPresent();
+                    String templateParameterType = templateParameterOption.get()
+                            .getType();
                     ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
                     statementParameters.add(parameterClassName); // 5
                 }
@@ -172,7 +190,8 @@ public class PendingStatement {
                     if (paramTypeName.isPrimitive()) {
                         statementParameters.add(ArrayTypeName.of(paramTypeName));
                     } else {
-                        String arrayTypeName = ArrayTypeName.of(paramTypeName).toString();
+                        String arrayTypeName = ArrayTypeName.of(paramTypeName)
+                                .toString();
                         statementParameters.add(ClassName.bestGuess(arrayTypeName));
                     }
                 } else {
@@ -409,12 +428,14 @@ public class PendingStatement {
 
                 objectRoutine.getCreatedVariables()
                         .add(lhsExpression);
-                Map<String, Parameter> templateMap = lhsExpression.getTemplateMap();
+                List<Parameter> templateMap = lhsExpression.getTemplateMap();
                 if (lhsExpression.isContainer() && templateMap.size() > 0) {
 
                     StringBuilder templateParams = new StringBuilder();
-                    ArrayList<String> templateKeys = new ArrayList<>(templateMap.keySet());
-                    Collections.sort(templateKeys);
+                    ArrayList<String> templateKeys = templateMap.stream()
+                            .map(Parameter::getName)
+                            .sorted()
+                            .collect(Collectors.toCollection(ArrayList::new));
                     for (int i = 0; i < templateKeys.size(); i++) {
                         if (i > 0) {
                             templateParams.append(", ");
@@ -430,8 +451,14 @@ public class PendingStatement {
                             .append(" ");
                     statementParameters.add(lhsTypeName);
                     for (String templateKey : templateKeys) {
-                        Parameter templateParameter = templateMap.get(templateKey);
-                        String templateType = templateParameter.getType();
+                        Optional<Parameter> templateParameter =
+                                templateMap.stream()
+                                        .filter(e -> e.getName()
+                                                .equals(templateKey))
+                                        .findFirst();
+                        assert templateParameter.isPresent();
+                        String templateType = templateParameter.get()
+                                .getType();
                         statementParameters.add(ClassName.bestGuess(templateType));
                     }
 
@@ -611,8 +638,10 @@ public class PendingStatement {
             long returnValue = parameter.getValue();
 
             String serializedValue = "";
-            if (parameter.getProb() != null && parameter.getProb().getSerializedValue().length > 0)
-                serializedValue = new String(parameter.getProb().getSerializedValue());
+            if (parameter.getProb() != null && parameter.getProb()
+                    .getSerializedValue().length > 0)
+                serializedValue = new String(parameter.getProb()
+                        .getSerializedValue());
 
             if (serializedValue.equals("null")) {
                 this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression(serializedValue));

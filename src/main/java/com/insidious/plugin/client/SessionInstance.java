@@ -375,10 +375,20 @@ public class SessionInstance {
         averageValue.setName("name1-name1-name1");
         averageValue.setName("name2-name2");
         averageValue.setName("name4");
-        HashMap<String, Parameter> transformedTemplateMap = new HashMap<>();
-        transformedTemplateMap.put("E", new Parameter(1L));
-        transformedTemplateMap.put("F", new Parameter(1L));
-        transformedTemplateMap.put("G", new Parameter(1L));
+        List<Parameter> transformedTemplateMap = new ArrayList<>();
+
+        Parameter param1 = new Parameter(1L);
+        param1.setName("E");
+        transformedTemplateMap.add(param1);
+
+        Parameter param2 = new Parameter(1L);
+        param2.setName("F");
+        transformedTemplateMap.add(param2);
+
+        Parameter param3 = new Parameter(1L);
+        param3.setName("G");
+        transformedTemplateMap.add(param3);
+
         averageValue.setTemplateMap(transformedTemplateMap);
 
         ChronicleMapBuilder<Long, Parameter> parameterInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
@@ -3052,21 +3062,27 @@ public class SessionInstance {
                     if (classReferenceType.hasParameters()) {
                         PsiType[] typeTemplateParameters = classReferenceType.getParameters();
                         parameterFromProbe.setContainer(true);
-                        Map<String, Parameter> templateMap = parameterFromProbe.getTemplateMap();
+                        List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
                         char templateChar = 'D';
                         for (PsiType typeTemplateParameter : typeTemplateParameters) {
                             templateChar++;
                             Parameter value = new Parameter();
                             value.setType(typeTemplateParameter.getCanonicalText());
                             String templateKey = String.valueOf(templateChar);
-                            if (templateMap.containsKey(templateKey)) {
-                                Parameter existingValue = templateMap.get(templateKey);
+                            value.setName(templateKey);
+                            Optional<Parameter> existingTemplateOptional = templateMap.stream()
+                                    .filter(e -> e.getName()
+                                            .equals(templateKey))
+                                    .findFirst();
+                            if (existingTemplateOptional.isPresent()) {
+                                Parameter existingValue = existingTemplateOptional.get();
                                 if (existingValue.getType()
                                         .length() < 2) {
-                                    templateMap.put(templateKey, value);
+                                    templateMap.remove(existingTemplateOptional.get());
+                                    templateMap.add(value);
                                 }
                             } else {
-                                templateMap.put(templateKey, value);
+                                templateMap.add(value);
                             }
                         }
                     }
@@ -3090,21 +3106,27 @@ public class SessionInstance {
                 if (classReferenceType.hasParameters()) {
                     PsiType[] typeTemplateParameters = classReferenceType.getParameters();
                     returnParameter.setContainer(true);
-                    Map<String, Parameter> templateMap = returnParameter.getTemplateMap();
+                    List<Parameter> templateMap = returnParameter.getTemplateMap();
                     char templateChar = 'D';
                     for (PsiType typeTemplateParameter : typeTemplateParameters) {
                         templateChar++;
                         Parameter value = new Parameter();
                         value.setType(typeTemplateParameter.getCanonicalText());
                         String templateKey = String.valueOf(templateChar);
-                        if (templateMap.containsKey(templateKey)) {
-                            Parameter existingValue = templateMap.get(templateKey);
+                        value.setName(templateKey);
+                        Optional<Parameter> exitingTemplateOptional = templateMap.stream()
+                                .filter(e -> e.getName()
+                                        .equals(templateKey))
+                                .findFirst();
+                        if (exitingTemplateOptional.isPresent()) {
+                            Parameter existingValue = exitingTemplateOptional.get();
                             if (existingValue.getType()
                                     .length() < 2) {
-                                templateMap.put(templateKey, value);
+                                templateMap.remove(exitingTemplateOptional.get());
+                                templateMap.add(value);
                             }
                         } else {
-                            templateMap.put(templateKey, value);
+                            templateMap.add(value);
                         }
                     }
                 }
