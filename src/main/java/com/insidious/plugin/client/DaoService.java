@@ -363,6 +363,7 @@ public class DaoService {
                 com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
                 if (paramArgument == null) {
                     paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
+                    paramArgument.setTypeForced(probeInfo.getValueDesc().getString());
                 } else {
                     paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
@@ -643,6 +644,7 @@ public class DaoService {
                 com.insidious.plugin.pojo.Parameter argument = this.getParameterByValue(argumentParameter);
                 if (argument == null) {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
+                    argument.setTypeForced(eventProbe.getValueDesc().getString());
                 }
                 argument.setProbeInfo(eventProbe);
 
@@ -781,9 +783,14 @@ public class DaoService {
                 com.insidious.plugin.pojo.Parameter argument = this.getParameterByValue(argumentParameter);
                 if (argument == null) {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
+                    argument.setTypeForced(eventProbe.getValueDesc().getString());
                 }
                 argument.setProbeInfo(eventProbe);
-                argument.setTypeForced(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
+
+                String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
+                if (argument.getType() == null || argument.getType().equals("") || !argTypeFromProbe.equals("V")) {
+                    argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
+                }
                 argument.setProb(dataEvent);
                 convertedCallExpression.addArgument(argument);
                 convertedCallExpression.addArgumentProbe(dataEvent);
