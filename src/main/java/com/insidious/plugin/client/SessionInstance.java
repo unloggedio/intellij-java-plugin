@@ -136,6 +136,8 @@ public class SessionInstance {
         }
 
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
+
+        checkProgressIndicator("Opening Zip Files", null);
         zipConsumer = new ZipConsumer(daoService, sessionDirectory);
         executorPool = Executors.newFixedThreadPool(4);
 
@@ -1847,7 +1849,7 @@ public class SessionInstance {
         Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                 .collect(Collectors.groupingBy(LogFile::getThreadId));
         if (logFilesByThreadMap.size() == 0) {
-//            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
+            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
             return;
         }
 
