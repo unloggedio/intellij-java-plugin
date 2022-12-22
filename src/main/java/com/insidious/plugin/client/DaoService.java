@@ -65,7 +65,8 @@ public class DaoService {
             "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "where p.type = ?\n" +
-            "  and mc.methodName = ?\n" +
+            "  and mc.methodName = ?" +
+            "  and mc.methodAccess & 1 == 1\n" +
             "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
