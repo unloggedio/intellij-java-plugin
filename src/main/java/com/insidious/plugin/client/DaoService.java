@@ -66,7 +66,7 @@ public class DaoService {
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "where p.type = ?\n" +
             "  and mc.methodName = ?\n" +
-            "order by mc.methodName;";
+            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -257,8 +257,7 @@ public class DaoService {
             logger.warn("Load calls took: " + (end - start));
             return callsList;
         } catch (Exception e) {
-            logger.error(e.getMessage());
-            logger.error(e.getStackTrace());
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -370,7 +369,8 @@ public class DaoService {
 
                 String paramArgTypeFromProbe = probeInfo.getAttribute("Type", "V");
                 // only set param type if the type is not already null or empty
-                if (paramArgument.getType() == null || paramArgument.getType().equals("") || !paramArgTypeFromProbe.equals("V")) {
+                if (paramArgument.getType() == null || paramArgument.getType()
+                        .equals("") || !paramArgTypeFromProbe.equals("V")) {
                     paramArgument.setTypeForced(
                             ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe));
                 }
@@ -646,7 +646,8 @@ public class DaoService {
                 argument.setProbeInfo(eventProbe);
 
                 String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
-                if (argument.getType() == null || argument.getType().equals("") || !argTypeFromProbe.equals("V")) {
+                if (argument.getType() == null || argument.getType()
+                        .equals("") || !argTypeFromProbe.equals("V")) {
                     argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
@@ -668,7 +669,8 @@ public class DaoService {
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
                 returnParam.setProbeInfo(eventProbe);
                 String typeFromProbe = eventProbe.getAttribute("Type", null);
-                if (returnParam.getType() == null || returnParam.getType().equals("") || typeFromProbe != null) {
+                if (returnParam.getType() == null || returnParam.getType()
+                        .equals("") || typeFromProbe != null) {
                     returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
                 }
 
@@ -800,7 +802,8 @@ public class DaoService {
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
                 returnParam.setProbeInfo(eventProbe);
                 String typeFromProbe = eventProbe.getAttribute("Type", null);
-                if (returnParam.getType() == null || returnParam.getType().equals("") || typeFromProbe != null) {
+                if (returnParam.getType() == null || returnParam.getType()
+                        .equals("") || typeFromProbe != null) {
                     returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
                 }
 

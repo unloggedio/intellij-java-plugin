@@ -26,7 +26,7 @@ class ZipConsumer implements Runnable {
         this.daoService = daoService;
         this.sessionDirectory = sessionDirectory;
         this.archiveFileMap = daoService.getArchiveFileMap();
-        checkNewFiles();
+//        checkNewFiles();
     }
 
     private static int getThreadIdFromFileName(String archiveFile) {
@@ -93,7 +93,7 @@ class ZipConsumer implements Runnable {
     }
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
-        logger.warn("open archive [" + sessionFile + "]");
+        logger.info("open archive [" + sessionFile + "]");
         List<String> files = new LinkedList<>();
 
         try (ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile))) {

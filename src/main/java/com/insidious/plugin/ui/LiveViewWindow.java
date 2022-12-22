@@ -32,13 +32,17 @@ import java.io.IOException;
 import java.util.List;
 
 public class LiveViewWindow implements TreeSelectionListener,
-        TestSelectionListener, TestGenerateActionListener {
+        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener {
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
+    static boolean isLoading = false;
     private final Project project;
     private final InsidiousService insidiousService;
     private final VideobugTreeCellRenderer cellRenderer;
+    private final ActionListener pauseActionListener;
+    private final ActionListener resumeActionListener;
+    Icon refreshDefaultIcon;
     private LiveViewTestCandidateListTree treeModel;
-    private JButton selectSession;
+    private JButton processLogsSwitch;
     private JPanel bottomPanel;
     private JTree mainTree;
     private JPanel mainPanel;
@@ -51,32 +55,35 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JPanel candidateListPanel;
     private JButton copyVMParameterButton;
     private JProgressBar candidateLoadProgressbar;
+    private JProgressBar progressBar1;
+    private JButton pauseProcessingButton;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
-    static boolean isLoading =false;
-    Icon refreshDefaultIcon;
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
 
         this.project = project;
         this.insidiousService = insidiousService;
 
-        this.selectSession.addActionListener(selectSessionActionListener());
+        this.processLogsSwitch.addActionListener(selectSessionActionListener());
+        pauseActionListener = pauseCheckingForNewLogs();
+        resumeActionListener = resumeCheckingForNewLogs();
+//        pauseProcessingButton.addActionListener(pauseActionListener);
 
         cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
         copyVMParameterButton.addActionListener(e -> copyVMParameter());
-        refreshDefaultIcon = this.selectSession.getIcon();
+        refreshDefaultIcon = this.processLogsSwitch.getIcon();
         try {
             loadSession();
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
-        UI_Utils.setDividerColorForSplitPane(splitPanel,UI_Utils.teal);
-        this.selectSession.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        UI_Utils.setDividerColorForSplitPane(splitPanel, UI_Utils.teal);
+        this.processLogsSwitch.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     public static String[] splitByLength(String str, int size) {
@@ -89,27 +96,24 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     }
 
-    private void updateRefreshButtonState()
-    {
-        this.selectSession.setEnabled(!isLoading);
-        if(isLoading)
-        {
-            UI_Utils.setGifIconForButton(this.selectSession,"loading-def.gif",refreshDefaultIcon);
+    private void updateRefreshButtonState() {
+        this.processLogsSwitch.setEnabled(!isLoading);
+        if (isLoading) {
+            UI_Utils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
+        } else {
+            this.processLogsSwitch.setIcon(refreshDefaultIcon);
         }
-        else
-        {
-            this.selectSession.setIcon(refreshDefaultIcon);
-        }
+        mainPanel.validate();
+        mainPanel.repaint();
     }
+
     @NotNull
     private ActionListener selectSessionActionListener() {
         return e -> {
             try {
-                if(!isLoading)
-                {
+                if (!isLoading) {
                     loadSession();
                 }
-//                bgTask();
             } catch (Exception ex) {
                 InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
                         NotificationType.ERROR);
@@ -121,8 +125,38 @@ public class LiveViewWindow implements TreeSelectionListener,
         };
     }
 
+    @NotNull
+    private ActionListener pauseCheckingForNewLogs() {
+        return e -> setPauseScanningState();
+    }
+
+    private void setPauseScanningState() {
+        if (testCaseService != null) {
+            testCaseService.setPauseCheckingForNewLogs(true);
+        }
+        pauseProcessingButton.setText("Resume processing logs");
+        isLoading = false;
+        updateRefreshButtonState();
+        pauseProcessingButton.removeActionListener(pauseActionListener);
+        pauseProcessingButton.addActionListener(resumeActionListener);
+    }
+
+    @NotNull
+    private ActionListener resumeCheckingForNewLogs() {
+        return e -> setResumedScanningState();
+    }
+
+    private void setResumedScanningState() {
+        testCaseService.setPauseCheckingForNewLogs(false);
+        pauseProcessingButton.setText("Pause processing logs");
+        isLoading = true;
+        updateRefreshButtonState();
+        pauseProcessingButton.removeActionListener(resumeActionListener);
+        pauseProcessingButton.addActionListener(pauseActionListener);
+    }
+
     public void loadSession() throws Exception {
-        isLoading=true;
+        isLoading = true;
         updateRefreshButtonState();
         Task.Backgroundable task =
                 new Task.Backgroundable(project, "Unlogged, Inc.", true) {
@@ -133,7 +167,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                 .getProjectSessions(new GetProjectSessionsCallback() {
                                     @Override
                                     public void error(String message) {
-                                        isLoading=false;
+                                        isLoading = false;
                                         updateRefreshButtonState();
                                         InsidiousNotification.notifyMessage(
                                                 "Failed to list sessions - " + message, NotificationType.ERROR);
@@ -160,6 +194,8 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                 headingText.setText(text.toString());
                                                 mainTree.setModel(new DefaultTreeModel(
                                                         new DefaultMutableTreeNode("No session")));
+                                                isLoading = false;
+                                                updateRefreshButtonState();
                                                 return;
                                             } else {
                                                 headingText.setText(
@@ -169,29 +205,22 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             ExecutionSession executionSession = executionSessionList.get(0);
 
                                             if (sessionInstance != null) {
-//                                        if (sessionInstance.getExecutionSession().getSessionId().equals(executionSession.getSessionId())) {
-//                                            testCaseService.processLogFiles();
-//                                            treeModel = new LiveViewTestCandidateListTree(
-//                                                    project, insidiousService.getClient().getSessionInstance());
-//                                            mainTree.setModel(treeModel);
-//                                            return;
-//                                        }
                                                 sessionInstance.close();
                                             }
-//                                    sessionInstance = null;
                                             sessionInstance = new SessionInstance(executionSession, project);
                                             insidiousService.getClient()
                                                     .setSessionInstance(sessionInstance);
                                             testCaseService = new TestCaseService(sessionInstance);
+                                            sessionInstance.setTestCandidateListener(LiveViewWindow.this);
 
-                                            testCaseService.processLogFiles();
                                             treeModel = new LiveViewTestCandidateListTree(
                                                     project, insidiousService.getClient()
                                                     .getSessionInstance());
                                             mainTree.setModel(treeModel);
-
+                                            setResumedScanningState();
                                         } catch (Exception ex) {
                                             ex.printStackTrace();
+                                            setPauseScanningState();
                                             InsidiousNotification.notifyMessage(
                                                     "Failed to set sessions - " + ex.getMessage()
                                                             + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
@@ -204,11 +233,6 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             } catch (Exception e) {
                                                 logger.error("Failed to send ScanFailed event to amplitude");
                                             }
-                                        }
-                                        finally
-                                        {
-                                            isLoading=false;
-                                            updateRefreshButtonState();
                                         }
                                     }
                                 });
@@ -247,9 +271,10 @@ public class LiveViewWindow implements TreeSelectionListener,
         this.candidateListPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(1);
-        CandidateInformationWindow candidateInformationWindow = new CandidateInformationWindow(testCandidateMetadataList, testCaseService, this, sessionInstance);
+        CandidateInformationWindow candidateInformationWindow = new CandidateInformationWindow(
+                testCandidateMetadataList, testCaseService, this, sessionInstance);
         candidateListPanel.add(candidateInformationWindow.getMainPanel(), constraints);
-        headingText.setText("Test Candidates for " + methodNode.getMethodName());
+        headingText.setText("Test Candidates for " + methodNode.getMethodName() + " (most recent first)");
         this.candidateListPanel.revalidate();
     }
 
@@ -306,36 +331,38 @@ public class LiveViewWindow implements TreeSelectionListener,
         InsidiousNotification.notifyMessage("Testcase generated for " + testCaseUnit.getTestMethodName() + "()",
                 NotificationType.INFORMATION);
 
-//        try {
-//            ProgressManager.getInstance().run(new Task.WithResult<Void, Exception>(project, "Unlogged", false) {
-//                @Override
-//                protected Void compute(@NotNull ProgressIndicator indicator) throws Exception {
-//
-//                    Parameter testSubject = generationConfiguration.getTestCandidateMetadataList().get(0).getTestSubject();
-//                    checkProgressIndicator("Generating test case: " + testSubject.getType(),
-//                            "With " + generationConfiguration.getTestCandidateMetadataList().size() + " candidates," +
-//                                    " mocking " + generationConfiguration.getCallExpressionList().size());
-//                    @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-//
-//                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
-//                    insidiousService.ensureTestUtilClass();
-//                    insidiousService.saveTestSuite(testSuite);
-//                    return null;
-//                }
-//            });
-//        } catch (Exception e) {
-//            InsidiousNotification.notifyMessage(
-//                    "Failed to generated test case - " + e.getMessage(), NotificationType.ERROR
-//            );
-//        }
-
     }
 
     @Override
-    public void loadInputOutputInformation(TestCandidateMetadata metadata) {}
+    public void loadInputOutputInformation(TestCandidateMetadata metadata) {
+    }
 
     @Override
     public void cancel() {
         loadTestCandidateConfigView(selectedTestCandidateAggregate);
+    }
+
+    @Override
+    public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
+        try {
+            treeModel = new LiveViewTestCandidateListTree(
+                    project, insidiousService.getClient()
+                    .getSessionInstance());
+            mainTree.setModel(treeModel);
+            mainTree.validate();
+            mainTree.repaint();
+            if (completedCount == 0) {
+                progressBar1.setMaximum(1);
+                progressBar1.setValue(1);
+            } else {
+                progressBar1.setMaximum(totalCount);
+                progressBar1.setValue(completedCount);
+            }
+            mainPanel.validate();
+            mainPanel.repaint();
+        } catch (Exception e) {
+            logger.error("failed to query new candidates", e);
+            throw new RuntimeException(e);
+        }
     }
 }

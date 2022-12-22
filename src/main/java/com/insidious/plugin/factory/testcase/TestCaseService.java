@@ -19,18 +19,21 @@ import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
+import javax.lang.model.element.Modifier;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TestCaseService {
+public class TestCaseService implements Runnable {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final SessionInstance sessionInstance;
+    private boolean pauseCheckingForNewLogs;
+    private boolean isProcessing;
 
 
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
+        this.sessionInstance.submitTask(this);
     }
 
     @NotNull
@@ -43,8 +46,8 @@ public class TestCaseService {
         TypeSpec.Builder typeSpecBuilder = TypeSpec
                 .classBuilder(generatedTestClassName)
                 .addModifiers(
-                        javax.lang.model.element.Modifier.PUBLIC,
-                        javax.lang.model.element.Modifier.FINAL
+                        Modifier.PUBLIC,
+                        Modifier.FINAL
                 );
 
         typeSpecBuilder.addField(objectRoutineContainer.getTestSubject()
@@ -85,7 +88,7 @@ public class TestCaseService {
 
         typeSpecBuilder
                 .addField(FieldSpec
-                        .builder(gsonClass, "gson", javax.lang.model.element.Modifier.PRIVATE)
+                        .builder(gsonClass, "gson", Modifier.PRIVATE)
                         .initializer("new $T()", gsonClass)
                         .build()
                 );
@@ -127,7 +130,8 @@ public class TestCaseService {
 
         TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
-                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(), testClassSpec);
+                generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(),
+                testClassSpec);
         return testCaseUnit;
     }
 
@@ -190,10 +194,42 @@ public class TestCaseService {
     }
 
     public void processLogFiles() throws Exception {
+        if (isProcessing) {
+            return;
+        }
+        isProcessing = true;
         sessionInstance.scanDataAndBuildReplay();
+        isProcessing = false;
     }
 
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
         return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.sleep(2000);
+                if (this.pauseCheckingForNewLogs) {
+                    continue;
+                }
+                processLogFiles();
+            } catch (InterruptedException e) {
+                logger.warn("test case service scanner shutting down", e);
+                throw new RuntimeException(e);
+            } catch (Exception e) {
+                logger.error("exception in testcase service scanner shutting down", e);
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public boolean isPauseCheckingForNewLogs() {
+        return pauseCheckingForNewLogs;
+    }
+
+    public void setPauseCheckingForNewLogs(boolean pauseCheckingForNewLogs) {
+        this.pauseCheckingForNewLogs = pauseCheckingForNewLogs;
     }
 }

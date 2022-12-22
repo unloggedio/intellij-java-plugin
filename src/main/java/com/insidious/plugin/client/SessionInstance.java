@@ -3,7 +3,6 @@ package com.insidious.plugin.client;
 import com.googlecode.cqengine.ConcurrentIndexedCollection;
 import com.googlecode.cqengine.index.hash.HashIndex;
 import com.googlecode.cqengine.index.radixinverted.InvertedRadixTreeIndex;
-import com.googlecode.cqengine.index.support.CloseableIterator;
 import com.googlecode.cqengine.persistence.disk.DiskPersistence;
 import com.googlecode.cqengine.query.Query;
 import com.googlecode.cqengine.resultset.ResultSet;
@@ -35,6 +34,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.pojo.dao.ProbeInfo;
+import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
 import static com.insidious.common.weaver.EventType.GET_INSTANCE_FIELD_RESULT;
 import static com.insidious.common.weaver.EventType.PUT_INSTANCE_FIELD_VALUE;
@@ -105,6 +106,8 @@ public class SessionInstance {
     private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
+    private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
+    private NewTestCandidateIdentifiedListener testCandidateListener;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -1833,44 +1836,51 @@ public class SessionInstance {
         Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                 .collect(Collectors.groupingBy(LogFile::getThreadId));
         if (logFilesByThreadMap.size() == 0) {
-            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
+//            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
             return;
         }
 
-        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
-        ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
+        ChronicleMap<Long, Parameter> parameterIndex = null;
+        try {
+            parameterIndex = createParameterIndex();
+            ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
-        Set<Integer> allThreads = logFilesByThreadMap.keySet();
-        int i = 0;
-        for (Integer threadId : allThreads) {
-            i++;
-            checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
-            List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
-            ThreadProcessingState threadState = daoService.getThreadState(threadId);
-            processPendingThreadFiles(threadState, logFiles, parameterContainer);
+            Set<Integer> allThreads = logFilesByThreadMap.keySet();
+            int i = 0;
+            int processedCount = 0;
+            for (Integer threadId : allThreads) {
+                i++;
+                checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
+                List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
+                ThreadProcessingState threadState = daoService.getThreadState(threadId);
+                boolean newCandidateIdentified = processPendingThreadFiles(threadState, logFiles, parameterContainer);
+                processedCount += logFiles.size();
+                if (newCandidateIdentified) {
+                    testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+                }
+            }
+
+
+            Collection<Parameter> allParameters = parameterIndex.values()
+                    .stream()
+                    .filter(Parameter::isModified)
+                    .collect(Collectors.toList());
+            checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
+            daoService.createOrUpdateParameter(allParameters);
+
+        } finally {
+            if (parameterIndex != null) {
+
+                parameterIndex.close();
+            }
         }
 
-
-        Collection<Parameter> allParameters = parameterIndex.values()
-                .stream()
-                .filter(Parameter::isModified)
-                .collect(Collectors.toList());
-        checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
-        daoService.createOrUpdateParameter(allParameters);
-
-        parameterIndex.close();
         try {
             long scanEndTime = System.currentTimeMillis();
             float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
             long size_folder = getFolderSize(sessionDir);
             long archives_size = 0;
-            // sessionArchives list is going to be stale now
-            // need to calcualte this in a different way
-//            for (File f : this.sessionArchives) {
-//                long sizeInBytes = f.length();
-//                archives_size += sizeInBytes;
-//            }
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("session_scan_time", scanTime);
             eventProperties.put("session_folder_size", (size_folder / 1000000));
@@ -1883,11 +1893,13 @@ public class SessionInstance {
         }
     }
 
-    private void processPendingThreadFiles(
+    private boolean processPendingThreadFiles(
             ThreadProcessingState threadState,
             List<LogFile> archiveLogFiles,
             ChronicleVariableContainer parameterContainer
     ) throws IOException, SQLException {
+
+        boolean newTestCaseIdentified = false;
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
@@ -1915,7 +1927,8 @@ public class SessionInstance {
             }
 
 
-            if (latestIndexReadNumber < archiveIndexNumber && !objectIndexRead.containsKey(lastSessionArchive.getName())) {
+            if (latestIndexReadNumber < archiveIndexNumber && !objectIndexRead.containsKey(
+                    lastSessionArchive.getName())) {
                 objectIndexRead.put(lastSessionArchive.getName(), true);
                 NameWithBytes objectIndex = createFileOnDiskFromSessionArchiveFile(lastSessionArchive,
                         INDEX_OBJECT_DAT_FILE.getFileName());
@@ -1925,13 +1938,16 @@ public class SessionInstance {
                 }
 //                assert objectIndex != null;
                 ArchiveIndex archiveObjectIndex = readArchiveIndex(objectIndex.getBytes(), INDEX_OBJECT_DAT_FILE);
-                ConcurrentIndexedCollection<ObjectInfoDocument> objectIndex1 = archiveObjectIndex.getObjectIndex();
-                CloseableIterator<ObjectInfoDocument> closableIterator = objectIndex1.iterator();
-                while (closableIterator.hasNext()) {
-                    ObjectInfoDocument e = closableIterator.next();
-                    objectInfoIndex.put(e.getObjectId(), e);
+                if (objectIndexCollection != null) {
+                    objectIndexCollection = null;
                 }
-                closableIterator.close();
+                objectIndexCollection = archiveObjectIndex.getObjectIndex();
+//                CloseableIterator<ObjectInfoDocument> closableIterator = objectIndexCollection.iterator();
+//                while (closableIterator.hasNext()) {
+//                    ObjectInfoDocument e = closableIterator.next();
+//                    objectInfoIndex.put(e.getObjectId(), e);
+//                }
+//                closableIterator.close();
             } else {
                 // we already have the latest object info index
                 break;
@@ -2427,9 +2443,10 @@ public class SessionInstance {
                                 .getEventType();
                         existingParameter = parameterContainer.getParameterByValue(eventValue);
                         if (existingParameter.getType() == null) {
+                            ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                                    existingParameter.getValue());
                             String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
-                                            objectInfoIndex.get(existingParameter.getValue())
-                                                    .getTypeId())
+                                            objectInfoDocument.getTypeId())
                                     .getTypeName());
                             existingParameter.setType(typeName);
                         }
@@ -2742,9 +2759,12 @@ public class SessionInstance {
                     }
                 }
                 infiniteRecursionDetectedMessage.append("</html>");
+                logger.warn("infinite recursion detected: " + infiniteRecursionDetectedMessage.toString());
+                logger.warn("was going to save: [" + threadState.getCallStack()
+                        .size() + " calls ]");
                 InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
                         NotificationType.ERROR);
-                return;
+                return newTestCaseIdentified;
             }
 
             daoService.createOrUpdateDataEvent(eventsToSave);
@@ -2753,6 +2773,9 @@ public class SessionInstance {
             daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
             daoService.updateCalls(callsToUpdate);
             daoService.createOrUpdateTestCandidate(candidatesToSave);
+            if (candidatesToSave.size() > 0) {
+                newTestCaseIdentified = true;
+            }
 
             logFile.setStatus(Constants.COMPLETED);
             daoService.updateLogFile(logFile);
@@ -2783,7 +2806,23 @@ public class SessionInstance {
 //            logger.warn("call stack is not 0, should it be ? - " + threadState.getCallStackSize());
 //        }
 
+        return newTestCaseIdentified;
 
+    }
+
+    private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
+        return objectInfoIndex.get(parameterValue);
+    }
+
+    private ObjectInfoDocument getObjectInfoDocumentRaw(long parameterValue) {
+        ResultSet<ObjectInfoDocument> result = objectIndexCollection.retrieve(
+                equal(ObjectInfoDocument.OBJECT_ID, parameterValue));
+        if (result.size() == 0) {
+            return null;
+        }
+        ObjectInfoDocument objectInfo = result.uniqueResult();
+        result.close();
+        return objectInfo;
     }
 
     private long getFolderSize(File folder) {
@@ -3086,6 +3125,13 @@ public class SessionInstance {
         archiveIndex = null;
     }
 
+    public void submitTask(Runnable testCaseService) {
+        executorPool.submit(testCaseService);
+    }
+
+    public void setTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
+        this.testCandidateListener = testCandidateListener;
+    }
 
     class FileToEventStreamer implements Runnable {
         private final DaoService daoService;

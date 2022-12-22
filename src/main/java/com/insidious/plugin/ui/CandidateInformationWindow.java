@@ -61,7 +61,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         });
         assertEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertNotEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        UI_Utils.setDividerColorForSplitPane(mainSplitPane,UI_Utils.teal);
+        UI_Utils.setDividerColorForSplitPane(mainSplitPane, UI_Utils.teal);
     }
 
     public void constructCandidatesList(List<TestCandidateMetadata> testCandidateMetadataList, TestCaseService testCaseService, SessionInstance sessionInstance) {
@@ -160,8 +160,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     private DefaultMutableTreeNode constructNode(Parameter arg) {
         StringBuilder sb = new StringBuilder();
-        if(arg==null)
-        {
+        if (arg == null || arg.getType() == null) {
             return null;
         }
         switch (arg.getType()) {
@@ -170,45 +169,54 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
                 if (arg.getName() != null) {
                     name = arg.getName();
                 }
-                return new DefaultMutableTreeNode(new ParameterInformation("int", arg.getName(), "" + arg.getValue(), true));
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("int", arg.getName(), "" + arg.getValue(), true));
             case "J":
                 name = "";
                 if (arg.getName() != null) {
                     name = arg.getName();
                 }
-                return new DefaultMutableTreeNode(new ParameterInformation("long", arg.getName(), "" + arg.getValue(), true));
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("long", arg.getName(), "" + arg.getValue(), true));
             case "Z":
                 name = "";
                 if (arg.getName() != null) {
                     name = arg.getName();
                 }
                 String booleanValue = (arg.getValue() == 0 ? false : true) + "";
-                return new DefaultMutableTreeNode(new ParameterInformation("boolean", arg.getName(), booleanValue, true));
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("boolean", arg.getName(), booleanValue, true));
 
             default:
-                String serializedValue = new String(arg.getProb().getSerializedValue());
+                String serializedValue = new String(arg.getProb()
+                        .getSerializedValue());
                 if (serializedValue != null) {
                     return buildJsonTree(serializedValue, arg);
                 } else {
-                    return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(arg.getType()), arg.getName(), "null", true));
+                    return new DefaultMutableTreeNode(
+                            new ParameterInformation(getSimpleType(arg.getType()), arg.getName(), "null", true));
                 }
         }
     }
 
     private DefaultMutableTreeNode buildJsonTree(String source, Parameter parameter) {
         if (source.startsWith("{")) {
-            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
+            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(
+                    new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
         } else if (source.startsWith("[")) {
-            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
+            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(
+                    new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), "", false)));
         } else {
-            return new DefaultMutableTreeNode(new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), source, true));
+            return new DefaultMutableTreeNode(
+                    new ParameterInformation(getSimpleType(parameter.getType()), parameter.getName(), source, true));
         }
     }
 
     private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
         Set<String> keys = json.keySet();
         for (String key : keys) {
-            String valueTemp = json.get(key).toString();
+            String valueTemp = json.get(key)
+                    .toString();
             if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
@@ -231,7 +239,8 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
         for (int i = 0; i < json.length(); i++) {
-            String valueTemp = json.get(i).toString();
+            String valueTemp = json.get(i)
+                    .toString();
             if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");

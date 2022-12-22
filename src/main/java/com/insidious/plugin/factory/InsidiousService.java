@@ -108,7 +108,7 @@ public class InsidiousService implements Disposable {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
-    private TestCaseService testCaseService;
+//    private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
@@ -155,7 +155,7 @@ public class InsidiousService implements Disposable {
                     .toFile()
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
-            this.testCaseService = new TestCaseService(client.getSessionInstance());
+//            this.testCaseService = new TestCaseService(client.getSessionInstance());
             this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
 
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
