@@ -169,7 +169,7 @@ public class PendingStatement {
 
                 TypeName paramTypeName = ClassTypeUtils.createTypeFromName(typeOfParam);
                 if (isAJavaArrayType) {
-                    if (paramTypeName.isPrimitive()) {
+                    if (paramTypeName != null && paramTypeName.isPrimitive()) {
                         statementParameters.add(ArrayTypeName.of(paramTypeName));
                     } else {
                         String arrayTypeName = ArrayTypeName.of(paramTypeName).toString();
@@ -398,9 +398,9 @@ public class PendingStatement {
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
-            // this typename handled for int[] byte[] long[]
-            String lhsExprTypeString = lhsExpression != null ? lhsExpression.getType() : null;
-            if (lhsExprTypeString != null && lhsExprTypeString.endsWith("[]")) {
+            // this typename handled for int[] byte[] long[] primitve types
+            if (lhsExpression != null &&
+                    lhsExpression.isPrimitiveType() && lhsExpression.getType().endsWith("[]")) {
                 lhsTypeName = ArrayTypeName.of(lhsTypeName);
             }
 
