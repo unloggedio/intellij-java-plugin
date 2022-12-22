@@ -140,6 +140,7 @@ public class SessionInstance {
         executorPool = Executors.newFixedThreadPool(4);
 
         this.sessionArchives = refreshSessionArchivesList();
+        zipConsumer.checkNewFiles();
         executorPool.submit(databasePipe);
         executorPool.submit(zipConsumer);
 

@@ -70,6 +70,8 @@ public class LiveViewWindow implements TreeSelectionListener,
         pauseActionListener = pauseCheckingForNewLogs();
         resumeActionListener = resumeCheckingForNewLogs();
 //        pauseProcessingButton.addActionListener(pauseActionListener);
+        topControlPanel.remove(pauseProcessingButton);
+        topControlPanel.remove(progressBar1);
 
         cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
@@ -212,12 +214,11 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                     .setSessionInstance(sessionInstance);
                                             testCaseService = new TestCaseService(sessionInstance);
                                             sessionInstance.setTestCandidateListener(LiveViewWindow.this);
-
+                                            testCaseService.processLogFiles();
                                             treeModel = new LiveViewTestCandidateListTree(
                                                     project, insidiousService.getClient()
                                                     .getSessionInstance());
                                             mainTree.setModel(treeModel);
-                                            setResumedScanningState();
                                         } catch (Exception ex) {
                                             ex.printStackTrace();
                                             setPauseScanningState();
@@ -233,6 +234,9 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             } catch (Exception e) {
                                                 logger.error("Failed to send ScanFailed event to amplitude");
                                             }
+                                        } finally {
+                                            isLoading = false;
+                                            updateRefreshButtonState();
                                         }
                                     }
                                 });

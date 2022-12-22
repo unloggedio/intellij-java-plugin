@@ -18,8 +18,8 @@ import static com.insidious.plugin.Constants.PENDING;
 class ZipConsumer implements Runnable {
 
     private static final Logger logger = LoggerUtil.getInstance(ZipConsumer.class);
-    final DaoService daoService;
-    final Map<String, ArchiveFile> archiveFileMap;
+    private final DaoService daoService;
+    private final Map<String, ArchiveFile> archiveFileMap;
     private final File sessionDirectory;
 
     ZipConsumer(DaoService daoService, File sessionDirectory) throws IOException {
@@ -46,7 +46,7 @@ class ZipConsumer implements Runnable {
         }
     }
 
-    private void checkNewFiles() throws IOException {
+    public void checkNewFiles() throws IOException {
         List<File> sessionArchiveList = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
                 .sorted(Comparator.comparing(File::getName))
                 .filter(e -> e.getName()
