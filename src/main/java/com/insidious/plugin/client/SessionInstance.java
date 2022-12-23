@@ -167,9 +167,9 @@ public class SessionInstance {
     }
 
     private static void addMethodToCandidate(ThreadProcessingState threadState, MethodCallExpression methodCall) {
+        TestCandidateMetadata topCandidate = threadState.getTopCandidate();
         if (methodCall.isStaticCall()) {
-            threadState.getTopCandidate()
-                    .addMethodCall(methodCall);
+            topCandidate.addMethodCall(methodCall);
         } else if (!methodCall.getMethodName()
                 .startsWith("<")) {
             Parameter callSubject = methodCall.getSubject();
@@ -180,8 +180,7 @@ public class SessionInstance {
                     .equals(EventType.METHOD_NORMAL_EXIT) || callSubjectProbe.getEventType()
                     .equals(EventType.CALL) || callSubjectProbe.getEventType()
                     .equals(EventType.LOCAL_LOAD))) {
-                threadState.getTopCandidate()
-                        .addMethodCall(methodCall);
+                topCandidate.addMethodCall(methodCall);
             }
         }
     }
@@ -2281,13 +2280,13 @@ public class SessionInstance {
                             methodCall.setSubject(existingParameter);
                         }
 
-                        if (existingParameter.getValue() == 0 && "Static".equals(probeInfo.getAttribute("CallType", null))) {
+                        if (existingParameter.getValue() == 0 && "Static".equals(
+                                probeInfo.getAttribute("CallType", null))) {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     probeInfo.getAttribute("Owner", null));
                             existingParameter.setValue((long) ownerClass.hashCode());
                             isModified = true;
                         }
-
 
 
                         threadState.pushCall(methodCall);
@@ -2467,6 +2466,38 @@ public class SessionInstance {
                         }
                         break;
 
+                    case CATCH:
+                        ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                        Parameter topCallSubject = threadState.getTopCall()
+                                .getSubject();
+                        String topCallSubjectType = topCallSubject.getType();
+                        String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(
+                                classInfo
+                                        .getClassName());
+
+
+                        if (!topCallSubjectType.equals(currentProbeClassOwner)) {
+                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            if (existingParameter.getType() == null) {
+                                ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                                        existingParameter.getValue());
+                                String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
+                                                objectInfoDocument.getTypeId())
+                                        .getTypeName());
+                                existingParameter.setType(typeName);
+                            }
+                            saveProbe = true;
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+                            MethodCallExpression topCall = threadState.popCall();
+                            topCall.setReturnValue(existingParameter);
+                            topCall.setReturnDataEvent(dataEvent);
+                            callsToSave.add(topCall);
+                            threadState.setMostRecentReturnedCall(topCall);
+
+                        }
+                        break;
 
                     case METHOD_EXCEPTIONAL_EXIT:
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
@@ -2491,7 +2522,7 @@ public class SessionInstance {
                         saveProbe = true;
 
 
-                        if (entryProbeEventType == EventType.CALL) {
+                        if (false) {
                             // we need to pop two calls here, since the CALL will not have a matching call_return
 //
                             MethodCallExpression topCall = threadState.popCall();
@@ -2510,7 +2541,7 @@ public class SessionInstance {
                                 logger.warn("not popping second call");
                             }
 
-                        } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                        } else if (true) {
                             // we need to pop only 1 call here from the stack
                             MethodCallExpression topCall = threadState.popCall();
                             topCall.setReturnValue(existingParameter);
@@ -2542,7 +2573,11 @@ public class SessionInstance {
 
                         if (threadState.candidateSize() > 0) {
                             TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                            newCurrent.addAllMethodCall(completedExceptional.getCallsList());
+                            MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
+                            newCurrent.addAllMethodCall(completedExceptional.getCallsList()
+                                    .stream()
+                                    .filter(e1 -> e1.isStaticCall() || e1.getCallStack() == newCurrentMainMethod.getCallStack() + 1)
+                                    .collect(Collectors.toList()));
 
                             if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject()
                                     .getType()
@@ -2630,9 +2665,13 @@ public class SessionInstance {
 
                         if (threadState.candidateSize() > 0) {
                             TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                            newCurrent.addAllMethodCall(completed.getCallsList());
+                            MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
+                            newCurrent.addAllMethodCall(completed.getCallsList()
+                                    .stream()
+                                    .filter(e1 -> e1.isStaticCall() || e1.getCallStack() == newCurrentMainMethod.getCallStack() + 1)
+                                    .collect(Collectors.toList()));
                             Parameter completedCallSubject = ((MethodCallExpression) completed.getMainMethod()).getSubject();
-                            Parameter newCurrentCallSubject = ((MethodCallExpression) newCurrent.getMainMethod()).getSubject();
+                            Parameter newCurrentCallSubject = newCurrentMainMethod.getSubject();
                             if (newCurrentCallSubject.getType()
                                     .equals(completedCallSubject.getType())) {
                                 for (Parameter parameter : completed.getFields()
