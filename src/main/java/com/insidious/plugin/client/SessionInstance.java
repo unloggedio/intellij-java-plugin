@@ -2279,6 +2279,14 @@ public class SessionInstance {
                             methodCall.setSubject(existingParameter);
                         }
 
+                        if (existingParameter.getValue() == 0 && "Static".equals(probeInfo.getAttribute("CallType", null))) {
+                            String ownerClass = ClassTypeUtils.getJavaClassName(
+                                    probeInfo.getAttribute("Owner", null));
+                            existingParameter.setValue((long) ownerClass.hashCode());
+                            isModified = true;
+                        }
+
+
 
                         threadState.pushCall(methodCall);
                         addMethodToCandidate(threadState, methodCall);
@@ -2329,7 +2337,6 @@ public class SessionInstance {
 
                     case METHOD_ENTRY:
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
-
                         MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
                         methodCall = null;
                         // a method_entry event can come in without a corresponding event for call,
@@ -2394,11 +2401,25 @@ public class SessionInstance {
                             threadState.pushCall(methodCall);
                         } else {
                             saveProbe = true;
-//                                    methodCall.setEntryProbeInfo(probeInfo);
-//                                    methodCall.setEntryProbe(dataEvent);
                         }
                         newCandidate.setMainMethod(methodCall);
                         threadState.pushTopCandidate(newCandidate);
+
+                        if (existingParameter == null) {
+                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        }
+
+                        if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)) {
+                            String ownerClass = ClassTypeUtils.getJavaClassName(
+                                    classInfoIndex.get(probeInfo.getClassId())
+                                            .getClassName());
+                            existingParameter.setValue((long) ownerClass.hashCode());
+                            isModified = true;
+                            existingParameter.setType(ownerClass);
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+                        }
+
 
                         int methodAccess = methodInfo.getAccess();
                         methodCall.setMethodAccess(methodAccess);
@@ -2692,6 +2713,7 @@ public class SessionInstance {
                         existingParameter = theCallThatJustEnded.getSubject();
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setValue(0L);
                         existingParameter.setProb(dataEvent);
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
                         theCallThatJustEnded.setReturnValue(existingParameter);

@@ -12,7 +12,9 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -133,7 +135,7 @@ public class Parameter implements Serializable {
         if (name == null) {
             return;
         }
-        if (name.startsWith("(")) {
+        if (name.startsWith("(") || name.startsWith("CGLIB")) {
             return;
         }
         if (!this.names.contains(name)) {

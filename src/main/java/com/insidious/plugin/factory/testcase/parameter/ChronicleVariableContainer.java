@@ -16,14 +16,17 @@ public class ChronicleVariableContainer {
     public void add(Parameter parameter) {
         parameter.setModified(true);
         long value = parameter.getValue();
-        if (parameter.getProb().getSerializedValue().length > 10000) {
+        if (parameter.getProb()
+                .getSerializedValue().length > 10000) {
             // todo: too much data for our taste
             return;
         }
         Parameter byValue = parameterMap.get(value);
         if (byValue == null) {
-            if (parameter.getProb() != null) {
-                parameterMap.put(parameter.getProb().getValue(), parameter);
+            if (parameter.getProb() != null && parameter.getProb()
+                    .getValue() != 0) {
+                parameterMap.put(parameter.getProb()
+                        .getValue(), parameter);
             } else {
                 parameterMap.put(parameter.getValue(), parameter);
             }
@@ -47,8 +50,13 @@ public class ChronicleVariableContainer {
 //                    byValue.setProb(parameter.getProb());
 //                }
 //            } else {
-            parameterMap.put(parameter.getProb()
-                    .getValue(), parameter);
+            if (parameter.getProb()
+                    .getValue() != 0) {
+                parameterMap.put(parameter.getProb()
+                        .getValue(), parameter);
+            } else {
+                parameterMap.put(parameter.getValue(), parameter);
+            }
 //            }
 
         }

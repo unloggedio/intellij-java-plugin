@@ -183,6 +183,10 @@ public class TestCaseService implements Runnable {
         for (Parameter fieldParameter : fields.all()) {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
+            if (metadata == null) {
+                logger.warn("unable to create a initializer for field: " + fieldParameter);
+                continue;
+            }
             constructor.addMetadata(metadata);
 
             if (fieldParameter.getName() != null && objectRoutineContainer.getName() == null) {
