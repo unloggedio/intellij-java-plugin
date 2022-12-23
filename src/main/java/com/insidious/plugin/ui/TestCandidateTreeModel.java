@@ -35,8 +35,7 @@ public class TestCandidateTreeModel implements TreeModel {
         this.rootNode = createRootNode(testSubjectType, mainMethod);
 
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
-                selectedCandidate.getCallTimeNanoSecond(), mainMethod.getId(), false);
-
+                selectedCandidate.getEntryProbeIndex(), mainMethod.getId(), false);
 
         for (TestCandidateMetadata candidate : candidates) {
             TestCandidateMetadata candidateWithCalls = getTestCandidateById(candidate.getEntryProbeIndex());
@@ -129,20 +128,17 @@ public class TestCandidateTreeModel implements TreeModel {
         return candidateList;
     }
 
-    public String getDocumentationText()
-    {
+    public String getDocumentationText() {
         StringBuilder text = new StringBuilder();
         int candidateListSize = candidateList.size();
-        if(candidateListSize>0)
-        {
+        if (candidateListSize > 0) {
             text.append("The Following Methods - \n");
-            for(int i=0;i<candidateList.size()-1;i++)
-            {
-                text.append((i+1)+". "+candidateList.get(i).toString()+"\n");
+            for (int i = 0; i < candidateList.size() - 1; i++) {
+                text.append((i + 1) + ". " + candidateList.get(i).toString() + "\n");
             }
             text.append("\nwere called before \n");
 
-            text.append(candidateList.get(candidateList.size()-1).toString()+"\n\n");
+            text.append(candidateList.get(candidateList.size() - 1).toString() + "\n\n");
         }
 
         text.append("• Using the checkboxes on the left, select the methods to assert.\n");
