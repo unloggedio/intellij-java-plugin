@@ -11,7 +11,9 @@ import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
@@ -50,6 +52,7 @@ public class EventLogWindow {
     private int currentPage = 0;
     private long currentObjectId;
     private ReplayData replayData1;
+    private Logger logger = LoggerUtil.getInstance(EventLogWindow.class);
 
     public EventLogWindow(InsidiousService insidiousService) {
 
@@ -328,12 +331,17 @@ public class EventLogWindow {
 
             eventsTable.setModel(tableModel);
 
-            eventsTable.getColumn("Event").setPreferredWidth(130);
-            eventsTable.getColumn("#Time").setPreferredWidth(25);
-            eventsTable.getColumn("#Line").setPreferredWidth(5);
-            eventsTable.getColumn("Value").setPreferredWidth(40);
-            eventsTable.getColumn("Attributes").setPreferredWidth(200);
-            eventsTable.getColumn("Value type").setPreferredWidth(100);
+            try {
+                eventsTable.getColumn("Event").setPreferredWidth(130);
+                eventsTable.getColumn("#Time").setPreferredWidth(25);
+                eventsTable.getColumn("#Line").setPreferredWidth(5);
+                eventsTable.getColumn("Value").setPreferredWidth(40);
+                eventsTable.getColumn("Attributes").setPreferredWidth(200);
+                eventsTable.getColumn("Value type").setPreferredWidth(100);
+            }catch (Exception e) {
+                logger.info("failed to set column width: " + e.getMessage());
+            }
+
         } else {
             int rowCount = tableModel.getRowCount();
             for (int i = 0; i < rowCount; i++) {

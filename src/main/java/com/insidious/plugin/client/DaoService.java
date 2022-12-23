@@ -35,7 +35,7 @@ public class DaoService {
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id and p.type != 'java.lang.Object' and length(p.type) > 1\n" +
             "         join method_call mce on mce.id = tc.mainMethod_id\n" +
-            "where (mce.methodAccess & 1 == 1) and mce.methodName != '<init>' and mce.returnValue_id != 0\n" +
+            "where (mce.methodAccess & 1 == 1) and mce.methodName != '<init>'\n" +
             "group by p.type, p.value\n" +
             "having count(*) > 0\n" +
             "order by p.type";
@@ -43,7 +43,7 @@ public class DaoService {
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ? and (mc.methodAccess & 1 == 1) and mc.returnValue_id != 0\n" +
+            "where p.type = ? and (mc.methodAccess & 1 == 1)\n" +
             "and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";

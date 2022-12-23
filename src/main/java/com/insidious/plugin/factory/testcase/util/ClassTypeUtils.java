@@ -60,7 +60,7 @@ public class ClassTypeUtils {
         }
         lastPart = lastPart.substring(0, 1)
                 .toLowerCase() + lastPart.substring(1);
-        return lastPart;
+        return lastPart + "Value";
     }
 
 

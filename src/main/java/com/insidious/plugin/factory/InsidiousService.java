@@ -8,7 +8,6 @@ import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.SessionInstance;
@@ -27,7 +26,6 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
-import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
@@ -108,7 +106,7 @@ public class InsidiousService implements Disposable {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
-//    private TestCaseService testCaseService;
+    //    private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
@@ -327,6 +325,9 @@ public class InsidiousService implements Disposable {
     }
 
     private void getProjectPackageName() {
+        if (!project.isInitialized()) {
+            return;
+        }
         if (currentModule == null) {
             return;
         }
@@ -1374,7 +1375,8 @@ public class InsidiousService implements Disposable {
                 .equals(sessions.getItems()
                         .get(0)
                         .getSessionId())) {
-            client.setSessionInstance(new SessionInstance(sessions.getItems().get(0), project));
+            client.setSessionInstance(new SessionInstance(sessions.getItems()
+                    .get(0), project));
         }
     }
 
