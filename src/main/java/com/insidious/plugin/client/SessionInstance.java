@@ -853,8 +853,8 @@ public class SessionInstance {
                     ZipEntry entry;
                     while ((entry = indexArchive.getNextEntry()) != null) {
                         String entryName = entry.getName();
-                        logger.info(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(),
-                                entryName));
+//                        logger.info(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(),
+//                                entryName));
                         if (entryName.contains(pathName)) {
                             byte[] fileBytes = IOUtils.toByteArray(indexArchive);
 
