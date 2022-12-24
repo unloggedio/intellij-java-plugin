@@ -60,7 +60,16 @@ public class ClassTypeUtils {
         }
         lastPart = lastPart.substring(0, 1)
                 .toLowerCase() + lastPart.substring(1);
-        return lastPart + "Value";
+        if (lastPart.equals("int")
+                || lastPart.equals("long")
+                || lastPart.equals("byte")
+                || lastPart.equals("float")
+                || lastPart.equals("double")
+                || lastPart.equals("short")) {
+            return lastPart + "Value";
+        } else {
+            return lastPart;
+        }
     }
 
 

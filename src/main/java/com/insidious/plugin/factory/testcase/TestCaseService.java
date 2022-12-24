@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -20,8 +21,10 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
@@ -177,10 +180,28 @@ public class TestCaseService implements Runnable {
 
 
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
+        List<Parameter> usedFields = new ArrayList<>();
 
 
         // gotta mock'em all
         for (Parameter fieldParameter : fields.all()) {
+
+            Optional<MethodCallExpression> foundUsage = objectRoutineContainer
+                    .getObjectRoutines()
+                    .stream()
+                    .map(ObjectRoutine::getTestCandidateList)
+                    .flatMap(Collection::stream)
+                    .map(TestCandidateMetadata::getCallsList)
+                    .flatMap(Collection::stream)
+                    .filter(e -> e.getSubject()
+                            .getValue() == fieldParameter.getValue())
+                    .findAny();
+            if (foundUsage.isEmpty()) {
+                //field is not actually used
+                continue;
+            }
+
+
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
             if (metadata == null) {

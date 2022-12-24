@@ -2280,8 +2280,9 @@ public class SessionInstance {
                             methodCall.setSubject(existingParameter);
                         }
 
-                        if (existingParameter.getValue() == 0 && "Static".equals(
-                                probeInfo.getAttribute("CallType", null))) {
+                        if (existingParameter.getValue() == 0
+                                && "Static".equals(probeInfo.getAttribute("CallType", null))
+                                && !methodName.startsWith("<") && !methodName.contains("$")) {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     probeInfo.getAttribute("Owner", null));
                             existingParameter.setValue((long) ownerClass.hashCode());
@@ -2410,7 +2411,10 @@ public class SessionInstance {
                             existingParameter = parameterContainer.getParameterByValue(eventValue);
                         }
 
-                        if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)) {
+                        if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
+                                && !methodInfo.getMethodName()
+                                .startsWith("<") && !methodInfo.getMethodName()
+                                .contains("$")) {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
