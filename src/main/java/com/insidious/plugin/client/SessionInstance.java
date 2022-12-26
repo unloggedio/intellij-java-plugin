@@ -1404,7 +1404,7 @@ public class SessionInstance {
     }
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
-        long start = new Date().getTime();
+//        long start = new Date().getTime();
         logger.warn("Read events from file: " + archiveFile);
         NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
 
@@ -1418,8 +1418,8 @@ public class SessionInstance {
         ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
                 .entries();
         kaitaiStream.close();
-        long end = new Date().getTime();
-        logger.warn("Read events took: " + ((end - start) / 1000));
+//        long end = new Date().getTime();
+//        logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
 
@@ -2695,7 +2695,19 @@ public class SessionInstance {
                         }
 
                         if (completed.getTestSubject() != null) {
-                            candidatesToSave.add(completed);
+                            MethodCallExpression mainMethod = (MethodCallExpression) completed.getMainMethod();
+                            String candidateMethodName = mainMethod.getMethodName();
+                            if (candidateMethodName.equals("getTargetClass")
+                                    || candidateMethodName.equals("getTargetSource")
+                                    || candidateMethodName.equals("isFrozen")
+                                    || candidateMethodName.equals("invoke")
+                                    || candidateMethodName.equals("getIndex")
+                                    || candidateMethodName.equals("setBeanFactory")
+                                    || candidateMethodName.equals("setCallbacks")) {
+                                // don't save these methods as test candidates, since they are created by spring
+                            } else {
+                                candidatesToSave.add(completed);
+                            }
                         }
                         if (!isModified) {
                             existingParameter = null;

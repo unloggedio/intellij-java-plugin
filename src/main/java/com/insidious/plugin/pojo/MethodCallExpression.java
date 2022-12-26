@@ -145,8 +145,10 @@ public class MethodCallExpression implements Expression, Serializable {
             //eg: name =>  name0 =>  name1
             String oldName = sameNameParamExisting.getName();
             String newName = generateNextName(ors, oldName);
-            parameter.getNamesList().remove(newName);
-            parameter.getNamesList().remove(oldName);
+            parameter.getNamesList()
+                    .remove(newName);
+            parameter.getNamesList()
+                    .remove(oldName);
             parameter.setName(newName);
         }
         return parameter;
@@ -186,7 +188,9 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
         if (getMethodName().equals("mock")) {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+                    .writeExpression(this)
+                    .endStatement();
             return;
         }
 
@@ -198,9 +202,11 @@ public class MethodCallExpression implements Expression, Serializable {
         if (mainMethodReturnValueProbe == null) {
             return;
         }
+        DataEventWithSessionId entryProbe = getReturnValue().getProb();
         objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                "[ " + getReturnValue().getProb().getNanoTime() + "] - took " +
-                Long.valueOf((getReturnValue().getProb().getRecordedAt() - getEntryProbe().getRecordedAt()) / (1000000)).intValue() +
+                "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
+                Long.valueOf((entryProbe.getRecordedAt() - getEntryProbe().getRecordedAt()) / (1000000))
+                        .intValue() +
                 "ms");
 
         List<Parameter> arguments = getArguments();
@@ -222,12 +228,17 @@ public class MethodCallExpression implements Expression, Serializable {
         //////////////////////// FUNCTION CALL ////////////////////////
 
         // return type == V ==> void return type => no return value
-        boolean isException = mainMethodReturnValue.getProbeInfo().getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
+        boolean isException = mainMethodReturnValue.getProbeInfo()
+                .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
         if (isException) {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+                    .writeExpression(this)
+                    .endStatement();
             return;
         } else {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue).writeExpression(this).endStatement();
+            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+                    .writeExpression(this)
+                    .endStatement();
         }
 
 
@@ -238,7 +249,8 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
 
-        if (mainMethodReturnValue.getType().equals("V")) {
+        if (mainMethodReturnValue.getType()
+                .equals("V")) {
             return;
         }
         String returnSubjectInstanceName = mainMethodReturnValue.getNameForUse(this.methodName);
@@ -260,7 +272,8 @@ public class MethodCallExpression implements Expression, Serializable {
         returnSubjectExpectedObject.clearNames();
         returnSubjectExpectedObject.setName(expectedParameterName);
 
-        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
+        if (testConfiguration.getResourceEmbedMode()
+                .equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
             if (returnSubjectExpectedObject.isPrimitiveType()) {
                 in(objectRoutineScript)
                         .assignVariable(returnSubjectExpectedObject)
@@ -274,7 +287,8 @@ public class MethodCallExpression implements Expression, Serializable {
                         .endStatement();
             }
 
-        } else if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
+        } else if (testConfiguration.getResourceEmbedMode()
+                .equals(ResourceEmbedMode.IN_FILE)) {
 
             String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
             @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
@@ -306,10 +320,12 @@ public class MethodCallExpression implements Expression, Serializable {
 
         // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
         // then use assertArrayEquals
-        if (returnSubjectExpectedObject.getType().endsWith("[]")) {
+        if (returnSubjectExpectedObject.getType()
+                .endsWith("[]")) {
             in(objectRoutineScript)
                     .writeExpression(MethodCallExpressionFactory
-                            .MockitoAssertArrayEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
+                            .MockitoAssertArrayEquals(returnSubjectExpectedObject, mainMethodReturnValue,
+                                    testConfiguration))
                     .endStatement();
         } else {
             in(objectRoutineScript)
@@ -355,7 +371,8 @@ public class MethodCallExpression implements Expression, Serializable {
             }
 
 
-            String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType()).simpleName();
+            String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType())
+                    .simpleName();
             objectRoutine.addComment(
                     returnValueType + " " + returnValue.getNameForUse(getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");
@@ -373,7 +390,8 @@ public class MethodCallExpression implements Expression, Serializable {
 
         String owner = null;
         if (subject != null && subject.getProbeInfo() != null) {
-            String owner1 = subject.getProbeInfo().getAttribute("Owner", null);
+            String owner1 = subject.getProbeInfo()
+                    .getAttribute("Owner", null);
             if (owner1 != null) {
                 owner = "[" + owner1 + "]";
 
@@ -387,9 +405,11 @@ public class MethodCallExpression implements Expression, Serializable {
         String methodCallOnVariableString = name + methodName1;
         if (subject != null && subject.getType() != null) {
             if (methodName.equals("<init>")) {
-                methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType()).simpleName();
+                methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType())
+                        .simpleName();
             } else {
-                methodCallOnVariableString = ClassName.bestGuess(subject.getType()).simpleName() + "." + methodName1;
+                methodCallOnVariableString = ClassName.bestGuess(subject.getType())
+                        .simpleName() + "." + methodName1;
             }
         }
         return
@@ -413,7 +433,8 @@ public class MethodCallExpression implements Expression, Serializable {
         // but if the return value was a boxed primitive (like Integer), then the mock return 0 by default instead of null
         // so we need to add an explicit call to return null for them and not return early here
         if (returnValue.getProb() != null && !returnValue.isPrimitiveType()) {
-            if (new String(returnValue.getProb().getSerializedValue()).equals("null")) {
+            if (new String(returnValue.getProb()
+                    .getSerializedValue()).equals("null")) {
                 return;
             }
         }
@@ -421,7 +442,8 @@ public class MethodCallExpression implements Expression, Serializable {
         List<Parameter> argsContainer = getArguments();
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
-                Parameter existingParameter = objectRoutine.getCreatedVariables().getParameterByValue(argument.getValue());
+                Parameter existingParameter = objectRoutine.getCreatedVariables()
+                        .getParameterByValue(argument.getValue());
                 String nameForUse;
                 if (existingParameter != null && existingParameter.getName() != null) {
                     nameForUse = argument.getNameForUse(existingParameter.getName());
@@ -435,8 +457,11 @@ public class MethodCallExpression implements Expression, Serializable {
                         continue;
                     }
 
-                    if ((argument.getType().length() == 1 ||
-                            argument.getType().startsWith("java.lang.")) && !argument.getType().contains(".Object")
+                    if ((argument.getType()
+                            .length() == 1 ||
+                            argument.getType()
+                                    .startsWith("java.lang.")) && !argument.getType()
+                            .contains(".Object")
                     ) {
                         in(objectRoutine)
                                 .assignVariable(argument)
@@ -450,7 +475,8 @@ public class MethodCallExpression implements Expression, Serializable {
         if (returnValue.getException()) {
             Parameter exceptionValue = getException();
             in(objectRoutine)
-                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getGenerationConfiguration()))
+                    .writeExpression(
+                            MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getGenerationConfiguration()))
                     .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(exceptionValue))
                     .endStatement();
 
@@ -488,7 +514,8 @@ public class MethodCallExpression implements Expression, Serializable {
             }
 
             in(objectRoutine)
-                    .writeExpression(MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getTestConfiguration()))
+                    .writeExpression(
+                            MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getTestConfiguration()))
                     .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
                     .endStatement();
         }
