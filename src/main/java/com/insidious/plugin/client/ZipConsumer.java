@@ -71,6 +71,7 @@ class ZipConsumer implements Runnable {
                     continue;
                 }
 
+                logger.warn("Reading archive: " + sessionArchive.getName());
 
                 dbEntry = new ArchiveFile();
                 dbEntry.setName(sessionArchive.getName());

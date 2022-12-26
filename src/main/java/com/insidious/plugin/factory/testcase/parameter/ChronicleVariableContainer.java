@@ -88,5 +88,17 @@ public class ChronicleVariableContainer {
         return parameter;
     }
 
+    public Parameter getParameterByValueUsing(long eventValue, Parameter parameter) {
+        if (eventValue == 0) {
+            return new Parameter(eventValue);
+        }
+        parameter = this.parameterMap.getUsing(eventValue, parameter);
+        if (parameter == null) {
+            parameter = new Parameter(eventValue);
+            return parameter;
+        }
+        return parameter;
+    }
+
 
 }

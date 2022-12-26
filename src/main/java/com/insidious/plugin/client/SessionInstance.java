@@ -1873,10 +1873,7 @@ public class SessionInstance {
             }
 
 
-            Collection<Parameter> allParameters = parameterIndex.values()
-                    .stream()
-                    .filter(Parameter::isModified)
-                    .collect(Collectors.toList());
+            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
             checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
             daoService.createOrUpdateParameter(allParameters);
 
@@ -2018,7 +2015,7 @@ public class SessionInstance {
 
                     case LOCAL_STORE:
 
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter != null) {
                             nameFromProbe = probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null));
@@ -2035,7 +2032,7 @@ public class SessionInstance {
                         if (eventValue == 0) {
                             continue;
                         }
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
 
                         String nameForParameter = probeInfo.getAttribute("Name",
                                 probeInfo.getAttribute("FieldName", null));
@@ -2064,7 +2061,7 @@ public class SessionInstance {
                                         .setUsesFields(true);
                             }
                         }
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter != null) {
                             nameFromProbe = probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null));
@@ -2093,7 +2090,7 @@ public class SessionInstance {
                         break;
 
                     case GET_INSTANCE_FIELD_RESULT:
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         nameFromProbe = probeInfo.getAttribute("Name",
                                 probeInfo.getAttribute("FieldName", null));
                         isModified = false;
@@ -2137,7 +2134,7 @@ public class SessionInstance {
 
                         // we are going to set this field in the next event
                         threadState.pushValue(eventValue);
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter != null && existingParameter.getProb() != null) {
                             if (existingParameter.getType() == null || existingParameter.getType()
                                     .contains(".Object")) {
@@ -2151,7 +2148,7 @@ public class SessionInstance {
                         } else {
                             // new variable identified ?
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2167,7 +2164,7 @@ public class SessionInstance {
 
 
                         Long parentValue = threadState.popValue();
-//                        Parameter valueParameter = parameterContainer.getParameterByValue(parentValue);
+//                        Parameter valueParameter = parameterContainer.getParameterByValueUsing(parentValue);
 //                        VariableContainer parentFields = valueParameter.getFields();
 
 
@@ -2183,7 +2180,7 @@ public class SessionInstance {
                         } else {
                             // new field
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                             existingParameter.setType(
                                     ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
 
@@ -2209,11 +2206,11 @@ public class SessionInstance {
                             // setting this to null, so it is not inserted into the database again
                             existingParameter = null;
                         } else {
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                             if (existingParameter.getProb() == null) {
                                 // we are coming across this field for the first time
                                 dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                                existingParameter = parameterContainer.getParameterByValue(eventValue);
+                                existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                                 existingParameter.addName(probeInfo.getAttribute("Name",
                                         probeInfo.getAttribute("FieldName", null)));
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2249,7 +2246,7 @@ public class SessionInstance {
 
                     case CALL:
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         saveProbe = true;
                         isModified = false;
 
@@ -2301,7 +2298,7 @@ public class SessionInstance {
 
 
                     case CALL_PARAM:
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         MethodCallExpression currentMethodCallExpression = threadState.getTopCall();
                         isModified = false;
@@ -2368,7 +2365,7 @@ public class SessionInstance {
 
                         isModified = false;
                         if (methodCall == null) {
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                             if (existingParameter.getProb() == null) {
 
                                 existingParameter.setProbeInfo(probeInfo);
@@ -2408,7 +2405,7 @@ public class SessionInstance {
                         threadState.pushTopCandidate(newCandidate);
 
                         if (existingParameter == null) {
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         }
 
                         if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
@@ -2442,7 +2439,7 @@ public class SessionInstance {
                         // else if the caller was a third party, then we need to extract parameters from here
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
 
 
                         isModified = false;
@@ -2482,7 +2479,7 @@ public class SessionInstance {
 
                         if (!topCallSubjectType.equals(currentProbeClassOwner)) {
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValue(eventValue);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                             if (existingParameter.getType() == null) {
                                 ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                         existingParameter.getValue());
@@ -2510,7 +2507,7 @@ public class SessionInstance {
                         exceptionCallExpression = threadState.getTopCall();
                         entryProbeEventType = exceptionCallExpression.getEntryProbeInfo()
                                 .getEventType();
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter.getType() == null) {
                             ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                     existingParameter.getValue());
@@ -2617,7 +2614,7 @@ public class SessionInstance {
                         MethodCallExpression currentCallExpression = threadState.getTopCall();
                         entryProbeEventType = currentCallExpression.getEntryProbeInfo()
                                 .getEventType();
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         isModified = false;
                         saveProbe = true;
                         if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
@@ -2718,7 +2715,7 @@ public class SessionInstance {
 
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
 //                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
-                        existingParameter = parameterContainer.getParameterByValue(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
 
                         isModified = false;
                         saveProbe = true;

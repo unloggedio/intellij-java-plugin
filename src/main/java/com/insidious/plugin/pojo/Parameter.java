@@ -3,15 +3,22 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.intellij.openapi.util.text.Strings;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import net.openhft.chronicle.bytes.BytesIn;
+import net.openhft.chronicle.bytes.BytesMarshallable;
+import net.openhft.chronicle.bytes.BytesOut;
+import net.openhft.chronicle.core.io.IORuntimeException;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.io.Serializable;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,7 +30,7 @@ import java.util.stream.Collectors;
  * test subject or the return value from the function. Store the corresponding probeInfo and
  * event also from where the information was identified
  */
-public class Parameter implements Serializable {
+public class Parameter implements Serializable, BytesMarshallable {
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
@@ -43,7 +50,6 @@ public class Parameter implements Serializable {
     private boolean isContainer = false;
     private String nameUsed;
     private boolean modified;
-
     private boolean isEnum = false;
 
     public Parameter(Long value) {
@@ -63,6 +69,64 @@ public class Parameter implements Serializable {
         buildWithJson.setProbeInfo(parameter.getProbeInfo());
         buildWithJson.setProb(parameter.getProb());
         return buildWithJson;
+    }
+
+    @Override
+    public void readMarshallable(BytesIn bytes) throws IORuntimeException, BufferUnderflowException, IllegalStateException {
+        value = bytes.readLong();
+        int typeLength = bytes.readInt();
+        if (typeLength > 0) {
+            byte[] typeBytes = new byte[typeLength];
+            bytes.read(typeBytes);
+            type = new String(typeBytes);
+        }
+        boolean hasProbe = bytes.readBoolean();
+        if (hasProbe) {
+            prob = new DataEventWithSessionId();
+            prob.readMarshallable(bytes);
+        }
+        int namesLength = bytes.readInt();
+        if (namesLength > 0) {
+            byte[] nameBytes = new byte[namesLength];
+            bytes.read(nameBytes);
+            names = new ArrayList<>(List.of(new String(nameBytes).split(",")));
+        } else {
+            names = new ArrayList<>();
+        }
+        boolean hasInfo = bytes.readBoolean();
+        if (hasInfo) {
+            dataInfo = new DataInfo();
+            dataInfo.readMarshallable(bytes);
+        }
+    }
+
+    @Override
+    public void writeMarshallable(BytesOut bytes) throws IllegalStateException, BufferOverflowException, BufferUnderflowException, ArithmeticException {
+        bytes.writeLong(value);
+        if (type == null) {
+            bytes.writeInt(0);
+        } else {
+            bytes.writeInt(type.length());
+            bytes.write(type);
+        }
+        if (prob != null) {
+            bytes.writeBoolean(true);
+            prob.writeMarshallable(bytes);
+        } else {
+            bytes.writeBoolean(false);
+        }
+        @NotNull String namesValue = Strings.join(names, ",");
+        bytes.writeInt(namesValue.length());
+        bytes.write(namesValue);
+        if (dataInfo != null) {
+            bytes.writeBoolean(true);
+            dataInfo.writeMarshallable(bytes);
+        } else {
+            bytes.writeBoolean(false);
+        }
+
+
+//        BytesMarshallable.super.writeMarshallable(bytes);
     }
 
     public boolean getIsEnum() {
