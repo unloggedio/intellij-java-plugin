@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>org.videobug.videobug</id>
-    <name>Videobug</name>
-    <vendor email="support@bug.video" url="https://www.bug.video">Videobug</vendor>
+    <name>Unlogged</name>
+    <vendor email="support@bug.video" url="https://www.bug.video">Unlogged</vendor>
 
     <idea-version since-build="221"/>
 
