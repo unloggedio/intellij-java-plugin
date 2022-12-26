@@ -2168,7 +2168,7 @@ public class SessionInstance {
 //                        VariableContainer parentFields = valueParameter.getFields();
 
 
-                        existingParameter = parameterContainer.getParametersById(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter != null) {
                             nameFromProbe = probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null));
@@ -2200,7 +2200,7 @@ public class SessionInstance {
 
 
                         isModified = false;
-                        existingParameter = parameterContainer.getParametersById(eventValue);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter != null) {
                             // field is already present, and we are overwriting it here
                             // setting this to null, so it is not inserted into the database again

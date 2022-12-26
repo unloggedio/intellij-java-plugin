@@ -62,9 +62,9 @@ public class ChronicleVariableContainer {
         }
     }
 
-    public Parameter getParametersById(long value) {
-        return this.parameterMap.get(value);
-    }
+//    public Parameter getParametersById(long value) {
+//        return this.parameterMap.get(value);
+//    }
 
 
     public int count() {
