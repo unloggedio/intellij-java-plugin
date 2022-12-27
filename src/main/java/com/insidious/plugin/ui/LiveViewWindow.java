@@ -11,6 +11,7 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.upload.minio.ReportIssueForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
@@ -57,9 +58,12 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JProgressBar candidateLoadProgressbar;
     private JProgressBar progressBar1;
     private JButton pauseProcessingButton;
+    private JButton reportIssueButton;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
+
+    private JFrame reportIssueForm;
 
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
 
@@ -72,6 +76,11 @@ public class LiveViewWindow implements TreeSelectionListener,
 //        pauseProcessingButton.addActionListener(pauseActionListener);
         topControlPanel.remove(pauseProcessingButton);
         topControlPanel.remove(progressBar1);
+
+        reportIssueForm = new ReportIssueForm(project);
+        reportIssueForm.setVisible(false);
+
+        reportIssueButton.addActionListener(openReportIssueForm());
 
         cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
@@ -91,6 +100,15 @@ public class LiveViewWindow implements TreeSelectionListener,
     public static String[] splitByLength(String str, int size) {
         return (size < 1 || str == null) ? null : str.split("(?<=\\G.{" + size + "})");
     }
+
+
+    ActionListener openReportIssueForm() {
+        return e -> {
+            reportIssueForm.setVisible(true);
+            checkProgressIndicator("Uploading session logs with report", null);
+        };
+    }
+
 
     private void copyVMParameter() {
         String vmParamString = insidiousService.getJavaAgentString();
