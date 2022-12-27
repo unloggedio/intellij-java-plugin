@@ -105,8 +105,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         submitButton.setLocation(550, 500);
         submitButton.addActionListener(this);
         c.add(submitButton);
-
-//        setVisible(true);
     }
 
     private boolean validateForm() {
