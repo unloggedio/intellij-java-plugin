@@ -12,6 +12,7 @@ import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
+import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -24,6 +25,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 public class CandidateMetadataFactory {
     public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
@@ -155,28 +159,99 @@ public class CandidateMetadataFactory {
             Map<String, Boolean> mockedCalls = testGenerationState.getMockedCallsMap();
             if (callToMock.size() > 0) {
 
-                for (MethodCallExpression methodCallExpression : callToMock) {
+                Map<String, List<MethodCallExpression>> grouped = callToMock.stream()
+                        .collect(Collectors.groupingBy(e -> e.getSubject()
+                                        .getValue() + e.getMethodName() + buildCallSignature(e),
+                                Collectors.toList()));
+                for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
+                    List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
+                    callsOnSubject.sort((e1, e2) ->
+                            Math.toIntExact(e1.getEntryProbe()
+                                    .getNanoTime() - e2.getEntryProbe()
+                                    .getNanoTime()));
+                    Parameter subject = callsOnSubject
+                            .get(0)
+                            .getSubject();
+                    boolean firstCall = true;
+                    PendingStatement pendingStatement = null;
+                    Parameter previousReturnValue = null;
 
-                    String mockedCallSignature = buildCallSignature(methodCallExpression);
+                    MethodCallExpression firstCallExpression = callsOnSubject.get(0);
+                    firstCallExpression.writeCallArguments(
+                            objectRoutineScript, testConfiguration, testGenerationState);
 
-
-                    if (methodCallExpression.getException() != null || mockedCalls.containsKey(mockedCallSignature)) {
-                        continue;
-                    }
-                    Parameter returnValue = methodCallExpression.getReturnValue();
-                    returnValue.getNameForUse(
-                            methodCallExpression.getMethodName());
-
-                    if (returnValue.isPrimitiveType()) {
-                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
-                                .getAttribute("Type", returnValue.getType())));
-                    }
-
-                    methodCallExpression.writeCommentTo(objectRoutineScript);
-                    methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration, testGenerationState);
-                    mockedCalls.put(mockedCallSignature, true);
                     objectRoutineScript.addComment("");
+
+                    for (MethodCallExpression methodCallExpression : callsOnSubject) {
+                        Parameter newReturnValue = methodCallExpression.getReturnValue();
+                        if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
+                            continue;
+                        }
+                        previousReturnValue = newReturnValue;
+                        previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
+
+                        if (previousReturnValue.isPrimitiveType()) {
+                            previousReturnValue.setTypeForced(
+                                    ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                                            .getAttribute("Type", previousReturnValue.getType())));
+                        }
+
+                        if (firstCall) {
+                            methodCallExpression.writeCommentTo(objectRoutineScript);
+                            methodCallExpression.writeReturnValue(
+                                    objectRoutineScript, testConfiguration, testGenerationState);
+                            pendingStatement = in(objectRoutineScript)
+                                    .writeExpression(
+                                            MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                    testConfiguration));
+                        }
+                        firstCall = false;
+
+
+                        Parameter returnValue = methodCallExpression.getReturnValue();
+                        if (returnValue.getException()) {
+                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+
+                        } else {
+                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+                        }
+
+                    }
+                    if (pendingStatement != null) {
+                        pendingStatement.endStatement();
+                    }
+                    objectRoutineScript.addComment("");
+
+
                 }
+
+
+//                for (MethodCallExpression methodCallExpression : callToMock) {
+//
+//                    String mockedCallSignature = buildCallSignature(methodCallExpression);
+//
+//
+//                    if (methodCallExpression.getException() != null || mockedCalls.containsKey(mockedCallSignature)) {
+//                        continue;
+//                    }
+//                    Parameter returnValue = methodCallExpression.getReturnValue();
+//                    returnValue.getNameForUse(
+//                            methodCallExpression.getMethodName());
+//
+//                    if (returnValue.isPrimitiveType()) {
+//                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
+//                                .getAttribute("Type", returnValue.getType())));
+//                    }
+//
+//                    methodCallExpression.writeCommentTo(objectRoutineScript);
+//                    methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration, testGenerationState);
+//                    PendingStatement statement = methodCallExpression.writeMockTo(objectRoutineScript,
+//                            testConfiguration,
+//                            testGenerationState);
+//                    statement.endStatement();
+//                    mockedCalls.put(mockedCallSignature, true);
+//                    objectRoutineScript.addComment("");
+//                }
 //                objectRoutineScript.addComment("");
             }
 
@@ -231,16 +306,31 @@ public class CandidateMetadataFactory {
 
                         if (!returnValue.getType()
                                 .equals("V")) {
-                            methodCallExpression.writeMockTo(objectRoutineScript, testConfiguration,
+                            methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration,
                                     testGenerationState);
+                            methodCallExpression.writeReturnValue(
+                                    objectRoutineScript, testConfiguration, testGenerationState);
+
+                            PendingStatement pendingStatement;
+                            if (returnValue.getException()) {
+                                pendingStatement = in(objectRoutineScript)
+                                        .writeExpression(
+                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                        objectRoutineScript.getGenerationConfiguration()))
+                                        .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+
+                            } else {
+                                pendingStatement = in(objectRoutineScript)
+                                        .writeExpression(
+                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                        objectRoutineScript.getTestConfiguration()))
+                                        .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+                            }
+
+                            pendingStatement.endStatement();
                         }
-
                     }
-
-
                 }
-
-
             }
 
             if (mainMethod.getMethodName()
@@ -250,7 +340,7 @@ public class CandidateMetadataFactory {
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
-            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue()!=null
+            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null
                     && mainMethod.getReturnValue()
                     .getType() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
@@ -276,9 +366,13 @@ public class CandidateMetadataFactory {
                 .append(methodCallExpression.getMethodName());
 
         for (Parameter parameter : methodCallExpression.getArguments()) {
-//            byte[] serializedValue = parameter.getProb()
-//                    .getSerializedValue();
-            callBuilder.append(parameter.getValue());
+            if (parameter.getProb() != null && parameter.getProb()
+                    .getSerializedValue().length > 0) {
+                callBuilder.append(new String(parameter.getProb()
+                        .getSerializedValue()));
+            } else {
+                callBuilder.append(parameter.getValue());
+            }
         }
         return callBuilder.toString();
     }

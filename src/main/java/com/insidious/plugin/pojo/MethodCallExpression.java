@@ -422,67 +422,17 @@ public class MethodCallExpression implements Expression, Serializable {
                         (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
     }
 
-    public void writeMockTo(
+    public void writeReturnValue(
             ObjectRoutineScript objectRoutine,
             TestCaseGenerationConfiguration testCaseGenerationConfiguration,
             TestGenerationState testGenerationState
     ) {
         Parameter returnValue = getReturnValue();
-        if (returnValue.getType() == null) {
+        if (returnValue.getType() == null || returnValue.getValue() == 0) {
             return;
         }
 
-        // we don't want to write a mock call if the return value is null
-        // since mocked classes return null by default and this mocking just adds noise to the generated test case
-        // but if the return value was a boxed primitive (like Integer), then the mock return 0 by default instead of null
-        // so we need to add an explicit call to return null for them and not return early here
-        if (returnValue.getProb() != null && !returnValue.isPrimitiveType()) {
-            if (new String(returnValue.getProb()
-                    .getSerializedValue()).equals("null")) {
-                return;
-            }
-        }
-
-        List<Parameter> argsContainer = getArguments();
-        if (argsContainer != null) {
-            for (Parameter argument : argsContainer) {
-                Parameter existingParameter = objectRoutine.getCreatedVariables()
-                        .getParameterByValue(argument.getValue());
-                String nameForUse;
-                if (existingParameter != null && existingParameter.getName() != null) {
-                    nameForUse = argument.getNameForUse(existingParameter.getName());
-                } else {
-                    nameForUse = argument.getNameForUse(methodName);
-                }
-                if (nameForUse != null) {
-                    if (argument.isPrimitiveType()) {
-                        // boolean values to be used directly without their names
-                        // since a lot of them conflict with each other
-                        continue;
-                    }
-
-                    if ((argument.getType()
-                            .length() == 1 ||
-                            argument.getType()
-                                    .startsWith("java.lang.")) && !argument.getType()
-                            .contains(".Object")
-                    ) {
-                        in(objectRoutine)
-                                .assignVariable(argument)
-                                .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
-                                .endStatement();
-                    }
-                }
-            }
-        }
-
         if (returnValue.getException()) {
-            Parameter exceptionValue = getException();
-            in(objectRoutine)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getGenerationConfiguration()))
-                    .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(exceptionValue))
-                    .endStatement();
 
         } else {
             if (returnValue.getCreatorExpression() == null) {
@@ -518,13 +468,44 @@ public class MethodCallExpression implements Expression, Serializable {
             }
 
             logger.warn("Mocked method [" + this.getMethodName() + "] expected return => " + returnValue);
-            in(objectRoutine)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getTestConfiguration()))
-                    .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue))
-                    .endStatement();
         }
 
+
+
+    }
+
+    public void writeCallArguments(ObjectRoutineScript objectRoutine,
+                             TestCaseGenerationConfiguration testCaseGenerationConfiguration, TestGenerationState testGenerationState) {
+        List<Parameter> argsContainer = getArguments();
+        if (argsContainer != null) {
+            for (Parameter argument : argsContainer) {
+                Parameter existingParameter = objectRoutine.getCreatedVariables()
+                        .getParameterByValue(argument.getValue());
+                String nameForUse;
+                if (existingParameter != null && existingParameter.getName() != null) {
+                    nameForUse = argument.getNameForUse(existingParameter.getName());
+                } else {
+                    nameForUse = argument.getNameForUse(methodName);
+                }
+                if (nameForUse != null) {
+                    if (argument.isPrimitiveType()) {
+                        // boolean values to be used directly without their names
+                        // since a lot of them conflict with each other
+                        continue;
+                    }
+
+                    String argumentType = argument.getType();
+                    if ((argumentType.length() == 1 || argumentType.startsWith("java.lang."))
+                            && !argumentType.contains(".Object")
+                    ) {
+                        in(objectRoutine)
+                                .assignVariable(argument)
+                                .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                                .endStatement();
+                    }
+                }
+            }
+        }
     }
 
     public void setIsStatic(boolean aStatic) {
