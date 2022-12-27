@@ -11,7 +11,9 @@ import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
+import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class PendingStatement {
     public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
+    private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new ArrayList<>();
     private Parameter lhsExpression;
@@ -402,6 +405,12 @@ public class PendingStatement {
 
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new ArrayList<>();
+        logger.warn("Complete statement: Lhs [" + lhsExpression + "] => ");
+        for (int i = 0; i < expressionList.size(); i++) {
+            Expression expression = expressionList.get(i);
+            logger.warn(" [" + i + "] Rhs [" + expression + "]");
+        }
+
 
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
                 lhsExpression.getProbeInfo()
@@ -419,7 +428,8 @@ public class PendingStatement {
 
             // this typename handled for int[] byte[] long[] primitve types
             if (lhsExpression != null &&
-                    lhsExpression.isPrimitiveType() && lhsExpression.getType().endsWith("[]")) {
+                    lhsExpression.isPrimitiveType() && lhsExpression.getType()
+                    .endsWith("[]")) {
                 lhsTypeName = ArrayTypeName.of(lhsTypeName);
             }
 

@@ -3,6 +3,7 @@ package com.insidious.plugin.client;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.common.weaver.Descriptor;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
@@ -12,6 +13,8 @@ import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
@@ -143,7 +146,7 @@ public class DaoService {
     private com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata convertTestCandidateMetadata(
             TestCandidateMetadata testCandidateMetadata, Boolean loadCalls
     ) throws SQLException {
-        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
+//        logger.warn("Build test candidate - " + testCandidateMetadata.getEntryProbeIndex());
         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
@@ -340,7 +343,8 @@ public class DaoService {
             if (methodCallExpression.isStaticCall()) {
                 DataInfo entryProbeInfo = probeInfoMap.get(dbMce.getEntryProbeInfo_id());
                 com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
-                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
+                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner",
+                        entryProbeInfo.getValueDesc().getString())));
                 staticSubject.setProb(probesMap.get(dbMce.getEntryProbe_id()));
                 staticSubject.setProbeInfo(entryProbeInfo);
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
@@ -370,10 +374,13 @@ public class DaoService {
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
-                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", "V");
+                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc()
+                        .getString());
                 // only set param type if the type is not already null or empty
-                if (paramArgument.getType() == null || paramArgument.getType()
-                        .equals("") || !paramArgTypeFromProbe.equals("V")) {
+                String existingType = paramArgument.getType();
+                if ((existingType == null || existingType.equals("") || existingType.length() == 1)
+                        && (!paramArgTypeFromProbe.equals("V")
+                        && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(
                             ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe));
                 }
@@ -404,6 +411,10 @@ public class DaoService {
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
+            if (eventProbe.getValueDesc() != Descriptor.Object) {
+                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
+                        .getString()));
+            }
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
             if (typeFromProbe != null) {
@@ -1058,9 +1069,41 @@ public class DaoService {
         }
     }
 
+    private void checkProgressIndicator(String text1, String text2) {
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .isCanceled()) {
+                try {
+                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
+                    // able ot read it on next refresh/load
+                    close();
+                } catch (Exception e) {
+                    // now this is just very weird
+                    throw new RuntimeException(e);
+                }
+                throw new ProcessCanceledException();
+            }
+            if (text2 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2(text2);
+            }
+            if (text1 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText(text1);
+            }
+        }
+    }
+
+
     public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
+            int i = 0;
+            int total = parameterList.size();
             for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
+                if (i % 100 == 0) {
+                    checkProgressIndicator(null, i + " / " + total);
+                }
+                i++;
                 Parameter existingParameter = parameterDao.queryForId(parameter.getValue());
                 if (existingParameter != null) {
                     String[] existingNames = existingParameter.getNames();

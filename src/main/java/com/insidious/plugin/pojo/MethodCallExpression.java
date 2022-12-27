@@ -14,6 +14,7 @@ import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.util.text.Strings;
 import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.NotNull;
 
@@ -22,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class MethodCallExpression implements Expression, Serializable {
 
@@ -414,7 +416,9 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         return
 //                ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ? "" : (returnValue.getName() + " = ")) +
-                methodCallOnVariableString + "(" + arguments.size() + " args)" +
+                methodCallOnVariableString + "(" + Strings.join(arguments.stream()
+                        .map(Parameter::getType)
+                        .collect(Collectors.toList()), ", ") + " args)" +
                         (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
     }
 
@@ -513,6 +517,7 @@ public class MethodCallExpression implements Expression, Serializable {
                         .endStatement();
             }
 
+            logger.warn("Mocked method [" + this.getMethodName() + "] expected return => " + returnValue);
             in(objectRoutine)
                     .writeExpression(
                             MethodCallExpressionFactory.MockitoWhen(this, objectRoutine.getTestConfiguration()))

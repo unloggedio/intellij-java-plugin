@@ -8,6 +8,8 @@ import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
@@ -19,6 +21,7 @@ public class MethodCallExpressionFactory {
     //    public static final Parameter MockitoClass;
     //    public static final Parameter AssertClass;
     public static final Parameter GsonClass;
+    private static final Logger logger = LoggerUtil.getInstance(MethodCallExpressionFactory.class);
 
     static {
 //        MockitoClass = makeParameter("Mockito", "org.mockito.Mockito");
@@ -56,22 +59,28 @@ public class MethodCallExpressionFactory {
         boolean isStatic = false;
 
         String param1;
+        String methodParametersStringMock = TestCaseWriter.createMethodParametersStringMock(
+                methodCallExpression.getArguments());
+        logger.warn(
+                "Create method call arguments mock: [" + methodCallExpression + "] => " + methodParametersStringMock);
+
         if (callType != null && callType.equals("Static")) {
             isStatic = true;
             String owner = subjectProbeInfo.getAttribute("Owner", null);
             String classSimpleName = owner.substring(owner.lastIndexOf('/') + 1);
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
-                    "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
+                    "(" + methodParametersStringMock + ")";
         } else {
             param1 = mainSubject.getName() + "." + methodCallExpression.getMethodName() +
-                    "(" + TestCaseWriter.createMethodParametersStringMock(methodCallExpression.getArguments()) + ")";
+                    "(" + methodParametersStringMock + ")";
         }
 
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);
 
 
-        Parameter callSubject = configuration.getMockFramework().getMockClassParameter();
+        Parameter callSubject = configuration.getMockFramework()
+                .getMockClassParameter();
         if (isStatic) {
             callSubject = mainSubject;
         }
@@ -94,7 +103,8 @@ public class MethodCallExpressionFactory {
 
 
         MethodCallExpression mock = new MethodCallExpression("mock",
-                configuration.getMockFramework().getMockClassParameter(), List.of(whenExpression), null, 0);
+                configuration.getMockFramework()
+                        .getMockClassParameter(), List.of(whenExpression), null, 0);
         mock.setStaticCall(true);
         mock.setMethodAccess(Opcodes.ACC_PUBLIC);
         return mock;
@@ -112,7 +122,8 @@ public class MethodCallExpressionFactory {
 
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",
-                configuration.getMockFramework().getMockClassParameter(), List.of(whenExpression), null, 0);
+                configuration.getMockFramework()
+                        .getMockClassParameter(), List.of(whenExpression), null, 0);
         mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
         mockStatic.setStaticCall(true);
         return mockStatic;
@@ -167,8 +178,10 @@ public class MethodCallExpressionFactory {
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertEquals = MethodCallExpression(
-                testConfiguration.getTestFramework().AssertEqualMethod(),
-                testConfiguration.getTestFramework().AssertClassParameter(),
+                testConfiguration.getTestFramework()
+                        .AssertEqualMethod(),
+                testConfiguration.getTestFramework()
+                        .AssertClassParameter(),
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
         );
         assertEquals.setStaticCall(true);
@@ -181,8 +194,10 @@ public class MethodCallExpressionFactory {
             Parameter returnSubjectInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertArrayEquals = MethodCallExpression(
-                testConfiguration.getTestFramework().AssertArrayEqualsMethod(),
-                testConfiguration.getTestFramework().AssertClassParameter(),
+                testConfiguration.getTestFramework()
+                        .AssertArrayEqualsMethod(),
+                testConfiguration.getTestFramework()
+                        .AssertClassParameter(),
                 VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
         );
 
@@ -195,8 +210,10 @@ public class MethodCallExpressionFactory {
             Parameter paramInstanceName,
             TestCaseGenerationConfiguration testConfiguration) {
         MethodCallExpression assertFalse = MethodCallExpression(
-                testConfiguration.getTestFramework().AssertFalseMethod(),
-                testConfiguration.getTestFramework().AssertClassParameter(),
+                testConfiguration.getTestFramework()
+                        .AssertFalseMethod(),
+                testConfiguration.getTestFramework()
+                        .AssertClassParameter(),
                 VariableContainer.from(List.of(paramInstanceName)), null
         );
 
@@ -224,9 +241,11 @@ public class MethodCallExpressionFactory {
     public static Expression createEnumExpression(Parameter enumParam) {
 
         @Nullable String enumTypeName = ClassTypeUtils.createTypeFromName(
-                ClassTypeUtils.getJavaClassName(enumParam.getType())).toString();
+                        ClassTypeUtils.getJavaClassName(enumParam.getType()))
+                .toString();
 
-        String value = new String(enumParam.getProb().getSerializedValue());
+        String value = new String(enumParam.getProb()
+                .getSerializedValue());
 
         value = value.replace("\"", "");
 

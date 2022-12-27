@@ -1874,7 +1874,7 @@ public class SessionInstance {
 
 
             Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
-            checkProgressIndicator(null, "Saving " + allParameters.size() + " parameters");
+            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
             daoService.createOrUpdateParameter(allParameters);
 
         } finally {
@@ -2148,7 +2148,8 @@ public class SessionInstance {
                         } else {
                             // new variable identified ?
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
                             existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2180,7 +2181,8 @@ public class SessionInstance {
                         } else {
                             // new field
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                             existingParameter.setType(
                                     ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
 
@@ -2206,11 +2208,13 @@ public class SessionInstance {
                             // setting this to null, so it is not inserted into the database again
                             existingParameter = null;
                         } else {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                             if (existingParameter.getProb() == null) {
                                 // we are coming across this field for the first time
                                 dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                                existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                                existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                        existingParameter);
                                 existingParameter.addName(probeInfo.getAttribute("Name",
                                         probeInfo.getAttribute("FieldName", null)));
                                 existingParameter.setType(ClassTypeUtils.getDottedClassName(
@@ -2365,7 +2369,8 @@ public class SessionInstance {
 
                         isModified = false;
                         if (methodCall == null) {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                             if (existingParameter.getProb() == null) {
 
                                 existingParameter.setProbeInfo(probeInfo);
@@ -2405,7 +2410,8 @@ public class SessionInstance {
                         threadState.pushTopCandidate(newCandidate);
 
                         if (existingParameter == null) {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                         }
 
                         if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
@@ -2479,7 +2485,8 @@ public class SessionInstance {
 
                         if (!topCallSubjectType.equals(currentProbeClassOwner)) {
                             dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
                             if (existingParameter.getType() == null) {
                                 ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                         existingParameter.getValue());
@@ -2575,10 +2582,7 @@ public class SessionInstance {
                         if (threadState.candidateSize() > 0) {
                             TestCandidateMetadata newCurrent = threadState.getTopCandidate();
                             MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                            newCurrent.addAllMethodCall(completedExceptional.getCallsList()
-                                    .stream()
-                                    .filter(e1 -> e1.isStaticCall() || e1.getCallStack() == newCurrentMainMethod.getCallStack() + 1)
-                                    .collect(Collectors.toList()));
+                            newCurrent.addAllMethodCall(completedExceptional.getCallsList());
 
                             if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject()
                                     .getType()
@@ -2667,10 +2671,10 @@ public class SessionInstance {
                         if (threadState.candidateSize() > 0) {
                             TestCandidateMetadata newCurrent = threadState.getTopCandidate();
                             MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                            newCurrent.addAllMethodCall(completed.getCallsList()
-                                    .stream()
-                                    .filter(e1 -> e1.isStaticCall() || e1.getCallStack() == newCurrentMainMethod.getCallStack() + 1)
-                                    .collect(Collectors.toList()));
+                            final long newSubjectValue = newCurrentMainMethod.getSubject()
+                                    .getValue();
+                            final int expectedCallStack = newCurrentMainMethod.getCallStack() + 1;
+                            newCurrent.addAllMethodCall(completed.getCallsList());
                             Parameter completedCallSubject = ((MethodCallExpression) completed.getMainMethod()).getSubject();
                             Parameter newCurrentCallSubject = newCurrentMainMethod.getSubject();
                             if (newCurrentCallSubject.getType()

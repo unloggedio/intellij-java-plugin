@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
 import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.util.LoggerUtil;
@@ -21,6 +22,7 @@ class ZipConsumer implements Runnable {
     private final DaoService daoService;
     private final Map<String, ArchiveFile> archiveFileMap;
     private final File sessionDirectory;
+    private Map<String, Long> checkedTimeMap = new HashMap<>();
 
     ZipConsumer(DaoService daoService, File sessionDirectory) throws IOException {
         this.daoService = daoService;
@@ -95,6 +97,14 @@ class ZipConsumer implements Runnable {
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
         logger.info("open archive [" + sessionFile + "]");
+
+        long lastModified = sessionFile.lastModified();
+        Long lastCheckedTime = checkedTimeMap.getOrDefault(sessionFile.getAbsolutePath(), 0L);
+        if (lastCheckedTime >= lastModified) {
+            return List.of();
+        }
+        checkedTimeMap.put(sessionFile.getAbsolutePath(), lastModified);
+
         List<String> files = new LinkedList<>();
 
         try (ZipInputStream indexArchive = new ZipInputStream(new FileInputStream(sessionFile))) {

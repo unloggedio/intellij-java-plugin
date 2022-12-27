@@ -254,8 +254,8 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     @Override
     public void valueChanged(TreeSelectionEvent e) {
-        logger.warn("value selection event - " + e.getPath() + " - " + e.getPath()
-                .getLastPathComponent());
+//        logger.warn("value selection event - " + e.getPath() + " - " + e.getPath()
+//                .getLastPathComponent());
         Object selectedNode = e.getPath()
                 .getLastPathComponent();
         if (selectedNode.getClass()

@@ -2,12 +2,16 @@ package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class TestCaseWriter {
+
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseWriter.class);
 
     @NotNull
     public static String createMethodParametersString(List<Parameter> variableContainer) {
@@ -62,10 +66,13 @@ public class TestCaseWriter {
 
         String serializedValue = "";
         if (parameter.getProb() != null
-                && parameter.getProb().getSerializedValue().length > 0)
-            serializedValue = new String(parameter.getProb().getSerializedValue());
+                && parameter.getProb()
+                .getSerializedValue().length > 0)
+            serializedValue = new String(parameter.getProb()
+                    .getSerializedValue());
 
-        if (parameter.getType() != null && parameter.getType().endsWith("[]")) {
+        if (parameter.getType() != null && parameter.getType()
+                .endsWith("[]")) {
             // if the type of parameter is array like int[], long[] (i.e J[])
             String nameUsed = parameter.getNameForUse(null);
             parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
@@ -109,6 +116,7 @@ public class TestCaseWriter {
     @NotNull
     public static String
     createMethodParametersStringMock(List<Parameter> variableContainer) {
+        logger.warn("Create method parameters argument mock => " + variableContainer);
         if (variableContainer == null) {
             return "";
         }
@@ -162,6 +170,8 @@ public class TestCaseWriter {
                 }
             }
 
+            logger.warn("Argument [" + parameter + "] will be compared as => " + compareAgainst);
+
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
                 parameterStringBuilder
                         .append("eq(")
@@ -181,7 +191,9 @@ public class TestCaseWriter {
                         compareAgainst = "true";
                     }
                 }
-                parameterStringBuilder.append("eq(").append(compareAgainst).append(")");
+                parameterStringBuilder.append("eq(")
+                        .append(compareAgainst)
+                        .append(")");
             } else {
                 if (parameter.getValue() == 0) {
                     parameterStringBuilder.append("any()");
