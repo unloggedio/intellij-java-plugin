@@ -250,9 +250,11 @@ public class SessionInstance {
         methodInfoIndex = createMethodInfoIndex();
         classInfoIndex = createClassInfoIndex();
 //        classInfoIndexByName = createClassInfoNameIndex();
-        classInfoIndex.values().stream().forEach(classInfo1 -> {
-            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
-        });
+        classInfoIndex.values()
+                .stream()
+                .forEach(classInfo1 -> {
+                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
+                });
 
         if (classWeaveInfo == null) {
             throw new RuntimeException("Class weave information not found in the session");
@@ -2087,9 +2089,9 @@ public class SessionInstance {
                 MethodCallExpression methodCall;
                 boolean isModified;
                 String nameFromProbe;
-                if (eventBlock.eventId() == 119608L) {
-                    logger.warn("here: " + logFile);
-                }
+//                if (eventBlock.eventId() == 313606L) {
+//                    logger.warn("here: " + logFile);
+//                }
                 switch (probeInfo.getEventType()) {
 
                     case LABEL:
@@ -2343,9 +2345,9 @@ public class SessionInstance {
                         break;
 
                     case CALL:
-                        if (eventBlock.eventId() == 165161L) {
-                            logger.warn("in file: " + logFile);
-                        }
+//                        if (eventBlock.eventId() == 165161L) {
+//                            logger.warn("in file: " + logFile);
+//                        }
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         saveProbe = true;
@@ -2372,6 +2374,14 @@ public class SessionInstance {
                         methodCall.setId(currentCallId);
                         methodCall.setEntryProbeInfo(probeInfo);
                         methodCall.setEntryProbe(dataEvent);
+
+                        ClassInfo methodClassInfo = classInfoIndexByName.get(existingParameter.getType());
+                        if (methodClassInfo != null) {
+                            if (Arrays.asList(methodClassInfo.getInterfaces())
+                                    .contains("org/springframework/data/jpa/repository/JpaRepository")) {
+                                methodCall.setMethodAccess(1);
+                            }
+                        }
 
                         if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                             methodCall.setStaticCall(true);
