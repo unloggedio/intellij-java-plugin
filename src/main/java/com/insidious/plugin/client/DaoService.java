@@ -110,6 +110,7 @@ public class DaoService {
 
     }
 
+
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
     getTestCandidateForSubjectId(Long id) throws SQLException {
 
