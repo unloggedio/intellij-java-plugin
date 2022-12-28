@@ -40,7 +40,7 @@ class ZipConsumer implements Runnable {
         logger.info("zip consumer started for path: " + sessionDirectory.getPath());
         while (true) {
             try {
-                Thread.sleep(2000);
+                Thread.sleep(5000);
                 checkNewFiles();
             } catch (InterruptedException | IOException e) {
                 throw new RuntimeException(e);

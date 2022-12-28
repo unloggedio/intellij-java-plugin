@@ -6,12 +6,14 @@ import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -62,7 +64,7 @@ public class DaoService {
             "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
             "  and (pi.eventType is null or pi.eventType != 'CALL_RETURN')\n" +
-            "  and (names is null or names != '')";
+            "";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
@@ -262,6 +264,7 @@ public class DaoService {
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
+            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(), NotificationType.ERROR);
             throw new RuntimeException(e);
         }
     }

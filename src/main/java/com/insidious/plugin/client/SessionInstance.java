@@ -45,6 +45,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.IndexNotReadyException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.io.StreamUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiPrimitiveType;
@@ -66,6 +67,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -106,6 +108,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
+    private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
 
@@ -246,7 +249,10 @@ public class SessionInstance {
         probeInfoIndex = createProbeInfoIndex();
         methodInfoIndex = createMethodInfoIndex();
         classInfoIndex = createClassInfoIndex();
-
+//        classInfoIndexByName = createClassInfoNameIndex();
+        classInfoIndex.values().stream().forEach(classInfo1 -> {
+            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
+        });
 
         if (classWeaveInfo == null) {
             throw new RuntimeException("Class weave information not found in the session");
@@ -295,7 +301,7 @@ public class SessionInstance {
                     }
                     classInfo1.setEnum(isEnum);
                     classInfoIndex.put(classInfo1.getClassId(), classInfo1);
-
+                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
 
                     methodInfoIndex.putAll(methodInfoMap);
 
@@ -427,6 +433,24 @@ public class SessionInstance {
         ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         ClassInfo.class)
                 .name("class-info-map")
+                .averageValue(
+                        new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
+                                "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
+                                "signaure"))
+                .entries(10_000);
+        return probeInfoMapBuilder.createPersistedTo(classIndexFile);
+
+    }
+
+    private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
+
+        checkProgressIndicator(null, "Loading class info index");
+        File classIndexFile = Path.of(executionSession.getPath(), "index.classname.dat")
+                .toFile();
+        ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+                        ClassInfo.class)
+                .name("class-info-name-map")
+                .averageKey("aco.asfe.asfijaisd.avsdiv$ausdhf$adfaadsfa.adfadf")
                 .averageValue(
                         new ClassInfo(1, "container-name", "file-name", "class-name", LogLevel.Normal, "hashvalue",
                                 "class-loader-identifier", new String[]{"classinterface-1"}, "super-class-name",
@@ -1404,12 +1428,11 @@ public class SessionInstance {
     }
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
-//        long start = new Date().getTime();
+        long start = new Date().getTime();
         logger.warn("Read events from file: " + archiveFile);
         NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
 
         assert bytesWithName != null;
-
 
         ByteBufferKaitaiStream kaitaiStream = new ByteBufferKaitaiStream(bytesWithName.getBytes());
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(kaitaiStream);
@@ -1418,10 +1441,71 @@ public class SessionInstance {
         ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
                 .entries();
         kaitaiStream.close();
-//        long end = new Date().getTime();
-//        logger.warn("Read events took: " + ((end - start) / 1000));
+        long end = new Date().getTime();
+        logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
+
+    /**
+     * possible new implementation for reading event file, but incomplete and not used
+     * not to be used until verified
+     *
+     * @param sessionFile
+     * @param pathName
+     * @return
+     */
+    private NameWithBytes readEventFile(File sessionFile, String pathName) {
+        logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
+        String cacheKey = sessionFile.getName() + pathName;
+        String cacheFileLocation = this.sessionDirectory + "/cache/" + cacheKey + ".dat";
+//        ZipInputStream indexArchive = null;
+        try {
+
+            if (cacheEntries.containsKey(cacheKey)) {
+                String name = cacheEntries.get(cacheKey);
+                File cacheFile = new File(cacheFileLocation);
+                try (FileInputStream inputStream = new FileInputStream(cacheFile)) {
+                    byte[] bytes = IOUtils.toByteArray(inputStream);
+                    return new NameWithBytes(name, bytes);
+                }
+            }
+
+            try (FileInputStream sessionFileInputStream = new FileInputStream(sessionFile)) {
+                try (ZipInputStream indexArchive = new ZipInputStream(sessionFileInputStream)) {
+                    ZipEntry entry;
+                    while ((entry = indexArchive.getNextEntry()) != null) {
+                        String entryName = entry.getName();
+//                        logger.info(String.format("file entry in archive [%s] -> [%s]", sessionFile.getName(),
+//                                entryName));
+                        if (entryName.contains(pathName)) {
+                            byte[] fileBytes = IOUtils.toByteArray(indexArchive);
+
+                            File cacheFile = new File(cacheFileLocation);
+                            FileOutputStream cacheOut = new FileOutputStream(cacheFile);
+                            StreamUtil.copy(indexArchive, cacheOut);
+
+//                            FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
+                            cacheEntries.put(cacheKey, entryName);
+
+                            NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
+                            logger.info(
+                                    pathName + " file from " + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
+                            indexArchive.closeEntry();
+                            return nameWithBytes;
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            logger.warn(
+                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
+            return null;
+        }
+        return null;
+
+    }
+
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
@@ -2003,6 +2087,9 @@ public class SessionInstance {
                 MethodCallExpression methodCall;
                 boolean isModified;
                 String nameFromProbe;
+                if (eventBlock.eventId() == 217894L) {
+                    logger.warn("here: " + logFile);
+                }
                 switch (probeInfo.getEventType()) {
 
                     case LABEL:
@@ -2055,8 +2142,15 @@ public class SessionInstance {
                                 || fieldType1.startsWith("com.google")
                                 || fieldType1.startsWith("org.joda.time")) {
                         } else {
-                            ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                            if (!classInfo.isEnum()) {
+                            if (fieldType1.endsWith("]")) {
+                                fieldType1 = fieldType1.substring(0, fieldType1.indexOf("["));
+                            }
+                            ClassInfo classInfo = classInfoIndexByName.get(fieldType1);
+//                            if (classInfo == null) {
+//                                logger.warn("class info is null: " + fieldType1);
+////                                classInfo = classInfoIndex.get(probeInfo.getClassId());
+//                            }
+                            if (classInfo != null && !classInfo.isEnum()) {
                                 threadState.getTopCall()
                                         .setUsesFields(true);
                             }
@@ -2249,6 +2343,9 @@ public class SessionInstance {
                         break;
 
                     case CALL:
+                        if (eventBlock.eventId() == 165161L) {
+                            logger.warn("in file: " + logFile);
+                        }
                         dataEvent = createDataEventFromBlock(threadId, eventBlock);
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         saveProbe = true;

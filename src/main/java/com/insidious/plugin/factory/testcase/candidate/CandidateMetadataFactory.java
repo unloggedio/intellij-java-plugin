@@ -258,79 +258,163 @@ public class CandidateMetadataFactory {
 
             if (staticCallsList.size() > 0) {
 
-                for (MethodCallExpression methodCallExpression : staticCallsList) {
 
-                    // we have a call SQSUseCase.values(0 args), which returns an array, at callStack 10 when the main callStack is at 4
-                    // so the expected call stack should be 5, but we cannot check that since the callStack value with 6 is a valid call to be mocked
-                    // but this call which return an array should not be mocked
-                    // probably need to exclude calls from inside of <clinit>
-                    Parameter returnValue = methodCallExpression.getReturnValue();
-//                    if (returnValue.getName() == null) {
-//                        continue;
-//                    }
+                Map<String, List<MethodCallExpression>> grouped = staticCallsList.stream()
+                        .collect(Collectors.groupingBy(e -> e.getSubject()
+                                        .getValue() + e.getMethodName() + buildCallSignature(e),
+                                Collectors.toList()));
+                for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
+                    List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
+                    callsOnSubject.sort((e1, e2) ->
+                            Math.toIntExact(e1.getEntryProbe()
+                                    .getNanoTime() - e2.getEntryProbe()
+                                    .getNanoTime()));
+
+                    boolean firstCall = true;
+                    PendingStatement pendingStatement = null;
+                    Parameter previousReturnValue = null;
+
+                    MethodCallExpression firstCallExpression = callsOnSubject.get(0);
+                    firstCallExpression.writeCallArguments(
+                            objectRoutineScript, testConfiguration, testGenerationState);
+
+                    objectRoutineScript.addComment("");
+                    Parameter staticCallSubjectMockInstance = callsOnSubject.get(0)
+                            .getSubject();
+
+                    if (!objectRoutineScript.getCreatedVariables()
+                            .contains(staticCallSubjectMockInstance.getName())) {
+                        @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
+                                staticCallSubjectMockInstance);
+
+                        subjectStaticFieldMock.setContainer(true);
+                        Parameter childParameter = new Parameter();
+                        childParameter.setType(staticCallSubjectMockInstance.getType());
+                        subjectStaticFieldMock.setType("org.mockito.MockedStatic");
+                        childParameter.setName("E");
+                        subjectStaticFieldMock.getTemplateMap()
+                                .add(childParameter);
+
+                        objectRoutineScript.addStaticMock(subjectStaticFieldMock);
+                    }
 
 
-                    Parameter staticCallSubjectMockInstance = methodCallExpression.getSubject();
+                    for (MethodCallExpression methodCallExpression : callsOnSubject) {
+                        Parameter newReturnValue = methodCallExpression.getReturnValue();
+                        if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
+                            continue;
+                        }
+                        previousReturnValue = newReturnValue;
+                        previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
 
-                    String mockedCallSignature = buildCallSignature(methodCallExpression);
-
-                    if (!mockedCalls.containsKey(mockedCallSignature)) {
-                        if (!objectRoutineScript.getCreatedVariables()
-                                .contains(staticCallSubjectMockInstance.getName())) {
-                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
-                                    staticCallSubjectMockInstance);
-
-                            subjectStaticFieldMock.setContainer(true);
-                            Parameter childParameter = new Parameter();
-                            childParameter.setType(staticCallSubjectMockInstance.getType());
-                            subjectStaticFieldMock.setType("org.mockito.MockedStatic");
-                            childParameter.setName("E");
-                            subjectStaticFieldMock.getTemplateMap()
-                                    .add(childParameter);
-
-                            objectRoutineScript.addStaticMock(subjectStaticFieldMock);
+                        if (previousReturnValue.isPrimitiveType()) {
+                            previousReturnValue.setTypeForced(
+                                    ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                                            .getAttribute("Type", previousReturnValue.getType())));
                         }
 
-                        mockedCalls.put(mockedCallSignature, true);
-                        objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
-
-
-                        returnValue.getNameForUse(
-                                methodCallExpression.getMethodName());
-
-                        if (returnValue.isPrimitiveType()) {
-                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
-                                    .getAttribute("Type", returnValue.getType())));
-                        }
-
-
-                        if (!returnValue.getType()
-                                .equals("V")) {
-                            methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration,
-                                    testGenerationState);
+                        if (firstCall) {
+                            methodCallExpression.writeCommentTo(objectRoutineScript);
                             methodCallExpression.writeReturnValue(
                                     objectRoutineScript, testConfiguration, testGenerationState);
-
-                            PendingStatement pendingStatement;
-                            if (returnValue.getException()) {
-                                pendingStatement = in(objectRoutineScript)
-                                        .writeExpression(
-                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                        objectRoutineScript.getGenerationConfiguration()))
-                                        .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
-
-                            } else {
-                                pendingStatement = in(objectRoutineScript)
-                                        .writeExpression(
-                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                        objectRoutineScript.getTestConfiguration()))
-                                        .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
-                            }
-
-                            pendingStatement.endStatement();
+                            pendingStatement = in(objectRoutineScript)
+                                    .writeExpression(
+                                            MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                    testConfiguration));
                         }
+                        firstCall = false;
+
+
+                        Parameter returnValue = methodCallExpression.getReturnValue();
+                        if (returnValue.getException()) {
+                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+
+                        } else {
+                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+                        }
+
                     }
+                    if (pendingStatement != null) {
+                        pendingStatement.endStatement();
+                    }
+                    objectRoutineScript.addComment("");
+
+
                 }
+
+//                for (MethodCallExpression methodCallExpression : staticCallsList) {
+//
+//                    // we have a call SQSUseCase.values(0 args), which returns an array, at callStack 10 when the main callStack is at 4
+//                    // so the expected call stack should be 5, but we cannot check that since the callStack value with 6 is a valid call to be mocked
+//                    // but this call which return an array should not be mocked
+//                    // probably need to exclude calls from inside of <clinit>
+//                    Parameter returnValue = methodCallExpression.getReturnValue();
+////                    if (returnValue.getName() == null) {
+////                        continue;
+////                    }
+//
+//
+//                    Parameter staticCallSubjectMockInstance = methodCallExpression.getSubject();
+//
+//                    String mockedCallSignature = buildCallSignature(methodCallExpression);
+//
+//                    if (!mockedCalls.containsKey(mockedCallSignature)) {
+//                        if (!objectRoutineScript.getCreatedVariables()
+//                                .contains(staticCallSubjectMockInstance.getName())) {
+//                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
+//                                    staticCallSubjectMockInstance);
+//
+//                            subjectStaticFieldMock.setContainer(true);
+//                            Parameter childParameter = new Parameter();
+//                            childParameter.setType(staticCallSubjectMockInstance.getType());
+//                            subjectStaticFieldMock.setType("org.mockito.MockedStatic");
+//                            childParameter.setName("E");
+//                            subjectStaticFieldMock.getTemplateMap()
+//                                    .add(childParameter);
+//
+//                            objectRoutineScript.addStaticMock(subjectStaticFieldMock);
+//                        }
+//
+//                        mockedCalls.put(mockedCallSignature, true);
+//                        objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
+//
+//
+//                        returnValue.getNameForUse(
+//                                methodCallExpression.getMethodName());
+//
+//                        if (returnValue.isPrimitiveType()) {
+//                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
+//                                    .getAttribute("Type", returnValue.getType())));
+//                        }
+//
+//
+//                        if (!returnValue.getType()
+//                                .equals("V")) {
+//                            methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration,
+//                                    testGenerationState);
+//                            methodCallExpression.writeReturnValue(
+//                                    objectRoutineScript, testConfiguration, testGenerationState);
+//
+//                            PendingStatement pendingStatement;
+//                            if (returnValue.getException()) {
+//                                pendingStatement = in(objectRoutineScript)
+//                                        .writeExpression(
+//                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+//                                                        objectRoutineScript.getGenerationConfiguration()))
+//                                        .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+//
+//                            } else {
+//                                pendingStatement = in(objectRoutineScript)
+//                                        .writeExpression(
+//                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+//                                                        objectRoutineScript.getTestConfiguration()))
+//                                        .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+//                            }
+//
+//                            pendingStatement.endStatement();
+//                        }
+//                    }
+//                }
             }
 
             if (mainMethod.getMethodName()
