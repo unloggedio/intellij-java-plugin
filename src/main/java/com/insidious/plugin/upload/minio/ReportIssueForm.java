@@ -4,6 +4,8 @@ package com.insidious.plugin.upload.minio;// Java program to implement
 
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.components.JBScrollPane;
+import net.openhft.chronicle.core.util.Time;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,7 +37,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
     public ReportIssueForm(Project project) {
         this.project = project;
 
-        setTitle("Registration Form");
+        setTitle("Unlogged Inc.");
         setBounds(400, 150, 800, 600);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
@@ -44,67 +46,66 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         c.setLayout(null);
 
         title = new JLabel("Report Issue");
-        title.setFont(new Font("Sans Serif", Font.PLAIN, 24));
+        title.setFont(new Font("Sans", Font.PLAIN, 24));
         title.setSize(300, 30);
         title.setLocation(300, 30);
         c.add(title);
 
         errorText = new JLabel();
-        errorText.setFont(new Font("Sans Serif", Font.PLAIN, 12));
+        errorText.setFont(new Font("Sans", Font.PLAIN, 12));
         errorText.setLocation(300, 50);
         errorText.setSize(150, 30);
         c.add(errorText);
 
         userEmailLabel = new JLabel("Email");
-        userEmailLabel.setFont(new Font("Sans Serif", Font.PLAIN, 16));
-        userEmailLabel.setSize(800, 30);
-        userEmailLabel.setLocation(100, 100);
+        userEmailLabel.setFont(new Font("Sans", Font.PLAIN, 16));
+        userEmailLabel.setSize(100, 30);
+        userEmailLabel.setLocation(50, 80);
         c.add(userEmailLabel);
 
         userEmail = new JTextField();
-        userEmail.setFont(new Font("Sans Serif", Font.PLAIN, 16));
-        userEmail.setSize(250, 30);
-        userEmail.setLocation(200, 100);
+        userEmail.setFont(new Font("Sans", Font.PLAIN, 16));
+        userEmail.setSize(300, 30);
+        userEmail.setLocation(150, 80);
         c.add(userEmail);
 
         issueTitleLabel = new JLabel("Issue Title");
-        issueTitleLabel.setFont(new Font("Sans Serif", Font.PLAIN, 16));
+        issueTitleLabel.setFont(new Font("Sans", Font.PLAIN, 16));
         issueTitleLabel.setSize(100, 30);
-        issueTitleLabel.setLocation(100, 150);
+        issueTitleLabel.setLocation(50, 130);
         c.add(issueTitleLabel);
 
         issueTitle = new JTextField();
-        issueTitle.setFont(new Font("Sans Serif", Font.PLAIN, 16));
+        issueTitle.setFont(new Font("Sans", Font.PLAIN, 16));
         issueTitle.setSize(300, 30);
-        issueTitle.setLocation(200, 150);
+        issueTitle.setLocation(150, 130);
         c.add(issueTitle);
 
         descriptionLabel = new JLabel("Description");
         descriptionLabel.setFont(new Font("Sans Serif", Font.PLAIN, 16));
         descriptionLabel.setSize(100, 30);
-        descriptionLabel.setLocation(100, 200);
+        descriptionLabel.setLocation(50, 180);
         c.add(descriptionLabel);
 
         description = new JTextArea();
         description.setFont(new Font("Sans Serif", Font.PLAIN, 16));
-        description.setSize(500, 200);
-        description.setLocation(200, 200);
-        description.setLineWrap(true);
+        description.setLineWrap(false);
         description.setEnabled(true);
-        c.add(description);
+        description.setEditable(true);
 
-//        scroll = new JBScrollPane(description,
-//                JBScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JBScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-//        c.add(scroll);
+        JBScrollPane scroll = new JBScrollPane(description,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+        scroll.setSize(550, 300);
+        scroll.setLocation(150, 180);
+        c.add(scroll);
 
         submitButton = new JButton("Send Email");
-        submitButton.setFont(new Font("Sans Serif", Font.BOLD, 15));
+        submitButton.setFont(new Font("Sans Serif", Font.PLAIN, 15));
         submitButton.setSize(150, 40);
-        submitButton.setLocation(400, 440);
+        submitButton.setLocation(550, 500);
         submitButton.addActionListener(this);
         c.add(submitButton);
-
-//        setVisible(true);
     }
 
     private boolean validateForm() {
@@ -130,8 +131,13 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         ReportIssue reportIssue = new ReportIssue();
 
         File selogDir = new File(reportIssue.getLatestSeLogFolderPath());
-        String sessionObjectKey = userEmail.getText() + "/" + selogDir.getName() + ".zip";
-        String ideaLogObjectKey = userEmail.getText() + "/idea-" + selogDir.getName() + ".log";
+
+        String s3BucketParentPath = userEmail.getText() + "/" + selogDir.getName() + "-" + Time.uniqueId();
+        String sessionObjectKey = s3BucketParentPath + "/" + selogDir.getName() + ".zip";
+        String ideaLogObjectKey = s3BucketParentPath + "/idea.log";
+
+        System.out.println(sessionObjectKey);
+        System.out.println(ideaLogObjectKey);
 
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
         String ideaLogURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + ideaLogObjectKey;

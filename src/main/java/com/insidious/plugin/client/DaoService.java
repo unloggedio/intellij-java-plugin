@@ -685,6 +685,11 @@ public class DaoService {
             DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
             DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
+            if (eventProbe.getValueDesc() != Descriptor.Object) {
+                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
+                        .getString()));
+            }
+
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = eventProbe.getAttribute("Type", null);
             if (returnParam.getType() == null || returnParam.getType()
@@ -822,6 +827,11 @@ public class DaoService {
                 DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
                 returnParam.setProb(returnDataEvent);
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
+                if (eventProbe.getValueDesc() != Descriptor.Object) {
+                    returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
+                            .getString()));
+                }
+
                 returnParam.setProbeInfo(eventProbe);
                 String typeFromProbe = eventProbe.getAttribute("Type", null);
                 if (returnParam.getType() == null || returnParam.getType()

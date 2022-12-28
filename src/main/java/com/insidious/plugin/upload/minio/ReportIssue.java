@@ -1,7 +1,9 @@
 package com.insidious.plugin.upload.minio;
 
 import com.insidious.plugin.upload.zip.ZipFiles;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
@@ -19,6 +21,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class ReportIssue {
+    private final static Logger logger = LoggerUtil.getInstance(ReportIssue.class);
+
     public ReportIssue() {
     }
 
@@ -47,15 +51,18 @@ public class ReportIssue {
 
                 // for intellij community
                 if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IdealC" + intellijFullVersion + "/idea.log";
+                    ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IdeaIC" + intellijFullVersion + "/idea.log";
                     ideaLogFile = new File(ideaLogFilePath);
                 }
 
                 // for ubuntu
                 if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/.cache/JetBrains/IdealC" + intellijFullVersion + "/log/idea.log";
+                    ideaLogFilePath = System.getProperty("user.home") + "/.cache/JetBrains/IdeaIC" + intellijFullVersion + "/log/idea.log";
                     ideaLogFile = new File(ideaLogFilePath);
                 }
+
+                logger.info("intellijFullVersion :" + intellijFullVersion);
+                logger.info("idea log file path :" + ideaLogFilePath);
 
                 checkProgressIndicator("Uploading session logs", null);
 
