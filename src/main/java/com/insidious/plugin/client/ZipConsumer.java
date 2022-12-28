@@ -96,10 +96,10 @@ class ZipConsumer implements Runnable {
     }
 
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
-        logger.info("open archive [" + sessionFile + "]");
 
         long lastModified = sessionFile.lastModified();
         Long lastCheckedTime = checkedTimeMap.getOrDefault(sessionFile.getAbsolutePath(), 0L);
+        logger.info("open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");
         if (lastCheckedTime >= lastModified) {
             return List.of();
         }

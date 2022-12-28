@@ -81,7 +81,8 @@ public class ObjectRoutine {
     ) {
         TestCandidateMetadata lastCandidate = generationConfiguration
                 .getTestCandidateMetadataList()
-                .get(generationConfiguration.getTestCandidateMetadataList().size() - 1);
+                .get(generationConfiguration.getTestCandidateMetadataList()
+                        .size() - 1);
 
         MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
@@ -101,22 +102,58 @@ public class ObjectRoutine {
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
         VariableContainer variableContainer = new VariableContainer();
+        VariableContainer fieldsContainer = new VariableContainer();
+        List<MethodCallExpression> callsList = new ArrayList<>();
+
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            candidateVariables.all().forEach(variableContainer::add);
+            candidateVariables.all()
+                    .forEach(variableContainer::add);
             testGenerationState.setVariableContainer(variableContainer);
-            ObjectRoutineScript script = CandidateMetadataFactory
-                    .toObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
-            scriptContainer.getStatements().addAll(script.getStatements());
-            scriptContainer.getStaticMocks().addAll(script.getStaticMocks());
+
+            callsList.addAll(testCandidateMetadata.getCallsList());
+            testCandidateMetadata.getFields()
+                    .all()
+                    .forEach(fieldsContainer::add);
+
         }
 
-        if (generationConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_FILE)) {
-            if (testGenerationState.getValueResourceMap().size() > 0) {
-                scriptContainer.getStatements().add(0, Pair.create(
-                        CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{
-                                ((MethodCallExpression) this.testCandidateList.get(this.testCandidateList.size() - 1).getMainMethod()).getMethodName()
-                        }));
+        ObjectRoutineScript script = CandidateMetadataFactory
+                .callMocksToObjectScript(testGenerationState, generationConfiguration, callsList, fieldsContainer);
+
+        scriptContainer.getStatements()
+                .addAll(script.getStatements());
+        scriptContainer.getStaticMocks()
+                .addAll(script.getStaticMocks());
+
+
+        for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
+            VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
+            candidateVariables.all()
+                    .forEach(variableContainer::add);
+            testGenerationState.setVariableContainer(variableContainer);
+
+            ObjectRoutineScript script1 = CandidateMetadataFactory
+                    .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
+
+            scriptContainer.getStatements()
+                    .addAll(script1.getStatements());
+            scriptContainer.getStaticMocks()
+                    .addAll(script1.getStaticMocks());
+
+        }
+
+        if (generationConfiguration.getResourceEmbedMode()
+                .equals(ResourceEmbedMode.IN_FILE)) {
+            if (testGenerationState.getValueResourceMap()
+                    .size() > 0) {
+                scriptContainer.getStatements()
+                        .add(0, Pair.create(
+                                CodeLineFactory.StatementCodeLine("LoadResources(this.getClass(), $S)"), new Object[]{
+                                        ((MethodCallExpression) this.testCandidateList.get(
+                                                        this.testCandidateList.size() - 1)
+                                                .getMainMethod()).getMethodName()
+                                }));
             }
         }
 

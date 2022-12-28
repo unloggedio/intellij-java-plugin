@@ -32,11 +32,11 @@ import static com.insidious.plugin.pojo.MethodCallExpression.in;
 public class CandidateMetadataFactory {
     public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
 
-    public static ObjectRoutineScript toObjectScript(
-            TestCandidateMetadata testCandidateMetadata,
+    public static ObjectRoutineScript callMocksToObjectScript(
             TestGenerationState testGenerationState,
-            TestCaseGenerationConfiguration testConfiguration
-    ) {
+            TestCaseGenerationConfiguration testConfiguration,
+            List<MethodCallExpression> callsList,
+            VariableContainer fields) {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
                 testConfiguration);
 
@@ -44,378 +44,260 @@ public class CandidateMetadataFactory {
                 .get(0)
                 .getTestSubject();
 
+
+        Collection<MethodCallExpression> callToMock = new ArrayList<>();
+        Set<MethodCallExpression> staticCallsList = new HashSet<>();
+
+        Map<String, Boolean> mockedStaticTypes = new HashMap<>();
+
+        for (MethodCallExpression e : callsList) {
+            if (!testConfiguration.getCallExpressionList()
+                    .contains(e)) {
+                logger.warn("Skip unselected call expression to be mocked - " + e);
+                continue;
+            }
+            if (e.getReturnValue() == null) {
+                logger.info("MCE to mock without a return value - " + e);
+                continue;
+            }
+            if (e.isStaticCall() && e.getUsesFields()) {
+                // all static calls need to be mocked
+                // even if they have no return value
+
+                if (e.getSubject()
+                        .getType()
+                        .equals(testTarget.getType())) {
+                    // we do not want to mock static calls on the class itself being tested
+                    // since we most likely have injected all the fields anyways
+                    continue;
+                }
+                staticCallsList.add(e);
+                mockedStaticTypes.put(e.getSubject()
+                        .getType(), true);
+                continue;
+            }
+            if (e.getSubject()
+                    .getType()
+                    .startsWith("com.google.")) {
+                continue;
+            }
+            if (!e.isMethodPublic() && !e.isMethodProtected()) {
+                continue;
+            }
+            if (e.getMethodName()
+                    .startsWith("<")) {
+                // constructors need not be mocked
+                continue;
+            }
+
+            if (e.getSubject() == null) {
+                // not a static call, but we failed to identify subject
+                // this is potentially a bug, and the fix is inside scan implementation
+                continue;
+            }
+            if (e.getReturnValue()
+                    .getType() == null
+                    || e.getReturnValue()
+                    .getType()
+                    .equals("V")
+                    || e.getReturnValue()
+                    .getProb() == null) {
+                // either the function has no return value (need not be mocked) or
+                // we failed to identify the return value in the scan, in that case this is a bug
+                continue;
+            }
+            if (e.getSubject()
+                    .getType()
+                    .contains("com.google")) {
+                // this is hard coded to skip mocking Gson class
+                continue;
+            }
+
+            if (fields.getParametersById(e.getSubject()
+                            .getProb()
+                            .getValue()) == null) {
+                // the subject should ideally be one of the already identified fields.
+                continue;
+            }
+
+            // finally add this call in the list of calls that will be actually mocked
+            callToMock.add(e);
+
+        }
+
+        if (callToMock.size() > 0) {
+
+            Map<String, List<MethodCallExpression>> grouped = callToMock.stream()
+                    .collect(Collectors.groupingBy(e -> e.getSubject()
+                                    .getValue() + e.getMethodName() + buildCallSignature(e),
+                            Collectors.toList()));
+            for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
+                List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
+                callsOnSubject.sort((e1, e2) ->
+                        Math.toIntExact(e1.getEntryProbe()
+                                .getNanoTime() - e2.getEntryProbe()
+                                .getNanoTime()));
+                Parameter subject = callsOnSubject
+                        .get(0)
+                        .getSubject();
+                boolean firstCall = true;
+                PendingStatement pendingStatement = null;
+                Parameter previousReturnValue = null;
+
+                MethodCallExpression firstCallExpression = callsOnSubject.get(0);
+                firstCallExpression.writeCallArguments(
+                        objectRoutineScript, testConfiguration, testGenerationState);
+
+                objectRoutineScript.addComment("");
+
+                for (MethodCallExpression methodCallExpression : callsOnSubject) {
+                    Parameter newReturnValue = methodCallExpression.getReturnValue();
+                    if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
+                        continue;
+                    }
+                    previousReturnValue = newReturnValue;
+                    previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
+
+                    if (previousReturnValue.isPrimitiveType()) {
+                        previousReturnValue.setTypeForced(
+                                ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                                        .getAttribute("Type", previousReturnValue.getType())));
+                    }
+
+                    if (firstCall) {
+                        methodCallExpression.writeCommentTo(objectRoutineScript);
+                        methodCallExpression.writeReturnValue(
+                                objectRoutineScript, testConfiguration, testGenerationState);
+                        pendingStatement = in(objectRoutineScript)
+                                .writeExpression(
+                                        MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                testConfiguration));
+                    }
+                    firstCall = false;
+
+
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    if (returnValue.getException()) {
+                        pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+
+                    } else {
+                        pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+                    }
+
+                }
+                if (pendingStatement != null) {
+                    pendingStatement.endStatement();
+                }
+                objectRoutineScript.addComment("");
+
+
+            }
+
+
+        }
+
+
+        if (staticCallsList.size() > 0) {
+
+
+            Map<String, List<MethodCallExpression>> grouped = staticCallsList.stream()
+                    .collect(Collectors.groupingBy(e -> e.getSubject()
+                                    .getValue() + e.getMethodName() + buildCallSignature(e),
+                            Collectors.toList()));
+            for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
+                List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
+                callsOnSubject.sort((e1, e2) ->
+                        Math.toIntExact(e1.getEntryProbe()
+                                .getNanoTime() - e2.getEntryProbe()
+                                .getNanoTime()));
+
+                boolean firstCall = true;
+                PendingStatement pendingStatement = null;
+                Parameter previousReturnValue = null;
+
+                MethodCallExpression firstCallExpression = callsOnSubject.get(0);
+                firstCallExpression.writeCallArguments(
+                        objectRoutineScript, testConfiguration, testGenerationState);
+
+                objectRoutineScript.addComment("");
+                Parameter staticCallSubjectMockInstance = callsOnSubject.get(0)
+                        .getSubject();
+
+                if (!objectRoutineScript.getCreatedVariables()
+                        .contains(staticCallSubjectMockInstance.getName())) {
+                    @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
+                            staticCallSubjectMockInstance);
+
+                    subjectStaticFieldMock.setContainer(true);
+                    Parameter childParameter = new Parameter();
+                    childParameter.setType(staticCallSubjectMockInstance.getType());
+                    subjectStaticFieldMock.setType("org.mockito.MockedStatic");
+                    childParameter.setName("E");
+                    subjectStaticFieldMock.getTemplateMap()
+                            .add(childParameter);
+
+                    objectRoutineScript.addStaticMock(subjectStaticFieldMock);
+                }
+
+
+                for (MethodCallExpression methodCallExpression : callsOnSubject) {
+                    Parameter newReturnValue = methodCallExpression.getReturnValue();
+                    if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
+                        continue;
+                    }
+                    previousReturnValue = newReturnValue;
+                    previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
+
+                    if (previousReturnValue.isPrimitiveType()) {
+                        previousReturnValue.setTypeForced(
+                                ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                                        .getAttribute("Type", previousReturnValue.getType())));
+                    }
+
+                    if (firstCall) {
+                        methodCallExpression.writeCommentTo(objectRoutineScript);
+                        methodCallExpression.writeReturnValue(
+                                objectRoutineScript, testConfiguration, testGenerationState);
+                        pendingStatement = in(objectRoutineScript)
+                                .writeExpression(
+                                        MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
+                                                testConfiguration));
+                    }
+                    firstCall = false;
+
+
+                    Parameter returnValue = methodCallExpression.getReturnValue();
+                    if (returnValue.getException()) {
+                        pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
+
+                    } else {
+                        pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
+                    }
+
+                }
+                if (pendingStatement != null) {
+                    pendingStatement.endStatement();
+                }
+                objectRoutineScript.addComment("");
+
+
+            }
+        }
+        return objectRoutineScript;
+
+    }
+
+    public static ObjectRoutineScript mainMethodToObjectScript(
+            TestCandidateMetadata testCandidateMetadata,
+            TestGenerationState testGenerationState,
+            TestCaseGenerationConfiguration testConfiguration
+    ) {
+        ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
+                testConfiguration);
+
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
 
             MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-
-
-            Collection<MethodCallExpression> callToMock = new ArrayList<>();
-            Set<MethodCallExpression> staticCallsList = new HashSet<>();
-
-            Map<String, Boolean> mockedStaticTypes = new HashMap<>();
-
-            for (MethodCallExpression e : testCandidateMetadata.getCallsList()) {
-                if (!testConfiguration.getCallExpressionList()
-                        .contains(e)) {
-                    logger.warn("Skip unselected call expression to be mocked - " + e);
-                    continue;
-                }
-                if (e.getReturnValue() == null) {
-                    logger.info("MCE to mock without a return value - " + e);
-                    continue;
-                }
-                if (e.isStaticCall() && e.getUsesFields()) {
-                    // all static calls need to be mocked
-                    // even if they have no return value
-                    if (e.getSubject()
-                            .getType()
-                            .equals(testTarget.getType())) {
-                        // we do not want to mock static calls on the class itself being tested
-                        // since we most likely have injected all the fields anyways
-                        continue;
-                    }
-                    staticCallsList.add(e);
-                    mockedStaticTypes.put(e.getSubject()
-                            .getType(), true);
-                    continue;
-                }
-                if (e.getSubject()
-                        .getType()
-                        .startsWith("com.google.")) {
-                    continue;
-                }
-                if (!e.isMethodPublic() && !e.isMethodProtected()) {
-                    continue;
-                }
-//                DataInfo entryProbeInfo = e.getEntryProbeInfo();
-//                if ("INVOKEVIRTUAL".equals(entryProbeInfo.getAttribute("Instruction", ""))
-//                        && testCandidateMetadata.getTestSubject().getType().equals(e.getSubject().getType())
-//                ) {
-//                    // a invokevirtual call, is going to one of its super class,
-//                    // and specifically in case of Classes which are children of AbstractDao of hibernate package
-//                    // we need to mock the call and also the return object
-//                    callToMock.add(e);
-//                    // add the return object of this call as a field,
-//                    // because we need to mock the calls on the return object as well
-//                    testCandidateMetadata.getFields().add(e.getReturnValue());
-//                    continue;
-//                }
-                if (e.getMethodName()
-                        .startsWith("<")) {
-                    // constructors need not be mocked
-                    continue;
-                }
-
-                if (e.getSubject() == null) {
-                    // not a static call, but we failed to identify subject
-                    // this is potentially a bug, and the fix is inside scan implementation
-                    continue;
-                }
-                if (e.getReturnValue()
-                        .getType() == null
-                        || e.getReturnValue()
-                        .getType()
-                        .equals("V")
-                        || e.getReturnValue()
-                        .getProb() == null) {
-                    // either the function has no return value (need not be mocked) or
-                    // we failed to identify the return value in the scan, in that case this is a bug
-                    continue;
-                }
-                if (e.getSubject()
-                        .getType()
-                        .contains("com.google")) {
-                    // this is hard coded to skip mocking Gson class
-                    continue;
-                }
-
-                if (testCandidateMetadata.getFields()
-                        .getParametersById(e.getSubject()
-                                .getProb()
-                                .getValue()) == null) {
-                    // the subject should ideally be one of the already identified fields.
-                    continue;
-                }
-
-                // finally add this call in the list of calls that will be actually mocked
-                callToMock.add(e);
-
-            }
-
-            // this makes the test case worse instead of better, as a lot of static calls might end up in the test
-            // case which have these variables in parameters which are not final but need to be final because we have
-            // to match the call based on a syntax like methoCall(eq(value1), any(Class.class))
-//            for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-//
-//                if (methodCallExpression.isStaticCall() && mockedStaticTypes.containsKey(
-//                        methodCallExpression.getSubject()
-//                                .getType())) {
-//                    staticCallsList.add(methodCallExpression);
-//                }
-//
-//            }
-
-
-            Map<String, Boolean> mockedCalls = testGenerationState.getMockedCallsMap();
-            if (callToMock.size() > 0) {
-
-                Map<String, List<MethodCallExpression>> grouped = callToMock.stream()
-                        .collect(Collectors.groupingBy(e -> e.getSubject()
-                                        .getValue() + e.getMethodName() + buildCallSignature(e),
-                                Collectors.toList()));
-                for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
-                    List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
-                    callsOnSubject.sort((e1, e2) ->
-                            Math.toIntExact(e1.getEntryProbe()
-                                    .getNanoTime() - e2.getEntryProbe()
-                                    .getNanoTime()));
-                    Parameter subject = callsOnSubject
-                            .get(0)
-                            .getSubject();
-                    boolean firstCall = true;
-                    PendingStatement pendingStatement = null;
-                    Parameter previousReturnValue = null;
-
-                    MethodCallExpression firstCallExpression = callsOnSubject.get(0);
-                    firstCallExpression.writeCallArguments(
-                            objectRoutineScript, testConfiguration, testGenerationState);
-
-                    objectRoutineScript.addComment("");
-
-                    for (MethodCallExpression methodCallExpression : callsOnSubject) {
-                        Parameter newReturnValue = methodCallExpression.getReturnValue();
-                        if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
-                            continue;
-                        }
-                        previousReturnValue = newReturnValue;
-                        previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
-
-                        if (previousReturnValue.isPrimitiveType()) {
-                            previousReturnValue.setTypeForced(
-                                    ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                                            .getAttribute("Type", previousReturnValue.getType())));
-                        }
-
-                        if (firstCall) {
-                            methodCallExpression.writeCommentTo(objectRoutineScript);
-                            methodCallExpression.writeReturnValue(
-                                    objectRoutineScript, testConfiguration, testGenerationState);
-                            pendingStatement = in(objectRoutineScript)
-                                    .writeExpression(
-                                            MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                    testConfiguration));
-                        }
-                        firstCall = false;
-
-
-                        Parameter returnValue = methodCallExpression.getReturnValue();
-                        if (returnValue.getException()) {
-                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
-
-                        } else {
-                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
-                        }
-
-                    }
-                    if (pendingStatement != null) {
-                        pendingStatement.endStatement();
-                    }
-                    objectRoutineScript.addComment("");
-
-
-                }
-
-
-//                for (MethodCallExpression methodCallExpression : callToMock) {
-//
-//                    String mockedCallSignature = buildCallSignature(methodCallExpression);
-//
-//
-//                    if (methodCallExpression.getException() != null || mockedCalls.containsKey(mockedCallSignature)) {
-//                        continue;
-//                    }
-//                    Parameter returnValue = methodCallExpression.getReturnValue();
-//                    returnValue.getNameForUse(
-//                            methodCallExpression.getMethodName());
-//
-//                    if (returnValue.isPrimitiveType()) {
-//                        returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
-//                                .getAttribute("Type", returnValue.getType())));
-//                    }
-//
-//                    methodCallExpression.writeCommentTo(objectRoutineScript);
-//                    methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration, testGenerationState);
-//                    PendingStatement statement = methodCallExpression.writeMockTo(objectRoutineScript,
-//                            testConfiguration,
-//                            testGenerationState);
-//                    statement.endStatement();
-//                    mockedCalls.put(mockedCallSignature, true);
-//                    objectRoutineScript.addComment("");
-//                }
-//                objectRoutineScript.addComment("");
-            }
-
-
-            if (staticCallsList.size() > 0) {
-
-
-                Map<String, List<MethodCallExpression>> grouped = staticCallsList.stream()
-                        .collect(Collectors.groupingBy(e -> e.getSubject()
-                                        .getValue() + e.getMethodName() + buildCallSignature(e),
-                                Collectors.toList()));
-                for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
-                    List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
-                    callsOnSubject.sort((e1, e2) ->
-                            Math.toIntExact(e1.getEntryProbe()
-                                    .getNanoTime() - e2.getEntryProbe()
-                                    .getNanoTime()));
-
-                    boolean firstCall = true;
-                    PendingStatement pendingStatement = null;
-                    Parameter previousReturnValue = null;
-
-                    MethodCallExpression firstCallExpression = callsOnSubject.get(0);
-                    firstCallExpression.writeCallArguments(
-                            objectRoutineScript, testConfiguration, testGenerationState);
-
-                    objectRoutineScript.addComment("");
-                    Parameter staticCallSubjectMockInstance = callsOnSubject.get(0)
-                            .getSubject();
-
-                    if (!objectRoutineScript.getCreatedVariables()
-                            .contains(staticCallSubjectMockInstance.getName())) {
-                        @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
-                                staticCallSubjectMockInstance);
-
-                        subjectStaticFieldMock.setContainer(true);
-                        Parameter childParameter = new Parameter();
-                        childParameter.setType(staticCallSubjectMockInstance.getType());
-                        subjectStaticFieldMock.setType("org.mockito.MockedStatic");
-                        childParameter.setName("E");
-                        subjectStaticFieldMock.getTemplateMap()
-                                .add(childParameter);
-
-                        objectRoutineScript.addStaticMock(subjectStaticFieldMock);
-                    }
-
-
-                    for (MethodCallExpression methodCallExpression : callsOnSubject) {
-                        Parameter newReturnValue = methodCallExpression.getReturnValue();
-                        if (previousReturnValue != null && newReturnValue.getValue() == previousReturnValue.getValue()) {
-                            continue;
-                        }
-                        previousReturnValue = newReturnValue;
-                        previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
-
-                        if (previousReturnValue.isPrimitiveType()) {
-                            previousReturnValue.setTypeForced(
-                                    ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                                            .getAttribute("Type", previousReturnValue.getType())));
-                        }
-
-                        if (firstCall) {
-                            methodCallExpression.writeCommentTo(objectRoutineScript);
-                            methodCallExpression.writeReturnValue(
-                                    objectRoutineScript, testConfiguration, testGenerationState);
-                            pendingStatement = in(objectRoutineScript)
-                                    .writeExpression(
-                                            MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                    testConfiguration));
-                        }
-                        firstCall = false;
-
-
-                        Parameter returnValue = methodCallExpression.getReturnValue();
-                        if (returnValue.getException()) {
-                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
-
-                        } else {
-                            pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
-                        }
-
-                    }
-                    if (pendingStatement != null) {
-                        pendingStatement.endStatement();
-                    }
-                    objectRoutineScript.addComment("");
-
-
-                }
-
-//                for (MethodCallExpression methodCallExpression : staticCallsList) {
-//
-//                    // we have a call SQSUseCase.values(0 args), which returns an array, at callStack 10 when the main callStack is at 4
-//                    // so the expected call stack should be 5, but we cannot check that since the callStack value with 6 is a valid call to be mocked
-//                    // but this call which return an array should not be mocked
-//                    // probably need to exclude calls from inside of <clinit>
-//                    Parameter returnValue = methodCallExpression.getReturnValue();
-////                    if (returnValue.getName() == null) {
-////                        continue;
-////                    }
-//
-//
-//                    Parameter staticCallSubjectMockInstance = methodCallExpression.getSubject();
-//
-//                    String mockedCallSignature = buildCallSignature(methodCallExpression);
-//
-//                    if (!mockedCalls.containsKey(mockedCallSignature)) {
-//                        if (!objectRoutineScript.getCreatedVariables()
-//                                .contains(staticCallSubjectMockInstance.getName())) {
-//                            @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
-//                                    staticCallSubjectMockInstance);
-//
-//                            subjectStaticFieldMock.setContainer(true);
-//                            Parameter childParameter = new Parameter();
-//                            childParameter.setType(staticCallSubjectMockInstance.getType());
-//                            subjectStaticFieldMock.setType("org.mockito.MockedStatic");
-//                            childParameter.setName("E");
-//                            subjectStaticFieldMock.getTemplateMap()
-//                                    .add(childParameter);
-//
-//                            objectRoutineScript.addStaticMock(subjectStaticFieldMock);
-//                        }
-//
-//                        mockedCalls.put(mockedCallSignature, true);
-//                        objectRoutineScript.addComment("Add mock for static method call: " + methodCallExpression);
-//
-//
-//                        returnValue.getNameForUse(
-//                                methodCallExpression.getMethodName());
-//
-//                        if (returnValue.isPrimitiveType()) {
-//                            returnValue.setTypeForced(ClassTypeUtils.getDottedClassName(returnValue.getProbeInfo()
-//                                    .getAttribute("Type", returnValue.getType())));
-//                        }
-//
-//
-//                        if (!returnValue.getType()
-//                                .equals("V")) {
-//                            methodCallExpression.writeCallArguments(objectRoutineScript, testConfiguration,
-//                                    testGenerationState);
-//                            methodCallExpression.writeReturnValue(
-//                                    objectRoutineScript, testConfiguration, testGenerationState);
-//
-//                            PendingStatement pendingStatement;
-//                            if (returnValue.getException()) {
-//                                pendingStatement = in(objectRoutineScript)
-//                                        .writeExpression(
-//                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-//                                                        objectRoutineScript.getGenerationConfiguration()))
-//                                        .writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
-//
-//                            } else {
-//                                pendingStatement = in(objectRoutineScript)
-//                                        .writeExpression(
-//                                                MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-//                                                        objectRoutineScript.getTestConfiguration()))
-//                                        .writeExpression(MethodCallExpressionFactory.MockitoThen(returnValue));
-//                            }
-//
-//                            pendingStatement.endStatement();
-//                        }
-//                    }
-//                }
-            }
 
             if (mainMethod.getMethodName()
                     .equals("<init>")) {
@@ -435,10 +317,10 @@ public class CandidateMetadataFactory {
             testCandidateMetadata.getMainMethod()
                     .writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
-//        objectRoutineScript.addComment("");
         return objectRoutineScript;
 
     }
+
 
     @NotNull
     private static String buildCallSignature(MethodCallExpression methodCallExpression) {
