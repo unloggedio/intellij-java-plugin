@@ -5,6 +5,7 @@ package com.insidious.plugin.upload.minio;// Java program to implement
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBScrollPane;
+import net.openhft.chronicle.core.util.Time;
 
 import javax.swing.*;
 import java.awt.*;
@@ -130,8 +131,13 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         ReportIssue reportIssue = new ReportIssue();
 
         File selogDir = new File(reportIssue.getLatestSeLogFolderPath());
-        String sessionObjectKey = userEmail.getText() + "/" + selogDir.getName() + ".zip";
-        String ideaLogObjectKey = userEmail.getText() + "/idea-" + selogDir.getName() + ".log";
+
+        String s3BucketParentPath = userEmail.getText() + "/" + selogDir.getName() + "-" + Time.uniqueId();
+        String sessionObjectKey = s3BucketParentPath + "/" + selogDir.getName() + ".zip";
+        String ideaLogObjectKey = s3BucketParentPath + "/idea.log";
+
+        System.out.println(sessionObjectKey);
+        System.out.println(ideaLogObjectKey);
 
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
         String ideaLogURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + ideaLogObjectKey;
