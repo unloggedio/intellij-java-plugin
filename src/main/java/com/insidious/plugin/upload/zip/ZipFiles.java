@@ -12,39 +12,39 @@ import java.util.zip.ZipOutputStream;
 public class ZipFiles {
     List<String> filesListInDir = new ArrayList<String>();
 
-    /**
-     * This method compresses the single file to zip format
-     *
-     * @param file
-     * @param zipFileName
-     */
-    public void zipSingleFile(File file, String zipFileName) {
-        try {
-            //create ZipOutputStream to write to the zip file
-            FileOutputStream fos = new FileOutputStream(zipFileName);
-            ZipOutputStream zos = new ZipOutputStream(fos);
-            //add a new Zip Entry to the ZipOutputStream
-            ZipEntry ze = new ZipEntry(file.getName());
-            zos.putNextEntry(ze);
-            //read the file and write to ZipOutputStream
-            FileInputStream fis = new FileInputStream(file);
-            byte[] buffer = new byte[1024];
-            int len;
-            while ((len = fis.read(buffer)) > 0) {
-                zos.write(buffer, 0, len);
-            }
-
-            //Close the zip entry to write to zip file
-            zos.closeEntry();
-            //Close resources
-            zos.close();
-            fis.close();
-            fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-    }
+//    /**
+//     * This method compresses the single file to zip format
+//     *
+//     * @param file
+//     * @param zipFileName
+//     */
+//    public void zipSingleFile(File file, String zipFileName) {
+//        try {
+//            //create ZipOutputStream to write to the zip file
+//            FileOutputStream fos = new FileOutputStream(zipFileName);
+//            ZipOutputStream zos = new ZipOutputStream(fos);
+//            //add a new Zip Entry to the ZipOutputStream
+//            ZipEntry ze = new ZipEntry(file.getName());
+//            zos.putNextEntry(ze);
+//            //read the file and write to ZipOutputStream
+//            FileInputStream fis = new FileInputStream(file);
+//            byte[] buffer = new byte[1024];
+//            int len;
+//            while ((len = fis.read(buffer)) > 0) {
+//                zos.write(buffer, 0, len);
+//            }
+//
+//            //Close the zip entry to write to zip file
+//            zos.closeEntry();
+//            //Close resources
+//            zos.close();
+//            fis.close();
+//            fos.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
 
     /**
      * This method zips the directory
@@ -53,30 +53,50 @@ public class ZipFiles {
      * @param zipFileName
      */
     public void zipDirectory(File dir, String zipFileName) {
-        try {
-            populateFilesList(dir);
-            //now zip files one by one
-            //create ZipOutputStream to write to the zip file
-            FileOutputStream fos = new FileOutputStream(zipFileName);
-            ZipOutputStream zos = new ZipOutputStream(fos);
+        FileOutputStream fos;
 
-            for (String filePath : filesListInDir) {
-                System.out.println("Zipping " + filePath);
-                //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
-                ZipEntry ze = new ZipEntry(filePath.substring(dir.getAbsolutePath().length() + 1, filePath.length()));
-                zos.putNextEntry(ze);
-                //read the file and write to ZipOutputStream
-                FileInputStream fis = new FileInputStream(filePath);
-                byte[] buffer = new byte[1024];
-                int len;
-                while ((len = fis.read(buffer)) > 0) {
-                    zos.write(buffer, 0, len);
+        try {
+            fos = new FileOutputStream(zipFileName);
+            ZipOutputStream zos;
+
+            try {
+                zos = new ZipOutputStream(fos);
+                populateFilesList(dir);
+                //now zip files one by one
+                //create ZipOutputStream to write to the zip file
+
+                for (String filePath : filesListInDir) {
+                    System.out.println("Zipping " + filePath);
+                    //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
+                    ZipEntry ze = new ZipEntry(filePath.substring(dir.getAbsolutePath().length() + 1));
+
+                    try {
+                        zos.putNextEntry(ze);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    FileInputStream fis;
+                    try {
+                        fis = new FileInputStream(filePath);
+                        byte[] buffer = new byte[1024];
+                        int len;
+                        while ((len = fis.read(buffer)) > 0) {
+                            zos.write(buffer, 0, len);
+                        }
+                        fis.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        zos.closeEntry();
+                    }
                 }
-                zos.closeEntry();
-                fis.close();
+                zos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                fos.close();
             }
-            zos.close();
-            fos.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -95,9 +115,7 @@ public class ZipFiles {
                 if (!file.getName().endsWith(".dat"))
                     filesListInDir.add(file.getAbsolutePath());
             } else {
-                if (file.isDirectory() && !file.getName().equals("cache")) {
-                    populateFilesList(file);
-                }
+                populateFilesList(file);
             }
         }
     }

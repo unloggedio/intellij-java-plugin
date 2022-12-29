@@ -2,7 +2,7 @@ package com.insidious.plugin.upload.minio;
 
 import com.insidious.plugin.upload.zip.ZipFiles;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.openapi.application.ApplicationInfo;
+import com.intellij.idea.LoggerFactory;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
@@ -41,41 +42,22 @@ public class ReportIssue {
                 zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
 
                 checkProgressIndicator("Zipping session logs to upload", null);
-                File file = new File(pathPrefix + "/" + zipFileName);
+//                File file = new File(pathPrefix + "/" + zipFileName);
 //                if (!file.exists()) {
                 zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + "/" + zipFileName);
 //                }
-                String intellijFullVersion = ApplicationInfo.getInstance().getFullVersion();
-                String ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IntelliJIdea" + intellijFullVersion + "/idea.log";
-                File ideaLogFile = new File(ideaLogFilePath);
 
-                // for intellij community
-                if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IdeaIC" + intellijFullVersion + "/idea.log";
-                    ideaLogFile = new File(ideaLogFilePath);
-                }
-
-                // for ubuntu
-                if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/.cache/JetBrains/IdeaIC" + intellijFullVersion + "/log/idea.log";
-                    ideaLogFile = new File(ideaLogFilePath);
-                }
-
-                logger.info("intellijFullVersion :" + intellijFullVersion);
+                Path ideaLogFilePath = LoggerFactory.getLogFilePath();
                 logger.info("idea log file path :" + ideaLogFilePath);
 
-                checkProgressIndicator("Uploading session logs", null);
+                checkProgressIndicator("Uploading session logs and idea.log", null);
 
                 FileUploader fileUploader = new FileUploader();
                 try {
                     fileUploader.uploadFile(sessionObjectKey, pathPrefix + "/" + zipFileName);
-                    fileUploader.uploadFile(ideaLogObjectKey, ideaLogFile.getAbsolutePath());
+                    fileUploader.uploadFile(ideaLogObjectKey, ideaLogFilePath.toString());
 
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (NoSuchAlgorithmException ex) {
-                    throw new RuntimeException(ex);
-                } catch (InvalidKeyException ex) {
+                } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
                     throw new RuntimeException(ex);
                 }
             }
