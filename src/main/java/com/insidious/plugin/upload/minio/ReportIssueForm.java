@@ -134,16 +134,13 @@ public class ReportIssueForm extends JFrame implements ActionListener {
 
         String s3BucketParentPath = userEmail.getText() + "/" + selogDir.getName() + "-" + Time.uniqueId();
         String sessionObjectKey = s3BucketParentPath + "/" + selogDir.getName() + ".zip";
-        String ideaLogObjectKey = s3BucketParentPath + "/idea.log";
 
         System.out.println(sessionObjectKey);
-        System.out.println(ideaLogObjectKey);
 
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
-        String ideaLogURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + ideaLogObjectKey;
 
         String issueDescription = "Issue Raised by: `" + userEmail.getText() + "`\n\n"
-                + "[Session Logs](" + sessionURI + ")" + "\n\n" + "[idea.log file](" + ideaLogURI + ") \n\n" + description.getText();
+                + "[Session Logs](" + sessionURI + ")" + "\n\n" + description.getText();
 
         Desktop desktop = Desktop.getDesktop();
         String gitlabMail = "contact-project+insidious1-server-32379664-issue-@incoming.gitlab.com";
@@ -151,11 +148,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         String mailFromBrowser = "https://mail.google.com/mail/?view=cm&fs=1&to=" + URLEncoder.encode(gitlabMail, StandardCharsets.UTF_8).replace("+", "%20")
                 + "&su=" + URLEncoder.encode(issueTitle.getText(), StandardCharsets.UTF_8).replace("+", "%20")
                 + "&body=" + URLEncoder.encode(issueDescription, StandardCharsets.UTF_8).replace("+", "%20");
-
-        // for using from machine app
-//                        String message2 = "mailto:contact-project+insidious1-server-32379664-issue-@incoming.gitlab.com?subject=" +
-//                                URLEncoder.encode(issueTitle, StandardCharsets.UTF_8).replace("+", "%20") +
-//                                "&body=" + URLEncoder.encode(issueDescription, StandardCharsets.UTF_8).replace("+", "%20");
 
         URI uri = URI.create(mailFromBrowser);
         System.out.print(mailFromBrowser);
@@ -166,6 +158,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
             throw new RuntimeException(ex);
         }
 
-        ProgressManager.getInstance().run(reportIssue.zippingAndUploadTask(project, sessionObjectKey, ideaLogObjectKey));
+        ProgressManager.getInstance().run(reportIssue.zippingAndUploadTask(project, sessionObjectKey));
     }
 }

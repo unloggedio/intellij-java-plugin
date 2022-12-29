@@ -2,7 +2,6 @@ package com.insidious.plugin.upload.minio;
 
 import com.insidious.plugin.upload.zip.ZipFiles;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.openapi.application.ApplicationInfo;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -26,7 +25,7 @@ public class ReportIssue {
     public ReportIssue() {
     }
 
-    public Task.Backgroundable zippingAndUploadTask(Project project, String sessionObjectKey, String ideaLogObjectKey) {
+    public Task.Backgroundable zippingAndUploadTask(Project project, String sessionObjectKey) {
         Task.Backgroundable zippingTask = new Task.Backgroundable(project, "Unlogged", false) {
             String seLogDirPath;
             String zipFileName;
@@ -36,48 +35,26 @@ public class ReportIssue {
             public void run(@NotNull ProgressIndicator indicator) {
                 ZipFiles zipFiles = new ZipFiles();
                 seLogDirPath = getLatestSeLogFolderPath();
-                int lastIndexOf = seLogDirPath.lastIndexOf("/");
+                int lastIndexOf = seLogDirPath.lastIndexOf(File.separator);
                 pathPrefix = seLogDirPath.substring(0, lastIndexOf);
                 zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
 
                 checkProgressIndicator("Zipping session logs to upload", null);
-                File file = new File(pathPrefix + "/" + zipFileName);
+//                File file = new File(pathPrefix + "/" + zipFileName);
 //                if (!file.exists()) {
-                zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + "/" + zipFileName);
+                zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + File.separator + zipFileName);
 //                }
-                String intellijFullVersion = ApplicationInfo.getInstance().getFullVersion();
-                String ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IntelliJIdea" + intellijFullVersion + "/idea.log";
-                File ideaLogFile = new File(ideaLogFilePath);
 
-                // for intellij community
-                if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/Library/Logs/JetBrains/IdeaIC" + intellijFullVersion + "/idea.log";
-                    ideaLogFile = new File(ideaLogFilePath);
-                }
-
-                // for ubuntu
-                if (!ideaLogFile.exists()) {
-                    ideaLogFilePath = System.getProperty("user.home") + "/.cache/JetBrains/IdeaIC" + intellijFullVersion + "/log/idea.log";
-                    ideaLogFile = new File(ideaLogFilePath);
-                }
-
-                logger.info("intellijFullVersion :" + intellijFullVersion);
-                logger.info("idea log file path :" + ideaLogFilePath);
-
-                checkProgressIndicator("Uploading session logs", null);
-
+                checkProgressIndicator("Uploading session logs and idea.log", null);
                 FileUploader fileUploader = new FileUploader();
                 try {
-                    fileUploader.uploadFile(sessionObjectKey, pathPrefix + "/" + zipFileName);
-                    fileUploader.uploadFile(ideaLogObjectKey, ideaLogFile.getAbsolutePath());
-
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                } catch (NoSuchAlgorithmException ex) {
-                    throw new RuntimeException(ex);
-                } catch (InvalidKeyException ex) {
+                    
+                    fileUploader.uploadFile(sessionObjectKey, pathPrefix + File.separator + zipFileName);
+                } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
                     throw new RuntimeException(ex);
                 }
+
+                checkProgressIndicator("Issue Upload completed!", null);
             }
         };
 
@@ -85,7 +62,7 @@ public class ReportIssue {
     }
 
     public String getLatestSeLogFolderPath() {
-        String parentFolder = System.getProperty("user.home") + "/.videobug/sessions/";
+        String parentFolder = System.getProperty("user.home") + File.separator + ".videobug" + File.separator + "sessions" + File.separator;
         File sessionDirectory = new File(parentFolder);
 
         if (sessionDirectory.listFiles() == null) {

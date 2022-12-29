@@ -1,6 +1,6 @@
 !/bin/bash
 
-export PLUGIN_VERSION=1.8.33
+export PLUGIN_VERSION=1.8.35
 
 cd build/distributions
 unzip plugin-${PLUGIN_VERSION}.zip
