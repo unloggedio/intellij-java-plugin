@@ -9,10 +9,10 @@ import java.awt.*;
 public class UI_Utils {
 
     static final String gifPath = "/icons/gif/";
-    static Color teal = new Color(1, 204, 245);
-    static Color pink = new Color(254,100,216);
-    static Color red = new Color(245,101,101);
-    static Color green = new Color(56,161,105);
+    public static Color teal = new Color(1, 204, 245);
+    public static Color pink = new Color(254,100,216);
+    public static Color red = new Color(245,101,101);
+    public static Color green = new Color(56,161,105);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {

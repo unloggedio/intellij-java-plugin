@@ -59,10 +59,12 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.ui.PackageChooser;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -87,10 +89,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -130,6 +130,8 @@ public class InsidiousService implements Disposable {
     private int TOOL_WINDOW_HEIGHT = 390;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
+    private OnboardingConfigurationWindow onboardingConfigurationWindow;
+    private Content onboardingConfigurationWindowContent;
 
     public InsidiousService(Project project) {
         try {
@@ -322,6 +324,81 @@ public class InsidiousService implements Disposable {
             }
         });
 
+    }
+
+    public Map<String,String> fetchModuleNames()
+    {
+        if (!project.isInitialized()) {
+            return null;
+        }
+        if (currentModule == null) {
+            return null;
+        }
+        //fetch module names from all pom files in the project, also fetch base packages (not always useful from pom)
+        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
+                GlobalSearchScope.projectScope(project));
+        Set<String> modules = new HashSet<String>();
+        Map<String,String> basePackages = new HashMap<String,String>();
+        if (pomFileSearchResult.length > 0) {
+            for(int x=0;x<pomFileSearchResult.length;x++)
+            {
+                @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[x];
+                System.out.println("PSI elements - ");
+                String text = pomPsiFile.getText();
+                if(text.contains("<modules>"))
+                {
+                    int modulesIndexStart = text.indexOf("<modules>");
+                    int modulesIndexEnd = text.indexOf("</modules>");
+
+                    String substring_modules = text.substring(modulesIndexStart,modulesIndexEnd);
+                    System.out.println("Modules Section - ");
+                    System.out.println(substring_modules);
+                    Set<String> modulesFromPom = getModulesListFromString(substring_modules);
+                    for(String module : modulesFromPom)
+                    {
+                        PomFileVisitor visitor = new PomFileVisitor();
+                        pomPsiFile.accept(visitor);
+                        if (visitor.getPackageName() != null) {
+                            String package_from_pom = visitor.getPackageName();
+                            basePackages.put(module,package_from_pom);
+                        }
+                    }
+                }
+            }
+            return basePackages;
+        }
+        System.out.println("[Module - Package] base - ");
+        System.out.println(basePackages.toString());
+
+        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
+                GlobalSearchScope.projectScope(project));
+        if (gradleFileSearchResult.length > 0) {
+            logger.info("found build.gradle file at");
+            @NotNull PsiFile gradlePsiFile = gradleFileSearchResult[0];
+            String text = gradlePsiFile.getText();
+            //get multi-module grade project and parse modules
+        }
+        return null;
+    }
+    public Set<String> getModulesListFromString(String pomSection)
+    {
+        Set<String> modules = new HashSet<>();
+        String[] parts = pomSection.split("<modules>");
+        for(int i=0;i<parts.length;i++)
+        {
+            String[] mps = parts[i].split("\\n");
+            for(int j=0;j< mps.length;j++)
+            {
+                if(mps[j].contains("<module>"))
+                {
+                    String[] line_segments = mps[j].split("<module>");
+                    String module = line_segments[1].split("</module>")[0];
+                    modules.add(module);
+                }
+            }
+        }
+        System.out.println("Modules - from pom string : "+modules);
+        return modules;
     }
 
     private void getProjectPackageName() {
@@ -1120,12 +1197,16 @@ public class InsidiousService implements Disposable {
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
+            onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
+            onboardingConfigurationWindowContent = contentFactory.createContent(onboardingConfigurationWindow.getContent(),"Let's get started", false);
+
             singleWindowView = new SingleWindowView(project, this);
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
             liveViewWindow = new LiveViewWindow(project, this);
             Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
             contentManager.addContent(liveWindowContent);
+            contentManager.addContent(onboardingConfigurationWindowContent);
 
             setupProject();
         }
