@@ -1,9 +1,9 @@
 package com.insidious.plugin.upload.zip;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import com.intellij.idea.LoggerFactory;
+
+import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -53,22 +53,31 @@ public class ZipFiles {
      * @param zipFileName
      */
     public void zipDirectory(File dir, String zipFileName) {
-        FileOutputStream fos;
+        OutputStream fos;
 
         try {
-            fos = new FileOutputStream(zipFileName);
+            fos = new BufferedOutputStream(new FileOutputStream(zipFileName));
             ZipOutputStream zos;
 
             try {
                 zos = new ZipOutputStream(fos);
+
+                // adding the selogger folder files
                 populateFilesList(dir);
+
+                // adding the idea.log file also in the zip file to upload
+                Path ideaLogFilePath = LoggerFactory.getLogFilePath();
+                filesListInDir.add(ideaLogFilePath.toString());
+
                 //now zip files one by one
                 //create ZipOutputStream to write to the zip file
 
                 for (String filePath : filesListInDir) {
                     System.out.println("Zipping " + filePath);
+
+                    File fileTobeZipped = new File(filePath);
                     //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
-                    ZipEntry ze = new ZipEntry(filePath.substring(dir.getAbsolutePath().length() + 1));
+                    ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
 
                     try {
                         zos.putNextEntry(ze);
