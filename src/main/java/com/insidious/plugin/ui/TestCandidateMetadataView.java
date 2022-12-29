@@ -116,10 +116,25 @@ public class TestCandidateMetadataView {
             Color color = new Color(1, 204, 245);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
+            this.labelPanel.setOpaque(true);
+            this.contentPanel.setOpaque(true);
+            this.cardPanel.setOpaque(true);
+            this.buttonPanel.setOpaque(true);
+            this.borderParent.setOpaque(true);
+            Color transparent = new Color(1, 204, 245,1);
+            Color transparent_base = new Color(1, 204, 245,50);
+            this.cardPanel.setBackground(transparent);
+            this.buttonPanel.setBackground(transparent);
+            this.borderParent.setBackground(transparent);
+            this.labelPanel.setBackground(transparent);
+            this.contentPanel.setBackground(transparent_base);
         } else {
             Color color = new Color(187, 187, 187);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
+            this.labelPanel.setOpaque(false);
+            this.cardPanel.setOpaque(false);
+            this.contentPanel.setOpaque(false);
         }
     }
 
