@@ -130,47 +130,17 @@ public class PendingStatement {
 
             List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-
-                List<String> templateKeys = templateMap.stream()
-                        .map(Parameter::getName)
-                        .sorted()
-                        .collect(Collectors.toList());
-                int count = templateKeys.size();
-
-
-                StringBuilder templateString = new StringBuilder();
-                for (int j = 0; j < count; j++) {
-                    if (j > 0) {
-                        templateString.append(", ");
-                    }
-                    templateString.append("$T");
-                }
-                //                        1, 2,      3, 4,    5
                 statementBuilder
-                        .append("$L($S, new $T<$T<")
-                        .append(templateString)
-                        .append(">>(){}.getType())");
+                        .append("$L($S, new $T<");
                 statementParameters.add(methodCallExpression.getMethodName()); // 1
-
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 2
-
                 statementParameters.add(TYPE_TOKEN_CLASS); // 3
-                statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 4
 
-                for (String templateKey : templateKeys) {
-                    Optional<Parameter> templateParameterOption =
-                            templateMap.stream()
-                                    .filter(e -> e.getName()
-                                            .equals(templateKey))
-                                    .findFirst();
-                    assert templateParameterOption.isPresent();
-                    String templateParameterType = templateParameterOption.get()
-                            .getType();
-                    ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
-                    statementParameters.add(parameterClassName); // 5
-                }
+                Parameter deepCopyParam = ParameterUtils.deepCloneType(objectToDeserialize);
+                ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
+                statementBuilder.append(">(){}.getType())");
 
             } else {
                 statementBuilder.append("$L($S, $T.class)");
@@ -441,37 +411,42 @@ public class PendingStatement {
                 List<Parameter> templateMap = lhsExpression.getTemplateMap();
                 if (lhsExpression.isContainer() && templateMap.size() > 0) {
 
-                    StringBuilder templateParams = new StringBuilder();
-                    ArrayList<String> templateKeys = templateMap.stream()
-                            .map(Parameter::getName)
-                            .sorted()
-                            .collect(Collectors.toCollection(ArrayList::new));
-                    for (int i = 0; i < templateKeys.size(); i++) {
-                        if (i > 0) {
-                            templateParams.append(", ");
-                        }
-//                        String templateKey = templateKeys.get(i);
-                        templateParams.append("$T");
-                    }
+//                    StringBuilder templateParams = new StringBuilder();
+//                    ArrayList<String> templateKeys = templateMap.stream()
+//                            .map(Parameter::getName)
+//                            .sorted()
+//                            .collect(Collectors.toCollection(ArrayList::new));
+//                    for (int i = 0; i < templateKeys.size(); i++) {
+//                        if (i > 0) {
+//                            templateParams.append(", ");
+//                        }
+////                        String templateKey = templateKeys.get(i);
+//                        templateParams.append("$T");
+//                    }
+//
+//                    statementBuilder
+//                            .append("$T<")
+//                            .append(templateParams)
+//                            .append(">")
+//                            .append(" ");
+//                    statementParameters.add(lhsTypeName);
+//                    for (String templateKey : templateKeys) {
+//                        Optional<Parameter> templateParameter =
+//                                templateMap.stream()
+//                                        .filter(e -> e.getName()
+//                                                .equals(templateKey))
+//                                        .findFirst();
+//                        assert templateParameter.isPresent();
+//                        String templateType = templateParameter.get()
+//                                .getType();
+//                        statementParameters.add(ClassName.bestGuess(templateType));
+//                   }
+                    // creating a deep copy of the lhsExpression type and templateMap only
+                    // for handling generic type
+                    Parameter deepCopyParam = ParameterUtils.deepCloneType(lhsExpression);
+                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
-                    statementBuilder
-                            .append("$T<")
-                            .append(templateParams)
-                            .append(">")
-                            .append(" ");
-                    statementParameters.add(lhsTypeName);
-                    for (String templateKey : templateKeys) {
-                        Optional<Parameter> templateParameter =
-                                templateMap.stream()
-                                        .filter(e -> e.getName()
-                                                .equals(templateKey))
-                                        .findFirst();
-                        assert templateParameter.isPresent();
-                        String templateType = templateParameter.get()
-                                .getType();
-                        statementParameters.add(ClassName.bestGuess(templateType));
-                    }
-
+                    statementBuilder.append(" ");
                 } else {
                     // Add expr for Type and its statement Param ;
                     // eg: statementBuilder:[ $T ] var , statementParameter: [ String ]  => String var
