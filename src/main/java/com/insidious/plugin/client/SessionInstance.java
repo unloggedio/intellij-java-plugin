@@ -2378,7 +2378,9 @@ public class SessionInstance {
                         ClassInfo methodClassInfo = classInfoIndexByName.get(existingParameter.getType());
                         if (methodClassInfo != null) {
                             if (Arrays.asList(methodClassInfo.getInterfaces())
-                                    .contains("org/springframework/data/jpa/repository/JpaRepository")) {
+                                    .contains("org/springframework/data/jpa/repository/JpaRepository") ||
+                                    Arrays.asList(methodClassInfo.getInterfaces())
+                                            .contains("org/springframework/data/repository/CrudRepository")) {
                                 methodCall.setMethodAccess(1);
                             }
                         }
