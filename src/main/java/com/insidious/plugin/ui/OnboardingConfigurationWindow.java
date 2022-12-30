@@ -41,12 +41,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private JLabel documentationText;
     private JPanel borderLayoutParent;
     private JPanel bottomContent;
-    private JPanel textParentPanel;
-    private JLabel docText;
     private JButton applyConfigButton;
+    private JButton linkToDiscordButton;
+    private JPanel buttonGroupPanel;
+    private JTextPane documentationTextArea;
+    private JLabel selectionHeading1;
     private Project project;
     private InsidiousService insidiousService;
-
+    private List<ModulePanel> modulePanelList;
     private HashSet<String> selectedPackages = new HashSet<>();
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
@@ -61,6 +63,24 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 runApplicationWithUnlogged();
             }
         });
+        linkToDiscordButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToDiscord();
+            }
+        });
+    }
+
+    private void routeToDiscord()
+    {
+        String link = "https://discord.gg/Hhwvay8uTa";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
+            } catch (Exception e) { }
+        } else {
+            //no browser
+        }
     }
     public JComponent getContent() {
         return mainPanel;
@@ -86,7 +106,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 }
             }
         }
-        System.out.println("Project packages - "+ret);
+        //System.out.println("Project packages - "+ret);
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
@@ -110,7 +130,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 }
             }
         }
-        System.out.println("Project packages - "+ret);
+        //System.out.println("Project packages - "+ret);
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
@@ -120,9 +140,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     //refer to pom/gradle modules section, else fallback to moduleManager and display all packages
     public void fetchModules()
     {
-        //modules
-        System.out.println("Details from PSI project - ");
-        System.out.println("Modules - ");
         List<Module> modules = List.of(ModuleManager.getInstance(project).getModules());
         Set<String> modules_from_mm = new HashSet<>();
         for(Module module: modules)
@@ -130,7 +147,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             modules_from_mm.add(module.getName());
         }
         System.out.println(modules);
-        populateModules(modules);
         Project fromMod = modules.get(0).getProject();
         if(fromMod.equals(project))
         {
@@ -156,57 +172,34 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         }
     }
 
-    public void populateModules(List<Module> modules)
-    {
-        this.modulesParentPanel.removeAll();
-        int GridRows = 6;
-        if (modules.size() > GridRows) {
-            GridRows = modules.size();
-        }
-        GridLayout gridLayout = new GridLayout(GridRows, 1);
-        gridLayout.setVgap(8);
-        Dimension d = new Dimension();
-        JPanel gridPanel = new JPanel(gridLayout);
-        for (int i = 0; i < modules.size(); i++) {
-            GridConstraints constraints = new GridConstraints();
-            constraints.setRow(i);
-            ModulePanel modulePanel = new ModulePanel(modules.get(i).getName(),this);
-            gridPanel.add(modulePanel.getMainPanel(), constraints);
-        }
-
-        JScrollPane scrollPane = new JScrollPane(gridPanel);
-        modulesParentPanel.setPreferredSize(scrollPane.getSize());
-        modulesParentPanel.add(scrollPane, BorderLayout.CENTER);
-        if (modules.size() <= 4) {
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        }
-        if (modules.size() > 0) {
-        }
-        this.modulesParentPanel.revalidate();
-    }
-
     public void populateModules_v1(List<String> modules)
     {
         this.modulesParentPanel.removeAll();
-        int GridRows = 6;
+        int GridRows = 20;
         if (modules.size() > GridRows) {
             GridRows = modules.size();
         }
         GridLayout gridLayout = new GridLayout(GridRows, 1);
-        gridLayout.setVgap(8);
-        Dimension d = new Dimension();
+//        gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
+        Dimension d = new Dimension();
+        d.setSize(-1,30);
+        modulePanelList = new ArrayList<ModulePanel>();
         for (int i = 0; i < modules.size(); i++) {
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             ModulePanel modulePanel = new ModulePanel(modules.get(i),this);
+            modulePanelList.add(modulePanel);
+            JPanel mainPanel = modulePanel.getMainPanel();
+            mainPanel.setPreferredSize(d);
+            mainPanel.setMaximumSize(d);
+            mainPanel.setMaximumSize(d);
             gridPanel.add(modulePanel.getMainPanel(), constraints);
         }
-
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         modulesParentPanel.setPreferredSize(scrollPane.getSize());
         modulesParentPanel.add(scrollPane, BorderLayout.CENTER);
-        if (modules.size() <= 4) {
+        if (modules.size() <= 8) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
         if (modules.size() > 0) {
@@ -217,12 +210,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     public void populatePackages(List<String> packages)
     {
         this.packagesParentPanel.removeAll();
-        int GridRows = 12;
+        int GridRows = 50;
         if (packages.size() > GridRows) {
             GridRows = packages.size();
         }
         GridLayout gridLayout = new GridLayout(GridRows, 1);
         Dimension d = new Dimension();
+        d.setSize(-1,20);
         JPanel gridPanel = new JPanel(gridLayout);
         int i = 0;
         for(String packagename : packages)
@@ -231,7 +225,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             constraints.setRow(i);
             constraints.setIndent(16);
             JCheckBox checkBox = new JCheckBox();
-            d.setSize(-1,20);
+            checkBox.setMinimumSize(d);
             checkBox.setPreferredSize(d);
             checkBox.setMaximumSize(d);
             checkBox.setOpaque(true);
@@ -267,7 +261,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         packagesParentPanel.setPreferredSize(scrollPane.getSize());
         packagesParentPanel.add(scrollPane, BorderLayout.CENTER);
-        if (packages.size() <= 16) {
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        if (packages.size() <= 15) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
         this.packagesParentPanel.revalidate();
@@ -327,6 +322,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     @Override
     public void onSelect(String moduleName) {
+        this.selectionHeading1.setText("Select packages to exclude from module : "+moduleName);
         findPackagesForModule(moduleName);
     }
 }

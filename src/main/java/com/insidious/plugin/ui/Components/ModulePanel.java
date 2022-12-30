@@ -16,11 +16,9 @@ public class ModulePanel {
     private JLabel arrowLabel;
     private JPanel labelParent;
     private ModuleSelectionListener listener;
-
     public ModulePanel(String moduleName, ModuleSelectionListener listener)
     {
-        Border border = new LineBorder(UI_Utils.teal);
-        mainPanel.setBorder(border);
+        this.mainPanel.setBorder(null);
         this.listener=listener;
         setText(moduleName);
         mainPanel.addMouseListener(new MouseAdapter() {
@@ -45,6 +43,8 @@ public class ModulePanel {
         this.moduleNameText.setText(text);
     }
 
+    public String getText() {return this.moduleNameText.getText();}
+
     public JPanel getMainPanel()
     {
         return this.mainPanel;
@@ -59,13 +59,10 @@ public class ModulePanel {
             this.labelParent.setBackground(transparent);
             this.mainPanel.setOpaque(true);
             this.mainPanel.setBackground(color);
-        } else {
-            Color color = new Color(187, 187, 187);
-            Border border = new LineBorder(Color.gray);
-            mainPanel.setBorder(border);
+        } else{
+            mainPanel.setBorder(null);
             this.labelParent.setOpaque(false);
             this.mainPanel.setOpaque(false);
         }
     }
-
 }

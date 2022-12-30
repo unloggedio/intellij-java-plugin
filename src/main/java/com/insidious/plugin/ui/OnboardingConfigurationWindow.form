@@ -3,7 +3,7 @@
   <grid id="f1caa" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="8" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="1" y="21" width="868" height="257"/>
+      <xy x="1" y="21" width="1316" height="264"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -42,7 +42,7 @@
         <properties/>
         <border type="none"/>
         <children>
-          <component id="1801d" class="javax.swing.JLabel">
+          <component id="1801d" class="javax.swing.JLabel" binding="selectionHeading1">
             <constraints>
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
@@ -92,44 +92,65 @@
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <grid id="64c9b" binding="textParentPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                  <grid id="8bdfa" binding="buttonGroupPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="0" bottom="0" right="0"/>
                     <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                        <minimum-size width="-1" height="50"/>
-                        <preferred-size width="-1" height="50"/>
-                        <maximum-size width="-1" height="50"/>
-                      </grid>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="1" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <background color="-16777216"/>
-                    </properties>
+                    <properties/>
                     <border type="none"/>
                     <children>
-                      <component id="69228" class="javax.swing.JLabel" binding="docText">
+                      <component id="46f6c" class="javax.swing.JButton" binding="applyConfigButton">
                         <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                            <minimum-size width="-1" height="50"/>
+                            <preferred-size width="-1" height="50"/>
+                            <maximum-size width="-1" height="50"/>
+                          </grid>
                         </constraints>
                         <properties>
-                          <foreground color="-16659211"/>
-                          <text value="Your code will be bytecode instrumented on running."/>
+                          <icon value="icons/png/play-icon.png"/>
+                          <text value="Run with Unlogged"/>
+                        </properties>
+                      </component>
+                      <component id="1d9a7" class="javax.swing.JButton" binding="linkToDiscordButton">
+                        <constraints>
+                          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <borderPainted value="false"/>
+                          <contentAreaFilled value="false"/>
+                          <icon value="icons/png/discordIcon.png"/>
+                          <opaque value="false"/>
+                          <text value="Ask For Support ↗"/>
                         </properties>
                       </component>
                     </children>
                   </grid>
-                  <component id="5c116" class="javax.swing.JButton" binding="applyConfigButton">
+                  <grid id="2d2c0" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="12" left="12" bottom="12" right="12"/>
                     <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
-                        <minimum-size width="-1" height="50"/>
-                        <preferred-size width="-1" height="50"/>
-                        <maximum-size width="-1" height="50"/>
-                      </grid>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <icon value="icons/png/play-icon.png"/>
-                      <text value="Run with Unlogged"/>
-                    </properties>
-                  </component>
+                    <properties/>
+                    <border type="none"/>
+                    <children>
+                      <component id="bf2d0" class="javax.swing.JTextPane" binding="documentationTextArea">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                            <preferred-size width="150" height="50"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <background color="-14671840"/>
+                          <editable value="false"/>
+                          <foreground color="-16659211"/>
+                          <margin top="8" left="8" bottom="8" right="8"/>
+                          <text value="Unlogged adds a VM parameter in your run config, so that when you run your application, it runs with the Unlogged agent. The agent bytecode instruments your code to record the execution.&#10;If you are facing issues with run button, get in touch."/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
                 </children>
               </grid>
               <vspacer id="f0335">
