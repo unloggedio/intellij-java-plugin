@@ -264,7 +264,8 @@ public class DaoService {
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
-            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(), NotificationType.ERROR);
+            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(),
+                    NotificationType.ERROR);
             throw new RuntimeException(e);
         }
     }
@@ -347,7 +348,8 @@ public class DaoService {
                 DataInfo entryProbeInfo = probeInfoMap.get(dbMce.getEntryProbeInfo_id());
                 com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner",
-                        entryProbeInfo.getValueDesc().getString())));
+                        entryProbeInfo.getValueDesc()
+                                .getString())));
                 staticSubject.setProb(probesMap.get(dbMce.getEntryProbe_id()));
                 staticSubject.setProbeInfo(entryProbeInfo);
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
@@ -1019,9 +1021,10 @@ public class DaoService {
     }
 
     public void createOrUpdateCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+        long start = new Date().getTime();
         try {
 //            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
-//                logger.warn("Save MCE: " + methodCallExpression.getId());
+////                logger.warn("Save MCE: " + methodCallExpression.getId());
 //                methodCallExpressionDao.create(MethodCallExpression.FromMCE(methodCallExpression));
 //
 //            }
@@ -1034,6 +1037,9 @@ public class DaoService {
             );
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            long end = new Date().getTime();
+            logger.warn("saving " + callsToSave.size() + " calls took: " + ((end - start) / 1000) + " sec");
         }
     }
 
@@ -1064,9 +1070,11 @@ public class DaoService {
     public void createOrUpdateTestCandidate(
             Collection<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidatesToSave) {
         try {
-            testCandidateDao.create(candidatesToSave.stream()
-                    .map(TestCandidateMetadata::FromTestCandidateMetadata)
-                    .collect(Collectors.toList()));
+            TestCandidateMetadata toSave;
+            for (com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata : candidatesToSave) {
+                toSave = TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata);
+                testCandidateDao.create(toSave);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -1444,7 +1452,7 @@ public class DaoService {
     }
 
 
-    public void createOrUpdateDataEvent(ThreadProcessingState threadState) throws SQLException {
+    public void createOrUpdateThreadState(ThreadProcessingState threadState) throws SQLException {
         ThreadState daoThreadState = new ThreadState();
         daoThreadState.setThreadId(threadState.getThreadId());
         if (threadState.getMostRecentReturnedCall() != null) {

@@ -3,15 +3,16 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class ThreadProcessingState {
-    private List<Long> valueStack = new LinkedList<>();
+    private List<Long> valueStack = new ArrayList<>();
     private int threadId;
-    private List<MethodCallExpression> callStack = new LinkedList<>();
+    private List<MethodCallExpression> callStack = new ArrayList<>();
     private List<String> nextNewObjectType = new LinkedList<>();
-    private List<TestCandidateMetadata> testCandidateMetadataStack = new LinkedList<>();
+    private List<TestCandidateMetadata> testCandidateMetadataStack = new ArrayList<>();
     private MethodCallExpression mostRecentReturnedCall;
 
     public ThreadProcessingState(int threadId) {

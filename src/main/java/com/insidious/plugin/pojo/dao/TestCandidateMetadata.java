@@ -32,8 +32,18 @@ public class TestCandidateMetadata {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata) {
         TestCandidateMetadata newCandidate = new TestCandidateMetadata();
 
-        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(
-                com.insidious.plugin.pojo.MethodCallExpression::getId).collect(Collectors.toList()));
+        StringBuilder callIds = new StringBuilder();
+
+        for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
+            callIds.append(methodCallExpression.getId()).append(",");
+        }
+
+        String s = callIds.toString();
+        if (s.length() > 0) {
+            newCandidate.setCallList(s.substring(0, s.length() - 1));
+        }
+//        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(
+//                com.insidious.plugin.pojo.MethodCallExpression::getId).collect(Collectors.toList()));
 
         newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
                 .map(com.insidious.plugin.pojo.Parameter::getValue).collect(Collectors.toList()));
@@ -98,6 +108,10 @@ public class TestCandidateMetadata {
 
     public void setCallList(List<Long> callsList) {
         this.methodCallExpressions = Strings.join(callsList, ",");
+    }
+
+    public void setCallList(String callIds) {
+        this.methodCallExpressions = callIds;
     }
 
     public long getTestSubject() {

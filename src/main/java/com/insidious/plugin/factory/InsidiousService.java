@@ -138,7 +138,6 @@ public class InsidiousService implements Disposable {
 
 
             this.project = project;
-            ExecutorService threadPool = Executors.newFixedThreadPool(4);
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project)
