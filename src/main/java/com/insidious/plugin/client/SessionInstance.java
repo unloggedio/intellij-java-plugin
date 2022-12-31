@@ -2218,9 +2218,9 @@ public class SessionInstance {
                 MethodCallExpression methodCall;
                 boolean isModified;
                 String nameFromProbe;
-                if (eventBlock.eventId() == 317215L) {
-                    logger.warn("here: " + logFile);
-                }
+//                if (eventBlock.probeId() == 607309) {
+//                    logger.warn("here: " + logFile);
+//                }
 //                existingParameter = parameterInstance;
                 switch (probeInfo.getEventType()) {
 
@@ -2942,7 +2942,10 @@ public class SessionInstance {
                             ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
                                     .getType());
                             String candidateMethodName = mainMethod.getMethodName();
-                            if ((subjectClassInfo.isPojo()) ||
+//                            if (subjectClassInfo == null) {
+//                                logger.warn("here: " + subjectClassInfo);
+//                            }
+                            if (( subjectClassInfo != null && subjectClassInfo.isPojo()) ||
                                     candidateMethodName.equals("getTargetClass")
                                     || candidateMethodName.equals("getTargetSource")
                                     || candidateMethodName.equals("isFrozen")
@@ -3062,6 +3065,8 @@ public class SessionInstance {
                             "]  => " + eventsPerSecond + " events per second");
             logger.debug("parameterContainer = " + parameterContainer.all()
                     .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
+            daoService.createOrUpdateProbeInfo(probesToSave);
+
 
             if (threadState.getCallStack()
                     .size() > 50) {
@@ -3071,7 +3076,7 @@ public class SessionInstance {
                                 "You need to add @JsonManagedReference/@JsonBackReference annotation to identify " +
                                 "POJOs references forming a closed loop. Here is a list of last few calls from the stack: " +
                                 "<br/><br/>");
-                i = 0;
+                int internalCounter = 0;
                 Map<Long, Integer> matchedProbe = new HashMap<>();
                 for (int j = 0; j < threadState.getCallStack()
                         .size(); j++) {
@@ -3088,7 +3093,7 @@ public class SessionInstance {
                             .append("] call to ")
                             .append(call.toString())
                             .append("<br />");
-                    i++;
+                    internalCounter++;
                     if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
                         break;
                     }
@@ -3096,7 +3101,7 @@ public class SessionInstance {
                         matchedProbe.put(dataId, 0);
                     }
                     matchedProbe.put(dataId, matchedProbe.get(dataId) + 1);
-                    if (i > 30) {
+                    if (internalCounter > 30) {
                         break;
                     }
                 }
@@ -3110,7 +3115,6 @@ public class SessionInstance {
             }
 
             daoService.createOrUpdateDataEvent(eventsToSave);
-            daoService.createOrUpdateProbeInfo(probesToSave);
             daoService.createOrUpdateCall(callsToSave);
             daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
             daoService.updateCalls(callsToUpdate);
@@ -3122,31 +3126,8 @@ public class SessionInstance {
             logFile.setStatus(Constants.COMPLETED);
             daoService.updateLogFile(logFile);
             daoService.createOrUpdateThreadState(threadState);
-//            Collection<Parameter> beingSaved = parameterContainer.all();
-//            databasePipe.addParameters(beingSaved);
-//            break;
+
         }
-        // we can potentially verify that the parameter types we have identified from probes are consistent
-        // with the information we have in the object -> type index.
-        // the information in objectInfo ->  typeInfo would be more specific than the information we get from
-        // probe attributes
-//                Map<Long, ObjectInfo> objectInfoMap = archiveIndex
-//                        .getObjectsByObjectId(parameterContainer.all().stream().map(e -> e.getValue()).collect(Collectors.toList()));
-//                List<Parameter> parametersToSave = parameterContainer.all();
-//                for (Parameter parameter : parametersToSave) {
-//                    ObjectInfo objectInfo = objectInfoMap.get(parameter.getValue());
-//                    if (objectInfo == null) {
-//                        continue;
-//                    }
-//                    TypeInfo objectType = archiveIndex.getTypeById((int) objectInfo.getTypeId());
-//                    if (objectType != null) {
-//                    }
-//                }
-
-
-//        if (threadState.getCallStackSize() > 0) {
-//            logger.warn("call stack is not 0, should it be ? - " + threadState.getCallStackSize());
-//        }
 
         return newTestCaseIdentified;
 
