@@ -555,8 +555,12 @@ public class PendingStatement {
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
-            variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
-
+            // for ignoring reserved words in java like boolean, int etc.
+            if (lhsExpression.isPrimitiveType()) {
+                variableName = ClassTypeUtils.createVariableName(lhsExpression.getType()) + "Var";
+            } else {
+                variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
+            }
             if (!objectRoutine.getCreatedVariables()
                     .contains(variableName)) {
                 return variableName;
