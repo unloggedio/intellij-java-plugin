@@ -427,7 +427,7 @@ public class DaoService {
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
 
             String returnParamType = returnParam.getType();
-            if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+            if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
@@ -700,7 +700,7 @@ public class DaoService {
             DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
 
             String returnParamType = returnParam.getType();
-            if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+            if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
@@ -844,7 +844,7 @@ public class DaoService {
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
 
                 String returnParamType = returnParam.getType();
-                if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+                if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                     returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                             .getString()));
                 }
