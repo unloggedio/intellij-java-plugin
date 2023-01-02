@@ -84,15 +84,15 @@ public class TestCaseService implements Runnable {
         }
 
 
-        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
-
-
-        typeSpecBuilder
-                .addField(FieldSpec
-                        .builder(gsonClass, "gson", Modifier.PRIVATE)
-                        .initializer("new $T()", gsonClass)
-                        .build()
-                );
+//        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
+//
+//
+//        typeSpecBuilder
+//                .addField(FieldSpec
+//                        .builder(gsonClass, "gson", Modifier.PRIVATE)
+//                        .initializer("new $T()", gsonClass)
+//                        .build()
+//                );
 
 
         TypeSpec testClassSpec = typeSpecBuilder.build();
