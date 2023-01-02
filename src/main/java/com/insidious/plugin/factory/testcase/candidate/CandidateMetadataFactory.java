@@ -60,6 +60,9 @@ public class CandidateMetadataFactory {
                 logger.info("MCE to mock without a return value - " + e);
                 continue;
             }
+            if (e.getMethodName().equals("toString")) {
+                continue;
+            }
             if (e.isStaticCall() && e.getUsesFields()) {
                 // all static calls need to be mocked
                 // even if they have no return value
