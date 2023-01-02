@@ -425,13 +425,15 @@ public class DaoService {
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
-            if (eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+
+            String returnParamType = returnParam.getType();
+            if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
-            if (typeFromProbe != null && !typeFromProbe.endsWith("lang.Object")) {
+            if (typeFromProbe != null && !typeFromProbe.equals("java.lang.Object")) {
                 returnParam.setTypeForced(typeFromProbe);
             }
 
@@ -677,7 +679,7 @@ public class DaoService {
 
                 String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
                 if (argument.getType() == null || argument.getType()
-                        .equals("") || !argTypeFromProbe.equals("V")) {
+                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
@@ -696,7 +698,9 @@ public class DaoService {
             DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
             DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
-            if (eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+
+            String returnParamType = returnParam.getType();
+            if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
@@ -704,7 +708,7 @@ public class DaoService {
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = eventProbe.getAttribute("Type", null);
             if (returnParam.getType() == null || returnParam.getType()
-                    .equals("") || (typeFromProbe != null && !typeFromProbe.endsWith("lang.Object"))) {
+                    .equals("") || (typeFromProbe != null && !typeFromProbe.equals("Ljava/lang/Object;"))) {
                 returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
             }
 
@@ -818,7 +822,7 @@ public class DaoService {
 
                 String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
                 if (argument.getType() == null || argument.getType()
-                        .equals("") || !argTypeFromProbe.equals("V")) {
+                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
@@ -838,7 +842,9 @@ public class DaoService {
                 DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
                 returnParam.setProb(returnDataEvent);
                 DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
-                if (eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+
+                String returnParamType = returnParam.getType();
+                if ((returnParamType == null || returnParamType == "") && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                     returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                             .getString()));
                 }
@@ -846,7 +852,7 @@ public class DaoService {
                 returnParam.setProbeInfo(eventProbe);
                 String typeFromProbe = eventProbe.getAttribute("Type", null);
                 if (returnParam.getType() == null || returnParam.getType()
-                        .equals("") || (typeFromProbe != null && !typeFromProbe.endsWith("lang.Object"))) {
+                        .equals("") || (typeFromProbe != null && !typeFromProbe.equals("Ljava/lang/Object;"))) {
                     returnParam.setTypeForced(ClassTypeUtils.getDottedClassName(typeFromProbe));
                 }
 
