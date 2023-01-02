@@ -53,7 +53,7 @@ public class TestGenerationState {
     }
 
     public String addObjectToResource(Parameter lhsExpression) {
-        String targetObjectName = lhsExpression.getName();
+        String targetObjectName = lhsExpression.getNameForUse(null);
         Matcher matcher = ENDS_WITH_DIGITS.matcher(targetObjectName);
         if (matcher.matches()) {
             targetObjectName = matcher.group(1);

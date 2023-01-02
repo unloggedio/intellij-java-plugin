@@ -1769,15 +1769,16 @@ public class SessionInstance {
 
                     }
 
-                    assert metadata != null;
-                    if (filteredDataEventsRequest.getNanotime() != -1) {
-                        if (pageInfo.isAsc()) {
-                            if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
-                                continue;
-                            }
-                        } else {
-                            if (metadata.getFirstEventId() > filteredDataEventsRequest.getNanotime()) {
-                                continue;
+                    if (metadata != null) {
+                        if (filteredDataEventsRequest.getNanotime() != -1) {
+                            if (pageInfo.isAsc()) {
+                                if (metadata.getLastEventId() < filteredDataEventsRequest.getNanotime()) {
+                                    continue;
+                                }
+                            } else {
+                                if (metadata.getFirstEventId() > filteredDataEventsRequest.getNanotime()) {
+                                    continue;
+                                }
                             }
                         }
                     }
@@ -2217,9 +2218,9 @@ public class SessionInstance {
                 MethodCallExpression methodCall;
                 boolean isModified;
                 String nameFromProbe;
-//                if (eventBlock.probeId() == 607309) {
-//                    logger.warn("here: " + logFile);
-//                }
+                if (eventBlock.eventId() == 49603) {
+                    logger.warn("here: " + logFile);
+                }
 //                existingParameter = parameterInstance;
                 switch (probeInfo.getEventType()) {
 
@@ -2596,8 +2597,8 @@ public class SessionInstance {
                                 methodCall = null;
                             } else {
                                 // sometimes we can enter a method_entry without a call
-                                if (!owner.startsWith(expectedClassName) || !methodInfo.getMethodName()
-                                        .equals(methodCall.getMethodName())) {
+                                if (!methodCall.getSubject().getType().startsWith(expectedClassName)
+                                        || !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
                                     methodCall = null;
                                 }
                             }

@@ -194,6 +194,16 @@ public class DaoService {
             if (fieldParameterValue == 0L) {
                 continue;
             }
+            if (loadCalls) {
+                Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList.stream()
+                        .filter(e -> e.getSubject()
+                                .getValue() == fieldParameterValue)
+                        .findFirst();
+                if (callOnField.isPresent()) {
+                    converted.getFields().add(callOnField.get().getSubject());
+                    continue;
+                }
+            }
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
             converted.getFields()
                     .add(fieldParameter);
@@ -356,8 +366,7 @@ public class DaoService {
                 methodCallExpression.setSubject(staticSubject);
 
             } else {
-                methodCallExpression.setSubject(
-                        com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject())));
+                methodCallExpression.setSubject(parameterMap.get(dbMce.getSubject()));
             }
 
 
@@ -375,7 +384,7 @@ public class DaoService {
                     paramArgument.setTypeForced(probeInfo.getValueDesc()
                             .getString());
                 } else {
-                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
+//                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
@@ -409,7 +418,7 @@ public class DaoService {
             if (returnParam == null) {
                 returnParam = new com.insidious.plugin.pojo.Parameter();
             } else {
-                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
+//                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
             }
             methodCallExpression.setReturnValue(returnParam);
 

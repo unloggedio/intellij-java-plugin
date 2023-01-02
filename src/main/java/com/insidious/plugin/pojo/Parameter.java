@@ -21,6 +21,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -189,6 +190,9 @@ public class Parameter implements Serializable, BytesMarshallable {
     }
 
     public String getName() {
+        if (nameUsed != null) {
+            return nameUsed;
+        }
         if (names.size() == 0) {
             return null;
         }
@@ -305,7 +309,7 @@ public class Parameter implements Serializable, BytesMarshallable {
 
         FieldSpec.Builder builder = FieldSpec.builder(
                 fieldTypeName,
-                getName(), Modifier.PRIVATE
+                getNameForUse(null), Modifier.PRIVATE
         );
         return builder;
     }
@@ -388,8 +392,9 @@ public class Parameter implements Serializable, BytesMarshallable {
             return null;
         }
 
-        if (names.size() == 1 || methodName == null || methodName.equals("")) {
-            nameUsed = names.get(0);
+        if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
+            names.sort(Comparator.comparingInt(String::length));
+            nameUsed = names.get(names.size() - 1);
             return nameUsed;
         }
 
@@ -462,5 +467,5 @@ public class Parameter implements Serializable, BytesMarshallable {
     public void setModified(boolean modified) {
         this.modified = modified;
     }
-    
+
 }

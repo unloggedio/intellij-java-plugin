@@ -117,13 +117,12 @@ public class TestCandidateCustomizeView {
         List<MethodCallExpression> calls = metadata.getCallsList();
         for (MethodCallExpression call : calls) {
             call.setUIselected(status);
-            if (this.testGenerationConfiguration.getCallExpressionList()
-                    .contains(call)) {
-                this.testGenerationConfiguration.getCallExpressionList()
-                        .remove(call);
-            } else {
+            if (status) {
                 this.testGenerationConfiguration.getCallExpressionList()
                         .add(call);
+            } else {
+                this.testGenerationConfiguration.getCallExpressionList()
+                        .remove(call);
             }
         }
     }
@@ -191,6 +190,7 @@ public class TestCandidateCustomizeView {
         sortCandidates();
         try {
             testActionListener.generateTestCase(testGenerationConfiguration);
+            cancelAndBack();
         } catch (Exception e) {
             e.printStackTrace();
             InsidiousNotification.notifyMessage("Testcase Generation failed."

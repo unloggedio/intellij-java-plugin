@@ -52,12 +52,12 @@ public class MethodCallExpression implements Expression, Serializable {
             Parameter subject,
             List<Parameter> arguments,
             Parameter returnValue,
-            int size) {
+            int callStack) {
         this.methodName = methodName;
         this.subject = subject;
         this.arguments = arguments;
         this.returnValue = returnValue;
-        this.callStack = size;
+        this.callStack = callStack;
     }
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
@@ -145,7 +145,7 @@ public class MethodCallExpression implements Expression, Serializable {
         if (sameNameParamExisting != null && variableExistingParameter == null) {
             // generate a next name from existing name
             //eg: name =>  name0 =>  name1
-            String oldName = sameNameParamExisting.getName();
+            String oldName = sameNameParamExisting.getNameForUse(null);
             String newName = generateNextName(ors, oldName);
             parameter.getNamesList()
                     .remove(newName);
@@ -204,12 +204,13 @@ public class MethodCallExpression implements Expression, Serializable {
         if (mainMethodReturnValueProbe == null) {
             return;
         }
-        DataEventWithSessionId entryProbe = getReturnValue().getProb();
-        objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
-                Long.valueOf((entryProbe.getRecordedAt() - getEntryProbe().getRecordedAt()) / (1000000))
-                        .intValue() +
-                "ms");
+        if (entryProbe != null) {
+            DataEventWithSessionId returnProbe = getReturnValue().getProb();
+            objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
+                    "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
+                    Long.valueOf((returnProbe.getRecordedAt() - entryProbe.getRecordedAt()) / (1000000))
+                            .intValue() + "ms");
+        }
 
         List<Parameter> arguments = getArguments();
         if (arguments != null) {
@@ -251,7 +252,7 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
 
-        if (mainMethodReturnValue.getType()
+        if (mainMethodReturnValue.getType() == null || mainMethodReturnValue.getType()
                 .equals("V")) {
             return;
         }
@@ -471,18 +472,17 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
 
-
     }
 
     public void writeCallArguments(ObjectRoutineScript objectRoutine,
-                             TestCaseGenerationConfiguration testCaseGenerationConfiguration, TestGenerationState testGenerationState) {
+                                   TestCaseGenerationConfiguration testCaseGenerationConfiguration, TestGenerationState testGenerationState) {
         List<Parameter> argsContainer = getArguments();
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
                 Parameter existingParameter = objectRoutine.getCreatedVariables()
                         .getParameterByValue(argument.getValue());
                 String nameForUse;
-                if (existingParameter != null && existingParameter.getName() != null) {
+                if (existingParameter != null && existingParameter.getNameForUse(null) != null) {
                     nameForUse = argument.getNameForUse(existingParameter.getName());
                 } else {
                     nameForUse = argument.getNameForUse(methodName);

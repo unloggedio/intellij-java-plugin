@@ -189,7 +189,7 @@ public class PendingStatement {
             Parameter injectionTarget = variables.get(0);
             statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
                     .getType()));
-            String targetNameForScript = injectionTarget.getName();
+            String targetNameForScript = injectionTarget.getNameForUse(null);
             if (targetNameForScript != null) {
                 statementBuilder.append("$T.injectField($L, $S, $L)");
                 statementParameters.add(targetNameForScript);
@@ -231,7 +231,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(callExpressionSubject.getNameForUse(null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }
@@ -274,7 +274,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(callExpressionSubject.getNameForUse(null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }
@@ -312,7 +312,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(callExpressionSubject.getNameForUse(null));
                     statementParameters.add(methodCallExpression.getMethodName());
                     statementParameters.add(methodCallExpression.getMethodName());
                     statementParameters.add(ClassName.bestGuess(
@@ -345,7 +345,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getName());
+                    statementParameters.add(callExpressionSubject.getNameForUse(null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }

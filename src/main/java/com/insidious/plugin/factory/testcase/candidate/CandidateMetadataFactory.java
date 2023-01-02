@@ -224,7 +224,7 @@ public class CandidateMetadataFactory {
                         .getSubject();
 
                 if (!objectRoutineScript.getCreatedVariables()
-                        .contains(staticCallSubjectMockInstance.getName())) {
+                        .contains(staticCallSubjectMockInstance.getNameForUse(null))) {
                     @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
                             staticCallSubjectMockInstance);
 
@@ -306,9 +306,7 @@ public class CandidateMetadataFactory {
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
-            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null
-                    && mainMethod.getReturnValue()
-                    .getType() != null) {
+            if (mainMethod.isMethodPublic() && mainMethod.getReturnValue() != null) {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }
 
@@ -327,7 +325,7 @@ public class CandidateMetadataFactory {
         Parameter subject = methodCallExpression.getSubject();
 
         StringBuilder callBuilder = new StringBuilder();
-        callBuilder.append(subject.getName())
+        callBuilder.append(subject.getNameForUse(null))
                 .append(".")
                 .append(methodCallExpression.getMethodName());
 
@@ -341,225 +339,5 @@ public class CandidateMetadataFactory {
             }
         }
         return callBuilder.toString();
-    }
-
-    public static MethodCallExpression buildObject(ReplayData replayData, final Parameter targetParameter) {
-        logger.warn("reconstruct object: " + targetParameter);
-
-        switch (targetParameter.getType()) {
-            case "okhttp3.Response":
-
-                AtomicReference<Parameter> responseBodyProbe = new AtomicReference<>();
-                AtomicReference<Parameter> responseBodyStringProbe = new AtomicReference<>();
-
-                ScanRequest scanRequest = new ScanRequest(
-                        new ScanResult(targetParameter.getIndex(), 0, false), 0, DirectionType.FORWARDS);
-
-                scanRequest.addListener(EventType.CALL_RETURN, (index, matchedStack) -> {
-
-
-                    DataEventWithSessionId callReturnEvent = replayData.getDataEvents()
-                            .get(index);
-                    int callEventIndex = replayData.getPreviousProbeIndex(index);
-                    DataEventWithSessionId callEvent = replayData.getDataEvents()
-                            .get(callEventIndex);
-                    DataInfo callEventProbe = replayData.getProbeInfo(callEvent.getDataId());
-                    if (callEventProbe.getEventType() != EventType.CALL) {
-                        return;
-                    }
-
-
-                    DataInfo callReturnProbeInfo =
-                            replayData.getProbeInfo(callReturnEvent.getDataId());
-
-                    @NotNull String returnType = ClassTypeUtils.getDottedClassName(
-                            callReturnProbeInfo.getAttribute("Type", "V")
-                    );
-
-                    String callOwner = ClassTypeUtils.getDottedClassName(callEventProbe.getAttribute("Owner", ""));
-                    String methodName = callEventProbe.getAttribute("Name", null);
-                    assert methodName != null;
-
-
-                    switch (returnType) {
-                        case "java.lang.String":
-                            if (!methodName.equals("string")) {
-                                return;
-                            }
-                            if (responseBodyProbe.get() == null) {
-                                logger.warn("body probe is still missing so this cannot be the " +
-                                        "string we are looking for");
-                            }
-                            Parameter responseBodyProbeInstance = responseBodyProbe.get();
-                            if (responseBodyProbeInstance.getProb()
-                                    .getValue() != callEvent.getValue()) {
-                                logger.warn("this is not the response body string from the object" +
-                                        " we are building: " + callEvent + " -- " + callEventProbe);
-                                return;
-                            }
-                            responseBodyStringProbe.set(ParameterFactory.createMethodArgumentParameter(
-                                    index, replayData, 0, "java.lang.String"
-                            ));
-                            break;
-                        case "okhttp3.ResponseBody":
-                            if (!methodName.equals("body")) {
-                                return;
-                            }
-                            if (callEvent.getValue() != targetParameter.getProb()
-                                    .getValue()) {
-                                logger.warn("this is not the response body from the object we are" +
-                                        " building: " + callEvent + " -- " + callEventProbe);
-                                return;
-                            }
-                            if (responseBodyProbe.get() != null) {
-                                return;
-                            }
-                            responseBodyProbe.set(ParameterFactory.createMethodArgumentParameter(
-                                    index, replayData, 0, "okhttp3.ResponseBody"
-                            ));
-                            break;
-                    }
-
-                });
-
-                scanRequest.matchUntil(EventType.METHOD_NORMAL_EXIT);
-                scanRequest.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
-
-                replayData.ScanForEvents(scanRequest);
-
-                if (responseBodyStringProbe.get() == null) {
-                    logger.warn("response body string value not found for okhttp.Response: " + targetParameter);
-                }
-
-                if (responseBodyProbe.get() == null) {
-                    logger.warn("response body object value not found for okhttp.Response: " + targetParameter);
-                }
-
-                VariableContainer variableContainer = VariableContainer.from(
-                        List.of(responseBodyStringProbe.get())
-                );
-
-                MethodCallExpression buildOkHttpResponseFromString =
-                        MethodCallExpressionFactory.MethodCallExpression("buildOkHttpResponseFromString",
-                                null, variableContainer, targetParameter);
-                return buildOkHttpResponseFromString;
-            case "java.util.List":
-
-
-                ScanRequest identifyIteratorScanRequest = new ScanRequest(
-                        new ScanResult(targetParameter.getIndex(), 0, false), ScanRequest.CURRENT_CLASS,
-                        DirectionType.FORWARDS
-                );
-
-                AtomicInteger iteratorProbe = new AtomicInteger(-1);
-                AtomicInteger nextValueProbe = new AtomicInteger(-1);
-                AtomicReference<Parameter> containedParameterIterator = new AtomicReference<>();
-                AtomicReference<Parameter> nextValueParameter = new AtomicReference<>();
-                identifyIteratorScanRequest.addListener(targetParameter.getProb()
-                                .getValue(),
-
-                        new EventMatchListener() {
-                            @Override
-                            public void eventMatched(Integer index, int matchedStack) {
-                                DataEventWithSessionId event = replayData.getDataEvents()
-                                        .get(index);
-                                DataInfo probeInfo = replayData.getProbeInfo(
-                                        event.getDataId()
-                                );
-                                if (probeInfo.getEventType() == EventType.CALL) {
-                                    String methodName = probeInfo.getAttribute("Name", null);
-                                    Parameter containedParameter;
-                                    DataInfo callReturnProbeInfo;
-
-                                    switch (methodName) {
-                                        case "iterator":
-                                            if (iteratorProbe.get() != -1) {
-                                                return;
-                                            }
-                                            assert methodName != null;
-
-
-                                            int nextProbeIndex = replayData.getNextProbeIndex(index);
-                                            DataEventWithSessionId callReturnProbe = replayData
-                                                    .getDataEvents()
-                                                    .get(nextProbeIndex);
-                                            callReturnProbeInfo = replayData.getProbeInfo(callReturnProbe.getDataId());
-                                            assert callReturnProbeInfo.getEventType() == EventType.CALL_RETURN;
-                                            nextValueProbe.set(index);
-
-                                            Parameter returnParam = ParameterFactory.createMethodArgumentParameter(
-                                                    nextProbeIndex, replayData, 0, null);
-                                            containedParameterIterator.set(returnParam);
-
-                                            identifyIteratorScanRequest.addListener(returnParam.getProb()
-                                                            .getValue()
-                                                    , this);
-                                            iteratorProbe.set(index);
-
-                                            break;
-                                        case "next":
-                                            if (iteratorProbe.get() == -1) {
-                                                return;
-                                            }
-                                            if (event.getValue() == containedParameterIterator.get()
-                                                    .getProb()
-                                                    .getValue()) {
-                                                int nextProbeIndex1 = replayData.getNextProbeIndex(index);
-                                                callReturnProbe = replayData.getDataEvents()
-                                                        .get(nextProbeIndex1);
-                                                callReturnProbeInfo = replayData.getProbeInfo(
-                                                        callReturnProbe.getDataId());
-                                                assert callReturnProbeInfo.getEventType() == EventType.CALL_RETURN;
-                                                nextValueProbe.set(index);
-
-                                                containedParameter = ParameterFactory.createMethodArgumentParameter(
-                                                        nextProbeIndex1, replayData, 0, null
-                                                );
-                                                identifyIteratorScanRequest.addListener(callReturnProbe.getValue(),
-                                                        this);
-                                                nextValueParameter.set(containedParameter);
-
-                                            }
-                                    }
-                                } else if (probeInfo.getEventType() == EventType.LOCAL_STORE || probeInfo.getEventType() == EventType.LOCAL_LOAD) {
-                                    if (nextValueParameter.get() == null) {
-                                        return;
-                                    }
-                                    if (event.getValue() != nextValueParameter.get()
-                                            .getProb()
-                                            .getValue()) {
-                                        return;
-                                    }
-                                    Parameter paramWithNameAndType = ParameterFactory.createMethodArgumentParameter(
-                                            index, replayData, 0, null
-                                    );
-                                    if (paramWithNameAndType.getName()
-                                            .startsWith("\\(")) {
-                                        return;
-                                    }
-                                    if (paramWithNameAndType.getType() != null) {
-                                        Parameter existingValue = nextValueParameter.get();
-                                        paramWithNameAndType.getProb()
-                                                .setSerializedValue(
-                                                        existingValue.getProb()
-                                                                .getSerializedValue()
-                                                );
-                                        nextValueParameter.set(paramWithNameAndType);
-                                        identifyIteratorScanRequest.abort();
-                                    }
-                                }
-                            }
-                        });
-
-                replayData.ScanForValue(identifyIteratorScanRequest);
-                Parameter nextValueParam = nextValueParameter.get();
-                nextValueParam.setName("E");
-                targetParameter.setTemplateParameter(nextValueParam);
-
-                return null;
-            default:
-                break;
-        }
-        return null;
     }
 }

@@ -54,6 +54,7 @@ public class ObjectRoutineContainer {
         this.name = className.simpleName();
         newRoutine("test" + targetClassName.simpleName());
 
+        boolean hasTargetInstanceClassConstructor = false;
         for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
 
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
@@ -63,9 +64,20 @@ public class ObjectRoutineContainer {
             if (methodInfo.getMethodName()
                     .equals("<init>")) {
                 constructor.setTestCandidateList(testCandidateMetadata);
+                hasTargetInstanceClassConstructor = true;
             } else {
                 addMetadata(testCandidateMetadata);
             }
+        }
+        if (!hasTargetInstanceClassConstructor) {
+            TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
+            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, List.of(),
+                    testSubject, 0);
+            constructorMethod.setMethodAccess(1);
+            newTestCaseMetadata.setMainMethod(constructorMethod);
+            newTestCaseMetadata.setTestSubject(testSubject);
+            newTestCaseMetadata.setFields(VariableContainer.from(List.of()));
+            constructor.setTestCandidateList(newTestCaseMetadata);
         }
 
     }

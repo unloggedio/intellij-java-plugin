@@ -71,7 +71,7 @@ public class MethodCallExpressionFactory {
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
                     "(" + methodParametersStringMock + ")";
         } else {
-            param1 = mainSubject.getName() + "." + methodCallExpression.getMethodName() +
+            param1 = mainSubject.getNameForUse(null) + "." + methodCallExpression.getMethodName() +
                     "(" + methodParametersStringMock + ")";
         }
 

@@ -4,8 +4,10 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.squareup.javapoet.ClassName;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * The input configuration for generating a test case script
@@ -28,7 +30,7 @@ public class TestCaseGenerationConfiguration {
     private final JsonFramework jsonFramework;
     private final ResourceEmbedMode resourceEmbedMode;
     private List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
-    private final List<MethodCallExpression> callExpressionList = new LinkedList<>();
+    private final Set<MethodCallExpression> callExpressionList = new HashSet<>();
 
     public TestCaseGenerationConfiguration(
             TestFramework testFramework,
@@ -46,7 +48,7 @@ public class TestCaseGenerationConfiguration {
         return testCandidateMetadataList;
     }
 
-    public List<MethodCallExpression> getCallExpressionList() {
+    public Set<MethodCallExpression> getCallExpressionList() {
         return callExpressionList;
     }
 
