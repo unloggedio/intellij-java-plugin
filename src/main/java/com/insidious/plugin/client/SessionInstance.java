@@ -197,13 +197,7 @@ public class SessionInstance {
                 if (subjectClassInfo != null && subjectClassInfo.isPojo()) {
                     return;
                 }
-                if (!(callSubjectProbe.getEventType()
-                        .equals(EventType.METHOD_ENTRY) || callSubjectProbe.getEventType()
-                        .equals(EventType.METHOD_NORMAL_EXIT) || callSubjectProbe.getEventType()
-                        .equals(EventType.CALL) || callSubjectProbe.getEventType()
-                        .equals(EventType.LOCAL_LOAD))) {
-                    topCandidate.addMethodCall(methodCall);
-                }
+                topCandidate.addMethodCall(methodCall);
             }
         }
     }
@@ -354,7 +348,7 @@ public class SessionInstance {
                                 isPojo = false;
                             }
                         } else {
-                            if (methodName.equals("toString")) {
+                            if (methodName.equals("toString") && !classInfo1.getFilename().equals("<generated>")) {
                                 isPojo = true;
                                 classInfo1.setPojo(isPojo);
                                 break;
@@ -367,7 +361,7 @@ public class SessionInstance {
                             }
                         }
                     }
-                    if (getterCount > 0 && setterCount > 0) {
+                    if (getterCount > 0 && setterCount > 0 && !classInfo1.getFilename().equals("<generated>")) {
                         classInfo1.setPojo(isPojo);
                     }
                     classInfo1.setEnum(isEnum);
@@ -2597,8 +2591,11 @@ public class SessionInstance {
                                 methodCall = null;
                             } else {
                                 // sometimes we can enter a method_entry without a call
-                                if (!methodCall.getSubject().getType().startsWith(expectedClassName)
-                                        || !methodInfo.getMethodName().equals(methodCall.getMethodName())) {
+                                if (!methodCall.getSubject()
+                                        .getType()
+                                        .startsWith(expectedClassName)
+                                        || !methodInfo.getMethodName()
+                                        .equals(methodCall.getMethodName())) {
                                     methodCall = null;
                                 }
                             }
@@ -2945,7 +2942,7 @@ public class SessionInstance {
 //                            if (subjectClassInfo == null) {
 //                                logger.warn("here: " + subjectClassInfo);
 //                            }
-                            if (( subjectClassInfo != null && subjectClassInfo.isPojo()) ||
+                            if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||
                                     candidateMethodName.equals("getTargetClass")
                                     || candidateMethodName.equals("getTargetSource")
                                     || candidateMethodName.equals("isFrozen")
@@ -4514,6 +4511,10 @@ public class SessionInstance {
 
     public void setTestCandidateListener(NewTestCandidateIdentifiedListener testCandidateListener) {
         this.testCandidateListener = testCandidateListener;
+    }
+
+    public Map<String, ClassInfo> getClassIndex() {
+        return classInfoIndexByName;
     }
 
     class FileToEventStreamer implements Runnable {

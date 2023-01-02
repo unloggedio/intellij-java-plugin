@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase.routine;
 
 
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.expression.Expression;
@@ -193,7 +194,7 @@ public class ObjectRoutineContainer {
         return dependentImports;
     }
 
-    public ObjectRoutineScriptContainer toRoutineScript() {
+    public ObjectRoutineScriptContainer toRoutineScript(SessionInstance sessionInstance) {
         TestGenerationState testGenerationState = new TestGenerationState();
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName,
                 testGenerationState, generationConfiguration);
@@ -208,7 +209,7 @@ public class ObjectRoutineContainer {
 
 
         ObjectRoutineScript builderMethodScript = getConstructor()
-                .toObjectScript(variableContainer, generationConfiguration, testGenerationState);
+                .toObjectScript(variableContainer, generationConfiguration, testGenerationState, sessionInstance);
 
         container.getObjectRoutines()
                 .add(builderMethodScript);
@@ -257,7 +258,7 @@ public class ObjectRoutineContainer {
 
             ObjectRoutineScript objectScript =
                     objectRoutine.toObjectScript(classVariableContainer.clone(), generationConfiguration,
-                            testGenerationState);
+                            testGenerationState, sessionInstance);
             container.getObjectRoutines()
                     .add(objectScript);
 

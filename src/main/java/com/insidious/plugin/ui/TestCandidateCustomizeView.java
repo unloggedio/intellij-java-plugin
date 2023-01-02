@@ -58,7 +58,7 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setToggleClickCount(0);
         setDefaultSelection();
         setDocumentationText();
-        UI_Utils.setDividerColorForSplitPane(splitPane,UI_Utils.teal);
+        UI_Utils.setDividerColorForSplitPane(splitPane, UI_Utils.teal);
 
         this.testCandidateTree.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
@@ -139,13 +139,16 @@ public class TestCandidateCustomizeView {
             TestCandidateMetadata lastCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(
                             level1_rowcount - 1)
                     .getLastPathComponent();
-            firstCandidate.setUIselected(true);
+            if (((MethodCallExpression) firstCandidate.getMainMethod()).getMethodName()
+                    .equals("<init>")) {
+                firstCandidate.setUIselected(true);
+                this.testGenerationConfiguration.getTestCandidateMetadataList()
+                        .add(firstCandidate);
+                bulkSetCallStatus(firstCandidate, firstCandidate.isUIselected());
+            }
             lastCandidate.setUIselected(true);
             this.testGenerationConfiguration.getTestCandidateMetadataList()
-                    .add(firstCandidate);
-            this.testGenerationConfiguration.getTestCandidateMetadataList()
                     .add(lastCandidate);
-            bulkSetCallStatus(firstCandidate, firstCandidate.isUIselected());
             bulkSetCallStatus(lastCandidate, lastCandidate.isUIselected());
         } catch (Exception e) {
             e.printStackTrace();
@@ -194,7 +197,7 @@ public class TestCandidateCustomizeView {
         } catch (Exception e) {
             e.printStackTrace();
             InsidiousNotification.notifyMessage("Testcase Generation failed."
-                    +"\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                     NotificationType.ERROR);
 
             JSONObject eventProperties = new JSONObject();

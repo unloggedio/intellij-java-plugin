@@ -1,12 +1,16 @@
 package com.insidious.plugin.factory.testcase.routine;
 
+import com.insidious.common.weaver.ClassInfo;
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.candidate.CandidateMetadataFactory;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
@@ -78,8 +82,8 @@ public class ObjectRoutine {
     public ObjectRoutineScript toObjectScript(
             VariableContainer createdVariables,
             TestCaseGenerationConfiguration generationConfiguration,
-            TestGenerationState testGenerationState
-    ) {
+            TestGenerationState testGenerationState,
+            SessionInstance sessionInstance) {
         TestCandidateMetadata lastCandidate = generationConfiguration
                 .getTestCandidateMetadataList()
                 .get(generationConfiguration.getTestCandidateMetadataList()
@@ -110,6 +114,34 @@ public class ObjectRoutine {
                 .filter(e -> ((MethodCallExpression) e.getMainMethod()).getMethodName()
                         .equals("mock"))
                 .collect(Collectors.toList());
+
+        Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
+        List<Parameter> nonPojoParameters =
+                this.testCandidateList.stream()
+                        .map(e -> (MethodCallExpression) e.getMainMethod())
+                        .map(MethodCallExpression::getArguments)
+                        .flatMap(Collection::stream)
+                        .filter(e -> classIndex.get(e.getType()) != null && !classIndex.get(e.getType())
+                                .isPojo())
+                        .collect(Collectors.toList());
+
+        for (Parameter nonPojoParameter : nonPojoParameters) {
+            TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
+            if (metadata == null) {
+                logger.warn("unable to create a initializer for non pojo parameter: " + nonPojoParameter);
+                continue;
+            }
+            fieldsContainer.add(nonPojoParameter);
+            ObjectRoutineScript script1 = CandidateMetadataFactory
+                    .mainMethodToObjectScript(metadata, testGenerationState, generationConfiguration);
+
+            scriptContainer.getStatements()
+                    .addAll(script1.getStatements());
+            scriptContainer.getStaticMocks()
+                    .addAll(script1.getStaticMocks());
+            scriptContainer.getCreatedVariables().add(nonPojoParameter);
+        }
+
 
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();

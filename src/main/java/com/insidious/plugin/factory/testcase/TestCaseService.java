@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase;
 
+import com.insidious.common.weaver.ClassInfo;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -21,10 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
@@ -155,15 +153,13 @@ public class TestCaseService implements Runnable {
 
         createFieldMocks(objectRoutineContainer);
 
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript();
+        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance);
 
 
         return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
     }
 
-    public void createFieldMocks(
-            ObjectRoutineContainer objectRoutineContainer
-    ) {
+    public void createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
 
 
         VariableContainer fields = VariableContainer.from(
