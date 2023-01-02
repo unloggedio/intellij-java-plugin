@@ -264,11 +264,40 @@ public class SessionInstance {
         methodInfoIndex = createMethodInfoIndex();
         classInfoIndex = createClassInfoIndex();
 //        classInfoIndexByName = createClassInfoNameIndex();
-        classInfoIndex.values()
-                .stream()
-                .forEach(classInfo1 -> {
-                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
-                });
+        try {
+            classInfoIndex.values()
+                    .forEach(classInfo1 -> {
+                        classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                                classInfo1);
+                    });
+
+        } catch (Throwable e) {
+            if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
+                typeInfoIndex.close();
+                objectInfoIndex.close();
+                probeInfoIndex.close();
+                methodInfoIndex.close();
+                classInfoIndex.close();
+                e.printStackTrace();
+                List<String> indexFiles = Arrays.asList(
+                        "index.class.dat",
+                        "index.method.dat",
+                        "index.object.dat",
+                        "index.probe.dat",
+                        "index.type.dat"
+                );
+                for (String indexFile : indexFiles) {
+                    File toDelete = Path.of(executionSession.getPath(), indexFile)
+                            .toFile();
+                    toDelete.delete();
+                }
+                typeInfoIndex = createTypeInfoIndex();
+                objectInfoIndex = createObjectInfoIndex();
+                probeInfoIndex = createProbeInfoIndex();
+                methodInfoIndex = createMethodInfoIndex();
+                classInfoIndex = createClassInfoIndex();
+            }
+        }
 
         if (classWeaveInfo == null) {
             throw new RuntimeException("Class weave information not found in the session");
@@ -348,7 +377,8 @@ public class SessionInstance {
                                 isPojo = false;
                             }
                         } else {
-                            if (methodName.equals("toString") && !classInfo1.getFilename().equals("<generated>")) {
+                            if (methodName.equals("toString") && !classInfo1.getFilename()
+                                    .equals("<generated>")) {
                                 isPojo = true;
                                 classInfo1.setPojo(isPojo);
                                 break;
@@ -361,7 +391,8 @@ public class SessionInstance {
                             }
                         }
                     }
-                    if (getterCount > 0 && setterCount > 0 && !classInfo1.getFilename().equals("<generated>")) {
+                    if (getterCount > 0 && setterCount > 0 && !classInfo1.getFilename()
+                            .equals("<generated>")) {
                         classInfo1.setPojo(isPojo);
                     }
                     classInfo1.setEnum(isEnum);

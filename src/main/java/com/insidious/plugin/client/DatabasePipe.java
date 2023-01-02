@@ -40,53 +40,58 @@ class DatabasePipe implements Runnable {
     @Override
     public void run() {
         isRunning = true;
-        while (!stop) {
-            Parameter param;
-            try {
-                param = parameterQueue.poll(1, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                logger.warn("database pipe interrupted - " + e.getMessage());
-                throw new RuntimeException(e);
+        try {
+            while (!stop) {
+                Parameter param;
+                try {
+                    param = parameterQueue.poll(1, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    logger.warn("database pipe interrupted - " + e.getMessage());
+                    throw new RuntimeException(e);
+                }
+
+                if (dataInfoList.size() > 0) {
+                    Collection<DataInfo> saving = new LinkedList<>();
+                    dataInfoList.removeAll(saving);
+                    daoService.createOrUpdateProbeInfo(saving);
+                }
+
+                if (eventsToSave.size() > 0) {
+                    Collection<DataEventWithSessionId> saving = new LinkedList<>();
+                    eventsToSave.removeAll(saving);
+                    daoService.createOrUpdateDataEvent(saving);
+                }
+                if (methodCallToSave.size() > 0) {
+                    Collection<MethodCallExpression> saving = new LinkedList<>();
+                    methodCallToSave.removeAll(saving);
+                    daoService.createOrUpdateCall(saving);
+                }
+                if (methodCallToUpdate.size() > 0) {
+                    Collection<MethodCallExpression> saving = new LinkedList<>();
+                    methodCallToUpdate.removeAll(saving);
+                    daoService.updateCalls(saving);
+                }
+                if (testCandidateMetadataList.size() > 0) {
+                    Collection<TestCandidateMetadata> saving = new LinkedList<>();
+                    testCandidateMetadataList.removeAll(saving);
+                    daoService.createOrUpdateTestCandidate(saving);
+                }
+
+                if (param == null) {
+                    continue;
+                }
+                List<Parameter> batch = new LinkedList<>();
+                parameterQueue.drainTo(batch);
+                batch.add(param);
+                logger.warn("Saving " + batch.size() + " parameters");
+                daoService.createOrUpdateParameter(batch);
+                variableContainer.getBeingSaved()
+                        .removeAll(batch);
             }
 
-            if (dataInfoList.size() > 0) {
-                Collection<DataInfo> saving = new LinkedList<>();
-                dataInfoList.removeAll(saving);
-                daoService.createOrUpdateProbeInfo(saving);
-            }
-
-            if (eventsToSave.size() > 0) {
-                Collection<DataEventWithSessionId> saving = new LinkedList<>();
-                eventsToSave.removeAll(saving);
-                daoService.createOrUpdateDataEvent(saving);
-            }
-            if (methodCallToSave.size() > 0) {
-                Collection<MethodCallExpression> saving = new LinkedList<>();
-                methodCallToSave.removeAll(saving);
-                daoService.createOrUpdateCall(saving);
-            }
-            if (methodCallToUpdate.size() > 0) {
-                Collection<MethodCallExpression> saving = new LinkedList<>();
-                methodCallToUpdate.removeAll(saving);
-                daoService.updateCalls(saving);
-            }
-            if (testCandidateMetadataList.size() > 0) {
-                Collection<TestCandidateMetadata> saving = new LinkedList<>();
-                testCandidateMetadataList.removeAll(saving);
-                daoService.createOrUpdateTestCandidate(saving);
-            }
-
-            if (param == null) {
-                continue;
-            }
-            List<Parameter> batch = new LinkedList<>();
-            parameterQueue.drainTo(batch);
-            batch.add(param);
-            logger.warn("Saving " + batch.size() + " parameters");
-            daoService.createOrUpdateParameter(batch);
-            variableContainer.getBeingSaved()
-                    .removeAll(batch);
+        } finally {
+            isRunning = false;
         }
         isSaving.offer(true);
     }

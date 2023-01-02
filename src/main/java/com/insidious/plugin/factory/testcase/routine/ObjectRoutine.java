@@ -121,8 +121,12 @@ public class ObjectRoutine {
                         .map(e -> (MethodCallExpression) e.getMainMethod())
                         .map(MethodCallExpression::getArguments)
                         .flatMap(Collection::stream)
-                        .filter(e -> classIndex.get(e.getType()) != null && !classIndex.get(e.getType())
-                                .isPojo())
+                        .filter(e -> classIndex.get(e.getType()) != null
+                                && !classIndex.get(e.getType())
+                                .isPojo()
+                                && !classIndex.get(e.getType())
+                                .isEnum()
+                        )
                         .collect(Collectors.toList());
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
@@ -139,7 +143,8 @@ public class ObjectRoutine {
                     .addAll(script1.getStatements());
             scriptContainer.getStaticMocks()
                     .addAll(script1.getStaticMocks());
-            scriptContainer.getCreatedVariables().add(nonPojoParameter);
+            scriptContainer.getCreatedVariables()
+                    .add(nonPojoParameter);
         }
 
 

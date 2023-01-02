@@ -806,9 +806,10 @@ public class InsidiousService implements Disposable {
                 ParseResult<CompilationUnit> parsedFile = javaParser.parse(
                         testcaseFile);
                 if (parsedFile.getResult()
-                        .isEmpty()) {
-                    InsidiousNotification.notifyMessage("Failed to parse existing test case in the file, unable to " +
-                            "add new test case", NotificationType.ERROR);
+                        .isEmpty() || !parsedFile.isSuccessful()) {
+                    InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
+                            " to" +
+                            " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
                     return null;
                 }
                 CompilationUnit existingCompilationUnit = parsedFile.getResult()
