@@ -198,7 +198,6 @@ public class SessionInstance {
                     return;
                 }
                 if (!(callSubjectProbe.getEventType()
-                        .equals(EventType.METHOD_PARAM) || callSubjectProbe.getEventType()
                         .equals(EventType.METHOD_ENTRY) || callSubjectProbe.getEventType()
                         .equals(EventType.METHOD_NORMAL_EXIT) || callSubjectProbe.getEventType()
                         .equals(EventType.CALL) || callSubjectProbe.getEventType()

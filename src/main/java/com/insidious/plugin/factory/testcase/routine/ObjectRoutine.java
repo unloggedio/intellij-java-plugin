@@ -18,6 +18,7 @@ import lombok.AllArgsConstructor;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * ObjectRoutine is representing a block of code, close to a method, containing all the
@@ -105,6 +106,11 @@ public class ObjectRoutine {
         VariableContainer fieldsContainer = new VariableContainer();
         List<MethodCallExpression> callsList = new ArrayList<>();
 
+        List<TestCandidateMetadata> mockCreatorCalls = this.testCandidateList.stream()
+                .filter(e -> ((MethodCallExpression) e.getMainMethod()).getMethodName()
+                        .equals("mock"))
+                .collect(Collectors.toList());
+
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             candidateVariables.all()
@@ -127,7 +133,26 @@ public class ObjectRoutine {
                 .addAll(script.getStaticMocks());
 
 
+        for (TestCandidateMetadata testCandidateMetadata : mockCreatorCalls) {
+            VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
+            candidateVariables.all()
+                    .forEach(variableContainer::add);
+            testGenerationState.setVariableContainer(variableContainer);
+
+            ObjectRoutineScript script1 = CandidateMetadataFactory
+                    .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
+
+            scriptContainer.getStatements()
+                    .addAll(script1.getStatements());
+            scriptContainer.getStaticMocks()
+                    .addAll(script1.getStaticMocks());
+
+        }
+
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
+            if (mockCreatorCalls.contains(testCandidateMetadata)) {
+                continue;
+            }
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             candidateVariables.all()
                     .forEach(variableContainer::add);
