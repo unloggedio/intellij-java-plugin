@@ -140,7 +140,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
 
         String issueDescription = "Issue Raised by: `" + userEmail.getText() + "`\n\n"
-                + "[Session Logs](" + sessionURI + ")" + "\n\n" + description.getText();
+                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")" + "\n\n" + description.getText();
 
         Desktop desktop = Desktop.getDesktop();
         String gitlabMail = "contact-project+insidious1-server-32379664-issue-@incoming.gitlab.com";
@@ -150,7 +150,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
                 + "&body=" + URLEncoder.encode(issueDescription, StandardCharsets.UTF_8).replace("+", "%20");
 
         URI uri = URI.create(mailFromBrowser);
-        System.out.print(mailFromBrowser);
 
         try {
             desktop.browse(uri);
