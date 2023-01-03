@@ -9,7 +9,6 @@ import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
 import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.execution.impl.DefaultJavaProgramRunner;
-import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.module.Module;
@@ -24,6 +23,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -38,25 +38,39 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private JLabel modulesHeading;
     private JPanel modulesParentPanel;
     private JPanel packagesParentPanel;
-    private JLabel documentationText;
-    private JPanel borderLayoutParent;
-    private JPanel bottomContent;
     private JButton applyConfigButton;
     private JButton linkToDiscordButton;
+    private JLabel selectionHeading1;
+    private JTextPane vmOptionsPanel;
+    private JPanel packageManagementBorderParent;
+    private JPanel includePanel;
+    private JPanel excludePanel;
+    private JPanel BasePackagePanel;
+    private JLabel basePackageLabel;
+    private JScrollPane scrollParent;
+    private JPanel sectionParent;
+    private JPanel borderLayoutParent;
+    private JPanel bottomContent;
     private JPanel buttonGroupPanel;
     private JTextPane documentationTextArea;
-    private JLabel selectionHeading1;
+    private JLabel DocumentationLabel;
+    private JScrollPane vmOptsScroll;
+    private JLabel includeHeadingLabel;
     private Project project;
     private InsidiousService insidiousService;
     private List<ModulePanel> modulePanelList;
-    private HashSet<String> selectedPackages = new HashSet<>();
+    private HashSet<String> selectedPackages = new HashSet<>(); //these are packages that will be excluded in the vm params
+    private String JVMoptionsBase = "";
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
+        this.JVMoptionsBase = getJVMoptionsBase();
         fetchModules();
         findAllPackages();
+        updateVMparameter();
+        this.basePackageLabel.setToolTipText("Base package for "+modulePanelList.get(0).getText());
         applyConfigButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -71,6 +85,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         });
     }
 
+    private String getJVMoptionsBase()
+    {
+        String vmoptions = (insidiousService.getJavaAgentString().split("i="))[0];
+        String parts[] = vmoptions.split(" ");
+        return parts[0]+"\n"+parts[1];
+
+    }
     private void routeToDiscord()
     {
         String link = "https://discord.gg/Hhwvay8uTa";
@@ -94,7 +115,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 FileBasedIndex.getInstance().getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
                         GlobalSearchScope.projectScope(project));
 
-        // Get only java files which is contained by PROJECT
+        List<String> components = new ArrayList<String>();
         for (VirtualFile vf: virtualFiles) {
             PsiFile psifile = PsiManager.getInstance(project).findFile(vf);
             if (psifile instanceof PsiJavaFile) {
@@ -103,10 +124,26 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 if(packageName.contains("."))
                 {
                     ret.add(packageName);
+                    if(components.size()==0)
+                    {
+                        String[] parts = packageName.split("\\.");
+                        components = Arrays.asList(parts);
+                    }
+                    else
+                    {
+                        List<String> sp = Arrays.asList(packageName.split("\\."));
+                        List<String> intersection = intersection(components,sp);
+                        if(intersection.size()>=2)
+                        {
+                            components=intersection;
+                        }
+                    }
                 }
             }
         }
         //System.out.println("Project packages - "+ret);
+        String basePackage = buildPackageNameFromList(components);
+        this.basePackageLabel.setText(basePackage);
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
@@ -119,6 +156,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 FileBasedIndex.getInstance().getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
                         GlobalSearchScope.projectScope(project));
 
+        List<String> components = new ArrayList<String>();
         for (VirtualFile vf: virtualFiles) {
             PsiFile psifile = PsiManager.getInstance(project).findFile(vf);
             if (psifile instanceof PsiJavaFile && vf.getPath().contains(modulename)) {
@@ -127,13 +165,50 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 if(packageName.contains("."))
                 {
                     ret.add(packageName);
+                    if(components.size()==0)
+                    {
+                        String[] parts = packageName.split("\\.");
+                        components = Arrays.asList(parts);
+                    }
+                    else
+                    {
+                        List<String> sp = Arrays.asList(packageName.split("\\."));
+                        List<String> intersection = intersection(components,sp);
+                        if(intersection.size()>=2)
+                        {
+                            components=intersection;
+                        }
+                    }
                 }
             }
         }
         //System.out.println("Project packages - "+ret);
+        String basePackage = buildPackageNameFromList(components);
+        this.basePackageLabel.setText(basePackage);
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
+    }
+
+    private String buildPackageNameFromList(List<String> parts)
+    {
+        StringBuilder packagename = new StringBuilder();
+        for(String part : parts)
+        {
+            packagename.append(part+".");
+        }
+        packagename.deleteCharAt(packagename.length()-1);
+        return packagename.toString();
+    }
+
+    public <T> List<T> intersection(List<T> list1, List<T> list2) {
+        List<T> list = new ArrayList<T>();
+        for (T t : list1) {
+            if(list2.contains(t)) {
+                list.add(t);
+            }
+        }
+        return list;
     }
 
     //ModuleManager doesn't point to correct modules,
@@ -197,6 +272,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             gridPanel.add(modulePanel.getMainPanel(), constraints);
         }
         JScrollPane scrollPane = new JScrollPane(gridPanel);
+        EmptyBorder emptyBorder = new EmptyBorder(0,0,0,0);
+        scrollPane.setBorder(emptyBorder);
         modulesParentPanel.setPreferredSize(scrollPane.getSize());
         modulesParentPanel.add(scrollPane, BorderLayout.CENTER);
         if (modules.size() <= 8) {
@@ -251,6 +328,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                                 selectedPackages.add(package_selected);
                             }
                         }
+                        updateVMparameter();
                     }
                 }
             });
@@ -259,9 +337,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             i++;
         }
         JScrollPane scrollPane = new JScrollPane(gridPanel);
+        EmptyBorder emptyBorder = new EmptyBorder(0,0,0,0);
+        scrollPane.setBorder(emptyBorder);
         packagesParentPanel.setPreferredSize(scrollPane.getSize());
         packagesParentPanel.add(scrollPane, BorderLayout.CENTER);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+//        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         if (packages.size() <= 15) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
@@ -270,6 +350,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void runApplicationWithUnlogged()
     {
+        if(true)
+        {
+            return;
+        }
         //make run configuration selectable or add vm options to existing run config
         //wip
         System.out.println("[VM OPTIONS FROM SELECTION]");
@@ -289,9 +373,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                     String currentVMParams = applicationConfiguration.getVMParameters();
                     String newVmOptions = "";
                     newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, unloggedVMOptions);
-                    applicationConfiguration.setVMParameters(newVmOptions.trim());
+                    //applicationConfiguration.setVMParameters(newVmOptions.trim());
                     try {
-                         runner.execute(new ExecutionEnvironment(executor, runner, runSetting, project), null);
+                    //     runner.execute(new ExecutionEnvironment(executor, runner, runSetting, project), null);
                          break;
                     }
                     catch (Exception e)
@@ -322,7 +406,33 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     @Override
     public void onSelect(String moduleName) {
-        this.selectionHeading1.setText("Select packages to exclude from module : "+moduleName);
+//        this.includeHeadingLabel.setText("Base package from : "+moduleName);
+        this.selectedPackages = new HashSet<>();
         findPackagesForModule(moduleName);
+        updateVMparameter();
+        this.basePackageLabel.setToolTipText("Base package for "+moduleName);
+    }
+
+    private void updateVMparameter()
+    {
+        StringBuilder newVMParams = new StringBuilder();
+        newVMParams.append(JVMoptionsBase);
+        newVMParams.append("\ni="+basePackageLabel.getText());
+        if(selectedPackages.size()>0)
+        {
+            newVMParams.append(",");
+            for(String packageName : selectedPackages)
+            {
+                newVMParams.append("\ne="+packageName+",");
+            }
+            newVMParams.deleteCharAt(newVMParams.length()-1);
+            newVMParams.append("\"");
+            vmOptionsPanel.setText(newVMParams.toString());
+        }
+        else
+        {
+            newVMParams.append("\"");
+            vmOptionsPanel.setText(newVMParams.toString());
+        }
     }
 }

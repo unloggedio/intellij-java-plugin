@@ -3,7 +3,7 @@
   <grid id="f1caa" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="8" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="1" y="21" width="1316" height="264"/>
+      <xy x="1" y="21" width="1316" height="303"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -14,11 +14,11 @@
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties/>
-        <border type="none"/>
+        <border type="line"/>
         <children>
           <component id="ac0d" class="javax.swing.JLabel" binding="modulesHeading">
             <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
             </constraints>
             <properties>
               <text value="Select a Module"/>
@@ -29,141 +29,249 @@
               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
-            <border type="none"/>
+            <border type="empty"/>
             <children/>
           </grid>
         </children>
       </grid>
-      <grid id="48116" binding="packagesSelectionPanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="8" left="4" bottom="4" right="4"/>
+      <grid id="48116" binding="packagesSelectionPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="4" bottom="4" right="4"/>
         <constraints>
-          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-        </constraints>
-        <properties/>
-        <border type="none"/>
-        <children>
-          <component id="1801d" class="javax.swing.JLabel" binding="selectionHeading1">
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties>
-              <text value="Select package from module"/>
-            </properties>
-          </component>
-          <grid id="b3814" binding="packagesParentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-            <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children/>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <minimum-size width="480" height="-1"/>
           </grid>
-        </children>
-      </grid>
-      <grid id="aa521" binding="documentationSection" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="8" left="4" bottom="4" right="4"/>
-        <constraints>
-          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties/>
         <border type="none"/>
         <children>
-          <component id="d3462" class="javax.swing.JLabel" binding="documentationText">
+          <grid id="bb973" binding="packageManagementBorderParent" layout-manager="BorderLayout" hgap="0" vgap="8">
             <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties>
-              <text value="Documentation"/>
-            </properties>
-          </component>
-          <grid id="3226c" binding="borderLayoutParent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties/>
-            <border type="none"/>
+            <border type="empty"/>
             <children>
-              <grid id="a6454" binding="bottomContent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="0" bottom="0" right="0"/>
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                </constraints>
+              <grid id="85b62" binding="includePanel" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="8" left="0" bottom="0" right="0"/>
+                <constraints border-constraint="North"/>
                 <properties/>
-                <border type="none"/>
+                <border type="line"/>
                 <children>
-                  <grid id="8bdfa" binding="buttonGroupPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="0" left="0" bottom="0" right="0"/>
+                  <component id="bb29a" class="javax.swing.JLabel" binding="includeHeadingLabel">
                     <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="1" use-parent-layout="false"/>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <text value="Select Package to include (base package)"/>
+                    </properties>
+                  </component>
+                  <vspacer id="e8ad6">
+                    <constraints>
+                      <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                  </vspacer>
+                  <grid id="71c4c" binding="BasePackagePanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="0" left="0" bottom="8" right="0"/>
+                    <constraints>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                     </constraints>
                     <properties/>
-                    <border type="none"/>
+                    <border type="empty"/>
                     <children>
-                      <component id="46f6c" class="javax.swing.JButton" binding="applyConfigButton">
+                      <component id="107e" class="javax.swing.JLabel" binding="basePackageLabel">
                         <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
-                            <minimum-size width="-1" height="50"/>
-                            <preferred-size width="-1" height="50"/>
-                            <maximum-size width="-1" height="50"/>
-                          </grid>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
                         </constraints>
                         <properties>
-                          <icon value="icons/png/play-icon.png"/>
-                          <text value="Run with Unlogged"/>
-                        </properties>
-                      </component>
-                      <component id="1d9a7" class="javax.swing.JButton" binding="linkToDiscordButton">
-                        <constraints>
-                          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                        </constraints>
-                        <properties>
-                          <borderPainted value="false"/>
-                          <contentAreaFilled value="false"/>
-                          <icon value="icons/png/discordIcon.png"/>
-                          <opaque value="false"/>
-                          <text value="Ask For Support ↗"/>
-                        </properties>
-                      </component>
-                    </children>
-                  </grid>
-                  <grid id="2d2c0" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                    <margin top="12" left="12" bottom="12" right="12"/>
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties/>
-                    <border type="none"/>
-                    <children>
-                      <component id="bf2d0" class="javax.swing.JTextPane" binding="documentationTextArea">
-                        <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                            <preferred-size width="150" height="50"/>
-                          </grid>
-                        </constraints>
-                        <properties>
-                          <background color="-14671840"/>
-                          <editable value="false"/>
-                          <foreground color="-16659211"/>
-                          <margin top="8" left="8" bottom="8" right="8"/>
-                          <text value="Unlogged adds a VM parameter in your run config, so that when you run your application, it runs with the Unlogged agent. The agent bytecode instruments your code to record the execution.&#10;If you are facing issues with run button, get in touch."/>
+                          <icon value="icons/png/package_v1.png"/>
+                          <text value="BasePackage"/>
                         </properties>
                       </component>
                     </children>
                   </grid>
                 </children>
               </grid>
-              <vspacer id="f0335">
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
-                    <minimum-size width="-1" height="4"/>
-                    <preferred-size width="-1" height="4"/>
-                    <maximum-size width="-1" height="4"/>
+              <grid id="340fc" binding="excludePanel" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="8" left="0" bottom="0" right="0"/>
+                <constraints border-constraint="Center"/>
+                <properties/>
+                <border type="line"/>
+                <children>
+                  <component id="25197" class="javax.swing.JLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <horizontalAlignment value="0"/>
+                      <horizontalTextPosition value="0"/>
+                      <text value="Select packages to exclude"/>
+                    </properties>
+                  </component>
+                  <grid id="6f089" binding="packagesParentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+                    <constraints>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                    </constraints>
+                    <properties/>
+                    <border type="empty"/>
+                    <children/>
                   </grid>
-                </constraints>
-              </vspacer>
+                </children>
+              </grid>
             </children>
           </grid>
+        </children>
+      </grid>
+      <grid id="aa521" binding="documentationSection" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="8" left="4" bottom="4" right="4"/>
+        <constraints>
+          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="line"/>
+        <children>
+          <scrollpane id="2d8b6" binding="scrollParent">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+            <border type="empty"/>
+            <children>
+              <grid id="810fd" binding="sectionParent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="8" left="0" bottom="0" right="0"/>
+                <constraints/>
+                <properties/>
+                <border type="empty"/>
+                <children>
+                  <component id="af86f" class="javax.swing.JLabel" binding="DocumentationLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="2" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <horizontalAlignment value="2"/>
+                      <horizontalTextPosition value="2"/>
+                      <text value="Documentation"/>
+                    </properties>
+                  </component>
+                  <grid id="b6ff6" binding="borderLayoutParent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="0" left="0" bottom="0" right="0"/>
+                    <constraints>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                        <minimum-size width="480" height="-1"/>
+                      </grid>
+                    </constraints>
+                    <properties/>
+                    <border type="empty"/>
+                    <children>
+                      <grid id="a41d9" binding="bottomContent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="0" left="0" bottom="0" right="0"/>
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties/>
+                        <border type="empty"/>
+                        <children>
+                          <grid id="20dc5" binding="buttonGroupPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="0" left="0" bottom="0" right="0"/>
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="1" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="empty"/>
+                            <children>
+                              <component id="475c4" class="javax.swing.JButton" binding="applyConfigButton">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                                    <minimum-size width="-1" height="50"/>
+                                    <preferred-size width="-1" height="50"/>
+                                    <maximum-size width="-1" height="50"/>
+                                  </grid>
+                                </constraints>
+                                <properties>
+                                  <icon value="icons/png/play-icon.png"/>
+                                  <text value="Run with Unlogged"/>
+                                </properties>
+                              </component>
+                              <component id="8153a" class="javax.swing.JButton" binding="linkToDiscordButton">
+                                <constraints>
+                                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <borderPainted value="false"/>
+                                  <contentAreaFilled value="false"/>
+                                  <icon value="icons/png/discordIcon.png"/>
+                                  <opaque value="false"/>
+                                  <text value="Ask For Support ↗"/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                          <grid id="7b247" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="12" left="12" bottom="12" right="12"/>
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="empty"/>
+                            <children>
+                              <component id="3393c" class="javax.swing.JTextPane" binding="documentationTextArea">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <preferred-size width="150" height="50"/>
+                                  </grid>
+                                </constraints>
+                                <properties>
+                                  <background color="-14671840"/>
+                                  <editable value="false"/>
+                                  <foreground color="-16659211"/>
+                                  <margin top="8" left="8" bottom="8" right="8"/>
+                                  <text value="Unlogged adds a VM parameter in your run config, so that when you run your application, it runs with the Unlogged agent. The agent bytecode instruments your code to record the execution.&#10;If you are facing issues with run button, get in touch."/>
+                                </properties>
+                              </component>
+                              <scrollpane id="312b0" binding="vmOptsScroll">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <minimum-size width="-1" height="120"/>
+                                    <preferred-size width="-1" height="120"/>
+                                    <maximum-size width="-1" height="120"/>
+                                  </grid>
+                                </constraints>
+                                <properties/>
+                                <border type="none"/>
+                                <children>
+                                  <component id="da85" class="javax.swing.JTextPane" binding="vmOptionsPanel">
+                                    <constraints/>
+                                    <properties>
+                                      <background color="-14671840"/>
+                                      <editable value="false"/>
+                                      <foreground color="-16659211"/>
+                                      <margin top="8" left="8" bottom="8" right="8"/>
+                                      <maximumSize width="2147483647" height="120"/>
+                                      <minimumSize width="64" height="120"/>
+                                      <preferredSize width="88" height="120"/>
+                                      <text value="VM Options"/>
+                                    </properties>
+                                  </component>
+                                </children>
+                              </scrollpane>
+                            </children>
+                          </grid>
+                        </children>
+                      </grid>
+                      <vspacer id="ab2ec">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
+                            <minimum-size width="-1" height="4"/>
+                            <preferred-size width="-1" height="4"/>
+                            <maximum-size width="-1" height="4"/>
+                          </grid>
+                        </constraints>
+                      </vspacer>
+                    </children>
+                  </grid>
+                </children>
+              </grid>
+            </children>
+          </scrollpane>
         </children>
       </grid>
     </children>
