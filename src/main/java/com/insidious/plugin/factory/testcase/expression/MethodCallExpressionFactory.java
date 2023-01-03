@@ -46,6 +46,10 @@ public class MethodCallExpressionFactory {
         return new PlainValueExpression(value);
     }
 
+    public static Expression ClassValueExpression(String value) {
+        return new ClassValueExpression(value);
+    }
+
     public static Expression StringExpression(String s) {
         return new StringExpression(s);
     }

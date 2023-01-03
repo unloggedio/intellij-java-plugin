@@ -64,6 +64,7 @@ public class ClassTypeUtils {
                 || lastPart.equals("long")
                 || lastPart.equals("byte")
                 || lastPart.equals("float")
+                || lastPart.equals("class")
                 || lastPart.equals("double")
                 || lastPart.equals("short")) {
             return lastPart + "Value";

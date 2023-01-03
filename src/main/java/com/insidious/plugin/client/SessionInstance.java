@@ -4452,10 +4452,16 @@ public class SessionInstance {
                         parameterFromProbe.setContainer(true);
                         List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
                         char templateChar = 'D';
+                        boolean hasGenericTemplate = false;
                         for (PsiType typeTemplateParameter : typeTemplateParameters) {
                             templateChar++;
                             Parameter value = new Parameter();
-                            value.setType(typeTemplateParameter.getCanonicalText());
+                            String canonicalText = typeTemplateParameter.getCanonicalText();
+                            if (canonicalText.length() == 1) {
+                                hasGenericTemplate = true;
+                                break;
+                            }
+                            value.setType(canonicalText);
                             String templateKey = String.valueOf(templateChar);
                             value.setName(templateKey);
                             Optional<Parameter> existingTemplateOptional = templateMap.stream()
@@ -4472,6 +4478,9 @@ public class SessionInstance {
                             } else {
                                 templateMap.add(value);
                             }
+                        }
+                        if (hasGenericTemplate) {
+                            templateMap.clear();
                         }
                     }
                 }
@@ -4496,10 +4505,16 @@ public class SessionInstance {
                     returnParameter.setContainer(true);
                     List<Parameter> templateMap = returnParameter.getTemplateMap();
                     char templateChar = 'D';
+                    boolean hasGenericTemplate = false;
                     for (PsiType typeTemplateParameter : typeTemplateParameters) {
                         templateChar++;
                         Parameter value = new Parameter();
-                        value.setType(typeTemplateParameter.getCanonicalText());
+                        String canonicalText = typeTemplateParameter.getCanonicalText();
+                        if (canonicalText.length() == 1) {
+                            hasGenericTemplate = true;
+                            break;
+                        }
+                        value.setType(canonicalText);
                         String templateKey = String.valueOf(templateChar);
                         value.setName(templateKey);
                         Optional<Parameter> exitingTemplateOptional = templateMap.stream()
@@ -4516,6 +4531,9 @@ public class SessionInstance {
                         } else {
                             templateMap.add(value);
                         }
+                    }
+                    if (hasGenericTemplate) {
+                        templateMap.clear();
                     }
                 }
             }

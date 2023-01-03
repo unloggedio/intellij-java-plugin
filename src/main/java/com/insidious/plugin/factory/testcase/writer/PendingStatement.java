@@ -3,6 +3,7 @@ package com.insidious.plugin.factory.testcase.writer;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
+import com.insidious.plugin.factory.testcase.expression.ClassValueExpression;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.expression.StringExpression;
@@ -444,7 +445,8 @@ public class PendingStatement {
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
                     Parameter deepCopyParam = ParameterUtils.deepCloneType(lhsExpression);
-                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
+                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder,
+                            statementParameters);
 
                     statementBuilder.append(" ");
                 } else {
@@ -497,6 +499,9 @@ public class PendingStatement {
             } else if (expression instanceof StringExpression) {
                 statementBuilder.append("$S");
                 statementParameters.add(expression.toString());
+            } else if (expression instanceof ClassValueExpression) {
+                statementBuilder.append("$T.class");
+                statementParameters.add(ClassName.bestGuess(expression.toString()));
             } else {
                 statementBuilder.append(expression.toString());
             }
@@ -640,6 +645,12 @@ public class PendingStatement {
                 } else {
                     this.expressionList.add(MethodCallExpressionFactory.PlainValueExpression("false"));
                 }
+
+            } else if (targetClassname.equals("java.lang.Class")) {
+                if (serializedValue.contains("$")) {
+                    serializedValue = serializedValue.substring(0, serializedValue.indexOf("$"));
+                }
+                this.expressionList.add(MethodCallExpressionFactory.ClassValueExpression(serializedValue));
 
             } else if (!serializedValue.isEmpty()) {
                 serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");

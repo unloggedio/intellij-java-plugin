@@ -700,7 +700,7 @@ public class DaoService {
             DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
 
             String returnParamType = returnParam.getType();
-            if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+            if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
