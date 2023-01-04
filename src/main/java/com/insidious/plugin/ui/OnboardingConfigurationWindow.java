@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VideobugUtils;
 import com.insidious.plugin.ui.Components.ModulePanel;
@@ -27,6 +28,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 
@@ -41,7 +43,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private JButton applyConfigButton;
     private JButton linkToDiscordButton;
     private JLabel selectionHeading1;
-    private JTextPane vmOptionsPanel;
+    private JTextPane vmOptionsPanel_1;
     private JPanel packageManagementBorderParent;
     private JPanel includePanel;
     private JPanel excludePanel;
@@ -61,6 +63,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private List<ModulePanel> modulePanelList;
     private HashSet<String> selectedPackages = new HashSet<>(); //these are packages that will be excluded in the vm params
     private String JVMoptionsBase = "";
+    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
@@ -70,7 +73,25 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         fetchModules();
         findAllPackages();
         updateVMparameter();
-        this.basePackageLabel.setToolTipText("Base package for "+modulePanelList.get(0).getText());
+        try
+        {
+            if(insidiousService.getProjectTypeInfo().isDetectDependencies())
+            {
+                fetchDependencies();
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception running dependency detection "+e);
+            e.printStackTrace();
+        }
+        try {
+            this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0).getText());
+        }
+        catch (Exception e)
+        {
+            System.out.println("No modules, can't set tooltip text");
+        }
         applyConfigButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -87,10 +108,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private String getJVMoptionsBase()
     {
-        String vmoptions = (insidiousService.getJavaAgentString().split("i="))[0];
-        String parts[] = vmoptions.split(" ");
-        return parts[0]+"\n"+parts[1];
-
+            String vmoptions = javaAgentString+"=";
+            return vmoptions;
     }
     private void routeToDiscord()
     {
@@ -141,9 +160,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 }
             }
         }
-        //System.out.println("Project packages - "+ret);
+//        System.out.println("Project packages all - "+ret);
+//        System.out.println("[Components] from all "+components);
         String basePackage = buildPackageNameFromList(components);
         this.basePackageLabel.setText(basePackage);
+        if(basePackage.equals("?"))
+        {
+            this.basePackageLabel.setToolTipText("If you see a ? please wait till index is complete and click the module again");
+        }
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
@@ -182,9 +206,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 }
             }
         }
-        //System.out.println("Project packages - "+ret);
+//        System.out.println("Project packages from module - "+ret);
+//        System.out.println("[Components] from module "+components);
         String basePackage = buildPackageNameFromList(components);
         this.basePackageLabel.setText(basePackage);
+        if(basePackage.equals("?"))
+        {
+            this.basePackageLabel.setToolTipText("If you see a ? please wait till index is complete and click the module again");
+        }
         ArrayList<String> packages = new ArrayList<String>(ret);
         Collections.sort(packages);
         populatePackages(packages);
@@ -192,6 +221,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private String buildPackageNameFromList(List<String> parts)
     {
+        if(parts.size()<2)
+        {
+            return "?";
+        }
         StringBuilder packagename = new StringBuilder();
         for(String part : parts)
         {
@@ -222,28 +255,26 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             modules_from_mm.add(module.getName());
         }
         System.out.println(modules);
-        Project fromMod = modules.get(0).getProject();
-        if(fromMod.equals(project))
-        {
-            System.out.println("Projects are same");
-        }
-        else
-        {
-            System.out.println("Projects are not the same");
-        }
         try
         {
-            System.out.println("Fetching from POM.xml/build.gradle");
-            Map<String, String> module_package_mapping = insidiousService.fetchModuleNames();
-            Set<String> keys = module_package_mapping.keySet();
-            modules_from_mm.addAll(keys);
-            populateModules_v1(new ArrayList<String>(modules_from_mm));
+            System.out.println("Fetching from POM.xml/settings.gradle");
+            Set<String> modules_from_pg = insidiousService.fetchModuleNames();
+            populateModules_v1(new ArrayList<String>(modules_from_pg));
         }
         catch (Exception e)
         {
             System.out.println("Exception fetching modules");
             System.out.println(e);
             e.printStackTrace();
+            if(modules.size()>0)
+            {
+                List<String> modules_s = new ArrayList<>();
+                for(Module module : modules)
+                {
+                    modules_s.add(module.getName());
+                }
+                populateModules_v1(modules_s);
+            }
         }
     }
 
@@ -427,12 +458,148 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
             newVMParams.deleteCharAt(newVMParams.length()-1);
             newVMParams.append("\"");
-            vmOptionsPanel.setText(newVMParams.toString());
+            vmOptionsPanel_1.setText(newVMParams.toString());
         }
         else
         {
             newVMParams.append("\"");
-            vmOptionsPanel.setText(newVMParams.toString());
+            vmOptionsPanel_1.setText(newVMParams.toString());
         }
+    }
+
+    public void fetchDependencies()
+    {
+        String command="";
+        if(insidiousService.getProjectTypeInfo().isMaven())
+        {
+            command = "mvn dependency:tree";
+
+        }
+        else
+        {
+            command = "gradle dependencies";
+        }
+        try
+        {
+            String outlist[] = runCommandGeneric(command);
+            if(insidiousService.getProjectTypeInfo().isMaven()) {
+                processMavenDependencyTree(outlist);
+            }
+            else
+            {
+                processGradleDependencyTree(outlist);
+            }
+        }
+        catch (IOException e) {
+            System.err.println(e);
+        }
+    }
+
+    public String[] runCommandGeneric(String cmd) throws IOException
+    {
+        System.out.println("Running command [Dependency Tree]");
+        ArrayList list = new ArrayList();
+        Process proc = Runtime.getRuntime().exec(cmd,new String[0],new File(project.getBasePath()));
+        InputStream istr = proc.getInputStream();
+        BufferedReader br = new BufferedReader(new InputStreamReader(istr));
+        String str;
+        while ((str = br.readLine()) != null)
+            list.add(str);
+        try {
+            proc.waitFor();
+        }
+        catch (InterruptedException e) {
+            System.err.println("Process was interrupted");
+        }
+        br.close();
+        return (String[])list.toArray(new String[0]);
+    }
+
+    // currently only picks up jackson - databind version
+    public void processMavenDependencyTree(String[] stringBase)
+    {
+        System.out.println("Processing Maven Dependency Tree");
+        HashMap<String,String> dependencies = new HashMap<String,String>();
+        for(int i=0;i<stringBase.length;i++)
+        {
+            String temp = stringBase[i];
+            if(temp.contains("jackson") && temp.contains("databind")) //if(temp.contains("jackson") || temp.contains("gson")) for all gson and jackson dependencies
+            {
+                //System.out.println("Temp Jackson "+temp);
+                String[] parts = temp.split(" ");
+                for(int x=0;x<parts.length;x++)
+                {
+                    if(parts[x].startsWith("com."))
+                    {
+                        String depStr = parts[x];
+                        String[] depSlices = depStr.split(":");
+                        dependencies.put(""+depSlices[0]+":"+depSlices[1],trimVersion(depSlices[3]));
+                    }
+                }
+            }
+        }
+        System.out.println("Maven Serializer Dependencies");
+        for(String key : dependencies.keySet())
+        {
+            System.out.println("Dep [MVN] - "+key+" -> "+dependencies.get(key));
+        }
+        insidiousService.getProjectTypeInfo().getSerializers().add(dependencies);
+    }
+
+    public String trimVersion(String version)
+    {
+        String versionParts[] = version.split("\\.");
+        if(versionParts.length>2)
+        {
+            return versionParts[0]+"."+versionParts[1];
+        }
+        return version;
+    }
+
+    public String[] trimVersions(String[] versions)
+    {
+        String[] trimmedVersions = new String[versions.length];
+        for(int i=0;i<versions.length;i++)
+        {
+            String versionParts[] = versions[i].split("\\.");
+            if(versionParts.length>2)
+            {
+                trimmedVersions[i] = versionParts[0]+"."+versionParts[1];
+            }
+            else {
+                trimmedVersions[i]=versions[i];
+            }
+        }
+        return trimmedVersions;
+    }
+
+    //picks up only jackson-databind
+    public void processGradleDependencyTree(String[] stringBase)
+    {
+        System.out.println("Processing Gradle Dependency Tree");
+        HashMap<String,String> dependencies = new HashMap<String,String>();
+        for(int i=0;i<stringBase.length;i++)
+        {
+            String temp = stringBase[i];
+            if(temp.contains("jackson") && temp.contains("databind"))
+            {
+                //System.out.println(""+temp);
+                String[] parts = temp.split(" ");
+                for(int x=0;x<parts.length;x++)
+                {
+                    if(parts[x].startsWith("com."))
+                    {
+                        String[] dependencyparts = parts[x].split(":");
+                        dependencies.put(""+dependencyparts[0]+":"+dependencyparts[1],trimVersion(dependencyparts[2]));
+                    }
+                }
+            }
+        }
+        System.out.println("Gradle Serializer Dependencies");
+        for(String key : dependencies.keySet())
+        {
+            System.out.println("Dep [Gradle] - "+key+" -> "+dependencies.get(key));
+        }
+        insidiousService.getProjectTypeInfo().getSerializers().add(dependencies);
     }
 }
