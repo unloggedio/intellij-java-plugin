@@ -560,7 +560,12 @@ public class PendingStatement {
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
-            variableName = ClassTypeUtils.createVariableName(ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
+            variableName = ClassTypeUtils.getJavaClassName(ClassTypeUtils.createVariableName(lhsExpression.getType()));
+
+            if (variableName.endsWith("[]"))
+                // we don't want [] in the name generated from type
+                variableName = variableName.substring(0, variableName.indexOf("["));
+
 
             // for ignoring reserved words in java like boolean, int etc.
             if (lhsExpression.isPrimitiveType())
