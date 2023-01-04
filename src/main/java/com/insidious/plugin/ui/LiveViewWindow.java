@@ -76,12 +76,13 @@ public class LiveViewWindow implements TreeSelectionListener,
 //        pauseProcessingButton.addActionListener(pauseActionListener);
         topControlPanel.remove(pauseProcessingButton);
         topControlPanel.remove(progressBar1);
-
+        //set default tree here.
+        mainTree.setModel(new DefaultTreeModel(
+                new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
         reportIssueForm = new ReportIssueForm(project);
         reportIssueForm.setVisible(false);
 
         reportIssueButton.addActionListener(openReportIssueForm());
-
         cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
