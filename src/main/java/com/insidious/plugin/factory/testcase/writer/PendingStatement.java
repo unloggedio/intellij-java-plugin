@@ -30,7 +30,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PendingStatement {
-    public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
+    public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
+    public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess("com.fasterxml.jackson.core.type.TypeReference");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
@@ -92,7 +93,7 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 3
 
-                statementParameters.add(TYPE_TOKEN_CLASS); // 4
+                statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 4
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
                 for (String templateKey : templateKeys) {
@@ -126,22 +127,28 @@ public class PendingStatement {
                 .equals("ValueOf") && methodCallExpression.getSubject() == null) {
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
-
             Parameter objectToDeserialize = variables.get(0);
-
             List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
+
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-                statementBuilder
-                        .append("$L($S, new $T<");
+                statementBuilder.append("$L($S, new $T<");
                 statementParameters.add(methodCallExpression.getMethodName()); // 1
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 2
-                statementParameters.add(TYPE_TOKEN_CLASS); // 3
+
+                // todo : this if can be used for all the jackson serialization
+                if (objectToDeserialize.isOptionalType())
+                    statementParameters.add(JACKSON_TYPE_REFERENCE_CLASS); // 3
+                else
+                    statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 3
 
                 Parameter deepCopyParam = ParameterUtils.deepCloneType(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
-                statementBuilder.append(">(){}.getType())");
+                if (objectToDeserialize.isOptionalType())
+                    statementBuilder.append(">(){})");
+                else
+                    statementBuilder.append(">(){}.getType())");
 
             } else {
                 statementBuilder.append("$L($S, $T.class)");
@@ -381,7 +388,6 @@ public class PendingStatement {
             Expression expression = expressionList.get(i);
             logger.warn(" [" + i + "] Rhs [" + expression + "]");
         }
-
 
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
                 lhsExpression.getProbeInfo()
@@ -686,7 +692,10 @@ public class PendingStatement {
                     buildWithJson.setProb(prob);
                     buildWithJson.clearNames();
                     buildWithJson.setName(nameForObject);
-                    this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
+                    if (lhsExpression.isOptionalType())
+                        this.expressionList.add(MethodCallExpressionFactory.FromJsonFileForTypeOptional(buildWithJson));
+                    else
+                        this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
                 }
 
             } else {

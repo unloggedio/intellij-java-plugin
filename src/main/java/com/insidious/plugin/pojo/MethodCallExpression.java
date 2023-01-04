@@ -298,7 +298,12 @@ public class MethodCallExpression implements Expression, Serializable {
             DataEventWithSessionId prob = new DataEventWithSessionId();
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
             jsonParameter.setProb(prob);
-            MethodCallExpression jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+            MethodCallExpression jsonFromFileCall = null;
+            if (jsonParameter.isOptionalType())
+                jsonFromFileCall = MethodCallExpressionFactory.FromJsonFileForTypeOptional(jsonParameter);
+            else
+                jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedObject)
                     .writeExpression(jsonFromFileCall)

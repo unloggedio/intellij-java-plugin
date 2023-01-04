@@ -439,6 +439,10 @@ public class Parameter implements Serializable, BytesMarshallable {
         return type != null && (type.equals("java.lang.String"));
     }
 
+    public boolean isOptionalType() {
+        return type != null && type.equals("java.util.Optional");
+    }
+
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
         return type != null &&

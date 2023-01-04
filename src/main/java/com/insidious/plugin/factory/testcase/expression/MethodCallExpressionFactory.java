@@ -242,6 +242,15 @@ public class MethodCallExpressionFactory {
         return valueOf;
     }
 
+    public static MethodCallExpression FromJsonFileForTypeOptional(Parameter object) {
+        MethodCallExpression valueOfOptional = MethodCallExpression("ValueOfOptional", null,
+                VariableContainer.from(List.of(object)),
+                null);
+        valueOfOptional.setStaticCall(true);
+        valueOfOptional.setMethodAccess(Opcodes.ACC_PUBLIC);
+        return valueOfOptional;
+    }
+
     public static Expression createEnumExpression(Parameter enumParam) {
 
         @Nullable String enumTypeName = ClassTypeUtils.createTypeFromName(
