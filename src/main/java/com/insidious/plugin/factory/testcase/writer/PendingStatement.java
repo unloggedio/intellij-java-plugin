@@ -692,10 +692,7 @@ public class PendingStatement {
                     buildWithJson.setProb(prob);
                     buildWithJson.clearNames();
                     buildWithJson.setName(nameForObject);
-                    if (lhsExpression.isOptionalType())
-                        this.expressionList.add(MethodCallExpressionFactory.FromJsonFileForTypeOptional(buildWithJson));
-                    else
-                        this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
+                    this.expressionList.add(MethodCallExpressionFactory.FromJsonFetchedFromFile(buildWithJson));
                 }
 
             } else {

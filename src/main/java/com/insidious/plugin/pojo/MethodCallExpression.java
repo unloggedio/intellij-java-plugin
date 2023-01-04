@@ -299,10 +299,7 @@ public class MethodCallExpression implements Expression, Serializable {
             prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
             jsonParameter.setProb(prob);
             MethodCallExpression jsonFromFileCall = null;
-            if (jsonParameter.isOptionalType())
-                jsonFromFileCall = MethodCallExpressionFactory.FromJsonFileForTypeOptional(jsonParameter);
-            else
-                jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+            jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
             in(objectRoutineScript)
                     .assignVariable(returnSubjectExpectedObject)
