@@ -405,7 +405,7 @@ public class DaoService {
                     paramArgument.setTypeForced(probeInfo.getValueDesc()
                             .getString());
                 } else {
-//                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
+                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
