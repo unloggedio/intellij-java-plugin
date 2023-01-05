@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VideobugUtils;
 import com.insidious.plugin.ui.Components.ModulePanel;
@@ -12,6 +13,7 @@ import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.execution.impl.DefaultJavaProgramRunner;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -58,6 +60,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private JLabel DocumentationLabel;
     private JScrollPane vmOptsScroll;
     private JLabel includeHeadingLabel;
+    private JPanel topButtonGroup;
+    private JButton copyVMoptionsButton;
     private Project project;
     private InsidiousService insidiousService;
     private List<ModulePanel> modulePanelList;
@@ -104,8 +108,37 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 routeToDiscord();
             }
         });
+        copyVMoptionsButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                copyVMoptions();
+            }
+        });
     }
 
+    private void copyVMoptions()
+    {
+        StringBuilder newVMParams = new StringBuilder();
+        newVMParams.append(JVMoptionsBase);
+        newVMParams.append("i="+basePackageLabel.getText());
+        if(selectedPackages.size()>0)
+        {
+            newVMParams.append(",");
+            for(String packageName : selectedPackages)
+            {
+                newVMParams.append("e="+packageName+",");
+            }
+            newVMParams.deleteCharAt(newVMParams.length()-1);
+            newVMParams.append("\"");
+        }
+        else
+        {
+            newVMParams.append("\"");
+        }
+        insidiousService.copyToClipboard(newVMParams.toString());
+        InsidiousNotification.notifyMessage("VM options copied to clipboard.",
+                NotificationType.INFORMATION);
+    }
     private String getJVMoptionsBase()
     {
             String vmoptions = javaAgentString+"=";
@@ -437,7 +470,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     @Override
     public void onSelect(String moduleName) {
-//        this.includeHeadingLabel.setText("Base package from : "+moduleName);
         this.selectedPackages = new HashSet<>();
         findPackagesForModule(moduleName);
         updateVMparameter();
