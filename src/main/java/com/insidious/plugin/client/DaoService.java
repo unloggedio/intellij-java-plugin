@@ -84,6 +84,8 @@ public class DaoService {
     private final ConnectionSource connectionSource;
     private final Dao<DataEventWithSessionId, Long> dataEventDao;
     private final Dao<MethodCallExpression, Long> methodCallExpressionDao;
+    private final Dao<MethodDefinition, Long> methodDefinitionsDao;
+    private final Dao<ClassDefinition, Long> classDefinitionsDao;
     private final Dao<IncompleteMethodCallExpression, Long> incompleteMethodCallExpressionDao;
     private final Dao<Parameter, Long> parameterDao;
     private final Dao<LogFile, Long> logFilesDao;
@@ -107,8 +109,13 @@ public class DaoService {
                 IncompleteMethodCallExpression.class);
         threadStateDao = DaoManager.createDao(connectionSource, ThreadState.class);
         dataEventDao = DaoManager.createDao(connectionSource, DataEventWithSessionId.class);
+        methodDefinitionsDao = DaoManager.createDao(connectionSource, MethodDefinition.class);
+        classDefinitionsDao = DaoManager.createDao(connectionSource, ClassDefinition.class);
+
         TableUtils.createTableIfNotExists(connectionSource, ThreadState.class);
         TableUtils.createTableIfNotExists(connectionSource, IncompleteMethodCallExpression.class);
+        TableUtils.createTableIfNotExists(connectionSource, ClassDefinition.class);
+        TableUtils.createTableIfNotExists(connectionSource, MethodDefinition.class);
 
     }
 
@@ -154,7 +161,7 @@ public class DaoService {
 
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
 
-        List<Long> calls = testCandidateMetadata.getCallsList();
+        Set<Long> calls = new HashSet<>(testCandidateMetadata.getCallsList());
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(calls.size());
         if (loadCalls) {
             calls.add(testCandidateMetadata.getMainMethod());
@@ -162,6 +169,9 @@ public class DaoService {
             logger.warn("\tloading " + calls.size() + " call methods");
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
                     getMethodCallExpressionToMockFast(calls);
+            // this assertion can fail because we dont actually load private calls
+            // or calls on org.springframework type variables
+//            assert calls.size() == methodCallsFromDb.size();
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null ||
                         methodCallExpressionById.getSubject()
@@ -209,7 +219,9 @@ public class DaoService {
                                 .getValue() == fieldParameterValue)
                         .findFirst();
                 if (callOnField.isPresent()) {
-                    converted.getFields().add(callOnField.get().getSubject());
+                    converted.getFields()
+                            .add(callOnField.get()
+                                    .getSubject());
                     continue;
                 }
             }
@@ -266,7 +278,7 @@ public class DaoService {
     }
 
 
-    public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(List<Long> callIds) {
+    public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(Collection<Long> callIds) {
         long start = Date.from(Instant.now())
                 .getTime();
         try {
@@ -594,7 +606,7 @@ public class DaoService {
 //
 //            }
 //
-//            List<Long> argumentParameters = dbMce.getArguments();
+//            List<Long> argumentParameters = dbMce.getArgumentTypes();
 //            List<Long> argumentProbes = dbMce.getArgumentProbes();
 //            for (int i = 0; i < argumentParameters.size(); i++) {
 //                Long argumentParameter = argumentParameters.get(i);
@@ -688,7 +700,8 @@ public class DaoService {
 
                 String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
                 if (argument.getType() == null || argument.getType()
-                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals("Ljava/lang/Object;"))) {
+                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals(
+                        "Ljava/lang/Object;"))) {
                     argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
@@ -709,7 +722,8 @@ public class DaoService {
             DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
 
             String returnParamType = returnParam.getType();
-            if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+            if ((returnParamType == null || returnParamType.equals(
+                    "") || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
                 returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
                         .getString()));
             }
@@ -831,7 +845,8 @@ public class DaoService {
 
                 String argTypeFromProbe = eventProbe.getAttribute("Type", "V");
                 if (argument.getType() == null || argument.getType()
-                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals("Ljava/lang/Object;"))) {
+                        .equals("") || (!argTypeFromProbe.equals("V") && !argTypeFromProbe.equals(
+                        "Ljava/lang/Object;"))) {
                     argument.setTypeForced(ClassTypeUtils.getDottedClassName(argTypeFromProbe));
                 }
                 argument.setProb(dataEvent);
@@ -1510,5 +1525,25 @@ public class DaoService {
 
     public void setFieldA(String fieldA) {
         this.fieldA = fieldA;
+    }
+
+    public void createOrUpdateClassDefinitions(List<ClassDefinition> classDefinitions) {
+        try {
+            classDefinitionsDao.create(classDefinitions);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void createOrUpdateMethodDefinitions(List<MethodDefinition> methodDefinitions) {
+        try {
+            methodDefinitionsDao.create(methodDefinitions);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
     }
 }

@@ -25,6 +25,7 @@ public class ClassTypeUtils {
 
     /**
      * parses a method descriptor string and return in a list form where each item is the type
+     *
      * @param desc method descriptor string
      * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
      */
@@ -120,10 +121,10 @@ public class ClassTypeUtils {
         if (className.contains("$$")) {
             className = className.substring(0, className.indexOf("$$"));
         }
-        className = className.replace('$', '.');
         if (className.contains(".")) {
             return className;
         }
+        className = className.replace('$', '.');
 
         if (className.endsWith(";")) {
             className = className.substring(0, className.length() - 1);

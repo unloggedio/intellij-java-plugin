@@ -38,11 +38,13 @@ public class MethodCallExpression implements Expression, Serializable {
     private DataEventWithSessionId entryProbe;
     private int methodAccess;
     private long id;
+    private long parentId = -1;
     private List<DataEventWithSessionId> argumentProbes = new ArrayList<>();
     private DataEventWithSessionId returnDataEvent;
     private boolean usesFields;
 
     private boolean isUIselected = false;
+    private int methodDefinitionId;
 
     public MethodCallExpression() {
     }
@@ -58,6 +60,14 @@ public class MethodCallExpression implements Expression, Serializable {
         this.arguments = arguments;
         this.returnValue = returnValue;
         this.callStack = callStack;
+    }
+
+    public long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
     }
 
     public static PendingStatement in(ObjectRoutineScript objectRoutine) {
@@ -576,5 +586,13 @@ public class MethodCallExpression implements Expression, Serializable {
 
     public void setReturnDataEvent(DataEventWithSessionId returnDataEvent) {
         this.returnDataEvent = returnDataEvent;
+    }
+
+    public void setMethodDefinitionId(int methodDefinitionId) {
+        this.methodDefinitionId = methodDefinitionId;
+    }
+
+    public int getMethodDefinitionId() {
+        return methodDefinitionId;
     }
 }

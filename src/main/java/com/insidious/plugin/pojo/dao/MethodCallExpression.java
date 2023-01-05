@@ -43,6 +43,10 @@ public class MethodCallExpression {
     private String argumentProbes;
     @DatabaseField
     private long returnDataEvent;
+    @DatabaseField(index = true)
+    private long parentId;
+    @DatabaseField(index = true)
+    private int methodDefinitionId;
 
 
     public MethodCallExpression() {
@@ -78,12 +82,14 @@ public class MethodCallExpression {
                         .collect(Collectors.toList()),
                 returnParameterValue
         );
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setEntryProbe_id(methodCallExpression.getEntryProbe());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
                 .stream()
@@ -120,6 +126,7 @@ public class MethodCallExpression {
         methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
                 .stream()
@@ -140,8 +147,9 @@ public class MethodCallExpression {
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-
         return methodCallExpression1;
     }
 
@@ -153,8 +161,8 @@ public class MethodCallExpression {
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-
         return methodCallExpression1;
     }
 
@@ -282,4 +290,19 @@ public class MethodCallExpression {
         this.usesFields = usesFields;
     }
 
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
+    }
+
+    public long getParentId() {
+        return parentId;
+    }
+
+    public void setMethodDefinitionId(int methodDefinitionId) {
+        this.methodDefinitionId = methodDefinitionId;
+    }
+
+    public int getMethodDefinitionId() {
+        return methodDefinitionId;
+    }
 }

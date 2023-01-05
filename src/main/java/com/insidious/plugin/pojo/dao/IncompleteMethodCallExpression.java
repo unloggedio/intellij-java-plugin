@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo.dao;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -43,6 +44,8 @@ public class IncompleteMethodCallExpression {
     private String argumentProbes;
     @DatabaseField
     private long returnDataEvent;
+    @DatabaseField(index = true)
+    private long parentId;
 
 
     public IncompleteMethodCallExpression() {
@@ -60,7 +63,7 @@ public class IncompleteMethodCallExpression {
         this.returnValue_id = returnValue_id;
     }
 
-    public static IncompleteMethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
+    public static IncompleteMethodCallExpression FromMCE(MethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
             return null;
         }
@@ -93,7 +96,7 @@ public class IncompleteMethodCallExpression {
         return methodCallExpression1;
     }
 
-    public static IncompleteMethodCallExpression IncompleteFromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
+    public static IncompleteMethodCallExpression IncompleteFromMCE(MethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
             return null;
         }
@@ -126,8 +129,8 @@ public class IncompleteMethodCallExpression {
         return methodCallExpression1;
     }
 
-    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(IncompleteMethodCallExpression methodCallExpression) {
-        com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
+    public static MethodCallExpression ToMCE(IncompleteMethodCallExpression methodCallExpression) {
+        MethodCallExpression methodCallExpression1 = new MethodCallExpression(
                 methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
         );
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
@@ -263,4 +266,11 @@ public class IncompleteMethodCallExpression {
         this.usesFields = usesFields;
     }
 
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
+    }
+
+    public long getParentId() {
+        return parentId;
+    }
 }
