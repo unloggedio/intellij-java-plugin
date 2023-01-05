@@ -153,11 +153,12 @@ public class DaoService {
                 TestCandidateMetadata.toTestCandidate(testCandidateMetadata);
 
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
-        converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
 
         List<Long> calls = testCandidateMetadata.getCallsList();
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(calls.size());
         if (loadCalls) {
+            calls.add(testCandidateMetadata.getMainMethod());
+
             logger.warn("\tloading " + calls.size() + " call methods");
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
                     getMethodCallExpressionToMockFast(calls);
@@ -180,12 +181,20 @@ public class DaoService {
                     logger.debug("skip call - " + methodCallExpressionById.getId());
                 }
             }
+            Optional<com.insidious.plugin.pojo.MethodCallExpression> mainMethod = methodCallsFromDb.stream()
+                    .filter(e -> e.getId() == testCandidateMetadata.getMainMethod())
+                    .findFirst();
+            assert mainMethod.isPresent();
+            converted.setMainMethod(mainMethod.get());
+
+
         } else {
             for (Long call : calls) {
                 com.insidious.plugin.pojo.MethodCallExpression mce = new com.insidious.plugin.pojo.MethodCallExpression();
                 mce.setId(call);
                 callsList.add(mce);
             }
+            converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
