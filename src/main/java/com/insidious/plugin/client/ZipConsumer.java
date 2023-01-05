@@ -99,10 +99,10 @@ class ZipConsumer implements Runnable {
 
         long lastModified = sessionFile.lastModified();
         Long lastCheckedTime = checkedTimeMap.getOrDefault(sessionFile.getAbsolutePath(), 0L);
-        logger.info("open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");
         if (lastCheckedTime >= lastModified) {
             return List.of();
         }
+        logger.info("open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");
         checkedTimeMap.put(sessionFile.getAbsolutePath(), lastModified);
 
         List<String> files = new LinkedList<>();
