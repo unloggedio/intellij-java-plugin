@@ -292,7 +292,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         {
             System.out.println("Fetching from POM.xml/settings.gradle");
             Set<String> modules_from_pg = insidiousService.fetchModuleNames();
-            populateModules_v1(new ArrayList<String>(modules_from_pg));
+            modules_from_mm.addAll(modules_from_pg);
+            populateModules_v1(new ArrayList<>(modules_from_mm));
         }
         catch (Exception e)
         {
