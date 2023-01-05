@@ -136,7 +136,7 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 2
 
-                // todo : this if can be used for all the jackson serialization
+                // todo : this if can be used for all the jackson serialization eventually
                 if (objectToDeserialize.isOptionalType())
                     statementParameters.add(JACKSON_TYPE_REFERENCE_CLASS); // 3
                 else
