@@ -1,5 +1,8 @@
 package io.unlogged;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -48,6 +51,17 @@ public class UnloggedTestUtils {
             return null;
         }
         return gson.fromJson(sourceObject.get(key).toString(), type);
+    }
+
+    public static <T> T ValueOf(String key, TypeReference<T> typeRef) throws JsonProcessingException {
+        if (!sourceObject.keySet().contains(key)) {
+            return null;
+        }
+
+        Jdk8Module jdk8Module = new Jdk8Module();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(jdk8Module);
+        return mapper.readValue(sourceObject.get(key).toString(), typeRef);
     }
 
     public static <T> T valueOf(String key, Type type) {

@@ -50,7 +50,15 @@ public class VideobugTreeCellRenderer implements TreeCellRenderer {
         }
         else if(userObject instanceof DefaultMutableTreeNode)
         {
-            renderer.setLeafIcon(errorIcon);
+            DefaultMutableTreeNode node = (DefaultMutableTreeNode) userObject;
+            if(node.getUserObject() instanceof StringBuilder)
+            {
+                renderer.setLeafIcon(packageIcon);
+            }
+            else
+            {
+                renderer.setLeafIcon(errorIcon);
+            }
         }
 
         component = renderer.getTreeCellRendererComponent(tree, userObject, sel, expanded, leaf, row, hasFocus);

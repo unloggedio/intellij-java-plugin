@@ -132,6 +132,11 @@ public class InsidiousService implements Disposable {
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
     private Content onboardingConfigurationWindowContent;
+    private ProjectTypeInfo projectTypeInfo;
+
+    public ProjectTypeInfo getProjectTypeInfo() {
+        return projectTypeInfo;
+    }
 
     public InsidiousService(Project project) {
         try {
@@ -325,7 +330,8 @@ public class InsidiousService implements Disposable {
 
     }
 
-    public Map<String,String> fetchModuleNames()
+    //to be simplified and cleaned up
+    public Set<String> fetchModuleNames()
     {
         if (!project.isInitialized()) {
             return null;
@@ -333,16 +339,16 @@ public class InsidiousService implements Disposable {
         if (currentModule == null) {
             return null;
         }
+        this.projectTypeInfo=new ProjectTypeInfo();
         //fetch module names from all pom files in the project, also fetch base packages (not always useful from pom)
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.projectScope(project));
         Set<String> modules = new HashSet<String>();
-        Map<String,String> basePackages = new HashMap<String,String>();
         if (pomFileSearchResult.length > 0) {
+            projectTypeInfo.setMaven(true);
             for(int x=0;x<pomFileSearchResult.length;x++)
             {
                 @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[x];
-                System.out.println("PSI elements - ");
                 String text = pomPsiFile.getText();
                 if(text.contains("<modules>"))
                 {
@@ -353,29 +359,64 @@ public class InsidiousService implements Disposable {
                     System.out.println("Modules Section - ");
                     System.out.println(substring_modules);
                     Set<String> modulesFromPom = getModulesListFromString(substring_modules);
-                    for(String module : modulesFromPom)
-                    {
-                        PomFileVisitor visitor = new PomFileVisitor();
-                        pomPsiFile.accept(visitor);
-                        if (visitor.getPackageName() != null) {
-                            String package_from_pom = visitor.getPackageName();
-                            basePackages.put(module,package_from_pom);
+                    return modulesFromPom;
+                } else if (text.contains("<java.version>")) {
+                    String java_version = text.substring(text.indexOf("<java.version>") + 1, text.indexOf("</java.version>"));
+                    System.out.println("Java version");
+                    System.out.println("" + java_version);
+                }
+            }
+            return modules;
+        }
+        System.out.println("[Modules] Pom -");
+        System.out.println(modules.toString());
+
+        try {
+            modules = new HashSet<String>();
+            @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "settings.gradle",
+                    GlobalSearchScope.projectScope(project));
+            if (gradleFileSearchResult.length > 0) {
+                logger.info("found setting.gradle file");
+                for (int x = 0; x < gradleFileSearchResult.length; x++) {
+                    PsiFile settingsGradle = gradleFileSearchResult[x];
+                    String text = settingsGradle.getText();
+                    //System.out.println("Gradle settings text");
+                    //System.out.println("" + text);
+
+                    String[] lines = text.split("\n");
+                    for (int i = 0; i < lines.length; i++) {
+                        String line = lines[i];
+                        if (line.contains("rootProject.name")) {
+                            int start = line.indexOf("'")+1;
+                            int end = line.lastIndexOf("'");
+                            String moduleName = line.substring(start, end);
+                            //System.out.println("Module name root : " + moduleName);
+                            modules.add(moduleName);
+                        }
+                        if (line.startsWith("include") && line.contains("(")) {
+                            String modulesSection = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
+                            System.out.println("(Include) " + modulesSection);
+                            String[] temp = modulesSection.replaceAll("'", "").split(",");
+                            for (int c = 0; c < temp.length; c++) {
+                                //System.out.println("Gradle module found :" + temp[c]);
+                                modules.add(temp[c].trim());
+                            }
+                        } else if (line.startsWith("include")) {
+                            String[] parts = line.split("\'");
+                            //System.out.println("Parts "+Arrays.asList(parts));
+                            //System.out.println("Module name [i] s " + parts[1]);
+                            modules.add(parts[1].trim());
                         }
                     }
                 }
+                System.out.println("[Modules] Gradle - ");
+                System.out.println(modules.toString());
+                return modules;
             }
-            return basePackages;
-        }
-        System.out.println("[Module - Package] base - ");
-        System.out.println(basePackages.toString());
-
-        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
-                GlobalSearchScope.projectScope(project));
-        if (gradleFileSearchResult.length > 0) {
-            logger.info("found build.gradle file at");
-            @NotNull PsiFile gradlePsiFile = gradleFileSearchResult[0];
-            String text = gradlePsiFile.getText();
-            //get multi-module grade project and parse modules
+        }catch (Exception ex)
+        {
+            System.out.println("Exception fetching gradle modules "+ ex);
+            ex.printStackTrace();
         }
         return null;
     }
@@ -1198,7 +1239,7 @@ public class InsidiousService implements Disposable {
 //            contentManager.addContent(credentialContent);
 
             onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
-            onboardingConfigurationWindowContent = contentFactory.createContent(onboardingConfigurationWindow.getContent(),"Let's get started", false);
+            onboardingConfigurationWindowContent = contentFactory.createContent(onboardingConfigurationWindow.getContent(),"Get Started", false);
 
             singleWindowView = new SingleWindowView(project, this);
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);

@@ -1,30 +1,19 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.common.weaver.EventType;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.extension.model.DirectionType;
-import com.insidious.plugin.extension.model.ReplayData;
-import com.insidious.plugin.extension.model.ScanResult;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
-import com.insidious.plugin.pojo.EventMatchListener;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.insidious.plugin.pojo.MethodCallExpression.in;
@@ -117,8 +106,8 @@ public class CandidateMetadataFactory {
             }
 
             if (fields.getParametersById(e.getSubject()
-                            .getProb()
-                            .getValue()) == null) {
+                    .getProb()
+                    .getValue()) == null) {
                 // the subject should ideally be one of the already identified fields.
                 continue;
             }
@@ -161,10 +150,10 @@ public class CandidateMetadataFactory {
                     previousReturnValue = newReturnValue;
                     previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
 
-                    if (previousReturnValue.isPrimitiveType()) {
-                        previousReturnValue.setTypeForced(
-                                ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                                        .getAttribute("Type", previousReturnValue.getType())));
+                    String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                            .getAttribute("Type", previousReturnValue.getType()));
+                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals("java.lang.Object")) {
+                        previousReturnValue.setTypeForced(returnTypeFromProbe);
                     }
 
                     if (firstCall) {
@@ -251,10 +240,10 @@ public class CandidateMetadataFactory {
                     previousReturnValue = newReturnValue;
                     previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
 
-                    if (previousReturnValue.isPrimitiveType()) {
-                        previousReturnValue.setTypeForced(
-                                ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                                        .getAttribute("Type", previousReturnValue.getType())));
+                    String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
+                            .getAttribute("Type", previousReturnValue.getType()));
+                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals("java.lang.Object")) {
+                        previousReturnValue.setTypeForced(returnTypeFromProbe);
                     }
 
                     if (firstCall) {

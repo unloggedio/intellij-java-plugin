@@ -30,7 +30,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class PendingStatement {
-    public static final ClassName TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
+    public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
+    public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess("com.fasterxml.jackson.core.type.TypeReference");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
@@ -92,7 +93,7 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 3
 
-                statementParameters.add(TYPE_TOKEN_CLASS); // 4
+                statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 4
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
                 for (String templateKey : templateKeys) {
@@ -126,22 +127,28 @@ public class PendingStatement {
                 .equals("ValueOf") && methodCallExpression.getSubject() == null) {
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
-
             Parameter objectToDeserialize = variables.get(0);
-
             List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
+
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-                statementBuilder
-                        .append("$L($S, new $T<");
+                statementBuilder.append("$L($S, new $T<");
                 statementParameters.add(methodCallExpression.getMethodName()); // 1
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 2
-                statementParameters.add(TYPE_TOKEN_CLASS); // 3
+
+                // todo : this if can be used for all the jackson serialization eventually
+                if (objectToDeserialize.isOptionalType())
+                    statementParameters.add(JACKSON_TYPE_REFERENCE_CLASS); // 3
+                else
+                    statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 3
 
                 Parameter deepCopyParam = ParameterUtils.deepCloneType(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
-                statementBuilder.append(">(){}.getType())");
+                if (objectToDeserialize.isOptionalType())
+                    statementBuilder.append(">(){})");
+                else
+                    statementBuilder.append(">(){}.getType())");
 
             } else {
                 statementBuilder.append("$L($S, $T.class)");
@@ -382,7 +389,6 @@ public class PendingStatement {
             logger.warn(" [" + i + "] Rhs [" + expression + "]");
         }
 
-
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
                 lhsExpression.getProbeInfo()
                         .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
@@ -560,12 +566,17 @@ public class PendingStatement {
     private String generateNameForParameter(Parameter lhsExpression) {
         String variableName = "var";
         if (lhsExpression != null && lhsExpression.getType() != null) {
+            variableName = ClassTypeUtils.getJavaClassName(ClassTypeUtils.createVariableName(lhsExpression.getType()));
+
+            if (variableName.endsWith("[]"))
+                // we don't want [] in the name generated from type
+                variableName = variableName.substring(0, variableName.indexOf("["));
+
+
             // for ignoring reserved words in java like boolean, int etc.
-            if (lhsExpression.isPrimitiveType()) {
-                variableName = ClassTypeUtils.createVariableName(lhsExpression.getType()) + "Var";
-            } else {
-                variableName = ClassTypeUtils.createVariableName(lhsExpression.getType());
-            }
+            if (lhsExpression.isPrimitiveType())
+                variableName += "Var";
+
             if (!objectRoutine.getCreatedVariables()
                     .contains(variableName)) {
                 return variableName;
