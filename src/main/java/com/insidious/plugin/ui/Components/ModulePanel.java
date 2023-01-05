@@ -27,6 +27,7 @@ public class ModulePanel {
                 listener.onSelect(moduleName);
             }
         });
+        this.mainPanel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         this.getMainPanel().addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent me) {
                 hoverStateManager(me, true);

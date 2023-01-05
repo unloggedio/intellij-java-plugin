@@ -102,18 +102,21 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 runApplicationWithUnlogged();
             }
         });
+        applyConfigButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         linkToDiscordButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 routeToDiscord();
             }
         });
+        linkToDiscordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         copyVMoptionsButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 copyVMoptions();
             }
         });
+        copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private void copyVMoptions()

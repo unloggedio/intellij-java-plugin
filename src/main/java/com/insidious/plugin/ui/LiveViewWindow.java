@@ -83,6 +83,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         reportIssueForm.setVisible(false);
 
         reportIssueButton.addActionListener(openReportIssueForm());
+        reportIssueButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         cellRenderer = new VideobugTreeCellRenderer();
         mainTree.setCellRenderer(cellRenderer);
         TreeUtil.installActions(mainTree);
@@ -309,7 +310,6 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void onSelect(TestCandidateMetadata testCandidateMetadata) {
         try {
-            setLoadingState(true);
             TestCandidateCustomizeView testCandidateView = new TestCandidateCustomizeView(
                     testCandidateMetadata, sessionInstance, this);
             this.candidateListPanel.removeAll();
@@ -318,10 +318,8 @@ public class LiveViewWindow implements TreeSelectionListener,
             constraints.setRow(1);
             candidateListPanel.add(testCandidateView.getContentPanel(), constraints);
             this.candidateListPanel.revalidate();
-            setLoadingState(false);
         } catch (Exception e) {
             e.printStackTrace();
-            setLoadingState(false);
         }
     }
 
