@@ -387,7 +387,11 @@ public class SessionInstance {
                                     || methodName.equals("hashCode")
                                     || methodName.startsWith("<")) {
                             } else {
-                                isPojo = false;
+                                List<String> descriptorItemsList = ClassTypeUtils.splitMethodDesc(
+                                        methodInfo.getMethodDesc());
+                                if (descriptorItemsList.size() > 1) {
+                                    isPojo = false;
+                                }
                             }
                         }
                     }

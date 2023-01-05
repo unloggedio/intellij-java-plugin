@@ -23,6 +23,11 @@ public class ClassTypeUtils {
                 .toLowerCase() + methodName.substring(1);
     }
 
+    /**
+     * parses a method descriptor string and return in a list form where each item is the type
+     * @param desc method descriptor string
+     * @return a list of strings, last item in the list is the return parameter, and 0 to n-1 items are method arguments
+     */
     public static List<String> splitMethodDesc(String desc) {
         int beginIndex = desc.indexOf('(');
         int endIndex = desc.lastIndexOf(')');
