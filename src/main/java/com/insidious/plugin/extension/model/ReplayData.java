@@ -6,13 +6,7 @@ import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.parameter.ParameterFactory;
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
-import com.insidious.plugin.pojo.EventMatchListener;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.ScanRequest;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
@@ -20,7 +14,6 @@ import com.intellij.openapi.util.text.StringUtil;
 import net.openhft.chronicle.map.ChronicleMap;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReplayData {
     private static final Logger logger = LoggerUtil.getInstance(ReplayData.class);
@@ -487,167 +480,6 @@ public class ReplayData {
             return probeIndex - 1;
         }
     }
-
-    public int getPreviousProbeIndex(Integer probeIndex) {
-        if (filteredDataEventsRequest.getPageInfo().isAsc()) {
-            return probeIndex - 1;
-        } else {
-            return probeIndex + 1;
-        }
-    }
-
-    public MethodCallExpression extractMethodCall(Integer index) {
-        final DataEventWithSessionId callEvent = getDataEvents().get(index);
-        DataInfo probeInfo = getProbeInfo(callEvent.getDataId());
-        String methodName = probeInfo.getAttribute("Name", null);
-        String methodDescription = probeInfo.getAttribute("Desc", null);
-        List<String> methodDescList = ClassTypeUtils.splitMethodDesc(methodDescription);
-        String returnType = methodDescList.get(methodDescList.size() - 1);
-
-
-        String ownerClass = probeInfo.getAttribute("Owner", null);
-        if (ownerClass == null) {
-            return null;
-        }
-
-        List<String> subjectTypeHierarchy = buildHierarchyFromTypeName("L" + ownerClass + ";");
-
-
-        logger.warn("[MethodCall] " + ownerClass + "." + methodName + " : " + methodDescription);
-
-        List<Parameter> callArguments = new LinkedList<>();
-
-        ScanRequest callSubjectScan = new ScanRequest(new ScanResult(index, 0, false), 0,
-                DirectionType.BACKWARDS);
-        AtomicInteger subjectMatchIndex = new AtomicInteger(0);
-        List<Parameter> subjectParameterList = new LinkedList<>();
-        EventMatchListener subjectMatchListener = new EventMatchListener() {
-            @Override
-            public void eventMatched(Integer index, int matchedStack) {
-
-                DataEventWithSessionId matchedSubjectEvent = getDataEvents().get(index);
-                DataInfo subjectEventProbe = getProbeInfo(matchedSubjectEvent.getDataId());
-
-                if (matchedSubjectEvent.getValue() != callEvent.getValue()) {
-                    return;
-                }
-
-                String parameterClassType = subjectEventProbe.getAttribute("Type", null);
-
-                Parameter potentialSubjectParameter;
-
-                potentialSubjectParameter =
-                        ParameterFactory.createParameter(index, ReplayData.this, 0, parameterClassType);
-
-                List<String> buildHierarchyFromTypeName =
-                        buildHierarchyFromTypeName(
-                                ClassTypeUtils.getDescriptorName(
-                                        potentialSubjectParameter.getType()));
-
-                if (!buildHierarchyFromTypeName.contains(subjectTypeHierarchy.get(0))) {
-                    logger.warn("type hierarchy mismatch for subject: " + subjectTypeHierarchy +
-                            " vs " + buildHierarchyFromTypeName  +  " for parameter: " + potentialSubjectParameter);
-                }
-                subjectParameterList.add(potentialSubjectParameter);
-                callSubjectScan.abort();
-            }
-        };
-        callSubjectScan.addListener(EventType.GET_INSTANCE_FIELD_RESULT, subjectMatchListener);
-        callSubjectScan.addListener(EventType.GET_STATIC_FIELD, subjectMatchListener);
-        callSubjectScan.addListener(EventType.LOCAL_LOAD, subjectMatchListener);
-        callSubjectScan.addListener(EventType.CALL_RETURN, subjectMatchListener);
-
-        callSubjectScan.matchUntil(EventType.METHOD_ENTRY);
-        ScanForEvents(callSubjectScan);
-
-        Parameter subjectParameter ;
-        if (subjectParameterList.size() == 0) {
-            logger.warn("failed to identify subject for the call: " + methodName + " at " + probeInfo);
-            subjectParameter = new Parameter();
-            subjectParameter.setType(subjectTypeHierarchy.get(0));
-            subjectParameter.setProb(callEvent);
-            subjectParameter.setProbeInfo(probeInfo);
-            subjectParameter.setName(subjectParameter.getType().substring(
-                    subjectParameter.getType().lastIndexOf('.')
-            ));
-        } else {
-            subjectParameter = subjectParameterList.get(0);
-        }
-
-
-        ScanRequest callReturnScan = new ScanRequest(new ScanResult(index, 0, false), 0,
-                DirectionType.FORWARDS);
-
-        AtomicInteger lookingForParams = new AtomicInteger(1);
-        callReturnScan.addListener(EventType.CALL_PARAM, new EventMatchListener() {
-            @Override
-            public void eventMatched(Integer index, int matchedStack) {
-                if (lookingForParams.get() == 1) {
-                    Parameter callArgumentParameter = ParameterFactory.createParameterByCallArgument(
-                            index, ReplayData.this, callArguments.size(), null
-                    );
-                    callArguments.add(callArgumentParameter);
-                }
-            }
-        });
-        callReturnScan.addListener(EventType.CALL, (i, s) -> lookingForParams.set(0));
-        callReturnScan.addListener(EventType.METHOD_ENTRY, (i, s) -> lookingForParams.set(0));
-
-
-        callReturnScan.matchUntil(EventType.CALL_RETURN);
-        callReturnScan.matchUntil(EventType.METHOD_EXCEPTIONAL_EXIT);
-
-        ScanResult callReturnScanResult = ScanForEvents(callReturnScan);
-        if (callReturnScanResult.getIndex() == -1 ||
-                callReturnScanResult.getIndex() == getDataEvents().size()) {
-            logger.warn("call return not found for " + probeInfo);
-            return null;
-        }
-
-        DataInfo exitProbeInfo = getProbeInfo(getDataEvents().get(callReturnScanResult.getIndex()).getDataId());
-        Parameter callReturnParameter = null;
-        Parameter exception = null;
-
-
-        if (exitProbeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-
-            DataEventWithSessionId extEvent = getDataEvents().get(callReturnScanResult.getIndex());
-            ObjectInfo exitValueObjectInfo = getObjectInfo(extEvent.getValue());
-            TypeInfo exceptionTypeInfo = getTypeInfo(exitValueObjectInfo.getTypeId());
-
-            exception = new Parameter();
-            exception.setType(ClassTypeUtils.getDottedClassName(exceptionTypeInfo.getTypeNameFromClass()));
-            exception.setValue(extEvent.getValue());
-            exception.setProb(extEvent);
-            exception.setProbeInfo(exitProbeInfo);
-
-        } else if (exitProbeInfo.getEventType() == EventType.CALL_RETURN) {
-            callReturnParameter = ParameterFactory.createReturnValueParameter(
-                    callReturnScanResult.getIndex(), this, returnType);
-
-            if (callReturnParameter.getName() == null) {
-                callReturnParameter.setName(
-                        ClassTypeUtils.createVariableNameFromMethodName(methodName,
-                                callReturnParameter.getType())
-                );
-            }
-
-            if (callReturnParameter.getType() == null || callReturnParameter.getType().equals("V")) {
-//                return null;
-            }
-
-        } else {
-            logger.error("what kind of exit");
-        }
-
-
-        MethodCallExpression methodCallExpression = MethodCallExpressionFactory.MethodCallExpression(
-                methodName, subjectParameter, VariableContainer.from(callArguments),
-                callReturnParameter);
-        return methodCallExpression;
-
-    }
-
     public void ParseData() {
 
 

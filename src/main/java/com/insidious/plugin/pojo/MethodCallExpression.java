@@ -288,8 +288,9 @@ public class MethodCallExpression implements Expression, Serializable {
         String expectedParameterName = returnSubjectInstanceName + "Expected";
         returnSubjectExpectedObject = Parameter.cloneParameter(mainMethodReturnValue);
         Instant now = Instant.now();
-        returnSubjectExpectedObject.setValue(now.getEpochSecond() + now.getNano());
         // we will set a new name for this parameter
+        testGenerationState.getParameterNameFactory()
+                .setNameForParameter(returnSubjectExpectedObject, expectedParameterName);
         returnSubjectExpectedObject.clearNames();
         returnSubjectExpectedObject.setName(expectedParameterName);
 

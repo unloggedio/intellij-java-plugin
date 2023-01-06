@@ -11,8 +11,12 @@ import java.util.Map;
 public class ParameterNameFactory {
 
     private final Map<String, String> nameMap = new HashMap<>();
+    private final Map<Parameter, String> parameterNameMapByObject = new HashMap<>();
 
     public String getNameForUse(Parameter parameter, String methodName) {
+        if (parameterNameMapByObject.containsKey(parameter)) {
+            return parameterNameMapByObject.get(parameter);
+        }
         String key = parameter.getType() + "-" + parameter.getValue();
         String nameUsed = nameMap.get(key);
         if (nameUsed != null) {
@@ -65,4 +69,9 @@ public class ParameterNameFactory {
 
         return matchedString;
     }
+
+    public void setNameForParameter(Parameter returnSubjectExpectedObject, String expectedParameterName) {
+        this.parameterNameMapByObject.put(returnSubjectExpectedObject, expectedParameterName);
+    }
+
 }

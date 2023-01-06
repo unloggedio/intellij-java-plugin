@@ -50,8 +50,6 @@ public class Parameter implements Serializable, BytesMarshallable {
     private MethodCallExpression creatorExpression;
     private List<Parameter> templateMap = new ArrayList<>();
     private boolean isContainer = false;
-    private String nameUsed;
-    private boolean modified;
     private boolean isEnum = false;
 
     public Parameter(Long value) {
@@ -191,9 +189,6 @@ public class Parameter implements Serializable, BytesMarshallable {
     }
 
     public String getName() {
-        if (nameUsed != null) {
-            return nameUsed;
-        }
         if (names.size() == 0) {
             return null;
         }
@@ -210,7 +205,6 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (!this.names.contains(name)) {
             name = name.replace('$', 'D');
             this.names.add(0, name);
-            this.nameUsed = name;
         }
     }
 
@@ -312,9 +306,6 @@ public class Parameter implements Serializable, BytesMarshallable {
     }
 
     public boolean hasName(String name) {
-        if (nameUsed != null) {
-            return nameUsed.equals(name);
-        }
         if (name == null || this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
             return true;
         }
@@ -357,14 +348,6 @@ public class Parameter implements Serializable, BytesMarshallable {
                 || type.startsWith("java.lang.Void")
                 || type.startsWith("java.lang.Byte")
         );
-    }
-
-    public boolean isModified() {
-        return modified;
-    }
-
-    public void setModified(boolean modified) {
-        this.modified = modified;
     }
 
 }

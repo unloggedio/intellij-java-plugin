@@ -7,6 +7,7 @@ import com.google.gson.JsonSyntaxException;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.Parameter;
+import com.insidious.plugin.pojo.SessionCache;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;

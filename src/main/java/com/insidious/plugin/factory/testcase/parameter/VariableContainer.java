@@ -166,17 +166,6 @@ public class VariableContainer {
         return parameterList.get(i);
     }
 
-    public void normalize(VariableContainer globalVariableContainer) {
-        for (String name : getNames()) {
-            Parameter localVariable = getParameterByName(name);
-            if (globalVariableContainer.getParameterByName(localVariable.getName()) == null) {
-                List<Parameter> byId = globalVariableContainer.getParametersByType(localVariable.getType());
-                byId.forEach(e -> e.setName(localVariable.getName()));
-//                byId.ifPresent(value -> value.setName(localVariable.getName()));
-            }
-        }
-    }
-
     @Override
     public String toString() {
         return parameterList.size() + " Variables in {" + '}';
