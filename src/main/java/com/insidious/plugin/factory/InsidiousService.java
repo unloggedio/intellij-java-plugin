@@ -66,6 +66,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
@@ -795,38 +796,49 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public String fetchPathToSaveTestCase(String caseClassname)
+    public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript)
     {
-        System.out.println("[PATH TO SAVE]");
-        StringBuilder sb = new StringBuilder(caseClassname.replaceFirst("Test",""));
+        StringBuilder sb = new StringBuilder(testCaseScript.getClassName().replaceFirst("Test",""));
         sb.deleteCharAt(sb.length()-1);
-        System.out.println("BASE CLASS "+sb.toString());
 
         @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString()+".java",
                 GlobalSearchScope.projectScope(project));
 
-        //picking first now, when multiple classes with same name exists compare packages?
         if(classBase.length>0)
         {
-            VirtualFile classFound = classBase[0].getVirtualFile();
-            String path = classFound.getPath();
-            System.out.println("Found class file path : "+path);
-
-            int last_index = path.lastIndexOf("src");
-            String basePath = path.substring(0,last_index);
-            System.out.println("Base Path for class "+basePath);
-            return basePath;
+            if(classBase.length>1)
+            {
+                //compare packages
+                for(int i=0;i<classBase.length;i++)
+                {
+                    PsiFile file = classBase[i];
+                    if (file instanceof PsiJavaFile) {
+                        PsiJavaFile psiJavaFile = (PsiJavaFile) file;
+                        String packageName = psiJavaFile.getPackageName();
+                        if(testCaseScript.getPackageName().equals(packageName))
+                        {
+                            return getBasePathForVirtualFile(classBase[i].getVirtualFile());
+                        }
+                    }
+                }
+                return getBasePathForVirtualFile(classBase[0].getVirtualFile());
+            }
+            return getBasePathForVirtualFile(classBase[0].getVirtualFile());
         }
         return null;
-//        for(PsiFile fileCandidate : classBase)
-//        {
-//            System.out.println("Found class file path : "+fileCandidate.getVirtualFile().getPath());
-//        }
+    }
+
+    public String getBasePathForVirtualFile(VirtualFile classFound)
+    {
+        String path = classFound.getPath();
+        int last_index = path.lastIndexOf("src");
+        String basePath = path.substring(0,last_index);
+        return basePath;
     }
 
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
-            String basePath = fetchPathToSaveTestCase(testCaseScript.getClassName());
+            String basePath = fetchPathToSaveTestCase(testCaseScript);
             if(basePath==null)
             {
                 basePath=project.getBasePath();
