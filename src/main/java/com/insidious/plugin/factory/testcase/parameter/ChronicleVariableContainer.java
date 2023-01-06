@@ -14,7 +14,6 @@ public class ChronicleVariableContainer {
 
 
     public void add(Parameter parameter) {
-        parameter.setModified(true);
         long value = parameter.getValue();
         if (parameter.getProb()
                 .getSerializedValue().length > 10000) {

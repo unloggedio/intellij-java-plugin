@@ -158,13 +158,12 @@ public class CandidateMetadataFactory {
 
                     if (firstCall) {
                         methodCallExpression.writeCommentTo(objectRoutineScript);
-                        methodCallExpression.writeReturnValue(
-                                objectRoutineScript, testConfiguration, testGenerationState);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
                                                 testConfiguration, testGenerationState));
                     }
+                    methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     firstCall = false;
 
 
