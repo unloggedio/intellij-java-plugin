@@ -6,8 +6,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.pojo.SessionCache;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
@@ -16,9 +16,9 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 import javax.lang.model.element.Modifier;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,20 +30,18 @@ import java.util.regex.Pattern;
 public class TestGenerationState {
     private static final Gson gson = new Gson();
     private static final Pattern ENDS_WITH_DIGITS = Pattern.compile("(.+)([0-9]+)$");
+    private static final Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
+    private final Map<String, Object> valueResourceMap = new HashMap<>();
+    private final Map<String, String> valueResourceStringMap = new HashMap<>();
+    private final ParameterNameFactory parameterNameFactory;
     private VariableContainer variableContainer;
     private Map<String, Boolean> mockedCallsMap = new HashMap<>();
+    public TestGenerationState(ParameterNameFactory parameterNameFactory) {
+        this.parameterNameFactory = parameterNameFactory;
+    }
 
     public ParameterNameFactory getParameterNameFactory() {
         return parameterNameFactory;
-    }
-
-    private final Map<String, Object> valueResourceMap = new HashMap<>();
-    private final Map<String, String> valueResourceStringMap = new HashMap<>();
-    private static final Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
-    private final ParameterNameFactory parameterNameFactory;
-
-    public TestGenerationState(ParameterNameFactory parameterNameFactory) {
-        this.parameterNameFactory = parameterNameFactory;
     }
 
     public VariableContainer getVariableContainer() {
@@ -86,7 +84,8 @@ public class TestGenerationState {
                 try {
                     value1 = gson.fromJson(value, JsonElement.class);
                 } catch (JsonSyntaxException jse) {
-                    value1 = new String(lhsExpression.getProb().getSerializedValue());
+                    value1 = new String(lhsExpression.getProb()
+                            .getSerializedValue());
                     logger.warn("Object was not serialized properly: " + value1 + " -> " + jse.getMessage());
                 }
                 valueResourceMap.put(referenceNameForValue, value1);
@@ -105,13 +104,34 @@ public class TestGenerationState {
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (parameter.isContainer()) {
             fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(parameter.getTemplateMap().get(0).getType()));
+                    ClassName.bestGuess(parameter.getTemplateMap()
+                            .get(0)
+                            .getType()));
         }
 
         FieldSpec.Builder builder = FieldSpec.builder(
-                fieldTypeName, parameterNameFactory.getNameForUse( parameter,null), Modifier.PRIVATE
+                fieldTypeName, parameterNameFactory.getNameForUse(parameter, null), Modifier.PRIVATE
         );
         return builder;
     }
 
+    public void generateParameterName(Parameter returnValue, String methodName) {
+        String variableName = ClassTypeUtils.createVariableNameFromMethodName(methodName, returnValue.getType());
+
+        Object value = returnValue.getValue();
+
+        Parameter existingVariableById = variableContainer.getParametersById((long) value);
+        if (existingVariableById != null) {
+            if (!Objects.equals(returnValue.getName(), existingVariableById.getName())) {
+                returnValue.setName(existingVariableById.getName());
+                parameterNameFactory.setNameForParameter(returnValue, existingVariableById.getName());
+            }
+        } else {
+            if (parameterNameFactory.getNameForUse(returnValue, methodName) == null) {
+                returnValue.setName(variableName);
+                parameterNameFactory.setNameForParameter(returnValue, variableName);
+            }
+        }
+
+    }
 }

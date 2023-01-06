@@ -15,11 +15,11 @@ public class ChronicleVariableContainer {
 
     public void add(Parameter parameter) {
         long value = parameter.getValue();
-        if (parameter.getProb()
-                .getSerializedValue().length > 10000) {
-            // todo: too much data for our taste
-            return;
-        }
+//        if (parameter.getProb()
+//                .getSerializedValue().length > 10000) {
+//            // todo: too much data for our taste
+//            return;
+//        }
         Parameter byValue = parameterMap.get(value);
         if (byValue == null) {
             if (parameter.getProb() != null && parameter.getProb()

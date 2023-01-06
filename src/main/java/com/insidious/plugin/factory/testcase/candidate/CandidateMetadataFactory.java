@@ -156,6 +156,12 @@ public class CandidateMetadataFactory {
                         previousReturnValue.setTypeForced(returnTypeFromProbe);
                     }
 
+                    testGenerationState.generateParameterName(
+                            methodCallExpression.getReturnValue(),
+                            methodCallExpression.getMethodName()
+                    );
+
+                    methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     if (firstCall) {
                         methodCallExpression.writeCommentTo(objectRoutineScript);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
@@ -163,7 +169,6 @@ public class CandidateMetadataFactory {
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
                                                 testConfiguration, testGenerationState));
                     }
-                    methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     firstCall = false;
 
 

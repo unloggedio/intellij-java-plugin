@@ -20,6 +20,8 @@ public class ParameterNameFactory {
         String key = parameter.getType() + "-" + parameter.getValue();
         String nameUsed = nameMap.get(key);
         if (nameUsed != null) {
+            parameter.clearNames();
+            parameter.setName(nameUsed);
             return nameUsed;
         }
 
@@ -32,11 +34,12 @@ public class ParameterNameFactory {
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
             names.sort(Comparator.comparingInt(String::length));
             nameUsed = names.get(names.size() - 1);
-            nameMap.put(key, nameUsed);
-            return nameUsed;
+        } else {
+            nameUsed = getNameClosestToMethodName(names, methodName);
         }
+        parameter.clearNames();
+        parameter.setName(nameUsed);
 
-        nameUsed = getNameClosestToMethodName(names, methodName);
         nameMap.put(key, nameUsed);
 
         return nameUsed;

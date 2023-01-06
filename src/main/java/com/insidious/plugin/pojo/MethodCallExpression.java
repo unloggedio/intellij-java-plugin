@@ -373,30 +373,6 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         if (returnValue != null) {
 
-            String variableName = ClassTypeUtils.createVariableNameFromMethodName(methodName, returnValue.getType());
-
-            Object value = returnValue.getValue();
-            boolean overrideName = true;
-            if (value instanceof String) {
-                String valueString = (String) value;
-                if (valueString.equals("1") || valueString.equals("0")) {
-                    overrideName = false;
-                }
-            }
-
-
-            Parameter existingVariableById = variableContainer.getParametersById((long) value);
-            if (existingVariableById != null) {
-                if (overrideName && !Objects.equals(returnValue.getName(), existingVariableById.getName())) {
-                    returnValue.setName(existingVariableById.getName());
-                }
-            } else {
-                if (nameFactory.getNameForUse(returnValue, methodName) == null) {
-                    returnValue.setName(variableName);
-                }
-            }
-
-
             String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType())
                     .simpleName();
             objectRoutine.addComment(

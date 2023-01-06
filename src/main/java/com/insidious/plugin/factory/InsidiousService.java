@@ -59,12 +59,10 @@ import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.ui.PackageChooser;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.search.FilenameIndex;
@@ -82,7 +80,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -91,10 +88,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -136,9 +131,6 @@ public class InsidiousService implements Disposable {
     private Content onboardingConfigurationWindowContent;
     private ProjectTypeInfo projectTypeInfo;
 
-    public ProjectTypeInfo getProjectTypeInfo() {
-        return projectTypeInfo;
-    }
     public InsidiousService(Project project) {
         try {
 
@@ -179,6 +171,10 @@ public class InsidiousService implements Disposable {
             e.printStackTrace();
             logger.error("exception in videobug service init", e);
         }
+    }
+
+    public ProjectTypeInfo getProjectTypeInfo() {
+        return projectTypeInfo;
     }
 
     public void copyToClipboard(String string) {
@@ -332,37 +328,35 @@ public class InsidiousService implements Disposable {
     }
 
     //to be simplified and cleaned up
-    public Set<String> fetchModuleNames()
-    {
+    public Set<String> fetchModuleNames() {
         if (!project.isInitialized()) {
             return null;
         }
         if (currentModule == null) {
             return null;
         }
-        this.projectTypeInfo=new ProjectTypeInfo();
+        this.projectTypeInfo = new ProjectTypeInfo();
         //fetch module names from all pom files in the project, also fetch base packages (not always useful from pom)
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.projectScope(project));
         Set<String> modules = new HashSet<String>();
         if (pomFileSearchResult.length > 0) {
             projectTypeInfo.setMaven(true);
-            for(int x=0;x<pomFileSearchResult.length;x++)
-            {
+            for (int x = 0; x < pomFileSearchResult.length; x++) {
                 @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[x];
                 String text = pomPsiFile.getText();
-                if(text.contains("<modules>"))
-                {
+                if (text.contains("<modules>")) {
                     int modulesIndexStart = text.indexOf("<modules>");
                     int modulesIndexEnd = text.indexOf("</modules>");
 
-                    String substring_modules = text.substring(modulesIndexStart,modulesIndexEnd);
+                    String substring_modules = text.substring(modulesIndexStart, modulesIndexEnd);
                     System.out.println("Modules Section - ");
                     System.out.println(substring_modules);
                     Set<String> modulesFromPom = getModulesListFromString(substring_modules);
                     return modulesFromPom;
                 } else if (text.contains("<java.version>")) {
-                    String java_version = text.substring(text.indexOf("<java.version>") + 1, text.indexOf("</java.version>"));
+                    String java_version = text.substring(text.indexOf("<java.version>") + 1,
+                            text.indexOf("</java.version>"));
                     System.out.println("Java version");
                     System.out.println("" + java_version);
                 }
@@ -388,7 +382,7 @@ public class InsidiousService implements Disposable {
                     for (int i = 0; i < lines.length; i++) {
                         String line = lines[i];
                         if (line.contains("rootProject.name")) {
-                            int start = line.indexOf("'")+1;
+                            int start = line.indexOf("'") + 1;
                             int end = line.lastIndexOf("'");
                             String moduleName = line.substring(start, end);
                             //System.out.println("Module name root : " + moduleName);
@@ -397,7 +391,8 @@ public class InsidiousService implements Disposable {
                         if (line.startsWith("include") && line.contains("(")) {
                             String modulesSection = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
                             System.out.println("(Include) " + modulesSection);
-                            String[] temp = modulesSection.replaceAll("'", "").split(",");
+                            String[] temp = modulesSection.replaceAll("'", "")
+                                    .split(",");
                             for (int c = 0; c < temp.length; c++) {
                                 //System.out.println("Gradle module found :" + temp[c]);
                                 modules.add(temp[c].trim());
@@ -414,31 +409,27 @@ public class InsidiousService implements Disposable {
                 System.out.println(modules.toString());
                 return modules;
             }
-        }catch (Exception ex)
-        {
-            System.out.println("Exception fetching gradle modules "+ ex);
+        } catch (Exception ex) {
+            System.out.println("Exception fetching gradle modules " + ex);
             ex.printStackTrace();
         }
         return null;
     }
-    public Set<String> getModulesListFromString(String pomSection)
-    {
+
+    public Set<String> getModulesListFromString(String pomSection) {
         Set<String> modules = new HashSet<>();
         String[] parts = pomSection.split("<modules>");
-        for(int i=0;i<parts.length;i++)
-        {
+        for (int i = 0; i < parts.length; i++) {
             String[] mps = parts[i].split("\\n");
-            for(int j=0;j< mps.length;j++)
-            {
-                if(mps[j].contains("<module>"))
-                {
+            for (int j = 0; j < mps.length; j++) {
+                if (mps[j].contains("<module>")) {
                     String[] line_segments = mps[j].split("<module>");
                     String module = line_segments[1].split("</module>")[0];
                     modules.add(module);
                 }
             }
         }
-        System.out.println("Modules - from pom string : "+modules);
+        System.out.println("Modules - from pom string : " + modules);
         return modules;
     }
 
@@ -796,27 +787,24 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
-    public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript)
-    {
-        StringBuilder sb = new StringBuilder(testCaseScript.getClassName().replaceFirst("Test",""));
-        sb.deleteCharAt(sb.length()-1);
+    public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript) {
+        StringBuilder sb = new StringBuilder(testCaseScript.getClassName()
+                .replaceFirst("Test", ""));
+        sb.deleteCharAt(sb.length() - 1);
 
-        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString()+".java",
+        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString() + ".java",
                 GlobalSearchScope.projectScope(project));
 
-        if(classBase.length>0)
-        {
-            if(classBase.length>1)
-            {
+        if (classBase.length > 0) {
+            if (classBase.length > 1) {
                 //compare packages
-                for(int i=0;i<classBase.length;i++)
-                {
+                for (int i = 0; i < classBase.length; i++) {
                     PsiFile file = classBase[i];
                     if (file instanceof PsiJavaFile) {
                         PsiJavaFile psiJavaFile = (PsiJavaFile) file;
                         String packageName = psiJavaFile.getPackageName();
-                        if(testCaseScript.getPackageName().equals(packageName))
-                        {
+                        if (testCaseScript.getPackageName()
+                                .equals(packageName)) {
                             return getBasePathForVirtualFile(classBase[i].getVirtualFile());
                         }
                     }
@@ -828,20 +816,18 @@ public class InsidiousService implements Disposable {
         return null;
     }
 
-    public String getBasePathForVirtualFile(VirtualFile classFound)
-    {
+    public String getBasePathForVirtualFile(VirtualFile classFound) {
         String path = classFound.getPath();
         int last_index = path.lastIndexOf("src");
-        String basePath = path.substring(0,last_index);
+        String basePath = path.substring(0, last_index);
         return basePath;
     }
 
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             String basePath = fetchPathToSaveTestCase(testCaseScript);
-            if(basePath==null)
-            {
-                basePath=project.getBasePath();
+            if (basePath == null) {
+                basePath = project.getBasePath();
             }
             Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
@@ -1283,7 +1269,8 @@ public class InsidiousService implements Disposable {
 //            contentManager.addContent(credentialContent);
 
             onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
-            onboardingConfigurationWindowContent = contentFactory.createContent(onboardingConfigurationWindow.getContent(),"Get Started", false);
+            onboardingConfigurationWindowContent = contentFactory.createContent(
+                    onboardingConfigurationWindow.getContent(), "Get Started", false);
 
             singleWindowView = new SingleWindowView(project, this);
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
