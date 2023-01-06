@@ -31,6 +31,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 
@@ -82,7 +84,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             if(insidiousService.getProjectTypeInfo().isDetectDependencies())
             {
                 fetchDependencies();
-                //downloadAgent();
+                downloadAgent();
             }
         }
         catch (Exception e)
@@ -656,8 +658,51 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void downloadAgent()
     {
-        //System.out.println("[DOWNLOADING AGENT]");
-        //System.out.println(insidiousService.getProjectTypeInfo().getSerializers().toString());
-        insidiousService.ensureAgentJarWithConfig(false, insidiousService.getProjectTypeInfo());
+        System.out.println("[Serializer dependencies] "+insidiousService.getProjectTypeInfo().getSerializers().toString());
+        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.8.29-SNAPSHOT-";
+        String type = "gson";
+        String extention = ".jar";
+        if(insidiousService.getProjectTypeInfo().getSerializers().get(0).keySet().size()>0)
+        {
+            //fetch jackson
+            String version = insidiousService.getProjectTypeInfo().getSerializers().get(0).get("com.fasterxml.jackson.core:jackson-databind");
+            if(version!=null)
+            {
+                type="jackson-"+version;
+            }
+        }
+        String url = (host+type+extention).trim();
+        downloadAgent(url,true);
+    }
+
+    private void downloadAgent(String url, boolean overwrite)
+    {
+        Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
+
+        String absolutePath = fileURiString.toAbsolutePath()
+                .toString();
+        System.out.println("Downloading agent to path - " + absolutePath);
+
+        File agentFile = new File(absolutePath);
+        System.out.println("URL in Download "+url);
+        if (agentFile.exists() && !overwrite) {
+            System.out.println("java agent already exists at the path");
+            return;
+        }
+        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
+             FileOutputStream fileOS = new FileOutputStream(absolutePath)) {
+            byte[] data = new byte[1024];
+            int byteContent;
+            while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
+                fileOS.write(data, 0, byteContent);
+            }
+            InsidiousNotification.notifyMessage("Agent downloaded.",
+                    NotificationType.INFORMATION);
+        } catch (Exception e) {
+            System.out.println("failed to download java agent"+ e);
+            InsidiousNotification.notifyMessage(
+                    "Failed to download agent."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);        }
     }
 }

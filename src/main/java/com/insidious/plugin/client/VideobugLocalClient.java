@@ -246,11 +246,6 @@ public class VideobugLocalClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getAgentDownloadUrlForConfig(ProjectTypeInfo info, AgentDownloadUrlCallback agentDownloadUrlCallback) {
-        networkClient.getAgentDownloadUrlForConfig(info, agentDownloadUrlCallback);
-    }
-
-    @Override
     public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
         networkClient.downloadAgentFromUrl(url, insidiousLocalPath, overwrite);
     }

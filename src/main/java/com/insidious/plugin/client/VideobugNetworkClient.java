@@ -701,23 +701,6 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void getAgentDownloadUrlForConfig(ProjectTypeInfo info, AgentDownloadUrlCallback agentDownloadUrlCallback) {
-        System.out.println("Dependencies  "+info.getSerializers().toString());
-        get("https://cloud.bug.video" + "/api/data/java-agent-jar-link", new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                agentDownloadUrlCallback.error(e.getMessage());
-            }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                agentDownloadUrlCallback.success(Objects.requireNonNull(response.body())
-                        .string());
-            }
-        });
-    }
-
-    @Override
     public void setSessionInstance(SessionInstance sessionInstance) {
         this.session = sessionInstance.getExecutionSession();
         this.sessionInstance = sessionInstance;
