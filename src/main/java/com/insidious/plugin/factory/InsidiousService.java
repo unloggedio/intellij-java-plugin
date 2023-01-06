@@ -795,16 +795,48 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
+    public String fetchPathToSaveTestCase(String caseClassname)
+    {
+        System.out.println("[PATH TO SAVE]");
+        StringBuilder sb = new StringBuilder(caseClassname.replaceFirst("Test",""));
+        sb.deleteCharAt(sb.length()-1);
+        System.out.println("BASE CLASS "+sb.toString());
+
+        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString()+".java",
+                GlobalSearchScope.projectScope(project));
+
+        //picking first now, when multiple classes with same name exists compare packages?
+        if(classBase.length>0)
+        {
+            VirtualFile classFound = classBase[0].getVirtualFile();
+            String path = classFound.getPath();
+            System.out.println("Found class file path : "+path);
+
+            int last_index = path.lastIndexOf("src");
+            String basePath = path.substring(0,last_index);
+            System.out.println("Base Path for class "+basePath);
+            return basePath;
+        }
+        return null;
+//        for(PsiFile fileCandidate : classBase)
+//        {
+//            System.out.println("Found class file path : "+fileCandidate.getVirtualFile().getPath());
+//        }
+    }
+
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
-
-
+            String basePath = fetchPathToSaveTestCase(testCaseScript.getClassName());
+            if(basePath==null)
+            {
+                basePath=project.getBasePath();
+            }
             Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
             if (valueResourceMap.values()
                     .size() > 0) {
                 String testResourcesDirPath =
-                        project.getBasePath() + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
+                        basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
                 resourcesDirFile.mkdirs();
                 String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
@@ -820,7 +852,7 @@ public class InsidiousService implements Disposable {
 
 
             String testOutputDirPath =
-                    project.getBasePath() + "/src/test/java/"
+                    basePath + "/src/test/java/"
                             + testCaseScript.getPackageName()
                             .replaceAll("\\.", "/");
             File outputDir = new File(testOutputDirPath);
