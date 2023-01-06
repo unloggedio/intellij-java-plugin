@@ -92,4 +92,5 @@ public interface VideobugClientInterface {
 
     SessionInstance getSessionInstance();
 
+    void getAgentDownloadUrlForConfig(ProjectTypeInfo info, AgentDownloadUrlCallback agentDownloadUrlCallback);
 }

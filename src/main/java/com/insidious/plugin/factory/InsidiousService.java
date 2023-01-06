@@ -124,7 +124,7 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
-    private int TOOL_WINDOW_HEIGHT = 390;
+    private int TOOL_WINDOW_HEIGHT = 410;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
@@ -304,6 +304,55 @@ public class InsidiousService implements Disposable {
 
 
         client.getAgentDownloadUrl(new AgentDownloadUrlCallback() {
+            @Override
+            public void error(String error) {
+                logger.error("failed to get url from server to download the java agent - " + error);
+                agentJarDownloadCompleteCallback.error(
+                        "failed to get url from server to download the java agent - " + error);
+            }
+
+            @Override
+            public void success(String url) {
+                try {
+                    logger.info(
+                            "agent download link: " + url + ", downloading to path " + Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath());
+                    client.downloadAgentFromUrl(url, Constants.VIDEOBUG_AGENT_PATH.toString(), overwrite);
+                    setAppTokenOnUi();
+                    agentJarDownloadCompleteCallback.success(url, Constants.VIDEOBUG_AGENT_PATH.toString());
+                } catch (Exception e) {
+                    logger.info("failed to download agent - ", e);
+                }
+            }
+        });
+
+    }
+
+    public void checkAndEnsureJavaAgent(boolean overwrite, ProjectTypeInfo info, AgentJarDownloadCompleteCallback agentJarDownloadCompleteCallback) {
+
+        File insidiousFolder = new File(Constants.VIDEOBUG_HOME_PATH.toString());
+        if (!insidiousFolder.exists()) {
+            insidiousFolder.mkdir();
+        }
+
+        if (overwrite) {
+            Constants.VIDEOBUG_AGENT_PATH.toFile()
+                    .delete();
+        }
+
+        if (!Constants.VIDEOBUG_AGENT_PATH.toFile()
+                .exists() && !overwrite) {
+            InsidiousNotification.notifyMessage(
+                    "Downloading Unlogged java agent jar to $HOME/.videobug/videobug-java-agent.jar",
+                    NotificationType.INFORMATION);
+        }
+
+        if (Constants.VIDEOBUG_AGENT_PATH.toFile()
+                .exists()) {
+            return;
+        }
+
+
+        client.getAgentDownloadUrlForConfig(info, new AgentDownloadUrlCallback() {
             @Override
             public void error(String error) {
                 logger.error("failed to get url from server to download the java agent - " + error);
@@ -1498,6 +1547,22 @@ public class InsidiousService implements Disposable {
 
     public void ensureAgentJar(boolean overwrite) {
         checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {
+            @Override
+            public void error(String message) {
+                InsidiousNotification.notifyMessage("Failed to download java agent: " + message,
+                        NotificationType.ERROR);
+            }
+
+            @Override
+            public void success(String url, String path) {
+                InsidiousNotification.notifyMessage("Agent jar download complete", NotificationType.INFORMATION);
+            }
+        });
+
+    }
+
+    public void ensureAgentJarWithConfig(boolean overwrite, ProjectTypeInfo info) {
+        checkAndEnsureJavaAgent(overwrite, info, new AgentJarDownloadCompleteCallback() {
             @Override
             public void error(String message) {
                 InsidiousNotification.notifyMessage("Failed to download java agent: " + message,

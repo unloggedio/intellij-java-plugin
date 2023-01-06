@@ -10,6 +10,7 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
+import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
@@ -242,6 +243,11 @@ public class VideobugLocalClient implements VideobugClientInterface {
     @Override
     public void getAgentDownloadUrl(AgentDownloadUrlCallback agentDownloadUrlCallback) {
         networkClient.getAgentDownloadUrl(agentDownloadUrlCallback);
+    }
+
+    @Override
+    public void getAgentDownloadUrlForConfig(ProjectTypeInfo info, AgentDownloadUrlCallback agentDownloadUrlCallback) {
+        networkClient.getAgentDownloadUrlForConfig(info, agentDownloadUrlCallback);
     }
 
     @Override
