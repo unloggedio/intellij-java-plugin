@@ -4,11 +4,17 @@ package com.insidious.plugin.factory.testcase;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.FieldSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 
+import javax.lang.model.element.Modifier;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,11 +31,18 @@ public class TestGenerationState {
     private static final Pattern ENDS_WITH_DIGITS = Pattern.compile("(.+)([0-9]+)$");
     private VariableContainer variableContainer;
     private Map<String, Boolean> mockedCallsMap = new HashMap<>();
-    private Map<String, Object> valueResourceMap = new HashMap<>();
-    private Map<String, String> valueResourceStringMap = new HashMap<>();
-    private Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
 
-    public TestGenerationState() {
+    public ParameterNameFactory getParameterNameFactory() {
+        return parameterNameFactory;
+    }
+
+    private final Map<String, Object> valueResourceMap = new HashMap<>();
+    private final Map<String, String> valueResourceStringMap = new HashMap<>();
+    private static final Logger logger = LoggerUtil.getInstance(TestGenerationState.class);
+    private final ParameterNameFactory parameterNameFactory;
+
+    public TestGenerationState(ParameterNameFactory parameterNameFactory) {
+        this.parameterNameFactory = parameterNameFactory;
     }
 
     public VariableContainer getVariableContainer() {
@@ -53,7 +66,7 @@ public class TestGenerationState {
     }
 
     public String addObjectToResource(Parameter lhsExpression) {
-        String targetObjectName = lhsExpression.getNameForUse(null);
+        String targetObjectName = parameterNameFactory.getNameForUse(lhsExpression, null);
         Matcher matcher = ENDS_WITH_DIGITS.matcher(targetObjectName);
         if (matcher.matches()) {
             targetObjectName = matcher.group(1);
@@ -82,4 +95,22 @@ public class TestGenerationState {
         }
         return referenceNameForValue;
     }
+
+    public FieldSpec.Builder toFieldSpec(Parameter parameter) {
+        String fieldType = parameter.getType();
+        if (fieldType.contains("$")) {
+            fieldType = fieldType.substring(0, fieldType.indexOf('$'));
+        }
+        TypeName fieldTypeName = ClassName.bestGuess(fieldType);
+        if (parameter.isContainer()) {
+            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
+                    ClassName.bestGuess(parameter.getTemplateMap().get(0).getType()));
+        }
+
+        FieldSpec.Builder builder = FieldSpec.builder(
+                fieldTypeName, parameterNameFactory.getNameForUse( parameter,null), Modifier.PRIVATE
+        );
+        return builder;
+    }
+
 }

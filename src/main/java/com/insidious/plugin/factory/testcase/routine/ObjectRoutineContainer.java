@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
+import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -20,8 +21,6 @@ import org.jetbrains.annotations.NotNull;
 import javax.lang.model.element.Modifier;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static com.insidious.plugin.pojo.MethodCallExpression.in;
 
 /**
  * A convenient container for list of ObjectRoutine. we always have one constructor routine for
@@ -194,8 +193,7 @@ public class ObjectRoutineContainer {
         return dependentImports;
     }
 
-    public ObjectRoutineScriptContainer toRoutineScript(SessionInstance sessionInstance) {
-        TestGenerationState testGenerationState = new TestGenerationState();
+    public ObjectRoutineScriptContainer toRoutineScript(SessionInstance sessionInstance, TestGenerationState testGenerationState) {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName,
                 testGenerationState, generationConfiguration);
         container.setName(getName());
@@ -243,7 +241,7 @@ public class ObjectRoutineContainer {
                     "injectField", testUtilClassSubject,
                     List.of(mainSubject, parameter), null, 0);
             injectMethodCall.setStaticCall(true);
-            MethodCallExpression.in(builderMethodScript)
+            PendingStatement.in(builderMethodScript, testGenerationState)
                     .writeExpression(injectMethodCall)
                     .endStatement();
 
@@ -291,7 +289,7 @@ public class ObjectRoutineContainer {
 
             container.addField(staticMock);
 
-            in(builderMethodScript)
+            PendingStatement.in(builderMethodScript, testGenerationState)
                     .assignVariable(staticMock)
                     .writeExpression(
                             MethodCallExpressionFactory.MockStaticClass(
@@ -306,7 +304,7 @@ public class ObjectRoutineContainer {
             // For setting the method with @After / @AfterEach Annotation
             VariableContainer finishedVariableContainer = new VariableContainer();
             ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer,
-                    generationConfiguration);
+                    generationConfiguration, testGenerationState);
 
             afterEachMethodScript.setRoutineName("finished");
             afterEachMethodScript.addAnnotation(generationConfiguration.getTestAfterAnnotationType());
@@ -316,7 +314,7 @@ public class ObjectRoutineContainer {
             // Writing inside @AfterEach "finished" function
             // Close Static Mock functions
             for (Parameter staticMock : staticMocks.values()) {
-                in(afterEachMethodScript)
+                PendingStatement.in(afterEachMethodScript, testGenerationState)
                         .writeExpression(
                                 MethodCallExpressionFactory.CloseStaticMock(staticMock))
                         .endStatement();

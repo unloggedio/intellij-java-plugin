@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.LoggerUtil;
@@ -14,7 +15,7 @@ public class TestCaseWriter {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseWriter.class);
 
     @NotNull
-    public static String createMethodParametersString(List<Parameter> variableContainer) {
+    public static String createMethodParametersString(List<Parameter> variableContainer, TestGenerationState testGenerationState) {
         if (variableContainer == null) {
             return "";
         }
@@ -26,7 +27,7 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            makeParameterValueString(parameterStringBuilder, parameter);
+            makeParameterValueString(parameterStringBuilder, parameter, testGenerationState);
         }
 
 
@@ -35,13 +36,15 @@ public class TestCaseWriter {
     }
 
     // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
-    public static void makeParameterValueString(StringBuilder parameterStringBuilder, Parameter parameter) {
+    public static void makeParameterValueString(StringBuilder parameterStringBuilder, Parameter parameter,
+                                                TestGenerationState testGenerationState) {
 
-        if (handleValueBlockString(parameterStringBuilder, parameter)) {
+        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
             return;
         }
 
-        String nameUsed = parameter.getNameForUse(null);
+        String nameUsed = testGenerationState.getParameterNameFactory()
+                .getNameForUse(parameter, null);
         if (nameUsed != null) {
             parameterStringBuilder.append(nameUsed);
             return;
@@ -62,7 +65,11 @@ public class TestCaseWriter {
         return valueBuilder.toString();
     }
 
-    private static boolean handleValueBlockString(StringBuilder parameterStringBuilder, Parameter parameter) {
+    private static boolean handleValueBlockString(
+            StringBuilder parameterStringBuilder,
+            Parameter parameter,
+            TestGenerationState testGenerationState
+    ) {
 
         String serializedValue = "";
         if (parameter.getProb() != null
@@ -74,7 +81,8 @@ public class TestCaseWriter {
         if (parameter.getType() != null && parameter.getType()
                 .endsWith("[]")) {
             // if the type of parameter is array like int[], long[] (i.e J[])
-            String nameUsed = parameter.getNameForUse(null);
+            String nameUsed = testGenerationState.getParameterNameFactory()
+                    .getNameForUse(parameter, null);
             parameterStringBuilder.append(nameUsed == null ? "any()" : nameUsed);
             return true;
         }
@@ -115,7 +123,7 @@ public class TestCaseWriter {
 
     @NotNull
     public static String
-    createMethodParametersStringMock(List<Parameter> variableContainer) {
+    createMethodParametersStringMock(List<Parameter> variableContainer, TestGenerationState testGenerationState) {
         logger.warn("Create method parameters argument mock => " + variableContainer);
         if (variableContainer == null) {
             return "";
@@ -134,27 +142,33 @@ public class TestCaseWriter {
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
             } else if (parameter.getProb() != null
-                    && parameter.getProb().getSerializedValue().length > 0
-                    && (new String(parameter.getProb().getSerializedValue())).equals("null")) {
+                    && parameter.getProb()
+                    .getSerializedValue().length > 0
+                    && (new String(parameter.getProb()
+                    .getSerializedValue())).equals("null")) {
 
                 // if the serialized value is null just append null
                 compareAgainst = "null";
             } else if (parameter.isPrimitiveType()) {
                 if (parameter.isBoxedPrimitiveType()) {
-                    String serialisedValue = new String(parameter.getProb().getSerializedValue());
+                    String serialisedValue = new String(parameter.getProb()
+                            .getSerializedValue());
                     if (serialisedValue.length() > 0) {
                         compareAgainst = serialisedValue;
                     } else {
                         compareAgainst = parameter.getValue();
                     }
 
-                    compareAgainst = ParameterUtils.addParameterTypeSuffix(String.valueOf(compareAgainst), parameterType);
+                    compareAgainst = ParameterUtils.addParameterTypeSuffix(String.valueOf(compareAgainst),
+                            parameterType);
                 } else {
                     compareAgainst = ParameterUtils.makeParameterValueForPrimitiveType(parameter);
                 }
 
-            } else if (parameter.getNameForUse(null) != null) {
-                compareAgainst = parameter.getNameForUse(null);
+            } else if (testGenerationState.getParameterNameFactory()
+                    .getNameForUse(parameter, null) != null) {
+                compareAgainst = testGenerationState.getParameterNameFactory()
+                        .getNameForUse(parameter, null);
             } else {
                 compareAgainst = parameter.getValue();
                 if (parameter.isStringType()) {
@@ -214,7 +228,9 @@ public class TestCaseWriter {
      * @param variableContainer list of parameters to be arranged
      * @return a string which is comma separated values to be passed to a method
      */
-    public static String createMethodParametersStringWithNames(List<Parameter> variableContainer) {
+    public static String createMethodParametersStringWithNames(
+            List<Parameter> variableContainer,
+            TestGenerationState testGenerationState) {
         if (variableContainer == null) {
             return "";
         }
@@ -226,7 +242,7 @@ public class TestCaseWriter {
                 parameterStringBuilder.append(", ");
             }
 
-            makeParameterNameString(parameterStringBuilder, parameter);
+            makeParameterNameString(parameterStringBuilder, parameter, testGenerationState);
         }
         @NotNull String parameterString = parameterStringBuilder.toString();
         return parameterString;
@@ -234,14 +250,16 @@ public class TestCaseWriter {
     }
 
     //Handling order: name , [array, null , bool, , Primitive,]  all
-    private static void makeParameterNameString(StringBuilder parameterStringBuilder, Parameter parameter) {
-        String nameUsed = parameter.getNameForUse(null);
+    private static void makeParameterNameString(StringBuilder parameterStringBuilder, Parameter parameter,
+                                                TestGenerationState testGenerationState) {
+        String nameUsed = testGenerationState.getParameterNameFactory()
+                .getNameForUse(parameter, null);
         if (nameUsed != null) {
             parameterStringBuilder.append(nameUsed);
             return;
         }
 
-        if (handleValueBlockString(parameterStringBuilder, parameter)) {
+        if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
             return;
         }
 

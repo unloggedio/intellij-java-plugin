@@ -194,8 +194,14 @@ public class DaoService {
             Optional<com.insidious.plugin.pojo.MethodCallExpression> mainMethod = methodCallsFromDb.stream()
                     .filter(e -> e.getId() == testCandidateMetadata.getMainMethod())
                     .findFirst();
-            assert mainMethod.isPresent();
-            converted.setMainMethod(mainMethod.get());
+            if (mainMethod.isPresent()) {
+                converted.setMainMethod(mainMethod.get());
+            } else {
+                com.insidious.plugin.pojo.MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
+                        testCandidateMetadata.getMainMethod());
+                logger.warn("main method isnt public: " + mainMethodCallExpression);
+                converted.setMainMethod(mainMethodCallExpression);
+            }
 
 
         } else {
@@ -387,7 +393,9 @@ public class DaoService {
                 methodCallExpression.setSubject(staticSubject);
 
             } else {
-                methodCallExpression.setSubject(parameterMap.get(dbMce.getSubject()));
+                methodCallExpression.setSubject(
+                        com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
+                );
             }
 
 
@@ -405,7 +413,7 @@ public class DaoService {
                     paramArgument.setTypeForced(probeInfo.getValueDesc()
                             .getString());
                 } else {
-//                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
+                    paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
@@ -439,7 +447,7 @@ public class DaoService {
             if (returnParam == null) {
                 returnParam = new com.insidious.plugin.pojo.Parameter();
             } else {
-//                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
+                returnParam = com.insidious.plugin.pojo.Parameter.cloneParameter(returnParam);
             }
             methodCallExpression.setReturnValue(returnParam);
 
@@ -580,68 +588,6 @@ public class DaoService {
         queryResult.close();
         return new ArrayList<>(resultList);
     }
-
-
-//    @NotNull
-//    private com.insidious.plugin.pojo.MethodCallExpression convertDbMCE(
-//            MethodCallExpression dbMce,
-//            Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap
-//    ) {
-//        com.insidious.plugin.pojo.MethodCallExpression mce = MethodCallExpression.ToMCE(dbMce);
-//        try {
-//
-//            Parameter mainSubject = dbMce.getSubject();
-//            if (dbMce.getReturnValue() != null) {
-//                Parameter returnValue = dbMce.getReturnValue();
-//                com.insidious.plugin.pojo.Parameter returnParam = null;
-//                returnParam = parameterMap.get((Long) returnValue.getValue());
-//                mce.setReturnValue(returnParam);
-//                if (dbMce.getReturnDataEvent() != 0 && returnParam != null) {
-//                    DataEventWithSessionId returnDataEvent = null;
-//                    returnDataEvent = getDataEventById(dbMce.getReturnDataEvent());
-//                    returnParam.setProb(returnDataEvent);
-//                    mce.setReturnDataEvent(returnDataEvent);
-//                }
-//            } else {
-//
-//            }
-//
-//            List<Long> argumentParameters = dbMce.getArgumentTypes();
-//            List<Long> argumentProbes = dbMce.getArgumentProbes();
-//            for (int i = 0; i < argumentParameters.size(); i++) {
-//                Long argumentParameter = argumentParameters.get(i);
-//                DataEventWithSessionId dataEvent = getDataEventById(argumentProbes.get(i));
-//                DataInfo eventProbe = getProbeInfoById(dataEvent.getDataId());
-//                com.insidious.plugin.pojo.Parameter argument = parameterMap.get(argumentParameter);
-//                if (argument == null) {
-//                    argument = new com.insidious.plugin.pojo.Parameter(0L);
-//                }
-//                argument.setProbeInfo(eventProbe);
-//                argument.setType(ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", "V")));
-//                argument.setProb(dataEvent);
-//                mce.addArgument(argument);
-//            }
-//
-//            mce.setEntryProbeInfo(getProbeInfoById(dbMce.getEntryProbeInfo().getDataId()));
-//            if (!mce.isStaticCall()) {
-//                com.insidious.plugin.pojo.Parameter subjectParam = parameterMap.get((Long) mainSubject.getValue());
-//                mce.setSubject(subjectParam);
-//            } else {
-//                DataInfo entryProbeInfo = mce.getEntryProbeInfo();
-//                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
-//                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
-//                staticSubject.setProb(mce.getEntryProbe());
-//                staticSubject.setProbeInfo(entryProbeInfo);
-//                staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
-//                mce.setSubject(staticSubject);
-//            }
-//        } catch (SQLException e) {
-//            throw new RuntimeException(e);
-//        }
-//
-//
-//        return mce;
-//    }
 
 
     public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) {

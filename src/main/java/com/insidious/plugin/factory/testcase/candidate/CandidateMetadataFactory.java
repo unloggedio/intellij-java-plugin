@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.candidate;
 
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
@@ -16,8 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.insidious.plugin.pojo.MethodCallExpression.in;
-
 public class CandidateMetadataFactory {
     public final static Logger logger = LoggerUtil.getInstance(TestCandidateMetadata.class);
 
@@ -26,8 +25,9 @@ public class CandidateMetadataFactory {
             TestCaseGenerationConfiguration testConfiguration,
             List<MethodCallExpression> callsList,
             VariableContainer fields) {
+        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
-                testConfiguration);
+                testConfiguration, testGenerationState);
 
         Parameter testTarget = testConfiguration.getTestCandidateMetadataList()
                 .get(0)
@@ -148,7 +148,7 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
+                    nameFactory.getNameForUse(previousReturnValue, methodCallExpression.getMethodName());
 
                     String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
                             .getAttribute("Type", previousReturnValue.getType()));
@@ -160,10 +160,10 @@ public class CandidateMetadataFactory {
                         methodCallExpression.writeCommentTo(objectRoutineScript);
                         methodCallExpression.writeReturnValue(
                                 objectRoutineScript, testConfiguration, testGenerationState);
-                        pendingStatement = in(objectRoutineScript)
+                        pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                testConfiguration));
+                                                testConfiguration, testGenerationState));
                     }
                     firstCall = false;
 
@@ -216,7 +216,7 @@ public class CandidateMetadataFactory {
                         .getSubject();
 
                 if (!objectRoutineScript.getCreatedVariables()
-                        .contains(staticCallSubjectMockInstance.getNameForUse(null))) {
+                        .contains( nameFactory.getNameForUse( staticCallSubjectMockInstance, null))) {
                     @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
                             staticCallSubjectMockInstance);
 
@@ -238,7 +238,7 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    previousReturnValue.getNameForUse(methodCallExpression.getMethodName());
+                    nameFactory.getNameForUse(previousReturnValue, methodCallExpression.getMethodName());
 
                     String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
                             .getAttribute("Type", previousReturnValue.getType()));
@@ -250,10 +250,10 @@ public class CandidateMetadataFactory {
                         methodCallExpression.writeCommentTo(objectRoutineScript);
                         methodCallExpression.writeReturnValue(
                                 objectRoutineScript, testConfiguration, testGenerationState);
-                        pendingStatement = in(objectRoutineScript)
+                        pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,
-                                                testConfiguration));
+                                                testConfiguration, testGenerationState));
                     }
                     firstCall = false;
 
@@ -285,7 +285,7 @@ public class CandidateMetadataFactory {
             TestCaseGenerationConfiguration testConfiguration
     ) {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
-                testConfiguration);
+                testConfiguration, testGenerationState);
 
         if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
 
@@ -317,7 +317,7 @@ public class CandidateMetadataFactory {
         Parameter subject = methodCallExpression.getSubject();
 
         StringBuilder callBuilder = new StringBuilder();
-        callBuilder.append(subject.getNameForUse(null))
+        callBuilder.append(subject.getValue())
                 .append(".")
                 .append(methodCallExpression.getMethodName());
 

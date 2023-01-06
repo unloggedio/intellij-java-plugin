@@ -3334,7 +3334,7 @@ public class SessionInstance {
                 classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
         if (methodPsiInstanceList.length == 0) {
             logger.warn(
-                    "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+                    "[1] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
             return;
         }
 
@@ -3404,7 +3404,7 @@ public class SessionInstance {
                 classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
         if (methodPsiInstanceList.length == 0) {
             logger.warn(
-                    "did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+                    "[2] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
             return;
         }
 

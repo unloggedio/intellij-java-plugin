@@ -1,6 +1,6 @@
 package com.insidious.plugin.factory.testcase;
 
-import com.insidious.common.weaver.ClassInfo;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -17,12 +17,18 @@ import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeSpec;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
@@ -51,14 +57,17 @@ public class TestCaseService implements Runnable {
                         Modifier.FINAL
                 );
 
-        typeSpecBuilder.addField(objectRoutineContainer.getTestSubject()
-                .toFieldSpec()
+
+        typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
+                .toFieldSpec(objectRoutineContainer.getTestSubject())
                 .build());
         for (Parameter field : testCaseScript.getFields()) {
             if (field == null) {
                 continue;
             }
-            typeSpecBuilder.addField(field.toFieldSpec()
+
+            typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
+                    .toFieldSpec(field)
                     .build());
         }
 
@@ -82,17 +91,6 @@ public class TestCaseService implements Runnable {
                 .size() > 0) {
             typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
         }
-
-
-//        ClassName gsonClass = ClassName.get("com.google.gson", "Gson");
-//
-//
-//        typeSpecBuilder
-//                .addField(FieldSpec
-//                        .builder(gsonClass, "gson", Modifier.PRIVATE)
-//                        .initializer("new $T()", gsonClass)
-//                        .build()
-//                );
 
 
         TypeSpec testClassSpec = typeSpecBuilder.build();
@@ -139,21 +137,14 @@ public class TestCaseService implements Runnable {
     @NotNull
     public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
 
-//        List<TestCandidateMetadata> candidates = generationConfiguration.getTestCandidateMetadataList();
-//        List<TestCandidateMetadata> loadedCandidateList = new LinkedList<>();
-//        for (TestCandidateMetadata candidate : candidates) {
-//            TestCandidateMetadata loadedCandidate = sessionInstance.getTestCandidateById(candidate.getEntryProbeIndex(),
-//                    true);
-//            loadedCandidateList.add(loadedCandidate);
-//        }
-//        generationConfiguration.setTestCandidateMetadataList(loadedCandidateList);
-
+        ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
+        TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
         createFieldMocks(objectRoutineContainer);
 
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance);
+        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance, testGenerationState);
 
 
         return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);

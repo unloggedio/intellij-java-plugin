@@ -92,7 +92,7 @@ public class ObjectRoutine {
         MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
                 "testMethod" + StringUtil.toTitleCase(lastCandidateMainMethod.getMethodName()),
-                generationConfiguration
+                generationConfiguration, testGenerationState
         );
 
         scriptContainer.setCreatedVariables(createdVariables.clone());

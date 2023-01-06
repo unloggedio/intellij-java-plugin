@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase.writer;
 
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.ClassValueExpression;
@@ -36,17 +37,20 @@ public class PendingStatement {
     private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new ArrayList<>();
+    private final TestGenerationState testGenerationState;
     private Parameter lhsExpression;
 
-    public PendingStatement(ObjectRoutineScript objectRoutine) {
+    public PendingStatement(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
         this.objectRoutine = objectRoutine;
+        this.testGenerationState = testGenerationState;
     }
 
     private void writeCallStatement(
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
             List<Object> statementParameters, int i
     ) {
-        String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments());
+        String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(), testGenerationState);
+        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         if (methodCallExpression.getMethodName()
                 .equals("<init>")) {
             assert i == 0;
@@ -86,8 +90,7 @@ public class PendingStatement {
                         .append("$L.$L($S, new $T<$T<")
                         .append(templateString)
                         .append(">>(){}.getType())");
-                statementParameters.add(methodCallExpression.getSubject()
-                        .getNameForUse(null));  // 1
+                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(),null));  // 1
                 statementParameters.add(methodCallExpression.getMethodName()); // 2
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
@@ -112,8 +115,7 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
-                statementParameters.add(methodCallExpression.getSubject()
-                        .getNameForUse(null));
+                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(),null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
@@ -197,7 +199,7 @@ public class PendingStatement {
             Parameter injectionTarget = variables.get(0);
             statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
                     .getType()));
-            String targetNameForScript = injectionTarget.getNameForUse(null);
+            String targetNameForScript = nameFactory.getNameForUse(injectionTarget, null);
             if (targetNameForScript != null) {
                 statementBuilder.append("$T.injectField($L, $S, $L)");
                 statementParameters.add(targetNameForScript);
@@ -207,7 +209,7 @@ public class PendingStatement {
             }
 
             Parameter secondArgument = variables.get(1);
-            String secondArgumentNameForUse = secondArgument.getNameForUse(null);
+            String secondArgumentNameForUse = nameFactory.getNameForUse(secondArgument, null);
             statementParameters.add(secondArgumentNameForUse);
             statementParameters.add(secondArgumentNameForUse);
 
@@ -228,7 +230,7 @@ public class PendingStatement {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
                 parameterString = TestCaseWriter.createMethodParametersStringWithNames(
-                        methodCallExpression.getArguments());
+                        methodCallExpression.getArguments(), testGenerationState);
                 if (methodCallExpression.isStaticCall()) {
                     statementBuilder.append("$T.$L(")
                             .append(parameterString)
@@ -239,7 +241,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getNameForUse(null));
+                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }
@@ -282,7 +284,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getNameForUse(null));
+                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }
@@ -320,7 +322,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getNameForUse(null));
+                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
                     statementParameters.add(methodCallExpression.getMethodName());
                     statementParameters.add(methodCallExpression.getMethodName());
                     statementParameters.add(ClassName.bestGuess(
@@ -353,7 +355,7 @@ public class PendingStatement {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
-                    statementParameters.add(callExpressionSubject.getNameForUse(null));
+                    statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
                     statementParameters.add(methodCallExpression.getMethodName());
 
                 }
@@ -381,6 +383,7 @@ public class PendingStatement {
 
     public void endStatement() {
 
+        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new ArrayList<>();
         logger.warn("Complete statement: Lhs [" + lhsExpression + "] => ");
@@ -396,7 +399,7 @@ public class PendingStatement {
         if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType()
                 .equals("V") && !isExceptionExcepted) {
 
-            if (lhsExpression.getNameForUse(null) == null) {
+            if (nameFactory.getNameForUse(lhsExpression, null) == null) {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
@@ -411,43 +414,13 @@ public class PendingStatement {
             }
 
             if (!objectRoutine.getCreatedVariables()
-                    .contains(lhsExpression.getNameForUse(null))) {
+                    .contains(nameFactory.getNameForUse(lhsExpression, null))) {
 
                 objectRoutine.getCreatedVariables()
                         .add(lhsExpression);
                 List<Parameter> templateMap = lhsExpression.getTemplateMap();
                 if (lhsExpression.isContainer() && templateMap.size() > 0) {
 
-//                    StringBuilder templateParams = new StringBuilder();
-//                    ArrayList<String> templateKeys = templateMap.stream()
-//                            .map(Parameter::getName)
-//                            .sorted()
-//                            .collect(Collectors.toCollection(ArrayList::new));
-//                    for (int i = 0; i < templateKeys.size(); i++) {
-//                        if (i > 0) {
-//                            templateParams.append(", ");
-//                        }
-////                        String templateKey = templateKeys.get(i);
-//                        templateParams.append("$T");
-//                    }
-//
-//                    statementBuilder
-//                            .append("$T<")
-//                            .append(templateParams)
-//                            .append(">")
-//                            .append(" ");
-//                    statementParameters.add(lhsTypeName);
-//                    for (String templateKey : templateKeys) {
-//                        Optional<Parameter> templateParameter =
-//                                templateMap.stream()
-//                                        .filter(e -> e.getName()
-//                                                .equals(templateKey))
-//                                        .findFirst();
-//                        assert templateParameter.isPresent();
-//                        String templateType = templateParameter.get()
-//                                .getType();
-//                        statementParameters.add(ClassName.bestGuess(templateType));
-//                   }
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
                     Parameter deepCopyParam = ParameterUtils.deepCloneType(lhsExpression);
@@ -467,7 +440,7 @@ public class PendingStatement {
                 // if param exists,
                 Parameter existingParameter = objectRoutine
                         .getCreatedVariables()
-                        .getParameterByName(lhsExpression.getNameForUse(null));
+                        .getParameterByName(nameFactory.getNameForUse(lhsExpression, null));
 
                 // Checking if these variables point to the same
                 // if not then updating with the latest object i.e. lhsExpression
@@ -480,7 +453,7 @@ public class PendingStatement {
             }
             statementBuilder.append("$L");
 
-            statementParameters.add(lhsExpression.getNameForUse(null));
+            statementParameters.add(nameFactory.getNameForUse(lhsExpression, null));
 
             statementBuilder.append(" = ");
         }
@@ -593,8 +566,7 @@ public class PendingStatement {
     }
 
     public PendingStatement fromRecordedValue(
-            TestCaseGenerationConfiguration generationConfiguration,
-            TestGenerationState testGenerationState
+            TestCaseGenerationConfiguration generationConfiguration
     ) {
         if (lhsExpression == null) {
             return this;
@@ -602,7 +574,7 @@ public class PendingStatement {
 
         String targetClassname = lhsExpression.getType();
 
-        String lhsExprName = lhsExpression.getNameForUse(null);
+        String lhsExprName = testGenerationState.getParameterNameFactory().getNameForUse(lhsExpression, null);
         // todo: prakhar : can I remove "variableExistingParameter" cause the check is also happening in
         //  @Class MethodCallExpression
         Parameter variableExistingParameter = objectRoutine
@@ -637,7 +609,7 @@ public class PendingStatement {
             return this;
         }
 
-        if (targetClassname.startsWith("java.lang") || targetClassname.length() == 1) {
+        if ((targetClassname.startsWith("java.lang") && !targetClassname.equals("java.lang.Object")) || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
             long returnValue = parameter.getValue();
@@ -703,5 +675,10 @@ public class PendingStatement {
 
         return this;
     }
+
+    public static PendingStatement in(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
+        return new PendingStatement(objectRoutine, testGenerationState);
+    }
+
 
 }

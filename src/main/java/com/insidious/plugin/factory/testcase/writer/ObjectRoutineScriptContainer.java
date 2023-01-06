@@ -86,7 +86,7 @@ public class ObjectRoutineScriptContainer {
             }
         }
 
-        ObjectRoutineScript newRoutine = new ObjectRoutineScript(routineName, generationConfiguration);
+        ObjectRoutineScript newRoutine = new ObjectRoutineScript(routineName, generationConfiguration, testGenerationState);
         this.objectRoutines.add(newRoutine);
         this.currentRoutine = newRoutine;
         return newRoutine;

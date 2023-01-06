@@ -3,6 +3,7 @@ package com.insidious.plugin.pojo;
 import com.esotericsoftware.asm.Opcodes;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -70,9 +72,6 @@ public class MethodCallExpression implements Expression, Serializable {
         this.parentId = parentId;
     }
 
-    public static PendingStatement in(ObjectRoutineScript objectRoutine) {
-        return new PendingStatement(objectRoutine);
-    }
 
     public boolean isUIselected() {
         return isUIselected;
@@ -140,7 +139,9 @@ public class MethodCallExpression implements Expression, Serializable {
         then Generates a New Name,
      */
     private Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
-        String lhsExprName = parameter.getNameForUse(this.methodName);
+        ParameterNameFactory nameFactory = ors.getTestGenerationState()
+                .getParameterNameFactory();
+        String lhsExprName = nameFactory.getNameForUse(parameter, this.methodName);
         Parameter variableExistingParameter = ors
                 .getCreatedVariables()
                 .getParameterByNameAndType(lhsExprName, parameter);
@@ -155,7 +156,7 @@ public class MethodCallExpression implements Expression, Serializable {
         if (sameNameParamExisting != null && variableExistingParameter == null) {
             // generate a next name from existing name
             //eg: name =>  name0 =>  name1
-            String oldName = sameNameParamExisting.getNameForUse(null);
+            String oldName = nameFactory.getNameForUse(sameNameParamExisting, null);
             String newName = generateNextName(ors, oldName);
             parameter.getNamesList()
                     .remove(newName);
@@ -200,7 +201,8 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
         if (getMethodName().equals("mock")) {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
+                    .assignVariable(mainMethodReturnValue)
                     .writeExpression(this)
                     .endStatement();
             return;
@@ -232,8 +234,9 @@ public class MethodCallExpression implements Expression, Serializable {
 
                 parameter = generateParameterName(parameter, objectRoutineScript);
 
-                in(objectRoutineScript).assignVariable(parameter)
-                        .fromRecordedValue(testConfiguration, testGenerationState)
+                PendingStatement.in(objectRoutineScript, testGenerationState)
+                        .assignVariable(parameter)
+                        .fromRecordedValue(testConfiguration)
                         .endStatement();
             }
         }
@@ -244,12 +247,14 @@ public class MethodCallExpression implements Expression, Serializable {
         boolean isException = mainMethodReturnValue.getProbeInfo()
                 .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
         if (isException) {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
+                    .assignVariable(mainMethodReturnValue)
                     .writeExpression(this)
                     .endStatement();
             return;
         } else {
-            in(objectRoutineScript).assignVariable(mainMethodReturnValue)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
+                    .assignVariable(mainMethodReturnValue)
                     .writeExpression(this)
                     .endStatement();
         }
@@ -266,7 +271,8 @@ public class MethodCallExpression implements Expression, Serializable {
                 .equals("V")) {
             return;
         }
-        String returnSubjectInstanceName = mainMethodReturnValue.getNameForUse(this.methodName);
+        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
+        String returnSubjectInstanceName = nameFactory.getNameForUse(mainMethodReturnValue, this.methodName);
 
 
         //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
@@ -281,6 +287,8 @@ public class MethodCallExpression implements Expression, Serializable {
 //        if (serializedBytes.length > 0) {
         String expectedParameterName = returnSubjectInstanceName + "Expected";
         returnSubjectExpectedObject = Parameter.cloneParameter(mainMethodReturnValue);
+        Instant now = Instant.now();
+        returnSubjectExpectedObject.setValue(now.getEpochSecond() + now.getNano());
         // we will set a new name for this parameter
         returnSubjectExpectedObject.clearNames();
         returnSubjectExpectedObject.setName(expectedParameterName);
@@ -288,13 +296,13 @@ public class MethodCallExpression implements Expression, Serializable {
         if (testConfiguration.getResourceEmbedMode()
                 .equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
             if (returnSubjectExpectedObject.isPrimitiveType()) {
-                in(objectRoutineScript)
+                PendingStatement.in(objectRoutineScript, testGenerationState)
                         .assignVariable(returnSubjectExpectedObject)
-                        .fromRecordedValue(testConfiguration, testGenerationState)
+                        .fromRecordedValue(testConfiguration)
                         .endStatement();
 
             } else {
-                in(objectRoutineScript)
+                PendingStatement.in(objectRoutineScript, testGenerationState)
                         .assignVariable(returnSubjectExpectedObject)
                         .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
                         .endStatement();
@@ -311,7 +319,7 @@ public class MethodCallExpression implements Expression, Serializable {
             MethodCallExpression jsonFromFileCall = null;
             jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
-            in(objectRoutineScript)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
                     .assignVariable(returnSubjectExpectedObject)
                     .writeExpression(jsonFromFileCall)
                     .endStatement();
@@ -337,13 +345,13 @@ public class MethodCallExpression implements Expression, Serializable {
         // then use assertArrayEquals
         if (returnSubjectExpectedObject.getType()
                 .endsWith("[]")) {
-            in(objectRoutineScript)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
                     .writeExpression(MethodCallExpressionFactory
                             .MockitoAssertArrayEquals(returnSubjectExpectedObject, mainMethodReturnValue,
                                     testConfiguration))
                     .endStatement();
         } else {
-            in(objectRoutineScript)
+            PendingStatement.in(objectRoutineScript, testGenerationState)
                     .writeExpression(MethodCallExpressionFactory
                             .MockitoAssertEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
                     .endStatement();
@@ -353,12 +361,14 @@ public class MethodCallExpression implements Expression, Serializable {
     public void writeCommentTo(ObjectRoutineScript objectRoutine) {
         VariableContainer variableContainer = objectRoutine.getCreatedVariables();
         Parameter exception = getException();
+        ParameterNameFactory nameFactory = objectRoutine.getTestGenerationState()
+                .getParameterNameFactory();
         String callArgumentsString = getArguments().size() + " arguments";
 
 
         String subjectName = "";
         if (subject != null) {
-            subjectName = getSubject().getNameForUse(this.methodName);
+            subjectName = nameFactory.getNameForUse(getSubject(), this.methodName);
         }
         if (returnValue != null) {
 
@@ -380,7 +390,7 @@ public class MethodCallExpression implements Expression, Serializable {
                     returnValue.setName(existingVariableById.getName());
                 }
             } else {
-                if (returnValue.getNameForUse(methodName) == null) {
+                if (nameFactory.getNameForUse(returnValue, methodName) == null) {
                     returnValue.setName(variableName);
                 }
             }
@@ -389,7 +399,7 @@ public class MethodCallExpression implements Expression, Serializable {
             String returnValueType = returnValue.getType() == null ? "" : ClassName.bestGuess(returnValue.getType())
                     .simpleName();
             objectRoutine.addComment(
-                    returnValueType + " " + returnValue.getNameForUse(getMethodName())
+                    returnValueType + " " + nameFactory.getNameForUse(returnValue, getMethodName())
                             + " = " + subjectName + "." + getMethodName() + "(" + callArgumentsString + ");");
         } else if (exception != null) {
             objectRoutine.addComment(
@@ -455,9 +465,9 @@ public class MethodCallExpression implements Expression, Serializable {
 
                     // if it is not a primitive type, then we assign to a variable first and
                     // then use the variable in actual usage
-                    in(objectRoutine)
+                    PendingStatement.in(objectRoutine, testGenerationState)
                             .assignVariable(returnValue)
-                            .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                            .fromRecordedValue(testCaseGenerationConfiguration)
                             .endStatement();
                 }
             } else {
@@ -468,13 +478,13 @@ public class MethodCallExpression implements Expression, Serializable {
                     //check if the same name is used already with different type
                     parameter = generateParameterName(returnValue, objectRoutine);
 
-                    in(objectRoutine)
+                    PendingStatement.in(objectRoutine, testGenerationState)
                             .assignVariable(parameter)
-                            .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                            .fromRecordedValue(testCaseGenerationConfiguration)
                             .endStatement();
                 }
 
-                in(objectRoutine)
+                PendingStatement.in(objectRoutine, testGenerationState)
                         .assignVariable(creatorExpression.getReturnValue())
                         .writeExpression(creatorExpression)
                         .endStatement();
@@ -486,18 +496,21 @@ public class MethodCallExpression implements Expression, Serializable {
 
     }
 
-    public void writeCallArguments(ObjectRoutineScript objectRoutine,
-                                   TestCaseGenerationConfiguration testCaseGenerationConfiguration, TestGenerationState testGenerationState) {
+    public void writeCallArguments(
+            ObjectRoutineScript objectRoutine,
+            TestCaseGenerationConfiguration testCaseGenerationConfiguration,
+            TestGenerationState testGenerationState) {
         List<Parameter> argsContainer = getArguments();
+        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         if (argsContainer != null) {
             for (Parameter argument : argsContainer) {
                 Parameter existingParameter = objectRoutine.getCreatedVariables()
                         .getParameterByValue(argument.getValue());
                 String nameForUse;
-                if (existingParameter != null && existingParameter.getNameForUse(null) != null) {
-                    nameForUse = argument.getNameForUse(existingParameter.getName());
+                if (existingParameter != null && nameFactory.getNameForUse(existingParameter, null) != null) {
+                    nameForUse = nameFactory.getNameForUse(argument, existingParameter.getName());
                 } else {
-                    nameForUse = argument.getNameForUse(methodName);
+                    nameForUse = nameFactory.getNameForUse(argument, methodName);
                 }
                 if (nameForUse != null) {
                     if (argument.isPrimitiveType()) {
@@ -510,9 +523,9 @@ public class MethodCallExpression implements Expression, Serializable {
                     if ((argumentType.length() == 1 || argumentType.startsWith("java.lang."))
                             && !argumentType.contains(".Object")
                     ) {
-                        in(objectRoutine)
+                        PendingStatement.in(objectRoutine, testGenerationState)
                                 .assignVariable(argument)
-                                .fromRecordedValue(testCaseGenerationConfiguration, testGenerationState)
+                                .fromRecordedValue(testCaseGenerationConfiguration)
                                 .endStatement();
                     }
                 }
@@ -588,11 +601,11 @@ public class MethodCallExpression implements Expression, Serializable {
         this.returnDataEvent = returnDataEvent;
     }
 
-    public void setMethodDefinitionId(int methodDefinitionId) {
-        this.methodDefinitionId = methodDefinitionId;
-    }
-
     public int getMethodDefinitionId() {
         return methodDefinitionId;
+    }
+
+    public void setMethodDefinitionId(int methodDefinitionId) {
+        this.methodDefinitionId = methodDefinitionId;
     }
 }

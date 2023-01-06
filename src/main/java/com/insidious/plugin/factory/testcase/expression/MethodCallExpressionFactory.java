@@ -1,7 +1,9 @@
 package com.insidious.plugin.factory.testcase.expression;
 
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.TestCaseWriter;
@@ -54,8 +56,10 @@ public class MethodCallExpressionFactory {
         return new StringExpression(s);
     }
 
-    public static MethodCallExpression MockitoWhen(MethodCallExpression methodCallExpression,
-                                                   TestCaseGenerationConfiguration configuration) {
+    public static MethodCallExpression MockitoWhen(
+            MethodCallExpression methodCallExpression,
+            TestCaseGenerationConfiguration configuration,
+            TestGenerationState testGenerationState) {
 
         Parameter mainSubject = methodCallExpression.getSubject();
         DataInfo subjectProbeInfo = mainSubject.getProbeInfo();
@@ -64,7 +68,7 @@ public class MethodCallExpressionFactory {
 
         String param1;
         String methodParametersStringMock = TestCaseWriter.createMethodParametersStringMock(
-                methodCallExpression.getArguments());
+                methodCallExpression.getArguments(), testGenerationState);
         logger.warn(
                 "Create method call arguments mock: [" + methodCallExpression + "] => " + methodParametersStringMock);
 
@@ -75,8 +79,10 @@ public class MethodCallExpressionFactory {
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
                     "(" + methodParametersStringMock + ")";
         } else {
-            param1 = mainSubject.getNameForUse(null) + "." + methodCallExpression.getMethodName() +
-                    "(" + methodParametersStringMock + ")";
+            ParameterNameFactory parameterNameFactory = testGenerationState.getParameterNameFactory();
+            param1 =
+                    parameterNameFactory.getNameForUse(mainSubject, null) + "." + methodCallExpression.getMethodName() +
+                            "(" + methodParametersStringMock + ")";
         }
 
         Parameter whenExpression = new Parameter();

@@ -10,6 +10,9 @@ public class VariableContainer {
     final Map<Long, Parameter> parameterMap = new HashMap<>();
     private long variableContainerId;
 
+    public VariableContainer() {
+    }
+
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
                 .toUpperCase() + methodName.substring(1);
@@ -82,10 +85,10 @@ public class VariableContainer {
                         .getSerializedValue();
                 String existingValueString = new String(existingSerializedValue);
                 String newValueString = new String(newSerializedValue);
-                if (existingValueString.length() > 0 &&
-                        newValueString.length() > 0 &&
-                        existingValueString.equals(newValueString) &&
-                        Objects.equals(parameter.getNameForUse(null), byValue.getNameForUse(null))
+                if (existingValueString.length() > 0
+                        && newValueString.length() > 0
+                        && existingValueString.equals(newValueString)
+//                        && Objects.equals(parameter.getNameForUse(null), byValue.getNameForUse(null))
                 ) {
                     // existing value matches new value
                 } else {
@@ -138,10 +141,9 @@ public class VariableContainer {
                 .anyMatch(e ->
                         {
                             if (e.getName() == null) return false;
-                            if (e.getName()
-                                    .equals(variableName)) return true;
-                            String nameForUse = e.getNameForUse(null);
-                            return nameForUse == null || nameForUse.equals(variableName);
+//                            if (e.getName().equals(variableName)) return true;
+                            return e.getNamesList().contains(variableName);
+//                            return nameForUse == null || nameForUse.equals(variableName);
                         }
                 );
     }

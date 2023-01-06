@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLineFactory;
@@ -28,10 +29,10 @@ public class ObjectRoutineScript {
     private final Set<TypeName> exceptions = new HashSet<>();
     private final Set<AnnotationSpec> annotations = new HashSet<>();
     private final Set<Modifier> modifiers = new HashSet<>();
+    private final TestGenerationState testGenerationState;
     private String routineName;
     private TestCaseGenerationConfiguration generationConfiguration;
     private VariableContainer createdVariables = new VariableContainer();
-    private TestCaseGenerationConfiguration testConfiguration;
     private List<Parameter> staticMocks = new ArrayList<>();
 
     @Override
@@ -50,18 +51,28 @@ public class ObjectRoutineScript {
         return generationConfiguration;
     }
 
-    public ObjectRoutineScript(String routineName, TestCaseGenerationConfiguration generationConfiguration) {
+    public ObjectRoutineScript(
+            String routineName,
+            TestCaseGenerationConfiguration generationConfiguration,
+            TestGenerationState testGenerationState
+    ) {
         this.routineName = routineName;
         this.generationConfiguration = generationConfiguration;
+        this.testGenerationState = testGenerationState;
     }
 
-    public TestCaseGenerationConfiguration getTestConfiguration() {
-        return testConfiguration;
+    public TestGenerationState getTestGenerationState() {
+        return testGenerationState;
     }
 
-    public ObjectRoutineScript(VariableContainer createdVariables, TestCaseGenerationConfiguration testConfiguration) {
+    public ObjectRoutineScript(
+            VariableContainer createdVariables,
+            TestCaseGenerationConfiguration testConfiguration,
+            TestGenerationState testGenerationState
+    ) {
         this.createdVariables = createdVariables;
-        this.testConfiguration = testConfiguration;
+        this.generationConfiguration = testConfiguration;
+        this.testGenerationState = testGenerationState;
     }
 
     public void addStatement(String s, Object... args) {

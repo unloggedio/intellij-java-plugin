@@ -2,6 +2,7 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
+import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.intellij.openapi.util.text.Strings;
 import com.squareup.javapoet.ClassName;
@@ -295,24 +296,6 @@ public class Parameter implements Serializable, BytesMarshallable {
         this.creatorExpression = createrExpression;
     }
 
-    public FieldSpec.Builder toFieldSpec() {
-        String fieldType = getType();
-        if (fieldType.contains("$")) {
-            fieldType = fieldType.substring(0, fieldType.indexOf('$'));
-        }
-        TypeName fieldTypeName = ClassName.bestGuess(fieldType);
-        if (isContainer) {
-            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(getTemplateMap().get(0)
-                            .getType()));
-        }
-
-        FieldSpec.Builder builder = FieldSpec.builder(
-                fieldTypeName,
-                getNameForUse(null), Modifier.PRIVATE
-        );
-        return builder;
-    }
 
     public void setTemplateParameter(Parameter nextValueParam) {
         isContainer = true;
@@ -342,94 +325,6 @@ public class Parameter implements Serializable, BytesMarshallable {
         return names;
     }
 
-    /**
-     * WIP:
-     * Best Possible Name to Use for a variable (field) in TestCase Script
-     *
-     * @returns String
-     */
-//    public String getNameForUse(String methodName) {
-//        if (nameUsed != null) {
-//            return nameUsed;
-//        }
-//        if (names.size() < 1) {
-//            return null;
-//        }
-//        if (names.size() < 2) {
-//            return names.get(0);
-//        }
-//
-//        int matchedDistance = 99999;
-//
-//        String matchedString = names.get(0);
-//        if (methodName == null) {
-//            methodName = matchedString;
-//        }
-//        // select the string at least different from names[0]
-//        // and put it to the top
-//        for (String name : names) {
-//            int distance = StringUtils.getLevenshteinDistance(name, methodName);
-//            if (distance < matchedDistance) {
-//                matchedString = name;
-//                matchedDistance = distance;
-//            }
-//        }
-//        if (!matchedString.equals(names.get(0))) {
-//            names.remove(matchedString);
-//            names.add(0, matchedString);
-//        }
-//
-//        nameUsed = matchedString;
-//
-//        return matchedString;
-//    }
-    public String getNameForUse(String methodName) {
-        if (nameUsed != null) {
-            return nameUsed;
-        }
-
-        if (names.size() == 0) {
-            return null;
-        }
-
-        if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
-            names.sort(Comparator.comparingInt(String::length));
-            nameUsed = names.get(names.size() - 1);
-            return nameUsed;
-        }
-
-        nameUsed = getNameClosestToMethodName(methodName);
-
-        return nameUsed;
-    }
-
-    private String getNameClosestToMethodName(String methodName) {
-        int matchedDistance = 99999;
-
-        String topName = "";
-        if (names.size() > 0)
-            topName = names.get(0);
-
-        String matchedString = topName;
-        if (methodName == null) {
-            methodName = matchedString;
-        }
-        // select the string at least different from names[0]
-        // and put it to the top
-        for (String name : names) {
-            int distance = StringUtils.getLevenshteinDistance(name, methodName);
-            if (distance < matchedDistance) {
-                matchedString = name;
-                matchedDistance = distance;
-            }
-        }
-        if (!matchedString.equals(topName)) {
-            names.remove(matchedString);
-            names.add(0, matchedString);
-        }
-
-        return matchedString;
-    }
 
     public boolean isBooleanType() {
         return type != null && (type.equals("Z") || type.equals("java.lang.Boolean"));
