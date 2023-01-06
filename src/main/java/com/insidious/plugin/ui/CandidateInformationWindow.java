@@ -163,30 +163,37 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         if (arg == null || arg.getType() == null) {
             return null;
         }
+        String name="";
+        if (arg.getName() != null) {
+            name = arg.getName();
+        }
         switch (arg.getType()) {
             case "I":
-                String name = "";
-                if (arg.getName() != null) {
-                    name = arg.getName();
-                }
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("int", arg.getName(), "" + arg.getValue(), true));
             case "J":
-                name = "";
-                if (arg.getName() != null) {
-                    name = arg.getName();
-                }
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("long", arg.getName(), "" + arg.getValue(), true));
             case "Z":
-                name = "";
-                if (arg.getName() != null) {
-                    name = arg.getName();
-                }
                 String booleanValue = (arg.getValue() == 0 ? false : true) + "";
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("boolean", arg.getName(), booleanValue, true));
-
+            case "S":
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("short", arg.getName(), "" + arg.getValue(), true));
+            case "D":
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("double", arg.getName(), "" + arg.getValue(), false));
+            case "F":
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("float", arg.getName(), "" + arg.getValue(), false));
+            case "C":
+                char charval = (char)((int) arg.getValue());
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("char", arg.getName(), "" + charval, true));
+            case "B":
+                return new DefaultMutableTreeNode(
+                        new ParameterInformation("byte", arg.getName(), "" + arg.getValue(), true));
             default:
                 String serializedValue = new String(arg.getProb()
                         .getSerializedValue());

@@ -124,7 +124,7 @@
                 <border type="none"/>
                 <children>
                   <grid id="7be0e" binding="headingPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="12">
-                    <margin top="4" left="4" bottom="4" right="4"/>
+                    <margin top="8" left="8" bottom="8" right="4"/>
                     <constraints border-constraint="North"/>
                     <properties>
                       <visible value="true"/>
@@ -133,7 +133,7 @@
                     <children>
                       <component id="7f17c" class="javax.swing.JLabel" binding="headingText">
                         <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
                           <enabled value="true"/>

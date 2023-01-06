@@ -404,6 +404,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             gridPanel.add(checkBox, constraints);
             i++;
         }
+        gridPanel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         EmptyBorder emptyBorder = new EmptyBorder(0,0,0,0);
         scrollPane.setBorder(emptyBorder);

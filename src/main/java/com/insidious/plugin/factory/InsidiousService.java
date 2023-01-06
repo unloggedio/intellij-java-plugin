@@ -81,6 +81,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -137,7 +138,6 @@ public class InsidiousService implements Disposable {
     public ProjectTypeInfo getProjectTypeInfo() {
         return projectTypeInfo;
     }
-
     public InsidiousService(Project project) {
         try {
 
@@ -1245,7 +1245,7 @@ public class InsidiousService implements Disposable {
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
             liveViewWindow = new LiveViewWindow(project, this);
-            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
             contentManager.addContent(liveWindowContent);
             contentManager.addContent(onboardingConfigurationWindowContent);
 
