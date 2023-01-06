@@ -194,6 +194,8 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             case "B":
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("byte", arg.getName(), "" + arg.getValue(), true));
+            case "V":
+                return new DefaultMutableTreeNode("void");
             default:
                 String serializedValue = new String(arg.getProb()
                         .getSerializedValue());
