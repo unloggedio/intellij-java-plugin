@@ -66,6 +66,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
@@ -81,6 +82,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -137,7 +139,6 @@ public class InsidiousService implements Disposable {
     public ProjectTypeInfo getProjectTypeInfo() {
         return projectTypeInfo;
     }
-
     public InsidiousService(Project project) {
         try {
 
@@ -795,16 +796,59 @@ public class InsidiousService implements Disposable {
         this.client.getProjectToken(projectTokenCallback);
     }
 
+    public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript)
+    {
+        StringBuilder sb = new StringBuilder(testCaseScript.getClassName().replaceFirst("Test",""));
+        sb.deleteCharAt(sb.length()-1);
+
+        @NotNull PsiFile[] classBase = FilenameIndex.getFilesByName(project, sb.toString()+".java",
+                GlobalSearchScope.projectScope(project));
+
+        if(classBase.length>0)
+        {
+            if(classBase.length>1)
+            {
+                //compare packages
+                for(int i=0;i<classBase.length;i++)
+                {
+                    PsiFile file = classBase[i];
+                    if (file instanceof PsiJavaFile) {
+                        PsiJavaFile psiJavaFile = (PsiJavaFile) file;
+                        String packageName = psiJavaFile.getPackageName();
+                        if(testCaseScript.getPackageName().equals(packageName))
+                        {
+                            return getBasePathForVirtualFile(classBase[i].getVirtualFile());
+                        }
+                    }
+                }
+                return getBasePathForVirtualFile(classBase[0].getVirtualFile());
+            }
+            return getBasePathForVirtualFile(classBase[0].getVirtualFile());
+        }
+        return null;
+    }
+
+    public String getBasePathForVirtualFile(VirtualFile classFound)
+    {
+        String path = classFound.getPath();
+        int last_index = path.lastIndexOf("src");
+        String basePath = path.substring(0,last_index);
+        return basePath;
+    }
+
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
-
-
+            String basePath = fetchPathToSaveTestCase(testCaseScript);
+            if(basePath==null)
+            {
+                basePath=project.getBasePath();
+            }
             Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
             if (valueResourceMap.values()
                     .size() > 0) {
                 String testResourcesDirPath =
-                        project.getBasePath() + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
+                        basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
                 resourcesDirFile.mkdirs();
                 String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
@@ -820,7 +864,7 @@ public class InsidiousService implements Disposable {
 
 
             String testOutputDirPath =
-                    project.getBasePath() + "/src/test/java/"
+                    basePath + "/src/test/java/"
                             + testCaseScript.getPackageName()
                             .replaceAll("\\.", "/");
             File outputDir = new File(testOutputDirPath);
@@ -1245,7 +1289,7 @@ public class InsidiousService implements Disposable {
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
             liveViewWindow = new LiveViewWindow(project, this);
-            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
+            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
             contentManager.addContent(liveWindowContent);
             contentManager.addContent(onboardingConfigurationWindowContent);
 
