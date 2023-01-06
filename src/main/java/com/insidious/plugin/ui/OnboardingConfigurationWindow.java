@@ -82,6 +82,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             if(insidiousService.getProjectTypeInfo().isDetectDependencies())
             {
                 fetchDependencies();
+                //downloadAgent();
             }
         }
         catch (Exception e)
@@ -99,7 +100,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         applyConfigButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                runApplicationWithUnlogged();
+                routeToDocumentationpage();
             }
         });
         applyConfigButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -158,6 +159,19 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             //no browser
         }
     }
+
+    private void routeToDocumentationpage()
+    {
+        String link = "https://docs.unlogged.io";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
+            } catch (Exception e) { }
+        } else {
+            //no browser
+        }
+    }
+
     public JComponent getContent() {
         return mainPanel;
     }
@@ -638,5 +652,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             System.out.println("Dep [Gradle] - "+key+" -> "+dependencies.get(key));
         }
         insidiousService.getProjectTypeInfo().getSerializers().add(dependencies);
+    }
+
+    private void downloadAgent()
+    {
+        //System.out.println("[DOWNLOADING AGENT]");
+        //System.out.println(insidiousService.getProjectTypeInfo().getSerializers().toString());
+        insidiousService.ensureAgentJarWithConfig(false, insidiousService.getProjectTypeInfo());
     }
 }

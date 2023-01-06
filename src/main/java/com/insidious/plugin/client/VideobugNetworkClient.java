@@ -13,6 +13,7 @@ import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
+import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
@@ -697,6 +698,23 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public SessionInstance getSessionInstance() {
         return null;
+    }
+
+    @Override
+    public void getAgentDownloadUrlForConfig(ProjectTypeInfo info, AgentDownloadUrlCallback agentDownloadUrlCallback) {
+        System.out.println("Dependencies  "+info.getSerializers().toString());
+        get("https://cloud.bug.video" + "/api/data/java-agent-jar-link", new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                agentDownloadUrlCallback.error(e.getMessage());
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                agentDownloadUrlCallback.success(Objects.requireNonNull(response.body())
+                        .string());
+            }
+        });
     }
 
     @Override

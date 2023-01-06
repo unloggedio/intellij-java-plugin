@@ -189,8 +189,14 @@
                                   </grid>
                                 </constraints>
                                 <properties>
-                                  <icon value="icons/png/play-icon.png"/>
-                                  <text value="Run with Unlogged"/>
+                                  <background color="-15065044"/>
+                                  <borderPainted value="false"/>
+                                  <contentAreaFilled value="false"/>
+                                  <foreground color="-1"/>
+                                  <hideActionText value="false"/>
+                                  <icon value="icons/png/document_icon.png"/>
+                                  <opaque value="true"/>
+                                  <text value="Documentation"/>
                                 </properties>
                               </component>
                               <component id="8153a" class="javax.swing.JButton" binding="linkToDiscordButton">
@@ -226,7 +232,7 @@
                                   <editable value="false"/>
                                   <foreground color="-16659211"/>
                                   <margin top="8" left="8" bottom="8" right="8"/>
-                                  <text value="Unlogged adds a VM parameter in your run config, so that when you run your application, it runs with the Unlogged agent. The agent bytecode instruments your code to record the execution.&#10;If you are facing issues with run button, get in touch."/>
+                                  <text value="Unlogged adds a VM parameter in your run config, so that when you run your application, it runs with the Unlogged agent. The agent bytecode instruments your code to record the execution.&#10;Refer to the documentation below to check how to use the below command."/>
                                 </properties>
                               </component>
                               <scrollpane id="312b0" binding="vmOptsScroll">
