@@ -405,6 +405,8 @@ public class DaoService {
                     paramArgument.setTypeForced(probeInfo.getValueDesc()
                             .getString());
                 } else {
+                    // clone the param because adding MCE the argument Object can get updated
+                    // afterwords in parameterMap (cause java uses pass by reference)
                     paramArgument = com.insidious.plugin.pojo.Parameter.cloneParameter(paramArgument);
                 }
                 paramArgument.setProbeInfo(probeInfo);
