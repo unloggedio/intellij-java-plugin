@@ -5,6 +5,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VideobugUtils;
 import com.insidious.plugin.ui.Components.ModulePanel;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.Executor;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
@@ -14,6 +15,7 @@ import com.intellij.execution.impl.DefaultJavaProgramRunner;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
@@ -72,6 +74,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
+    private static final Logger logger = LoggerUtil.getInstance(OnboardingConfigurationWindow.class);
+
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
@@ -658,6 +662,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void downloadAgent()
     {
+        logger.info("[Downloading agent for dependency ] "+insidiousService.getProjectTypeInfo().getSerializers().toString());
         System.out.println("[Serializer dependencies] "+insidiousService.getProjectTypeInfo().getSerializers().toString());
         String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.8.29-SNAPSHOT-";
         String type = "gson";
@@ -672,13 +677,16 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         }
         String url = (host+type+extention).trim();
+        logger.info("[Downloading from] "+url);
+        InsidiousNotification.notifyMessage("Downloading agent from link ." +url+". Downloading to "+Constants.VIDEOBUG_AGENT_PATH,
+                NotificationType.INFORMATION);
         downloadAgent(url,true);
     }
 
     private void downloadAgent(String url, boolean overwrite)
     {
+        logger.info("[starting download]");
         Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
-
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
         System.out.println("Downloading agent to path - " + absolutePath);
@@ -696,9 +704,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
                 fileOS.write(data, 0, byteContent);
             }
+            logger.info("[Agent download complete]");
             InsidiousNotification.notifyMessage("Agent downloaded.",
                     NotificationType.INFORMATION);
         } catch (Exception e) {
+            logger.info("[Agent download failed]");
             System.out.println("failed to download java agent"+ e);
             InsidiousNotification.notifyMessage(
                     "Failed to download agent."
