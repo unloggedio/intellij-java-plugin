@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
@@ -40,8 +41,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.List;
 
@@ -745,12 +750,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
-        System.out.println("Downloading agent to path - " + absolutePath);
+//        System.out.println("Downloading agent to path - " + absolutePath);
 
         File agentFile = new File(absolutePath);
-        System.out.println("URL in Download "+url);
+//        System.out.println("URL in Download "+url);
         if (agentFile.exists() && !overwrite) {
-            System.out.println("java agent already exists at the path");
+//            System.out.println("java agent already exists at the path");
             return;
         }
         try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
@@ -761,21 +766,31 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                 fileOS.write(data, 0, byteContent);
             }
             logger.info("[Agent download complete]");
-            InsidiousNotification.notifyMessage("Agent downloaded.",
-                    NotificationType.INFORMATION);
+            if(md5Check(fetchVersionFromUrl(url),agentFile))
+            {
+                InsidiousNotification.notifyMessage("Agent downloaded.",
+                        NotificationType.INFORMATION);
+            }
+            else
+            {
+                InsidiousNotification.notifyMessage(
+                        "Agent md5 check failed."
+                                + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                        NotificationType.ERROR);
+            }
         } catch (Exception e) {
             logger.info("[Agent download failed]");
-            System.out.println("failed to download java agent"+ e);
+//            System.out.println("failed to download java agent"+ e);
             InsidiousNotification.notifyMessage(
                     "Failed to download agent."
                             + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                    NotificationType.ERROR);        }
+                    NotificationType.ERROR);
+        }
     }
 
     //needs to be post indexing
     private void searchJacksonDatabindVersion()
     {
-        System.out.println("LIBS");
         LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(insidiousService.getProject());
         Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
         int count = 0;
@@ -786,7 +801,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             {
                 String[] parts = lib.getName().split("com.fasterxml.jackson.core:jackson-databind:");
                 String version = trimVersion(parts[parts.length-1].trim());
-                System.out.println("Jackson databind version = "+version);
+//                System.out.println("Jackson databind version = "+version);
                 insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(version);
                 if(!agentDownloadInitiated)
                 {
@@ -818,5 +833,70 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
             return;
         }
+    }
+
+    public String fetchVersionFromUrl(String url)
+    {
+        if(url.contains("gson"))
+        {
+            return "gson";
+        }
+        else
+        {
+            return url.substring(url.indexOf("-jackson-")+1,url.indexOf(".jar"));
+        }
+    }
+    public boolean md5Check(String agentVersion, File agent)
+    {
+        try {
+            byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
+            byte[] hash = MessageDigest.getInstance("MD5").digest(data);
+            String checksum = new BigInteger(1, hash).toString(16);
+            System.out.println("Checksum of file "+checksum);
+            switch (agentVersion)
+            {
+                case "gson" :
+                    if (checksum.equals(Checksums.AGENT_GSON))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.9":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_9))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.10":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_10))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.11":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_11))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.12":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_12))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.13":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_13))
+                    {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failded to get checksum of downloaded file.");
+        }
+        return false;
     }
 }
