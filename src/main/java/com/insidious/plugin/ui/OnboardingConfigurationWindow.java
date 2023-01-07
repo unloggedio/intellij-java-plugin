@@ -18,7 +18,11 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.libraries.Library;
+import com.intellij.openapi.roots.libraries.LibraryTable;
+import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
@@ -28,8 +32,11 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
@@ -76,33 +83,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
     private static final Logger logger = LoggerUtil.getInstance(OnboardingConfigurationWindow.class);
 
+    private boolean agentDownloadInitiated=false;
+
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
         this.JVMoptionsBase = getJVMoptionsBase();
-        fetchModules();
-        findAllPackages();
-        updateVMparameter();
-        try
-        {
-            if(insidiousService.getProjectTypeInfo().isDetectDependencies())
-            {
-                fetchDependencies();
-                downloadAgent();
-            }
-        }
-        catch (Exception e)
-        {
-            System.out.println("Exception running dependency detection "+e);
-            e.printStackTrace();
-        }
-        try {
-            this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0).getText());
-        }
-        catch (Exception e)
-        {
-            System.out.println("No modules, can't set tooltip text");
-        }
         applyConfigButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -124,6 +110,36 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         });
         copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        InsidiousNotification.notifyMessage("Please wait till indexing is complete.",
+                NotificationType.INFORMATION);
+        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+        dumbService.runWhenSmart(() -> {setupWindowContent();});
+    }
+
+    private void setupWindowContent()
+    {
+        fetchModules();
+        findAllPackages();
+        updateVMparameter();
+        try {
+            this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0).getText());
+        }
+        catch (Exception e)
+        {
+            System.out.println("No modules, can't set tooltip text");
+        }
+        try
+        {
+            if(insidiousService.getProjectTypeInfo().isDetectDependencies())
+            {
+                searchJacksonDatabindVersion();
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception downloading agent"+e);
+            e.printStackTrace();
+        }
     }
 
     private void copyVMoptions()
@@ -526,6 +542,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     public void fetchDependencies()
     {
+        logger.info("Starting dependency search");
         String command="";
         if(insidiousService.getProjectTypeInfo().isMaven())
         {
@@ -548,7 +565,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         }
         catch (IOException e) {
-            System.err.println(e);
+            logger.info(e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Couldn't detect dependencies."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
+        }
+    }
+
+    public void fetchRunnerVersion()
+    {
+        logger.info("Starting dependency search");
+        String command="";
+        if(insidiousService.getProjectTypeInfo().isMaven())
+        {
+            command = "mvn -v";
+
+        }
+        else
+        {
+            command = "gradle -v";
+        }
+        try
+        {
+            String outlist[] = runCommandGeneric(command);
+            System.out.println("[VERSION TEXT]");
+            for(int i=0;i<outlist.length;i++)
+            {
+                System.out.println(""+outlist[i]);
+            }
+        }
+        catch (IOException e) {
+            logger.info(e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Couldn't detect dependencies."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
         }
     }
 
@@ -662,15 +716,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void downloadAgent()
     {
-        logger.info("[Downloading agent for dependency ] "+insidiousService.getProjectTypeInfo().getSerializers().toString());
-        System.out.println("[Serializer dependencies] "+insidiousService.getProjectTypeInfo().getSerializers().toString());
+        agentDownloadInitiated=true;
+//        logger.info("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
+//        System.out.println("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
         String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.8.29-SNAPSHOT-";
         String type = "gson";
         String extention = ".jar";
-        if(insidiousService.getProjectTypeInfo().getSerializers().get(0).keySet().size()>0)
+
+        if(insidiousService.getProjectTypeInfo().getJacksonDatabindVersion()!=null)
         {
             //fetch jackson
-            String version = insidiousService.getProjectTypeInfo().getSerializers().get(0).get("com.fasterxml.jackson.core:jackson-databind");
+            String version = insidiousService.getProjectTypeInfo().getJacksonDatabindVersion();
             if(version!=null)
             {
                 type="jackson-"+version;
@@ -714,5 +770,53 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
                     "Failed to download agent."
                             + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                     NotificationType.ERROR);        }
+    }
+
+    //needs to be post indexing
+    private void searchJacksonDatabindVersion()
+    {
+        System.out.println("LIBS");
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext())
+        {
+            Library lib = lib_iterator.next();
+            if(lib.getName().contains("com.fasterxml.jackson.core:jackson-databind"))
+            {
+                String[] parts = lib.getName().split("com.fasterxml.jackson.core:jackson-databind:");
+                String version = trimVersion(parts[parts.length-1].trim());
+                System.out.println("Jackson databind version = "+version);
+                insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(version);
+                if(!agentDownloadInitiated)
+                {
+                    downloadAgent();
+                }
+                return;
+            }
+            count++;
+        }
+        if(count==0)
+        {
+            //import of project not complete, wait and rerun
+            System.out.println("Project import not complete, waiting.");
+            Timer timer = new Timer(3000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    searchJacksonDatabindVersion();
+                }
+            });
+            timer.setRepeats(false);
+            timer.start();
+        }
+        else
+        {
+            //import complete, but no jackson dependency found. Use GSON
+            if(!agentDownloadInitiated)
+            {
+                downloadAgent();
+            }
+            return;
+        }
     }
 }

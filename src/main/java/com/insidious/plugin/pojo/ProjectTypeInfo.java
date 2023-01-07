@@ -11,6 +11,7 @@ public class ProjectTypeInfo {
     //feature flag to enable/disable searching from dependency tree
     private boolean detectDependencies=true;
     private List<Map<String,String>> serializers = new ArrayList<>();
+    private String jacksonDatabindVersion = null;
 
     public String getJavaVersion() {
         return javaVersion;
@@ -42,5 +43,13 @@ public class ProjectTypeInfo {
 
     public void setDetectDependencies(boolean detectDependencies) {
         this.detectDependencies = detectDependencies;
+    }
+
+    public String getJacksonDatabindVersion() {
+        return jacksonDatabindVersion;
+    }
+
+    public void setJacksonDatabindVersion(String jacksonDatabindVersion) {
+        this.jacksonDatabindVersion = jacksonDatabindVersion;
     }
 }
