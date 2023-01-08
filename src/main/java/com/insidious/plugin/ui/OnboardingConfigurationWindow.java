@@ -1,10 +1,12 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VideobugUtils;
 import com.insidious.plugin.ui.Components.ModulePanel;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.Executor;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
@@ -14,9 +16,14 @@ import com.intellij.execution.impl.DefaultJavaProgramRunner;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.libraries.Library;
+import com.intellij.openapi.roots.libraries.LibraryTable;
+import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.*;
@@ -26,11 +33,20 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
 
 import javax.swing.*;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.math.BigInteger;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.List;
 
@@ -70,33 +86,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
     private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
+    private static final Logger logger = LoggerUtil.getInstance(OnboardingConfigurationWindow.class);
+
+    private boolean agentDownloadInitiated=false;
+
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
         this.JVMoptionsBase = getJVMoptionsBase();
-        fetchModules();
-        findAllPackages();
-        updateVMparameter();
-        try
-        {
-            if(insidiousService.getProjectTypeInfo().isDetectDependencies())
-            {
-                fetchDependencies();
-                //downloadAgent();
-            }
-        }
-        catch (Exception e)
-        {
-            System.out.println("Exception running dependency detection "+e);
-            e.printStackTrace();
-        }
-        try {
-            this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0).getText());
-        }
-        catch (Exception e)
-        {
-            System.out.println("No modules, can't set tooltip text");
-        }
         applyConfigButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -118,6 +115,36 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         });
         copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        InsidiousNotification.notifyMessage("Please wait till indexing is complete.",
+                NotificationType.INFORMATION);
+        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+        dumbService.runWhenSmart(() -> {setupWindowContent();});
+    }
+
+    private void setupWindowContent()
+    {
+        fetchModules();
+        findAllPackages();
+        updateVMparameter();
+        try {
+            this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0).getText());
+        }
+        catch (Exception e)
+        {
+            System.out.println("No modules, can't set tooltip text");
+        }
+        try
+        {
+            if(insidiousService.getProjectTypeInfo().isDetectDependencies())
+            {
+                searchJacksonDatabindVersion();
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception downloading agent"+e);
+            e.printStackTrace();
+        }
     }
 
     private void copyVMoptions()
@@ -520,6 +547,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     public void fetchDependencies()
     {
+        logger.info("Starting dependency search");
         String command="";
         if(insidiousService.getProjectTypeInfo().isMaven())
         {
@@ -542,7 +570,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         }
         catch (IOException e) {
-            System.err.println(e);
+            logger.info(e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Couldn't detect dependencies."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
+        }
+    }
+
+    public void fetchRunnerVersion()
+    {
+        logger.info("Starting dependency search");
+        String command="";
+        if(insidiousService.getProjectTypeInfo().isMaven())
+        {
+            command = "mvn -v";
+
+        }
+        else
+        {
+            command = "gradle -v";
+        }
+        try
+        {
+            String outlist[] = runCommandGeneric(command);
+            System.out.println("[VERSION TEXT]");
+            for(int i=0;i<outlist.length;i++)
+            {
+                System.out.println(""+outlist[i]);
+            }
+        }
+        catch (IOException e) {
+            logger.info(e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Couldn't detect dependencies."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
         }
     }
 
@@ -656,8 +721,182 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void downloadAgent()
     {
-        //System.out.println("[DOWNLOADING AGENT]");
-        //System.out.println(insidiousService.getProjectTypeInfo().getSerializers().toString());
-        insidiousService.ensureAgentJarWithConfig(false, insidiousService.getProjectTypeInfo());
+        agentDownloadInitiated=true;
+//        logger.info("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
+//        System.out.println("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
+        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.8.29-SNAPSHOT-";
+        String type = "gson";
+        String extention = ".jar";
+
+        if(insidiousService.getProjectTypeInfo().getJacksonDatabindVersion()!=null)
+        {
+            //fetch jackson
+            String version = insidiousService.getProjectTypeInfo().getJacksonDatabindVersion();
+            if(version!=null)
+            {
+                type="jackson-"+version;
+            }
+        }
+        String url = (host+type+extention).trim();
+        logger.info("[Downloading from] "+url);
+        InsidiousNotification.notifyMessage("Downloading agent from link ." +url+". Downloading to "+Constants.VIDEOBUG_AGENT_PATH,
+                NotificationType.INFORMATION);
+        downloadAgent(url,true);
+    }
+
+    private void downloadAgent(String url, boolean overwrite)
+    {
+        logger.info("[starting download]");
+        Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
+        String absolutePath = fileURiString.toAbsolutePath()
+                .toString();
+//        System.out.println("Downloading agent to path - " + absolutePath);
+
+        File agentFile = new File(absolutePath);
+//        System.out.println("URL in Download "+url);
+        if (agentFile.exists() && !overwrite) {
+//            System.out.println("java agent already exists at the path");
+            return;
+        }
+        try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
+             FileOutputStream fileOS = new FileOutputStream(absolutePath)) {
+            byte[] data = new byte[1024];
+            int byteContent;
+            while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
+                fileOS.write(data, 0, byteContent);
+            }
+            logger.info("[Agent download complete]");
+            if(md5Check(fetchVersionFromUrl(url),agentFile))
+            {
+                InsidiousNotification.notifyMessage("Agent downloaded.",
+                        NotificationType.INFORMATION);
+            }
+            else
+            {
+                InsidiousNotification.notifyMessage(
+                        "Agent md5 check failed."
+                                + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                        NotificationType.ERROR);
+            }
+        } catch (Exception e) {
+            logger.info("[Agent download failed]");
+//            System.out.println("failed to download java agent"+ e);
+            InsidiousNotification.notifyMessage(
+                    "Failed to download agent."
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
+        }
+    }
+
+    //needs to be post indexing
+    private void searchJacksonDatabindVersion()
+    {
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext())
+        {
+            Library lib = lib_iterator.next();
+            if(lib.getName().contains("com.fasterxml.jackson.core:jackson-databind"))
+            {
+                String[] parts = lib.getName().split("com.fasterxml.jackson.core:jackson-databind:");
+                String version = trimVersion(parts[parts.length-1].trim());
+//                System.out.println("Jackson databind version = "+version);
+                insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(version);
+                if(!agentDownloadInitiated)
+                {
+                    downloadAgent();
+                }
+                return;
+            }
+            count++;
+        }
+        if(count==0)
+        {
+            //import of project not complete, wait and rerun
+            System.out.println("Project import not complete, waiting.");
+            Timer timer = new Timer(3000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    searchJacksonDatabindVersion();
+                }
+            });
+            timer.setRepeats(false);
+            timer.start();
+        }
+        else
+        {
+            //import complete, but no jackson dependency found. Use GSON
+            if(!agentDownloadInitiated)
+            {
+                downloadAgent();
+            }
+            return;
+        }
+    }
+
+    public String fetchVersionFromUrl(String url)
+    {
+        if(url.contains("gson"))
+        {
+            return "gson";
+        }
+        else
+        {
+            return url.substring(url.indexOf("-jackson-")+1,url.indexOf(".jar"));
+        }
+    }
+    public boolean md5Check(String agentVersion, File agent)
+    {
+        try {
+            byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
+            byte[] hash = MessageDigest.getInstance("MD5").digest(data);
+            String checksum = new BigInteger(1, hash).toString(16);
+            System.out.println("Checksum of file "+checksum);
+            switch (agentVersion)
+            {
+                case "gson" :
+                    if (checksum.equals(Checksums.AGENT_GSON))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.9":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_9))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.10":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_10))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.11":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_11))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.12":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_12))
+                    {
+                        return true;
+                    }
+                    break;
+                case "jackson-2.13":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_13))
+                    {
+                        return true;
+                    }
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failded to get checksum of downloaded file.");
+        }
+        return false;
     }
 }
