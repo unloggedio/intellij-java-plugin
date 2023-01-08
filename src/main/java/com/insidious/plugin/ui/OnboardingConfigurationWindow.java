@@ -118,9 +118,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
             }
         });
         copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        InsidiousNotification.notifyMessage("Please wait till indexing is complete.",
-                NotificationType.INFORMATION);
+
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+        if(dumbService.isDumb())
+        {
+            InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
+                    NotificationType.INFORMATION);
+        }
         dumbService.runWhenSmart(() -> {startSetupInBackground_v2();});
     }
 

@@ -3,9 +3,9 @@ package com.insidious.plugin;
 public class Checksums {
 
     public static String AGENT_GSON="742018454550c83cfcd57b20ad865ce8";
-    public static String AGENT_JACKSON_2_9="7d235ec8f384b955796acb72ed316423";
-    public static String AGENT_JACKSON_2_10="42a50b92d8ab3d2d631d90e2f46dbe1d";
-    public static String AGENT_JACKSON_2_11="945a9ea2efd091afb9363320dba0faa7";
-    public static String AGENT_JACKSON_2_12="f1bb78e0689b0eaedf1439101c619d43";
-    public static String AGENT_JACKSON_2_13="e5ea49c7fe06941e4b9e4371ebc68fcc";
+    public static String AGENT_JACKSON_2_9="e2f3a3f56decac2f8c98ed4a6ce950ec";
+    public static String AGENT_JACKSON_2_10="207b0e9eb4fff1c3f7d2577de89f6510";
+    public static String AGENT_JACKSON_2_11="75de8308feb773e19e4e7accf534701b";
+    public static String AGENT_JACKSON_2_12="823bb4a8b00fdafd1256bfb4e0540330";
+    public static String AGENT_JACKSON_2_13="eeb2cf129a221030c26c1b60991719f6";
 }
