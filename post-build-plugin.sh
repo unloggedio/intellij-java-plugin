@@ -1,5 +1,3 @@
-!/bin/bash
-
 cd build/distributions
 unzip plugin-${PLUGIN_VERSION}.zip
 
@@ -8,7 +6,8 @@ rm jna-5.5.0.jar jna-platform-5.5.0.jar
 
 cd ../..
 
-zip -r -Z deflate plugin-${PLUGIN_VERSION}-all.zip plugin/*
+rm plugin-${PLUGIN_VERSION}.zip
+zip -r -Z deflate plugin-${PLUGIN_VERSION}.zip plugin/*
 
 rm -rf plugin
 

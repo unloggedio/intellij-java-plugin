@@ -7,15 +7,16 @@
 
     <description>
         <![CDATA[
-        Videobug records code execution in production so that developers can watch it line by line as frequently as they want, just like a video.
-        <br/>
-        It takes away the pain of recreating exact conditions that led to a bug and saves ~3 hours of developer time every day.
-        <br/>
-
-        Developers can deploy Videobug server on their premise, download our Java agent and run their java code on localhost, staging or production.
-        <br/>
-        Whenever a bug happens, they can check this plugin, go back in time, see a line-by-line code execution & fix the bug in minutes.
-      ]]>
+            Unlogged records code execution and auto generates unit tests for your JAVA code.
+            Developers spend ~2 hours every day writing unit tests, and we aim to help developers save this time.
+              <br/>
+            Install this plugin, and run your APIs. Unlogged will record the code execution as it happens.
+              <br/>
+            Click “Process Logs”, Unlogged will present test candidates to you.
+              <br/>
+            These test candidates show the input and return value of each method.
+            Click  "Assert Equal" to generate positive test cases or "Assert Not Equal" to generate negative test cases instantly.
+        ]]>
     </description>
 
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
