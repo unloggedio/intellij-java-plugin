@@ -16,9 +16,11 @@ import com.intellij.execution.impl.DefaultJavaProgramRunner;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
@@ -31,6 +33,7 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.Timer;
@@ -118,7 +121,20 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         InsidiousNotification.notifyMessage("Please wait till indexing is complete.",
                 NotificationType.INFORMATION);
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-        dumbService.runWhenSmart(() -> {setupWindowContent();});
+        dumbService.runWhenSmart(() -> {startSetupInBackground_v2();});
+    }
+
+    private void startSetupInBackground_v2()
+    {
+        ApplicationManager.getApplication().executeOnPooledThread(new Runnable() {
+            public void run() {
+                ApplicationManager.getApplication().runReadAction(new Runnable() {
+                    public void run() {
+                        setupWindowContent();
+                    }
+                });
+            }
+        });
     }
 
     private void setupWindowContent()
