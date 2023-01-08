@@ -45,7 +45,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
 import java.math.BigInteger;
+import java.net.URI;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -169,6 +172,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void copyVMoptions()
     {
+        String params = getVMParameters();
+        insidiousService.copyToClipboard(params.toString());
+        InsidiousNotification.notifyMessage("VM options copied to clipboard.",
+                NotificationType.INFORMATION);
+    }
+
+    private String getVMParameters()
+    {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(JVMoptionsBase);
         newVMParams.append("i="+basePackageLabel.getText());
@@ -186,9 +197,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
         {
             newVMParams.append("\"");
         }
-        insidiousService.copyToClipboard(newVMParams.toString());
-        InsidiousNotification.notifyMessage("VM options copied to clipboard.",
-                NotificationType.INFORMATION);
+        return newVMParams.toString();
     }
     private String getJVMoptionsBase()
     {
@@ -209,13 +218,32 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener{
 
     private void routeToDocumentationpage()
     {
-        String link = "https://docs.unlogged.io";
-        if (Desktop.isDesktopSupported()) {
-            try {
-                java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
-            } catch (Exception e) { }
-        } else {
-            //no browser
+        String link = "https://docs.unlogged.io?parms="+getVMParameters();
+        System.out.println("URL for docs "+link);
+        try{
+            String decodedURL = URLDecoder.decode(link, StandardCharsets.UTF_8);
+            URL url = new URL(decodedURL);
+            URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(uri);
+                } catch (Exception e) {
+                    System.out.println("Exception sending parameters to docs.");
+                }
+            } else {
+                //no browser
+            }
+        }
+        catch(Exception e)
+        {
+            link = "https://docs.unlogged.io";
+            if (Desktop.isDesktopSupported()) {
+                try {
+                    java.awt.Desktop.getDesktop().browse(java.net.URI.create(link));
+                } catch (Exception ex) { }
+            } else {
+                //no browser
+            }
         }
     }
 
