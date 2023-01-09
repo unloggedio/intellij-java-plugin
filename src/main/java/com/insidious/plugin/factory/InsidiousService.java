@@ -158,10 +158,10 @@ public class InsidiousService implements Disposable {
             debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
                     .getDebugSessions());
 
-            ReadAction.run(this::getProjectPackageName);
+            ReadAction.nonBlocking(this::getProjectPackageName);
 
-            ReadAction.run(InsidiousService.this::checkAndEnsureJavaAgentCache);
-            ReadAction.run(this::initiateUI);
+            ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache);
+            ReadAction.nonBlocking(this::initiateUI);
 
 
         } catch (ServiceNotReadyException snre) {
@@ -281,8 +281,7 @@ public class InsidiousService implements Disposable {
     public void checkAndEnsureJavaAgent(boolean overwrite, AgentJarDownloadCompleteCallback agentJarDownloadCompleteCallback) {
 
         //returning from this to prevent downloading agent 1.8.1
-        if(true)
-        {
+        if (true) {
             return;
         }
         File insidiousFolder = new File(Constants.VIDEOBUG_HOME_PATH.toString());
