@@ -103,7 +103,6 @@ public class InsidiousService implements Disposable {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
-    //    private TestCaseService testCaseService;
     private Project project;
     private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
