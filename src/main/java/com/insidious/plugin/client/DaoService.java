@@ -65,6 +65,18 @@ public class DaoService {
             "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
             "  and (pi.eventType is null or pi.eventType != 'CALL_RETURN')\n" +
             "";
+
+    public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT = "select mc.*\n" +
+            "from method_call mc\n" +
+            "         left join parameter subject on subject.value == mc.subject_id\n" +
+            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "  and (subject.type is null or subject.type not like 'org.springframework%')\n" +
+            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
+            "  and mc.id = ? or (mc.parentId = ? and mc.isStaticCall = false) or\n" +
+            "    (mc.parentId > ? and mc.returnDataEvent < ? and mc.isStaticCall = true and mc.usesFields = " +
+            "true) and (pi.eventType is null or pi.eventType != 'CALL_RETURN');";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
@@ -162,13 +174,17 @@ public class DaoService {
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
 
         Set<Long> calls = new HashSet<>(testCandidateMetadata.getCallsList());
-        List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(calls.size());
+        List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(0);
         if (loadCalls) {
-            calls.add(testCandidateMetadata.getMainMethod());
+//            calls.add(testCandidateMetadata.getMainMethod());
 
-            logger.warn("\tloading " + calls.size() + " call methods");
+//            logger.warn("\tloading " + calls.size() + " call methods");
+//            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
+//                    getMethodCallExpressionToMockFast(calls);
+//
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
-                    getMethodCallExpressionToMockFast(calls);
+                    getMethodCallExpressionToMockFast(testCandidateMetadata);
+
             // this assertion can fail because we dont actually load private calls
             // or calls on org.springframework type variables
 //            assert calls.size() == methodCallsFromDb.size();
@@ -241,6 +257,46 @@ public class DaoService {
         return converted;
     }
 
+    private List<com.insidious.plugin.pojo.MethodCallExpression>
+    getMethodCallExpressionToMockFast(TestCandidateMetadata testCandidateMetadata) {
+
+        long start = Date.from(Instant.now())
+                .getTime();
+        try {
+            long mainMethodId = testCandidateMetadata.getMainMethod();
+            GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
+                    .queryRaw(CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT, methodCallExpressionDao.getRawRowMapper(),
+                            String.valueOf(mainMethodId), String.valueOf(mainMethodId), String.valueOf(mainMethodId),
+                            String.valueOf(testCandidateMetadata.getExitProbeIndex()));
+
+            List<MethodCallExpression> mceList = results.getResults();
+            results.close();
+
+            List<Long> constructedValues = mceList.stream()
+                    .filter(e -> e.getMethodName()
+                            .equals("<init>"))
+                    .map(MethodCallExpression::getReturnValue_id)
+                    .collect(Collectors.toList());
+
+            List<MethodCallExpression> callsToBuild = mceList.stream()
+                    .filter(e -> !constructedValues.contains(e.getSubject()))
+                    .filter(e -> !e.getMethodName().equals("<clinit>"))
+                    .collect(Collectors.toList());
+
+            List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(callsToBuild);
+            long end = Date.from(Instant.now())
+                    .getTime();
+            logger.warn("Load calls took: " + (end - start));
+            return callsList;
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(),
+                    NotificationType.ERROR);
+            throw new RuntimeException(e);
+        }
+
+    }
+
     private List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionByIds(List<Long> callIds) {
         long start = Date.from(Instant.now())
                 .getTime();
@@ -260,29 +316,6 @@ public class DaoService {
             throw new RuntimeException(e);
         }
     }
-
-    public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMock(List<Long> callIds) {
-        long start = Date.from(Instant.now())
-                .getTime();
-        try {
-            String query = CALLS_TO_MOCK_SELECT_QUERY.replace("CALL_IDS", StringUtils.join(callIds, ","));
-            GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
-                    .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
-            List<MethodCallExpression> results1 = results.getResults();
-            List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
-                    results1.parallelStream()
-                            .map(this::convertDbMCE)
-                            .collect(Collectors.toList());
-            results.close();
-            long end = Date.from(Instant.now())
-                    .getTime();
-            logger.warn("Load calls took: " + (end - start));
-            return callsList;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 
     public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(Collection<Long> callIds) {
         long start = Date.from(Instant.now())
@@ -381,17 +414,10 @@ public class DaoService {
 
             MethodCallExpression dbMce = dbMceMap.get(methodCallExpression.getId());
 
-            if (methodCallExpression.isStaticCall()) {
-                DataInfo entryProbeInfo = probeInfoMap.get(dbMce.getEntryProbeInfo_id());
-                com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
-                staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner",
-                        entryProbeInfo.getValueDesc()
-                                .getString())));
-                staticSubject.setProb(probesMap.get(dbMce.getEntryProbe_id()));
-                staticSubject.setProbeInfo(entryProbeInfo);
+            if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
+                com.insidious.plugin.pojo.Parameter staticSubject = com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()));
                 staticSubject.setName(ClassTypeUtils.createVariableName(staticSubject.getType()));
                 methodCallExpression.setSubject(staticSubject);
-
             } else {
                 methodCallExpression.setSubject(
                         com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
@@ -615,7 +641,7 @@ public class DaoService {
             // first we load the subject parameter
             convertedCallExpression.setEntryProbeInfo(this.getProbeInfoById(dbMce.getEntryProbeInfo_id()));
             convertedCallExpression.setEntryProbe(this.getDataEventById(dbMce.getEntryProbe_id()));
-            if (convertedCallExpression.isStaticCall() || mainSubject == 0) {
+            if (mainSubject == 0) {
                 DataInfo entryProbeInfo = convertedCallExpression.getEntryProbeInfo();
                 com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));
@@ -760,7 +786,7 @@ public class DaoService {
             // first we load the subject parameter
             convertedCallExpression.setEntryProbeInfo(this.getProbeInfoById(dbMce.getEntryProbeInfo_id()));
             convertedCallExpression.setEntryProbe(this.getDataEventById(dbMce.getEntryProbe_id()));
-            if (convertedCallExpression.isStaticCall() || mainSubject == 0) {
+            if (mainSubject == 0) {
                 DataInfo entryProbeInfo = convertedCallExpression.getEntryProbeInfo();
                 com.insidious.plugin.pojo.Parameter staticSubject = new com.insidious.plugin.pojo.Parameter();
                 staticSubject.setType(ClassTypeUtils.getDottedClassName(entryProbeInfo.getAttribute("Owner", "V")));

@@ -45,11 +45,13 @@ public class CandidateMetadataFactory {
                 logger.warn("Skip unselected call expression to be mocked - " + e);
                 continue;
             }
-            if (e.getReturnValue() == null) {
+            Parameter returnValue = e.getReturnValue();
+            if (returnValue == null) {
                 logger.info("MCE to mock without a return value - " + e);
                 continue;
             }
-            if (e.getMethodName().equals("toString")) {
+            if (e.getMethodName()
+                    .equals("toString")) {
                 continue;
             }
             if (e.isStaticCall() && e.getUsesFields()) {
@@ -87,13 +89,9 @@ public class CandidateMetadataFactory {
                 // this is potentially a bug, and the fix is inside scan implementation
                 continue;
             }
-            if (e.getReturnValue()
-                    .getType() == null
-                    || e.getReturnValue()
-                    .getType()
-                    .equals("V")
-                    || e.getReturnValue()
-                    .getProb() == null) {
+            if (returnValue.getType() == null || returnValue.getType().equals("V")
+                            || returnValue.getProb() == null
+            ) {
                 // either the function has no return value (need not be mocked) or
                 // we failed to identify the return value in the scan, in that case this is a bug
                 continue;
@@ -152,7 +150,8 @@ public class CandidateMetadataFactory {
 
                     String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
                             .getAttribute("Type", previousReturnValue.getType()));
-                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals("java.lang.Object")) {
+                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals(
+                            "java.lang.Object")) {
                         previousReturnValue.setTypeForced(returnTypeFromProbe);
                     }
 
@@ -220,7 +219,7 @@ public class CandidateMetadataFactory {
                         .getSubject();
 
                 if (!objectRoutineScript.getCreatedVariables()
-                        .contains( nameFactory.getNameForUse( staticCallSubjectMockInstance, null))) {
+                        .contains(nameFactory.getNameForUse(staticCallSubjectMockInstance, null))) {
                     @NotNull Parameter subjectStaticFieldMock = Parameter.cloneParameter(
                             staticCallSubjectMockInstance);
 
@@ -246,14 +245,16 @@ public class CandidateMetadataFactory {
 
                     String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
                             .getAttribute("Type", previousReturnValue.getType()));
-                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals("java.lang.Object")) {
+                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals(
+                            "java.lang.Object")) {
                         previousReturnValue.setTypeForced(returnTypeFromProbe);
                     }
 
+                    methodCallExpression.writeReturnValue(
+                            objectRoutineScript, testConfiguration, testGenerationState);
+
                     if (firstCall) {
                         methodCallExpression.writeCommentTo(objectRoutineScript);
-                        methodCallExpression.writeReturnValue(
-                                objectRoutineScript, testConfiguration, testGenerationState);
                         pendingStatement = PendingStatement.in(objectRoutineScript, testGenerationState)
                                 .writeExpression(
                                         MethodCallExpressionFactory.MockitoWhen(methodCallExpression,

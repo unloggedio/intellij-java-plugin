@@ -63,8 +63,6 @@ public class MethodCallExpressionFactory {
 
         Parameter mainSubject = methodCallExpression.getSubject();
         DataInfo subjectProbeInfo = mainSubject.getProbeInfo();
-        String callType = subjectProbeInfo.getAttribute("CallType", null);
-        boolean isStatic = false;
 
         String param1;
         String methodParametersStringMock = TestCaseWriter.createMethodParametersStringMock(
@@ -72,10 +70,8 @@ public class MethodCallExpressionFactory {
         logger.warn(
                 "Create method call arguments mock: [" + methodCallExpression + "] => " + methodParametersStringMock);
 
-        if (callType != null && callType.equals("Static")) {
-            isStatic = true;
-            String owner = subjectProbeInfo.getAttribute("Owner", null);
-            String classSimpleName = owner.substring(owner.lastIndexOf('/') + 1);
+        if (methodCallExpression.isStaticCall()) {
+            String classSimpleName = mainSubject.getType().substring(mainSubject.getType().lastIndexOf('.') + 1);
             param1 = "() -> " + classSimpleName + "." + methodCallExpression.getMethodName() +
                     "(" + methodParametersStringMock + ")";
         } else {
@@ -91,7 +87,7 @@ public class MethodCallExpressionFactory {
 
         Parameter callSubject = configuration.getMockFramework()
                 .getMockClassParameter();
-        if (isStatic) {
+        if (methodCallExpression.isStaticCall()) {
             callSubject = mainSubject;
         }
         MethodCallExpression callExpression = MethodCallExpression("when", callSubject,

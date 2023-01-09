@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 @DatabaseTable(tableName = "test_candidate")
 public class TestCandidateMetadata {
     @DatabaseField
+    @Deprecated
     private String methodCallExpressions;
     @DatabaseField
     private String fields;
@@ -106,10 +107,8 @@ public class TestCandidateMetadata {
         this.fields = Strings.join(fields, ",");
     }
 
-    public void setCallList(List<Long> callsList) {
-        this.methodCallExpressions = Strings.join(callsList, ",");
-    }
 
+    @Deprecated
     public void setCallList(String callIds) {
         this.methodCallExpressions = callIds;
     }
@@ -133,6 +132,8 @@ public class TestCandidateMetadata {
         this.callTimeNanoSecond = callTimeNanoSecond;
     }
 
+
+    @Deprecated
     public List<Long> getCallsList() {
         if (methodCallExpressions == null || methodCallExpressions.length() < 1) {
             return List.of();

@@ -1,9 +1,12 @@
 package io.unlogged;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -33,6 +36,14 @@ public class UnloggedTestUtils {
     static {
         DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
         objectMapper.setDateFormat(df);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
+            @Override
+            public boolean hasIgnoreMarker(AnnotatedMember m) {
+                return false;
+            }
+        });
+
     }
 
     public UnloggedTestUtils(String filePath) throws IOException {

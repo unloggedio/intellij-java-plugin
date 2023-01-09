@@ -67,6 +67,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         buildWithJson.setType(parameter.getType());
         buildWithJson.setContainer(parameter.isContainer());
         buildWithJson.setProbeInfo(parameter.getProbeInfo());
+        buildWithJson.setValue(parameter.getValue());
         buildWithJson.setProb(parameter.getProb());
         return buildWithJson;
     }

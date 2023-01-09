@@ -1029,6 +1029,8 @@ public class SessionInstance {
                             return nameWithBytes;
                         }
                     }
+                }catch (Exception e) {
+                    logger.error("Failed to open zip archive: " + e.getMessage(), e);
                 }
             }
 
@@ -2218,6 +2220,9 @@ public class SessionInstance {
                     objectIndexCollection = null;
                 }
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
+                objectIndexCollection.parallelStream().forEach(e -> {
+                    objectInfoIndex.put(e.getObjectId(), e);
+                });
             } else {
                 // we already have the latest object info index
                 break;
@@ -2252,6 +2257,9 @@ public class SessionInstance {
             List<TestCandidateMetadata> candidatesToSave = new ArrayList<>();
             Date start = new Date();
 //            Parameter parameterInstance = new Parameter();
+            String nameFromProbe;
+            String typeFromProbe;
+            boolean isModified = false;
             for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
                 KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2266,9 +2274,8 @@ public class SessionInstance {
                 MethodCallExpression exceptionCallExpression;
                 TestCandidateMetadata completedExceptional;
                 MethodCallExpression methodCall;
-                boolean isModified;
-                String nameFromProbe;
-                if (eventBlock.eventId() == 206773) {
+                isModified = false;
+                if (eventBlock.valueId() == 1891441214) {
                     logger.warn("here: " + logFile);
                 }
 //                existingParameter = parameterInstance;
@@ -2307,10 +2314,15 @@ public class SessionInstance {
                                 probeInfo.getAttribute("FieldName", null));
                         if (!existingParameter.hasName(nameForParameter)) {
                             existingParameter.addName(nameForParameter);
+                            isModified = true;
+                        }
+                        if (existingParameter.getType() == null || existingParameter.getType().equals("java.lang" +
+                                ".Object")) {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
-                        } else {
-                            // set it to null because we don't need to save this again.
+                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                            isModified = true;
+                        }
+                        if (!isModified) {
                             existingParameter = null;
                         }
 
@@ -2374,7 +2386,7 @@ public class SessionInstance {
                             isModified = true;
                             existingParameter.addName(nameFromProbe);
                         }
-                        String typeFromProbe = ClassTypeUtils.getDottedClassName(
+                        typeFromProbe = ClassTypeUtils.getDottedClassName(
                                 probeInfo.getAttribute("Type", "V"));
                         if (existingParameter.getType() == null || !existingParameter.getType()
                                 .equals(typeFromProbe)) {
@@ -2605,8 +2617,12 @@ public class SessionInstance {
                         isModified = false;
                         if ((existingParameter.getType() == null || existingParameter.getType()
                                 .endsWith(".Object"))) {
-                            existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+                            typeFromProbe = probeInfo.getAttribute("Type", null);
+                            String typeNameForValue = ClassTypeUtils.getDottedClassName(typeFromProbe);
+                            if (typeNameForValue != null && !typeNameForValue.equals("java.lang.Object")) {
+                                existingParameter.setType(
+                                        ClassTypeUtils.getDottedClassName(typeFromProbe));
+                            }
                             // TODO: This is getting ugly, but
                             // we need some way to prefer some kind of events/probes combination
                             // over other kind of events/probes
@@ -2760,6 +2776,14 @@ public class SessionInstance {
                             existingParameter.setProbeInfo(probeInfo);
                             existingParameter.setProb(dataEvent);
                             isModified = true;
+                        }
+                        if (existingParameter.getType() == null) {
+                            ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
+                            if (objectInfo != null) {
+                                TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
+                                existingParameter.setType(typeInfo.getTypeName());
+                                isModified = true;
+                            }
                         }
                         saveProbe = true;
 

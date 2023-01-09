@@ -1640,7 +1640,7 @@ public class InsidiousService implements Disposable {
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass()
                     .getClassLoader()
-                    .getResourceAsStream("code/UnloggedTestUtil.java");
+                    .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }

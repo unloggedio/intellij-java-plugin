@@ -112,6 +112,7 @@ public class TestCandidateMetadata {
         methodCallExpressions.add(topCall);
     }
 
+    @Deprecated
     public void addAllMethodCall(Collection<MethodCallExpression> topCall) {
         methodCallExpressions.addAll(topCall);
     }
