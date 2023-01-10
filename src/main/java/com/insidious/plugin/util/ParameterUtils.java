@@ -14,14 +14,17 @@ public class ParameterUtils {
 
         switch (parameter.getType()) {
             case PrimitiveDataType.LONG:
+            case PrimitiveDataType.BOXED_LONG:
                 valueBuilder.append(parameter.getValue());
                 valueBuilder.append("L");
                 break;
             case PrimitiveDataType.DOUBLE:
+            case PrimitiveDataType.BOXED_DOUBLE:
                 valueBuilder.append(Double.longBitsToDouble(parameter.getValue()));
                 valueBuilder.append("D");
                 break;
             case PrimitiveDataType.FLOAT:
+            case PrimitiveDataType.BOXED_FLOAT:
                 valueBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
                 valueBuilder.append("F");
                 break;
