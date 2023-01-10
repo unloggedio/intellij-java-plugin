@@ -2306,7 +2306,7 @@ public class SessionInstance {
                 TestCandidateMetadata completedExceptional;
                 MethodCallExpression methodCall;
                 isModified = false;
-                if (eventBlock.eventId() == 237479) {
+                if (eventBlock.valueId() == 35680754) {
                     logger.warn("here: " + logFile);
                 }
 //                existingParameter = parameterInstance;
@@ -2328,9 +2328,17 @@ public class SessionInstance {
                                     probeInfo.getAttribute("FieldName", null));
                             if (!existingParameter.hasName(nameFromProbe)) {
                                 existingParameter.addName(nameFromProbe);
-                            } else {
-                                existingParameter = null;
+                                isModified = true;
                             }
+                        }
+                        typeFromProbe = probeInfo.getAttribute("Type", null);
+                        if (typeFromProbe != null && !typeFromProbe.equals(
+                                "Ljava/lang/Object;") && existingParameter.getType() == null) {
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                            isModified = true;
+                        }
+                        if (!isModified) {
+                            existingParameter = null;
                         }
 
                         break;
@@ -2347,11 +2355,11 @@ public class SessionInstance {
                             existingParameter.addName(nameForParameter);
                             isModified = true;
                         }
-                        if (existingParameter.getType() == null || existingParameter.getType()
-                                .equals("java.lang" +
-                                        ".Object")) {
+                        String existingParameterType = existingParameter.getType();
+                        if (existingParameterType == null || existingParameterType.equals("java.lang.Object")) {
                             existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                                    ClassTypeUtils.getDottedClassName(
+                                            probeInfo.getAttribute("Type", null)));
                             isModified = true;
                         }
                         if (!isModified) {
@@ -2603,7 +2611,8 @@ public class SessionInstance {
                         methodCall.setEntryProbe(dataEvent);
 
                         MethodInfo methodDescription = methodInfoByNameIndex.get(
-                                probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name", null) + probeInfo.getAttribute("Desc", null));
+                                probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
+                                        null) + probeInfo.getAttribute("Desc", null));
                         if (methodDescription != null) {
                             methodCall.setMethodDefinitionId(methodDescription.getMethodId());
                         }

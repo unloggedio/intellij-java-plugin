@@ -787,31 +787,6 @@ public class DaoService {
         }
     }
 
-    private void checkProgressIndicator(String text1, String text2) {
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .isCanceled()) {
-                try {
-                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
-                    // able ot read it on next refresh/load
-                    close();
-                } catch (Exception e) {
-                    // now this is just very weird
-                    throw new RuntimeException(e);
-                }
-                throw new ProcessCanceledException();
-            }
-            if (text2 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator()
-                        .setText2(text2);
-            }
-            if (text1 != null) {
-                ProgressIndicatorProvider.getGlobalProgressIndicator()
-                        .setText(text1);
-            }
-        }
-    }
-
 
     public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
