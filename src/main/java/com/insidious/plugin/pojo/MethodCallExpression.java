@@ -9,7 +9,6 @@ import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -24,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class MethodCallExpression implements Expression, Serializable {
@@ -179,7 +177,7 @@ public class MethodCallExpression implements Expression, Serializable {
     }
 
     public Parameter getException() {
-        if (returnValue != null && returnValue.exception) {
+        if (returnValue != null && returnValue.isException()) {
             return returnValue;
         }
         return null;
@@ -419,7 +417,7 @@ public class MethodCallExpression implements Expression, Serializable {
                 methodCallOnVariableString + "(" + Strings.join(arguments.stream()
                         .map(Parameter::getType)
                         .collect(Collectors.toList()), ", ") + " args)" +
-                        (returnValue != null && returnValue.getException() ? " throws " + returnValue.getType() : "");
+                        (returnValue != null && returnValue.isException() ? " throws " + returnValue.getType() : "");
     }
 
     public void writeReturnValue(
@@ -432,7 +430,7 @@ public class MethodCallExpression implements Expression, Serializable {
             return;
         }
 
-        if (returnValue.getException()) {
+        if (returnValue.isException()) {
 
         } else {
             if (returnValue.getCreatorExpression() == null) {

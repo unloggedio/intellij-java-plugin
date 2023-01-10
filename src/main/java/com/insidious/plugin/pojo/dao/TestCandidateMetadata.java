@@ -121,7 +121,7 @@ public class TestCandidateMetadata {
         if (testSubject == null) {
             return;
         }
-        this.testSubject_id = (long) testSubject.getValue();
+        this.testSubject_id = testSubject.getValue();
     }
 
     public long getCallTimeNanoSecond() {

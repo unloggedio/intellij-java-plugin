@@ -13,14 +13,17 @@ public class ParameterUtils {
         StringBuilder valueBuilder = new StringBuilder();
 
         switch (parameter.getType()) {
+            case "java.lang.Long":
             case PrimitiveDataType.LONG:
                 valueBuilder.append(parameter.getValue());
                 valueBuilder.append("L");
                 break;
+            case "java.lang.Double":
             case PrimitiveDataType.DOUBLE:
                 valueBuilder.append(Double.longBitsToDouble(parameter.getValue()));
                 valueBuilder.append("D");
                 break;
+            case "java.lang.Float":
             case PrimitiveDataType.FLOAT:
                 valueBuilder.append(Float.intBitsToFloat((int) parameter.getValue()));
                 valueBuilder.append("F");

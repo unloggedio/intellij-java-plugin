@@ -105,6 +105,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, DataInfo> probeInfoIndex;
     private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
     private ChronicleMap<Integer, MethodInfo> methodInfoIndex;
+    private ChronicleMap<String, MethodInfo> methodInfoByNameIndex;
     private ChronicleMap<Integer, ClassInfo> classInfoIndex;
     private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
@@ -263,6 +264,7 @@ public class SessionInstance {
 
         probeInfoIndex = createProbeInfoIndex();
         methodInfoIndex = createMethodInfoIndex();
+        methodInfoByNameIndex = createMethodInfoByNameIndex();
         classInfoIndex = createClassInfoIndex();
 //        classInfoIndexByName = createClassInfoNameIndex();
         try {
@@ -282,7 +284,7 @@ public class SessionInstance {
                 e.printStackTrace();
                 List<String> indexFiles = Arrays.asList(
                         "index.class.dat",
-                        "index.method.dat",
+                        "index.method.name.dat",
                         "index.object.dat",
                         "index.probe.dat",
                         "index.type.dat"
@@ -295,6 +297,7 @@ public class SessionInstance {
                 typeInfoIndex = createTypeInfoIndex();
                 objectInfoIndex = createObjectInfoIndex();
                 probeInfoIndex = createProbeInfoIndex();
+                methodInfoByNameIndex = createMethodInfoByNameIndex();
                 methodInfoIndex = createMethodInfoIndex();
                 classInfoIndex = createClassInfoIndex();
             }
@@ -343,10 +346,18 @@ public class SessionInstance {
                     .collect(Collectors.groupingBy(DataInfo::getMethodId,
                             Collectors.toList()));
 
-            Map<Integer, MethodInfo> methodInfoMap = classInfo.methodList()
+            List<MethodInfo> methodInfoStream = classInfo.methodList()
                     .stream()
                     .map(methodInfo -> KaitaiUtils.toMethodInfo(methodInfo, className))
+                    .collect(Collectors.toList());
+            Map<Integer, MethodInfo> methodInfoMap = methodInfoStream.stream()
                     .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
+
+            Map<String, MethodInfo> methodByNameMap = methodInfoStream.stream()
+                    .collect(Collectors.toMap(e -> e.getClassName() + e.getMethodName() + e.getMethodDesc(), e -> e));
+            methodInfoIndex.putAll(methodInfoMap);
+            methodInfoByNameIndex.putAll(methodByNameMap);
+
             boolean isEnum = false;
             boolean isPojo = true;
             if (methodInfoMap.size() == 0) {
@@ -405,14 +416,15 @@ public class SessionInstance {
             classInfoIndex.put(classInfo1.getClassId(), classInfo1);
             classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
 
-            methodInfoIndex.putAll(methodInfoMap);
             for (MethodInfo value : methodInfoMap.values()) {
                 MethodDefinition methodDefinition = MethodDefinition.fromMethodInfo(value, classInfo1, false);
                 for (int i = 0; i < dataInfoList.size(); i++) {
                     DataInfo dataInfo = dataInfoList.get(i);
                     if (dataInfo.getEventType() == CALL) {
-                        if (dataInfoList.get(i - 1).getEventType() == GET_INSTANCE_FIELD_RESULT
-                                || dataInfoList.get(i - 1).getEventType() == GET_STATIC_FIELD) {
+                        if (dataInfoList.get(i - 1)
+                                .getEventType() == GET_INSTANCE_FIELD_RESULT
+                                || dataInfoList.get(i - 1)
+                                .getEventType() == GET_STATIC_FIELD) {
                             methodDefinition.setUsesFields(true);
                             break;
                         }
@@ -552,6 +564,24 @@ public class SessionInstance {
         ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         MethodInfo.class)
                 .name("method-info-map")
+                .averageValue(
+                        new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
+                                "method-hash"))
+                .entries(100_000);
+        return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
+
+    }
+
+
+    private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
+
+        checkProgressIndicator(null, "Loading method info by name index");
+        File methodIndexFile = Path.of(executionSession.getPath(), "index.method.name.dat")
+                .toFile();
+        ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
+                        MethodInfo.class)
+                .name("method-info-name-map")
+                .averageKey("methodNameIsALong(Laudhfiudfhadsufhasdoufhaofuahdsofudashfuiadshfufakdsufhd")
                 .averageValue(
                         new MethodInfo(1, 2, "class-name", "method-name", "methoddesc", 5, "source-file-name",
                                 "method-hash"))
@@ -1029,7 +1059,7 @@ public class SessionInstance {
                             return nameWithBytes;
                         }
                     }
-                }catch (Exception e) {
+                } catch (Exception e) {
                     logger.error("Failed to open zip archive: " + e.getMessage(), e);
                 }
             }
@@ -2220,9 +2250,10 @@ public class SessionInstance {
                     objectIndexCollection = null;
                 }
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
-                objectIndexCollection.parallelStream().forEach(e -> {
-                    objectInfoIndex.put(e.getObjectId(), e);
-                });
+                objectIndexCollection.parallelStream()
+                        .forEach(e -> {
+                            objectInfoIndex.put(e.getObjectId(), e);
+                        });
             } else {
                 // we already have the latest object info index
                 break;
@@ -2275,7 +2306,7 @@ public class SessionInstance {
                 TestCandidateMetadata completedExceptional;
                 MethodCallExpression methodCall;
                 isModified = false;
-                if (eventBlock.valueId() == 1891441214) {
+                if (eventBlock.eventId() == 237479) {
                     logger.warn("here: " + logFile);
                 }
 //                existingParameter = parameterInstance;
@@ -2316,8 +2347,9 @@ public class SessionInstance {
                             existingParameter.addName(nameForParameter);
                             isModified = true;
                         }
-                        if (existingParameter.getType() == null || existingParameter.getType().equals("java.lang" +
-                                ".Object")) {
+                        if (existingParameter.getType() == null || existingParameter.getType()
+                                .equals("java.lang" +
+                                        ".Object")) {
                             existingParameter.setType(
                                     ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
                             isModified = true;
@@ -2569,7 +2601,12 @@ public class SessionInstance {
                         methodCall.setId(currentCallId);
                         methodCall.setEntryProbeInfo(probeInfo);
                         methodCall.setEntryProbe(dataEvent);
-                        methodCall.setMethodDefinitionId(probeInfo.getMethodId());
+
+                        MethodInfo methodDescription = methodInfoByNameIndex.get(
+                                probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name", null) + probeInfo.getAttribute("Desc", null));
+                        if (methodDescription != null) {
+                            methodCall.setMethodDefinitionId(methodDescription.getMethodId());
+                        }
 
                         ClassInfo methodClassInfo = classInfoIndexByName.get(existingParameter.getType());
                         if (methodClassInfo != null) {
@@ -2727,6 +2764,9 @@ public class SessionInstance {
 
                             threadState.pushCall(methodCall);
                         } else {
+                            if (methodCall.getMethodDefinitionId() == 0) {
+                                methodCall.setMethodDefinitionId(probeInfo.getMethodId());
+                            }
                             saveProbe = true;
                         }
                         newCandidate.setMainMethod(methodCall);
@@ -3216,6 +3256,7 @@ public class SessionInstance {
             logFile.setStatus(Constants.COMPLETED);
             daoService.updateLogFile(logFile);
             daoService.createOrUpdateThreadState(threadState);
+            break;
 
         }
 

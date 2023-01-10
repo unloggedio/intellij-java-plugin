@@ -2,27 +2,19 @@ package com.insidious.plugin.pojo;
 
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
-import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.intellij.openapi.util.text.Strings;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.FieldSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeName;
 import net.openhft.chronicle.bytes.BytesIn;
 import net.openhft.chronicle.bytes.BytesMarshallable;
 import net.openhft.chronicle.bytes.BytesOut;
 import net.openhft.chronicle.core.io.IORuntimeException;
-import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
-import javax.lang.model.element.Modifier;
 import java.io.Serializable;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -138,7 +130,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         this.isEnum = isEnum;
     }
 
-    public boolean getException() {
+    public boolean isException() {
         return exception;
     }
 

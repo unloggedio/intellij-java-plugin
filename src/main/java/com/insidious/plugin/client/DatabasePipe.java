@@ -29,7 +29,6 @@ class DatabasePipe implements Runnable {
     private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
     private boolean stop = false;
     private DaoService daoService;
-    private DatabaseVariableContainer variableContainer;
     private boolean isRunning;
 
     public DatabasePipe(LinkedTransferQueue<Parameter> parameterQueue, DaoService daoService) {
@@ -86,8 +85,6 @@ class DatabasePipe implements Runnable {
                 batch.add(param);
                 logger.warn("Saving " + batch.size() + " parameters");
                 daoService.createOrUpdateParameter(batch);
-                variableContainer.getBeingSaved()
-                        .removeAll(batch);
             }
 
         } finally {
@@ -105,10 +102,6 @@ class DatabasePipe implements Runnable {
         List<Parameter> batch = new LinkedList<>();
         parameterQueue.drainTo(batch);
         daoService.createOrUpdateParameter(batch);
-        if (variableContainer != null) {
-            variableContainer.getBeingSaved()
-                    .removeAll(batch);
-        }
         if (dataInfoList.size() > 0) {
             Collection<DataInfo> saving = new LinkedList<>();
             dataInfoList.removeAll(saving);

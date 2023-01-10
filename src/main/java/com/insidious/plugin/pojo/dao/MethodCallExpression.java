@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @DatabaseTable(tableName = "method_call")
-public class MethodCallExpression {
+public class MethodCallExpression implements MethodCallExpressionInterface {
 
     @DatabaseField(id = true)
     private long id;
@@ -139,21 +139,7 @@ public class MethodCallExpression {
         return methodCallExpression1;
     }
 
-    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpression methodCallExpression) {
-        com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
-                methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
-        );
-        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
-        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
-        methodCallExpression1.setId(methodCallExpression.getId());
-        methodCallExpression1.setParentId(methodCallExpression.getParentId());
-        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
-        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        return methodCallExpression1;
-    }
-
-    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(IncompleteMethodCallExpression methodCallExpression) {
+    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpressionInterface methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
                 methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
         );
@@ -220,6 +206,11 @@ public class MethodCallExpression {
 
     public String getMethodName() {
         return methodName;
+    }
+
+    @Override
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
     }
 
     public void setIsStatic(boolean aStatic) {

@@ -4,7 +4,6 @@ import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -146,14 +145,7 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    nameFactory.getNameForUse(previousReturnValue, methodCallExpression.getMethodName());
-
-                    String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                            .getAttribute("Type", previousReturnValue.getType()));
-                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals(
-                            "java.lang.Object")) {
-                        previousReturnValue.setTypeForced(returnTypeFromProbe);
-                    }
+                    nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
 
                     testGenerationState.generateParameterName(
                             methodCallExpression.getReturnValue(),
@@ -172,7 +164,7 @@ public class CandidateMetadataFactory {
 
 
                     Parameter returnValue = methodCallExpression.getReturnValue();
-                    if (returnValue.getException()) {
+                    if (returnValue.isException()) {
                         pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
 
                     } else {
@@ -241,14 +233,7 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    nameFactory.getNameForUse(previousReturnValue, methodCallExpression.getMethodName());
-
-                    String returnTypeFromProbe = ClassTypeUtils.getDottedClassName(previousReturnValue.getProbeInfo()
-                            .getAttribute("Type", previousReturnValue.getType()));
-                    if (previousReturnValue.isPrimitiveType() && returnTypeFromProbe != null && !returnTypeFromProbe.equals(
-                            "java.lang.Object")) {
-                        previousReturnValue.setTypeForced(returnTypeFromProbe);
-                    }
+                    nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
 
                     methodCallExpression.writeReturnValue(
                             objectRoutineScript, testConfiguration, testGenerationState);
@@ -264,7 +249,7 @@ public class CandidateMetadataFactory {
 
 
                     Parameter returnValue = methodCallExpression.getReturnValue();
-                    if (returnValue.getException()) {
+                    if (returnValue.isException()) {
                         pendingStatement.writeExpression(MethodCallExpressionFactory.MockitoThenThrow(returnValue));
 
                     } else {

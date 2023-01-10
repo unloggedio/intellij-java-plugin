@@ -34,13 +34,7 @@ public class Parameter {
     @DatabaseField
     private String names = "";
     @DatabaseField
-    private String stringValue;
-    @DatabaseField
-    private int index;
-    @DatabaseField
     private int probeInfo_id;
-    @DatabaseField
-    private long creatorExpression_id;
     private List<Parameter> templateMap = new ArrayList<>();
     private boolean isContainer = false;
 
@@ -50,8 +44,7 @@ public class Parameter {
         }
         Parameter newParam = new Parameter();
         newParam.setContainer(e.isContainer());
-        newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
-        newParam.setException(e.getException());
+        newParam.setException(e.isException());
         newParam.setProb_id(e.getProb());
         newParam.setType(e.getType());
         List<com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
@@ -77,8 +70,6 @@ public class Parameter {
 
 
         newParam.setContainer(parameter.isContainer());
-//        newParam.setCreator(MethodCallExpression.FromMCE(e.getCreatorExpression()));
-//        newParam.setException(e.getException());
         newParam.setType(parameter.getType());
         newParam.addNames(Arrays.asList(parameter.getNames()));
         List<Parameter> templateMap1 = parameter.getTemplateMap();
@@ -88,8 +79,7 @@ public class Parameter {
         }
 
         newParam.setTemplateMap(transformedTemplateMap);
-//        newParam.setConstructorType(parameter.getConstructorType());
-        newParam.setValue((long) parameter.getValue());
+        newParam.setValue(parameter.getValue());
 
 
         return newParam;
@@ -126,7 +116,6 @@ public class Parameter {
                 (namesList.length > 0 ? namesList[0] : "") +
                         (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
-                        ", index=" + index +
                         ", probeInfo=" + probeInfo_id +
                         ", prob=" + prob_id +
                         '}';
@@ -151,23 +140,19 @@ public class Parameter {
         return names.split(",");
     }
 
-    private void setNames(List<String> names) {
+    public void setNames(List<String> names) {
         if (names.size() == 0) {
             return;
         }
         this.names = Strings.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
     }
 
-    public Object getValue() {
-        return stringValue == null ? value : stringValue;
+    public Long getValue() {
+        return value;
     }
 
     public void setValue(Long value) {
         this.value = value;
-    }
-
-    public void setValue(String value) {
-        this.stringValue = value;
     }
 
     public long getProb_id() {
@@ -178,39 +163,12 @@ public class Parameter {
         this.prob_id = prob_id.getNanoTime();
     }
 
-    public int getIndex() {
-        return index;
-    }
-
-    public void setIndex(int index) {
-        this.index = index;
-    }
-
     public int getProbeInfo_id() {
         return probeInfo_id;
     }
 
     public void setProbeInfo_id(DataInfo probeInfo_id) {
         this.probeInfo_id = probeInfo_id.getDataId();
-    }
-
-//    public ConstructorType getConstructorType() {
-//        return constructorType;
-//    }
-//
-//    public void setConstructorType(ConstructorType constructorType) {
-//        this.constructorType = constructorType;
-//    }
-
-    public long getCreatorExpression_id() {
-        return creatorExpression_id;
-    }
-
-    public void setCreator(MethodCallExpression createrExpression) {
-        if (createrExpression == null) {
-            return;
-        }
-        this.creatorExpression_id = createrExpression.getId();
     }
 
     @Override
