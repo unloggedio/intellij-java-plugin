@@ -16,9 +16,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
 import com.intellij.openapi.diagnostic.Logger;
-import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -43,6 +41,10 @@ public class PendingStatement {
     public PendingStatement(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
         this.objectRoutine = objectRoutine;
         this.testGenerationState = testGenerationState;
+    }
+
+    public static PendingStatement in(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
+        return new PendingStatement(objectRoutine, testGenerationState);
     }
 
     private void writeCallStatement(
@@ -90,7 +92,7 @@ public class PendingStatement {
                         .append("$L.$L($S, new $T<$T<")
                         .append(templateString)
                         .append(">>(){}.getType())");
-                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(),null));  // 1
+                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));  // 1
                 statementParameters.add(methodCallExpression.getMethodName()); // 2
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
@@ -115,7 +117,7 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
-                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(),null));
+                statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));
                 statementParameters.add(methodCallExpression.getMethodName());
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
@@ -159,30 +161,10 @@ public class PendingStatement {
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
 
-                // handling case for int[],long[], Java ArrayType
-                String typeOfParam = ClassTypeUtils.getJavaClassName(objectToDeserialize.getType());
-                boolean isAJavaArrayType = false;
-
-                if (typeOfParam.endsWith("[]")) {
-                    typeOfParam = typeOfParam.substring(0, typeOfParam.indexOf("["));
-                    isAJavaArrayType = true;
-                }
-
-                TypeName paramTypeName = ClassTypeUtils.createTypeFromName(typeOfParam);
-                if (isAJavaArrayType) {
-                    if (paramTypeName != null && paramTypeName.isPrimitive()) {
-                        statementParameters.add(ArrayTypeName.of(paramTypeName));
-                    } else {
-                        String arrayTypeName = ArrayTypeName.of(paramTypeName)
-                                .toString();
-                        statementParameters.add(ClassName.bestGuess(arrayTypeName));
-                    }
-                } else {
-                    statementParameters.add(ClassName.bestGuess(paramTypeName.toString()));
-                }
-
+                @Nullable String typeOfParam = ClassTypeUtils.createTypeFromNameString(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
+//                statementParameters.add(ClassName.bestGuess(typeOfParam));
+                statementParameters.add(typeOfParam);
             }
-
         } else if (methodCallExpression.getMethodName()
                 .equals("injectField")
                 && methodCallExpression.isStaticCall()
@@ -403,15 +385,8 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromName(
+            @Nullable String lhsTypeString = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
-
-            // this typename handled for int[] byte[] long[] primitve types
-            if (lhsExpression != null &&
-                    lhsExpression.isPrimitiveType() && lhsExpression.getType()
-                    .endsWith("[]")) {
-                lhsTypeName = ArrayTypeName.of(lhsTypeName);
-            }
 
             if (!objectRoutine.getCreatedVariables()
                     .contains(nameFactory.getNameForUse(lhsExpression, null))) {
@@ -433,7 +408,8 @@ public class PendingStatement {
                     // eg: statementBuilder:[ $T ] var , statementParameter: [ String ]  => String var
                     statementBuilder.append("$T")
                             .append(" ");
-                    statementParameters.add(lhsTypeName);
+
+                    statementParameters.add(lhsTypeString);
                 }
 
             } else {
@@ -675,10 +651,5 @@ public class PendingStatement {
 
         return this;
     }
-
-    public static PendingStatement in(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
-        return new PendingStatement(objectRoutine, testGenerationState);
-    }
-
 
 }

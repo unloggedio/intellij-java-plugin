@@ -1,6 +1,7 @@
 package com.insidious.plugin.factory.testcase.util;
 
 import com.insidious.common.weaver.DataInfo;
+import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
@@ -149,6 +150,14 @@ public class ClassTypeUtils {
         return historyEventProbe.getAttribute("Name", historyEventProbe.getAttribute("FieldName", defaultValue));
     }
 
+    /**
+     * This Method does not cover case of Simple Primitive ArrayTypeName.
+     *
+     * @param returnParameterType
+     * @return TypeName
+     * @deprecated. <p> Use {@link ClassTypeUtils#createTypeFromNameString}
+     */
+    @Deprecated
     @Nullable
     public static TypeName createTypeFromName(String returnParameterType) {
         TypeName returnValueSquareClass;
@@ -163,6 +172,37 @@ public class ClassTypeUtils {
             returnValueSquareClass = getClassFromDescriptor(returnParameterType);
         }
         return returnValueSquareClass;
+    }
+
+    /**
+     * Find the ClassName or TypeName or ArrayType Name From provided string
+     * Checks for primitive array type also
+     *
+     * @param returnParameterType
+     * @return String
+     */
+    @Nullable
+    public static String createTypeFromNameString(String returnParameterType) {
+        ClassName returnValueSquareClass = null;
+        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
+            returnValueSquareClass = constructClassName(returnParameterType);
+            return (returnValueSquareClass != null) ? returnValueSquareClass.toString() : null;
+        }
+
+        if (returnParameterType.contains(".")) {
+            if (returnParameterType.contains("$")) {
+                returnParameterType = returnParameterType.substring(0, returnParameterType.indexOf("$"));
+            }
+            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
+            return (returnValueSquareClass != null) ? returnValueSquareClass.toString() : null;
+        }
+
+        TypeName returnParamType = getClassFromDescriptor(returnParameterType);
+        if (returnParamType != null && returnParameterType.endsWith("[]")) {
+            return ArrayTypeName.of(returnParamType).toString();
+        }
+
+        return (returnParamType != null) ? returnParamType.toString() : null;
     }
 
     private static ClassName constructClassName(String methodReturnValueType) {
