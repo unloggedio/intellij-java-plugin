@@ -53,6 +53,9 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     @NotNull
     public static Parameter cloneParameter(Parameter parameter) {
+        if (parameter == null) {
+            return new Parameter();
+        }
         Parameter buildWithJson = new Parameter();
         buildWithJson.setNamesList(new ArrayList<>(parameter.getNamesList()));
         buildWithJson.setTemplateMap(parameter.getTemplateMap());

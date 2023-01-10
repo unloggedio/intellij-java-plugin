@@ -56,6 +56,9 @@ public class ClassTypeUtils {
 
 
     public static String createVariableName(String typeNameRaw) {
+        if (typeNameRaw == null) {
+            return null;
+        }
         String lastPart = ClassTypeUtils.getDottedClassName(typeNameRaw);
         lastPart = lastPart.substring(lastPart.lastIndexOf(".") + 1);
         if (lastPart.length() < 2) {

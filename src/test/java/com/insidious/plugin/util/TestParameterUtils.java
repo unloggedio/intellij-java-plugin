@@ -51,12 +51,12 @@ class TestParameterUtils {
     @Test
     void testMethodDeNormaliseParameterType() {
         Parameter p1 = new Parameter(1L);
-        p1.setTypeForced(parameter.getType());
+        p1.setType(parameter.getType());
         ParameterUtils.normaliseParameterType(parameter);
 
         Parameter p2 = new Parameter(1L);
         ParameterUtils.denormalizeParameterType(p1);
-        p2.setTypeForced(parameter.getType());
+        p2.setType(parameter.getType());
 
         Assertions.assertEquals(p1.getType(), p2.getType());
     }

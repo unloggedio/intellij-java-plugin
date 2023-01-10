@@ -3256,8 +3256,6 @@ public class SessionInstance {
             logFile.setStatus(Constants.COMPLETED);
             daoService.updateLogFile(logFile);
             daoService.createOrUpdateThreadState(threadState);
-            break;
-
         }
 
         return newTestCaseIdentified;

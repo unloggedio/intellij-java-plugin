@@ -280,12 +280,13 @@ public class ObjectRoutineContainer {
 
         for (Parameter staticMock : staticMocks.values()) {
             staticMock.setContainer(true);
+
             Parameter childParameter = new Parameter();
             childParameter.setType(staticMock.getType());
-            staticMock.setTypeForced("org.mockito.MockedStatic");
             childParameter.setName("E");
-            staticMock.getTemplateMap()
-                    .add(childParameter);
+
+            staticMock.setTypeForced("org.mockito.MockedStatic");
+            staticMock.getTemplateMap().add(childParameter);
 
             container.addField(staticMock);
 

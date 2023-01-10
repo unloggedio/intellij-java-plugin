@@ -1,10 +1,11 @@
 package com.insidious.plugin.client;
 
-import com.insidious.plugin.factory.testcase.parameter.DatabaseVariableContainer;
 import com.insidious.plugin.pojo.dao.ArchiveFile;
 import com.insidious.plugin.pojo.dao.LogFile;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,7 +56,10 @@ class ZipConsumer implements Runnable {
                         .endsWith(".zip") && e.getName()
                         .startsWith("index-"))
                 .collect(Collectors.toList());
-        for (File sessionArchive : sessionArchiveList) {
+        int total = sessionArchiveList.size();
+        checkProgressIndicator("Loading thread data from logs", null);
+        for (int i = 0; i < sessionArchiveList.size(); i++) {
+            File sessionArchive = sessionArchiveList.get(i);
             ArchiveFile dbEntry = archiveFileMap.get(sessionArchive.getName());
             if (dbEntry == null) {
 
@@ -73,6 +77,9 @@ class ZipConsumer implements Runnable {
                     continue;
                 }
 
+
+                checkProgressIndicator(null,
+                        "Reading archive: " + sessionArchive.getName() + " [" + i + " / " + total + "]");
                 logger.warn("Reading archive: " + sessionArchive.getName());
 
                 dbEntry = new ArchiveFile();
@@ -95,6 +102,24 @@ class ZipConsumer implements Runnable {
         }
     }
 
+    private void checkProgressIndicator(String text1, String text2) {
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+            if (text2 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2(text2);
+            }
+            if (text1 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText(text1);
+            }
+        }
+    }
+
+
     private List<String> listArchiveFiles(File sessionFile) throws IOException {
 
         long lastModified = sessionFile.lastModified();
@@ -102,7 +127,8 @@ class ZipConsumer implements Runnable {
         if (lastCheckedTime >= lastModified) {
             return List.of();
         }
-        logger.info("open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");
+        logger.info(
+                "open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");
         checkedTimeMap.put(sessionFile.getAbsolutePath(), lastModified);
 
         List<String> files = new LinkedList<>();

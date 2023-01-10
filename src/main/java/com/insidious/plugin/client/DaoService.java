@@ -427,11 +427,6 @@ public class DaoService {
             }
 
             com.insidious.plugin.pojo.Parameter subject = methodCallExpression.getSubject();
-            String subjectClass = subject.getType();
-            if (subjectClass.startsWith("java.lang") || subjectClass.startsWith("java.util") || subjectClass.startsWith(
-                    "org.slf4j")) {
-                continue;
-            }
             finalCallsList.add(methodCallExpression);
 
 
@@ -823,28 +818,42 @@ public class DaoService {
             int i = 0;
             int total = parameterList.size();
             Parameter newParam = new Parameter();
-            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
-                if (i % 100 == 0) {
-                    checkProgressIndicator(null, i + " / " + total);
-                }
-                i++;
-                newParam.setContainer(parameter.isContainer());
-                newParam.setException(parameter.isException());
-                newParam.setProb_id(parameter.getProb());
-                newParam.setType(parameter.getType());
-                List<com.insidious.plugin.pojo.Parameter> templateMap1 = parameter.getTemplateMap();
-                List<Parameter> transformedTemplateMap = new ArrayList<>();
-                for (com.insidious.plugin.pojo.Parameter param : templateMap1) {
-                    transformedTemplateMap.add(Parameter.fromParameter(param));
-                }
-                newParam.setNames(parameter.getNames());
-                newParam.setTemplateMap(transformedTemplateMap);
-                newParam.setProbeInfo_id(parameter.getProbeInfo());
-                newParam.setValue(parameter.getValue());
+            long start = new Date().getTime();
 
-                parameterDao.createOrUpdate(newParam);
+
+            List<Parameter> daoParamList = parameterList.stream()
+                    .map(Parameter::fromParameter)
+                    .collect(Collectors.toList());
+            parameterDao.executeRaw("DELETE FROM parameter");
+            parameterDao.create(daoParamList);
+//            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
+//                if (i % 100 == 0) {
+//                    checkProgressIndicator(null, i + " / " + total);
+//                }
+//                i++;
+//                newParam.setContainer(parameter.isContainer());
+//                newParam.setException(parameter.isException());
+//                newParam.setProb_id(parameter.getProb());
+//                newParam.setType(parameter.getType());
+//                List<com.insidious.plugin.pojo.Parameter> templateMap1 = parameter.getTemplateMap();
+//                List<Parameter> transformedTemplateMap = new ArrayList<>();
+//                for (com.insidious.plugin.pojo.Parameter param : templateMap1) {
+//                    transformedTemplateMap.add(Parameter.fromParameter(param));
+//                }
+//                newParam.setNames(parameter.getNames());
+//                newParam.setTemplateMap(transformedTemplateMap);
+//                newParam.setProbeInfo_id(parameter.getProbeInfo());
+//                newParam.setValue(parameter.getValue());
+//
+//                parameterDao.createOrUpdate(newParam);
+//            }
+            long end = new Date().getTime();
+            long timeInSeconds = (end - start) / 1000;
+            if (timeInSeconds == 0) {
+                timeInSeconds = 1;
             }
-            logger.warn("updated " + parameterList.size() + " parameters");
+            logger.warn("updated " + parameterList.size() + " parameters took [" + timeInSeconds + "] seconds" +
+                    " => " + parameterList.size() / timeInSeconds + " params/second");
         } catch (Exception e) {
             logger.error("failed to save parameters: " + e.getMessage(), e);
             e.printStackTrace();
