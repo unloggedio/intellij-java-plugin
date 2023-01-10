@@ -124,7 +124,9 @@ public class ZipFiles {
                 if (!file.getName().endsWith(".dat"))
                     filesListInDir.add(file.getAbsolutePath());
             } else {
-                populateFilesList(file);
+                if (!file.getName().equals("cache")) {
+                    populateFilesList(file);
+                }
             }
         }
     }
