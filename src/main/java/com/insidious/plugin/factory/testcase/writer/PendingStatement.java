@@ -387,7 +387,7 @@ public class PendingStatement {
                 lhsExpression.setName(generateNameForParameter(lhsExpression));
             }
 
-            @Nullable TypeName lhsTypeString = ClassTypeUtils.createTypeFromNameString(
+            @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
             if (!objectRoutine.getCreatedVariables()
@@ -411,7 +411,7 @@ public class PendingStatement {
                     statementBuilder.append("$T")
                             .append(" ");
 
-                    statementParameters.add(lhsTypeString);
+                    statementParameters.add(lhsTypeName);
                 }
 
             } else {

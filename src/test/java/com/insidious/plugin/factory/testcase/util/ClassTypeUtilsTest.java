@@ -1,5 +1,7 @@
 package com.insidious.plugin.factory.testcase.util;
 
+import com.squareup.javapoet.ArrayTypeName;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -8,6 +10,7 @@ class ClassTypeUtilsTest {
     @Test
     void testCreateTypeFromNameString_PrimitiveType() {
         TypeName typeName = ClassTypeUtils.createTypeFromNameString("I");
+        Assertions.assertEquals(TypeName.class, typeName.getClass());
         Assertions.assertEquals("int", typeName.toString());
     }
 
@@ -26,6 +29,7 @@ class ClassTypeUtilsTest {
     @Test
     void testCreateTypeFromNameString_SimpleBoolPrimitiveType() {
         TypeName typeName = ClassTypeUtils.createTypeFromNameString("Z");
+        Assertions.assertEquals(TypeName.class, typeName.getClass());
         Assertions.assertEquals("boolean", typeName.toString());
     }
 
@@ -44,18 +48,22 @@ class ClassTypeUtilsTest {
     @Test
     void testCreateTypeFromNameString_ArrayofBoxedPrimitiveType() {
         TypeName typeName = ClassTypeUtils.createTypeFromNameString("java.lang.Long[]");
+        Assertions.assertEquals(ArrayTypeName.class, typeName.getClass());
         Assertions.assertEquals("java.lang.Long[]", typeName.toString());
     }
 
     @Test
     void testCreateTypeFromNameString_NonPrimitiveType() {
         TypeName typeName = ClassTypeUtils.createTypeFromNameString("java.lang.String");
+        Assertions.assertEquals(ClassName.class, typeName.getClass());
         Assertions.assertEquals("java.lang.String", typeName.toString());
     }
 
     @Test
     void testCreateTypeFromNameString_ArrayOfNonPrimitiveType() {
         TypeName typeName = ClassTypeUtils.createTypeFromNameString("java.lang.String[]");
+        // Class Type Should not be ClassName
+        Assertions.assertEquals(ArrayTypeName.class, typeName.getClass());
         Assertions.assertEquals("java.lang.String[]", typeName.toString());
     }
 }

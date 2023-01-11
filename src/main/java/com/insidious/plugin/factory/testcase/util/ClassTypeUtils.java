@@ -192,6 +192,14 @@ public class ClassTypeUtils {
             if (typeName.contains("$")) {
                 typeName = typeName.substring(0, typeName.indexOf("$"));
             }
+            // for class array should be an ArrayTypeName instead of ClassName
+            // though the string value is same but the
+            // behaviour of the class imported is different
+            // hence below if is required
+            if (typeName.endsWith("[]")) {
+                typeName = typeName.replace("[]", "");
+                return ArrayTypeName.of(ClassName.bestGuess(typeName));
+            }
             returnValueSquareClass = ClassName.bestGuess(typeName);
             return returnValueSquareClass;
         }
