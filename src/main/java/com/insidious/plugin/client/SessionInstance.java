@@ -98,9 +98,9 @@ public class SessionInstance {
     private final Map<String, Boolean> objectIndexRead = new HashMap<>();
     private final ZipConsumer zipConsumer;
     private final Project project;
+    private final Map<String, Boolean> classNotFound = new HashMap<>();
     private List<File> sessionArchives;
     private ArchiveIndex archiveIndex;
-
     private ChronicleMap<Long, ObjectInfoDocument> objectInfoIndex;
     private ChronicleMap<Integer, DataInfo> probeInfoIndex;
     private ChronicleMap<Integer, TypeInfoDocument> typeInfoIndex;
@@ -110,7 +110,6 @@ public class SessionInstance {
     private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
-    private final Map<String, Boolean> classNotFound = new HashMap<>();
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -242,38 +241,15 @@ public class SessionInstance {
 
         typeInfoIndex = createTypeInfoIndex();
         objectInfoIndex = createObjectInfoIndex();
-        for (i = 0; i < sessionFiles.size() && classWeaveInfo == null; i++) {
-            classWeaveInfo = readClassWeaveInfo(sessionFiles.get(i));
-
-            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i),
-                    INDEX_TYPE_DAT_FILE.getFileName());
-            if (typeIndexBytes == null) {
-                filesToRemove.add(sessionFiles.get(i));
-                continue;
-            }
-
-            try {
-                archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
-                ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
-                typeIndex.parallelStream()
-                        .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
-            } catch (IOException e) {
-                e.printStackTrace();
-                logger.warn("failed to read archive for types index: " + e.getMessage());
-            }
-        }
 
         probeInfoIndex = createProbeInfoIndex();
         methodInfoIndex = createMethodInfoIndex();
         methodInfoByNameIndex = createMethodInfoByNameIndex();
         classInfoIndex = createClassInfoIndex();
-//        classInfoIndexByName = createClassInfoNameIndex();
         try {
             classInfoIndex.values()
-                    .forEach(classInfo1 -> {
-                        classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
-                                classInfo1);
-                    });
+                    .forEach(classInfo1 -> classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                            classInfo1));
 
         } catch (Throwable e) {
             if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
@@ -305,12 +281,34 @@ public class SessionInstance {
             }
         }
 
-        if (classWeaveInfo == null) {
-            throw new RuntimeException("Class weave information not found in the session");
+
+        for (i = 0; i < sessionFiles.size(); i++) {
+            try {
+                readClassWeaveInfoStream(sessionFiles.get(i));
+            } catch (FailedToReadClassWeaveException e) {
+                filesToRemove.add(sessionFiles.get(i));
+                continue;
+            }
+
+            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i),
+                    INDEX_TYPE_DAT_FILE.getFileName());
+            if (typeIndexBytes == null) {
+                filesToRemove.add(sessionFiles.get(i));
+                continue;
+            }
+
+            try {
+                archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+                ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
+                typeIndex.parallelStream()
+                        .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
+                break;
+            } catch (IOException e) {
+                e.printStackTrace();
+                logger.warn("failed to read archive for types index: " + e.getMessage());
+            }
         }
 
-
-        refreshWeaveInformation(classWeaveInfo);
 
         sessionFiles.removeAll(filesToRemove);
         Collections.sort(sessionFiles);
@@ -324,6 +322,142 @@ public class SessionInstance {
 
         List<MethodDefinition> methodDefinitionList = new ArrayList<>();
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
+        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
+            int current = counter.addAndGet(1);
+            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
+
+            ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
+            if (existingClassInfo != null) {
+                continue;
+            }
+
+            ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
+
+
+            final String className = classInfo.className()
+                    .value();
+
+            List<DataInfo> dataInfoList = classInfo.probeList()
+                    .stream()
+                    .map(KaitaiUtils::toDataInfo)
+                    .collect(Collectors.toList());
+
+            Map<Integer, List<DataInfo>> dataInfoByMethodId = dataInfoList.stream()
+                    .collect(Collectors.groupingBy(DataInfo::getMethodId,
+                            Collectors.toList()));
+
+            List<MethodInfo> methodInfoStream = classInfo.methodList()
+                    .stream()
+                    .map(methodInfo -> KaitaiUtils.toMethodInfo(methodInfo, className))
+                    .collect(Collectors.toList());
+            Map<Integer, MethodInfo> methodInfoMap = methodInfoStream.stream()
+                    .collect(Collectors.toMap(MethodInfo::getMethodId, e -> e));
+
+            Map<String, MethodInfo> methodByNameMap = methodInfoStream.stream()
+                    .collect(Collectors.toMap(e -> e.getClassName() + e.getMethodName() + e.getMethodDesc(), e -> e));
+            methodInfoIndex.putAll(methodInfoMap);
+            methodInfoByNameIndex.putAll(methodByNameMap);
+
+            boolean isEnum = false;
+            boolean isPojo = true;
+            if (methodInfoMap.size() == 0) {
+                // ?
+                isPojo = false;
+            }
+            int getterCount = 0;
+            int setterCount = 0;
+            for (MethodInfo methodInfo : methodInfoMap.values()) {
+                String methodName = methodInfo.getMethodName();
+                if (methodName.equals("values") && methodInfo.getMethodDesc()
+                        .equals("()[L" + methodInfo.getClassName() + ";") && methodInfo.getAccess() == 9) {
+                    isEnum = true;
+                }
+                if (methodName.startsWith("set")) {
+                    setterCount++;
+                }
+                if (methodName.startsWith("get") || methodName.startsWith("is")) {
+                    getterCount++;
+                }
+                if (methodName.startsWith("set")
+                        || methodName.startsWith("get")
+                        || methodName.startsWith("is")) {
+                    List<DataInfo> methodProbes = dataInfoByMethodId.get(methodInfo.getMethodId());
+                    Optional<DataInfo> hasCallEvent = methodProbes.stream()
+                            .filter(e -> e.getEventType()
+                                    .equals(CALL))
+                            .findAny();
+                    if (hasCallEvent.isPresent()) {
+                        isPojo = false;
+                    }
+                } else {
+                    if (methodName.equals("toString") && !classInfo1.getFilename()
+                            .equals("<generated>")) {
+                        isPojo = true;
+                        classInfo1.setPojo(isPojo);
+                        break;
+                    } else if (methodName.equals("equals")
+                            || methodName.equals("canEqual")
+                            || methodName.equals("hashCode")
+                            || methodName.startsWith("<")) {
+                    } else {
+                        List<String> descriptorItemsList = ClassTypeUtils.splitMethodDesc(
+                                methodInfo.getMethodDesc());
+                        if (descriptorItemsList.size() > 1) {
+                            isPojo = false;
+                        }
+                    }
+                }
+            }
+            if (getterCount > 0 && setterCount > 0 && !classInfo1.getFilename()
+                    .equals("<generated>")) {
+                classInfo1.setPojo(isPojo);
+            }
+            classInfo1.setEnum(isEnum);
+            classInfoIndex.put(classInfo1.getClassId(), classInfo1);
+            classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1);
+
+            for (MethodInfo value : methodInfoMap.values()) {
+                MethodDefinition methodDefinition = MethodDefinition.fromMethodInfo(value, classInfo1, false);
+                for (int i = 0; i < dataInfoList.size(); i++) {
+                    DataInfo dataInfo = dataInfoList.get(i);
+                    if (dataInfo.getEventType() == CALL) {
+                        if (dataInfoList.get(i - 1)
+                                .getEventType() == GET_INSTANCE_FIELD_RESULT
+                                || dataInfoList.get(i - 1)
+                                .getEventType() == GET_STATIC_FIELD) {
+                            methodDefinition.setUsesFields(true);
+                            break;
+                        }
+                    }
+                }
+
+                methodDefinitionList.add(methodDefinition);
+            }
+            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
+
+            Map<Integer, DataInfo> probesMap = dataInfoList.stream()
+                    .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
+            probeInfoIndex.putAll(probesMap);
+        }
+
+        daoService.createOrUpdateClassDefinitions(classDefinitionList);
+        daoService.createOrUpdateMethodDefinitions(methodDefinitionList);
+        classWeaveInfo._io()
+                .close();
+    }
+
+    private void refreshWeaveInformationStream(String fileName) throws IOException {
+        AtomicInteger counter = new AtomicInteger(0);
+
+
+        checkProgressIndicator("Loading class mappings to scan events", null);
+
+        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
+        List<ClassDefinition> classDefinitionList = new ArrayList<>();
+        KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
+                new RandomAccessFileKaitaiStream(fileName));
+        long totalClassCount = classWeaveInfo.classCount();
+
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
             checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
@@ -864,6 +998,13 @@ public class SessionInstance {
         return classWeaveInfo1;
     }
 
+    private void readClassWeaveInfoStream(@NotNull File sessionFile) throws IOException, FailedToReadClassWeaveException {
+
+        logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
+        String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
+        refreshWeaveInformationStream(classWeaveFileStream);
+    }
+
     private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
 
 //        for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
@@ -1074,7 +1215,12 @@ public class SessionInstance {
         return null;
     }
 
-    private String createFileOnDiskFromSessionArchiveFileV2(File sessionFile, String pathName) {
+    /**
+     * @param sessionFile Archive file from which file contents need to be extracted
+     * @param pathName    name of the file which needs to be extracted
+     * @return absolute file path to cached file the disk which can be read
+     */
+    private String createFileOnDiskFromSessionArchiveFileV2(File sessionFile, String pathName) throws FileNotFoundException {
         logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
         String cacheKey = sessionFile.getName() + pathName;
         String cacheFileLocation = this.sessionDirectory + "/cache/" + cacheKey + ".dat";
@@ -1515,59 +1661,6 @@ public class SessionInstance {
                 stringInfo, objectInfo, typeInfo, methodInfoIndex);
     }
 
-    public void getObjectsByType(SearchQuery searchQuery, ClientCallBack<ObjectWithTypeInfo> clientCallBack) {
-
-        checkProgressIndicator("Looking for objects by class: " + searchQuery.getQuery(), null);
-        int rangeLow = -1;
-        int rangeHigh = 9999999;
-
-        if (searchQuery.getRange() != null && searchQuery.getRange()
-                .length() > 0) {
-            String[] searchRange = searchQuery.getRange()
-                    .split("-");
-            rangeLow = Integer.parseInt(searchRange[0]);
-            if (searchRange.length > 1) {
-                rangeHigh = Integer.parseInt(searchRange[1]);
-            }
-        }
-
-        for (File sessionArchive : this.sessionArchives) {
-
-            checkProgressIndicator("Checking archive " + sessionArchive.getName(), null);
-            String archiveName = sessionArchive.getName();
-            int archiveIndex = Integer.parseInt(archiveName.split("-")[1]);
-            if (archiveIndex < rangeLow || archiveIndex > rangeHigh) {
-                continue;
-            }
-
-            Set<ObjectInfoDocument> objects = queryObjectsByTypeFromSessionArchive(searchQuery, sessionArchive);
-            if (objects.size() == 0) {
-                continue;
-            }
-
-            Map<Integer, TypeInfo> typesMap = objects.stream()
-                    .map(ObjectInfoDocument::getTypeId)
-                    .collect(Collectors.toSet())
-                    .stream()
-                    .map(this::getTypeInfo)
-                    .collect(Collectors.toMap(TypeInfo::getTypeId, typeInfo -> typeInfo));
-
-            Set<ObjectWithTypeInfo> collect = objects.stream()
-                    .map(e -> new ObjectWithTypeInfo(new ObjectInfo(e.getObjectId(), e.getTypeId(), 0),
-                            typesMap.get(e.getTypeId())))
-                    .collect(Collectors.toSet());
-            if (collect.size() > 0) {
-                checkProgressIndicator(null, archiveName + " matched " + collect.size() + " objects");
-                clientCallBack.success(collect);
-            }
-
-
-        }
-
-        clientCallBack.completed();
-
-    }
-
     private Set<ObjectInfoDocument> queryObjectsByTypeFromSessionArchive(SearchQuery searchQuery, File sessionArchive) {
 
         checkProgressIndicator(null, "querying type names from: " + sessionArchive.getName());
@@ -1653,18 +1746,13 @@ public class SessionInstance {
         return events;
     }
 
-    private InputStream getEventsFromFileV3(File sessionArchive, String archiveFile) throws IOException {
+    private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
         logger.warn("Read events from file: " + archiveFile);
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
-        return new BufferedInputStream(new FileInputStream(eventFile));
-//        RandomAccessFileKaitaiStream io = new RandomAccessFileKaitaiStream(eventFile);
-//        KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(io);
-//        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
-//                .entries();
-//        io.close();
-//        long end = new Date().getTime();
-//        logger.warn("Read events took: " + ((end - start) / 1000));
-//        return events;
+        if (eventFile == null) {
+            throw new FailedToReadClassWeaveException(archiveFile + " not found in " + sessionArchive.getName());
+        }
+        return eventFile;
     }
 
 
@@ -1685,39 +1773,6 @@ public class SessionInstance {
         long end = new Date().getTime();
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
-    }
-
-    /**
-     * possible new implementation for reading event file, but incomplete and not used
-     * not to be used until verified
-     *
-     * @param sessionFile
-     * @param pathName
-     * @return
-     */
-    private ZipInputStream readEventFile(File sessionFile, String pathName) {
-        logger.debug(String.format("get file[%s] from archive[%s]", pathName, sessionFile.getName()));
-        try {
-
-            try (FileInputStream sessionFileInputStream = new FileInputStream(sessionFile)) {
-                try (ZipInputStream indexArchive = new ZipInputStream(sessionFileInputStream)) {
-                    ZipEntry entry;
-                    while ((entry = indexArchive.getNextEntry()) != null) {
-                        String entryName = entry.getName();
-                        if (entryName.contains(pathName)) {
-                            return indexArchive;
-                        }
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            logger.warn(
-                    "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
-            return null;
-        }
-        return null;
-
     }
 
 
@@ -2151,9 +2206,7 @@ public class SessionInstance {
             return;
         }
 
-        ChronicleMap<Long, Parameter> parameterIndex = null;
-        try {
-            parameterIndex = createParameterIndex();
+        try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
             ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
             Set<Integer> allThreads = logFilesByThreadMap.keySet();
@@ -2176,11 +2229,6 @@ public class SessionInstance {
             checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
             daoService.createOrUpdateParameter(allParameters);
 
-        } finally {
-            if (parameterIndex != null) {
-
-                parameterIndex.close();
-            }
         }
 
         try {
@@ -2188,11 +2236,9 @@ public class SessionInstance {
             float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
             long size_folder = getFolderSize(sessionDir);
-            long archives_size = 0;
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("session_scan_time", scanTime);
             eventProperties.put("session_folder_size", (size_folder / 1000000));
-            eventProperties.put("session_scanned_archives_size", (archives_size / 1000000));
             UsageInsightTracker.getInstance()
                     .RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
@@ -2254,1024 +2300,997 @@ public class SessionInstance {
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
                 logger.warn("adding [" + objectIndexCollection.size() + "] objects to index");
                 objectIndexCollection.parallelStream()
-                        .forEach(e -> {
-                            objectInfoIndex.put(e.getObjectId(), e);
-                        });
+                        .forEach(e -> objectInfoIndex.put(e.getObjectId(), e));
             } else {
                 // we already have the latest object info index
                 break;
             }
         }
 
+
+        for (int i = 0; i < archiveLogFiles.size(); i++) {
+            checkProgressIndicator(null, "Processing file " + i + " / " + archiveLogFiles.size());
+            newTestCaseIdentified = processLogFile(archiveLogFiles.get(i), threadState, parameterContainer,
+                    existingProbes);
+        }
+
+        return newTestCaseIdentified;
+
+    }
+
+    private boolean processLogFile(
+            LogFile logFile,
+            ThreadProcessingState threadState,
+            ChronicleVariableContainer parameterContainer,
+            Set<Integer> existingProbes
+    ) throws IOException, SQLException {
+        boolean newTestCaseIdentified = false;
+        File sessionArchive = Path.of(executionSession.getPath(), logFile.getArchiveName())
+                .toFile();
+        int threadId = threadState.getThreadId();
         long currentCallId = daoService.getMaxCallId();
 
 
-        for (int i = 0; i < archiveLogFiles.size(); i++) {
-            LogFile logFile = archiveLogFiles.get(i);
+        List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
+                logFile.getName());
 
-            File sessionArchive = Path.of(executionSession.getPath(), logFile.getArchiveName())
-                    .toFile();
+        if (eventsSublist.size() == 0) {
+            logFile.setStatus(Constants.COMPLETED);
+            daoService.updateLogFile(logFile);
+            return newTestCaseIdentified;
+        }
 
-            checkProgressIndicator(null, "Processing file " + i + " / " + archiveLogFiles.size()
-                    + " @ " + eventsPerSecond + " events/second");
-
-            List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
-                    logFile.getName());
-
-            if (eventsSublist.size() == 0) {
-                logFile.setStatus(Constants.COMPLETED);
-                daoService.updateLogFile(logFile);
-                continue;
-            }
-
-            List<DataEventWithSessionId> eventsToSave = new ArrayList<>();
-            List<DataInfo> probesToSave = new ArrayList<>();
-            Set<MethodCallExpression> callsToSave = new HashSet<>();
-            Set<MethodCallExpression> callsToUpdate = new HashSet<>();
-            List<TestCandidateMetadata> candidatesToSave = new ArrayList<>();
-            Date start = new Date();
+        List<DataEventWithSessionId> eventsToSave = new ArrayList<>();
+        List<DataInfo> probesToSave = new ArrayList<>();
+        Set<MethodCallExpression> callsToSave = new HashSet<>();
+        Set<MethodCallExpression> callsToUpdate = new HashSet<>();
+        List<TestCandidateMetadata> candidatesToSave = new ArrayList<>();
+        Date start = new Date();
 //            Parameter parameterInstance = new Parameter();
-            String nameFromProbe;
-            String typeFromProbe;
-            boolean isModified = false;
-            for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
+        String nameFromProbe;
+        String typeFromProbe;
+        boolean isModified = false;
+        TestCandidateMetadata completedExceptional;
+        MethodCallExpression methodCall;
+        MethodCallExpression topCall;
+        for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
-                KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
-                DataEventWithSessionId dataEvent = null;
+            KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
+            DataEventWithSessionId dataEvent = null;
 
 
-                final long eventValue = eventBlock.valueId();
+            final long eventValue = eventBlock.valueId();
 
-                DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
-                Parameter existingParameter = null;
-                boolean saveProbe = false;
-                MethodCallExpression exceptionCallExpression;
-                TestCandidateMetadata completedExceptional;
-                MethodCallExpression methodCall;
-                isModified = false;
-                if (eventBlock.valueId() == 35680754) {
-                    logger.warn("here: " + logFile);
-                }
-//                existingParameter = parameterInstance;
-                switch (probeInfo.getEventType()) {
+            DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
+            Parameter existingParameter = null;
+            boolean saveProbe = false;
+            isModified = false;
+            if (eventBlock.valueId() == 35680754) {
+                logger.warn("here: " + logFile);
+            }
+            switch (probeInfo.getEventType()) {
 
-                    case LABEL:
-                        // nothing to do
-                        break;
-                    case LINE_NUMBER:
-                        // we always have this information in the probeInfo
-                        // nothing to do
-                        break;
+                case LABEL:
+                    // nothing to do
+                    break;
+                case LINE_NUMBER:
+                    // we always have this information in the probeInfo
+                    // nothing to do
+                    break;
 
-                    case LOCAL_STORE:
+                case LOCAL_STORE:
 
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter != null) {
-                            nameFromProbe = probeInfo.getAttribute("Name",
-                                    probeInfo.getAttribute("FieldName", null));
-                            if (!existingParameter.hasName(nameFromProbe)) {
-                                existingParameter.addName(nameFromProbe);
-                                isModified = true;
-                            }
-                        }
-                        typeFromProbe = probeInfo.getAttribute("Type", null);
-                        if (typeFromProbe != null && !typeFromProbe.equals(
-                                "Ljava/lang/Object;") && existingParameter.getType() == null) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
-                            isModified = true;
-                        }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-
-                        break;
-
-                    case LOCAL_LOAD:
-                        if (eventValue == 0) {
-                            continue;
-                        }
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-
-                        String nameForParameter = probeInfo.getAttribute("Name",
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter != null) {
+                        nameFromProbe = probeInfo.getAttribute("Name",
                                 probeInfo.getAttribute("FieldName", null));
-                        if (!existingParameter.hasName(nameForParameter)) {
-                            existingParameter.addName(nameForParameter);
+                        if (!existingParameter.hasName(nameFromProbe)) {
+                            existingParameter.addName(nameFromProbe);
                             isModified = true;
                         }
-                        String existingParameterType = existingParameter.getType();
-                        if (existingParameterType == null || existingParameterType.equals("java.lang.Object")) {
-                            existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(
-                                            probeInfo.getAttribute("Type", null)));
-                            isModified = true;
+                    }
+                    typeFromProbe = probeInfo.getAttribute("Type", null);
+                    if (typeFromProbe != null && !typeFromProbe.equals(
+                            "Ljava/lang/Object;") && existingParameter.getType() == null) {
+                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        isModified = true;
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+                    break;
+
+                case LOCAL_LOAD:
+                    if (eventValue == 0) {
+                        continue;
+                    }
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+
+                    String nameForParameter = probeInfo.getAttribute("Name",
+                            probeInfo.getAttribute("FieldName", null));
+                    if (!existingParameter.hasName(nameForParameter)) {
+                        existingParameter.addName(nameForParameter);
+                        isModified = true;
+                    }
+                    String existingParameterType = existingParameter.getType();
+                    if (existingParameterType == null || existingParameterType.equals("java.lang.Object")) {
+                        existingParameter.setType(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                        isModified = true;
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+
+                    break;
+
+                case GET_STATIC_FIELD:
+                    String fieldType1 = ClassTypeUtils.getDottedClassName(
+                            probeInfo.getAttribute("Type", null));
+                    if (fieldType1.startsWith("org.slf4j")
+                            || fieldType1.startsWith("com.google")
+                            || fieldType1.startsWith("org.joda.time")) {
+                        // nothing to do
+                    } else {
+                        if (fieldType1.endsWith("]")) {
+                            fieldType1 = fieldType1.substring(0, fieldType1.indexOf("["));
                         }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-
-
-                        break;
-
-                    case GET_STATIC_FIELD:
-                        String fieldType1 = ClassTypeUtils.getDottedClassName(
-                                probeInfo.getAttribute("Type", null));
-                        if (fieldType1.startsWith("org.slf4j")
-                                || fieldType1.startsWith("com.google")
-                                || fieldType1.startsWith("org.joda.time")) {
-                        } else {
-                            if (fieldType1.endsWith("]")) {
-                                fieldType1 = fieldType1.substring(0, fieldType1.indexOf("["));
-                            }
-                            ClassInfo classInfo = classInfoIndexByName.get(fieldType1);
+                        ClassInfo classInfo = classInfoIndexByName.get(fieldType1);
 //                            if (classInfo == null) {
 //                                logger.warn("class info is null: " + fieldType1);
 ////                                classInfo = classInfoIndex.get(probeInfo.getClassId());
 //                            }
-                            if (classInfo != null && !classInfo.isEnum()) {
-                                threadState.getTopCall()
-                                        .setUsesFields(true);
-                            }
+                        if (classInfo != null && !classInfo.isEnum()) {
+                            threadState.getTopCall()
+                                    .setUsesFields(true);
                         }
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter != null) {
+                    }
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter != null) {
+                        nameFromProbe = probeInfo.getAttribute("Name",
+                                probeInfo.getAttribute("FieldName", null));
+                        isModified = false;
+                        if (!existingParameter.hasName(nameFromProbe)) {
+                            existingParameter.addName(nameFromProbe);
+                            isModified = true;
+                        }
+                        if (existingParameter.getProbeInfo() == null) {
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+
+                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+
+                            saveProbe = true;
+                            isModified = true;
+                        }
+                        if (!isModified) {
+                            existingParameter = null;
+                        }
+                    }
+
+
+                    break;
+
+                case GET_INSTANCE_FIELD_RESULT:
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    nameFromProbe = probeInfo.getAttribute("Name",
+                            probeInfo.getAttribute("FieldName", null));
+                    isModified = false;
+                    if (!existingParameter.hasName(nameFromProbe)) {
+                        isModified = true;
+                        existingParameter.addName(nameFromProbe);
+                    }
+                    typeFromProbe = ClassTypeUtils.getDottedClassName(
+                            probeInfo.getAttribute("Type", "V"));
+                    if (existingParameter.getType() == null || !existingParameter.getType()
+                            .equals(typeFromProbe)) {
+                        existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
+                    }
+                    saveProbe = true;
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter.setProbeInfo(probeInfo);
+                    existingParameter.setProb(dataEvent);
+//                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
+//                                .add(existingParameter);
+                    threadState.getTopCandidate()
+                            .getFields()
+                            .add(existingParameter);
+                    String fieldType = ClassTypeUtils.getDottedClassName(
+                            probeInfo.getAttribute("Type", null));
+                    if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
+                        // nothing to do
+                    } else {
+                        ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                        if (!classInfo.isEnum()) {
+                            threadState.getTopCall()
+                                    .setUsesFields(true);
+                        }
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+                    break;
+
+                case PUT_INSTANCE_FIELD:
+
+
+                    // we are going to set this field in the next event
+                    threadState.pushValue(eventValue);
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter != null && existingParameter.getProb() != null) {
+                        if (existingParameter.getType() == null || existingParameter.getType()
+                                .contains(".Object")) {
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                    ClassTypeUtils.getDottedClassName(
+                                            probeInfo.getAttribute("Owner", "V"))));
+
+                        } else {
+                            existingParameter = null;
+                        }
+                    } else {
+                        // new variable identified ?
+                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+
+                        existingParameter.addName(
+                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                    }
+
+                    break;
+
+                case PUT_INSTANCE_FIELD_VALUE:
+
+
+                    threadState.popValue();
+
+
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter != null) {
+                        nameFromProbe = probeInfo.getAttribute("Name",
+                                probeInfo.getAttribute("FieldName", null));
+                        if (!existingParameter.hasName(nameFromProbe)) {
+                            existingParameter.addName(nameFromProbe);
+                        } else {
+                            existingParameter = null;
+                        }
+                    } else {
+                        // new field
+                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                        existingParameter.setType(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
+
+                        existingParameter.addName(
+                                probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+
+                        saveProbe = true;
+
+//                            parentFields.add(existingParameter);
+                    }
+                    break;
+
+
+                case PUT_STATIC_FIELD:
+
+
+                    isModified = false;
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter != null) {
+                        // field is already present, and we are overwriting it here
+                        // setting this to null, so it is not inserted into the database again
+                        existingParameter = null;
+                    } else {
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                        if (existingParameter.getProb() == null) {
+                            // we are coming across this field for the first time
+                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                    existingParameter);
+                            existingParameter.addName(probeInfo.getAttribute("Name",
+                                    probeInfo.getAttribute("FieldName", null)));
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                    ClassTypeUtils.getDottedClassName(
+                                            probeInfo.getAttribute("Type", "V"))));
+
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+
+                            saveProbe = true;
+
+                        } else {
                             nameFromProbe = probeInfo.getAttribute("Name",
                                     probeInfo.getAttribute("FieldName", null));
-                            isModified = false;
                             if (!existingParameter.hasName(nameFromProbe)) {
                                 existingParameter.addName(nameFromProbe);
                                 isModified = true;
                             }
-                            if (existingParameter.getProbeInfo() == null) {
-                                existingParameter.setType(
-                                        ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
-
-                                dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                                existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setProb(dataEvent);
-
-                                saveProbe = true;
+                            typeFromProbe = ClassTypeUtils.getDottedClassName(
+                                    probeInfo.getAttribute("Type", "V"));
+                            if (existingParameter.getType() == null || !existingParameter.getType()
+                                    .equals(typeFromProbe)) {
+                                existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
                                 isModified = true;
                             }
                             if (!isModified) {
                                 existingParameter = null;
                             }
                         }
+                    }
 
+                    break;
 
-                        break;
-
-                    case GET_INSTANCE_FIELD_RESULT:
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        nameFromProbe = probeInfo.getAttribute("Name",
-                                probeInfo.getAttribute("FieldName", null));
-                        isModified = false;
-                        if (!existingParameter.hasName(nameFromProbe)) {
-                            isModified = true;
-                            existingParameter.addName(nameFromProbe);
-                        }
-                        typeFromProbe = ClassTypeUtils.getDottedClassName(
-                                probeInfo.getAttribute("Type", "V"));
-                        if (existingParameter.getType() == null || !existingParameter.getType()
-                                .equals(typeFromProbe)) {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
-                        }
-                        saveProbe = true;
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
-//                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
-//                                .add(existingParameter);
-                        threadState.getTopCandidate()
-                                .getFields()
-                                .add(existingParameter);
-                        String fieldType = ClassTypeUtils.getDottedClassName(
-                                probeInfo.getAttribute("Type", null));
-                        if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
-                        } else {
-                            ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                            if (!classInfo.isEnum()) {
-                                threadState.getTopCall()
-                                        .setUsesFields(true);
-                            }
-                        }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-
-                        break;
-
-                    case PUT_INSTANCE_FIELD:
-
-
-                        // we are going to set this field in the next event
-                        threadState.pushValue(eventValue);
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter != null && existingParameter.getProb() != null) {
-                            if (existingParameter.getType() == null || existingParameter.getType()
-                                    .contains(".Object")) {
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(
-                                                probeInfo.getAttribute("Owner", "V"))));
-
-                            } else {
-                                existingParameter = null;
-                            }
-                        } else {
-                            // new variable identified ?
-                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
-
-                            existingParameter.addName(
-                                    probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
-                        }
-
-                        break;
-
-                    case PUT_INSTANCE_FIELD_VALUE:
-
-
-                        Long parentValue = threadState.popValue();
-//                        Parameter valueParameter = parameterContainer.getParameterByValueUsing(parentValue);
-//                        VariableContainer parentFields = valueParameter.getFields();
-
-
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter != null) {
-                            nameFromProbe = probeInfo.getAttribute("Name",
-                                    probeInfo.getAttribute("FieldName", null));
-                            if (!existingParameter.hasName(nameFromProbe)) {
-                                existingParameter.addName(nameFromProbe);
-                            } else {
-                                existingParameter = null;
-                            }
-                        } else {
-                            // new field
-                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                            existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V")));
-
-                            existingParameter.addName(
-                                    probeInfo.getAttribute("Name", probeInfo.getAttribute("FieldName", null)));
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-
-                            saveProbe = true;
-
-//                            parentFields.add(existingParameter);
-                        }
-                        break;
-
-
-                    case PUT_STATIC_FIELD:
-
-
-                        isModified = false;
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter != null) {
-                            // field is already present, and we are overwriting it here
-                            // setting this to null, so it is not inserted into the database again
-                            existingParameter = null;
-                        } else {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                            if (existingParameter.getProb() == null) {
-                                // we are coming across this field for the first time
-                                dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                                existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                        existingParameter);
-                                existingParameter.addName(probeInfo.getAttribute("Name",
-                                        probeInfo.getAttribute("FieldName", null)));
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(
-                                                probeInfo.getAttribute("Type", "V"))));
-
-                                existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setProb(dataEvent);
-
-                                saveProbe = true;
-
-                            } else {
-                                nameFromProbe = probeInfo.getAttribute("Name",
-                                        probeInfo.getAttribute("FieldName", null));
-                                if (!existingParameter.hasName(nameFromProbe)) {
-                                    existingParameter.addName(nameFromProbe);
-                                    isModified = true;
-                                }
-                                typeFromProbe = ClassTypeUtils.getDottedClassName(
-                                        probeInfo.getAttribute("Type", "V"));
-                                if (existingParameter.getType() == null || !existingParameter.getType()
-                                        .equals(typeFromProbe)) {
-                                    existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
-                                    isModified = true;
-                                }
-                                if (!isModified) {
-                                    existingParameter = null;
-                                }
-                            }
-                        }
-
-                        break;
-
-                    case CALL:
+                case CALL:
 //                        if (eventBlock.eventId() == 165161L) {
 //                            logger.warn("in file: " + logFile);
 //                        }
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        saveProbe = true;
-                        isModified = false;
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    saveProbe = true;
+                    isModified = false;
 
-                        if (existingParameter.getProbeInfo() == null) {
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            isModified = eventValue != 0;
-                        }
-                        if ((existingParameter.getType() == null || existingParameter.getType()
-                                .equals("java.lang.Object"))) {
-                            existingParameter.setType(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V")));
-                            isModified = eventValue != 0;
-                        }
+                    if (existingParameter.getProbeInfo() == null) {
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+                        isModified = eventValue != 0;
+                    }
+                    if ((existingParameter.getType() == null || existingParameter.getType()
+                            .equals("java.lang.Object"))) {
+                        existingParameter.setType(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Owner", "V")));
+                        isModified = eventValue != 0;
+                    }
 
-                        String methodName = probeInfo.getAttribute("Name", null);
+                    String methodName = probeInfo.getAttribute("Name", null);
 //                        if (methodName.equals("checkIfContainsConfirmedStatus")) {
 //                            logger.warn("here it is");
 //                        }
 
 //                        logger.warn("Method " + methodName + ": " + currentCallId);
-                        currentCallId++;
-                        methodCall = new MethodCallExpression(methodName, existingParameter, new LinkedList<>(),
-                                null, threadState.getCallStackSize());
-                        methodCall.setId(currentCallId);
-                        methodCall.setEntryProbeInfo(probeInfo);
-                        methodCall.setEntryProbe(dataEvent);
+                    currentCallId++;
+                    methodCall = new MethodCallExpression(methodName, existingParameter, new LinkedList<>(),
+                            null, threadState.getCallStackSize());
+                    methodCall.setThreadId(threadId);
+                    methodCall.setId(currentCallId);
+                    methodCall.setEntryProbeInfo(probeInfo);
+                    methodCall.setEntryProbe(dataEvent);
 
-                        MethodInfo methodDescription = methodInfoByNameIndex.get(
-                                probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
-                                        null) + probeInfo.getAttribute("Desc", null));
-                        if (methodDescription != null) {
-                            methodCall.setMethodDefinitionId(methodDescription.getMethodId());
+                    MethodInfo methodDescription = methodInfoByNameIndex.get(
+                            probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
+                                    null) + probeInfo.getAttribute("Desc", null));
+                    if (methodDescription != null) {
+                        methodCall.setMethodDefinitionId(methodDescription.getMethodId());
+                    }
+
+                    ClassInfo methodClassInfo = classInfoIndexByName.get(existingParameter.getType());
+                    if (methodClassInfo != null) {
+                        if (Arrays.asList(methodClassInfo.getInterfaces())
+                                .contains("org/springframework/data/jpa/repository/JpaRepository") ||
+                                Arrays.asList(methodClassInfo.getInterfaces())
+                                        .contains("org/springframework/data/repository/CrudRepository")) {
+                            methodCall.setMethodAccess(1);
                         }
+                    }
 
-                        ClassInfo methodClassInfo = classInfoIndexByName.get(existingParameter.getType());
-                        if (methodClassInfo != null) {
-                            if (Arrays.asList(methodClassInfo.getInterfaces())
-                                    .contains("org/springframework/data/jpa/repository/JpaRepository") ||
-                                    Arrays.asList(methodClassInfo.getInterfaces())
-                                            .contains("org/springframework/data/repository/CrudRepository")) {
-                                methodCall.setMethodAccess(1);
+                    if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
+                        methodCall.setStaticCall(true);
+                        methodCall.setSubject(existingParameter);
+                    }
+
+                    if (existingParameter.getValue() == 0
+                            && "Static".equals(probeInfo.getAttribute("CallType", null))
+                            && !methodName.startsWith("<") && !methodName.contains("$")) {
+                        String ownerClass = ClassTypeUtils.getJavaClassName(
+                                probeInfo.getAttribute("Owner", null));
+                        existingParameter.setValue((long) ownerClass.hashCode());
+                        isModified = true;
+                    }
+
+
+                    if (threadState.getCallStackSize() > 0) {
+                        methodCall.setParentId(threadState.getTopCall()
+                                .getId());
+                    }
+                    threadState.pushCall(methodCall);
+//                        addMethodToCandidate(threadState, methodCall);
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+
+                    break;
+
+
+                case CALL_PARAM:
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    MethodCallExpression currentMethodCallExpression = threadState.getTopCall();
+                    isModified = false;
+                    if ((existingParameter.getType() == null || existingParameter.getType()
+                            .endsWith(".Object"))) {
+                        typeFromProbe = probeInfo.getAttribute("Type", null);
+                        String typeNameForValue = ClassTypeUtils.getDottedClassName(typeFromProbe);
+                        if (typeNameForValue != null && !typeNameForValue.equals("java.lang.Object")) {
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDottedClassName(typeFromProbe));
+                        }
+                        // TODO: This is getting ugly, but
+                        // we need some way to prefer some kind of events/probes combination
+                        // over other kind of events/probes
+                        // for instance events which are of type CALL_RETURN/CALL_PARAM are going to have
+                        // the serialized value which we use to recreate the object, but for fields we need
+                        // the events/probes of type GET_INSTANCE_FIELD_RESULT/PUT since we use those
+                        // to identify if a parameter is a field of a class
+                        // (and so mock the calls on those parameters)
+                        // maybe we need to restructure the parameter class to store this information
+                        // instead of storing the event/probe
+                        if (existingParameter.getProbeInfo() == null || (!existingParameter.getProbeInfo()
+                                .getEventType()
+                                .equals(PUT_INSTANCE_FIELD_VALUE) && !existingParameter.getProbeInfo()
+                                .getEventType()
+                                .equals(GET_INSTANCE_FIELD_RESULT))) {
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+                            isModified = true;
+                        }
+                    }
+                    saveProbe = true;
+                    currentMethodCallExpression.addArgument(existingParameter);
+                    currentMethodCallExpression.addArgumentProbe(dataEvent);
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+                    break;
+
+                case METHOD_ENTRY:
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
+                    methodCall = null;
+                    // a method_entry event can come in without a corresponding event for call,
+                    // in which case this is actually a separate method call
+                    if (threadState.getCallStackSize() > 0) {
+                        methodCall = threadState.getTopCall();
+                        @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
+                                methodInfo.getClassName());
+                        String owner = ClassTypeUtils.getDottedClassName(
+                                methodCall.getEntryProbeInfo()
+                                        .getAttribute("Owner", null));
+                        if (owner == null) {
+                            methodCall = null;
+                        } else {
+                            // sometimes we can enter a method_entry without a call
+                            if (!methodCall.getSubject()
+                                    .getType()
+                                    .startsWith(expectedClassName)
+                                    || !methodInfo.getMethodName()
+                                    .equals(methodCall.getMethodName())) {
+                                methodCall = null;
                             }
                         }
+                    }
 
-                        if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
-                            methodCall.setStaticCall(true);
-                            methodCall.setSubject(existingParameter);
+                    TestCandidateMetadata newCandidate = new TestCandidateMetadata();
+
+                    newCandidate.setEntryProbeIndex(eventBlock.eventId());
+
+
+                    isModified = false;
+                    if (methodCall == null) {
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                        if (existingParameter.getProb() == null) {
+
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
+                            isModified = true;
                         }
+                        if (existingParameter.getType() == null || existingParameter.getType()
+                                .equals("java.lang.Object")) {
+                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                    ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
 
-                        if (existingParameter.getValue() == 0
-                                && "Static".equals(probeInfo.getAttribute("CallType", null))
-                                && !methodName.startsWith("<") && !methodName.contains("$")) {
-                            String ownerClass = ClassTypeUtils.getJavaClassName(
-                                    probeInfo.getAttribute("Owner", null));
-                            existingParameter.setValue((long) ownerClass.hashCode());
+
                             isModified = true;
                         }
 
 
+//                            logger.warn("Method " + methodInfo.getMethodName() + ": " + currentCallId);
+                        methodCall = new MethodCallExpression(methodInfo.getMethodName(), existingParameter,
+                                new LinkedList<>(), null, threadState.getCallStackSize());
+
+                        saveProbe = true;
+                        methodCall.setThreadId(threadId);
+                        methodCall.setEntryProbeInfo(probeInfo);
+                        methodCall.setEntryProbe(dataEvent);
+                        methodCall.setMethodDefinitionId(probeInfo.getMethodId());
+
+                        currentCallId++;
+                        methodCall.setId(currentCallId);
+//                            if (threadState.candidateSize() > 0) {
+//                                addMethodToCandidate(threadState, methodCall);
+//                            }
                         if (threadState.getCallStackSize() > 0) {
                             methodCall.setParentId(threadState.getTopCall()
                                     .getId());
                         }
+
                         threadState.pushCall(methodCall);
-//                        addMethodToCandidate(threadState, methodCall);
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-
-
-                        break;
-
-
-                    case CALL_PARAM:
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        MethodCallExpression currentMethodCallExpression = threadState.getTopCall();
-                        isModified = false;
-                        if ((existingParameter.getType() == null || existingParameter.getType()
-                                .endsWith(".Object"))) {
-                            typeFromProbe = probeInfo.getAttribute("Type", null);
-                            String typeNameForValue = ClassTypeUtils.getDottedClassName(typeFromProbe);
-                            if (typeNameForValue != null && !typeNameForValue.equals("java.lang.Object")) {
-                                existingParameter.setType(
-                                        ClassTypeUtils.getDottedClassName(typeFromProbe));
-                            }
-                            // TODO: This is getting ugly, but
-                            // we need some way to prefer some kind of events/probes combination
-                            // over other kind of events/probes
-                            // for instance events which are of type CALL_RETURN/CALL_PARAM are going to have
-                            // the serialized value which we use to recreate the object, but for fields we need
-                            // the events/probes of type GET_INSTANCE_FIELD_RESULT/PUT since we use those
-                            // to identify if a parameter is a field of a class
-                            // (and so mock the calls on those parameters)
-                            // maybe we need to restructure the parameter class to store this information
-                            // instead of storing the event/probe
-                            if (existingParameter.getProbeInfo() == null || (!existingParameter.getProbeInfo()
-                                    .getEventType()
-                                    .equals(PUT_INSTANCE_FIELD_VALUE) && !existingParameter.getProbeInfo()
-                                    .getEventType()
-                                    .equals(GET_INSTANCE_FIELD_RESULT))) {
-                                existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setProb(dataEvent);
-                                isModified = true;
-                            }
-                        }
-                        saveProbe = true;
-                        currentMethodCallExpression.addArgument(existingParameter);
-                        currentMethodCallExpression.addArgumentProbe(dataEvent);
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-                        break;
-
-                    case METHOD_ENTRY:
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        MethodInfo methodInfo = methodInfoIndex.get(probeInfo.getMethodId());
-                        methodCall = null;
-                        // a method_entry event can come in without a corresponding event for call,
-                        // in which case this is actually a separate method call
-                        if (threadState.getCallStackSize() > 0) {
-                            methodCall = threadState.getTopCall();
-                            @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
-                                    methodInfo.getClassName());
-                            String owner = ClassTypeUtils.getDottedClassName(
-                                    methodCall.getEntryProbeInfo()
-                                            .getAttribute("Owner", null));
-                            if (owner == null) {
-                                methodCall = null;
-                            } else {
-                                // sometimes we can enter a method_entry without a call
-                                if (!methodCall.getSubject()
-                                        .getType()
-                                        .startsWith(expectedClassName)
-                                        || !methodInfo.getMethodName()
-                                        .equals(methodCall.getMethodName())) {
-                                    methodCall = null;
-                                }
-                            }
-                        }
-
-                        TestCandidateMetadata newCandidate = new TestCandidateMetadata();
-
-                        newCandidate.setEntryProbeIndex(eventBlock.eventId());
-
-
-                        isModified = false;
-                        if (methodCall == null) {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                            if (existingParameter.getProb() == null) {
-
-                                existingParameter.setProbeInfo(probeInfo);
-                                existingParameter.setProb(dataEvent);
-
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
-                                isModified = true;
-                            }
-                            if (existingParameter.getType() == null || existingParameter.getType()
-                                    .equals("java.lang.Object")) {
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        ClassTypeUtils.getDottedClassName(methodInfo.getClassName())));
-
-
-                                isModified = true;
-                            }
-
-
-//                            logger.warn("Method " + methodInfo.getMethodName() + ": " + currentCallId);
-                            methodCall = new MethodCallExpression(methodInfo.getMethodName(), existingParameter,
-                                    new LinkedList<>(), null, threadState.getCallStackSize());
-
-                            saveProbe = true;
-                            methodCall.setEntryProbeInfo(probeInfo);
-                            methodCall.setEntryProbe(dataEvent);
+                    } else {
+                        if (methodCall.getMethodDefinitionId() == 0) {
                             methodCall.setMethodDefinitionId(probeInfo.getMethodId());
-
-                            currentCallId++;
-                            methodCall.setId(currentCallId);
-//                            if (threadState.candidateSize() > 0) {
-//                                addMethodToCandidate(threadState, methodCall);
-//                            }
-                            if (threadState.getCallStackSize() > 0) {
-                                methodCall.setParentId(threadState.getTopCall()
-                                        .getId());
-                            }
-
-                            threadState.pushCall(methodCall);
-                        } else {
-                            if (methodCall.getMethodDefinitionId() == 0) {
-                                methodCall.setMethodDefinitionId(probeInfo.getMethodId());
-                            }
-                            saveProbe = true;
-                        }
-                        newCandidate.setMainMethod(methodCall);
-                        threadState.pushTopCandidate(newCandidate);
-
-                        if (existingParameter == null) {
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                        }
-
-                        if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
-                                && !methodInfo.getMethodName()
-                                .startsWith("<") && !methodInfo.getMethodName()
-                                .contains("$")) {
-                            String ownerClass = ClassTypeUtils.getJavaClassName(
-                                    classInfoIndex.get(probeInfo.getClassId())
-                                            .getClassName());
-                            existingParameter.setValue((long) ownerClass.hashCode());
-                            isModified = true;
-                            existingParameter.setType(ownerClass);
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                        }
-
-
-                        int methodAccess = methodInfo.getAccess();
-                        methodCall.setMethodAccess(methodAccess);
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-
-                        break;
-
-
-                    case METHOD_PARAM:
-
-                        // if the caller was probed then we already have the method arguments
-                        // in that case we can verify here
-                        // else if the caller was a third party, then we need to extract parameters from here
-
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-
-
-                        isModified = false;
-                        if (existingParameter.getProb() == null) {
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            isModified = true;
-                        }
-                        if (existingParameter.getType() == null) {
-                            ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
-                            if (objectInfo != null) {
-                                TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                                existingParameter.setType(typeInfo.getTypeName());
-                                isModified = true;
-                            }
                         }
                         saveProbe = true;
+                    }
+                    newCandidate.setMainMethod(methodCall);
+                    threadState.pushTopCandidate(newCandidate);
 
-                        MethodCallExpression methodExpression = threadState.getTopCall();
+                    if (existingParameter == null) {
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                    }
 
-                        EventType entryProbeEventType = methodExpression.getEntryProbeInfo()
-                                .getEventType();
-                        if (entryProbeEventType == EventType.CALL) {
-                            // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
-                        } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                            methodExpression.addArgument(existingParameter);
-                            methodExpression.addArgumentProbe(dataEvent);
-                        } else {
-                            throw new RuntimeException("unexpected entry probe event type");
-                        }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-                        break;
-
-                    case CATCH:
-                        ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                        Parameter topCallSubject = threadState.getTopCall()
-                                .getSubject();
-                        String topCallSubjectType = topCallSubject.getType();
-                        String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(
-                                classInfo
+                    if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
+                            && !methodInfo.getMethodName()
+                            .startsWith("<") && !methodInfo.getMethodName()
+                            .contains("$")) {
+                        String ownerClass = ClassTypeUtils.getJavaClassName(
+                                classInfoIndex.get(probeInfo.getClassId())
                                         .getClassName());
+                        existingParameter.setValue((long) ownerClass.hashCode());
+                        isModified = true;
+                        existingParameter.setType(ownerClass);
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+                    }
 
 
-                        if (!topCallSubjectType.equals(currentProbeClassOwner)) {
-                            dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                            existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                    existingParameter);
-                            if (existingParameter.getType() == null) {
-                                ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
-                                        existingParameter.getValue());
+                    int methodAccess = methodInfo.getAccess();
+                    methodCall.setMethodAccess(methodAccess);
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+                    break;
+
+
+                case METHOD_PARAM:
+
+                    // if the caller was probed then we already have the method arguments
+                    // in that case we can verify here
+                    // else if the caller was a third party, then we need to extract parameters from here
+
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+
+
+                    isModified = false;
+                    if (existingParameter.getProb() == null) {
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+                        isModified = true;
+                    }
+                    if (existingParameter.getType() == null) {
+                        ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
+                        if (objectInfo != null) {
+                            TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
+                            existingParameter.setType(typeInfo.getTypeName());
+                            isModified = true;
+                        }
+                    }
+                    saveProbe = true;
+
+                    MethodCallExpression methodExpression = threadState.getTopCall();
+
+                    EventType entryProbeEventType = methodExpression.getEntryProbeInfo()
+                            .getEventType();
+                    if (entryProbeEventType == EventType.CALL) {
+                        // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
+                    } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
+                        methodExpression.addArgument(existingParameter);
+                        methodExpression.addArgumentProbe(dataEvent);
+                    } else {
+                        throw new RuntimeException("unexpected entry probe event type");
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+                    break;
+
+                case CATCH:
+                    ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
+                    Parameter topCallSubject = threadState.getTopCall()
+                            .getSubject();
+                    String topCallSubjectType = topCallSubject.getType();
+                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(
+                            classInfo
+                                    .getClassName());
+
+
+                    if (!topCallSubjectType.equals(currentProbeClassOwner)) {
+                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
+                                existingParameter);
+                        if (existingParameter.getType() == null) {
+                            ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                                    existingParameter.getValue());
+                            if (objectInfoDocument != null) {
                                 String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
                                                 objectInfoDocument.getTypeId())
                                         .getTypeName());
                                 existingParameter.setType(typeName);
                             }
-                            saveProbe = true;
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            MethodCallExpression topCall = threadState.popCall();
-                            topCall.setReturnValue(existingParameter);
-                            topCall.setReturnDataEvent(dataEvent);
-                            callsToSave.add(topCall);
-                            threadState.setMostRecentReturnedCall(topCall);
-
                         }
-                        break;
-
-                    case METHOD_EXCEPTIONAL_EXIT:
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
-
-                        exceptionCallExpression = threadState.getTopCall();
-                        entryProbeEventType = exceptionCallExpression.getEntryProbeInfo()
-                                .getEventType();
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        if (existingParameter.getType() == null) {
-                            ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
-                                    existingParameter.getValue());
-                            String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
-                                            objectInfoDocument.getTypeId())
-                                    .getTypeName());
-                            existingParameter.setType(typeName);
-                        }
-
+                        saveProbe = true;
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
-                        isModified = true;
-                        saveProbe = true;
+                        topCall = threadState.popCall();
+                        topCall.setReturnValue(existingParameter);
+                        topCall.setReturnDataEvent(dataEvent);
+                        callsToSave.add(topCall);
+                        threadState.setMostRecentReturnedCall(topCall);
 
+                    }
+                    break;
 
-                        if (false) {
-                            // we need to pop two calls here, since the CALL will not have a matching call_return
-//
-                            MethodCallExpression topCall = threadState.popCall();
-                            topCall.setReturnValue(existingParameter);
-                            topCall.setReturnDataEvent(dataEvent);
-                            callsToSave.add(topCall);
-                            threadState.setMostRecentReturnedCall(topCall);
-                            if (threadState.getTopCall() == threadState.getTopCandidate()
-                                    .getMainMethod()) {
-                                topCall = threadState.popCall();
-                                topCall.setReturnValue(existingParameter);
-                                topCall.setReturnDataEvent(dataEvent);
-                                callsToSave.add(topCall);
-                                threadState.setMostRecentReturnedCall(topCall);
-                            } else {
-                                logger.warn("not popping second call");
-                            }
-
-                        } else if (true) {
-                            // we need to pop only 1 call here from the stack
-                            MethodCallExpression topCall = threadState.popCall();
-                            topCall.setReturnValue(existingParameter);
-                            topCall.setReturnDataEvent(dataEvent);
-                            callsToSave.add(topCall);
-                            threadState.setMostRecentReturnedCall(topCall);
-
-                        } else {
-                            throw new RuntimeException(
-                                    "unexpected entry probe event type [" + entryProbeEventType + "]");
-                        }
-
-
-                        completedExceptional = threadState.popTopCandidate();
-
-                        completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
-                        if (completedExceptional.getMainMethod() != null) {
-                            DataEventWithSessionId entryProbe = ((MethodCallExpression) (completedExceptional.getMainMethod())).getEntryProbe();
-                            if (entryProbe != null) {
-                                completedExceptional.setCallTimeNanoSecond(
-                                        eventBlock.timestamp() - entryProbe.getRecordedAt());
-                            }
-                        }
-                        if (completedExceptional.getMainMethod() != null) {
-                            completedExceptional.setTestSubject(
-                                    ((MethodCallExpression) completedExceptional.getMainMethod()).getSubject());
-                        }
-
-
-                        if (threadState.candidateSize() > 0) {
-                            TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                            MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                            newCurrent.addAllMethodCall(completedExceptional.getCallsList());
-
-                            if (((MethodCallExpression) newCurrent.getMainMethod()).getSubject()
-                                    .getType()
-                                    .equals(((MethodCallExpression) completedExceptional.getMainMethod()).getSubject()
-                                            .getType())) {
-                                for (Parameter parameter : completedExceptional.getFields()
-                                        .all()) {
-                                    newCurrent.getFields()
-                                            .add(parameter);
-                                }
-                            }
-
-                        } else {
-                            if (threadState.getCallStackSize() > 0) {
-                                logger.warn("inconsistent call stack state, flushing calls list");
-                            }
-                        }
-
-                        if (completedExceptional.getTestSubject() != null) {
-                            candidatesToSave.add(completedExceptional);
-                        }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-                        break;
-
-
-                    case METHOD_NORMAL_EXIT:
-
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                case METHOD_EXCEPTIONAL_EXIT:
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
 //                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
-                        MethodCallExpression currentCallExpression = threadState.getTopCall();
-                        entryProbeEventType = currentCallExpression.getEntryProbeInfo()
-                                .getEventType();
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-                        isModified = false;
-                        saveProbe = true;
-                        if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            isModified = eventValue != 0;
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    if (existingParameter.getType() == null) {
+                        ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                                existingParameter.getValue());
+                        String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
+                                        objectInfoDocument.getTypeId())
+                                .getTypeName());
+                        existingParameter.setType(typeName);
+                    }
+
+                    existingParameter.setProbeInfo(probeInfo);
+                    existingParameter.setProb(dataEvent);
+                    isModified = true;
+                    saveProbe = true;
+
+
+                    // we need to pop only 1 call here from the stack
+                    topCall = threadState.popCall();
+                    topCall.setReturnValue(existingParameter);
+                    topCall.setReturnDataEvent(dataEvent);
+                    callsToSave.add(topCall);
+                    threadState.setMostRecentReturnedCall(topCall);
+                    completedExceptional = threadState.popTopCandidate();
+
+                    completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
+                    MethodCallExpression completedMainMethod = (MethodCallExpression) completedExceptional.getMainMethod();
+                    if (completedExceptional.getMainMethod() != null) {
+                        DataEventWithSessionId entryProbe = completedMainMethod.getEntryProbe();
+                        if (entryProbe != null) {
+                            completedExceptional.setCallTimeNanoSecond(
+                                    eventBlock.timestamp() - entryProbe.getRecordedAt());
+                        }
+                    }
+                    if (completedExceptional.getMainMethod() != null) {
+                        completedExceptional.setTestSubject(completedMainMethod.getSubject());
+                    }
+
+
+                    if (threadState.candidateSize() > 0) {
+                        TestCandidateMetadata newCurrent = threadState.getTopCandidate();
+                        MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
+                        if (newCurrentMainMethod.getSubject()
+                                .getType()
+                                .equals(completedMainMethod.getSubject()
+                                        .getType())) {
+                            for (Parameter parameter : completedExceptional.getFields()
+                                    .all()) {
+                                newCurrent.getFields()
+                                        .add(parameter);
+                            }
                         }
 
-                        if (entryProbeEventType == EventType.CALL) {
-                            // we dont pop it here, wait for the CALL_RETURN to pop the call
+                    } else {
+                        if (threadState.getCallStackSize() > 0) {
+                            logger.warn("inconsistent call stack state, flushing calls list");
+                        }
+                    }
 
-                        } else if (entryProbeEventType == EventType.METHOD_ENTRY || probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
-                            // we can pop the current call here since we never had the CALL event in the first place
-                            // this might be going out of our hands
-                            MethodCallExpression topCall = threadState.popCall();
+                    if (completedExceptional.getTestSubject() != null) {
+                        candidatesToSave.add(completedExceptional);
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+                    break;
 
 
-                            if (topCall.getMethodName()
-                                    .startsWith("<")) {
-                                topCall.setReturnValue(topCall.getSubject());
+                case METHOD_NORMAL_EXIT:
 
-                            } else {
-                                topCall.setReturnValue(existingParameter);
-                            }
-                            topCall.setReturnDataEvent(dataEvent);
-                            callsToSave.add(topCall);
-                            threadState.setMostRecentReturnedCall(topCall);
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+
+                    MethodCallExpression currentCallExpression = threadState.getTopCall();
+                    entryProbeEventType = currentCallExpression.getEntryProbeInfo()
+                            .getEventType();
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                    isModified = false;
+                    saveProbe = true;
+                    if (existingParameter.getProb() == null || existingParameter.getProbeInfo() == null) {
+                        existingParameter.setProbeInfo(probeInfo);
+                        existingParameter.setProb(dataEvent);
+                        isModified = eventValue != 0;
+                    }
+
+                    if (entryProbeEventType == EventType.CALL) {
+                        // we don't pop it here, wait for the CALL_RETURN to pop the call
+
+                    } else if (entryProbeEventType == EventType.METHOD_ENTRY || probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
+                        // we can pop the current call here since we never had the CALL event in the first place
+                        // this might be going out of our hands
+                        topCall = threadState.popCall();
+
+
+                        if (topCall.getMethodName()
+                                .startsWith("<")) {
+                            topCall.setReturnValue(topCall.getSubject());
 
                         } else {
-                            throw new RuntimeException(
-                                    "unexpected entry probe event type [" + entryProbeEventType + "]");
+                            topCall.setReturnValue(existingParameter);
                         }
+                        topCall.setReturnDataEvent(dataEvent);
+                        callsToSave.add(topCall);
+                        threadState.setMostRecentReturnedCall(topCall);
+
+                    } else {
+                        throw new RuntimeException(
+                                "unexpected entry probe event type [" + entryProbeEventType + "]");
+                    }
 
 
-                        TestCandidateMetadata completed = threadState.popTopCandidate();
+                    TestCandidateMetadata completed = threadState.popTopCandidate();
 
-                        completed.setExitProbeIndex(eventBlock.eventId());
-                        if (completed.getMainMethod() != null) {
-                            DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
-                            if (entryProbe != null) {
-                                completed.setCallTimeNanoSecond(
-                                        eventBlock.timestamp() - entryProbe.getRecordedAt());
+                    completed.setExitProbeIndex(eventBlock.eventId());
+                    if (completed.getMainMethod() != null) {
+                        DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
+                        if (entryProbe != null) {
+                            completed.setCallTimeNanoSecond(
+                                    eventBlock.timestamp() - entryProbe.getRecordedAt());
+                        }
+                    }
+                    if (completed.getMainMethod() != null) {
+                        completed.setTestSubject(
+                                ((MethodCallExpression) completed.getMainMethod()).getSubject());
+                    }
+
+                    if (threadState.candidateSize() > 0) {
+                        TestCandidateMetadata newCurrent = threadState.getTopCandidate();
+                        MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
+                        Parameter completedCallSubject = ((MethodCallExpression) completed.getMainMethod()).getSubject();
+                        Parameter newCurrentCallSubject = newCurrentMainMethod.getSubject();
+                        if (newCurrentCallSubject.getType()
+                                .equals(completedCallSubject.getType())) {
+                            for (Parameter parameter : completed.getFields()
+                                    .all()) {
+                                newCurrent.getFields()
+                                        .add(parameter);
                             }
                         }
-                        if (completed.getMainMethod() != null) {
-                            completed.setTestSubject(
-                                    ((MethodCallExpression) completed.getMainMethod()).getSubject());
-                        }
-
-                        if (threadState.candidateSize() > 0) {
-                            TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                            MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                            final long newSubjectValue = newCurrentMainMethod.getSubject()
-                                    .getValue();
-                            final int expectedCallStack = newCurrentMainMethod.getCallStack() + 1;
-                            newCurrent.addAllMethodCall(completed.getCallsList());
-                            Parameter completedCallSubject = ((MethodCallExpression) completed.getMainMethod()).getSubject();
-                            Parameter newCurrentCallSubject = newCurrentMainMethod.getSubject();
-                            if (newCurrentCallSubject.getType()
-                                    .equals(completedCallSubject.getType())) {
-                                for (Parameter parameter : completed.getFields()
-                                        .all()) {
-                                    newCurrent.getFields()
-                                            .add(parameter);
-                                }
-                            }
 
 
 //                                newCurrent.getFields().all().addAll(completed.gertFields().all());
-                        } else {
-                            if (threadState.getCallStackSize() > 0) {
-                                logger.error("inconsistent call stack state, flushing calls list");
+                    } else {
+                        if (threadState.getCallStackSize() > 0) {
+                            logger.error("inconsistent call stack state, flushing calls list");
 //                                        callStack.clear();
-                            }
                         }
+                    }
 
-                        if (completed.getTestSubject() != null) {
-                            MethodCallExpression mainMethod = (MethodCallExpression) completed.getMainMethod();
-                            ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
-                                    .getType());
-                            String candidateMethodName = mainMethod.getMethodName();
+                    if (completed.getTestSubject() != null) {
+                        MethodCallExpression mainMethod = (MethodCallExpression) completed.getMainMethod();
+                        ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
+                                .getType());
+                        String candidateMethodName = mainMethod.getMethodName();
 //                            if (subjectClassInfo == null) {
 //                                logger.warn("here: " + subjectClassInfo);
 //                            }
-                            if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||
-                                    candidateMethodName.equals("getTargetClass")
-                                    || candidateMethodName.equals("getTargetSource")
-                                    || candidateMethodName.equals("isFrozen")
-                                    || candidateMethodName.equals("invoke")
-                                    || candidateMethodName.contains("$")
-                                    || candidateMethodName.equals("getIndex")
-                                    || candidateMethodName.equals("values")
-                                    || candidateMethodName.equals("hashCode")
-                                    || candidateMethodName.startsWith("<")
-                                    || candidateMethodName.equals("setBeanFactory")
-                                    || candidateMethodName.equals("setCallbacks")) {
-                                // don't save these methods as test candidates, since they are created by spring
-                            } else {
-                                candidatesToSave.add(completed);
-                            }
-                        }
-
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
-                        break;
-
-                    case CALL_RETURN:
-
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
-
-                        isModified = false;
-                        saveProbe = true;
-                        if ((existingParameter.getType() == null || existingParameter.getType()
-                                .endsWith(".Object"))) {
-                            existingParameter.setProbeInfo(probeInfo);
-                            existingParameter.setProb(dataEvent);
-                            saveProbe = true;
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
-
-                            isModified = true;
-                        }
-
-                        MethodCallExpression callExpression = threadState.getTopCall();
-                        EventType entryEventType = callExpression.getEntryProbeInfo()
-                                .getEventType();
-                        if (entryEventType == EventType.CALL) {
-                            // we pop it now
-
-                            MethodCallExpression topCall = threadState.popCall();
-                            topCall.setReturnValue(existingParameter);
-                            topCall.setReturnDataEvent(dataEvent);
-                            callsToSave.add(topCall);
-                            threadState.setMostRecentReturnedCall(topCall);
-
-                        } else if (entryEventType == EventType.METHOD_ENTRY) {
-                            // this is probably not a matching event
+                        if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||
+                                candidateMethodName.equals("getTargetClass")
+                                || candidateMethodName.equals("getTargetSource")
+                                || candidateMethodName.equals("isFrozen")
+                                || candidateMethodName.equals("invoke")
+                                || candidateMethodName.contains("$")
+                                || candidateMethodName.equals("getIndex")
+                                || candidateMethodName.equals("values")
+                                || candidateMethodName.equals("hashCode")
+                                || candidateMethodName.startsWith("<")
+                                || candidateMethodName.equals("setBeanFactory")
+                                || candidateMethodName.equals("setCallbacks")) {
+                            // don't save these methods as test candidates, since they are created by spring
                         } else {
-                            throw new RuntimeException("this should not happen");
+                            candidatesToSave.add(completed);
                         }
-                        if (!isModified) {
-                            existingParameter = null;
-                        }
+                    }
 
-                        break;
-                    case NEW_OBJECT:
-                        String nextNewObjectType = ClassTypeUtils.getDottedClassName(
-                                probeInfo.getAttribute("Type", "V"));
-                        threadState.pushNextNewObjectType(nextNewObjectType);
-                        if (nextNewObjectType.equals("java.util.Date")) {
-                            threadState.getTopCall()
-                                    .setUsesFields(true);
-                        }
-                        break;
-                    case NEW_OBJECT_CREATED:
-                        MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();
-                        String upcomingObjectType = threadState.popNextNewObjectType();
-                        existingParameter = theCallThatJustEnded.getSubject();
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setValue(0L);
-                        existingParameter.setProb(dataEvent);
-                        existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
-                        theCallThatJustEnded.setReturnValue(existingParameter);
-                        if (!callsToSave.contains(theCallThatJustEnded)) {
-                            callsToUpdate.add(theCallThatJustEnded);
-                        }
-                        saveProbe = true;
-                        break;
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+                    break;
 
-                    case METHOD_OBJECT_INITIALIZED:
-                        MethodCallExpression topCall = threadState.getTopCall();
-                        existingParameter = topCall.getSubject();
-                        dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                case CALL_RETURN:
+
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
+                    existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+
+                    isModified = false;
+                    saveProbe = true;
+                    if ((existingParameter.getType() == null || existingParameter.getType()
+                            .endsWith(".Object"))) {
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
                         saveProbe = true;
-                        topCall.setSubject(existingParameter);
+                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
+
+                        isModified = true;
+                    }
+
+                    MethodCallExpression callExpression = threadState.getTopCall();
+                    EventType entryEventType = callExpression.getEntryProbeInfo()
+                            .getEventType();
+                    if (entryEventType == EventType.CALL) {
+                        // we pop it now
+
+                        topCall = threadState.popCall();
                         topCall.setReturnValue(existingParameter);
+                        topCall.setReturnDataEvent(dataEvent);
+                        callsToSave.add(topCall);
+                        threadState.setMostRecentReturnedCall(topCall);
 
-                        break;
-                }
-                if (saveProbe) {
+                    } else if (entryEventType == EventType.METHOD_ENTRY) {
+                        // this is probably not a matching event
+                    } else {
+                        throw new RuntimeException("this should not happen");
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
+                    }
+
+                    break;
+                case NEW_OBJECT:
+                    String nextNewObjectType = ClassTypeUtils.getDottedClassName(
+                            probeInfo.getAttribute("Type", "V"));
+                    threadState.pushNextNewObjectType(nextNewObjectType);
+                    if (nextNewObjectType.equals("java.util.Date")) {
+                        threadState.getTopCall()
+                                .setUsesFields(true);
+                    }
+                    break;
+                case NEW_OBJECT_CREATED:
+                    MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();
+                    String upcomingObjectType = threadState.popNextNewObjectType();
+                    existingParameter = theCallThatJustEnded.getSubject();
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter.setProbeInfo(probeInfo);
+                    existingParameter.setValue(0L);
+                    existingParameter.setProb(dataEvent);
+                    existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
+                    theCallThatJustEnded.setReturnValue(existingParameter);
+                    if (!callsToSave.contains(theCallThatJustEnded)) {
+                        callsToUpdate.add(theCallThatJustEnded);
+                    }
+                    saveProbe = true;
+                    break;
+
+                case METHOD_OBJECT_INITIALIZED:
+                    topCall = threadState.getTopCall();
+                    existingParameter = topCall.getSubject();
+                    dataEvent = createDataEventFromBlock(threadId, eventBlock);
+                    existingParameter.setProbeInfo(probeInfo);
+                    existingParameter.setProb(dataEvent);
+                    saveProbe = true;
+                    topCall.setSubject(existingParameter);
+                    topCall.setReturnValue(existingParameter);
+
+                    break;
+            }
+            if (saveProbe) {
 //                            logger.warn("save probe: " + dataEvent);
-                    eventsToSave.add(dataEvent);
+                eventsToSave.add(dataEvent);
 
-                    if (!existingProbes.contains(probeInfo.getDataId())) {
-                        probesToSave.add(probeInfo);
-                        existingProbes.add(probeInfo.getDataId());
-                    }
-                }
-                if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
-                    parameterContainer.add(existingParameter);
+                if (!existingProbes.contains(probeInfo.getDataId())) {
+                    probesToSave.add(probeInfo);
+                    existingProbes.add(probeInfo.getDataId());
                 }
             }
-            long timeInMs = (new Date().getTime() - start.getTime()) + 1;
-            eventsPerSecond = 1000 * (eventsSublist.size() / timeInMs);
-            logger.warn(
-                    "[" + logFile.getName() + "] Took [" + timeInMs + " ms] to process [" + eventsSublist.size() + " events" +
-                            "]  => " + eventsPerSecond + " events per second");
-            logger.debug("parameterContainer = " + parameterContainer.all()
-                    .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
-            daoService.createOrUpdateProbeInfo(probesToSave);
+            if (existingParameter != null && existingParameter.getProb() != null && existingParameter.getValue() != 0) {
+                parameterContainer.add(existingParameter);
+            }
+        }
+        long timeInMs = (new Date().getTime() - start.getTime()) + 1;
+        long eventsPerSecond = 1000 * (eventsSublist.size() / timeInMs);
+        logger.warn(
+                "[" + logFile.getName() + "] Took [" + timeInMs + " ms] to process [" + eventsSublist.size() + " events" +
+                        "]  => " + eventsPerSecond + " events per second");
+        logger.debug("parameterContainer = " + parameterContainer.all()
+                .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
+        daoService.createOrUpdateProbeInfo(probesToSave);
 
 
-            if (threadState.getCallStack()
-                    .size() > 50) {
-                StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
-                        "<html>There was an infinite recursion " +
-                                "detected. Events cannot be processed further for thread [" + threadId + "]. " +
-                                "You need to add @JsonManagedReference/@JsonBackReference annotation to identify " +
-                                "POJOs references forming a closed loop. Here is a list of last few calls from the stack: " +
-                                "<br/><br/>");
-                int internalCounter = 0;
-                Map<Long, Integer> matchedProbe = new HashMap<>();
-                for (int j = 0; j < threadState.getCallStack()
-                        .size(); j++) {
-                    MethodCallExpression call = threadState.getCallStack()
-                            .get(j);
-                    long dataId = call.getEntryProbe()
-                            .getDataId();
-                    infiniteRecursionDetectedMessage
-                            .append("Probe [")
-                            .append(dataId)
-                            .append("][")
-                            .append(call.getEntryProbe()
-                                    .getNanoTime())
-                            .append("] call to ")
-                            .append(call.toString())
-                            .append("<br />");
-                    internalCounter++;
-                    if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
-                        break;
-                    }
-                    if (!matchedProbe.containsKey(dataId)) {
-                        matchedProbe.put(dataId, 0);
-                    }
-                    matchedProbe.put(dataId, matchedProbe.get(dataId) + 1);
-                    if (internalCounter > 30) {
-                        break;
-                    }
+        if (threadState.getCallStack()
+                .size() > 50) {
+            StringBuilder infiniteRecursionDetectedMessage = new StringBuilder(
+                    "<html>There was an infinite recursion " +
+                            "detected. Events cannot be processed further for thread [" + threadId + "]. " +
+                            "You need to add @JsonManagedReference/@JsonBackReference annotation to identify " +
+                            "POJOs references forming a closed loop. Here is a list of last few calls from the stack: " +
+                            "<br/><br/>");
+            int internalCounter = 0;
+            Map<Long, Integer> matchedProbe = new HashMap<>();
+            for (int j = 0; j < threadState.getCallStack()
+                    .size(); j++) {
+                MethodCallExpression call = threadState.getCallStack()
+                        .get(j);
+                long dataId = call.getEntryProbe()
+                        .getDataId();
+                infiniteRecursionDetectedMessage
+                        .append("Probe [")
+                        .append(dataId)
+                        .append("][")
+                        .append(call.getEntryProbe()
+                                .getNanoTime())
+                        .append("] call to ")
+                        .append(call.toString())
+                        .append("<br />");
+                internalCounter++;
+                if (matchedProbe.containsKey(dataId) && matchedProbe.get(dataId) > 3) {
+                    break;
                 }
-                infiniteRecursionDetectedMessage.append("</html>");
-                logger.warn("infinite recursion detected: " + infiniteRecursionDetectedMessage.toString());
-                logger.warn("was going to save: [" + threadState.getCallStack()
-                        .size() + " calls ]");
-                InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
-                        NotificationType.ERROR);
-                return newTestCaseIdentified;
+                if (!matchedProbe.containsKey(dataId)) {
+                    matchedProbe.put(dataId, 0);
+                }
+                matchedProbe.put(dataId, matchedProbe.get(dataId) + 1);
+                if (internalCounter > 30) {
+                    break;
+                }
             }
-
-            daoService.createOrUpdateDataEvent(eventsToSave);
-            daoService.createOrUpdateCall(callsToSave);
-            daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
-            daoService.updateCalls(callsToUpdate);
-            daoService.createOrUpdateTestCandidate(candidatesToSave);
-            if (candidatesToSave.size() > 0) {
-                newTestCaseIdentified = true;
-            }
-
-            logFile.setStatus(Constants.COMPLETED);
-            daoService.updateLogFile(logFile);
-            daoService.createOrUpdateThreadState(threadState);
+            infiniteRecursionDetectedMessage.append("</html>");
+            logger.warn("infinite recursion detected: " + infiniteRecursionDetectedMessage.toString());
+            logger.warn("was going to save: [" + threadState.getCallStack()
+                    .size() + " calls ]");
+            InsidiousNotification.notifyMessage(infiniteRecursionDetectedMessage.toString(),
+                    NotificationType.ERROR);
+            return newTestCaseIdentified;
         }
 
-        return newTestCaseIdentified;
+        daoService.createOrUpdateDataEvent(eventsToSave);
+        daoService.createOrUpdateCall(callsToSave);
+        daoService.createOrUpdateIncompleteCall(threadState.getCallStack());
+        daoService.updateCalls(callsToUpdate);
+        daoService.createOrUpdateTestCandidate(candidatesToSave);
+        if (candidatesToSave.size() > 0) {
+            newTestCaseIdentified = true;
+        }
 
+        logFile.setStatus(Constants.COMPLETED);
+        daoService.updateLogFile(logFile);
+        daoService.createOrUpdateThreadState(threadState);
+        return newTestCaseIdentified;
     }
 
     private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {

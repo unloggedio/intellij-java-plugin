@@ -18,9 +18,9 @@ public class TestCandidateTreeModel implements TreeModel {
     private final SessionInstance sessionInstance;
     private final RootNode rootNode;
     private final TestCaseGenerationConfiguration testGenerationConfiguration;
-    private List<TreeModelListener> treeModelListeners = new LinkedList<>();
-    private Map<Long, List<MethodCallExpression>> candidateCallMap = new HashMap<>();
-    private List<TestCandidateMetadata> candidateList = new LinkedList<>();
+    private final List<TreeModelListener> treeModelListeners = new LinkedList<>();
+    private final Map<Long, List<MethodCallExpression>> candidateCallMap = new HashMap<>();
+    private final List<TestCandidateMetadata> candidateList = new LinkedList<>();
 
     public TestCandidateTreeModel(
             TestCandidateMetadata selectedCandidate,
@@ -41,10 +41,6 @@ public class TestCandidateTreeModel implements TreeModel {
             TestCandidateMetadata candidateWithCalls = getTestCandidateById(candidate.getEntryProbeIndex());
             candidateList.add(candidateWithCalls);
         }
-
-        // add all candidates to default selected, or just first and last ?
-        // adding only the first and last to sync with the tree
-        // Default selection now happens with ui default setup for checkbox tree
 
     }
 

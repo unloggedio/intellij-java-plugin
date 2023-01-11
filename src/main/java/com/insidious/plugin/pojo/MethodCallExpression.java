@@ -38,6 +38,7 @@ public class MethodCallExpression implements Expression, Serializable {
     private DataEventWithSessionId entryProbe;
     private int methodAccess;
     private long id;
+    private int threadId;
     private long parentId = -1;
     private List<DataEventWithSessionId> argumentProbes = new ArrayList<>();
     private DataEventWithSessionId returnDataEvent;
@@ -45,6 +46,14 @@ public class MethodCallExpression implements Expression, Serializable {
 
     private boolean isUIselected = false;
     private int methodDefinitionId;
+
+    public int getThreadId() {
+        return threadId;
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
+    }
 
     public MethodCallExpression() {
     }

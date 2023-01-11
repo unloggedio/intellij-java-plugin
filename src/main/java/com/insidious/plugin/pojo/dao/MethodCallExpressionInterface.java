@@ -40,7 +40,7 @@ public interface MethodCallExpressionInterface {
 
     long getEntryProbe_id();
 
-    void setEntryProbe_id(DataEventWithSessionId entryProbe_id);
+    void setEntryProbeId(DataEventWithSessionId entryProbe_id);
 
     int getCallStack();
 
@@ -69,4 +69,7 @@ public interface MethodCallExpressionInterface {
     void setMethodDefinitionId(int methodDefinitionId);
 
     int getMethodDefinitionId();
+
+    int getThreadId();
+    void setThreadId(int threadId);
 }

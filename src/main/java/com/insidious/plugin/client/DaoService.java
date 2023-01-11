@@ -15,8 +15,6 @@ import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
@@ -71,12 +69,28 @@ public class DaoService {
             "         left join parameter subject on subject.value == mc.subject_id\n" +
             "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "where (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "    and (subject.type is null or subject.type not like 'org.springframework%')\n" +
+            "    and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "    and (mc.id = ? or mc.parentId = ?)";
+
+    public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS = "select mc.*\n" +
+            "from method_call mc\n" +
+            "         left join parameter subject on subject.value == mc.subject_id\n" +
+            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
             "  and (subject.type is null or subject.type not like 'org.springframework%')\n" +
             "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
-            "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
-            "  and mc.id = ? or (mc.parentId = ? and mc.isStaticCall = false) or\n" +
-            "    (mc.parentId > ? and mc.returnDataEvent < ? and mc.isStaticCall = true and mc.usesFields = " +
-            "true and mc.subject_id != 0) and (pi.eventType is null or pi.eventType != 'CALL_RETURN');";
+            "  and mc.parentId in (select mc.id\n" +
+            "                      from method_call mc\n" +
+            "                               left join parameter subject on subject.value == mc.subject_id\n" +
+            "                               left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "                        and (subject.type is null or subject.type not like 'org.springframework%')\n" +
+            "                        and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.subject_id = ? and mc.threadId = ?)\n" +
+            "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
@@ -177,16 +191,10 @@ public class DaoService {
         Set<Long> calls = new HashSet<>(testCandidateMetadata.getCallsList());
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(0);
         if (loadCalls) {
-//            calls.add(testCandidateMetadata.getMainMethod());
-
-//            logger.warn("\tloading " + calls.size() + " call methods");
-//            List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
-//                    getMethodCallExpressionToMockFast(calls);
-//
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
                     getMethodCallExpressionToMockFast(testCandidateMetadata);
 
-            // this assertion can fail because we dont actually load private calls
+            // this assertion can fail because we don't actually load private calls
             // or calls on org.springframework type variables
 //            assert calls.size() == methodCallsFromDb.size();
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
@@ -267,11 +275,30 @@ public class DaoService {
             long mainMethodId = testCandidateMetadata.getMainMethod();
             GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
                     .queryRaw(CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT, methodCallExpressionDao.getRawRowMapper(),
-                            String.valueOf(mainMethodId), String.valueOf(mainMethodId), String.valueOf(mainMethodId),
-                            String.valueOf(testCandidateMetadata.getExitProbeIndex()));
+                            String.valueOf(mainMethodId), String.valueOf(mainMethodId));
 
-            List<MethodCallExpression> mceList = results.getResults();
+            List<MethodCallExpression> mceList = new ArrayList<>(results.getResults());
             results.close();
+            MethodCallExpression mce = mceList.get(0);
+
+            /*
+            "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.subject_id = ? and mc.threadId = ?)\n" +
+            "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
+             */
+            GenericRawResults<MethodCallExpression> subCalls = methodCallExpressionDao.queryRaw(
+                    CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS,
+                    methodCallExpressionDao.getRawRowMapper(),
+                    String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getEntryProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getTestSubject()),
+                    String.valueOf(mce.getThreadId()),
+                    String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getEntryProbeIndex()), String.valueOf(mce.getThreadId())
+            );
+            mceList.addAll(subCalls.getResults());
+            subCalls.close();
 
             List<Long> constructedValues = mceList.stream()
                     .filter(e -> e.getMethodName()
@@ -288,7 +315,7 @@ public class DaoService {
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(callsToBuild);
             long end = Date.from(Instant.now())
                     .getTime();
-            logger.warn("Load calls took: " + (end - start));
+            logger.warn("Load calls took[1]: " + (end - start) + " ms");
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -313,7 +340,7 @@ public class DaoService {
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(mceInterfaceList);
             long end = Date.from(Instant.now())
                     .getTime();
-            logger.warn("Load calls took: " + (end - start));
+            logger.warn("Load calls took[2]: " + (end - start) + " ms");
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -801,7 +828,7 @@ public class DaoService {
                     .collect(Collectors.toList());
             try {
                 parameterDao.executeRaw("DELETE FROM parameter");
-            }catch (Exception e) {
+            } catch (Exception e) {
                 logger.error("Failed to truncate parameter table: " + e.getMessage(), e);
                 return;
             }

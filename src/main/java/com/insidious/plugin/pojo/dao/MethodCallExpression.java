@@ -47,6 +47,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     private long parentId;
     @DatabaseField(index = true)
     private int methodDefinitionId;
+    @DatabaseField(index = true)
+    private int threadId;
 
 
     public MethodCallExpression() {
@@ -83,11 +85,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 returnParameterValue
         );
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
-        methodCallExpression1.setEntryProbe_id(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -120,11 +123,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                         .collect(Collectors.toList()),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbe_id(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -146,6 +150,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
@@ -229,7 +234,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return entryProbe_id;
     }
 
-    public void setEntryProbe_id(DataEventWithSessionId entryProbe_id) {
+    public void setEntryProbeId(DataEventWithSessionId entryProbe_id) {
         this.entryProbe_id = entryProbe_id.getNanoTime();
     }
 
@@ -281,19 +286,29 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         this.usesFields = usesFields;
     }
 
+    public long getParentId() {
+        return parentId;
+    }
+
     public void setParentId(long parentId) {
         this.parentId = parentId;
     }
 
-    public long getParentId() {
-        return parentId;
+    public int getMethodDefinitionId() {
+        return methodDefinitionId;
     }
 
     public void setMethodDefinitionId(int methodDefinitionId) {
         this.methodDefinitionId = methodDefinitionId;
     }
 
-    public int getMethodDefinitionId() {
-        return methodDefinitionId;
+    @Override
+    public int getThreadId() {
+        return threadId;
+    }
+
+    @Override
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
     }
 }

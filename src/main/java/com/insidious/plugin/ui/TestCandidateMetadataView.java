@@ -3,7 +3,6 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.MethodCallExpression;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -11,7 +10,6 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class TestCandidateMetadataView {
@@ -58,8 +56,7 @@ public class TestCandidateMetadataView {
             }
         });
 
-        testCandidateName.setText(
-                this.testCandidateMetadata.getCallsList().size() + " methods called, " + timeInMs + " ms");
+        testCandidateName.setText(timeInMs + " ms");
         generateTestCaseButton.addActionListener(e -> loadInputOutputInformation());
         contentPanel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {
@@ -74,8 +71,7 @@ public class TestCandidateMetadataView {
         candidateSelectionListener.onSelect(testCandidateMetadata);
     }
 
-    private void loadInputOutputInformation()
-    {
+    private void loadInputOutputInformation() {
         setSelectedState(true);
         candidateSelectionListener.loadInputOutputInformation(testCandidateMetadata);
     }
@@ -96,15 +92,11 @@ public class TestCandidateMetadataView {
         this.candidateNumber.setText("Candidate " + candidateNumberIndex);
     }
 
-    public void setSelectedState(boolean status)
-    {
-        if(status)
-        {
+    public void setSelectedState(boolean status) {
+        if (status) {
             Border border = new LineBorder(UI_Utils.teal);
             contentPanel.setBorder(border);
-        }
-        else
-        {
+        } else {
             Color color = new Color(187, 187, 187);
             Border border = new LineBorder(color);
             contentPanel.setBorder(border);
@@ -121,8 +113,8 @@ public class TestCandidateMetadataView {
             this.cardPanel.setOpaque(true);
             this.buttonPanel.setOpaque(true);
             this.borderParent.setOpaque(true);
-            Color transparent = new Color(1, 204, 245,1);
-            Color transparent_base = new Color(1, 204, 245,50);
+            Color transparent = new Color(1, 204, 245, 1);
+            Color transparent_base = new Color(1, 204, 245, 50);
             this.cardPanel.setBackground(transparent);
             this.buttonPanel.setBackground(transparent);
             this.borderParent.setBackground(transparent);
