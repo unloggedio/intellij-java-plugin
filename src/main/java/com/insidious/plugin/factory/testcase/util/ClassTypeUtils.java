@@ -155,7 +155,7 @@ public class ClassTypeUtils {
      *
      * @param returnParameterType
      * @return TypeName
-     * @deprecated. <p> Use {@link ClassTypeUtils#createTypeFromNameString}
+     * @deprecated <p> Use {@link ClassTypeUtils#createTypeFromNameString}
      */
     @Deprecated
     @Nullable
@@ -178,31 +178,30 @@ public class ClassTypeUtils {
      * Find the ClassName or TypeName or ArrayType Name From provided string
      * Checks for primitive array type also
      *
-     * @param returnParameterType
+     * @param typeName name of the class for which a variable name is to be created
      * @return String
      */
-    @Nullable
-    public static String createTypeFromNameString(String returnParameterType) {
+    public static TypeName createTypeFromNameString(String typeName) {
         ClassName returnValueSquareClass = null;
-        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
-            returnValueSquareClass = constructClassName(returnParameterType);
-            return (returnValueSquareClass != null) ? returnValueSquareClass.toString() : null;
+        if (typeName.startsWith("L") || typeName.startsWith("[")) {
+            returnValueSquareClass = constructClassName(typeName);
+            return returnValueSquareClass;
         }
 
-        if (returnParameterType.contains(".")) {
-            if (returnParameterType.contains("$")) {
-                returnParameterType = returnParameterType.substring(0, returnParameterType.indexOf("$"));
+        if (typeName.contains(".")) {
+            if (typeName.contains("$")) {
+                typeName = typeName.substring(0, typeName.indexOf("$"));
             }
-            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
-            return (returnValueSquareClass != null) ? returnValueSquareClass.toString() : null;
+            returnValueSquareClass = ClassName.bestGuess(typeName);
+            return returnValueSquareClass;
         }
 
-        TypeName returnParamType = getClassFromDescriptor(returnParameterType);
-        if (returnParamType != null && returnParameterType.endsWith("[]")) {
-            return ArrayTypeName.of(returnParamType).toString();
+        TypeName returnParamType = getClassFromDescriptor(typeName);
+        if (returnParamType != null && typeName.endsWith("[]")) {
+            return ArrayTypeName.of(returnParamType);
         }
 
-        return (returnParamType != null) ? returnParamType.toString() : null;
+        return returnParamType;
     }
 
     private static ClassName constructClassName(String methodReturnValueType) {
@@ -274,23 +273,19 @@ public class ClassTypeUtils {
 
         if (targetMethodName.startsWith("get") || targetMethodName.startsWith("set")) {
             if (targetMethodName.length() > 3) {
-                potentialReturnValueName = ClassTypeUtils.lowerInstanceName(targetMethodName.substring(3));
+                potentialReturnValueName = lowerInstanceName(targetMethodName.substring(3));
             } else {
                 potentialReturnValueName = null;
             }
         } else {
             if (targetMethodName.equals("<init>")) {
-                potentialReturnValueName = ClassTypeUtils.createVariableName(className);
+                potentialReturnValueName = createVariableName(className);
             } else {
                 potentialReturnValueName = targetMethodName + "Result";
             }
         }
         return potentialReturnValueName;
 
-    }
-
-    public static boolean IsBasicType(String dependentParameterType) {
-        return dependentParameterType.startsWith("java.lang") || dependentParameterType.length() == 1;
     }
 
 }

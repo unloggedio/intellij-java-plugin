@@ -13,6 +13,7 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
@@ -246,7 +247,7 @@ public class MethodCallExpressionFactory {
 
     public static Expression createEnumExpression(Parameter enumParam) {
 
-        @Nullable String enumTypeName = ClassTypeUtils.createTypeFromNameString(
+        @Nullable TypeName enumTypeName = ClassTypeUtils.createTypeFromNameString(
                 ClassTypeUtils.getJavaClassName(enumParam.getType()));
 
         String value = new String(enumParam.getProb()
@@ -255,7 +256,8 @@ public class MethodCallExpressionFactory {
         value = value.replace("\"", "");
 
         StringBuilder rhsExpressionBuilder = new StringBuilder();
-        String enumSimpleTypeName = enumTypeName.substring(enumTypeName.lastIndexOf('.') + 1);
+        String enumTypeNameString = enumTypeName.toString();
+        String enumSimpleTypeName = enumTypeNameString.substring(enumTypeNameString.lastIndexOf('.') + 1);
         rhsExpressionBuilder
                 .append(enumSimpleTypeName)
                 .append(".")

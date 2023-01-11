@@ -76,7 +76,7 @@ public class DaoService {
             "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
             "  and mc.id = ? or (mc.parentId = ? and mc.isStaticCall = false) or\n" +
             "    (mc.parentId > ? and mc.returnDataEvent < ? and mc.isStaticCall = true and mc.usesFields = " +
-            "true) and (pi.eventType is null or pi.eventType != 'CALL_RETURN');";
+            "true and mc.subject_id != 0) and (pi.eventType is null or pi.eventType != 'CALL_RETURN');";
     public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
@@ -799,7 +799,12 @@ public class DaoService {
             List<Parameter> daoParamList = parameterList.stream()
                     .map(Parameter::fromParameter)
                     .collect(Collectors.toList());
-            parameterDao.executeRaw("DELETE FROM parameter");
+            try {
+                parameterDao.executeRaw("DELETE FROM parameter");
+            }catch (Exception e) {
+                logger.error("Failed to truncate parameter table: " + e.getMessage(), e);
+                return;
+            }
             parameterDao.create(daoParamList);
 //            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
 //                if (i % 100 == 0) {

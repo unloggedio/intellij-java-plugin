@@ -110,6 +110,7 @@ public class SessionInstance {
     private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
+    private final Map<String, Boolean> classNotFound = new HashMap<>();
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -285,6 +286,7 @@ public class SessionInstance {
                 List<String> indexFiles = Arrays.asList(
                         "index.class.dat",
                         "index.method.name.dat",
+                        "index.method.dat",
                         "index.object.dat",
                         "index.probe.dat",
                         "index.type.dat"
@@ -2250,6 +2252,7 @@ public class SessionInstance {
                     objectIndexCollection = null;
                 }
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
+                logger.warn("adding [" + objectIndexCollection.size() + "] objects to index");
                 objectIndexCollection.parallelStream()
                         .forEach(e -> {
                             objectInfoIndex.put(e.getObjectId(), e);
@@ -2647,7 +2650,7 @@ public class SessionInstance {
                                     .getId());
                         }
                         threadState.pushCall(methodCall);
-                        addMethodToCandidate(threadState, methodCall);
+//                        addMethodToCandidate(threadState, methodCall);
                         if (!isModified) {
                             existingParameter = null;
                         }
@@ -2763,9 +2766,9 @@ public class SessionInstance {
 
                             currentCallId++;
                             methodCall.setId(currentCallId);
-                            if (threadState.candidateSize() > 0) {
-                                addMethodToCandidate(threadState, methodCall);
-                            }
+//                            if (threadState.candidateSize() > 0) {
+//                                addMethodToCandidate(threadState, methodCall);
+//                            }
                             if (threadState.getCallStackSize() > 0) {
                                 methodCall.setParentId(threadState.getTopCall()
                                         .getId());
@@ -3385,6 +3388,9 @@ public class SessionInstance {
         if (subjectType.length() == 1) {
             return;
         }
+        if (classNotFound.containsKey(subjectType)) {
+            return;
+        }
 
         PsiClass classPsiInstance = null;
         try {
@@ -3399,7 +3405,7 @@ public class SessionInstance {
             // if a class by this name was not found, then either we have a different project loaded
             // or the source code has been modified and the class have been renamed or deleted or moved
             // cant do much here
-            logger.warn("Class not found in source code: " + subjectType);
+            logger.warn("Class not found in source code for resolving enum type: " + subjectType);
             return;
         }
         JvmMethod[] methodPsiInstanceList =
@@ -3453,6 +3459,9 @@ public class SessionInstance {
         if (subjectType.length() == 1) {
             return;
         }
+        if (classNotFound.containsKey(subjectType)) {
+            return;
+        }
 
         PsiClass classPsiInstance = null;
 
@@ -3468,7 +3477,8 @@ public class SessionInstance {
             // if a class by this name was not found, then either we have a different project loaded
             // or the source code has been modified and the class have been renamed or deleted or moved
             // cant do much here
-            logger.warn("Class not found in source code: " + subjectType);
+            classNotFound.put(subjectType, true);
+            logger.warn("Class not found in source code for resolving generic template: " + subjectType);
             return;
         }
 
@@ -3603,10 +3613,27 @@ public class SessionInstance {
     }
 
     public void close() throws Exception {
-        databasePipe.close();
-        executorPool.shutdownNow();
-        daoService.close();
-
+        try {
+            databasePipe.close();
+        } catch (Exception e) {
+            logger.error("Failed to close database pipe", e);
+            InsidiousNotification.notifyMessage("Failed to close database pipe: " + e.getMessage(),
+                    NotificationType.ERROR);
+        }
+        try {
+            executorPool.shutdownNow();
+        } catch (Exception e) {
+            logger.error("Failed to close executor pool", e);
+            InsidiousNotification.notifyMessage("Failed to close executor pool: " + e.getMessage(),
+                    NotificationType.ERROR);
+        }
+        try {
+            daoService.close();
+        } catch (Exception e) {
+            logger.error("Failed to close database", e);
+            InsidiousNotification.notifyMessage("Failed to close database: " + e.getMessage(),
+                    NotificationType.ERROR);
+        }
         classInfoIndex.close();
         probeInfoIndex.close();
         methodInfoIndex.close();
