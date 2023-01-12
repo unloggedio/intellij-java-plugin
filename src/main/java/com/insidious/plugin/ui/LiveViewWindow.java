@@ -345,7 +345,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
 
     @Override
-    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws IOException {
+    public void generateTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 

@@ -135,16 +135,27 @@ public class TestCaseService implements Runnable {
     }
 
     @NotNull
-    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) {
+    public TestCaseUnit buildTestCaseUnit(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
 
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
+
+        Parameter target = generationConfiguration.getTestCandidateMetadataList()
+                .get(0)
+                .getTestSubject();
+
+        TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(target);
+        generationConfiguration.getTestCandidateMetadataList()
+                .add(0, constructorCandidate);
+
+        generationConfiguration.getCallExpressionList().addAll(generationConfiguration.getCallExpressionList());
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
         createFieldMocks(objectRoutineContainer);
 
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance, testGenerationState);
+        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance,
+                testGenerationState);
 
 
         return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);

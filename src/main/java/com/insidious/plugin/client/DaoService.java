@@ -272,38 +272,9 @@ public class DaoService {
         long start = Date.from(Instant.now())
                 .getTime();
         try {
-            long mainMethodId = testCandidateMetadata.getMainMethod();
-            GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
-                    .queryRaw(CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT, methodCallExpressionDao.getRawRowMapper(),
-                            String.valueOf(mainMethodId), String.valueOf(mainMethodId));
-
-            List<MethodCallExpression> mceList = new ArrayList<>(results.getResults());
-            results.close();
-            if (mceList.size() > 0) {
-                MethodCallExpression mce = mceList.get(0);
-
-            /*
-            "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-            "                              mc.subject_id = ? and mc.threadId = ?)\n" +
-            "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
-             */
-                GenericRawResults<MethodCallExpression> subCalls = methodCallExpressionDao.queryRaw(
-                        CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS,
-                        methodCallExpressionDao.getRawRowMapper(),
-                        String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
-                        String.valueOf(testCandidateMetadata.getEntryProbeIndex()),
-                        String.valueOf(testCandidateMetadata.getTestSubject()),
-                        String.valueOf(mce.getThreadId()),
-                        String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
-                        String.valueOf(testCandidateMetadata.getEntryProbeIndex()), String.valueOf(mce.getThreadId())
-                );
-                mceList.addAll(subCalls.getResults());
-                subCalls.close();
-            }
+            List<MethodCallExpression> mceList = getMethodCallExpressionsInCandidate(testCandidateMetadata);
             List<Long> constructedValues = mceList.stream()
-                    .filter(e -> e.getMethodName()
-                            .equals("<init>"))
+                    .filter(e -> e.getMethodName().equals("<init>"))
                     .map(MethodCallExpression::getReturnValue_id)
                     .collect(Collectors.toList());
 
@@ -325,6 +296,40 @@ public class DaoService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @NotNull
+    private List<MethodCallExpression> getMethodCallExpressionsInCandidate(TestCandidateMetadata testCandidateMetadata) throws Exception {
+        long mainMethodId = testCandidateMetadata.getMainMethod();
+        GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
+                .queryRaw(CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT, methodCallExpressionDao.getRawRowMapper(),
+                        String.valueOf(mainMethodId), String.valueOf(mainMethodId));
+
+        List<MethodCallExpression> mceList = new ArrayList<>(results.getResults());
+        results.close();
+        if (mceList.size() > 0) {
+            MethodCallExpression mce = mceList.get(0);
+
+        /*
+        "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+        "                              mc.subject_id = ? and mc.threadId = ?)\n" +
+        "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
+        "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
+         */
+            GenericRawResults<MethodCallExpression> subCalls = methodCallExpressionDao.queryRaw(
+                    CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS,
+                    methodCallExpressionDao.getRawRowMapper(),
+                    String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getEntryProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getTestSubject()),
+                    String.valueOf(mce.getThreadId()),
+                    String.valueOf(mainMethodId), String.valueOf(testCandidateMetadata.getExitProbeIndex()),
+                    String.valueOf(testCandidateMetadata.getEntryProbeIndex()), String.valueOf(mce.getThreadId())
+            );
+            mceList.addAll(subCalls.getResults());
+            subCalls.close();
+        }
+        return mceList;
     }
 
     public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(Collection<Long> callIds) {
@@ -1192,6 +1197,37 @@ public class DaoService {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+    }
+
+    public com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
+    getConstructorCandidate(com.insidious.plugin.pojo.Parameter parameter) throws Exception {
+
+        List<MethodCallExpression> callListFromDb =
+                methodCallExpressionDao.queryBuilder().where()
+                        .eq("subject_id", parameter.getValue())
+                        .and()
+                        .eq("methodName", "<init>")
+                        .query();
+
+        if (callListFromDb.size() > 1) {
+            logger.warn("found more than 1 constructor for subject: " + parameter.getValue());
+        }
+        MethodCallExpression constructorMethodExpression = callListFromDb.get(0);
+
+        TestCandidateMetadata testCandidate = new TestCandidateMetadata();
+
+        testCandidate.setTestSubject(parameter.getValue());
+        testCandidate.setExitProbeIndex(constructorMethodExpression.getReturnDataEvent());
+        testCandidate.setEntryProbeIndex(constructorMethodExpression.getEntryProbe_id());
+        testCandidate.setMainMethod(constructorMethodExpression.getId());
+
+        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
+                = convertTestCandidateMetadata(testCandidate, true);
+
+
+        return constructorCandidate;
+
+
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>

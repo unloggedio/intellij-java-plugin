@@ -23,9 +23,9 @@ public class TestCandidateMetadata {
     @DatabaseField
     private long callTimeNanoSecond;
     @DatabaseField(id = true)
-    private int entryProbeIndex;
+    private long entryProbeIndex;
     @DatabaseField
-    private int exitProbeIndex;
+    private long exitProbeIndex;
     @DatabaseField
     private String variables;
 
@@ -36,23 +36,26 @@ public class TestCandidateMetadata {
         StringBuilder callIds = new StringBuilder();
 
         for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
-            callIds.append(methodCallExpression.getId()).append(",");
+            callIds.append(methodCallExpression.getId())
+                    .append(",");
         }
 
         String s = callIds.toString();
         if (s.length() > 0) {
             newCandidate.setCallList(s.substring(0, s.length() - 1));
         }
-//        newCandidate.setCallList(testCandidateMetadata.getCallsList().stream().map(
-//                com.insidious.plugin.pojo.MethodCallExpression::getId).collect(Collectors.toList()));
 
-        newCandidate.setFields(testCandidateMetadata.getFields().all().stream()
-                .map(com.insidious.plugin.pojo.Parameter::getValue).collect(Collectors.toList()));
+        newCandidate.setFields(testCandidateMetadata.getFields()
+                .all()
+                .stream()
+                .map(com.insidious.plugin.pojo.Parameter::getValue)
+                .collect(Collectors.toList()));
 
-        newCandidate.setTestSubject(Parameter.fromParameter(testCandidateMetadata.getTestSubject()));
+        newCandidate.setTestSubject(testCandidateMetadata.getTestSubject()
+                .getValue());
 
-        newCandidate.setMainMethod(MethodCallExpression.FromMCE((com.insidious.plugin.pojo.MethodCallExpression)
-                testCandidateMetadata.getMainMethod()));
+        newCandidate.setMainMethod(((com.insidious.plugin.pojo.MethodCallExpression)
+                testCandidateMetadata.getMainMethod()).getId());
 
 
         newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
@@ -63,28 +66,23 @@ public class TestCandidateMetadata {
         return newCandidate;
     }
 
-    public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
-        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata newCandidate = new com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata();
+    public static com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata
+    toTestCandidate(TestCandidateMetadata testCandidateMetadata) {
+        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata newCandidate
+                = new com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata();
 
-        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
-        newCandidate.setCallTimeNanoSecond(newCandidate.getCallTimeNanoSecond());
-        newCandidate.setEntryProbeIndex(newCandidate.getEntryProbeIndex());
-        newCandidate.setExitProbeIndex(newCandidate.getExitProbeIndex());
-
-
-        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
         newCandidate.setEntryProbeIndex(testCandidateMetadata.getEntryProbeIndex());
         newCandidate.setExitProbeIndex(testCandidateMetadata.getExitProbeIndex());
-
+        newCandidate.setCallTimeNanoSecond(testCandidateMetadata.getCallTimeNanoSecond());
 
         return newCandidate;
     }
 
-    public int getExitProbeIndex() {
+    public long getExitProbeIndex() {
         return exitProbeIndex;
     }
 
-    public void setExitProbeIndex(int exitProbeIndex) {
+    public void setExitProbeIndex(long exitProbeIndex) {
         this.exitProbeIndex = exitProbeIndex;
     }
 
@@ -92,15 +90,17 @@ public class TestCandidateMetadata {
         return mainMethod_id;
     }
 
-    public void setMainMethod(MethodCallExpression mainMethod) {
-        this.mainMethod_id = mainMethod.getId();
+    public void setMainMethod(Long methodId) {
+        this.mainMethod_id = methodId;
     }
 
     public List<Long> getFields() {
         if (fields == null || fields.length() < 1) {
             return List.of();
         }
-        return Arrays.stream(fields.split(",")).map(Long::valueOf).collect(Collectors.toList());
+        return Arrays.stream(fields.split(","))
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
     }
 
     public void setFields(List<Long> fields) {
@@ -117,11 +117,8 @@ public class TestCandidateMetadata {
         return testSubject_id;
     }
 
-    public void setTestSubject(Parameter testSubject) {
-        if (testSubject == null) {
-            return;
-        }
-        this.testSubject_id = testSubject.getValue();
+    public void setTestSubject(Long subjectId) {
+        this.testSubject_id = subjectId;
     }
 
     public long getCallTimeNanoSecond() {
@@ -138,7 +135,9 @@ public class TestCandidateMetadata {
         if (methodCallExpressions == null || methodCallExpressions.length() < 1) {
             return List.of();
         }
-        return Arrays.stream(methodCallExpressions.split(",")).map(Long::valueOf).collect(Collectors.toList());
+        return Arrays.stream(methodCallExpressions.split(","))
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -153,16 +152,18 @@ public class TestCandidateMetadata {
                 '}';
     }
 
-    public int getEntryProbeIndex() {
+    public long getEntryProbeIndex() {
         return entryProbeIndex;
     }
 
-    public void setEntryProbeIndex(int entryProbeIndex) {
+    public void setEntryProbeIndex(long entryProbeIndex) {
         this.entryProbeIndex = entryProbeIndex;
     }
 
     public List<Long> getVariables() {
-        return Arrays.stream(variables.split(",")).map(Long::valueOf).collect(Collectors.toList());
+        return Arrays.stream(variables.split(","))
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
     }
 
     public void setVariables(List<Long> variables) {

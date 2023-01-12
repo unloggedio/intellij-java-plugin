@@ -432,7 +432,7 @@ public class TestCaseServiceTest {
 //    }
 
     @Test
-    public void testGetTestCaseUnit() throws SQLException, IOException {
+    public void testGetTestCaseUnit() throws Exception {
         Project project = Mockito.mock(Project.class);
         Mockito.when(project.getBasePath())
                 .thenReturn("./");

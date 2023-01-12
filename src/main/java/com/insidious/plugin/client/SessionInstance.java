@@ -56,6 +56,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
+import com.thaiopensource.relaxng.edit.Param;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
 import net.openhft.chronicle.map.ChronicleMap;
@@ -3379,6 +3380,10 @@ public class SessionInstance {
 
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
         return daoService.getTestCandidatesForMethod(className, methodName, loadCalls);
+    }
+
+    public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {
+        return daoService.getConstructorCandidate(parameter);
     }
 
     public List<TestCandidateMetadata> getTestCandidatesUntil(long subjectId, long entryProbeIndex, long mainMethodId, boolean loadCalls) {

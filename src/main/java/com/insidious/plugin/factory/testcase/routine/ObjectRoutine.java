@@ -80,10 +80,11 @@ public class ObjectRoutine {
 
 
     public ObjectRoutineScript toObjectScript(
-            VariableContainer createdVariables,
             TestCaseGenerationConfiguration generationConfiguration,
             TestGenerationState testGenerationState,
-            SessionInstance sessionInstance) {
+            SessionInstance sessionInstance,
+            VariableContainer fieldsContainer
+    ) {
         TestCandidateMetadata lastCandidate = generationConfiguration
                 .getTestCandidateMetadataList()
                 .get(generationConfiguration.getTestCandidateMetadataList()
@@ -95,7 +96,7 @@ public class ObjectRoutine {
                 generationConfiguration, testGenerationState
         );
 
-        scriptContainer.setCreatedVariables(createdVariables.clone());
+        scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer().clone());
 
         List<ClassName> annotations = List.of(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {
@@ -107,7 +108,6 @@ public class ObjectRoutine {
         scriptContainer.addModifiers(Modifier.PUBLIC);
 
         VariableContainer variableContainer = new VariableContainer();
-        VariableContainer fieldsContainer = new VariableContainer();
         List<MethodCallExpression> callsList = new ArrayList<>();
 
         List<TestCandidateMetadata> mockCreatorCalls = this.testCandidateList.stream()
@@ -116,18 +116,30 @@ public class ObjectRoutine {
                 .collect(Collectors.toList());
 
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
+
+        // parameters is a non pojo type if
+        // 1. we have probed the class and our the type is not a pojo class based on our checks earlier (see
+        // sessionInstance)
+        // 2. we have not probed the class and this is not a primitive data type and we were not able to serialize
+        // this parameter
+        // nonPojo parameters will calls on them mocked as well
         List<Parameter> nonPojoParameters =
                 this.testCandidateList.stream()
                         .map(e -> (MethodCallExpression) e.getMainMethod())
                         .map(MethodCallExpression::getArguments)
                         .flatMap(Collection::stream)
-                        .filter(e -> classIndex.get(e.getType()) != null
-                                && !classIndex.get(e.getType())
-                                .isPojo()
-                                && !classIndex.get(e.getType())
-                                .isEnum()
+                        .filter(e -> (classIndex.get(e.getType()) != null
+                                && !classIndex.get(e.getType()).isPojo()
+                                && !classIndex.get(e.getType()).isEnum())
+                                || (!e.isPrimitiveType() && e.getProb().getSerializedValue().length == 0)
                         )
                         .collect(Collectors.toList());
+
+        if (getRoutineName().equals("<init>")) {
+            for (Parameter nonPojoParameter : nonPojoParameters) {
+                testGenerationState.getVariableContainer().add(nonPojoParameter);
+            }
+        }
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
@@ -152,7 +164,6 @@ public class ObjectRoutine {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             candidateVariables.all()
                     .forEach(variableContainer::add);
-            testGenerationState.setVariableContainer(variableContainer);
 
             callsList.addAll(testCandidateMetadata.getCallsList());
             testCandidateMetadata.getFields()
@@ -174,7 +185,6 @@ public class ObjectRoutine {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             candidateVariables.all()
                     .forEach(variableContainer::add);
-            testGenerationState.setVariableContainer(variableContainer);
 
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
@@ -193,7 +203,6 @@ public class ObjectRoutine {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
             candidateVariables.all()
                     .forEach(variableContainer::add);
-            testGenerationState.setVariableContainer(variableContainer);
 
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
@@ -204,6 +213,7 @@ public class ObjectRoutine {
                     .addAll(script1.getStaticMocks());
 
         }
+        testGenerationState.setVariableContainer(variableContainer);
 
         if (generationConfiguration.getResourceEmbedMode()
                 .equals(ResourceEmbedMode.IN_FILE)) {

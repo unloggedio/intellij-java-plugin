@@ -225,10 +225,12 @@ public class MethodCallExpression implements Expression, Serializable {
         }
         if (entryProbe != null) {
             DataEventWithSessionId returnProbe = getReturnValue().getProb();
-            objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                    "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
-                    Long.valueOf((returnProbe.getRecordedAt() - entryProbe.getRecordedAt()) / (1000000))
-                            .intValue() + "ms");
+            if (!getMethodName().equals("<init>")) {
+                objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
+                        "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
+                        Long.valueOf((returnProbe.getRecordedAt() - entryProbe.getRecordedAt()) / (1000000))
+                                .intValue() + "ms");
+            }
         }
 
         List<Parameter> arguments = getArguments();

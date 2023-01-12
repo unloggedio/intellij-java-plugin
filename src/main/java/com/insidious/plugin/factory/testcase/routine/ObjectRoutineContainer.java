@@ -61,8 +61,7 @@ public class ObjectRoutineContainer {
 //            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
 //                continue;
 //            }
-            if (methodInfo.getMethodName()
-                    .equals("<init>")) {
+            if (methodInfo.getMethodName().equals("<init>")) {
                 constructor.setTestCandidateList(testCandidateMetadata);
                 hasTargetInstanceClassConstructor = true;
             } else {
@@ -200,14 +199,17 @@ public class ObjectRoutineContainer {
 
 
         VariableContainer variableContainer = new VariableContainer();
+        VariableContainer fieldsContainer = new VariableContainer();
 
         for (Parameter parameter : this.collectFieldsFromRoutines()) {
             variableContainer.add(parameter);
         }
+        testGenerationState.setVariableContainer(variableContainer);
 
 
         ObjectRoutineScript builderMethodScript = getConstructor()
-                .toObjectScript(variableContainer, generationConfiguration, testGenerationState, sessionInstance);
+                .toObjectScript(generationConfiguration, testGenerationState, sessionInstance,
+                        fieldsContainer);
 
         container.getObjectRoutines()
                 .add(builderMethodScript);
@@ -216,6 +218,10 @@ public class ObjectRoutineContainer {
         builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
         builderMethodScript.addException(Exception.class);
         builderMethodScript.addModifiers(Modifier.PUBLIC);
+
+        for (Parameter parameter : fieldsContainer.all()) {
+            container.addField(parameter);
+        }
 
 
         Set<? extends Parameter> allFields = collectFieldsFromRoutines();
@@ -227,6 +233,7 @@ public class ObjectRoutineContainer {
 
         VariableContainer classVariableContainer = builderMethodScript.getCreatedVariables();
         classVariableContainer.add(mainSubject);
+        testGenerationState.setVariableContainer(classVariableContainer);
 
 
         Parameter testUtilClassSubject = new Parameter();
@@ -255,10 +262,9 @@ public class ObjectRoutineContainer {
             }
 
             ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectScript(classVariableContainer.clone(), generationConfiguration,
-                            testGenerationState, sessionInstance);
-            container.getObjectRoutines()
-                    .add(objectScript);
+                    objectRoutine.toObjectScript(
+                            generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
+            container.getObjectRoutines().add(objectScript);
 
             List<Parameter> staticMockList = objectScript.getStaticMocks();
             for (Parameter staticMock : staticMockList) {
@@ -270,9 +276,7 @@ public class ObjectRoutineContainer {
 
 
             String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList()
-                    .get(
-                            objectRoutine.getTestCandidateList()
-                                    .size() - 1)
+                    .get(objectRoutine.getTestCandidateList().size() - 1)
                     .getMainMethod()).getMethodName();
 
             container.setTestMethodName(testMethodName);
