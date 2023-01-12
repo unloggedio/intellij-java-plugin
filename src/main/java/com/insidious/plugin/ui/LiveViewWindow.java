@@ -31,6 +31,7 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 public class LiveViewWindow implements TreeSelectionListener,
         TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener {
@@ -227,12 +228,14 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             }
                                             ExecutionSession executionSession = executionSessionList.get(0);
 
-                                            if (sessionInstance != null) {
+                                            if (sessionInstance != null && !Objects.equals(
+                                                    sessionInstance.getExecutionSession()
+                                                            .getSessionId(), executionSession.getSessionId())) {
                                                 sessionInstance.close();
+                                            } else {
+                                                sessionInstance = new SessionInstance(executionSession, project);
                                             }
-                                            sessionInstance = new SessionInstance(executionSession, project);
-                                            insidiousService.getClient()
-                                                    .setSessionInstance(sessionInstance);
+                                            insidiousService.getClient().setSessionInstance(sessionInstance);
                                             testCaseService = new TestCaseService(sessionInstance);
                                             sessionInstance.setTestCandidateListener(LiveViewWindow.this);
                                             testCaseService.processLogFiles();

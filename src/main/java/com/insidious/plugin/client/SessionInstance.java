@@ -2310,8 +2310,8 @@ public class SessionInstance {
 
         for (int i = 0; i < archiveLogFiles.size(); i++) {
             checkProgressIndicator(null, "Processing file " + i + " / " + archiveLogFiles.size());
-            newTestCaseIdentified = processLogFile(archiveLogFiles.get(i), threadState, parameterContainer,
-                    existingProbes);
+            newTestCaseIdentified = processLogFile(archiveLogFiles.get(i),
+                    threadState, parameterContainer, existingProbes);
         }
 
         return newTestCaseIdentified;
