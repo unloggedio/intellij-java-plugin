@@ -207,9 +207,14 @@ public class ObjectRoutineContainer {
         testGenerationState.setVariableContainer(variableContainer);
 
 
-        ObjectRoutineScript builderMethodScript = getConstructor()
+        ObjectRoutine constructorRoutine = getConstructor();
+        ObjectRoutineScript builderMethodScript = constructorRoutine
                 .toObjectScript(generationConfiguration, testGenerationState, sessionInstance,
                         fieldsContainer);
+
+        @NotNull List<Parameter> constructorNonPojoParams = ObjectRoutine.getNonPojoParameters(
+                constructorRoutine.getTestCandidateList(),
+                sessionInstance);
 
         container.getObjectRoutines()
                 .add(builderMethodScript);
@@ -239,8 +244,12 @@ public class ObjectRoutineContainer {
         Parameter testUtilClassSubject = new Parameter();
         testUtilClassSubject.setType("io.unlogged.UnloggedTestUtils");
         testUtilClassSubject.setName("UnloggedTestUtils");
+
         for (Parameter parameter : allFields) {
 
+            if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
+                continue;
+            }
             container.addField(parameter);
 
             classVariableContainer.add(parameter);

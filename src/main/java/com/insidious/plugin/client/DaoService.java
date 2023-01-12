@@ -197,11 +197,22 @@ public class DaoService {
             // this assertion can fail because we don't actually load private calls
             // or calls on org.springframework type variables
 //            assert calls.size() == methodCallsFromDb.size();
+            Optional<com.insidious.plugin.pojo.MethodCallExpression> mainMethodOption = methodCallsFromDb.stream()
+                    .filter(e -> e.getId() == testCandidateMetadata.getMainMethod())
+                    .findFirst();
+            com.insidious.plugin.pojo.MethodCallExpression mainMethod = null;
+            if (mainMethodOption.isPresent()) {
+                mainMethod = mainMethodOption.get();
+            }
+
             for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpressionById : methodCallsFromDb) {
                 if (methodCallExpressionById.getSubject() == null ||
                         methodCallExpressionById.getSubject()
                                 .getType()
                                 .startsWith("java.lang")) {
+                    continue;
+                }
+                if (mainMethod != null && methodCallExpressionById.getId() == mainMethod.getId()) {
                     continue;
                 }
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
@@ -216,11 +227,8 @@ public class DaoService {
                     logger.debug("skip call - " + methodCallExpressionById.getId());
                 }
             }
-            Optional<com.insidious.plugin.pojo.MethodCallExpression> mainMethod = methodCallsFromDb.stream()
-                    .filter(e -> e.getId() == testCandidateMetadata.getMainMethod())
-                    .findFirst();
-            if (mainMethod.isPresent()) {
-                converted.setMainMethod(mainMethod.get());
+            if (mainMethodOption.isPresent()) {
+                converted.setMainMethod(mainMethodOption.get());
             } else {
                 com.insidious.plugin.pojo.MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
                         testCandidateMetadata.getMainMethod());
@@ -274,7 +282,8 @@ public class DaoService {
         try {
             List<MethodCallExpression> mceList = getMethodCallExpressionsInCandidate(testCandidateMetadata);
             List<Long> constructedValues = mceList.stream()
-                    .filter(e -> e.getMethodName().equals("<init>"))
+                    .filter(e -> e.getMethodName()
+                            .equals("<init>"))
                     .map(MethodCallExpression::getReturnValue_id)
                     .collect(Collectors.toList());
 
@@ -1203,7 +1212,8 @@ public class DaoService {
     getConstructorCandidate(com.insidious.plugin.pojo.Parameter parameter) throws Exception {
 
         List<MethodCallExpression> callListFromDb =
-                methodCallExpressionDao.queryBuilder().where()
+                methodCallExpressionDao.queryBuilder()
+                        .where()
                         .eq("subject_id", parameter.getValue())
                         .and()
                         .eq("methodName", "<init>")

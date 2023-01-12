@@ -2697,6 +2697,7 @@ public class SessionInstance {
                         methodCall.setStaticCall(true);
                         methodCall.setSubject(existingParameter);
                     }
+                    methodCall.setMethodAccess(1);
 
                     if (existingParameter.getValue() == 0
                             && "Static".equals(probeInfo.getAttribute("CallType", null))

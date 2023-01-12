@@ -19,6 +19,7 @@ import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
 import javax.lang.model.element.Modifier;
 import java.util.*;
@@ -115,7 +116,6 @@ public class ObjectRoutine {
                         .equals("mock"))
                 .collect(Collectors.toList());
 
-        Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
 
         // parameters is a non pojo type if
         // 1. we have probed the class and our the type is not a pojo class based on our checks earlier (see
@@ -123,17 +123,7 @@ public class ObjectRoutine {
         // 2. we have not probed the class and this is not a primitive data type and we were not able to serialize
         // this parameter
         // nonPojo parameters will calls on them mocked as well
-        List<Parameter> nonPojoParameters =
-                this.testCandidateList.stream()
-                        .map(e -> (MethodCallExpression) e.getMainMethod())
-                        .map(MethodCallExpression::getArguments)
-                        .flatMap(Collection::stream)
-                        .filter(e -> (classIndex.get(e.getType()) != null
-                                && !classIndex.get(e.getType()).isPojo()
-                                && !classIndex.get(e.getType()).isEnum())
-                                || (!e.isPrimitiveType() && e.getProb().getSerializedValue().length == 0)
-                        )
-                        .collect(Collectors.toList());
+        List<Parameter> nonPojoParameters = getNonPojoParameters(this.testCandidateList, sessionInstance);
 
         if (getRoutineName().equals("<init>")) {
             for (Parameter nonPojoParameter : nonPojoParameters) {
@@ -181,10 +171,16 @@ public class ObjectRoutine {
                 .addAll(script.getStaticMocks());
 
 
+        VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
+        candidateVariables.all()
+                .forEach(variableContainer::add);
+
         for (TestCandidateMetadata testCandidateMetadata : mockCreatorCalls) {
-            VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            candidateVariables.all()
-                    .forEach(variableContainer::add);
+            MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            if (testGenerationState.getVariableContainer()
+                    .getParameterByValue(mce.getReturnValue().getValue()) != null) {
+                continue;
+            }
 
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
@@ -200,9 +196,6 @@ public class ObjectRoutine {
             if (mockCreatorCalls.contains(testCandidateMetadata)) {
                 continue;
             }
-            VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            candidateVariables.all()
-                    .forEach(variableContainer::add);
 
             ObjectRoutineScript script1 = CandidateMetadataFactory
                     .mainMethodToObjectScript(testCandidateMetadata, testGenerationState, generationConfiguration);
@@ -230,5 +223,26 @@ public class ObjectRoutine {
         }
 
         return scriptContainer;
+    }
+
+    @NotNull
+    public static List<Parameter> getNonPojoParameters(List<TestCandidateMetadata> testCandidateList1,
+                                                 SessionInstance sessionInstance) {
+        Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
+
+        return testCandidateList1.stream()
+                .map(e -> (MethodCallExpression) e.getMainMethod())
+                .filter(e -> !e.getMethodName().equals("mock"))
+                .map(MethodCallExpression::getArguments)
+                .flatMap(Collection::stream)
+                .filter(e -> (classIndex.get(e.getType()) != null
+                        && !classIndex.get(e.getType())
+                        .isPojo()
+                        && !classIndex.get(e.getType())
+                        .isEnum())
+                        || (!e.isPrimitiveType() && e.getProb()
+                        .getSerializedValue().length == 0)
+                )
+                .collect(Collectors.toList());
     }
 }
