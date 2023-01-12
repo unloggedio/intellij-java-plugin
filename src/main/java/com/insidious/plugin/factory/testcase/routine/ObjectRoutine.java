@@ -177,8 +177,10 @@ public class ObjectRoutine {
 
         for (TestCandidateMetadata testCandidateMetadata : mockCreatorCalls) {
             MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-            if (testGenerationState.getVariableContainer()
-                    .getParameterByValue(mce.getReturnValue().getValue()) != null) {
+            long returnValue = mce.getReturnValue()
+                    .getValue();
+
+            if (nonPojoParameters.stream().anyMatch(e -> e.getValue() == returnValue)) {
                 continue;
             }
 
