@@ -51,8 +51,10 @@ public class TestCandidateMetadata {
                 .map(com.insidious.plugin.pojo.Parameter::getValue)
                 .collect(Collectors.toList()));
 
-        newCandidate.setTestSubject(testCandidateMetadata.getTestSubject()
-                .getValue());
+        if (testCandidateMetadata.getTestSubject() != null) {
+            newCandidate.setTestSubject(testCandidateMetadata.getTestSubject()
+                    .getValue());
+        }
 
         newCandidate.setMainMethod(((com.insidious.plugin.pojo.MethodCallExpression)
                 testCandidateMetadata.getMainMethod()).getId());

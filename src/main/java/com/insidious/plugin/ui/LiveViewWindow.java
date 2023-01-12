@@ -29,7 +29,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -232,10 +231,12 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                     sessionInstance.getExecutionSession()
                                                             .getSessionId(), executionSession.getSessionId())) {
                                                 sessionInstance.close();
-                                            } else {
+                                                sessionInstance = new SessionInstance(executionSession, project);
+                                            } else if (sessionInstance == null) {
                                                 sessionInstance = new SessionInstance(executionSession, project);
                                             }
-                                            insidiousService.getClient().setSessionInstance(sessionInstance);
+                                            insidiousService.getClient()
+                                                    .setSessionInstance(sessionInstance);
                                             testCaseService = new TestCaseService(sessionInstance);
                                             sessionInstance.setTestCandidateListener(LiveViewWindow.this);
                                             testCaseService.processLogFiles();

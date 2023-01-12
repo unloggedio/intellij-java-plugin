@@ -302,7 +302,10 @@ public class Parameter implements Serializable, BytesMarshallable {
     }
 
     public boolean hasName(String name) {
-        if (name == null || this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
+        if (name == null) {
+            return false;
+        }
+        if (this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
             return true;
         }
         return false;

@@ -56,7 +56,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
-import com.thaiopensource.relaxng.edit.Param;
 import io.kaitai.struct.ByteBufferKaitaiStream;
 import io.kaitai.struct.RandomAccessFileKaitaiStream;
 import net.openhft.chronicle.map.ChronicleMap;
@@ -116,6 +115,8 @@ public class SessionInstance {
         this.project = project;
         this.sessionDirectory = Path.of(executionSession.getPath())
                 .toFile();
+        File cacheDir = new File(this.sessionDirectory + "/cache/");
+        cacheDir.mkdirs();
         this.executionSession = executionSession;
 
         boolean dbFileExists = Path.of(executionSession.getDatabasePath())
@@ -236,7 +237,7 @@ public class SessionInstance {
         List<File> filesToRemove = new LinkedList<>();
         int i;
         KaitaiInsidiousClassWeaveParser classWeaveInfo = null;
-        if (typeInfoIndex != null) {
+        if (typeInfoIndex != null && typeInfoIndex.size() > 0) {
             return sessionFiles;
         }
 
@@ -249,7 +250,8 @@ public class SessionInstance {
         classInfoIndex = createClassInfoIndex();
         try {
             classInfoIndex.values()
-                    .forEach(classInfo1 -> classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
+                    .forEach(classInfo1 -> classInfoIndexByName.put(
+                            ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
                             classInfo1));
 
         } catch (Throwable e) {
@@ -1194,12 +1196,17 @@ public class SessionInstance {
 
                             File cacheFile = new File(cacheFileLocation);
                             FileUtils.writeByteArrayToFile(cacheFile, fileBytes);
+                            FileOutputStream fileOut = new FileOutputStream(cacheFile);
+                            StreamUtil.copy(indexArchive, fileOut);
+                            fileOut.close();
+                            indexArchive.closeEntry();
+                            indexArchive.close();
+
                             cacheEntries.put(cacheKey, entryName);
 
                             NameWithBytes nameWithBytes = new NameWithBytes(entryName, fileBytes);
                             logger.info(
                                     pathName + " file from " + sessionFile.getName() + " is " + nameWithBytes.getBytes().length + " bytes");
-                            indexArchive.closeEntry();
                             return nameWithBytes;
                         }
                     }
