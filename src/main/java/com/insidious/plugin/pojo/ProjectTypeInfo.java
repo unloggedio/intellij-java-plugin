@@ -49,4 +49,14 @@ public class ProjectTypeInfo {
     public void setJacksonDatabindVersion(String jacksonDatabindVersion) {
         this.jacksonDatabindVersion = jacksonDatabindVersion;
     }
+
+    public List<String> getDependenciesToWatch()
+    {
+        List<String> dependenciesToWatch = new ArrayList<>();
+        dependenciesToWatch.add("jackson-datatype-hibernate5");
+        dependenciesToWatch.add("jackson-datatype-joda");
+        dependenciesToWatch.add("jackson-datatype-jdk8");
+        dependenciesToWatch.add("jackson-databind");
+        return dependenciesToWatch;
+    }
 }

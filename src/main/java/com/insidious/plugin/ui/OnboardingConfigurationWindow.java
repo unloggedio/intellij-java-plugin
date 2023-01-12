@@ -31,9 +31,11 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
+import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.Timer;
 import javax.swing.*;
@@ -139,7 +141,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                         setupWindowContent();
                     }
                 });
-
     }
 
     private void setupWindowContent() {
@@ -150,16 +151,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0)
                     .getText());
         } catch (Exception e) {
-            System.out.println("No modules, can't set tooltip text");
+//            System.out.println("No modules, can't set tooltip text");
         }
         try {
             if (insidiousService.getProjectTypeInfo()
                     .isDetectDependencies()) {
-                searchJacksonDatabindVersion();
+                //searchJacksonDatabindVersion();
+                searchDependencies_generic();
             }
         } catch (Exception e) {
-            System.out.println("Exception downloading agent" + e);
-            e.printStackTrace();
+//            System.out.println("Exception downloading agent" + e);
+//            e.printStackTrace();
         }
     }
 
@@ -856,8 +858,240 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                     break;
             }
         } catch (Exception e) {
-            System.out.println("Failded to get checksum of downloaded file.");
+            System.out.println("Failed to get checksum of downloaded file.");
         }
         return false;
+    }
+
+    //fetch all the dependencies from agent.
+    private void searchDependencies_generic() {
+
+        TreeMap<String,String> depVersions = new TreeMap<>();
+        for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
+        {
+            depVersions.put(dependency,null);
+        }
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext()) {
+            Library lib = lib_iterator.next();
+//            if (lib.getName()
+//                    .contains(dependenciesToWatch.get(3))) {
+////                String[] parts = lib.getName()
+////                        .split("com.fasterxml.jackson.core:jackson-databind:");
+////                String version = trimVersion(parts[parts.length - 1].trim());
+//                String version = trimVersion(fetchVersionFromLibName(lib.getName(),dependenciesToWatch.get(3)));
+////                System.out.println("Jackson databind version = "+version);
+//                depVersions.replace(dependenciesToWatch.get(3),version);
+//                insidiousService.getProjectTypeInfo()
+//                        .setJacksonDatabindVersion(version);
+//            }
+            for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
+            {
+                if(lib.getName()
+                        .contains(dependency))
+                {
+                    String version = fetchVersionFromLibName(lib.getName(),dependency);
+                    System.out.println("Version of "+dependency+" is "+version);
+                    depVersions.replace(dependency,version);
+                }
+            }
+
+            count++;
+        }
+        if (count == 0) {
+            //import of project not complete, wait and rerun
+            System.out.println("Project import not complete, waiting.");
+            Timer timer = new Timer(3000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    searchDependencies_generic();
+                }
+            });
+            timer.setRepeats(false);
+            timer.start();
+        } else {
+            //import complete, but no jackson dependency found. Use GSON
+            //no other dependencies found
+
+            //search is complete
+            System.out.println("[DEP SEARCH] Dependencies final found");
+            System.out.println(depVersions);
+            postProcessDependencies(depVersions);
+
+//            if (!agentDownloadInitiated) {
+//                downloadAgent();
+//            }
+            return;
+        }
+    }
+
+    public String fetchVersionFromLibName(String name, String lib)
+    {
+        String[] parts = name
+                .split(lib+":");
+        String version = trimVersion(parts[parts.length - 1].trim());
+        return version;
+    }
+
+    public void postProcessDependencies(TreeMap<String,String> dependencies)
+    {
+        if(dependencies.containsKey("jackson-databind"))
+        {
+            String version = trimVersion(dependencies.get("jackson-databind"));
+            dependencies.remove("jackson-databind");
+        }
+        if(insidiousService.getProjectTypeInfo().isMaven())
+        {
+            writeToPom(dependencies);
+        }
+        else
+        {
+            //check if has build.gradle
+            if(true)
+            {
+                writeToGradle(dependencies);
+            }
+            else
+            {
+                //add to lib
+            }
+        }
+    }
+
+    public void writeToGradle(TreeMap<String,String> dependencies)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n");
+        for(String dependency : dependencies.keySet())
+        {
+            String group_name = "com.fasterxml.jackson.datatype";
+            String artifact_name = dependency;
+            String version = dependencies.get(dependency);
+            if(version==null)
+            {
+                sb.append("implementation '"+group_name+":"+artifact_name+"'\n");
+            }
+        }
+        System.out.println("Adding to build.gradle");
+        System.out.println(sb.toString());
+
+        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
+                GlobalSearchScope.projectScope(project));
+        if(gradleFileSearchResult.length == 1)
+        {
+            write_gradle(gradleFileSearchResult[0],sb.toString());
+        } else if (gradleFileSearchResult.length>1) {
+            //many build.gradle files
+            //search for the one with modules. //base or shortest path
+            write_pom(gradleFileSearchResult[0],sb.toString());
+        }
+        else
+        {
+            //no build.gradle, how? why?
+        }
+
+    }
+
+    public void writeToPom(TreeMap<String,String> dependencies)
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n");
+        for(String dependency : dependencies.keySet())
+        {
+            String group_id = "com.fasterxml.jackson.datatype";
+            String artifact_id = dependency;
+            String version = dependencies.get(dependency);
+            if(version==null)
+            {
+                sb.append("<dependency>\n");
+                sb.append("<groupId>"+group_id+"</groupId>\n");
+                sb.append("<artifactId>"+artifact_id+"</artifactId>\n");
+//                sb.append("<version>"+version+"</version>\n");
+                sb.append("</dependency>\n");
+            }
+        }
+
+        System.out.println("Adding to Pom");
+        System.out.println(sb.toString());
+        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
+                GlobalSearchScope.projectScope(project));
+        if(pomFileSearchResult.length == 1)
+        {
+            write_pom(pomFileSearchResult[0],sb.toString());
+        } else if (pomFileSearchResult.length>1) {
+            //many pom files
+            //search for the one with modules. //base or shortest path
+            write_pom(pomFileSearchResult[0],sb.toString());
+        }
+        else
+        {
+            //no pom, how? why?
+        }
+    }
+
+    //use dom?
+    void write_pom(PsiFile psipomFile, String text)
+    {
+        try {
+            VirtualFile file = psipomFile.getVirtualFile();
+            File pomFile = new File(file.getPath());
+            String source = psipomFile.getText();
+            String[] parts = source.split("<dependencies>");
+            String finalstring = parts[0]+"\n<dependencies>"+text+""+parts[1];
+
+                try (FileOutputStream out = new FileOutputStream(pomFile)) {
+                    out.write(finalstring
+                            .getBytes(StandardCharsets.UTF_8));
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage(
+                    "Dependencies added to pom", NotificationType.INFORMATION);
+                }
+            InsidiousNotification.notifyMessage(
+                    "Dependencies added to pom", NotificationType.INFORMATION
+            );
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failed to write to pom file "+e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Failed to write to pom."
+                            + e.getMessage(), NotificationType.ERROR
+            );
+        }
+    }
+
+    void write_gradle(PsiFile psipomFile, String text)
+    {
+        try {
+            VirtualFile file = psipomFile.getVirtualFile();
+            File pomFile = new File(file.getPath());
+            String source = psipomFile.getText();
+            String[] parts = source.split("dependencies \\{");
+            String finalstring = parts[0]+"\ndependencies {"+text+""+parts[1];
+
+            try (FileOutputStream out = new FileOutputStream(pomFile)) {
+                out.write(finalstring
+                        .getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                InsidiousNotification.notifyMessage(
+                        "Dependencies added to build.gradle", NotificationType.INFORMATION);
+            }
+            InsidiousNotification.notifyMessage(
+                    "Dependencies added to build.gradle", NotificationType.INFORMATION
+            );
+        }
+        catch (Exception e)
+        {
+            System.out.println("Failed to write to build.gradle file "+e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage(
+                    "Failed to write to build.gradle. "
+                            + e.getMessage(), NotificationType.ERROR
+            );
+        }
     }
 }

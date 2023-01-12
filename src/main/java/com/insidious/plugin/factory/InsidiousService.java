@@ -862,8 +862,6 @@ public class InsidiousService implements Disposable {
 
 
             if (!testcaseFile.exists()) {
-
-
                 try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
                     out.write(testCaseScript.getCode()
                             .getBytes(StandardCharsets.UTF_8));
@@ -1255,6 +1253,29 @@ public class InsidiousService implements Disposable {
 //        }
     }
 
+    // works for current sessions structure,
+    // will need refactor when project/module based logs are stored
+    public boolean areLogsPresent()
+    {
+        File sessionDir = new File(Constants.VIDEOBUG_SESSIONS_PATH.toString());
+        File[] files = sessionDir.listFiles();
+        for(File file: files)
+        {
+            if(file.isDirectory())
+            {
+                File[] files_l2 = file.listFiles();
+                for(File file1 : files_l2)
+                {
+                    if(file1.getName().contains(".selog"))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private void initiateUI() {
         logger.info("initiate ui");
         ContentFactory contentFactory = ApplicationManager.getApplication()
@@ -1262,6 +1283,7 @@ public class InsidiousService implements Disposable {
         if (this.toolWindow == null) {
             return;
         }
+        toolWindow.setIcon(UI_Utils.UNLOGGED_ICON_DARK);
         ToolWindowEx ex = (ToolWindowEx) toolWindow;
         ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
                 .getHeight());
@@ -1280,10 +1302,18 @@ public class InsidiousService implements Disposable {
 
             liveViewWindow = new LiveViewWindow(project, this);
             Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-            contentManager.addContent(liveWindowContent);
+            onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_DARK);
+            liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_DARK);
             contentManager.addContent(onboardingConfigurationWindowContent);
-
+            contentManager.addContent(liveWindowContent);
             setupProject();
+
+            if(areLogsPresent())
+            {
+                contentManager.setSelectedContent(liveWindowContent,true);
+            }
         }
 
 //        Content rawViewContent2 = contentManager.findContent("Raw");

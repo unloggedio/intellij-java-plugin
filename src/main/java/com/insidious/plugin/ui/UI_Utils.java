@@ -1,5 +1,7 @@
 package com.insidious.plugin.ui;
 
+import com.intellij.openapi.util.IconLoader;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicSplitPaneDivider;
@@ -13,6 +15,10 @@ public class UI_Utils {
     public static Color pink = new Color(254,100,216);
     public static Color red = new Color(245,101,101);
     public static Color green = new Color(56,161,105);
+
+    public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png",UI_Utils.class);
+    public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png",UI_Utils.class);
+    public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png",UI_Utils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {
