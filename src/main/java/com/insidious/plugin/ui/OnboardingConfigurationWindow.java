@@ -20,6 +20,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
@@ -35,16 +38,16 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
+import io.minio.messages.Progress;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.Timer;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.*;
 import java.math.BigInteger;
 import java.net.URI;
@@ -64,17 +67,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
     private JPanel modulesSelectionPanel;
     private JPanel packagesSelectionPanel;
     private JPanel documentationSection;
-    private JLabel modulesHeading;
     private JPanel modulesParentPanel;
-    private JPanel packagesParentPanel;
+    private JPanel missingDependenciesPanel;
     private JButton applyConfigButton;
     private JButton linkToDiscordButton;
     private JLabel selectionHeading1;
     private JTextPane vmOptionsPanel_1;
     private JPanel packageManagementBorderParent;
-    private JPanel includePanel;
-    private JPanel excludePanel;
-    private JPanel BasePackagePanel;
+    private JPanel checksPanel;
     private JLabel basePackageLabel;
     private JScrollPane scrollParent;
     private JPanel sectionParent;
@@ -84,18 +84,38 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
     private JTextPane documentationTextArea;
     private JLabel DocumentationLabel;
     private JScrollPane vmOptsScroll;
-    private JLabel includeHeadingLabel;
     private JPanel topButtonGroup;
     private JButton copyVMoptionsButton;
+    private JLabel modulesHeading;
+    private JComboBox moduleSelectionBox;
+    private JPanel moduleSelectionPanel;
+    private JPanel JavaVersionSelectionPanel;
+    private JLabel javaVersionText;
+    private JComboBox javaSelectionBox;
+    private JPanel includePanel;
+    private JLabel includeHeadingLabel;
+    private JPanel BasePackagePanel;
+    private JPanel bpp;
+    private JPanel topPanel;
+    private JPanel bottomPanel;
+    private JLabel checksHeading;
+    private JPanel highlightPanel;
+    private JLabel mpHighlightLabel;
+    private JButton addToDependenciesButton;
+    private JPanel topParentPanel;
+    private JPanel bottomPanelparent;
     private Project project;
     private InsidiousService insidiousService;
     private List<ModulePanel> modulePanelList;
     private HashSet<String> selectedPackages = new HashSet<>(); //these are packages that will be excluded in the vm params
+    private HashSet<String> selectedDependencies = new HashSet<>();
     private String JVMoptionsBase = "";
     private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
     private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
     private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
     private boolean agentDownloadInitiated = false;
+    private boolean addopens = false;
+    private TreeMap<String,String> dependencies_status = new TreeMap<>();
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -122,7 +142,32 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             }
         });
         copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        addToDependenciesButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        Color color = new Color(225,163,54,25);
+        Border border = new LineBorder(UI_Utils.yellow_alert);
+        highlightPanel.setBorder(border);
+        highlightPanel.setBackground(color);
 
+        highlightPanel.setVisible(false);
+        bottomPanel.setVisible(false);
+
+        javaSelectionBox.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent event) {
+                if (event.getStateChange() == ItemEvent.SELECTED) {
+                    String version = event.getItem().toString();
+                    if(version.startsWith(">"))
+                    {
+                        setAddopens(true);
+                    }
+                    else
+                    {
+                        setAddopens(false);
+                    }
+                    updateVMparameter();
+                }
+            }
+
+        });
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         if (dumbService.isDumb()) {
             InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
@@ -131,6 +176,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         dumbService.runWhenSmart(() -> {
             startSetupInBackground_v2();
         });
+        addToDependenciesButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                postProcessDependencies(dependencies_status, selectedDependencies);
+            }
+        });
+    }
+
+    public void setAddopens(boolean addopens)
+    {
+        this.addopens=addopens;
     }
 
     private void startSetupInBackground_v2() {
@@ -145,7 +201,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
 
     private void setupWindowContent() {
         fetchModules();
-        findAllPackages();
+        //findAllPackages();
         updateVMparameter();
         try {
             this.basePackageLabel.setToolTipText("Base package for " + modulePanelList.get(0)
@@ -156,7 +212,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         try {
             if (insidiousService.getProjectTypeInfo()
                     .isDetectDependencies()) {
-                //searchJacksonDatabindVersion();
                 searchDependencies_generic();
             }
         } catch (Exception e) {
@@ -185,6 +240,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             newVMParams.append("\"");
         } else {
             newVMParams.append("\"");
+        }
+        if(this.addopens)
+        {
+            newVMParams.append(" --add-opens=java.base/java.util=ALL-UNNAMED");
         }
         return newVMParams.toString();
     }
@@ -281,9 +340,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             this.basePackageLabel.setToolTipText(
                     "If you see a ? please wait till index is complete and click the module again");
         }
-        ArrayList<String> packages = new ArrayList<String>(ret);
-        Collections.sort(packages);
-        populatePackages(packages);
+        //ArrayList<String> packages = new ArrayList<String>(ret);
+        //Collections.sort(packages);
+        //populatePackages(packages);
     }
 
     public void findPackagesForModule(String modulename) {
@@ -301,7 +360,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                     .contains(modulename)) {
                 PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
                 String packageName = psiJavaFile.getPackageName();
-                if (packageName.contains(".")) {
+                if (packageName.contains(".") && !packageName.equals("io.unlogged")) {
                     ret.add(packageName);
                     if (components.size() == 0) {
                         String[] parts = packageName.split("\\.");
@@ -316,17 +375,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                 }
             }
         }
-//        System.out.println("Project packages from module - "+ret);
-//        System.out.println("[Components] from module "+components);
+        System.out.println("Project packages from module - "+ret);
+        System.out.println("[Components] from module "+components);
         String basePackage = buildPackageNameFromList(components);
         this.basePackageLabel.setText(basePackage);
         if (basePackage.equals("?")) {
             this.basePackageLabel.setToolTipText(
                     "If you see a ? please wait till index is complete and click the module again");
         }
-        ArrayList<String> packages = new ArrayList<String>(ret);
-        Collections.sort(packages);
-        populatePackages(packages);
+//        ArrayList<String> packages = new ArrayList<String>(ret);
+//        Collections.sort(packages);
+//        populatePackages(packages);
     }
 
     private String buildPackageNameFromList(List<String> parts) {
@@ -365,7 +424,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             System.out.println("Fetching from POM.xml/settings.gradle");
             Set<String> modules_from_pg = insidiousService.fetchModuleNames();
             modules_from_mm.addAll(modules_from_pg);
-            populateModules_v1(new ArrayList<>(modules_from_mm));
+            populateModules_v2(new ArrayList<>(modules_from_mm));
         } catch (Exception e) {
             System.out.println("Exception fetching modules");
             System.out.println(e);
@@ -375,11 +434,34 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                 for (Module module : modules) {
                     modules_s.add(module.getName());
                 }
-                populateModules_v1(modules_s);
+                //populateModules_v1(modules_s);
+                populateModules_v2(modules_s);
             }
         }
     }
+    public void populateModules_v2(List<String> modules)
+    {
+//        DefaultComboBoxModel module_model = new DefaultComboBoxModel(modules.stream().toArray(String[] ::new));
+        DefaultComboBoxModel module_model = new DefaultComboBoxModel();
+        module_model.addAll(modules);
+//        ComboBoxModel model = moduleSelectionBox.getModel();
+//        model.
+        moduleSelectionBox.setModel(module_model);
+        moduleSelectionBox.removeAll();
+        moduleSelectionBox.addItemListener(new ItemListener() {
+            public void itemStateChanged(ItemEvent event) {
+                if (event.getStateChange() == ItemEvent.SELECTED) {
+                    //System.out.println("SELECTED "+event.getItem().toString());
+                    String moduleName = event.getItem().toString();
+                    findPackagesForModule(moduleName);
+                    updateVMparameter();
+                }
+            }
 
+        });
+        moduleSelectionBox.setSelectedIndex(0);
+        //moduleSelectionBox.
+    }
     public void populateModules_v1(List<String> modules) {
         this.modulesParentPanel.removeAll();
         int GridRows = 20;
@@ -417,7 +499,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
     }
 
     public void populatePackages(List<String> packages) {
-        this.packagesParentPanel.removeAll();
+        this.missingDependenciesPanel.removeAll();
         int GridRows = 50;
         if (packages.size() > GridRows) {
             GridRows = packages.size();
@@ -466,13 +548,92 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         EmptyBorder emptyBorder = new EmptyBorder(0, 0, 0, 0);
         scrollPane.setBorder(emptyBorder);
-        packagesParentPanel.setPreferredSize(scrollPane.getSize());
-        packagesParentPanel.add(scrollPane, BorderLayout.CENTER);
+        missingDependenciesPanel.setPreferredSize(scrollPane.getSize());
+        missingDependenciesPanel.add(scrollPane, BorderLayout.CENTER);
 //        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         if (packages.size() <= 15) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
-        this.packagesParentPanel.revalidate();
+        this.missingDependenciesPanel.revalidate();
+    }
+
+    private void updateDependenciesTab()
+    {
+        this.missingDependenciesPanel.removeAll();
+        TreeMap<String,String> missing_dependencies = new TreeMap<>();
+        for(String key : dependencies_status.keySet())
+        {
+            if(dependencies_status.get(key)==null &&
+                !insidiousService.getProjectTypeInfo().
+                        getDependencies_addedManually().contains(key))
+            {
+                missing_dependencies.put(key,dependencies_status.get(key));
+            }
+        }
+        if(missing_dependencies.size()>0)
+        {
+            highlightPanel.setVisible(true);
+            bottomPanel.setVisible(true);
+        }
+        else
+        {
+            highlightPanel.setVisible(false);
+            bottomPanel.setVisible(false);
+            return;
+        }
+        int GridRows = 16;
+        if (missing_dependencies.size() > GridRows) {
+            GridRows = missing_dependencies.size();
+        }
+        GridLayout gridLayout = new GridLayout(GridRows, 1);
+        Dimension d = new Dimension();
+        d.setSize(-1, 30);
+        JPanel gridPanel = new JPanel(gridLayout);
+        int i = 0;
+        for (String dependency : missing_dependencies.keySet()) {
+            GridConstraints constraints = new GridConstraints();
+            constraints.setRow(i);
+            constraints.setIndent(16);
+            JCheckBox checkBox = new JCheckBox();
+//            checkBox.
+            checkBox.setMinimumSize(d);
+            checkBox.setPreferredSize(d);
+            checkBox.setMaximumSize(d);
+            checkBox.setOpaque(true);
+            checkBox.setText(dependency);
+            checkBox.getInsets()
+                    .set(4, 16, 4, 0);
+            checkBox.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    Component component = e.getComponent();
+                    if (component instanceof JCheckBox) {
+                        JCheckBox checkBox = (JCheckBox) component;
+                        String dependency = checkBox.getText();
+                        if (!checkBox.isSelected() && selectedDependencies.contains(dependency)) {
+                            selectedDependencies.remove(dependency);
+                        } else {
+                            if (!selectedDependencies.contains(dependency)) {
+                                selectedDependencies.add(dependency);
+                            }
+                        }
+                    }
+                }
+            });
+            gridPanel.add(checkBox, constraints);
+            i++;
+        }
+        gridPanel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+        JScrollPane scrollPane = new JScrollPane(gridPanel);
+        EmptyBorder emptyBorder = new EmptyBorder(0, 0, 0, 0);
+        scrollPane.setBorder(emptyBorder);
+        missingDependenciesPanel.setPreferredSize(scrollPane.getSize());
+        missingDependenciesPanel.add(scrollPane, BorderLayout.CENTER);
+//        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        if (dependencies_status.size() <= 15) {
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        }
+        this.missingDependenciesPanel.revalidate();
     }
 
     private void runApplicationWithUnlogged() {
@@ -545,11 +706,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             }
             newVMParams.deleteCharAt(newVMParams.length() - 1);
             newVMParams.append("\"");
-            vmOptionsPanel_1.setText(newVMParams.toString());
         } else {
             newVMParams.append("\"");
-            vmOptionsPanel_1.setText(newVMParams.toString());
         }
+        if(this.addopens)
+        {
+            newVMParams.append("\n--add-opens=java.base/java.util=ALL-UNNAMED");
+        }
+        vmOptionsPanel_1.setText(newVMParams.toString());
     }
 
     public void fetchDependencies() {
@@ -702,7 +866,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                 .add(dependencies);
     }
 
+    public boolean shouldDownloadAgent()
+    {
+        Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
+        String absolutePath = fileURiString.toAbsolutePath()
+                .toString();
+        File agentFile = new File(absolutePath);
+        System.out.println("Does agent exist? "+agentFile.exists());
+        if(agentFile.exists()==false)
+        {
+            return true;
+        }
+        String version = insidiousService.getProjectTypeInfo()
+                .getJacksonDatabindVersion();
+        if (version != null) {
+            version = "jackson-" + version;
+        }
+        else
+        {
+            version="gson";
+        }
+        if(md5Check(version,agentFile))
+        {
+            return false;
+        }
+        return true;
+    }
+
     private void downloadAgent() {
+        if(!shouldDownloadAgent())
+        {
+            System.out.println("No need to download agent. Required version is already present");
+            //agent already exists with correct version
+            //prompt
+//            InsidiousNotification.notifyMessage(
+//                    "Agent with required dependency already present",
+//                    NotificationType.INFORMATION);
+            return;
+        }
         agentDownloadInitiated = true;
 //        logger.info("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
 //        System.out.println("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
@@ -865,7 +1066,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
 
     //fetch all the dependencies from agent.
     private void searchDependencies_generic() {
-
         TreeMap<String,String> depVersions = new TreeMap<>();
         for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
         {
@@ -877,17 +1077,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         int count = 0;
         while (lib_iterator.hasNext()) {
             Library lib = lib_iterator.next();
-//            if (lib.getName()
-//                    .contains(dependenciesToWatch.get(3))) {
-////                String[] parts = lib.getName()
-////                        .split("com.fasterxml.jackson.core:jackson-databind:");
-////                String version = trimVersion(parts[parts.length - 1].trim());
-//                String version = trimVersion(fetchVersionFromLibName(lib.getName(),dependenciesToWatch.get(3)));
-////                System.out.println("Jackson databind version = "+version);
-//                depVersions.replace(dependenciesToWatch.get(3),version);
-//                insidiousService.getProjectTypeInfo()
-//                        .setJacksonDatabindVersion(version);
-//            }
             for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
             {
                 if(lib.getName()
@@ -913,19 +1102,28 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             timer.setRepeats(false);
             timer.start();
         } else {
-            //import complete, but no jackson dependency found. Use GSON
-            //no other dependencies found
-
             //search is complete
             System.out.println("[DEP SEARCH] Dependencies final found");
             System.out.println(depVersions);
-            postProcessDependencies(depVersions);
-
-//            if (!agentDownloadInitiated) {
-//                downloadAgent();
-//            }
-            return;
+            this.dependencies_status=depVersions;
+            updateDependenciesTab();
+            //move to another bg thread
+            if (!agentDownloadInitiated) {
+                downloadAgent();
+            }
+            //postProcessDependencies(depVersions);
         }
+    }
+
+    public void downloadAgentinBackground()
+    {
+        Task.Backgroundable dl_task =
+            new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                }
+            };
+        ProgressManager.getInstance().run(dl_task);
     }
 
     public String fetchVersionFromLibName(String name, String lib)
@@ -936,37 +1134,74 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         return version;
     }
 
-    public void postProcessDependencies(TreeMap<String,String> dependencies)
+    public void postProcessDependencies(TreeMap<String,String> dependencies, HashSet<String> selections)
     {
-        if(dependencies.containsKey("jackson-databind"))
+        TreeMap<String,String> dependencies_local = new TreeMap<>();
+        for(String dep : selections)
         {
-            String version = trimVersion(dependencies.get("jackson-databind"));
-            dependencies.remove("jackson-databind");
+            if(dependencies.containsKey(dep))
+            {
+                dependencies_local.put(dep,dependencies.get(dep));
+            }
+        }
+
+        if(dependencies_local.containsKey("jackson-databind"))
+        {
+            dependencies_local.remove("jackson-databind");
         }
         if(insidiousService.getProjectTypeInfo().isMaven())
         {
-            writeToPom(dependencies);
+            writeToPom(dependencies_local);
         }
         else
         {
             //check if has build.gradle
             if(true)
             {
-                writeToGradle(dependencies);
+                writeToGradle(dependencies_local);
             }
             else
             {
                 //add to lib
             }
         }
+        postprocessCheck();
     }
 
     public void writeToGradle(TreeMap<String,String> dependencies)
     {
+        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
+                GlobalSearchScope.projectScope(project));
+        PsiFile targetFile;
+        if(gradleFileSearchResult.length == 1)
+        {
+            targetFile = gradleFileSearchResult[0];
+        } else if (gradleFileSearchResult.length>1) {
+            //many build.gradle files
+            //search for the one with modules. //base or shortest path
+            targetFile = fetchBaseFile(gradleFileSearchResult);
+        }
+        else
+        {
+            //no build.gradle, how? why?
+            return;
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         for(String dependency : dependencies.keySet())
         {
+            if(!shouldWriteDependency(targetFile,dependency) ||
+                    insidiousService.getProjectTypeInfo()
+                            .getDependencies_addedManually().contains(dependency))
+            {
+                continue;
+            }
+            else
+            {
+                insidiousService.getProjectTypeInfo().
+                        getDependencies_addedManually().add(dependency);
+            }
             String group_name = "com.fasterxml.jackson.datatype";
             String artifact_name = dependency;
             String version = dependencies.get(dependency);
@@ -977,21 +1212,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         }
         System.out.println("Adding to build.gradle");
         System.out.println(sb.toString());
-
-        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
-                GlobalSearchScope.projectScope(project));
-        if(gradleFileSearchResult.length == 1)
+        if(sb.toString().trim().equals(""))
         {
-            write_gradle(gradleFileSearchResult[0],sb.toString());
-        } else if (gradleFileSearchResult.length>1) {
-            //many build.gradle files
-            //search for the one with modules. //base or shortest path
-            write_pom(gradleFileSearchResult[0],sb.toString());
+            //nothing to write
+            InsidiousNotification.notifyMessage("Nothing to write into build.gradle",NotificationType.ERROR);
+            return;
         }
-        else
-        {
-            //no build.gradle, how? why?
-        }
+        write_gradle(targetFile,sb.toString());
 
     }
 
@@ -999,8 +1226,32 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
     {
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
+        PsiFile targetFile;
+        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
+                GlobalSearchScope.projectScope(project));
+        if(pomFileSearchResult.length == 1)
+        {
+            targetFile=pomFileSearchResult[0];
+        } else if (pomFileSearchResult.length>1) {
+            targetFile=fetchBaseFile(pomFileSearchResult);
+        }
+        else{
+            return;
+        }
+
         for(String dependency : dependencies.keySet())
         {
+            if(!shouldWriteDependency(targetFile,dependency) ||
+                    insidiousService.getProjectTypeInfo()
+                            .getDependencies_addedManually().contains(dependency))
+            {
+                continue;
+            }
+            else
+            {
+                insidiousService.getProjectTypeInfo().
+                        getDependencies_addedManually().add(dependency);
+            }
             String group_id = "com.fasterxml.jackson.datatype";
             String artifact_id = dependency;
             String version = dependencies.get(dependency);
@@ -1016,20 +1267,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
 
         System.out.println("Adding to Pom");
         System.out.println(sb.toString());
-        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
-                GlobalSearchScope.projectScope(project));
-        if(pomFileSearchResult.length == 1)
+        if(sb.toString().trim().equals(""))
         {
-            write_pom(pomFileSearchResult[0],sb.toString());
-        } else if (pomFileSearchResult.length>1) {
-            //many pom files
-            //search for the one with modules. //base or shortest path
-            write_pom(pomFileSearchResult[0],sb.toString());
+            //nothing to write
+            InsidiousNotification.notifyMessage("Nothing to write into pom.xml",NotificationType.ERROR);
+            return;
         }
-        else
-        {
-            //no pom, how? why?
-        }
+        write_pom(targetFile,sb.toString());
     }
 
     //use dom?
@@ -1045,12 +1289,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                 try (FileOutputStream out = new FileOutputStream(pomFile)) {
                     out.write(finalstring
                             .getBytes(StandardCharsets.UTF_8));
+
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage(
-                    "Dependencies added to pom", NotificationType.INFORMATION);
+                    "Failed to add dependencies to pom.xml", NotificationType.ERROR);
                 }
             InsidiousNotification.notifyMessage(
-                    "Dependencies added to pom", NotificationType.INFORMATION
+                    "Dependencies added to pom.xml "+text, NotificationType.INFORMATION
             );
         }
         catch (Exception e)
@@ -1064,12 +1309,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
         }
     }
 
-    void write_gradle(PsiFile psipomFile, String text)
+    void write_gradle(PsiFile psiGradleFile, String text)
     {
         try {
-            VirtualFile file = psipomFile.getVirtualFile();
+            VirtualFile file = psiGradleFile.getVirtualFile();
             File pomFile = new File(file.getPath());
-            String source = psipomFile.getText();
+            String source = psiGradleFile.getText();
             String[] parts = source.split("dependencies \\{");
             String finalstring = parts[0]+"\ndependencies {"+text+""+parts[1];
 
@@ -1078,10 +1323,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                         .getBytes(StandardCharsets.UTF_8));
             } catch (Exception e) {
                 InsidiousNotification.notifyMessage(
-                        "Dependencies added to build.gradle", NotificationType.INFORMATION);
+                        "Failed to add dependencies to build.gradle", NotificationType.INFORMATION);
             }
             InsidiousNotification.notifyMessage(
-                    "Dependencies added to build.gradle", NotificationType.INFORMATION
+                    "Dependencies added to build.gradle "+text, NotificationType.INFORMATION
             );
         }
         catch (Exception e)
@@ -1093,5 +1338,43 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
                             + e.getMessage(), NotificationType.ERROR
             );
         }
+    }
+
+    public void postprocessCheck()
+    {
+        ApplicationManager.getApplication()
+                .runReadAction(new Runnable() {
+                    public void run() {
+                        searchDependencies_generic();
+                    }
+                });
+    }
+
+    public boolean shouldWriteDependency(PsiFile file, String dependency)
+    {
+        String text = file.getText();
+        if(text.contains(dependency))
+        {
+            System.out.println("Should write dependency? "+dependency +" : false");
+            return false;
+        }
+        else
+        {
+            System.out.println("Should write dependency? "+dependency +" : true");
+            return true;
+        }
+    }
+
+    public PsiFile fetchBaseFile(PsiFile[] files)
+    {
+        Map<Integer,PsiFile> sizemaps = new HashMap<>();
+        for(PsiFile file : files)
+        {
+            Integer ps = file.getVirtualFile().getPath().length();
+            sizemaps.put(ps,file);
+        }
+        List<Integer> keys = new ArrayList<>(sizemaps.keySet());
+        Collections.sort(keys);
+        return sizemaps.get(keys.get(0));
     }
 }

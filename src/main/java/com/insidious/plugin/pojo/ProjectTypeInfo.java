@@ -1,17 +1,17 @@
 package com.insidious.plugin.pojo;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ProjectTypeInfo {
 
     private String javaVersion;
     private boolean isMaven=false;
     //feature flag to enable/disable searching from dependency tree
-    private final boolean detectDependencies=false;
+    private final boolean detectDependencies=true;
     private List<Map<String,String>> serializers = new ArrayList<>();
     private String jacksonDatabindVersion = null;
+
+    private Set<String> dependencies_addedManually = new HashSet<>();
 
     public String getJavaVersion() {
         return javaVersion;
@@ -58,5 +58,9 @@ public class ProjectTypeInfo {
         dependenciesToWatch.add("jackson-datatype-jdk8");
         dependenciesToWatch.add("jackson-databind");
         return dependenciesToWatch;
+    }
+
+    public Set<String> getDependencies_addedManually() {
+        return dependencies_addedManually;
     }
 }
