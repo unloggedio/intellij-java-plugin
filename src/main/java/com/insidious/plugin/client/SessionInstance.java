@@ -135,6 +135,7 @@ public class SessionInstance {
                 TableUtils.createTable(connectionSource, LogFile.class);
                 TableUtils.createTable(connectionSource, ArchiveFile.class);
             } catch (SQLException sqlException) {
+                sqlException.printStackTrace();
                 logger.warn("probably table already exists: " + sqlException);
             }
         }
@@ -255,6 +256,7 @@ public class SessionInstance {
                             classInfo1));
 
         } catch (Throwable e) {
+            e.printStackTrace();
             if (e instanceof RuntimeException && e.getCause() instanceof InvalidClassException) {
                 typeInfoIndex.close();
                 objectInfoIndex.close();
@@ -288,27 +290,10 @@ public class SessionInstance {
         for (i = 0; i < sessionFiles.size(); i++) {
             try {
                 readClassWeaveInfoStream(sessionFiles.get(i));
-            } catch (FailedToReadClassWeaveException e) {
-                filesToRemove.add(sessionFiles.get(i));
-                continue;
-            }
-
-            NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFiles.get(i),
-                    INDEX_TYPE_DAT_FILE.getFileName());
-            if (typeIndexBytes == null) {
-                filesToRemove.add(sessionFiles.get(i));
-                continue;
-            }
-
-            try {
-                archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
-                ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
-                typeIndex.parallelStream()
-                        .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
                 break;
-            } catch (IOException e) {
+            } catch (FailedToReadClassWeaveException e) {
                 e.printStackTrace();
-                logger.warn("failed to read archive for types index: " + e.getMessage());
+                filesToRemove.add(sessionFiles.get(i));
             }
         }
 
@@ -783,6 +768,7 @@ public class SessionInstance {
             try {
                 index = readArchiveIndex(bytes.getBytes(), INDEX_STRING_DAT_FILE);
             } catch (Exception e) {
+                e.printStackTrace();
                 logger.error("failed to read type index file  [" + sessionArchive.getName() + "]", e);
                 continue;
             }
@@ -940,6 +926,7 @@ public class SessionInstance {
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
                             } catch (ClassInfoNotFoundException | Exception ex) {
+                                ex.printStackTrace();
                                 logger.error("failed to get data probe information", ex);
                             }
                             return null;
@@ -1006,6 +993,22 @@ public class SessionInstance {
         logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
         String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
         refreshWeaveInformationStream(classWeaveFileStream);
+
+        NameWithBytes typeIndexBytes = createFileOnDiskFromSessionArchiveFile(sessionFile,
+                INDEX_TYPE_DAT_FILE.getFileName());
+        if (typeIndexBytes == null) {
+            throw new FailedToReadClassWeaveException("index.type.dat not found in: " + sessionFile.getName());
+        }
+
+        try {
+            archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
+            ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
+            typeIndex.parallelStream()
+                    .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
+        } catch (IOException e) {
+            e.printStackTrace();
+            logger.warn("failed to read archive for types index: " + e.getMessage());
+        }
     }
 
     private KaitaiInsidiousClassWeaveParser.ClassInfo getClassInfo(int classId) throws ClassInfoNotFoundException {
@@ -1211,11 +1214,13 @@ public class SessionInstance {
                         }
                     }
                 } catch (Exception e) {
+                    e.printStackTrace();
                     logger.error("Failed to open zip archive: " + e.getMessage(), e);
                 }
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
             logger.warn(
                     "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
             return null;
@@ -1264,6 +1269,7 @@ public class SessionInstance {
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
             logger.warn(
                     "failed to create file [" + pathName + "] on disk from" + " archive[" + sessionFile.getName() + "]");
             return null;
@@ -1471,6 +1477,7 @@ public class SessionInstance {
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
                             } catch (ClassInfoNotFoundException | Exception ex) {
+                                ex.printStackTrace();
                                 logger.error("failed to get data probe information", ex);
                             }
                             return null;
@@ -1615,6 +1622,7 @@ public class SessionInstance {
             try {
                 objectIndex = readArchiveIndex(objectsIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             } catch (IOException e) {
+                e.printStackTrace();
                 logger.error("failed to read object index from session bytes: " + e.getMessage(), e);
                 continue;
             }
@@ -1632,6 +1640,7 @@ public class SessionInstance {
             try {
                 stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
             } catch (IOException e) {
+                e.printStackTrace();
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
             }
@@ -1693,6 +1702,7 @@ public class SessionInstance {
         try {
             objectIndex = readArchiveIndex(objectIndexFileBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
         } catch (IOException e) {
+            e.printStackTrace();
             logger.warn("failed to read object index file: " + e.getMessage());
             return Set.of();
 
@@ -1734,6 +1744,7 @@ public class SessionInstance {
         try {
             eventsIndex = readEventIndex(eventIndexBytes.getBytes());
         } catch (IOException e) {
+            e.printStackTrace();
             logger.warn("failed to read events index from : " + sessionArchive.getName());
             return null;
         }
@@ -2021,6 +2032,7 @@ public class SessionInstance {
 
 
             } catch (IOException e) {
+                e.printStackTrace();
                 logger.warn("failed to read archive [" + sessionArchive.getName() + "]");
                 continue;
             }
@@ -2043,6 +2055,7 @@ public class SessionInstance {
             try {
                 stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
             } catch (IOException e) {
+                e.printStackTrace();
                 logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                 continue;
             }
@@ -2075,6 +2088,7 @@ public class SessionInstance {
             try {
                 objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
             } catch (IOException e) {
+                e.printStackTrace();
                 logger.error("failed to read object index from session archive", e);
                 continue;
             }
@@ -2130,6 +2144,7 @@ public class SessionInstance {
                 try {
                     objectsIndex = readArchiveIndex(objectIndexBytes.getBytes(), INDEX_OBJECT_DAT_FILE);
                 } catch (IOException e) {
+                    e.printStackTrace();
                     logger.error("failed to read object index from session archive", e);
                     continue;
                 }
@@ -2158,6 +2173,7 @@ public class SessionInstance {
                 try {
                     stringIndex = readArchiveIndex(stringsIndexBytes.getBytes(), INDEX_STRING_DAT_FILE);
                 } catch (IOException e) {
+                    e.printStackTrace();
                     logger.error("failed to read string index from session bytes: " + e.getMessage(), e);
                     continue;
                 }
@@ -2370,6 +2386,16 @@ public class SessionInstance {
             final long eventValue = eventBlock.valueId();
 
             DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
+            if (probeInfo == null) {
+                try {
+                    readClassWeaveInfoStream(sessionArchive);
+                    probeInfo = probeInfoIndex.get(eventBlock.probeId());
+                } catch (FailedToReadClassWeaveException ex) {
+                    // we have logs from new zip, which has new probes, but we could not read new class weave info
+                    // cant proceed
+                    throw new RuntimeException(ex);
+                }
+            }
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
@@ -3429,6 +3455,7 @@ public class SessionInstance {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
+            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);
         }
@@ -3501,6 +3528,7 @@ public class SessionInstance {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
+            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);
         }
@@ -3648,6 +3676,7 @@ public class SessionInstance {
         try {
             databasePipe.close();
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error("Failed to close database pipe", e);
             InsidiousNotification.notifyMessage("Failed to close database pipe: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3655,6 +3684,7 @@ public class SessionInstance {
         try {
             executorPool.shutdownNow();
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error("Failed to close executor pool", e);
             InsidiousNotification.notifyMessage("Failed to close executor pool: " + e.getMessage(),
                     NotificationType.ERROR);
@@ -3662,6 +3692,7 @@ public class SessionInstance {
         try {
             daoService.close();
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error("Failed to close database", e);
             InsidiousNotification.notifyMessage("Failed to close database: " + e.getMessage(),
                     NotificationType.ERROR);
