@@ -1253,6 +1253,8 @@ public class DaoService {
                     .query();
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> results = new LinkedList<>();
 
+            candidates.sort(Comparator.comparingLong(TestCandidateMetadata::getEntryProbeIndex));
+
             for (TestCandidateMetadata candidate : candidates) {
                 results.add(convertTestCandidateMetadata(candidate, loadCalls));
             }
