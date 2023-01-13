@@ -27,6 +27,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.NameWithBytes;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.model.ReplayData;
+import com.insidious.plugin.factory.TestCandidateReceiver;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.parameter.ChronicleVariableContainer;
@@ -3718,17 +3719,23 @@ public class SessionInstance {
         return classInfoIndexByName;
     }
 
-    class FileToEventStreamer implements Runnable {
-        private final DaoService daoService;
+    public void getAllTestCandidates(TestCandidateReceiver testCandidateReceiver) throws SQLException {
 
-        FileToEventStreamer(DaoService daoService) {
-            this.daoService = daoService;
+        int page = 0;
+        int limit = 100;
+        while (true) {
+            List<TestCandidateMetadata> testCandidateMetadataList = daoService.getTestCandidatePaginated(page, limit);
+            for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+                testCandidateReceiver.handleTestCandidate(testCandidateMetadata);
+            }
+            page++;
+            if (testCandidateMetadataList.size() < limit) {
+                break;
+            }
+
         }
 
-        @Override
-        public void run() {
 
-        }
     }
 
 }

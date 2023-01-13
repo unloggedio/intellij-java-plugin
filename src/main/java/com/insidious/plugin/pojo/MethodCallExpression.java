@@ -476,7 +476,7 @@ public class MethodCallExpression implements Expression, Serializable {
                         .endStatement();
             }
 
-            logger.warn("Mocked method [" + this.getMethodName() + "] expected return => " + returnValue);
+//            logger.warn("Mocked method [" + this.getMethodName() + "] expected return => " + returnValue);
         }
 
 

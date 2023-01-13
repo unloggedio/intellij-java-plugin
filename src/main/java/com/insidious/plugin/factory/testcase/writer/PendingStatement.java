@@ -370,11 +370,11 @@ public class PendingStatement {
         ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         StringBuilder statementBuilder = new StringBuilder();
         List<Object> statementParameters = new ArrayList<>();
-        logger.warn("Complete statement: Lhs [" + lhsExpression + "] => ");
-        for (int i = 0; i < expressionList.size(); i++) {
-            Expression expression = expressionList.get(i);
-            logger.warn(" [" + i + "] Rhs [" + expression + "]");
-        }
+//        logger.warn("Complete statement: Lhs [" + lhsExpression + "] => ");
+//        for (int i = /0; i < expressionList.size(); i++) {
+//            Expression expression = expressionList.get(i);
+//            logger.warn(" [" + i + "] Rhs [" + expression + "]");
+//        }
 
         boolean isExceptionExcepted = lhsExpression != null && lhsExpression.getProbeInfo() != null &&
                 lhsExpression.getProbeInfo()

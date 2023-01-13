@@ -68,8 +68,8 @@ public class MethodCallExpressionFactory {
         String param1;
         String methodParametersStringMock = TestCaseWriter.createMethodParametersStringMock(
                 methodCallExpression.getArguments(), testGenerationState);
-        logger.warn(
-                "Create method call arguments mock: [" + methodCallExpression + "] => " + methodParametersStringMock);
+//        logger.warn(
+//                "Create method call arguments mock: [" + methodCallExpression + "] => " + methodParametersStringMock);
 
         if (methodCallExpression.isStaticCall()) {
             String classSimpleName = mainSubject.getType().substring(mainSubject.getType().lastIndexOf('.') + 1);

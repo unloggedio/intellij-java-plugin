@@ -110,7 +110,7 @@ public class ObjectRoutineScript {
     }
 
     public MethodSpec.Builder toMethodSpec() {
-        logger.warn("Build method spec with method name: " + this.routineName);
+//        logger.warn("Build method spec with method name: " + this.routineName);
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(this.routineName);
 
         methodBuilder.addExceptions(this.exceptions);

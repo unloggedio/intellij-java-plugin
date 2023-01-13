@@ -1,24 +1,18 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
-import javax.swing.event.*;
-import javax.swing.tree.DefaultMutableTreeNode;
-import java.io.IOException;
 
 public class SingleWindowView {
     public static final String CLASSES_LABEL = "Classes";
+    private static final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
     private final Project project;
     private final InsidiousService insidiousService;
-    private static final Logger logger = LoggerUtil.getInstance(SingleWindowView.class);
     private final GridConstraints constraints;
     private JButton refreshButton;
     private JPanel mainPanel;
@@ -57,9 +51,8 @@ public class SingleWindowView {
 
     }
 
-    public void generateAllTestCandidateCases() {
-//        treeModel = new VideobugTreeModel(insidiousService);
-//        mainTree.setModel(treeModel);
+    public void generateAllTestCandidateCases() throws Exception {
+        insidiousService.generateAllTestCandidateCases();
 
     }
 

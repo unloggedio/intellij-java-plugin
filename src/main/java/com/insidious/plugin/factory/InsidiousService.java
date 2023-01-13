@@ -3,6 +3,7 @@ package com.insidious.plugin.factory;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -26,6 +27,8 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
+import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
@@ -892,7 +895,22 @@ public class InsidiousService implements Disposable {
 
                 TypeSpec newTestSpec = testCaseScript.getTestClassSpec();
 
-                CompilationUnit newCompilationUnit = javaParser.parse(testCaseScript.getCode())
+                ParseResult<CompilationUnit> parseResult = javaParser.parse(testCaseScript.getCode());
+                if (!parseResult.isSuccessful()) {
+                    logger.error("Failed to parse test case to be written: \n" + testCaseScript.getCode() +
+                            "\nProblems");
+                    List<Problem> problems = parseResult.getProblems();
+                    for (int i = 0; i < problems.size(); i++) {
+                        Problem problem = problems.get(i);
+                        logger.error("Problem [" + i + "] => " + problem);
+                    }
+
+                    InsidiousNotification.notifyMessage("Failed to parse test case to write " +
+                            parseResult.getProblems(), NotificationType.ERROR
+                    );
+                    return null;
+                }
+                CompilationUnit newCompilationUnit = parseResult
                         .getResult()
                         .get();
 
@@ -903,87 +921,6 @@ public class InsidiousService implements Disposable {
                                 .get(0);
 
                 JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
-
-//                for (FieldSpec fieldSpec : newTestSpec.fieldSpecs) {
-//
-//                    Optional<FieldDeclaration> existingField = classDeclaration.getFieldByName(
-//                            fieldSpec.name);
-//                    if (existingField.isPresent()) {
-//                        continue;
-//                    }
-//
-//
-//                    Modifier.Keyword[] keywords = new Modifier.Keyword[fieldSpec.modifiers.size()];
-//                    int i = 0;
-//                    for (javax.lang.model.element.Modifier modifier : fieldSpec.modifiers) {
-//                        Modifier.Keyword mKeyword = Modifier.Keyword.valueOf(modifier.name()
-//                                .toUpperCase());
-//                        keywords[i] = mKeyword;
-//                        i++;
-//                    }
-//
-//                    classDeclaration.addField(fieldSpec.type.toString(), fieldSpec.name, keywords);
-//                }
-//                String[] importsListStatement = testCaseScript.getCode()
-//                        .split("public final class")[0].split("\n");
-//                for (String s : importsListStatement) {
-//                    if (s.startsWith("import")) {
-//                        boolean isStatic = false;
-//                        String[] parts = s.split(" ");
-//                        String importedName = parts[parts.length - 1].split(";")[0];
-//                        if (parts.length > 2) {
-//                            if (parts[1].equals("static")) {
-//                                isStatic = true;
-//                            }
-//                        }
-//                        boolean isAstriskImport = false;
-//                        if (importedName.endsWith("*")) {
-//                            isAstriskImport = true;
-//                            importedName = importedName.substring(0, importedName.length() - 2);
-//                        }
-//                        existingCompilationUnit.addImport(importedName, isStatic, isAstriskImport);
-//                    }
-//                }
-
-
-//                List<MethodDeclaration> existingMethod = classDeclaration
-//                        .getMethodsByName(newMethodDeclaration.getName()
-//                                .asString());
-//                if (existingMethod.size() > 0) {
-//                    int i = 1;
-//
-//                    String methodName = newMethodDeclaration.getName()
-//                            .asString();
-//                    while (existingMethod.size() > 0) {
-//                        methodName = newMethodDeclaration.getName()
-//                                .asString() + i;
-//                        existingMethod = classDeclaration
-//                                .getMethodsByName(methodName);
-//                        i++;
-//                    }
-//
-//                    MethodDeclaration newMethod = classDeclaration.addMethod(methodName);
-//                    newMethod.setBody(newMethodDeclaration.getBody()
-//                            .get());
-//                    newMethod.setType(newMethodDeclaration.getType());
-//                    newMethod.setModifiers(newMethodDeclaration.getModifiers());
-//                    newMethod.setThrownExceptions(newMethodDeclaration.getThrownExceptions());
-//                    for (AnnotationExpr annotation : newMethodDeclaration.getAnnotations()) {
-//                        newMethod.addAnnotation(annotation);
-//                    }
-//
-//
-//                    // method exists
-//                } else {
-////                    classDeclaration.getMethods().add(newMethodDeclaration);
-//                    MethodDeclaration newMethod = classDeclaration.addMethod(newMethodDeclaration.getNameAsString());
-//                    newMethod.setBody(newMethodDeclaration.getBody()
-//                            .get());
-//                    newMethod.setType(newMethodDeclaration.getType());
-//                    newMethod.setModifiers(newMethodDeclaration.getModifiers());
-//                    newMethod.setThrownExceptions(newMethodDeclaration.getThrownExceptions());
-////                    newMethod.resolve();
-//                }
 
                 try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
                     out.write(existingCompilationUnit.toString()
@@ -1015,16 +952,6 @@ public class InsidiousService implements Disposable {
 
             FileEditorManager.getInstance(project)
                     .openFile(newFile, true, true);
-
-//            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-//                @Override
-//                public void run() {
-//                    @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
-//                    @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
-//                    CodeStyleManager.getInstance(project).reformatText(testFilePsiInstance, ranges);
-//                }
-//            });
-
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             return newFile;
@@ -1255,19 +1182,15 @@ public class InsidiousService implements Disposable {
 
     // works for current sessions structure,
     // will need refactor when project/module based logs are stored
-    public boolean areLogsPresent()
-    {
+    public boolean areLogsPresent() {
         File sessionDir = new File(Constants.VIDEOBUG_SESSIONS_PATH.toString());
         File[] files = sessionDir.listFiles();
-        for(File file: files)
-        {
-            if(file.isDirectory())
-            {
+        for (File file : files) {
+            if (file.isDirectory()) {
                 File[] files_l2 = file.listFiles();
-                for(File file1 : files_l2)
-                {
-                    if(file1.getName().contains(".selog"))
-                    {
+                for (File file1 : files_l2) {
+                    if (file1.getName()
+                            .contains(".selog")) {
                         return true;
                     }
                 }
@@ -1310,9 +1233,8 @@ public class InsidiousService implements Disposable {
             contentManager.addContent(liveWindowContent);
             setupProject();
 
-            if(areLogsPresent())
-            {
-                contentManager.setSelectedContent(liveWindowContent,true);
+            if (areLogsPresent()) {
+                contentManager.setSelectedContent(liveWindowContent, true);
             }
         }
 
@@ -1697,5 +1619,49 @@ public class InsidiousService implements Disposable {
         ContentManager contentManager = this.toolWindow.getContentManager();
         contentManager.addContent(singleWindowContent);
         rawViewAdded = true;
+    }
+
+    public void generateAllTestCandidateCases() throws Exception {
+        SessionInstance sessionInstance = getClient().getSessionInstance();
+        TestCaseService testCaseService = new TestCaseService(sessionInstance);
+
+        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+        );
+
+        sessionInstance.getAllTestCandidates(new TestCandidateReceiver() {
+
+            @Override
+            public void handleTestCandidate(TestCandidateMetadata testCandidateMetadata) {
+                @NotNull TestCaseUnit testCaseUnit = null;
+                try {
+                    Parameter testSubject = testCandidateMetadata.getTestSubject();
+                    if (testSubject.isException()) {
+                        return;
+                    }
+                    MethodCallExpression callExpression = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+                    logger.warn(
+                            "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
+                    generationConfiguration.getTestCandidateMetadataList()
+                            .clear();
+                    generationConfiguration.getTestCandidateMetadataList()
+                            .add(testCandidateMetadata);
+
+                    generationConfiguration.getCallExpressionList()
+                            .clear();
+                    generationConfiguration.getCallExpressionList()
+                            .addAll(testCandidateMetadata.getCallsList());
+
+                    testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+                    saveTestSuite(testSuite);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
+            }
+        });
+
+
     }
 }

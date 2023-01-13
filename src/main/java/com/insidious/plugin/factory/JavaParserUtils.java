@@ -9,6 +9,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.Statement;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.HashMap;
 import java.util.List;
@@ -16,6 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class JavaParserUtils {
+    private static final Logger logger = LoggerUtil.getInstance(JavaParserUtils.class);
+
     public static void mergeCompilationUnits(CompilationUnit destinationUnit, CompilationUnit fromUnit) {
 
         for (TypeDeclaration<?> type : fromUnit.getTypes()) {
@@ -99,14 +103,18 @@ public class JavaParserUtils {
         NodeList<Statement> existingStatements = methodBodyBlock
                 .getStatements();
         for (Statement existingStatement : existingStatements) {
-            String key = existingStatement.asExpressionStmt()
-                    .getExpression()
-                    .toString();
-            if (key.startsWith("//") && key.contains("\n")) {
-                key = existingStatement.toString()
-                        .split("\n")[1];
+            if (existingStatement.isExpressionStmt()) {
+                String key = existingStatement.asExpressionStmt()
+                        .getExpression()
+                        .toString();
+                if (key.startsWith("//") && key.contains("\n")) {
+                    key = existingStatement.toString()
+                            .split("\n")[1];
+                }
+                exitingStatementMap.put(key, true);
+            } else {
+                logger.warn("This is a try statement: " + existingStatement);
             }
-            exitingStatementMap.put(key, true);
         }
 
 
@@ -116,12 +124,16 @@ public class JavaParserUtils {
 
         NodeList<Statement> statementsToAdd = new NodeList<Statement>();
         for (Statement newStatement : newStatements) {
-            if (exitingStatementMap.containsKey(newStatement.asExpressionStmt()
-                    .getExpression()
-                    .toString())) {
-                continue;
+            if (newStatement.isExpressionStmt()) {
+                if (exitingStatementMap.containsKey(newStatement.asExpressionStmt()
+                        .getExpression()
+                        .toString())) {
+                    continue;
+                }
+                statementsToAdd.add(newStatement);
+            } else {
+                logger.warn("This is not an expression statement: " + newStatement);
             }
-            statementsToAdd.add(newStatement);
 
         }
 

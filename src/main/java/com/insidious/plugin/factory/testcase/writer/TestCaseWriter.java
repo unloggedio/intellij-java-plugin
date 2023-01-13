@@ -124,7 +124,7 @@ public class TestCaseWriter {
     @NotNull
     public static String
     createMethodParametersStringMock(List<Parameter> variableContainer, TestGenerationState testGenerationState) {
-        logger.warn("Create method parameters argument mock => " + variableContainer);
+//        logger.warn("Create method parameters argument mock => " + variableContainer);
         if (variableContainer == null) {
             return "";
         }
@@ -184,7 +184,7 @@ public class TestCaseWriter {
                 }
             }
 
-            logger.warn("Argument [" + parameter + "] will be compared as => " + compareAgainst);
+//            logger.warn("Argument [" + parameter + "] will be compared as => " + compareAgainst);
 
             if (compareAgainst != null && parameterType != null && parameterType.equals("java.lang.String")) {
                 parameterStringBuilder

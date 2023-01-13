@@ -232,7 +232,7 @@ public class DaoService {
             } else {
                 com.insidious.plugin.pojo.MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
                         testCandidateMetadata.getMainMethod());
-                logger.warn("main method isnt public: " + mainMethodCallExpression);
+                logger.warn("main method isn't public: " + mainMethodCallExpression);
                 converted.setMainMethod(mainMethodCallExpression);
             }
 
@@ -247,7 +247,7 @@ public class DaoService {
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
-        logger.warn("\tloading " + fieldParameters.size() + " fields");
+//        logger.warn("\tloading " + fieldParameters.size() + " fields");
         for (Long fieldParameterValue : fieldParameters) {
             if (fieldParameterValue == 0L) {
                 continue;
@@ -296,7 +296,7 @@ public class DaoService {
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(callsToBuild);
             long end = Date.from(Instant.now())
                     .getTime();
-            logger.warn("Load calls took[1]: " + (end - start) + " ms");
+//            logger.warn("Load calls took[1]: " + (end - start) + " ms");
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -355,7 +355,7 @@ public class DaoService {
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(mceInterfaceList);
             long end = Date.from(Instant.now())
                     .getTime();
-            logger.warn("Load calls took[2]: " + (end - start) + " ms");
+//            logger.warn("Load calls took[2]: " + (end - start) + " ms");
             return callsList;
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
@@ -1407,5 +1407,25 @@ public class DaoService {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidatePaginated(int page, int limit) throws SQLException {
+        List<TestCandidateMetadata> dbCandidateList = testCandidateDao.queryBuilder()
+                .offset((long) page * limit)
+                .limit((long) limit)
+                .orderBy("entryProbeIndex", true)
+                .query();
+
+        return dbCandidateList
+                .stream()
+                .map(e -> {
+                    try {
+                        return convertTestCandidateMetadata(e, true);
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
+                    }
+                })
+                .collect(Collectors.toList());
     }
 }

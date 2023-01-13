@@ -23,7 +23,7 @@ public class ParameterNameFactory {
             return nameUsed;
         }
 
-        List<String> names = parameter.getNames();
+        List<String> names = new ArrayList<>(parameter.getNames());
 
         if (names.size() == 0) {
             return null;
@@ -31,10 +31,19 @@ public class ParameterNameFactory {
         List<String> namesAlreadyUsed = new ArrayList<>();
         for (String name : names) {
             if (nameToParameterMap.containsKey(name)) {
+                Parameter assignedParam = nameToParameterMap.get(name);
+                if (assignedParam.getValue() == parameter.getValue()) {
+                    return name;
+                }
                 namesAlreadyUsed.add(name);
             }
         }
         names.removeAll(namesAlreadyUsed);
+
+        if (names.size() == 0) {
+            return null;
+        }
+
 
 
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
