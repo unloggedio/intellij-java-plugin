@@ -33,7 +33,7 @@ public class SingleWindowView {
 
         refreshButton.addActionListener(e -> {
             try {
-                refresh();
+                generateAllTestCandidateCases();
             } catch (Throwable e1) {
                 e1.printStackTrace();
             }
@@ -55,11 +55,9 @@ public class SingleWindowView {
         eventViewer = new EventLogWindow(insidiousService);
         eventViewerPanel.add(eventViewer.getContent(), constraints);
 
-        refresh();
-
     }
 
-    public void refresh() {
+    public void generateAllTestCandidateCases() {
 //        treeModel = new VideobugTreeModel(insidiousService);
 //        mainTree.setModel(treeModel);
 

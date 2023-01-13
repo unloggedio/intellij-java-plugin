@@ -1222,6 +1222,10 @@ public class DaoService {
         if (callListFromDb.size() > 1) {
             logger.warn("found more than 1 constructor for subject: " + parameter.getValue());
         }
+        // for static classes we wont have a constructor call captured
+        if (callListFromDb.size() == 0) {
+            return null;
+        }
         MethodCallExpression constructorMethodExpression = callListFromDb.get(0);
 
         TestCandidateMetadata testCandidate = new TestCandidateMetadata();

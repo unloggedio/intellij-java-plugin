@@ -145,8 +145,11 @@ public class TestCaseService implements Runnable {
                 .getTestSubject();
 
         TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(target);
-        generationConfiguration.getTestCandidateMetadataList()
-                .add(0, constructorCandidate);
+        // this can be null for static classes
+        if (constructorCandidate != null) {
+            generationConfiguration.getTestCandidateMetadataList()
+                    .add(0, constructorCandidate);
+        }
 
         generationConfiguration.getCallExpressionList().addAll(generationConfiguration.getCallExpressionList());
 
