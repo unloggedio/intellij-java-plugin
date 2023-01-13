@@ -3,14 +3,12 @@ package com.insidious.plugin.client;
 import com.insidious.plugin.pojo.Parameter;
 import org.apache.commons.lang.StringUtils;
 
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ParameterNameFactory {
 
-    private final Map<String, String> nameMap = new HashMap<>();
+    private final Map<String, String> nameByIdMap = new HashMap<>();
+    private final Map<String, Parameter> nameToParameterMap = new HashMap<>();
     private final Map<Parameter, String> parameterNameMapByObject = new HashMap<>();
 
     public String getNameForUse(Parameter parameter, String methodName) {
@@ -18,7 +16,7 @@ public class ParameterNameFactory {
             return parameterNameMapByObject.get(parameter);
         }
         String key = parameter.getType() + "-" + parameter.getValue();
-        String nameUsed = nameMap.get(key);
+        String nameUsed = nameByIdMap.get(key);
         if (nameUsed != null) {
             parameter.clearNames();
             parameter.setName(nameUsed);
@@ -30,6 +28,14 @@ public class ParameterNameFactory {
         if (names.size() == 0) {
             return null;
         }
+        List<String> namesAlreadyUsed = new ArrayList<>();
+        for (String name : names) {
+            if (nameToParameterMap.containsKey(name)) {
+                namesAlreadyUsed.add(name);
+            }
+        }
+        names.removeAll(namesAlreadyUsed);
+
 
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
             names.sort(Comparator.comparingInt(String::length));
@@ -40,7 +46,8 @@ public class ParameterNameFactory {
         parameter.clearNames();
         parameter.setName(nameUsed);
 
-        nameMap.put(key, nameUsed);
+        nameByIdMap.put(key, nameUsed);
+        nameToParameterMap.put(nameUsed, parameter);
 
         return nameUsed;
     }

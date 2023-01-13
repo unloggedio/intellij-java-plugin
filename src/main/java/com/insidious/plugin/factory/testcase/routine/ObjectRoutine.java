@@ -170,8 +170,13 @@ public class ObjectRoutine {
         scriptContainer.getStaticMocks()
                 .addAll(script.getStaticMocks());
 
-
+        VariableContainer createdVariables = script.getCreatedVariables();
         VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
+        for (Parameter parameter : createdVariables.all()) {
+            candidateVariables.add(parameter);
+
+        }
+
         candidateVariables.all()
                 .forEach(variableContainer::add);
 
