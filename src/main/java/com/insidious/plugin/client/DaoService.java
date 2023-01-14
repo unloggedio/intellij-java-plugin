@@ -52,24 +52,11 @@ public class DaoService {
             "order by mc.methodName;";
 
 
-    public static final String CALLS_TO_MOCK_SELECT_QUERY = "select mc.*\n" +
-            "from method_call mc\n" +
-            "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
-            "where id in (CALL_IDS)\n" +
-            "  and (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "  and (subject.type is null or subject.type not like 'org.springframework%')\n" +
-            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
-            "  and (pi.eventType is null or pi.eventType != 'CALL')\n" +
-            "  and (pi.eventType is null or pi.eventType != 'CALL_RETURN')\n" +
-            "";
-
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT = "select mc.*\n" +
             "from method_call mc\n" +
             "         left join parameter subject on subject.value == mc.subject_id\n" +
             "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "    and (subject.type is null or subject.type not like 'org.springframework%')\n" +
             "    and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "    and (mc.id = ? or mc.parentId = ?)";
 
@@ -78,14 +65,12 @@ public class DaoService {
             "         left join parameter subject on subject.value == mc.subject_id\n" +
             "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "  and (subject.type is null or subject.type not like 'org.springframework%')\n" +
             "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "  and mc.parentId in (select mc.id\n" +
             "                      from method_call mc\n" +
             "                               left join parameter subject on subject.value == mc.subject_id\n" +
             "                               left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "                        and (subject.type is null or subject.type not like 'org.springframework%')\n" +
             "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
