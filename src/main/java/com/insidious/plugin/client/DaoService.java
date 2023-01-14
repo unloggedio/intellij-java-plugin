@@ -86,7 +86,6 @@ public class DaoService {
             "                               left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
             "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
             "                        and (subject.type is null or subject.type not like 'org.springframework%')\n" +
-            "                        and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
@@ -339,30 +338,6 @@ public class DaoService {
             subCalls.close();
         }
         return mceList;
-    }
-
-    public List<com.insidious.plugin.pojo.MethodCallExpression> getMethodCallExpressionToMockFast(Collection<Long> callIds) {
-        long start = Date.from(Instant.now())
-                .getTime();
-        try {
-            String query = CALLS_TO_MOCK_SELECT_QUERY.replace("CALL_IDS", StringUtils.join(callIds, ","));
-            GenericRawResults<MethodCallExpression> results = methodCallExpressionDao
-                    .queryRaw(query, methodCallExpressionDao.getRawRowMapper());
-
-            List<MethodCallExpression> mceList = results.getResults();
-            results.close();
-            List<MethodCallExpressionInterface> mceInterfaceList = new ArrayList<>(mceList);
-            List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(mceInterfaceList);
-            long end = Date.from(Instant.now())
-                    .getTime();
-//            logger.warn("Load calls took[2]: " + (end - start) + " ms");
-            return callsList;
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            InsidiousNotification.notifyMessage("Failed to load test candidate - " + e.getMessage(),
-                    NotificationType.ERROR);
-            throw new RuntimeException(e);
-        }
     }
 
     @NotNull

@@ -25,7 +25,7 @@ public class DaoServiceTest {
 
         List<Long> callListId = Arrays.stream(callListIdArray).map(Long::parseLong).collect(Collectors.toList());
 
-        List<MethodCallExpression> actualList = daoService.getMethodCallExpressionToMockFast(callListId);
+//        List<MethodCallExpression> actualList = daoService.getMethodCallExpressionToMockFast(callListId);
 //        List<MethodCallExpression> expectedList = daoService.getMethodCallExpressionToMock(callListId);
 
 //        Assertions.assertEquals(expectedList, actualList);

@@ -111,6 +111,7 @@ public class SessionInstance {
     private Map<String, ClassInfo> classInfoIndexByName = new HashMap<>();
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
+    private File currentSessionArchiveBeingProcessed;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -2254,6 +2255,9 @@ public class SessionInstance {
             checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
             daoService.createOrUpdateParameter(allParameters);
 
+        } catch (FailedToReadClassWeaveException e) {
+            InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
+            throw new RuntimeException(e);
         }
 
         try {
@@ -2277,13 +2281,11 @@ public class SessionInstance {
             ThreadProcessingState threadState,
             List<LogFile> archiveLogFiles,
             ChronicleVariableContainer parameterContainer
-    ) throws IOException, SQLException {
+    ) throws IOException, SQLException, FailedToReadClassWeaveException {
 
         boolean newTestCaseIdentified = false;
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
-
-        int threadId = threadState.getThreadId();
 
         List<String> archiveList = archiveLogFiles.stream()
                 .map(LogFile::getArchiveName)
@@ -2291,7 +2293,6 @@ public class SessionInstance {
                 .collect(Collectors.toList());
         Collections.reverse(archiveList);
 
-        long eventsPerSecond = 0;
         // try to read the most recent object index from the archives we are about to process
         for (String lastArchiveName : archiveList) {
             int archiveIndexNumber = Integer.parseInt(lastArchiveName.split("-")[1]);
@@ -2348,7 +2349,7 @@ public class SessionInstance {
             ThreadProcessingState threadState,
             ChronicleVariableContainer parameterContainer,
             Set<Integer> existingProbes
-    ) throws IOException, SQLException {
+    ) throws IOException, SQLException, FailedToReadClassWeaveException {
         boolean newTestCaseIdentified = false;
         File sessionArchive = Path.of(executionSession.getPath(), logFile.getArchiveName())
                 .toFile();
@@ -2356,6 +2357,7 @@ public class SessionInstance {
         long currentCallId = daoService.getMaxCallId();
 
 
+        this.currentSessionArchiveBeingProcessed = sessionArchive;
         List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
                 logFile.getName());
 
@@ -2924,7 +2926,7 @@ public class SessionInstance {
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfo != null) {
-                            TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
+                            TypeInfoDocument typeInfo = getTypeFromTypeIndex(objectInfo.getTypeId());
                             existingParameter.setType(typeInfo.getTypeName());
                             isModified = true;
                         }
@@ -2966,9 +2968,9 @@ public class SessionInstance {
                             ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                     existingParameter.getValue());
                             if (objectInfoDocument != null) {
-                                String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
-                                                objectInfoDocument.getTypeId())
-                                        .getTypeName());
+                                TypeInfoDocument typeInfoDocument = getTypeFromTypeIndex(
+                                        objectInfoDocument.getTypeId());
+                                String typeName = ClassTypeUtils.getDottedClassName(typeInfoDocument.getTypeName());
                                 existingParameter.setType(typeName);
                             }
                         }
@@ -2992,9 +2994,8 @@ public class SessionInstance {
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                 existingParameter.getValue());
-                        String typeName = ClassTypeUtils.getDottedClassName(typeInfoIndex.get(
-                                        objectInfoDocument.getTypeId())
-                                .getTypeName());
+                        TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
+                        String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
                         existingParameter.setType(typeName);
                     }
 
@@ -3327,6 +3328,18 @@ public class SessionInstance {
         daoService.updateLogFile(logFile);
         daoService.createOrUpdateThreadState(threadState);
         return newTestCaseIdentified;
+    }
+
+    private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {
+        TypeInfoDocument typeInfoDocument = typeInfoIndex.get(typeId);
+        if (typeInfoDocument == null) {
+            readClassWeaveInfoStream(this.currentSessionArchiveBeingProcessed);
+            typeInfoDocument = typeInfoIndex.get(typeId);
+            if (typeInfoDocument == null) {
+                throw new RuntimeException("Type info not found: " + typeId);
+            }
+        }
+        return typeInfoDocument;
     }
 
     private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
