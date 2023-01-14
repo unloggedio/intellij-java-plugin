@@ -1349,7 +1349,7 @@ public class DaoService {
         this.fieldA = fieldA;
     }
 
-    public void createOrUpdateClassDefinitions(List<ClassDefinition> classDefinitions) {
+    public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
         try {
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {

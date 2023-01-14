@@ -1,5 +1,6 @@
 package com.insidious.plugin.client;
 
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import org.apache.commons.lang.StringUtils;
 
@@ -25,16 +26,31 @@ public class ParameterNameFactory {
 
         List<String> names = new ArrayList<>(parameter.getNames());
 
+        String newName = null;
+        int i = 0;
+        while (i < 100) {
+            i++;
+            if (methodName != null) {
+                newName = ClassTypeUtils.createVariableNameFromMethodName(methodName, parameter.getType());
+            } else {
+                newName = ClassTypeUtils.createVariableName(parameter.getType());
+            }
+            if (!nameToParameterMap.containsKey(newName)) {
+                names.add(newName);
+                break;
+            }
+        }
+
         if (names.size() == 0) {
             return null;
         }
         List<String> namesAlreadyUsed = new ArrayList<>();
         for (String name : names) {
             if (nameToParameterMap.containsKey(name)) {
-                Parameter assignedParam = nameToParameterMap.get(name);
-                if (assignedParam.getValue() == parameter.getValue()) {
-                    return name;
-                }
+//                Parameter assignedParam = nameToParameterMap.get(name);
+//                if (assignedParam.getValue() == parameter.getValue()) {
+//                    return name;
+//                }
                 namesAlreadyUsed.add(name);
             }
         }
@@ -43,7 +59,6 @@ public class ParameterNameFactory {
         if (names.size() == 0) {
             return null;
         }
-
 
 
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
