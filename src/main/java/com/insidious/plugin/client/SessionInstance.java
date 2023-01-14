@@ -67,6 +67,7 @@ import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
+import org.objectweb.asm.Opcodes;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -2402,7 +2403,7 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-            if (eventBlock.valueId() == 35680754) {
+            if (eventBlock.eventId() == 91530) {
                 logger.warn("here: " + logFile);
             }
             switch (probeInfo.getEventType()) {
@@ -2857,6 +2858,7 @@ public class SessionInstance {
                         methodCall.setEntryProbeInfo(probeInfo);
                         methodCall.setEntryProbe(dataEvent);
                         methodCall.setMethodDefinitionId(probeInfo.getMethodId());
+                        methodCall.setStaticCall((methodInfo.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC);
 
                         currentCallId++;
                         methodCall.setId(currentCallId);
