@@ -1,5 +1,6 @@
 package io.unlogged;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -44,10 +45,10 @@ public class UnloggedTestUtils {
     }
 
     public static <T> T ValueOf(String key, Type type) {
-        if (!sourceObject.keySet().contains(key)) {
-            return null;
-        }
-        return gson.fromJson(sourceObject.get(key).toString(), type);
+        return valueOf(key, type);
+    }
+    public static <T> T ValueOf(String key, TypeReference typeReference) {
+        return valueOf(key, typeReference.getType());
     }
 
     public static <T> T valueOf(String key, Type type) {

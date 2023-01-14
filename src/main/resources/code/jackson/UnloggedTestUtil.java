@@ -1,6 +1,7 @@
 package io.unlogged;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -11,7 +12,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import org.apache.commons.io.IOUtils;
-import org.nustaq.serialization.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,6 +70,10 @@ public class UnloggedTestUtils {
 
     public static <T> T ValueOf(String key, Type type) {
         return valueOf(key, type);
+    }
+
+    public static <T> T ValueOf(String key, TypeReference typeReference) {
+        return valueOf(key, typeReference.getType());
     }
 
     public static <T> T valueOf(String key, Type type) {

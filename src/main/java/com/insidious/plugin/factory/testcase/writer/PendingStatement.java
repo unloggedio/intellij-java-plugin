@@ -150,10 +150,12 @@ public class PendingStatement {
                 Parameter deepCopyParam = ParameterUtils.deepCloneType(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
-                if (objectToDeserialize.isOptionalType())
-                    statementBuilder.append(">(){})");
-                else
-                    statementBuilder.append(">(){}.getType())");
+                // suspect that this was added for jackson mapper with optional value container,
+                // but commenting out this change after testing with jackson
+//                if (objectToDeserialize.isOptionalType())
+//                    statementBuilder.append(">(){})");
+//                else
+                statementBuilder.append(">(){}.getType())");
 
             } else {
                 statementBuilder.append("$L($S, $T.class)");

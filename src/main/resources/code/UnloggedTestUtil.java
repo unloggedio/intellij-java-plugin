@@ -70,6 +70,9 @@ public class UnloggedTestUtils {
         }
         return gson.fromJson(sourceObject.get(key).toString(), type);
     }
+    public static <T> T ValueOf(String key, TypeReference typeReference) {
+        return valueOf(key, typeReference.getType());
+    }
 
     public static <T> T ValueOf(String key, TypeReference<T> typeRef) throws JsonProcessingException {
         if (!sourceObject.keySet().contains(key)) {
