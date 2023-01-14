@@ -222,6 +222,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
 
     private void copyVMoptions() {
         String params = getVMParameters();
+        if(this.addopens)
+        {
+           params = new StringBuilder(params).
+                   append(" --add-opens=java.base/java.util=ALL-UNNAMED").toString();
+        }
         insidiousService.copyToClipboard(params.toString());
         InsidiousNotification.notifyMessage("VM options copied to clipboard.",
                 NotificationType.INFORMATION);
@@ -240,10 +245,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener {
             newVMParams.append("\"");
         } else {
             newVMParams.append("\"");
-        }
-        if(this.addopens)
-        {
-            newVMParams.append(" --add-opens=java.base/java.util=ALL-UNNAMED");
         }
         return newVMParams.toString();
     }
