@@ -69,11 +69,6 @@ public class CandidateMetadataFactory {
                         .getType(), true);
                 continue;
             }
-            if (e.getSubject()
-                    .getType()
-                    .startsWith("com.google.")) {
-                continue;
-            }
             if (!e.isMethodPublic() && !e.isMethodProtected()) {
                 continue;
             }
@@ -97,7 +92,7 @@ public class CandidateMetadataFactory {
             }
             if (e.getSubject()
                     .getType()
-                    .contains("com.google")) {
+                    .contains("com.google.gson")) {
                 // this is hard coded to skip mocking Gson class
                 continue;
             }
