@@ -615,6 +615,14 @@ public class PendingStatement {
                 }
                 this.expressionList.add(MethodCallExpressionFactory.ClassValueExpression(serializedValue));
 
+            } else if (targetClassname.equals("java.lang.StringBuilder")) {
+                Parameter parameterWithValue = new Parameter();
+                parameterWithValue.setValue(new String(parameter.getProb().getSerializedValue()));
+                parameterWithValue.setType("java.lang.String");
+                MethodCallExpression mce = new MethodCallExpression("<init>", parameter,
+                        List.of(parameterWithValue), parameter, 0);
+                this.expressionList.add(mce);
+
             } else if (!serializedValue.isEmpty()) {
                 serializedValue = serializedValue.replaceAll("\\$", "\\$\\$");
 
