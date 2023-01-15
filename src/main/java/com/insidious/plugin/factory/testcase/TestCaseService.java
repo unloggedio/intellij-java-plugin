@@ -2,12 +2,14 @@ package com.insidious.plugin.factory.testcase;
 
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
@@ -16,30 +18,37 @@ import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.IndexNotReadyException;
+import com.intellij.openapi.project.Project;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiField;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseService.class);
     private final SessionInstance sessionInstance;
+    private final Project project;
     private boolean pauseCheckingForNewLogs;
     private boolean isProcessing;
 
 
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
+        this.project = sessionInstance.getProject();
 //        this.sessionInstance.submitTask(this);
     }
 
@@ -151,7 +160,8 @@ public class TestCaseService implements Runnable {
                     .add(0, constructorCandidate);
         }
 
-        generationConfiguration.getCallExpressionList().addAll(generationConfiguration.getCallExpressionList());
+        generationConfiguration.getCallExpressionList()
+                .addAll(generationConfiguration.getCallExpressionList());
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
@@ -166,6 +176,7 @@ public class TestCaseService implements Runnable {
 
     public void createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
 
+        Parameter target = objectRoutineContainer.getTestSubject();
 
         VariableContainer fields = VariableContainer.from(
                 objectRoutineContainer
@@ -182,6 +193,16 @@ public class TestCaseService implements Runnable {
 
         ObjectRoutine constructor = objectRoutineContainer.getConstructor();
         List<Parameter> usedFields = new ArrayList<>();
+
+        @Nullable PsiClass classPsiInstance = null;
+        try {
+            classPsiInstance = JavaPsiFacade.getInstance(project)
+                    .findClass(ClassTypeUtils.getJavaClassName(target.getType()), GlobalSearchScope.allScope(project));
+        } catch (IndexNotReadyException e) {
+//            e.printStackTrace();
+            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
+                    NotificationType.ERROR);
+        }
 
 
         // gotta mock'em all
@@ -200,6 +221,50 @@ public class TestCaseService implements Runnable {
             if (foundUsage.isEmpty()) {
                 //field is not actually used
                 continue;
+            }
+
+            if (classPsiInstance != null) {
+                List<PsiField> fieldMatchingParameterType = Arrays.stream(classPsiInstance.getFields())
+                        .filter(e -> e.getType()
+                                .getCanonicalText()
+                                .equals(fieldParameter.getType()))
+                        .collect(Collectors.toList());
+                if (fieldMatchingParameterType.size() > 0) {
+
+                    List<PsiField> fieldMatchingNameAndType = fieldMatchingParameterType.stream()
+                            .filter(e -> fieldParameter.hasName(e.getName()))
+                            .collect(
+                                    Collectors.toList());
+
+                    boolean nameChosen = false;
+                    if (fieldMatchingNameAndType.size() == 0) {
+                        logger.warn("no matching field of type [" + fieldParameter.getType()
+                                + "] with matching [" + fieldParameter.getNames() + "] was found. The names found were: "
+                                + fieldMatchingParameterType.stream()
+                                .map(PsiField::getName)
+                                .collect(Collectors.toList()));
+                    } else if (fieldMatchingNameAndType.size() > 1) {
+                        logger.warn("more than 1 matching field of type [" + fieldParameter.getType()
+                                + "] with matching [" + fieldParameter.getNames() + "] was found. The names found were: "
+                                + fieldMatchingParameterType.stream()
+                                .map(PsiField::getName)
+                                .collect(Collectors.toList()));
+                    } else {
+                        nameChosen = true;
+                        fieldParameter.getNames().clear();
+                        fieldParameter.setName(fieldMatchingNameAndType.get(0).getName());
+                    }
+                    if (!nameChosen && fieldMatchingParameterType.size() == 1) {
+                        // if we didn't find a field with matching name
+                        // but we have only 1 field with matching type, then we will use the name of that field
+                        fieldParameter.getNames().clear();
+                        fieldParameter.setName(fieldMatchingParameterType.get(0).getName());
+                    }
+
+                } else {
+                    logger.warn(
+                            "no matching field of type [" + fieldParameter.getType() + "] found in class [" + target.getType() + "]");
+                }
             }
 
 

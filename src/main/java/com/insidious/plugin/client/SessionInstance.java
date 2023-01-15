@@ -2929,7 +2929,10 @@ public class SessionInstance {
                         ObjectInfoDocument objectInfo = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfo != null) {
                             TypeInfoDocument typeInfo = getTypeFromTypeIndex(objectInfo.getTypeId());
-                            existingParameter.setType(typeInfo.getTypeName());
+                            if (!typeInfo.getTypeName()
+                                    .contains(".$")) {
+                                existingParameter.setType(typeInfo.getTypeName());
+                            }
                             isModified = true;
                         }
                     }
@@ -3753,4 +3756,7 @@ public class SessionInstance {
 
     }
 
+    public Project getProject() {
+        return project;
+    }
 }

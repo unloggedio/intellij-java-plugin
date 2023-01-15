@@ -1,6 +1,5 @@
 package com.insidious.plugin.client;
 
-import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.Parameter;
 import org.apache.commons.lang.StringUtils;
 
@@ -26,21 +25,6 @@ public class ParameterNameFactory {
 
         List<String> names = new ArrayList<>(parameter.getNames());
 
-        String newName = null;
-        int i = 0;
-        while (i < 100) {
-            i++;
-            if (methodName != null) {
-                newName = ClassTypeUtils.createVariableNameFromMethodName(methodName, parameter.getType());
-            } else {
-                newName = ClassTypeUtils.createVariableName(parameter.getType());
-            }
-            if (!nameToParameterMap.containsKey(newName)) {
-                names.add(newName);
-                break;
-            }
-        }
-
         if (names.size() == 0) {
             return null;
         }
@@ -61,8 +45,8 @@ public class ParameterNameFactory {
         }
 
 
+        names.sort(Comparator.comparingInt(e -> -1 * e.length()));
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
-            names.sort(Comparator.comparingInt(String::length));
             nameUsed = names.get(names.size() - 1);
         } else {
             nameUsed = getNameClosestToMethodName(names, methodName);

@@ -6,6 +6,7 @@ import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 @DatabaseTable(tableName = "class_definition")
 public class ClassDefinition {
@@ -178,5 +179,18 @@ public class ClassDefinition {
 
     public void setClassLoaderIdentifier(String classLoaderIdentifier) {
         this.classLoaderIdentifier = classLoaderIdentifier;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ClassDefinition that = (ClassDefinition) o;
+        return id == that.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }

@@ -231,10 +231,10 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                     sessionInstance.getExecutionSession()
                                                             .getSessionId(), executionSession.getSessionId())) {
                                                 sessionInstance.close();
-                                                sessionInstance = new SessionInstance(executionSession, project);
+//                                                sessionInstance = new SessionInstance(executionSession, project);
                                             } else if (sessionInstance == null) {
-                                                sessionInstance = new SessionInstance(executionSession, project);
                                             }
+                                            sessionInstance = new SessionInstance(executionSession, project);
                                             insidiousService.getClient()
                                                     .setSessionInstance(sessionInstance);
                                             testCaseService = new TestCaseService(sessionInstance);
