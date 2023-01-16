@@ -101,7 +101,7 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression MockClass(ClassName targetClassname, TestCaseGenerationConfiguration configuration) {
 
-        String param1 = targetClassname.simpleName() + ".class";
+        String param1 = targetClassname.canonicalName();
 
         Parameter whenExpression = new Parameter();
         whenExpression.setValue(param1);

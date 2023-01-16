@@ -226,6 +226,9 @@ public class ObjectRoutineContainer {
         for (Parameter parameter : fieldsContainer.all()) {
             container.addField(parameter);
         }
+        for (Parameter parameter : constructorNonPojoParams) {
+            container.addField(parameter);
+        }
 
 
         Parameter mainSubject = getTestSubject();

@@ -57,16 +57,15 @@ public class PendingStatement {
         String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(),
                 testGenerationState);
         ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
-        if (methodCallExpression.getMethodName()
-                .equals("<init>")) {
+        final String methodName = methodCallExpression.getMethodName();
+        if (methodName.equals("<init>")) {
             assert i == 0;
             statementBuilder.append("new $T(")
                     .append(parameterString)
                     .append(")");
             statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
                     .getType()));
-        } else if (methodCallExpression.getMethodName()
-                .equals("fromJson")
+        } else if (methodName.equals("fromJson")
                 && methodCallExpression.getSubject()
                 .equals(MethodCallExpressionFactory.GsonClass)) {
 
@@ -97,7 +96,7 @@ public class PendingStatement {
                         .append(templateString)
                         .append(">>(){}.getType())");
                 statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));  // 1
-                statementParameters.add(methodCallExpression.getMethodName()); // 2
+                statementParameters.add(methodName); // 2
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 3
@@ -122,7 +121,7 @@ public class PendingStatement {
             } else {
                 statementBuilder.append("$L.$L($S, $T.class)");
                 statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
@@ -131,8 +130,7 @@ public class PendingStatement {
 
             }
 
-        } else if (methodCallExpression.getMethodName()
-                .equals("ValueOf") && methodCallExpression.getSubject() == null) {
+        } else if (methodName.equals("ValueOf") && methodCallExpression.getSubject() == null) {
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
             Parameter objectToDeserialize = variables.get(0);
@@ -140,7 +138,7 @@ public class PendingStatement {
 
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
                 statementBuilder.append("$L($S, new $T<");
-                statementParameters.add(methodCallExpression.getMethodName()); // 1
+                statementParameters.add(methodName); // 1
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue())); // 2
 
@@ -162,7 +160,7 @@ public class PendingStatement {
 
             } else {
                 statementBuilder.append("$L($S, $T.class)");
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
 
                 statementParameters.add(new String(objectToDeserialize.getProb()
                         .getSerializedValue()));
@@ -173,8 +171,7 @@ public class PendingStatement {
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
                 statementParameters.add(typeOfParam);
             }
-        } else if (methodCallExpression.getMethodName()
-                .equals("injectField")
+        } else if (methodName.equals("injectField")
                 && methodCallExpression.isStaticCall()
                 && methodCallExpression.getSubject() != null
                 && methodCallExpression.getSubject()
@@ -203,20 +200,18 @@ public class PendingStatement {
             statementParameters.add(secondArgumentNameForUse);
             statementParameters.add(secondArgumentNameForUse);
 
-        } else if (methodCallExpression.getMethodName()
-                .equals("thenThrow")
+        } else if (methodName.equals("thenThrow")
                 && methodCallExpression.getSubject() == null) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();
 
             statementBuilder.append(".$L($T.class)");
-            statementParameters.add(methodCallExpression.getMethodName());
+            statementParameters.add(methodName);
             statementParameters.add(ClassName.bestGuess(ClassTypeUtils.getJavaClassName(variables.get(0)
                     .getType())));
 
-        } else if (methodCallExpression.getMethodName()
-                .equals("assertEquals")) {
+        } else if (methodName.equals("assertEquals")) {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
                 parameterString = TestCaseWriter.createMethodParametersStringWithNames(
@@ -226,13 +221,13 @@ public class PendingStatement {
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
 
                 }
             } else {
@@ -242,10 +237,9 @@ public class PendingStatement {
                 statementBuilder.append("$L(")
                         .append(parameterString)
                         .append(")");
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
             }
-        } else if (methodCallExpression.getMethodName()
-                .equals("when")) {
+        } else if (methodName.equals("when")) {
             // we need to disect the parameters inside the any() parameters and add them as proper class references
             // subject.methodName(any(com.package.AClass.class), any(ano.ther.package.BClass.class))
 
@@ -269,13 +263,13 @@ public class PendingStatement {
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
 
                 }
             } else {
@@ -285,11 +279,10 @@ public class PendingStatement {
                 statementBuilder.append("$L(")
                         .append(parameterString)
                         .append(")");
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
             }
             statementParameters.addAll(trailingParameters);
-        } else if (methodCallExpression.getMethodName()
-                .equals("mockStatic")) {
+        } else if (methodName.equals("mockStatic")) {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             parameterString = parameterString + ", $T.CALLS_REAL_METHODS";
             if (callExpressionSubject != null) {
@@ -299,7 +292,7 @@ public class PendingStatement {
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
 
                     // TODO: need to pick from test generation config and not
                     statementParameters.add(ClassName.bestGuess(
@@ -313,8 +306,8 @@ public class PendingStatement {
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
-                    statementParameters.add(methodCallExpression.getMethodName());
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
+                    statementParameters.add(methodName);
                     statementParameters.add(ClassName.bestGuess(
                             objectRoutine.getGenerationConfiguration()
                                     .getMockFramework()
@@ -329,8 +322,17 @@ public class PendingStatement {
                 statementBuilder.append("$L(")
                         .append(parameterString)
                         .append(")");
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
             }
+        } else if (methodName.equals("mock")) {
+            Parameter callExpressionSubject = methodCallExpression.getSubject();
+            statementBuilder.append("$T.$L(")
+                    .append("$T.class")
+                    .append(")");
+            statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
+            statementParameters.add(methodName);
+            statementParameters.add(ClassName.bestGuess(parameterString));
+
         } else {
             Parameter callExpressionSubject = methodCallExpression.getSubject();
             if (callExpressionSubject != null) {
@@ -340,13 +342,13 @@ public class PendingStatement {
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(ClassName.bestGuess(callExpressionSubject.getType()));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
                 } else {
                     statementBuilder.append("$L.$L(")
                             .append(parameterString)
                             .append(")");
                     statementParameters.add(nameFactory.getNameForUse(callExpressionSubject, null));
-                    statementParameters.add(methodCallExpression.getMethodName());
+                    statementParameters.add(methodName);
 
                 }
             } else {
@@ -356,7 +358,7 @@ public class PendingStatement {
                 statementBuilder.append("$L(")
                         .append(parameterString)
                         .append(")");
-                statementParameters.add(methodCallExpression.getMethodName());
+                statementParameters.add(methodName);
             }
         }
     }

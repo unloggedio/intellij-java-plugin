@@ -68,7 +68,7 @@ public class MockFactory {
 
         String parameterTypeName = parameter.getType();
         if (parameterTypeName.contains("$")) {
-            parameterTypeName = parameterTypeName.substring(0, parameterTypeName.indexOf('$'));
+            parameterTypeName = parameterTypeName.replace("$", ".");
         }
         boolean isArray = false;
         if (parameterTypeName.startsWith("[")) {
@@ -90,7 +90,7 @@ public class MockFactory {
 
 
         MethodCallExpression mainMethod = MethodCallExpressionFactory.MockClass(
-                ClassName.bestGuess(targetClassname.canonicalName()), generationConfiguration
+                targetClassname, generationConfiguration
         );
         mainMethod.setReturnValue(parameter);
         testCandidateMetadata.setMainMethod(mainMethod);

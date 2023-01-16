@@ -1184,6 +1184,44 @@ public class DaoService {
         }
         // for static classes we wont have a constructor call captured
         if (callListFromDb.size() == 0) {
+
+            List<Parameter> parametersOfSameType = parameterDao.queryForEq("type", parameter.getType());
+            if (parametersOfSameType.size() > 1) {
+
+                List<Parameter> theOtherParameter = parametersOfSameType.stream()
+                        .filter(e -> e.getValue() != parameter.getValue())
+                        .collect(Collectors.toList());
+                // for the case where we have exactly one other parameter of this type on which the constructor was
+                // called and then spring hijacked it ?
+                if (theOtherParameter.size() == 1) {
+                    Parameter thatOtherParameter = theOtherParameter.get(0);
+                    List<MethodCallExpression> theCallOnOtherParam = methodCallExpressionDao.queryBuilder()
+                            .where()
+                            .eq("subject_id", thatOtherParameter.getValue())
+                            .and()
+                            .eq("methodName", "<init>")
+                            .query();
+                    if (theCallOnOtherParam.size() == 1 && theCallOnOtherParam.get(0)
+                            .getMethodName()
+                            .equals("<init>")) {
+                        MethodCallExpression theRealInitCall = theCallOnOtherParam.get(0);
+                        TestCandidateMetadata testCandidate = new TestCandidateMetadata();
+
+                        testCandidate.setTestSubject(parameter.getValue());
+                        testCandidate.setExitProbeIndex(theRealInitCall.getReturnDataEvent());
+                        testCandidate.setEntryProbeIndex(theRealInitCall.getEntryProbe_id());
+                        testCandidate.setMainMethod(theRealInitCall.getId());
+                        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
+                                = convertTestCandidateMetadata(testCandidate, true);
+                        constructorCandidate.setTestSubject(parameter);
+                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setSubject(parameter);
+                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setReturnValue(parameter);
+                        return constructorCandidate;
+                    }
+                }
+
+            }
+
             return null;
         }
         MethodCallExpression constructorMethodExpression = callListFromDb.get(0);
