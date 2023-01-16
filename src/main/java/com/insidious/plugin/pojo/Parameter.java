@@ -56,15 +56,16 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (parameter == null) {
             return new Parameter();
         }
-        Parameter buildWithJson = new Parameter();
-        buildWithJson.setNamesList(new ArrayList<>(parameter.getNamesList()));
-        buildWithJson.setTemplateMap(parameter.getTemplateMap());
-        buildWithJson.setType(parameter.getType());
-        buildWithJson.setContainer(parameter.isContainer());
-        buildWithJson.setProbeInfo(parameter.getProbeInfo());
-        buildWithJson.setValue(parameter.getValue());
-        buildWithJson.setProb(parameter.getProb());
-        return buildWithJson;
+        Parameter clonedParameter = new Parameter();
+        clonedParameter.setNamesList(new ArrayList<>(parameter.getNamesList()));
+        clonedParameter.setTemplateMap(parameter.getTemplateMap());
+        clonedParameter.setType(parameter.getType());
+        clonedParameter.setContainer(parameter.isContainer());
+        clonedParameter.setProbeInfo(parameter.getProbeInfo());
+        clonedParameter.setValue(parameter.getValue());
+        clonedParameter.setProb(parameter.getProb());
+        clonedParameter.setIsEnum(parameter.getIsEnum());
+        return clonedParameter;
     }
 
     @Override

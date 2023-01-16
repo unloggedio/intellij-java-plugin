@@ -3471,84 +3471,94 @@ public class SessionInstance {
         resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
 
         // check if the param are ENUM
-        resolveEnumType((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        createParamEnumPropertyTrueIfTheyAre((MethodCallExpression) testCandidateMetadata.getMainMethod());
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                 resolveTemplatesInCall(methodCallExpression);
+                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
         return testCandidateMetadata;
     }
 
-    private void resolveEnumType(MethodCallExpression methodCallExpression) {
-        Parameter callSubject = methodCallExpression.getSubject();
-        String subjectType = callSubject.getType();
-        //
-        if (subjectType.length() == 1) {
-            return;
-        }
-        if (classNotFound.containsKey(subjectType)) {
-            return;
-        }
-
-        PsiClass classPsiInstance = null;
-        try {
-            classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
-        } catch (IndexNotReadyException e) {
-//            e.printStackTrace();
-            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
-                    NotificationType.ERROR);
-        }
-
-        if (classPsiInstance == null) {
-            // if a class by this name was not found, then either we have a different project loaded
-            // or the source code has been modified and the class have been renamed or deleted or moved
-            // cant do much here
-            logger.warn("Class not found in source code for resolving enum type: " + subjectType);
-            return;
-        }
-        JvmMethod[] methodPsiInstanceList =
-                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
-        if (methodPsiInstanceList.length == 0) {
-            logger.warn(
-                    "[1] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
-            return;
-        }
+    private void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
+//        Parameter callSubject = methodCallExpression.getSubject();
+//        String subjectType = callSubject.getType();
+//        //
+//        if (subjectType.length() == 1) {
+//            return;
+//        }
+//        if (classNotFound.containsKey(subjectType)) {
+//            return;
+//        }
+//
+//        PsiClass classPsiInstance = null;
+//        try {
+//            classPsiInstance = JavaPsiFacade.getInstance(project)
+//                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
+//        } catch (IndexNotReadyException e) {
+////            e.printStackTrace();
+//            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
+//                    NotificationType.ERROR);
+//        }
+//
+//        if (classPsiInstance == null) {
+//            // if a class by this name was not found, then either we have a different project loaded
+//            // or the source code has been modified and the class have been renamed or deleted or moved
+//            // cant do much here
+//            logger.warn("Class not found in source code for resolving enum type: " + subjectType);
+//            return;
+//        }
+//        JvmMethod[] methodPsiInstanceList =
+//                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
+//        if (methodPsiInstanceList.length == 0) {
+//            logger.warn(
+//                    "[1] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
+//            return;
+//        }
 
         List<Parameter> methodArguments = methodCallExpression.getArguments();
-        int expectedArgumentCount = methodArguments
-                .size();
-        for (JvmMethod jvmMethod : methodPsiInstanceList) {
+//        int expectedArgumentCount = methodArguments
+//                .size();
+//        for (JvmMethod jvmMethod : methodPsiInstanceList) {
+//
+//            int parameterCount = jvmMethod.getParameters().length;
+//            if (expectedArgumentCount != parameterCount) {
+//                // this is not the method which we are looking for
+//                // either this has been updated in the source code and so we wont find a matching method
+//                // or this is an overridden method
+//                continue;
+//            }
+//
+//            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
+        // to resolve generics
+        for (int i = 0; i < methodArguments.size(); i++) {
+//                JvmParameter parameterFromSourceCode = methodArguments[i];
+            Parameter methodArgument = methodArguments.get(i);
 
-            int parameterCount = jvmMethod.getParameters().length;
-            if (expectedArgumentCount != parameterCount) {
-                // this is not the method which we are looking for
-                // either this has been updated in the source code and so we wont find a matching method
-                // or this is an overridden method
-                continue;
-            }
+            //param is enum then we set it to enum type
+            checkIfIsAEnumClassAndSetEnumTrue(methodArgument);
+        }
+        // check for the return value type if its enum
+        checkIfIsAEnumClassAndSetEnumTrue(methodCallExpression.getReturnValue());
+    }
+//    }
 
-            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
-            // to resolve generics
-            for (int i = 0; i < parameters.length; i++) {
-                JvmParameter parameterFromSourceCode = parameters[i];
-                Parameter parameterFromProbe = methodArguments.get(i);
+    private void checkIfIsAEnumClassAndSetEnumTrue(Parameter param) {
+        if (param == null || param.getType() == null)
+            return;
 
-                //param is enum then we set it to enum type
-                // todo : Optimise this enum type search in classInfoIndex
-                for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
-                    String currParamType = parameterFromProbe.getType()
-                            .replace('.', '/');
-                    ClassInfo currClassInfo = entry.getValue();
-                    if (currClassInfo.getClassName()
-                            .equals(currParamType)) {
-                        // curr class info is present and is enum set param as enum
-                        if (currClassInfo.isEnum()) {
-                            parameterFromProbe.setIsEnum(true);
-                        }
-                    }
+        // todo : Optimise this enum type search in classInfoIndex
+        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
+            String currParamType = param.getType()
+                    .replace('.', '/');
+            ClassInfo currClassInfo = entry.getValue();
+            if (currClassInfo.getClassName()
+                    .equals(currParamType)) {
+                // curr class info is present and is enum set param as enum
+                if (currClassInfo.isEnum()) {
+                    param.setIsEnum(true);
                 }
             }
         }
