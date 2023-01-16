@@ -24,6 +24,8 @@ public class UI_Utils {
     public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png",UI_Utils.class);
     public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png",UI_Utils.class);
     public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png",UI_Utils.class);
+    public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png",UI_Utils.class);
+    public static Icon WAITING_COMPONENT_SUCCESS = IconLoader.getIcon("/icons/png/success_icon_green_64.png",UI_Utils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {

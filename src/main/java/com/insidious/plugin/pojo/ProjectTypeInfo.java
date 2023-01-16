@@ -10,7 +10,7 @@ public class ProjectTypeInfo {
     private final boolean detectDependencies=true;
     private List<Map<String,String>> serializers = new ArrayList<>();
     private String jacksonDatabindVersion = null;
-
+    private final boolean downloadAgent = false;
     private Set<String> dependencies_addedManually = new HashSet<>();
 
     public String getJavaVersion() {
@@ -62,5 +62,9 @@ public class ProjectTypeInfo {
 
     public Set<String> getDependencies_addedManually() {
         return dependencies_addedManually;
+    }
+
+    public boolean isDownloadAgent() {
+        return downloadAgent;
     }
 }

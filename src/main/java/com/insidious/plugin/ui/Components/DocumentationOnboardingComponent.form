@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.Components.DocumentationOnboardingComponent">
+  <grid id="b8142" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="0" left="0" bottom="0" right="0"/>
+    <constraints>
+      <xy x="0" y="2" width="540" height="403"/>
+    </constraints>
+    <properties/>
+    <border type="none"/>
+    <children>
+      <grid id="4854f" binding="documentationSection" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="4" left="4" bottom="4" right="4"/>
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="line"/>
+        <children>
+          <scrollpane id="69b39" binding="scrollParent">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+            <border type="empty"/>
+            <children>
+              <grid id="27c67" binding="sectionParent" layout-manager="GridLayoutManager" row-count="2" column-count="4" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="8" left="0" bottom="0" right="0"/>
+                <constraints/>
+                <properties/>
+                <border type="empty"/>
+                <children>
+                  <component id="2690" class="javax.swing.JLabel" binding="DocumentationLabel">
+                    <constraints>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="1" use-parent-layout="false"/>
+                    </constraints>
+                    <properties>
+                      <horizontalAlignment value="2"/>
+                      <horizontalTextPosition value="4"/>
+                      <icon value="icons/png/icon_number_3.png"/>
+                      <text value="Add our Agent"/>
+                    </properties>
+                  </component>
+                  <grid id="488a4" binding="borderLayoutParent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="0" left="0" bottom="0" right="0"/>
+                    <constraints>
+                      <grid row="1" column="0" row-span="1" col-span="4" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                        <minimum-size width="480" height="-1"/>
+                      </grid>
+                    </constraints>
+                    <properties/>
+                    <border type="empty"/>
+                    <children>
+                      <grid id="26248" binding="bottomContent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="0" left="0" bottom="0" right="0"/>
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties/>
+                        <border type="empty"/>
+                        <children>
+                          <grid id="8ba6" binding="buttonGroupPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="0" left="0" bottom="0" right="0"/>
+                            <constraints>
+                              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="1" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="empty"/>
+                            <children>
+                              <component id="80f2c" class="javax.swing.JButton" binding="copyVMbutton">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <contentAreaFilled value="false"/>
+                                  <icon value="icons/png/copy_icon_pink.png"/>
+                                  <opaque value="false"/>
+                                  <text value="Copy VM Parameters"/>
+                                </properties>
+                              </component>
+                              <component id="ed8cd" class="javax.swing.JButton" binding="documentationButton">
+                                <constraints>
+                                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <contentAreaFilled value="false"/>
+                                  <icon value="icons/png/logo_unlogged.png"/>
+                                  <text value="Check Documentation"/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                          <grid id="7d6fb" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                            <margin top="12" left="12" bottom="12" right="12"/>
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties/>
+                            <border type="empty"/>
+                            <children>
+                              <scrollpane id="c6960" binding="vmOptsScroll">
+                                <constraints>
+                                  <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                                    <minimum-size width="-1" height="120"/>
+                                    <preferred-size width="-1" height="120"/>
+                                    <maximum-size width="-1" height="120"/>
+                                  </grid>
+                                </constraints>
+                                <properties/>
+                                <border type="none"/>
+                                <children>
+                                  <component id="a2430" class="javax.swing.JTextPane" binding="vmOptionsPanel_1">
+                                    <constraints/>
+                                    <properties>
+                                      <background color="-14671840"/>
+                                      <editable value="false"/>
+                                      <foreground color="-105256"/>
+                                      <margin top="8" left="8" bottom="8" right="8"/>
+                                      <maximumSize width="2147483647" height="120"/>
+                                      <minimumSize width="64" height="120"/>
+                                      <preferredSize width="88" height="120"/>
+                                      <text value="VM Options"/>
+                                    </properties>
+                                  </component>
+                                </children>
+                              </scrollpane>
+                              <component id="39c43" class="javax.swing.JLabel" binding="label_1">
+                                <constraints>
+                                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <text value="Add below VM Parameters to your run config."/>
+                                </properties>
+                              </component>
+                              <component id="11967" class="javax.swing.JLabel" binding="label_2">
+                                <constraints>
+                                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                                </constraints>
+                                <properties>
+                                  <text value="Check documentation if needed. "/>
+                                </properties>
+                              </component>
+                            </children>
+                          </grid>
+                        </children>
+                      </grid>
+                      <vspacer id="e1a05">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false">
+                            <minimum-size width="-1" height="12"/>
+                            <preferred-size width="-1" height="12"/>
+                            <maximum-size width="-1" height="12"/>
+                          </grid>
+                        </constraints>
+                      </vspacer>
+                    </children>
+                  </grid>
+                </children>
+              </grid>
+            </children>
+          </scrollpane>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>

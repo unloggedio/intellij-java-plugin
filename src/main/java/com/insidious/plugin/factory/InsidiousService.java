@@ -131,7 +131,10 @@ public class InsidiousService implements Disposable {
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
     private Content onboardingConfigurationWindowContent;
-    private ProjectTypeInfo projectTypeInfo;
+    private ProjectTypeInfo projectTypeInfo=new ProjectTypeInfo();
+    private boolean liveViewAdded=false;
+    private Content liveWindowContent;
+    private Content onboardingContent;
 
     public InsidiousService(Project project) {
         try {
@@ -341,7 +344,6 @@ public class InsidiousService implements Disposable {
         if (currentModule == null) {
             return null;
         }
-        this.projectTypeInfo = new ProjectTypeInfo();
         //fetch module names from all pom files in the project, also fetch base packages (not always useful from pom)
         @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.projectScope(project));
@@ -1224,17 +1226,19 @@ public class InsidiousService implements Disposable {
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
             liveViewWindow = new LiveViewWindow(project, this);
-            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-            onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
             liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-            onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
             liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
+
+            onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
             contentManager.addContent(onboardingConfigurationWindowContent);
-            contentManager.addContent(liveWindowContent);
             setupProject();
 
             if (areLogsPresent()) {
+                contentManager.addContent(liveWindowContent);
                 contentManager.setSelectedContent(liveWindowContent, true);
+                liveViewAdded = true;
             }
         }
 
@@ -1661,7 +1665,30 @@ public class InsidiousService implements Disposable {
 
             }
         });
+    }
 
-
+    public void addLiveView()
+    {
+        System.out.println("Adding live view");
+        if(!liveViewAdded)
+        {
+            toolWindow.getContentManager().addContent(liveWindowContent);
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+            liveViewAdded = true;
+            System.out.println("Added live view");
+            try
+            {
+                liveViewWindow.loadSession();
+            }
+            catch (Exception e)
+            {
+                System.out.println("Exception loading session [Added live view flow]");
+            }
+        }
+        else
+        {
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+            System.out.println("Live view aready present, switching.");
+        }
     }
 }

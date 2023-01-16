@@ -12,6 +12,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -73,6 +74,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         GridLayout gridLayout = new GridLayout(GridRows, 1);
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
+        gridPanel.setBorder(new EmptyBorder(0,0,0,0));
         for (int i = 0; i < testCandidateMetadataList.size(); i++) {
             TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
             GridConstraints constraints = new GridConstraints();
@@ -88,6 +90,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         }
 
         JScrollPane scrollPane = new JScrollPane(gridPanel);
+        scrollPane.setBorder(new EmptyBorder(0,0,0,0));
         candidateListParent.setPreferredSize(scrollPane.getSize());
         candidateListParent.add(scrollPane, BorderLayout.CENTER);
         if (testCandidateMetadataList.size() <= 4) {
@@ -170,30 +173,30 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         switch (arg.getType()) {
             case "I":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("int", arg.getName(), "" + arg.getValue(), true));
+                        new ParameterInformation("int", name, "" + arg.getValue(), true));
             case "J":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("long", arg.getName(), "" + arg.getValue(), true));
+                        new ParameterInformation("long", name, "" + arg.getValue(), true));
             case "Z":
                 String booleanValue = (arg.getValue() == 0 ? false : true) + "";
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("boolean", arg.getName(), booleanValue, true));
+                        new ParameterInformation("boolean", name, booleanValue, true));
             case "S":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("short", arg.getName(), "" + arg.getValue(), true));
+                        new ParameterInformation("short", name, "" + arg.getValue(), true));
             case "D":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("double", arg.getName(), "" + arg.getValue(), false));
+                        new ParameterInformation("double", name, "" + arg.getValue(), false));
             case "F":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("float", arg.getName(), "" + arg.getValue(), false));
+                        new ParameterInformation("float", name, "" + arg.getValue(), false));
             case "C":
                 char charval = (char)((int) arg.getValue());
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("char", arg.getName(), "" + charval, true));
+                        new ParameterInformation("char", name, "" + charval, true));
             case "B":
                 return new DefaultMutableTreeNode(
-                        new ParameterInformation("byte", arg.getName(), "" + arg.getValue(), true));
+                        new ParameterInformation("byte", name, "" + arg.getValue(), true));
             case "V":
                 return new DefaultMutableTreeNode("void");
             default:
@@ -203,7 +206,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
                     return buildJsonTree(serializedValue, arg);
                 } else {
                     return new DefaultMutableTreeNode(
-                            new ParameterInformation(getSimpleType(arg.getType()), arg.getName(), "null", true));
+                            new ParameterInformation(getSimpleType(arg.getType()), name, "null", true));
                 }
         }
     }
