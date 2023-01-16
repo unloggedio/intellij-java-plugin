@@ -148,19 +148,16 @@ public class TestCaseService implements Runnable {
         ParameterNameFactory parameterNameFactory = new ParameterNameFactory();
         TestGenerationState testGenerationState = new TestGenerationState(parameterNameFactory);
 
-        Parameter target = generationConfiguration.getTestCandidateMetadataList()
+        Parameter targetTestSubject = generationConfiguration.getTestCandidateMetadataList()
                 .get(0)
                 .getTestSubject();
 
-        TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(target);
+        TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
         // this can be null for static classes
         if (constructorCandidate != null) {
             generationConfiguration.getTestCandidateMetadataList()
                     .add(0, constructorCandidate);
         }
-
-        generationConfiguration.getCallExpressionList()
-                .addAll(generationConfiguration.getCallExpressionList());
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 

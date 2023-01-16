@@ -3643,16 +3643,24 @@ public class SessionInstance {
             if (returnParameterType instanceof PsiPrimitiveType) {
                 PsiPrimitiveType primitiveType = (PsiPrimitiveType) returnParameterType;
             } else if (returnParameterType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) returnParameterType;
+                PsiClassReferenceType returnTypeClassReference = (PsiClassReferenceType) returnParameterType;
                 if (returnParameter != null &&
-                        returnParameter.getType() != null && !classReferenceType.getReference()
-                        .getQualifiedName()
-                        .equals(returnParameter.getType())) {
-                    continue;
+                        returnParameter.getType() != null) {
+                    if (!returnTypeClassReference.getReference()
+                            .getQualifiedName()
+                            .equals(returnParameter.getType())) {
+                        // type name mismatch
+                        logger.warn("Call expected return [" + returnParameter.getType() + "] did not match return type in " +
+                                "source: [" + returnTypeClassReference.getCanonicalText()
+                                + "] for call: " + methodCallExpression);
+                        continue;
+                    } else {
+                        // type matched, we can go ahead to identify template parameters
+                    }
                 }
 
-                if (classReferenceType.hasParameters()) {
-                    PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+                if (returnTypeClassReference.hasParameters()) {
+                    PsiType[] typeTemplateParameters = returnTypeClassReference.getParameters();
                     returnParameter.setContainer(true);
                     List<Parameter> templateMap = returnParameter.getTemplateMap();
                     char templateChar = 'D';

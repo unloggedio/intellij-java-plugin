@@ -211,14 +211,12 @@ public class ObjectRoutineContainer {
 
         ObjectRoutine constructorRoutine = getConstructor();
         ObjectRoutineScript builderMethodScript = constructorRoutine
-                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance, fieldsContainer);
+                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
 
-        @NotNull List<Parameter> constructorNonPojoParams = ObjectRoutine.getNonPojoParameters(
-                constructorRoutine.getTestCandidateList(),
-                sessionInstance);
+        @NotNull List<Parameter> constructorNonPojoParams =
+                ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
 
-        container.getObjectRoutines()
-                .add(builderMethodScript);
+        container.getObjectRoutines().add(builderMethodScript);
 
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
@@ -250,7 +248,6 @@ public class ObjectRoutineContainer {
                     .anyMatch(e -> e.getValue() == parameter.getValue())) {
                 continue;
             }
-            container.addField(parameter);
 
             classVariableContainer.add(parameter);
             MethodCallExpression injectMethodCall = new MethodCallExpression(

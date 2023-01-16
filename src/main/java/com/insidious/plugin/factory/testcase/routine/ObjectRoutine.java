@@ -153,7 +153,6 @@ public class ObjectRoutine {
         VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
         for (Parameter parameter : createdVariables.all()) {
             candidateVariables.add(parameter);
-
         }
 
         candidateVariables.all()
