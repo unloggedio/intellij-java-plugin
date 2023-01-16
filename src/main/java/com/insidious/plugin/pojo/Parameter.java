@@ -16,7 +16,6 @@ import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -176,7 +175,14 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (type == null) {
             return;
         }
-        if (this.type == null || this.type.endsWith(".Object")) {
+        if (this.type == null
+                || this.type.endsWith(".Object")
+                || this.type.endsWith("$1")
+                || this.type.endsWith("$2")
+                || this.type.endsWith("$3")
+                || this.type.endsWith("$4")
+                || this.type.endsWith("$5")
+        ) {
             this.type = type;
         }
     }

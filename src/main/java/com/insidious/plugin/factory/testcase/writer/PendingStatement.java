@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.testcase.expression.ClassValueExpression;
 import com.insidious.plugin.factory.testcase.expression.Expression;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.expression.StringExpression;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
@@ -31,7 +32,8 @@ import java.util.stream.Collectors;
 
 public class PendingStatement {
     public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
-    public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess("com.fasterxml.jackson.core.type.TypeReference");
+    public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess(
+            "com.fasterxml.jackson.core.type.TypeReference");
     private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
     private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
@@ -52,7 +54,8 @@ public class PendingStatement {
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
             List<Object> statementParameters, int i
     ) {
-        String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(), testGenerationState);
+        String parameterString = TestCaseWriter.createMethodParametersString(methodCallExpression.getArguments(),
+                testGenerationState);
         ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
         if (methodCallExpression.getMethodName()
                 .equals("<init>")) {
@@ -165,7 +168,8 @@ public class PendingStatement {
                         .getSerializedValue()));
 
                 @Nullable TypeName typeOfParam =
-                        ClassTypeUtils.createTypeFromNameString(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
+                        ClassTypeUtils.createTypeFromNameString(
+                                ClassTypeUtils.getJavaClassName(objectToDeserialize.getType()));
 //                statementParameters.add(ClassName.bestGuess(typeOfParam));
                 statementParameters.add(typeOfParam);
             }
@@ -382,6 +386,7 @@ public class PendingStatement {
                 lhsExpression.getProbeInfo()
                         .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
 
+        VariableContainer createdVariables = objectRoutine.getCreatedVariables();
         if (lhsExpression != null && lhsExpression.getType() != null && !lhsExpression.getType()
                 .equals("V") && !isExceptionExcepted) {
 
@@ -392,11 +397,9 @@ public class PendingStatement {
             @Nullable TypeName lhsTypeName = ClassTypeUtils.createTypeFromNameString(
                     ClassTypeUtils.getJavaClassName(lhsExpression.getType()));
 
-            if (!objectRoutine.getCreatedVariables()
-                    .contains(nameFactory.getNameForUse(lhsExpression, null))) {
+            if (!createdVariables.contains(nameFactory.getNameForUse(lhsExpression, null))) {
 
-                objectRoutine.getCreatedVariables()
-                        .add(lhsExpression);
+                createdVariables.add(lhsExpression);
                 List<Parameter> templateMap = lhsExpression.getTemplateMap();
                 if (lhsExpression.isContainer() && templateMap.size() > 0) {
 
@@ -418,16 +421,15 @@ public class PendingStatement {
 
             } else {
                 // if param exists,
-                Parameter existingParameter = objectRoutine
-                        .getCreatedVariables()
+                Parameter existingParameter = createdVariables
                         .getParameterByName(nameFactory.getNameForUse(lhsExpression, null));
 
                 // Checking if these variables point to the same
                 // if not then updating with the latest object i.e. lhsExpression
                 if (existingParameter != lhsExpression) {
-                    objectRoutine.getCreatedVariables()
+                    createdVariables
                             .remove(existingParameter);
-                    objectRoutine.getCreatedVariables()
+                    createdVariables
                             .add(lhsExpression);
                 }
             }
@@ -446,7 +448,7 @@ public class PendingStatement {
                 if (!methodCallExpression.isStaticCall()
                         && methodCallExpression.getSubject() != null && methodCallExpression.getSubject()
                         .getValue() != 0) {
-                    Parameter existingVariable = objectRoutine.getCreatedVariables()
+                    Parameter existingVariable = createdVariables
                             .getParametersById(methodCallExpression.getSubject()
                                     .getValue());
                     if (existingVariable != null) {
@@ -556,7 +558,8 @@ public class PendingStatement {
 
         String targetClassname = lhsExpression.getType();
 
-        String lhsExprName = testGenerationState.getParameterNameFactory().getNameForUse(lhsExpression, null);
+        String lhsExprName = testGenerationState.getParameterNameFactory()
+                .getNameForUse(lhsExpression, null);
         // todo: prakhar : can I remove "variableExistingParameter" cause the check is also happening in
         //  @Class MethodCallExpression
         Parameter variableExistingParameter = objectRoutine
@@ -591,7 +594,8 @@ public class PendingStatement {
             return this;
         }
 
-        if ((targetClassname.startsWith("java.lang") && !targetClassname.equals("java.lang.Object")) || targetClassname.length() == 1) {
+        if ((targetClassname.startsWith("java.lang") && !targetClassname.equals(
+                "java.lang.Object")) || targetClassname.length() == 1) {
             // primitive variable types
             Parameter parameter = lhsExpression;
             long returnValue = parameter.getValue();
@@ -619,7 +623,8 @@ public class PendingStatement {
 
             } else if (targetClassname.equals("java.lang.StringBuilder")) {
                 Parameter parameterWithValue = new Parameter();
-                parameterWithValue.setValue(new String(parameter.getProb().getSerializedValue()));
+                parameterWithValue.setValue(new String(parameter.getProb()
+                        .getSerializedValue()));
                 parameterWithValue.setType("java.lang.String");
                 MethodCallExpression mce = new MethodCallExpression("<init>", parameter,
                         List.of(parameterWithValue), parameter, 0);

@@ -125,24 +125,31 @@ public class ClassTypeUtils {
         if (className.contains("$$")) {
             className = className.substring(0, className.indexOf("$$"));
         }
-        if (className.contains(".")) {
+        if (className.contains(".") && !className.contains("/")) {
             className = className.replace('$', '.');
-            return className;
-        }
-        className = className.replace('$', '.');
+        } else {
+            className = className.replace('$', '.');
 
-        if (className.endsWith(";")) {
-            className = className.substring(0, className.length() - 1);
+            if (className.endsWith(";")) {
+                className = className.substring(0, className.length() - 1);
+            }
+
+            while (className.startsWith("[")) {
+                className = className.substring(1) + "[]";
+            }
+            if (className.startsWith("L")) {
+                className = className.substring(1);
+            }
+            className = className.replace('/', '.');
         }
 
-        while (className.startsWith("[")) {
-            className = className.substring(1) + "[]";
-        }
-        if (className.startsWith("L")) {
-            className = className.substring(1);
+        if (className.matches(".+\\.[0-9]+$")) {
+
+            // if the class name is like a `ClassName.1`
+            className = className.substring(0, className.lastIndexOf("."));
         }
 
-        return className.replace('/', '.');
+        return className;
     }
 
 

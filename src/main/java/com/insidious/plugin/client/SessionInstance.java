@@ -2381,6 +2381,7 @@ public class SessionInstance {
         TestCandidateMetadata completedExceptional;
         MethodCallExpression methodCall;
         MethodCallExpression topCall;
+        String existingParameterType;
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2403,7 +2404,7 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-//            if (eventBlock.eventId() == 91530) {
+//            if (eventBlock.valueId() == 64063964) {
 //                logger.warn("here: " + logFile);
 //            }
             switch (probeInfo.getEventType()) {
@@ -2451,8 +2452,13 @@ public class SessionInstance {
                         existingParameter.addName(nameForParameter);
                         isModified = true;
                     }
-                    String existingParameterType = existingParameter.getType();
-                    if (existingParameterType == null || existingParameterType.equals("java.lang.Object")) {
+                    existingParameterType = existingParameter.getType();
+                    if (existingParameterType == null
+                            || existingParameterType.equals("java.lang.Object")
+                            || existingParameterType.endsWith("$1")
+                            || existingParameterType.endsWith("$2")
+                            || existingParameterType.endsWith("$3")
+                    ) {
                         existingParameter.setType(
                                 ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
                         isModified = true;
@@ -2524,8 +2530,13 @@ public class SessionInstance {
                     }
                     typeFromProbe = ClassTypeUtils.getDottedClassName(
                             probeInfo.getAttribute("Type", "V"));
-                    if (existingParameter.getType() == null || !existingParameter.getType()
-                            .equals(typeFromProbe)) {
+                    existingParameterType = existingParameter.getType();
+                    if (existingParameterType == null
+                            || existingParameterType.equals("java.lang.Object")
+                            || existingParameterType.endsWith("$1")
+                            || existingParameterType.endsWith("$2")
+                            || existingParameterType.endsWith("$3")
+                    ) {
                         existingParameter.setType(ClassTypeUtils.getDottedClassName(typeFromProbe));
                     }
                     saveProbe = true;
@@ -2598,8 +2609,18 @@ public class SessionInstance {
                                 probeInfo.getAttribute("FieldName", null));
                         if (!existingParameter.hasName(nameFromProbe)) {
                             existingParameter.addName(nameFromProbe);
-                        } else {
-                            existingParameter = null;
+                            isModified = true;
+                        }
+                        existingParameterType = existingParameter.getType();
+                        if (existingParameterType == null
+                                || existingParameterType.equals("java.lang.Object")
+                                || existingParameterType.endsWith("$1")
+                                || existingParameterType.endsWith("$2")
+                                || existingParameterType.endsWith("$3")
+                        ) {
+                            existingParameter.setType(
+                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", null)));
+                            isModified = true;
                         }
                     } else {
                         // new field
@@ -2615,8 +2636,10 @@ public class SessionInstance {
                         existingParameter.setProb(dataEvent);
 
                         saveProbe = true;
-
-//                            parentFields.add(existingParameter);
+                        isModified = true;
+                    }
+                    if (!isModified) {
+                        existingParameter = null;
                     }
                     break;
 
