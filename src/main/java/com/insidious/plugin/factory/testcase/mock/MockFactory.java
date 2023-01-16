@@ -14,8 +14,7 @@ public class MockFactory {
 
     public static TestCandidateMetadata createParameterMock(Parameter callSubject,
                                                             TestCaseGenerationConfiguration generationConfiguration) {
-        if (callSubject.getType()
-                .startsWith("java.")) {
+        if (callSubject.getType().startsWith("java.")) {
             // we want to create the objects from java.lang.* namespace using their real values, so
             // in the test case it looks something like
             // Integer varName = value;
@@ -28,8 +27,8 @@ public class MockFactory {
                     .equals("com.fasterxml.jackson.databind.ObjectMapper")) {
                 return createUsingNoArgsConstructor(callSubject);
             } else {
-                TestCandidateMetadata testCandidateMetadata = buildMockCandidateForBaseClass(callSubject,
-                        generationConfiguration);
+                TestCandidateMetadata testCandidateMetadata =
+                        buildMockCandidateForBaseClass(callSubject, generationConfiguration);
                 return testCandidateMetadata;
             }
         }
@@ -82,7 +81,7 @@ public class MockFactory {
 
 
         ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
-        testCandidateMetadata.setTestSubject(null);
+        testCandidateMetadata.setTestSubject(parameter);
 
 //        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
 //        testCandidateMetadata.setPackageName(targetClassname.packageName());
@@ -96,8 +95,6 @@ public class MockFactory {
         mainMethod.setReturnValue(parameter);
         testCandidateMetadata.setMainMethod(mainMethod);
 
-
-//        testCandidateMetadata.setUnqualifiedClassname(targetClassname.simpleName());
 
         return testCandidateMetadata;
     }

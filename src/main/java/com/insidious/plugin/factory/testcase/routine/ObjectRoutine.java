@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 public class ObjectRoutine {
     private final static Logger logger = LoggerUtil.getInstance(ObjectRoutine.class);
     private final String routineName;
-    private final Map<String, ObjectRoutineContainer> dependentMap = new HashMap<>();
-    private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
+//    private final List<ObjectRoutineContainer> dependentList = new LinkedList<>();
     private List<TestCandidateMetadata> testCandidateList = new LinkedList<>();
 
     public ObjectRoutine(String routineName) {
@@ -66,21 +65,7 @@ public class ObjectRoutine {
         return routineName;
     }
 
-    public List<ObjectRoutineContainer> getDependentList() {
-        return dependentList;
-    }
-
-    public void addDependent(ObjectRoutineContainer dependentObjectCreation) {
-        if (this.dependentMap.containsKey(dependentObjectCreation.getName())) {
-            // throw new RuntimeException("dependent already exists");
-            return;
-        }
-        this.dependentList.add(dependentObjectCreation);
-        this.dependentMap.put(dependentObjectCreation.getName(), dependentObjectCreation);
-    }
-
-
-    public ObjectRoutineScript toObjectScript(
+    public ObjectRoutineScript toObjectRoutineScript(
             TestCaseGenerationConfiguration generationConfiguration,
             TestGenerationState testGenerationState,
             SessionInstance sessionInstance,
@@ -152,14 +137,8 @@ public class ObjectRoutine {
 
         for (TestCandidateMetadata testCandidateMetadata : this.testCandidateList) {
             VariableContainer candidateVariables = scriptContainer.getCreatedVariables();
-            candidateVariables.all()
-                    .forEach(variableContainer::add);
-
+            candidateVariables.all().forEach(variableContainer::add);
             callsList.addAll(testCandidateMetadata.getCallsList());
-            testCandidateMetadata.getFields()
-                    .all()
-                    .forEach(fieldsContainer::add);
-
         }
 
         ObjectRoutineScript script = CandidateMetadataFactory

@@ -34,6 +34,7 @@ public class ObjectRoutineContainer {
     private final TestCaseGenerationConfiguration generationConfiguration;
     private String packageName;
     private ObjectRoutine currentRoutine;
+    private VariableContainer fieldsContainer = new VariableContainer();
     private ObjectRoutine constructor = newRoutine("<init>");
     /**
      * Name for variable for this particular object
@@ -61,7 +62,8 @@ public class ObjectRoutineContainer {
 //            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
 //                continue;
 //            }
-            if (methodInfo.getMethodName().equals("<init>")) {
+            if (methodInfo.getMethodName()
+                    .equals("<init>")) {
                 constructor.setTestCandidateList(testCandidateMetadata);
                 hasTargetInstanceClassConstructor = true;
             } else {
@@ -79,6 +81,10 @@ public class ObjectRoutineContainer {
             constructor.setTestCandidateList(newTestCaseMetadata);
         }
 
+    }
+
+    public void addFieldParameter(Parameter parameter) {
+        fieldsContainer.add(parameter);
     }
 
     public Parameter getTestSubject() {
@@ -129,34 +135,29 @@ public class ObjectRoutineContainer {
 
 
         List<Parameter> dependentImports = new ArrayList<>();
-        ObjectRoutineContainer orc = this;
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
 
+//            dependentImports = objectRoutine.getDependentList()
+//                    .stream()
+//                    .filter(e -> e != orc)
+//                    .map(e -> e.getVariablesOfType(className))
+//                    .flatMap(Collection::stream)
+//                    .collect(Collectors.toList());
 
-            dependentImports = objectRoutine.getDependentList()
-                    .stream()
-                    .filter(e -> e != orc)
-                    .map(e -> e.getVariablesOfType(className))
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-
-            for (TestCandidateMetadata metadatum : objectRoutine.getTestCandidateList()) {
-                Expression mainMethod = metadatum.getMainMethod();
+            for (TestCandidateMetadata metadata : objectRoutine.getTestCandidateList()) {
+                Expression mainMethod = metadata.getMainMethod();
                 if (mainMethod instanceof MethodCallExpression) {
                     List<Parameter> variables = extractVariableOfType(className, (MethodCallExpression) mainMethod);
                     dependentImports.addAll(variables);
                 }
 
-                for (MethodCallExpression methodCallExpression : metadatum.getCallsList()) {
+                for (MethodCallExpression methodCallExpression : metadata.getCallsList()) {
                     if (mainMethod instanceof MethodCallExpression) {
                         List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
                         dependentImports.addAll(variables);
                     }
                 }
-
             }
-
-
         }
 
         return dependentImports;
@@ -192,16 +193,17 @@ public class ObjectRoutineContainer {
         return dependentImports;
     }
 
-    public ObjectRoutineScriptContainer toRoutineScript(SessionInstance sessionInstance, TestGenerationState testGenerationState) {
+    public ObjectRoutineScriptContainer toObjectRoutineScriptContainer(
+            SessionInstance sessionInstance, TestGenerationState testGenerationState
+    ) {
         ObjectRoutineScriptContainer container = new ObjectRoutineScriptContainer(this.packageName,
                 testGenerationState, generationConfiguration);
         container.setName(getName());
 
 
         VariableContainer variableContainer = new VariableContainer();
-        VariableContainer fieldsContainer = new VariableContainer();
 
-        for (Parameter parameter : this.collectFieldsFromRoutines()) {
+        for (Parameter parameter : fieldsContainer.all()) {
             variableContainer.add(parameter);
         }
         testGenerationState.setVariableContainer(variableContainer);
@@ -209,8 +211,7 @@ public class ObjectRoutineContainer {
 
         ObjectRoutine constructorRoutine = getConstructor();
         ObjectRoutineScript builderMethodScript = constructorRoutine
-                .toObjectScript(generationConfiguration, testGenerationState, sessionInstance,
-                        fieldsContainer);
+                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance, fieldsContainer);
 
         @NotNull List<Parameter> constructorNonPojoParams = ObjectRoutine.getNonPojoParameters(
                 constructorRoutine.getTestCandidateList(),
@@ -229,8 +230,6 @@ public class ObjectRoutineContainer {
         }
 
 
-        Set<? extends Parameter> allFields = collectFieldsFromRoutines();
-
         Parameter mainSubject = getTestSubject();
         if (mainSubject.getName() == null) {
             mainSubject.setName(ClassTypeUtils.createVariableName(mainSubject.getType()));
@@ -245,9 +244,10 @@ public class ObjectRoutineContainer {
         testUtilClassSubject.setType("io.unlogged.UnloggedTestUtils");
         testUtilClassSubject.setName("UnloggedTestUtils");
 
-        for (Parameter parameter : allFields) {
+        for (Parameter parameter : fieldsContainer.all()) {
 
-            if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
+            if (constructorNonPojoParams.stream()
+                    .anyMatch(e -> e.getValue() == parameter.getValue())) {
                 continue;
             }
             container.addField(parameter);
@@ -271,9 +271,10 @@ public class ObjectRoutineContainer {
             }
 
             ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectScript(
+                    objectRoutine.toObjectRoutineScript(
                             generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
-            container.getObjectRoutines().add(objectScript);
+            container.getObjectRoutines()
+                    .add(objectScript);
 
             List<Parameter> staticMockList = objectScript.getStaticMocks();
             for (Parameter staticMock : staticMockList) {
@@ -285,7 +286,8 @@ public class ObjectRoutineContainer {
 
 
             String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList()
-                    .get(objectRoutine.getTestCandidateList().size() - 1)
+                    .get(objectRoutine.getTestCandidateList()
+                            .size() - 1)
                     .getMainMethod()).getMethodName();
 
             container.setTestMethodName(testMethodName);
@@ -299,7 +301,8 @@ public class ObjectRoutineContainer {
             childParameter.setName("E");
 
             staticMock.setTypeForced("org.mockito.MockedStatic");
-            staticMock.getTemplateMap().add(childParameter);
+            staticMock.getTemplateMap()
+                    .add(childParameter);
 
             container.addField(staticMock);
 
@@ -346,8 +349,8 @@ public class ObjectRoutineContainer {
     }
 
     @NotNull
-    private Set<? extends Parameter> collectFieldsFromRoutines() {
-        Set<Parameter> collect = getObjectRoutines().stream()
+    public Set<? extends Parameter> collectFieldsFromRoutines() {
+        Set<Parameter> fieldParametersFromAllCandidates = getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
@@ -358,7 +361,7 @@ public class ObjectRoutineContainer {
 
         Set<Parameter> fields = new HashSet<>();
 
-        for (Parameter fieldParameter : collect) {
+        for (Parameter fieldParameter : fieldParametersFromAllCandidates) {
             boolean isPresent = false;
 
             Optional<MethodCallExpression> foundUsage = getObjectRoutines()
@@ -376,17 +379,17 @@ public class ObjectRoutineContainer {
             }
 
 
-            for (Parameter tempP : fields) {
-                if (tempP.getValue() == fieldParameter.getValue() && tempP.getType()
-                        .equals(fieldParameter.getType())
-                        && tempP.getTemplateMap()
-                        .toString()
-                        .equals(fieldParameter.getTemplateMap()
-                                .toString())) {
-                    isPresent = true;
-                    break;
-                }
-            }
+//            for (Parameter tempP : fields) {
+//                if (tempP.getValue() == fieldParameter.getValue() && tempP.getType()
+//                        .equals(fieldParameter.getType())
+//                        && tempP.getTemplateMap()
+//                        .toString()
+//                        .equals(fieldParameter.getTemplateMap()
+//                                .toString())) {
+//                    isPresent = true;
+//                    break;
+//                }
+//            }
             if (!isPresent) {
                 fields.add(fieldParameter);
             }

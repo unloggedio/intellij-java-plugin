@@ -469,11 +469,13 @@ public class PendingStatement {
 
         if (isExceptionExcepted) {
             StringBuilder tryCatchEnclosure = new StringBuilder();
+            String exceptionType = lhsExpression.getType();
+            exceptionType = ClassTypeUtils.getJavaClassName(exceptionType);
             tryCatchEnclosure
                     .append("try {\n")
                     .append("    ")
                     .append("// this is going to throw exception <")
-                    .append(lhsExpression.getType())
+                    .append(exceptionType)
                     .append(">\n")
                     .append("    ")
                     .append(statementBuilder)

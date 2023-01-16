@@ -39,8 +39,7 @@ public class CandidateMetadataFactory {
         Map<String, Boolean> mockedStaticTypes = new HashMap<>();
 
         for (MethodCallExpression e : callsList) {
-            if (!testConfiguration.getCallExpressionList()
-                    .contains(e)) {
+            if (!testConfiguration.getCallExpressionList().contains(e)) {
                 logger.warn("Skip unselected call expression to be mocked - " + e);
                 continue;
             }
@@ -49,40 +48,38 @@ public class CandidateMetadataFactory {
                 logger.info("MCE to mock without a return value - " + e);
                 continue;
             }
-            if (e.getMethodName()
-                    .equals("toString")) {
+            Parameter callSubject = e.getSubject();
+            if (callSubject == null) {
+                // we failed to identify subject
+                // this is potentially a bug, and the fix is inside scan implementation
+                // note even static calls have a subject parameter
+                continue;
+            }
+            if (e.getMethodName().equals("toString")) {
                 continue;
             }
             if (e.isStaticCall() && e.getUsesFields()) {
                 // all static calls need to be mocked
                 // even if they have no return value
 
-                if (e.getSubject()
-                        .getType()
-                        .equals(testTarget.getType())) {
+                if (callSubject.getType().equals(testTarget.getType())) {
                     // we do not want to mock static calls on the class itself being tested
                     // since we most likely have injected all the fields anyways
                     continue;
                 }
                 staticCallsList.add(e);
-                mockedStaticTypes.put(e.getSubject()
-                        .getType(), true);
+                mockedStaticTypes.put(callSubject.getType(), true);
                 continue;
             }
             if (!e.isMethodPublic() && !e.isMethodProtected()) {
                 continue;
             }
-            if (e.getMethodName()
-                    .startsWith("<")) {
+            if (e.getMethodName().startsWith("<")) {
                 // constructors need not be mocked
                 continue;
             }
 
-            if (e.getSubject() == null) {
-                // not a static call, but we failed to identify subject
-                // this is potentially a bug, and the fix is inside scan implementation
-                continue;
-            }
+
             if (returnValue.getType() == null || returnValue.getType().equals("V")
                             || returnValue.getProb() == null
             ) {
@@ -90,16 +87,8 @@ public class CandidateMetadataFactory {
                 // we failed to identify the return value in the scan, in that case this is a bug
                 continue;
             }
-            if (e.getSubject()
-                    .getType()
-                    .contains("com.google.gson")) {
-                // this is hard coded to skip mocking Gson class
-                continue;
-            }
 
-            if (fields.getParametersById(e.getSubject()
-                    .getProb()
-                    .getValue()) == null) {
+            if (fields.getParametersById(callSubject.getProb().getValue()) == null) {
                 // the subject should ideally be one of the already identified fields.
                 continue;
             }

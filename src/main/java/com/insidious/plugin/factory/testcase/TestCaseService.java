@@ -6,14 +6,12 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
-import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutine;
 import com.insidious.plugin.factory.testcase.routine.ObjectRoutineContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -35,7 +33,10 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
@@ -85,8 +86,7 @@ public class TestCaseService implements Runnable {
                 .size());
         logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName()
-                    .equalsIgnoreCase("<init>")) {
+            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;
             }
             MethodSpec methodSpec = objectRoutine.toMethodSpec()
@@ -96,8 +96,7 @@ public class TestCaseService implements Runnable {
 
 //        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.")
-                .size() > 0) {
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
             typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
         }
 
@@ -165,61 +164,64 @@ public class TestCaseService implements Runnable {
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
 
-        createFieldMocks(objectRoutineContainer);
+        List<TestCandidateMetadata> mockCreatorCandidates = createFieldMocks(objectRoutineContainer);
 
-        ObjectRoutineScriptContainer testCaseScript = objectRoutineContainer.toRoutineScript(sessionInstance,
-                testGenerationState);
+        ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
+        for (TestCandidateMetadata mockCreatorCandidate : mockCreatorCandidates) {
+            Parameter subjectParameter = mockCreatorCandidate.getTestSubject();
+            String subjectParameterType = subjectParameter.getType();
+            if (subjectParameterType.startsWith("org.springframework.cglib.proxy.")) {
+                continue;
+            }
+            if (subjectParameterType.startsWith("org.slf4j.")) {
+                continue;
+            }
+            if (subjectParameterType.startsWith("com.google.gson.")) {
+                continue;
+            }
+            if (subjectParameterType.startsWith("com.fasterxml.jackson.databind.")) {
+                continue;
+            }
+
+            objectRoutineContainer.addFieldParameter(subjectParameter);
+            constructorRoutine.addMetadata(mockCreatorCandidate);
+        }
+
+        ObjectRoutineScriptContainer testCaseScript =
+                objectRoutineContainer.toObjectRoutineScriptContainer(sessionInstance, testGenerationState);
 
 
         return buildTestUnitFromScript(objectRoutineContainer, testCaseScript);
     }
 
-    public void createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
+    public List<TestCandidateMetadata> createFieldMocks(ObjectRoutineContainer objectRoutineContainer) {
+
+        List<TestCandidateMetadata> mockCreatorCandidates = new ArrayList<>();
 
         Parameter target = objectRoutineContainer.getTestSubject();
 
-        VariableContainer fields = VariableContainer.from(
-                objectRoutineContainer
-                        .getObjectRoutines()
-                        .stream()
-                        .map(ObjectRoutine::getTestCandidateList)
-                        .flatMap(Collection::stream)
-                        .map(TestCandidateMetadata::getFields)
-                        .map(VariableContainer::all)
-                        .flatMap(Collection::stream)
-                        .collect(Collectors.toList())
-        );
+        Set<? extends Parameter> fields = objectRoutineContainer.collectFieldsFromRoutines();
 
-
-        ObjectRoutine constructor = objectRoutineContainer.getConstructor();
-        List<Parameter> usedFields = new ArrayList<>();
 
         @Nullable PsiClass classPsiInstance = null;
         try {
             classPsiInstance = JavaPsiFacade.getInstance(project)
                     .findClass(ClassTypeUtils.getJavaClassName(target.getType()), GlobalSearchScope.allScope(project));
         } catch (IndexNotReadyException e) {
-//            e.printStackTrace();
             InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
                     NotificationType.ERROR);
         }
 
 
         // gotta mock'em all
-        for (Parameter fieldParameter : fields.all()) {
+        for (Parameter fieldParameter : fields) {
 
-            Optional<MethodCallExpression> foundUsage = objectRoutineContainer
-                    .getObjectRoutines()
-                    .stream()
-                    .map(ObjectRoutine::getTestCandidateList)
-                    .flatMap(Collection::stream)
-                    .map(TestCandidateMetadata::getCallsList)
-                    .flatMap(Collection::stream)
-                    .filter(e -> e.getSubject()
-                            .getValue() == fieldParameter.getValue())
-                    .findAny();
-            if (foundUsage.isEmpty()) {
-                //field is not actually used
+            if (fieldParameter.getType()
+                    .startsWith("org.slf4j.Logger")) {
+                continue;
+            }
+            if (fieldParameter.getType()
+                    .startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
                 continue;
             }
 
@@ -233,8 +235,7 @@ public class TestCaseService implements Runnable {
 
                     List<PsiField> fieldMatchingNameAndType = fieldMatchingParameterType.stream()
                             .filter(e -> fieldParameter.hasName(e.getName()))
-                            .collect(
-                                    Collectors.toList());
+                            .collect(Collectors.toList());
 
                     boolean nameChosen = false;
                     if (fieldMatchingNameAndType.size() == 0) {
@@ -257,8 +258,10 @@ public class TestCaseService implements Runnable {
                     if (!nameChosen && fieldMatchingParameterType.size() == 1) {
                         // if we didn't find a field with matching name
                         // but we have only 1 field with matching type, then we will use the name of that field
-                        fieldParameter.getNames().clear();
-                        fieldParameter.setName(fieldMatchingParameterType.get(0).getName());
+                        fieldParameter.getNames()
+                                .clear();
+                        fieldParameter.setName(fieldMatchingParameterType.get(0)
+                                .getName());
                     }
 
                 } else {
@@ -266,21 +269,20 @@ public class TestCaseService implements Runnable {
                             "no matching field of type [" + fieldParameter.getType() + "] found in class [" + target.getType() + "]");
                 }
             }
+        }
 
-
+        for (Parameter fieldParameter : fields) {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
             if (metadata == null) {
                 logger.warn("unable to create a initializer for field: " + fieldParameter);
                 continue;
             }
-            constructor.addMetadata(metadata);
-
-            if (fieldParameter.getName() != null && objectRoutineContainer.getName() == null) {
-                objectRoutineContainer.setName(fieldParameter.getName());
-            }
+            mockCreatorCandidates.add(metadata);
         }
 
+
+        return mockCreatorCandidates;
 
     }
 
