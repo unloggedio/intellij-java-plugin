@@ -5,19 +5,11 @@ import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
-import com.insidious.plugin.factory.VideobugUtils;
 import com.insidious.plugin.ui.Components.ModulePanel;
 import com.insidious.plugin.ui.Components.OnboardingV2Scaffold;
 import com.insidious.plugin.ui.Components.WaitingScreen;
 import com.insidious.plugin.ui.Components.WaitingStateComponent;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.execution.Executor;
-import com.intellij.execution.RunManager;
-import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.execution.application.ApplicationConfiguration;
-import com.intellij.execution.executors.DefaultRunExecutor;
-import com.intellij.execution.impl.DefaultJavaProgramRunner;
-import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -97,39 +89,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.mainPanel.revalidate();
         System.out.println("waiting screen added");
 
-//        applyConfigButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                routeToDocumentationpage();
-//            }
-//        });
-//        applyConfigButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        linkToDiscordButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                routeToDiscord();
-//            }
-//        });
-//        linkToDiscordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        copyVMoptionsButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                copyVMoptions();
-//            }
-//        });
-//        copyVMoptionsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        addToDependenciesButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-//        Color color = new Color(225,163,54,25);
-//        Border border = new LineBorder(UI_Utils.yellow_alert);
-//        highlightPanel.setBorder(border);
-//        highlightPanel.setBackground(color);
-//
-//        highlightPanel.setVisible(false);
-//        bottomPanel.setVisible(false);
-//
-//
-//        });
-
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         if (dumbService.isDumb()) {
             InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
@@ -138,28 +97,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         dumbService.runWhenSmart(() -> {
             startSetupInBackground_v3();
         });
-//        addToDependenciesButton.addMouseListener(new MouseAdapter() {
-//            @Override
-//            public void mouseClicked(MouseEvent e) {
-//                postProcessDependencies(dependencies_status, selectedDependencies);
-//            }
-//        });
     }
 
     public void setAddopens(boolean addopens)
     {
         this.addopens=addopens;
     }
-
-//    private void startSetupInBackground_v2() {
-//
-//        ApplicationManager.getApplication()
-//                .runReadAction(new Runnable() {
-//                    public void run() {
-//                        setupWindowContent();
-//                    }
-//                });
-//    }
 
     private void startSetupInBackground_v3() {
 
@@ -177,6 +120,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if(insidiousService.areLogsPresent())
         {
             //go to live
+            downloadAgentinBackground();
             setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,this);
             insidiousService.addLiveView();
         }
@@ -572,7 +516,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     }
                     break;
                 case "jackson-2.14":
-                    if(checksum.equals(Checksums.AGENT_JACKSON_2_13)) {
+                    if(checksum.equals(Checksums.AGENT_JACKSON_2_14)) {
                         return true;
                     }
                     break;
