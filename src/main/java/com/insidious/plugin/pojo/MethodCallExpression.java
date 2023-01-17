@@ -47,14 +47,6 @@ public class MethodCallExpression implements Expression, Serializable {
     private boolean isUIselected = false;
     private int methodDefinitionId;
 
-    public int getThreadId() {
-        return threadId;
-    }
-
-    public void setThreadId(int threadId) {
-        this.threadId = threadId;
-    }
-
     public MethodCallExpression() {
     }
 
@@ -69,6 +61,14 @@ public class MethodCallExpression implements Expression, Serializable {
         this.arguments = arguments;
         this.returnValue = returnValue;
         this.callStack = callStack;
+    }
+
+    public int getThreadId() {
+        return threadId;
+    }
+
+    public void setThreadId(int threadId) {
+        this.threadId = threadId;
     }
 
     public long getParentId() {
@@ -329,10 +329,17 @@ public class MethodCallExpression implements Expression, Serializable {
             MethodCallExpression jsonFromFileCall = null;
             jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
 
-            PendingStatement.in(objectRoutineScript, testGenerationState)
-                    .assignVariable(returnSubjectExpectedObject)
-                    .writeExpression(jsonFromFileCall)
-                    .endStatement();
+            if (returnSubjectExpectedObject.getIsEnum()) {
+                PendingStatement.in(objectRoutineScript, testGenerationState)
+                        .assignVariable(returnSubjectExpectedObject)
+                        .writeExpression(MethodCallExpressionFactory.createEnumExpression(returnSubjectExpectedObject))
+                        .endStatement();
+            } else {
+                PendingStatement.in(objectRoutineScript, testGenerationState)
+                        .assignVariable(returnSubjectExpectedObject)
+                        .writeExpression(jsonFromFileCall)
+                        .endStatement();
+            }
         }
 
         // reconstruct object from the serialized form to an object instance in the

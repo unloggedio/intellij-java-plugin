@@ -38,6 +38,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.StringUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -439,7 +440,6 @@ public class SessionInstance {
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
-
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
@@ -3475,86 +3475,51 @@ public class SessionInstance {
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
         resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
-
         // check if the param are ENUM
-        resolveEnumType((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        createParamEnumPropertyTrueIfTheyAre((MethodCallExpression) testCandidateMetadata.getMainMethod());
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                 resolveTemplatesInCall(methodCallExpression);
+                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
         return testCandidateMetadata;
     }
 
-    private void resolveEnumType(MethodCallExpression methodCallExpression) {
-        Parameter callSubject = methodCallExpression.getSubject();
-        String subjectType = callSubject.getType();
-        //
-        if (subjectType.length() == 1) {
-            return;
-        }
-        if (classNotFound.containsKey(subjectType)) {
-            return;
-        }
-
-        PsiClass classPsiInstance = null;
-        try {
-            classPsiInstance = JavaPsiFacade.getInstance(project)
-                    .findClass(ClassTypeUtils.getJavaClassName(subjectType), GlobalSearchScope.allScope(project));
-        } catch (IndexNotReadyException e) {
-//            e.printStackTrace();
-            InsidiousNotification.notifyMessage("Test Generation can start only after indexing is complete!",
-                    NotificationType.ERROR);
-        }
-
-        if (classPsiInstance == null) {
-            // if a class by this name was not found, then either we have a different project loaded
-            // or the source code has been modified and the class have been renamed or deleted or moved
-            // cant do much here
-            logger.warn("Class not found in source code for resolving enum type: " + subjectType);
-            return;
-        }
-        JvmMethod[] methodPsiInstanceList =
-                classPsiInstance.findMethodsByName(methodCallExpression.getMethodName());
-        if (methodPsiInstanceList.length == 0) {
-            logger.warn(
-                    "[1] did not find a matching method in source code: " + subjectType + "." + methodCallExpression.getMethodName());
-            return;
-        }
-
+    private void createParamEnumPropertyTrueIfTheyAre(MethodCallExpression methodCallExpression) {
         List<Parameter> methodArguments = methodCallExpression.getArguments();
-        int expectedArgumentCount = methodArguments
-                .size();
-        for (JvmMethod jvmMethod : methodPsiInstanceList) {
 
-            int parameterCount = jvmMethod.getParameters().length;
-            if (expectedArgumentCount != parameterCount) {
-                // this is not the method which we are looking for
-                // either this has been updated in the source code and so we wont find a matching method
-                // or this is an overridden method
-                continue;
-            }
+        for (int i = 0; i < methodArguments.size(); i++) {
+            Parameter methodArgument = methodArguments.get(i);
+            //param is enum then we set it to enum type
+            checkAndSetParameterEnumIfYesMakeNameCamelCase(methodArgument);
+        }
+        // check for the return value type if its enum
+        checkAndSetParameterEnumIfYesMakeNameCamelCase(methodCallExpression.getReturnValue());
+    }
 
-            JvmParameter @NotNull [] parameters = jvmMethod.getParameters();
-            // to resolve generics
-            for (int i = 0; i < parameters.length; i++) {
-                JvmParameter parameterFromSourceCode = parameters[i];
-                Parameter parameterFromProbe = methodArguments.get(i);
 
-                //param is enum then we set it to enum type
-                // todo : Optimise this enum type search in classInfoIndex
-                for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
-                    String currParamType = parameterFromProbe.getType()
-                            .replace('.', '/');
-                    ClassInfo currClassInfo = entry.getValue();
-                    if (currClassInfo.getClassName()
-                            .equals(currParamType)) {
-                        // curr class info is present and is enum set param as enum
-                        if (currClassInfo.isEnum()) {
-                            parameterFromProbe.setIsEnum(true);
-                        }
-                    }
+    private void checkAndSetParameterEnumIfYesMakeNameCamelCase(Parameter param) {
+        if (param == null || param.getType() == null)
+            return;
+
+        // todo : Optimise this enum type search in classInfoIndex
+        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
+            String currParamType = param.getType()
+                    .replace('.', '/');
+            ClassInfo currClassInfo = entry.getValue();
+            if (currClassInfo.getClassName()
+                    .equals(currParamType)) {
+                // curr class info is present and is enum set param as enum
+                if (currClassInfo.isEnum()) {
+                    param.setIsEnum(true);
+
+                    //change Name Of Param to use a camelCase and lowercase
+                    List<String> names = param.getNamesList();
+                    String modifiedName = StringUtils.convertToSnakeCaseToCamelCase(names.get(0));
+                    names.remove(0);
+                    names.add(0, modifiedName);
                 }
             }
         }
