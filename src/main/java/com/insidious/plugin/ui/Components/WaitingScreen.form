@@ -28,7 +28,7 @@
             <properties>
               <font size="16"/>
               <foreground color="-1"/>
-              <icon value="icons/gif/clock_animated.gif"/>
+              <icon value="icons/png/waiting_icon_teal_64.png"/>
               <iconTextGap value="8"/>
               <text value="Unlogged is waiting for Indexing to complete"/>
             </properties>
