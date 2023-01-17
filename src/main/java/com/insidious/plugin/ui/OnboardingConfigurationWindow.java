@@ -557,7 +557,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         while (lib_iterator.hasNext()) {
             Library lib = lib_iterator.next();
                 if(lib.getName()
-                        .contains("jackson-databind"))
+                        .contains("jackson-databind:"))
                 {
                     insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(fetchVersionFromLibName(lib.getName(),"jackson-databind"));
                 }
