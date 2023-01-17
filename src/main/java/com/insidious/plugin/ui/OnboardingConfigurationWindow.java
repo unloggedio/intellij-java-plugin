@@ -571,6 +571,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         return true;
                     }
                     break;
+                case "jackson-2.14":
+                    if(checksum.equals(Checksums.AGENT_JACKSON_2_13)) {
+                        return true;
+                    }
+                    break;
             }
         } catch (Exception e) {
             System.out.println("Failed to get checksum of downloaded file.");
