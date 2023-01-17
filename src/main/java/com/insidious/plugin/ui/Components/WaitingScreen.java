@@ -15,4 +15,9 @@ public class WaitingScreen {
     {
         return basePanel;
     }
+
+    public void setText(String text)
+    {
+        this.mainTextLabel.setText(text);
+    }
 }

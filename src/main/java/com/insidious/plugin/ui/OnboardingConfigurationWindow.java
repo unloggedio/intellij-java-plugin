@@ -32,21 +32,16 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
-import io.minio.messages.Progress;
 import org.jetbrains.annotations.NotNull;
 
 import javax.swing.Timer;
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.math.BigInteger;
-import java.net.URI;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,12 +68,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     private boolean addopens = false;
     public TreeMap<String,String> dependencies_status = new TreeMap<>();
 
+    private WaitingScreen waitingScreen;
+
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
         this.insidiousService = insidiousService;
 
         System.out.println("Init waiting screen");
-        WaitingScreen waitingScreen = new WaitingScreen();
+        waitingScreen = new WaitingScreen();
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0,0,0,0));
@@ -120,7 +117,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if(insidiousService.areLogsPresent())
         {
             //go to live
-            downloadAgentinBackground();
+            runDownloadCheckWhenLogsExist();
             setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,this);
             insidiousService.addLiveView();
         }
@@ -129,6 +126,16 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             //check for dependencies
             processCheck();
         }
+    }
+
+    private void runDownloadCheckWhenLogsExist()
+    {
+        ApplicationManager.getApplication()
+                .runReadAction(new Runnable() {
+                    public void run() {
+                        searchDependencies_jacksonDatabind();
+                    }
+                });
     }
 
     public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state, OnboardingService onboardingService)
@@ -222,7 +229,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             System.out.println("Fetching from POM.xml/settings.gradle");
             Set<String> modules_from_pg = insidiousService.fetchModuleNames();
             modules_from_mm.addAll(modules_from_pg);
-            //populateModules_v2(new ArrayList<>(modules_from_mm));
         } catch (Exception e) {
             System.out.println("Exception fetching modules");
             System.out.println(e);
@@ -582,6 +588,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             else
             {
                 setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION, fetchMissingDependencies(),this);
+            }
+        }
+    }
+
+    private void searchDependencies_jacksonDatabind() {
+        TreeMap<String,String> depVersions = new TreeMap<>();
+        for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
+        {
+            depVersions.put(dependency,null);
+        }
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext()) {
+            Library lib = lib_iterator.next();
+                if(lib.getName()
+                        .contains("jackson-databind"))
+                {
+                    insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(fetchVersionFromLibName(lib.getName(),"jackson-databind"));
+                }
+            count++;
+        }
+        if (count == 0) {
+            //import of project not complete, wait and rerun
+            System.out.println("Project import not complete, waiting.");
+            Timer timer = new Timer(3000, new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent arg0) {
+                    searchDependencies_generic();
+                }
+            });
+            timer.setRepeats(false);
+            timer.start();
+        } else {
+            //search is complete
+            if (!agentDownloadInitiated) {
+                downloadAgentinBackground();
             }
         }
     }
