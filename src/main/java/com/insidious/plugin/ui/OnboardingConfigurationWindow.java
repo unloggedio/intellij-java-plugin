@@ -5,6 +5,7 @@ import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.Components.ModulePanel;
 import com.insidious.plugin.ui.Components.OnboardingV2Scaffold;
 import com.insidious.plugin.ui.Components.WaitingScreen;
@@ -33,6 +34,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.swing.Timer;
 import javax.swing.*;
@@ -393,6 +395,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent(String url, boolean overwrite) {
         logger.info("[starting download]");
+        UsageInsightTracker.getInstance()
+                .RecordEvent("AgentDownloadStart", null);
         Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
@@ -412,19 +416,30 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             if (md5Check(fetchVersionFromUrl(url), agentFile)) {
                 InsidiousNotification.notifyMessage("Agent downloaded.",
                         NotificationType.INFORMATION);
+
             } else {
                 InsidiousNotification.notifyMessage(
                         "Agent md5 check failed."
                                 + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                         NotificationType.ERROR);
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("MD5checkFailed", null);
             }
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("agent_version",fetchVersionFromUrl(url));
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("AgentDownloadDone", eventProperties);
         } catch (Exception e) {
             logger.info("[Agent download failed]");
-//            System.out.println("failed to download java agent"+ e);
             InsidiousNotification.notifyMessage(
                     "Failed to download agent."
                             + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                     NotificationType.ERROR);
+
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("exception",e.getMessage());
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("AgentDownloadException", eventProperties);
         }
     }
 
@@ -488,6 +503,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     //fetch all the dependencies from agent.
     private void searchDependencies_generic() {
+        UsageInsightTracker.getInstance()
+                .RecordEvent("DependencyScanStart", null);
         TreeMap<String,String> depVersions = new TreeMap<>();
         for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
         {
@@ -533,6 +550,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             if (!agentDownloadInitiated) {
                 downloadAgentinBackground();
             }
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("DependencyScanEnd", null);
             if(fetchMissingDependencies().size()==0)
             {
                 setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS, this);
@@ -801,15 +820,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             VirtualFile file = psipomFile.getVirtualFile();
             File pomFile = new File(file.getPath());
             String source = psipomFile.getText();
-            String[] parts = source.split("<dependencies>");
-            String finalstring = parts[0]+"\n<dependencies>"+text+"";
-            StringBuilder fs = new StringBuilder(finalstring);
-            for(int i=1;i< parts.length;i++)
-            {
-                fs.append(parts[i]);
-            }
-            finalstring = fs.toString();
-
+            String[] parts = source.split("<dependencies>",2);
+            String finalstring = parts[0]+"\n<dependencies>"+text+""+parts[1];
                 try (FileOutputStream out = new FileOutputStream(pomFile)) {
                     out.write(finalstring
                             .getBytes(StandardCharsets.UTF_8));
@@ -821,6 +833,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             InsidiousNotification.notifyMessage(
                     "Dependencies added to pom.xml "+text, NotificationType.INFORMATION
             );
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("PomDependenciesAdded", null);
         }
         catch (Exception e)
         {
@@ -830,6 +844,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     "Failed to write to pom."
                             + e.getMessage(), NotificationType.ERROR
             );
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("FailedToAddPomDependencies", null);
         }
     }
 
@@ -839,15 +855,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             VirtualFile file = psiGradleFile.getVirtualFile();
             File pomFile = new File(file.getPath());
             String source = psiGradleFile.getText();
-            String[] parts = source.split("dependencies \\{");
-            String finalstring = parts[0]+"\ndependencies {"+text+"";
-
-            StringBuilder fs = new StringBuilder(finalstring);
-            for(int i=1;i< parts.length;i++)
-            {
-                fs.append(parts[i]);
-            }
-            finalstring = fs.toString();
+            String[] parts = source.split("dependencies \\{",2);
+            String finalstring = parts[0]+"\ndependencies {"+text+""+parts[1];
 
             try (FileOutputStream out = new FileOutputStream(pomFile)) {
                 out.write(finalstring
@@ -859,6 +868,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             InsidiousNotification.notifyMessage(
                     "Dependencies added to build.gradle "+text, NotificationType.INFORMATION
             );
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("GradleDependenciesAdded", null);
         }
         catch (Exception e)
         {
@@ -868,6 +879,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     "Failed to write to build.gradle. "
                             + e.getMessage(), NotificationType.ERROR
             );
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("FailedToAddGradleDependencies", null);
         }
     }
 

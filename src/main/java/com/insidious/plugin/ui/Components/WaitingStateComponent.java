@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.UI_Utils;
 
 import javax.swing.*;
@@ -73,6 +74,8 @@ public class WaitingStateComponent {
                 break;
             case SWITCH_TO_LIVE_VIEW:
                 System.out.println("Switching to live view");
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("ProceedToUnitTest", null);
                 stateManager.transistionToState(WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW);
         }
     }
@@ -85,7 +88,7 @@ public class WaitingStateComponent {
                 //UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
                 this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Waiting for logs");
-                this.bodyLabel.setText("<html><body style='text-align: center'>After agent is added, send data to your application using <br>Postman, Swagger or UI.</body></html>");
+                this.bodyLabel.setText("<html><body style='text-align: center'>After the agent is added, send data to your application using <br>Postman, Swagger or UI.</body></html>");
                 setButtonState(false);
                 setMainPanelBorder(UI_Utils.yellow_alert);
                 stateManager.checkForSelogs();

@@ -2,8 +2,10 @@ package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -132,6 +134,8 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
             //switch state
             System.out.println("Can Switch to LIVE VIEW");
             loadWaitingStateComponent(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW);
+            UsageInsightTracker.getInstance()
+                    .RecordEvent("LogsReady", null);
         }
         else
         {
