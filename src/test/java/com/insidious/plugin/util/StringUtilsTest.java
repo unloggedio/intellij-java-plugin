@@ -57,10 +57,10 @@ class StringUtilsTest {
         String c = "MONDAY";
         String d = "WHAT_THE_HECK";
 
-        a = StringUtils.convertToSnakeCaseToCamelCase(a);
-        b = StringUtils.convertToSnakeCaseToCamelCase(b);
-        c = StringUtils.convertToSnakeCaseToCamelCase(c);
-        d = StringUtils.convertToSnakeCaseToCamelCase(d);
+        a = StringUtils.convertSnakeCaseToCamelCase(a);
+        b = StringUtils.convertSnakeCaseToCamelCase(b);
+        c = StringUtils.convertSnakeCaseToCamelCase(c);
+        d = StringUtils.convertSnakeCaseToCamelCase(d);
 
         Assert.assertEquals("kuchTohHuaHai", a);
         Assert.assertEquals("kuchTohHuaHai", b);
