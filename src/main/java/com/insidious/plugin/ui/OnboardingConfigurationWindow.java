@@ -74,7 +74,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.project = project;
         this.insidiousService = insidiousService;
 
-        System.out.println("Init waiting screen");
         waitingScreen = new WaitingScreen();
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
@@ -84,7 +83,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         gridPanel.add(waitingScreen.getCompenent(), constraints);
         mainPanel.add(gridPanel, BorderLayout.CENTER);
         this.mainPanel.revalidate();
-        System.out.println("waiting screen added");
 
         DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
         if (dumbService.isDumb()) {
@@ -94,11 +92,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         dumbService.runWhenSmart(() -> {
             startSetupInBackground_v3();
         });
-    }
-
-    public void setAddopens(boolean addopens)
-    {
-        this.addopens=addopens;
     }
 
     private void startSetupInBackground_v3() {
@@ -119,7 +112,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             //go to live
             runDownloadCheckWhenLogsExist();
             setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,this);
-            insidiousService.addLiveView();
+            //insidiousService.addLiveView();
         }
         else
         {
@@ -316,46 +309,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         return basePackage;
     }
-
-//    private void runApplicationWithUnlogged() {
-//        if (true) {
-//            return;
-//        }
-//        //make run configuration selectable or add vm options to existing run config
-//        //wip
-//        System.out.println("[VM OPTIONS FROM SELECTION]");
-//        if (selectedPackages.size() > 0) {
-//            String unloggedVMOptions = buildVmOptionsFromSelections();
-//            System.out.println("" + unloggedVMOptions);
-//            List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class)
-//                    .getAllSettings();
-//            for (RunnerAndConfigurationSettings runSetting : allSettings) {
-//                System.out.println("runner config - " + runSetting.getName());
-//                if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-//
-//                    System.out.println("ApplicationConfiguration config - " + runSetting.getConfiguration()
-//                            .getName());
-//                    final ProgramRunner runner = DefaultJavaProgramRunner.getInstance();
-//                    final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
-//                    ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-//                    String currentVMParams = applicationConfiguration.getVMParameters();
-//                    String newVmOptions = "";
-//                    newVmOptions = VideobugUtils.addAgentToVMParams(currentVMParams, unloggedVMOptions);
-//                    //applicationConfiguration.setVMParameters(newVmOptions.trim());
-//                    try {
-//                        //     runner.execute(new ExecutionEnvironment(executor, runner, runSetting, project), null);
-//                        break;
-//                    } catch (Exception e) {
-//                        System.out.println("Failed to start application");
-//                        System.out.println(e);
-//                        e.printStackTrace();
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-
 
     public String trimVersion(String version) {
         String versionParts[] = version.split("\\.");
@@ -560,7 +513,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             count++;
         }
         if (count == 0) {
-            //import of project not complete, wait and rerun
             System.out.println("Project import not complete, waiting.");
             Timer timer = new Timer(3000, new ActionListener() {
                 @Override

@@ -7,6 +7,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -224,6 +225,10 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
                 routeToDiscord();
             }
         });
+
+        moduleSelectionPanel.setBorder(new LineBorder(new Color(32,32,32)));
+        JavaVersionSelectionPanel.setBorder(new LineBorder(new Color(32,32,32)));
+        includePanel.setBorder(new LineBorder(new Color(32,32,32)));
     }
 
     public void populateModules(List<String> modules)
