@@ -502,7 +502,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             for(String dependency : insidiousService.getProjectTypeInfo().getDependenciesToWatch())
             {
                 if(lib.getName()
-                        .contains(dependency))
+                        .contains(dependency+":"))
                 {
                     String version = fetchVersionFromLibName(lib.getName(),dependency);
                     System.out.println("Version of "+dependency+" is "+version);
