@@ -2409,9 +2409,9 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-//            if (eventBlock.valueId() == 64063964) {
-//                logger.warn("here: " + logFile);
-//            }
+            if (eventBlock.probeId() == 786785) {
+                logger.warn("here: " + logFile);
+            }
             switch (probeInfo.getEventType()) {
 
                 case LABEL:
@@ -3589,7 +3589,12 @@ public class SessionInstance {
                     PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
                     if (!classReferenceType.getReference()
                             .getQualifiedName()
-                            .equals(parameterFromProbe.getType())) {
+                            .startsWith(parameterFromProbe.getType())) {
+                        logger.warn(
+                                "Call expected argument [" + i + "] [" + parameterFromProbe.getType() + "] did not " +
+                                        "match return type in  source: [" + classReferenceType.getCanonicalText()
+                                        + "] for call: " + methodCallExpression);
+
                         break;
                     }
 
@@ -3603,6 +3608,10 @@ public class SessionInstance {
                             templateChar++;
                             Parameter value = new Parameter();
                             String canonicalText = typeTemplateParameter.getCanonicalText();
+                            if (canonicalText.contains(" super ")) {
+                                canonicalText = canonicalText.substring(
+                                        canonicalText.indexOf(" super ") + " super ".length());
+                            }
                             if (canonicalText.length() == 1) {
                                 hasGenericTemplate = true;
                                 break;
