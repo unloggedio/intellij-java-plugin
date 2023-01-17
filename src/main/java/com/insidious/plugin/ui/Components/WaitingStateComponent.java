@@ -82,7 +82,8 @@ public class WaitingStateComponent {
         switch (state)
         {
             case WAITING_FOR_LOGS:
-                UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
+                //UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
+                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Waiting for logs");
                 this.bodyLabel.setText("<html><body style='text-align: center'>After agent is added, send data to your application using <br>Postman, Swagger or UI.</body></html>");
                 setButtonState(false);
@@ -90,21 +91,24 @@ public class WaitingStateComponent {
                 stateManager.checkForSelogs();
                 return;
             case SWITCH_TO_LIVE_VIEW:
-                UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
+                //UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
+                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_SUCCESS);
                 this.headingLabel.setText("Ready to Generate!");
                 this.bodyLabel.setText("We have a few cases ready to generate.");
                 setButtonState(true);
                 setMainPanelBorder(UI_Utils.teal);
                 return;
             case AWAITING_DEPENDENCY_ADDITION:
-                UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
+                //UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
+                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Missing dependencies");
                 this.bodyLabel.setText("Please add the dependencies to proceed.");
                 setButtonState(false);
                 setMainPanelBorder(UI_Utils.yellow_alert);
                 return;
             case SWITCH_TO_DOCUMENTATION:
-                UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
+                //UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
+                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_SUCCESS);
                 this.headingLabel.setText("Proceed to Documentation");
                 this.bodyLabel.setText("<html><body style='text-align: center'>Dependencies added, <br>please sync your project and proceed</body></html>");
                 setButtonState(true);
