@@ -24,9 +24,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
@@ -466,17 +464,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         {
             System.out.println("No need to download agent. Required version is already present");
             //agent already exists with correct version
-            //prompt
-//            InsidiousNotification.notifyMessage(
-//                    "Agent with required dependency already present",
-//                    NotificationType.INFORMATION);
             return;
         }
         agentDownloadInitiated = true;
-//        logger.info("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
-//        System.out.println("[Downloading agent/Jackson dependency ? ] "+insidiousService.getProjectTypeInfo().getJacksonDatabindVersion());
         String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.8.29-SNAPSHOT-";
-        String type = "gson";
+        String type = insidiousService.getProjectTypeInfo().getDefaultAgentType();
         String extention = ".jar";
 
         if (insidiousService.getProjectTypeInfo()
@@ -501,12 +493,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
-//        System.out.println("Downloading agent to path - " + absolutePath);
 
         File agentFile = new File(absolutePath);
-//        System.out.println("URL in Download "+url);
         if (agentFile.exists() && !overwrite) {
-//            System.out.println("java agent already exists at the path");
             return;
         }
         try (BufferedInputStream inputStream = new BufferedInputStream(new URL(url).openStream());
@@ -628,27 +617,18 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             timer.start();
         } else {
             //search is complete
-            System.out.println("[DEP SEARCH] Dependencies final found");
-            System.out.println(depVersions);
             this.dependencies_status=depVersions;
-            //updateDependenciesTab();
-            //move to another bg thread
             if (!agentDownloadInitiated) {
-                downloadAgent();
+                downloadAgentinBackground();
             }
             if(fetchMissingDependencies().size()==0)
             {
-                //go to docs
-                System.out.println("Going to docs");
                 setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS, this);
             }
             else
             {
-                //go to dep mgmt
-                System.out.println("Dep mgmt");
                 setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION, fetchMissingDependencies(),this);
             }
-            //postProcessDependencies(depVersions);
         }
     }
 
@@ -697,18 +677,20 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-//
-//    public void downloadAgentinBackground()
-//    {
-//        Task.Backgroundable dl_task =
-//            new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-//                @Override
-//                public void run(@NotNull ProgressIndicator indicator) {
-//                }
-//            };
-//        ProgressManager.getInstance().run(dl_task);
-//    }
-//
+
+    public void downloadAgentinBackground()
+    {
+        Task.Backgroundable dl_task =
+            new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+                @Override
+                public void run(@NotNull ProgressIndicator indicator) {
+                    checkProgressIndicator("Downloading agent jar",null);
+                    downloadAgent();
+                }
+            };
+        ProgressManager.getInstance().run(dl_task);
+    }
+
     public String fetchVersionFromLibName(String name, String lib)
     {
         String[] parts = name
@@ -972,5 +954,22 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         List<Integer> keys = new ArrayList<>(sizemaps.keySet());
         Collections.sort(keys);
         return sizemaps.get(keys.get(0));
+    }
+
+    private void checkProgressIndicator(String text1, String text2) {
+        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
+                    .isCanceled()) {
+                throw new ProcessCanceledException();
+            }
+            if (text2 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText2(text2);
+            }
+            if (text1 != null) {
+                ProgressIndicatorProvider.getGlobalProgressIndicator()
+                        .setText(text1);
+            }
+        }
     }
 }

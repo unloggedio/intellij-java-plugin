@@ -10,8 +10,13 @@ public class ProjectTypeInfo {
     private final boolean detectDependencies=true;
     private List<Map<String,String>> serializers = new ArrayList<>();
     private String jacksonDatabindVersion = null;
-    private final boolean downloadAgent = false;
+    private final boolean downloadAgent = true;
     private Set<String> dependencies_addedManually = new HashSet<>();
+    private final String defaultAgentType = "jackson-2.13"; //or 'gson' if you want to use gson.
+
+    public String getDefaultAgentType() {
+        return defaultAgentType;
+    }
 
     public String getJavaVersion() {
         return javaVersion;
