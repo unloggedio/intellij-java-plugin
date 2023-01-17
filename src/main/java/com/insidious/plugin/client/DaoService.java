@@ -1389,6 +1389,7 @@ public class DaoService {
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
         try {
+            classDefinitionsDao.executeRaw("delete from class_definition");
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1399,12 +1400,12 @@ public class DaoService {
 
     public void createOrUpdateMethodDefinitions(List<MethodDefinition> methodDefinitions) {
         try {
+            methodDefinitionsDao.executeRaw("delete from method_definition");
             methodDefinitionsDao.create(methodDefinitions);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
-
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>

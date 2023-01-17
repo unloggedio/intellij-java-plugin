@@ -560,15 +560,21 @@ public class SessionInstance {
 
                 methodDefinitionList.add(methodDefinition);
             }
-            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
+//            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
 
             Map<Integer, DataInfo> probesMap = dataInfoList.stream()
                     .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
             probeInfoIndex.putAll(probesMap);
         }
 
-        daoService.createOrUpdateClassDefinitions(classDefinitionList);
-        daoService.createOrUpdateMethodDefinitions(methodDefinitionList);
+        daoService.createOrUpdateClassDefinitions(classInfoIndex.values()
+                .stream()
+                .map(ClassDefinition::fromClassInfo)
+                .collect(Collectors.toList()));
+        daoService.createOrUpdateMethodDefinitions(methodInfoIndex.values()
+                .stream()
+                .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
+                .collect(Collectors.toList()));
         classWeaveInfo._io()
                 .close();
     }
@@ -3673,9 +3679,10 @@ public class SessionInstance {
                             .getQualifiedName()
                             .equals(returnParameter.getType())) {
                         // type name mismatch
-                        logger.warn("Call expected return [" + returnParameter.getType() + "] did not match return type in " +
-                                "source: [" + returnTypeClassReference.getCanonicalText()
-                                + "] for call: " + methodCallExpression);
+                        logger.warn(
+                                "Call expected return [" + returnParameter.getType() + "] did not match return type in " +
+                                        "source: [" + returnTypeClassReference.getCanonicalText()
+                                        + "] for call: " + methodCallExpression);
                         continue;
                     } else {
                         // type matched, we can go ahead to identify template parameters
