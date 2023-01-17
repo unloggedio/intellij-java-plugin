@@ -551,7 +551,9 @@ public class DaoService {
         for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
             Parameter dbParameter = dbParameterMap.get(parameter.getValue());
             parameter.setProb(probesMap.get(dbParameter.getProb_id()));
-            parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
+            if (probeInfoMap.get(dbParameter.getProbeInfo_id()) != null) {
+                parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
+            }
         }
 
         Map<Long, com.insidious.plugin.pojo.Parameter> parameterMap = parameters.stream()
@@ -575,6 +577,12 @@ public class DaoService {
                 methodCallExpression.setSubject(
                         com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
                 );
+            }
+            if (methodCallExpression.getSubject().getType().startsWith("java.util.")) {
+                continue;
+            }
+            if (methodCallExpression.getSubject().getType().startsWith("org.springframework.cglib")) {
+                continue;
             }
 
             com.insidious.plugin.pojo.Parameter subject = methodCallExpression.getSubject();
@@ -616,7 +624,8 @@ public class DaoService {
                         && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(argumentTypeFromProbe);
                 }
-                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && !existingType.equals(argumentTypeFromMethodDefinition)) {
+                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null ||
+                        !existingType.equals(argumentTypeFromMethodDefinition))) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
 

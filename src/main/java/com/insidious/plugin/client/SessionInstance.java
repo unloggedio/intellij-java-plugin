@@ -3503,27 +3503,34 @@ public class SessionInstance {
         if (param == null || param.getType() == null)
             return;
 
-        // todo : Optimise this enum type search in classInfoIndex
-        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
-            String currParamType = param.getType()
-                    .replace('.', '/');
-            ClassInfo currClassInfo = entry.getValue();
-            if (currClassInfo.getClassName()
-                    .equals(currParamType)) {
-                // curr class info is present and is enum set param as enum
-                if (currClassInfo.isEnum()) {
-                    param.setIsEnum(true);
-
-                    //change Name Of Param to use a camelCase and lowercase
-//                    List<String> names = param.getNamesList();
-//                    if (names != null && names.size() > 0) {
-//                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
-//                        names.remove(0);
-//                        names.add(0, modifiedName);
-//                    }
-                }
-            }
+        ClassInfo classInfo = classInfoIndexByName.get(param.getType());
+        if (classInfo == null) {
+            return;
         }
+        if (classInfo.isEnum()) {
+            param.setIsEnum(true);
+        }
+        // todo : Optimise this enum type search in classInfoIndex
+//        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
+//            String currParamType = param.getType()
+//                    .replace('.', '/');
+//            ClassInfo currClassInfo = entry.getValue();
+//            if (currClassInfo.getClassName()
+//                    .equals(currParamType)) {
+//                // curr class info is present and is enum set param as enum
+//                if (currClassInfo.isEnum()) {
+//                    param.setIsEnum(true);
+//
+//                    //change Name Of Param to use a camelCase and lowercase
+////                    List<String> names = param.getNamesList();
+////                    if (names != null && names.size() > 0) {
+////                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+////                        names.remove(0);
+////                        names.add(0, modifiedName);
+////                    }
+//                }
+//            }
+//        }
     }
 
     private void resolveTemplatesInCall(MethodCallExpression methodCallExpression) {
