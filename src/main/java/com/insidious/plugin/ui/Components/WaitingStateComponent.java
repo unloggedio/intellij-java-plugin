@@ -12,7 +12,6 @@ public class WaitingStateComponent {
     private JPanel mainPanel;
     private JPanel containerCenter;
     private JPanel topPanel;
-    private JPanel bottomPanel;
     private JLabel iconLabel;
     private JLabel headingLabel;
     private JButton proceedButton;
@@ -39,9 +38,7 @@ public class WaitingStateComponent {
         this.stateManager=stateManager;
         this.currentState=state;
         setState(state);
-
-        System.out.println("Initial status "+state);
-
+        this.proceedButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         proceedButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -85,31 +82,32 @@ public class WaitingStateComponent {
         switch (state)
         {
             case WAITING_FOR_LOGS:
+                UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
                 this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Waiting for logs");
-                this.bodyLabel.setText("After agent is added, send data to your application using Postman, Swagger or UI.");
+                this.bodyLabel.setText("<html><body style='text-align: center'>After agent is added, send data to your application using <br>Postman, Swagger or UI.</body></html>");
                 setButtonState(false);
                 setMainPanelBorder(UI_Utils.yellow_alert);
                 stateManager.checkForSelogs();
                 return;
             case SWITCH_TO_LIVE_VIEW:
-                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_SUCCESS);
+                UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
                 this.headingLabel.setText("Ready to Generate!");
                 this.bodyLabel.setText("We have a few cases ready to generate.");
                 setButtonState(true);
                 setMainPanelBorder(UI_Utils.teal);
                 return;
             case AWAITING_DEPENDENCY_ADDITION:
-                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
+                UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Missing dependencies");
                 this.bodyLabel.setText("Please add the dependencies to proceed.");
                 setButtonState(false);
                 setMainPanelBorder(UI_Utils.yellow_alert);
                 return;
             case SWITCH_TO_DOCUMENTATION:
-                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_SUCCESS);
+                UI_Utils.setGifIconForLabel(this.iconLabel,"checkmark_animated.gif",UI_Utils.WAITING_COMPONENT_SUCCESS);
                 this.headingLabel.setText("Proceed to Documentation");
-                this.bodyLabel.setText("Dependencies added, please sync your project and proceed");
+                this.bodyLabel.setText("<html><body style='text-align: center'>Dependencies added, <br>please sync your project and proceed</body></html>");
                 setButtonState(true);
                 setMainPanelBorder(UI_Utils.teal);
         }
@@ -122,6 +120,18 @@ public class WaitingStateComponent {
     private void setButtonState(boolean status)
     {
         this.proceedButton.setEnabled(status);
+        if(!status)
+        {
+            this.proceedButton.setBorderPainted(true);
+            this.proceedButton.setContentAreaFilled(true);
+            this.proceedButton.setOpaque(false);
+        }
+        else
+        {
+            this.proceedButton.setBorderPainted(false);
+            this.proceedButton.setContentAreaFilled(false);
+            this.proceedButton.setOpaque(true);
+        }
     }
 
 }

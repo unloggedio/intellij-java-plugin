@@ -83,6 +83,7 @@ public class DependencyManagementComponent {
             constraints.setIndent(16);
             JLabel label = new JLabel();
             label.setText(dependency);
+            label.setIcon(UI_Utils.ARROW_YELLOW_RIGHT);
             label.setBorder(new EmptyBorder(4,8,0,0));
             gridPanel.add(label, constraints);
             i++;
