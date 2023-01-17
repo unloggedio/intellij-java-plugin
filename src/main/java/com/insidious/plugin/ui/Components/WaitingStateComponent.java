@@ -83,7 +83,6 @@ public class WaitingStateComponent {
         {
             case WAITING_FOR_LOGS:
                 UI_Utils.setGifIconForLabel(this.iconLabel,"clock_animated.gif",UI_Utils.WAITING_COMPONENT_WAITING);
-                this.iconLabel.setIcon(UI_Utils.WAITING_COMPONENT_WAITING);
                 this.headingLabel.setText("Waiting for logs");
                 this.bodyLabel.setText("<html><body style='text-align: center'>After agent is added, send data to your application using <br>Postman, Swagger or UI.</body></html>");
                 setButtonState(false);
