@@ -38,7 +38,6 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.util.StringUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -3481,7 +3480,7 @@ public class SessionInstance {
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                 resolveTemplatesInCall(methodCallExpression);
-                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
+//                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
         return testCandidateMetadata;
@@ -3516,12 +3515,12 @@ public class SessionInstance {
                     param.setIsEnum(true);
 
                     //change Name Of Param to use a camelCase and lowercase
-                    List<String> names = param.getNamesList();
-                    if (names != null && names.size() > 0) {
-                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
-                        names.remove(0);
-                        names.add(0, modifiedName);
-                    }
+//                    List<String> names = param.getNamesList();
+//                    if (names != null && names.size() > 0) {
+//                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+//                        names.remove(0);
+//                        names.add(0, modifiedName);
+//                    }
                 }
             }
         }
