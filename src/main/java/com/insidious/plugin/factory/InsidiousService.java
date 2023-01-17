@@ -1218,6 +1218,11 @@ public class InsidiousService implements Disposable {
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
+            liveViewWindow = new LiveViewWindow(project, this);
+            liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
+            liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+            liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
+
             onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
             onboardingConfigurationWindowContent = contentFactory.createContent(
                     onboardingConfigurationWindow.getContent(), "Get Started", false);
@@ -1225,10 +1230,6 @@ public class InsidiousService implements Disposable {
             singleWindowView = new SingleWindowView(project, this);
             singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
-            liveViewWindow = new LiveViewWindow(project, this);
-            liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-            liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-            liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
 
             onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
             onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
