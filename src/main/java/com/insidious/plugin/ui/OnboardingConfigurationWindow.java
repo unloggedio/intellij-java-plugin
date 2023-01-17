@@ -802,7 +802,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             File pomFile = new File(file.getPath());
             String source = psipomFile.getText();
             String[] parts = source.split("<dependencies>");
-            String finalstring = parts[0]+"\n<dependencies>"+text+""+parts[1];
+            String finalstring = parts[0]+"\n<dependencies>"+text+"";
+            StringBuilder fs = new StringBuilder(finalstring);
+            for(int i=1;i< parts.length;i++)
+            {
+                fs.append(parts[i]);
+            }
+            finalstring = fs.toString();
 
                 try (FileOutputStream out = new FileOutputStream(pomFile)) {
                     out.write(finalstring
@@ -834,7 +840,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             File pomFile = new File(file.getPath());
             String source = psiGradleFile.getText();
             String[] parts = source.split("dependencies \\{");
-            String finalstring = parts[0]+"\ndependencies {"+text+""+parts[1];
+            String finalstring = parts[0]+"\ndependencies {"+text+"";
+
+            StringBuilder fs = new StringBuilder(finalstring);
+            for(int i=1;i< parts.length;i++)
+            {
+                fs.append(parts[i]);
+            }
+            finalstring = fs.toString();
 
             try (FileOutputStream out = new FileOutputStream(pomFile)) {
                 out.write(finalstring
