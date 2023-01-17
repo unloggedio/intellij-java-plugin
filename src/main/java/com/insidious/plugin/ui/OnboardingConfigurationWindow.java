@@ -618,6 +618,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else {
             //search is complete
             this.dependencies_status=depVersions;
+            if(this.dependencies_status.get("jackson-databind")!=null)
+            {
+                this.insidiousService.getProjectTypeInfo().
+                        setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
+            }
             if (!agentDownloadInitiated) {
                 downloadAgentinBackground();
             }
