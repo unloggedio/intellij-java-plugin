@@ -59,7 +59,7 @@ public class StringUtils {
         return cs == null || cs.length() == 0;
     }
 
-    public static String convertToSnakeCaseToCamelCase(String str) {
+    public static String convertSnakeCaseToCamelCase(String str) {
         if (isEmpty(str))
             return str;
 

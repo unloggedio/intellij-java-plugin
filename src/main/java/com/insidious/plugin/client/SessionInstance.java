@@ -3517,9 +3517,11 @@ public class SessionInstance {
 
                     //change Name Of Param to use a camelCase and lowercase
                     List<String> names = param.getNamesList();
-                    String modifiedName = StringUtils.convertToSnakeCaseToCamelCase(names.get(0));
-                    names.remove(0);
-                    names.add(0, modifiedName);
+                    if (names.size() > 0) {
+                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+                        names.remove(0);
+                        names.add(0, modifiedName);
+                    }
                 }
             }
         }
