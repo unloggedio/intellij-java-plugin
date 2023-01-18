@@ -2,6 +2,7 @@ package com.insidious.plugin.factory.testcase.writer;
 
 
 import com.insidious.plugin.factory.testcase.TestGenerationState;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.line.CodeLine;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
@@ -31,7 +32,7 @@ public class ObjectRoutineScriptContainer {
      * Name for variable for this particular object
      */
     private String name;
-    private List<Parameter> fields = new LinkedList<>();
+    private VariableContainer fields = new VariableContainer();
     private String testMethodName;
 
     public ObjectRoutineScriptContainer(String packageName,
@@ -101,7 +102,7 @@ public class ObjectRoutineScriptContainer {
     }
 
     public List<Parameter> getFields() {
-        return this.fields;
+        return this.fields.all();
     }
 
     public String getTestMethodName() {
