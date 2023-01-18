@@ -308,7 +308,8 @@ public class SessionInstance {
 
     private void refreshWeaveInformation(KaitaiInsidiousClassWeaveParser classWeaveInfo) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
-        final long totalClassCount = classWeaveInfo.classInfo().size();
+        final long totalClassCount = classWeaveInfo.classInfo()
+                .size();
         checkProgressIndicator("Loading class mappings to scan events", null);
 
         List<MethodDefinition> methodDefinitionList = new ArrayList<>();
@@ -446,7 +447,8 @@ public class SessionInstance {
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                 new RandomAccessFileKaitaiStream(fileName));
-        long totalClassCount = classWeaveInfo.classInfo().size();
+        long totalClassCount = classWeaveInfo.classInfo()
+                .size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
@@ -3088,9 +3090,8 @@ public class SessionInstance {
                         }
                     }
 
-                    if (completedExceptional.getTestSubject() != null) {
-                        candidatesToSave.add(completedExceptional);
-                    }
+                    addMethodAsTestCandidate(candidatesToSave, completedExceptional);
+
                     if (!isModified) {
                         existingParameter = null;
                     }
@@ -3178,31 +3179,7 @@ public class SessionInstance {
                         }
                     }
 
-                    if (completed.getTestSubject() != null) {
-                        MethodCallExpression mainMethod = (MethodCallExpression) completed.getMainMethod();
-                        ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
-                                .getType());
-                        String candidateMethodName = mainMethod.getMethodName();
-//                            if (subjectClassInfo == null) {
-//                                logger.warn("here: " + subjectClassInfo);
-//                            }
-                        if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||
-                                candidateMethodName.equals("getTargetClass")
-                                || candidateMethodName.equals("getTargetSource")
-                                || candidateMethodName.equals("isFrozen")
-                                || candidateMethodName.equals("invoke")
-                                || candidateMethodName.contains("$")
-                                || candidateMethodName.equals("getIndex")
-                                || candidateMethodName.equals("values")
-                                || candidateMethodName.equals("hashCode")
-                                || candidateMethodName.startsWith("<")
-                                || candidateMethodName.equals("setBeanFactory")
-                                || candidateMethodName.equals("setCallbacks")) {
-                            // don't save these methods as test candidates, since they are created by spring
-                        } else {
-                            candidatesToSave.add(completed);
-                        }
-                    }
+                    addMethodAsTestCandidate(candidatesToSave, completed);
 
                     if (!isModified) {
                         existingParameter = null;
@@ -3369,6 +3346,33 @@ public class SessionInstance {
         daoService.updateLogFile(logFile);
         daoService.createOrUpdateThreadState(threadState);
         return newTestCaseIdentified;
+    }
+
+    private void addMethodAsTestCandidate(List<TestCandidateMetadata> candidatesToSave, TestCandidateMetadata completedExceptional) {
+        if (completedExceptional.getTestSubject() != null) {
+            MethodCallExpression mainMethod = (MethodCallExpression) completedExceptional.getMainMethod();
+            ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
+                    .getType());
+            String candidateMethodName = mainMethod.getMethodName();
+
+            if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||
+                    candidateMethodName.equals("getTargetClass")
+                    || candidateMethodName.equals("getTargetSource")
+                    || candidateMethodName.equals("isFrozen")
+                    || candidateMethodName.equals("invoke")
+                    || candidateMethodName.equals("toString")
+                    || candidateMethodName.contains("$")
+                    || candidateMethodName.equals("getIndex")
+                    || candidateMethodName.equals("values")
+                    || candidateMethodName.equals("hashCode")
+                    || candidateMethodName.startsWith("<")
+                    || candidateMethodName.equals("setBeanFactory")
+                    || candidateMethodName.equals("setCallbacks")) {
+                // don't save these methods as test candidates, since they are created by spring
+            } else {
+                candidatesToSave.add(completedExceptional);
+            }
+        }
     }
 
     private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {
