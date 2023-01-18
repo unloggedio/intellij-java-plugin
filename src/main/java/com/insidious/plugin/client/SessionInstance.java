@@ -308,14 +308,14 @@ public class SessionInstance {
 
     private void refreshWeaveInformation(KaitaiInsidiousClassWeaveParser classWeaveInfo) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
-        final long totalClassCount = classWeaveInfo.classCount();
+        final long totalClassCount = classWeaveInfo.classInfo().size();
         checkProgressIndicator("Loading class mappings to scan events", null);
 
         List<MethodDefinition> methodDefinitionList = new ArrayList<>();
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
-            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
+            checkProgressIndicator(null, "Loading " + current + " / " + 1 + " class information");
 
             ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
             if (existingClassInfo != null) {
@@ -446,7 +446,7 @@ public class SessionInstance {
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                 new RandomAccessFileKaitaiStream(fileName));
-        long totalClassCount = classWeaveInfo.classCount();
+        long totalClassCount = classWeaveInfo.classInfo().size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
@@ -2293,9 +2293,12 @@ public class SessionInstance {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
-        List<String> archiveList = archiveLogFiles.stream()
-                .map(LogFile::getArchiveName)
-                .sorted()
+//        List<String> archiveList = archiveLogFiles.stream()
+//                .map(LogFile::getArchiveName)
+//                .sorted()
+//                .collect(Collectors.toList());
+        List<String> archiveList = this.sessionArchives.stream()
+                .map(File::getName)
                 .collect(Collectors.toList());
         Collections.reverse(archiveList);
 
@@ -2409,7 +2412,7 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-            if (eventBlock.probeId() == 786785) {
+            if (eventBlock.valueId() == 1688794097) {
                 logger.warn("here: " + logFile);
             }
             switch (probeInfo.getEventType()) {
@@ -3027,6 +3030,11 @@ public class SessionInstance {
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                 existingParameter.getValue());
+                        if (objectInfoDocument == null) {
+                            logger.error("object info document is null for [" + existingParameter.getValue() + "] in " +
+                                    "log file: [" + logFile.getName() + "] in archive [" + logFile.getArchiveName() +
+                                    "]");
+                        }
                         TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
                         String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
                         existingParameter.setType(typeName);

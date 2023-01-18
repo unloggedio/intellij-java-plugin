@@ -581,11 +581,22 @@ public class DaoService {
             if (methodCallExpression.getSubject().getType().startsWith("java.util.")) {
                 continue;
             }
+            if (methodCallExpression.getSubject().getType().startsWith("org.slf4j.Logger")) {
+                continue;
+            }
+            if (methodCallExpression.getSubject().getType().startsWith("org.apache.commons.collections")) {
+                continue;
+            }
             if (methodCallExpression.getSubject().getType().startsWith("org.springframework.cglib")) {
                 continue;
             }
 
-            com.insidious.plugin.pojo.Parameter subject = methodCallExpression.getSubject();
+//            com.insidious.plugin.pojo.Parameter subject = methodCallExpression.getSubject();
+//            DataInfo subjectProbeInfo = subject.getProbeInfo();
+//            String subjectTypeFromProbe = subjectProbeInfo.getAttribute("Type", null);
+//            if (subjectTypeFromProbe != null && !subjectTypeFromProbe.equals(subject.getType())) {
+//                subject.setTypeForced(subjectTypeFromProbe);
+//            }
             finalCallsList.add(methodCallExpression);
 
 

@@ -653,7 +653,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             new Task.Backgroundable(project, "Unlogged, Inc.", true) {
                 @Override
                 public void run(@NotNull ProgressIndicator indicator) {
-                    checkProgressIndicator("Downloading agent jar",null);
+                    checkProgressIndicator("Downloading Unlogged agent",null);
                     downloadAgent();
                 }
             };
