@@ -120,7 +120,10 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         List<Parameter> args = exp.getArguments();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
         for (Parameter arg : args) {
-            inputRoot.add(constructNode(arg));
+            if(constructNode(arg)!=null)
+            {
+                inputRoot.add(constructNode(arg));
+            }
         }
         Parameter returnValue = exp.getReturnValue();
         DefaultMutableTreeNode outputroot = constructNode(returnValue);
