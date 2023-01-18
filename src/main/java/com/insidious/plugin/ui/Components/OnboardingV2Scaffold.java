@@ -46,7 +46,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
         if(state.equals(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS))
         {
             //go to docs
-            System.out.println("Setting up docs init");
             loadDocumentationComponent();
         }
         else if(state.equals(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW))
@@ -65,7 +64,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
         if(state.equals(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION))
         {
             //go to dep mgmt
-            System.out.println("Setting up dep mgmt init");
             loadDependencyComponent(missingDependencies, onboardingService);
         }
         else
@@ -104,7 +102,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
                 break;
             case SWITCH_TO_LIVE_VIEW:
                 //add liveview, switch windows.
-                System.out.println("Switching to live view [OB2S]");
                 insidiousService.addLiveView();
                 break;
         }

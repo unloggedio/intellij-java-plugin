@@ -38,6 +38,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.ui.NewTestCandidateIdentifiedListener;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.StringUtils;
 import com.intellij.lang.jvm.JvmMethod;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.lang.jvm.types.JvmType;
@@ -3492,7 +3493,7 @@ public class SessionInstance {
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {
                 resolveTemplatesInCall(methodCallExpression);
-//                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
+                createParamEnumPropertyTrueIfTheyAre(methodCallExpression);
             }
         }
         return testCandidateMetadata;
@@ -3515,12 +3516,19 @@ public class SessionInstance {
         if (param == null || param.getType() == null)
             return;
 
-        ClassInfo classInfo = classInfoIndexByName.get(param.getType());
-        if (classInfo == null) {
-            return;
-        }
-        if (classInfo.isEnum()) {
+        String currParamType = param.getType();
+        ClassInfo currClass = this.classInfoIndexByName.get(currParamType);
+
+        if (currClass != null && currClass.isEnum()) {
             param.setIsEnum(true);
+
+            // curr param name converted to camelCase
+            List<String> names = param.getNamesList();
+            if (names != null && names.size() > 0) {
+                String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+                names.remove(0);
+                names.add(0, modifiedName);
+            }
         }
         // todo : Optimise this enum type search in classInfoIndex
 //        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {

@@ -1670,26 +1670,24 @@ public class InsidiousService implements Disposable {
 
     public void addLiveView()
     {
-        System.out.println("Adding live view");
         if(!liveViewAdded)
         {
             toolWindow.getContentManager().addContent(liveWindowContent);
             toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
-            System.out.println("Added live view");
             try
             {
+                liveViewWindow.setTreeStateToLoading();
                 liveViewWindow.loadSession();
             }
             catch (Exception e)
             {
-                System.out.println("Exception loading session [Added live view flow]");
+                //exception setting state
             }
         }
         else
         {
             toolWindow.getContentManager().setSelectedContent(liveWindowContent);
-            System.out.println("Live view aready present, switching.");
         }
     }
 }
