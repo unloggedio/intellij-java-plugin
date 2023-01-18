@@ -154,6 +154,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         return methodCallExpression1;
     }
 

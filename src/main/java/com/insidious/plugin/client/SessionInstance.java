@@ -309,14 +309,14 @@ public class SessionInstance {
 
     private void refreshWeaveInformation(KaitaiInsidiousClassWeaveParser classWeaveInfo) throws IOException {
         AtomicInteger counter = new AtomicInteger(0);
-        final long totalClassCount = classWeaveInfo.classCount();
+        final long totalClassCount = classWeaveInfo.classInfo().size();
         checkProgressIndicator("Loading class mappings to scan events", null);
 
         List<MethodDefinition> methodDefinitionList = new ArrayList<>();
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
-            checkProgressIndicator(null, "Loading " + current + " / " + totalClassCount + " class information");
+            checkProgressIndicator(null, "Loading " + current + " / " + 1 + " class information");
 
             ClassInfo existingClassInfo = classInfoIndex.get((int) classInfo.classId());
             if (existingClassInfo != null) {
@@ -447,7 +447,7 @@ public class SessionInstance {
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                 new RandomAccessFileKaitaiStream(fileName));
-        long totalClassCount = classWeaveInfo.classCount();
+        long totalClassCount = classWeaveInfo.classInfo().size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
@@ -2294,9 +2294,12 @@ public class SessionInstance {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
-        List<String> archiveList = archiveLogFiles.stream()
-                .map(LogFile::getArchiveName)
-                .sorted()
+//        List<String> archiveList = archiveLogFiles.stream()
+//                .map(LogFile::getArchiveName)
+//                .sorted()
+//                .collect(Collectors.toList());
+        List<String> archiveList = this.sessionArchives.stream()
+                .map(File::getName)
                 .collect(Collectors.toList());
         Collections.reverse(archiveList);
 
@@ -2410,9 +2413,9 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-//            if (eventBlock.valueId() == 64063964) {
-//                logger.warn("here: " + logFile);
-//            }
+            if (eventBlock.valueId() == 1688794097) {
+                logger.warn("here: " + logFile);
+            }
             switch (probeInfo.getEventType()) {
 
                 case LABEL:
@@ -3028,6 +3031,11 @@ public class SessionInstance {
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
                                 existingParameter.getValue());
+                        if (objectInfoDocument == null) {
+                            logger.error("object info document is null for [" + existingParameter.getValue() + "] in " +
+                                    "log file: [" + logFile.getName() + "] in archive [" + logFile.getArchiveName() +
+                                    "]");
+                        }
                         TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
                         String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
                         existingParameter.setType(typeName);
@@ -3506,7 +3514,7 @@ public class SessionInstance {
 
         String currParamType = param.getType();
         ClassInfo currClass = this.classInfoIndexByName.get(currParamType);
-        
+
         if (currClass != null && currClass.isEnum()) {
             param.setIsEnum(true);
 
@@ -3518,6 +3526,27 @@ public class SessionInstance {
                 names.add(0, modifiedName);
             }
         }
+        // todo : Optimise this enum type search in classInfoIndex
+//        for (ChronicleMap.Entry<Integer, ClassInfo> entry : this.classInfoIndex.entrySet()) {
+//            String currParamType = param.getType()
+//                    .replace('.', '/');
+//            ClassInfo currClassInfo = entry.getValue();
+//            if (currClassInfo.getClassName()
+//                    .equals(currParamType)) {
+//                // curr class info is present and is enum set param as enum
+//                if (currClassInfo.isEnum()) {
+//                    param.setIsEnum(true);
+//
+//                    //change Name Of Param to use a camelCase and lowercase
+////                    List<String> names = param.getNamesList();
+////                    if (names != null && names.size() > 0) {
+////                        String modifiedName = StringUtils.convertSnakeCaseToCamelCase(names.get(0));
+////                        names.remove(0);
+////                        names.add(0, modifiedName);
+////                    }
+//                }
+//            }
+//        }
     }
 
     private void resolveTemplatesInCall(MethodCallExpression methodCallExpression) {
@@ -3583,7 +3612,12 @@ public class SessionInstance {
                     PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
                     if (!classReferenceType.getReference()
                             .getQualifiedName()
-                            .equals(parameterFromProbe.getType())) {
+                            .startsWith(parameterFromProbe.getType())) {
+                        logger.warn(
+                                "Call expected argument [" + i + "] [" + parameterFromProbe.getType() + "] did not " +
+                                        "match return type in  source: [" + classReferenceType.getCanonicalText()
+                                        + "] for call: " + methodCallExpression);
+
                         break;
                     }
 
@@ -3597,6 +3631,10 @@ public class SessionInstance {
                             templateChar++;
                             Parameter value = new Parameter();
                             String canonicalText = typeTemplateParameter.getCanonicalText();
+                            if (canonicalText.contains(" super ")) {
+                                canonicalText = canonicalText.substring(
+                                        canonicalText.indexOf(" super ") + " super ".length());
+                            }
                             if (canonicalText.length() == 1) {
                                 hasGenericTemplate = true;
                                 break;

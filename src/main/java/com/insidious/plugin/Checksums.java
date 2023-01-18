@@ -1,11 +1,12 @@
 package com.insidious.plugin;
 
 public class Checksums {
-    public static String AGENT_GSON="e16f4d680eef38ff64e4c299f1616c47";
-    public static String AGENT_JACKSON_2_9="ac392c5c1503a7d36c28e8aa46fad086";
-    public static String AGENT_JACKSON_2_10="9647fa95faffc603bdb1f90f5073d44e";
-    public static String AGENT_JACKSON_2_11="67e1e5a057bf16b59c4e8f75e278aa30";
-    public static String AGENT_JACKSON_2_12="bca7f5c06f91979b2af991d3f9378707";
-    public static String AGENT_JACKSON_2_13="4b4311364a21442439c84b821927c8da";
-    public static String AGENT_JACKSON_2_14="63d84a662e7889b481da9f741db776e8";
+
+    public static String AGENT_GSON = "3640dfb80c5de84b58dc08f99c09bc1e";
+    public static String AGENT_JACKSON_2_9 = "d249ce35bbc659b38ce54045cf7ec157";
+    public static String AGENT_JACKSON_2_10 = "6fb91f3dbcbdd456d48cf4a0f1fb9060";
+    public static String AGENT_JACKSON_2_11 = "503e8d9b1471fb06c28fec5ed8c197d7";
+    public static String AGENT_JACKSON_2_12 = "f88acaa23e12acbdc7da755632b21406";
+    public static String AGENT_JACKSON_2_13 = "bc0fd0e2343bd94cae6bd41d9bea9489";
+    public static String AGENT_JACKSON_2_14 = "b2ef154f02d4f9431b9e852bbec2993c";
 }
