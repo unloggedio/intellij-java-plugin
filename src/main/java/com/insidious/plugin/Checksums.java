@@ -1,7 +1,6 @@
 package com.insidious.plugin;
 
 public class Checksums {
-
     public static String AGENT_GSON="e16f4d680eef38ff64e4c299f1616c47";
     public static String AGENT_JACKSON_2_9="ac392c5c1503a7d36c28e8aa46fad086";
     public static String AGENT_JACKSON_2_10="9647fa95faffc603bdb1f90f5073d44e";

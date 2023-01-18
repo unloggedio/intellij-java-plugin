@@ -178,6 +178,21 @@ public class LiveViewWindow implements TreeSelectionListener,
         pauseProcessingButton.addActionListener(pauseActionListener);
     }
 
+    public void setTreeStateToLoading()
+    {
+        if(!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
+            mainTree.setModel(new DefaultTreeModel(
+                    new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
+        }
+    }
+    public void updateTreeStateOnScanFailure()
+    {
+        if(!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
+            mainTree.setModel(new DefaultTreeModel(
+                    new DefaultMutableTreeNode(new StringBuilder("Failed to set session"))));
+        }
+    }
+
     public void loadSession() throws Exception {
         isLoading = true;
         updateRefreshButtonState();
@@ -192,6 +207,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                     public void error(String message) {
                                         isLoading = false;
                                         updateRefreshButtonState();
+                                        updateTreeStateOnScanFailure();
                                         InsidiousNotification.notifyMessage(
                                                 "Failed to list sessions - " + message, NotificationType.ERROR);
                                     }
@@ -200,7 +216,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                     public void success(List<ExecutionSession> executionSessionList) {
                                         try {
                                             if (executionSessionList.size() == 0) {
-                                                copyVMParameterButton.setVisible(true);
+                                                //copyVMParameterButton.setVisible(true);
                                                 String javaAgentVMString = insidiousService.getJavaAgentString();
                                                 String[] parts = splitByLength(javaAgentVMString, 160);
                                                 assert parts != null;
@@ -251,6 +267,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                     "Failed to set sessions - " + ex.getMessage()
                                                             + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                                                     NotificationType.ERROR);
+                                            updateTreeStateOnScanFailure();
                                             try {
                                                 JSONObject eventProperties = new JSONObject();
                                                 eventProperties.put("exception", ex.getMessage());
