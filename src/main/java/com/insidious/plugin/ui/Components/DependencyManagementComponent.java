@@ -3,6 +3,8 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -32,7 +34,7 @@ public class DependencyManagementComponent {
     private OnboardingService onboardingService;
     private InsidiousService insidiousService;
     private HashSet<String> selectedDependencies = new HashSet<>();
-
+    private static final Logger logger = LoggerUtil.getInstance(DependencyManagementComponent.class);
     public JPanel getComponent() {
         return mainPanel;
     }
@@ -67,7 +69,7 @@ public class DependencyManagementComponent {
                 this.missing_.put(key,dep_Status.get(key));
             }
         }
-        System.out.println("Missing _ "+missing_);
+        logger.info("Missing Dependencies : "+missing_.toString());
         int GridRows = 16;
         if (missing_.size() > GridRows) {
             GridRows = missing_.size();

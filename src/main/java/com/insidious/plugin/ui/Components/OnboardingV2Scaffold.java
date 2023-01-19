@@ -3,7 +3,10 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.ui.OnboardingConfigurationWindow;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
 import org.json.JSONObject;
 
@@ -38,6 +41,7 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
     private InsidiousService insidiousService;
     private DocumentationOnboardingComponent documentation_instance;
     private DependencyManagementComponent dependency_instance;
+    private static final Logger logger = LoggerUtil.getInstance(OnboardingV2Scaffold.class);
 
     public OnboardingV2Scaffold(InsidiousService insidiousService, WaitingStateComponent.WAITING_COMPONENT_STATES state, OnboardingService onboardingService)
     {
@@ -65,10 +69,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
         {
             //go to dep mgmt
             loadDependencyComponent(missingDependencies, onboardingService);
-        }
-        else
-        {
-            //go to live view
         }
         setupProjectInformationSection();
         loadWaitingStateComponent(state);
@@ -109,7 +109,7 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
 
     @Override
     public void checkForSelogs() {
-        System.out.println("Checking for SE logs");
+        //System.out.println("Checking for SE logs");
         recursiveFileCheck();
     }
 
@@ -125,18 +125,18 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
 
     private void runSelogCheck()
     {
-        System.out.println("In check for selogs");
+        //System.out.println("In check for selogs");
         if(insidiousService.areLogsPresent())
         {
             //switch state
-            System.out.println("Can Switch to LIVE VIEW");
+            logger.info("Can Switch to LIVE VIEW");
             loadWaitingStateComponent(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW);
             UsageInsightTracker.getInstance()
                     .RecordEvent("LogsReady", null);
         }
         else
         {
-            System.out.println("TIMER CHECK FOR SELOGS");
+            //System.out.println("TIMER CHECK FOR SELOGS");
             //run till you have selogs (5 seconds at a time)
             Timer timer = new Timer(5000, new ActionListener() {
                 @Override
@@ -148,8 +148,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
             timer.start();
         }
     }
-
-
 
     @Override
     public boolean canGoToDocumentation() {
