@@ -171,5 +171,13 @@ public class TestCandidateMetadata {
     public void setVariables(List<Long> variables) {
         this.variables = Strings.join(variables, ",");
     }
+
+    public void addField(long parameterValue) {
+        if (fields == null || fields.length() == 0) {
+            fields = String.valueOf(parameterValue);
+        } else {
+            fields = fields + "," + parameterValue;
+        }
+    }
 }
 

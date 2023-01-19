@@ -24,9 +24,6 @@ class DatabasePipe implements Runnable {
     private final ArrayBlockingQueue<Boolean> isSaving = new ArrayBlockingQueue<>(1);
     private final List<DataEventWithSessionId> eventsToSave = new LinkedList<>();
     private final List<DataInfo> dataInfoList = new LinkedList<>();
-    private final List<MethodCallExpression> methodCallToSave = new LinkedList<>();
-    private final List<MethodCallExpression> methodCallToUpdate = new LinkedList<>();
-    private final List<TestCandidateMetadata> testCandidateMetadataList = new LinkedList<>();
     private boolean stop = false;
     private DaoService daoService;
     private boolean isRunning;
@@ -60,21 +57,6 @@ class DatabasePipe implements Runnable {
                     Collection<DataEventWithSessionId> saving = new LinkedList<>();
                     eventsToSave.removeAll(saving);
                     daoService.createOrUpdateDataEvent(saving);
-                }
-                if (methodCallToSave.size() > 0) {
-                    Collection<MethodCallExpression> saving = new LinkedList<>();
-                    methodCallToSave.removeAll(saving);
-                    daoService.createOrUpdateCall(saving);
-                }
-                if (methodCallToUpdate.size() > 0) {
-                    Collection<MethodCallExpression> saving = new LinkedList<>();
-                    methodCallToUpdate.removeAll(saving);
-                    daoService.updateCalls(saving);
-                }
-                if (testCandidateMetadataList.size() > 0) {
-                    Collection<TestCandidateMetadata> saving = new LinkedList<>();
-                    testCandidateMetadataList.removeAll(saving);
-                    daoService.createOrUpdateTestCandidate(saving);
                 }
 
                 if (param == null) {
@@ -113,21 +95,6 @@ class DatabasePipe implements Runnable {
             eventsToSave.removeAll(saving);
             daoService.createOrUpdateDataEvent(saving);
         }
-        if (methodCallToSave.size() > 0) {
-            Collection<MethodCallExpression> saving = new LinkedList<>();
-            methodCallToSave.removeAll(saving);
-            daoService.createOrUpdateCall(saving);
-        }
-        if (methodCallToUpdate.size() > 0) {
-            Collection<MethodCallExpression> saving = new LinkedList<>();
-            methodCallToUpdate.removeAll(saving);
-            daoService.updateCalls(saving);
-        }
-        if (testCandidateMetadataList.size() > 0) {
-            Collection<TestCandidateMetadata> saving = new LinkedList<>();
-            testCandidateMetadataList.removeAll(saving);
-            daoService.createOrUpdateTestCandidate(saving);
-        }
 
     }
 
@@ -143,15 +110,4 @@ class DatabasePipe implements Runnable {
         dataInfoList.addAll(probesToSave);
     }
 
-    public void addMethodCallsToSave(Set<MethodCallExpression> callsToSave) {
-        methodCallToSave.addAll(callsToSave);
-    }
-
-    public void addMethodCallsToUpdate(Set<MethodCallExpression> callsToUpdate) {
-        methodCallToUpdate.addAll(callsToUpdate);
-    }
-
-    public void addTestCandidates(List<TestCandidateMetadata> candidatesToSave) {
-        testCandidateMetadataList.addAll(candidatesToSave);
-    }
 }

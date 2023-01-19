@@ -214,10 +214,10 @@ public class DaoService {
             if (mainMethodOption.isPresent()) {
                 converted.setMainMethod(mainMethodOption.get());
             } else {
-                com.insidious.plugin.pojo.MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
+                MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
                         testCandidateMetadata.getMainMethod());
                 logger.warn("main method isn't public: " + mainMethodCallExpression);
-                converted.setMainMethod(mainMethodCallExpression);
+                converted.setMainMethod(MethodCallExpression.ToMCEFromDao(mainMethodCallExpression));
             }
 
 
@@ -227,7 +227,8 @@ public class DaoService {
                 mce.setId(call);
                 callsList.add(mce);
             }
-            converted.setMainMethod(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
+            converted.setMainMethod(MethodCallExpression.ToMCEFromDao(
+                    getMethodCallExpressionById(testCandidateMetadata.getMainMethod())));
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
@@ -327,7 +328,8 @@ public class DaoService {
 
     @NotNull
     private com.insidious.plugin.pojo.MethodCallExpression convertIncompleteDbMCE(IncompleteMethodCallExpression dbMce) {
-        com.insidious.plugin.pojo.MethodCallExpression convertedCallExpression = MethodCallExpression.ToMCE(dbMce);
+        com.insidious.plugin.pojo.MethodCallExpression convertedCallExpression = MethodCallExpression.ToMCEFromDao(
+                dbMce);
         try {
 
             long mainSubject = dbMce.getSubject();
@@ -482,7 +484,7 @@ public class DaoService {
                 .collect(Collectors.toMap(MethodCallExpressionInterface::getId, e -> e));
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList =
                 mceList.parallelStream()
-                        .map(MethodCallExpression::ToMCE)
+                        .map(MethodCallExpression::ToMCEFromDao)
                         .collect(Collectors.toList());
 
 //            List<com.insidious.plugin.pojo.MethodCallExpression> callsList1 =
@@ -578,16 +580,24 @@ public class DaoService {
                         com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
                 );
             }
-            if (methodCallExpression.getSubject().getType().startsWith("java.util.")) {
+            if (methodCallExpression.getSubject()
+                    .getType()
+                    .startsWith("java.util.")) {
                 continue;
             }
-            if (methodCallExpression.getSubject().getType().startsWith("org.slf4j.Logger")) {
+            if (methodCallExpression.getSubject()
+                    .getType()
+                    .startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (methodCallExpression.getSubject().getType().startsWith("org.apache.commons.collections")) {
+            if (methodCallExpression.getSubject()
+                    .getType()
+                    .startsWith("org.apache.commons.collections")) {
                 continue;
             }
-            if (methodCallExpression.getSubject().getType().startsWith("org.springframework.cglib")) {
+            if (methodCallExpression.getSubject()
+                    .getType()
+                    .startsWith("org.springframework.cglib")) {
                 continue;
             }
 
@@ -626,7 +636,8 @@ public class DaoService {
                 }
                 paramArgument.setProbeInfo(probeInfo);
 
-                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc().getString());
+                String paramArgTypeFromProbe = probeInfo.getAttribute("Type", probeInfo.getValueDesc()
+                        .getString());
                 String argumentTypeFromProbe = ClassTypeUtils.getDottedClassName(paramArgTypeFromProbe);
                 // only set param type if the type is not already null or empty
                 String existingType = paramArgument.getType();
@@ -803,20 +814,20 @@ public class DaoService {
     }
 
 
-    public com.insidious.plugin.pojo.MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws Exception {
+    public MethodCallExpression getMethodCallExpressionById(Long methodCallId) throws Exception {
         MethodCallExpression dbMce = null;
         try {
             dbMce = methodCallExpressionDao.queryForId(methodCallId);
             if (dbMce == null) {
                 IncompleteMethodCallExpression incompleteDbMce = incompleteMethodCallExpressionDao.queryForId(
                         methodCallId);
-                return convertIncompleteDbMCE(incompleteDbMce);
+                return MethodCallExpression.FromMCE(incompleteDbMce);
 //                return buildFromDbMce(List.of(incompleteDbMce)).get(0);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        return buildFromDbMce(List.of(dbMce)).get(0);
+        return dbMce;
     }
 
     private List<com.insidious.plugin.pojo.MethodCallExpression>
@@ -891,7 +902,7 @@ public class DaoService {
                 .collect(Collectors.toList());
     }
 
-    public void createOrUpdateCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+    public void createOrUpdateCall(Collection<MethodCallExpression> callsToSave) {
         long start = new Date().getTime();
         try {
 //            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
@@ -899,22 +910,24 @@ public class DaoService {
 //                methodCallExpressionDao.create(MethodCallExpression.FromMCE(methodCallExpression));
 //
 //            }
+//
+//            methodCallExpressionDao.create(
+//                    callsToSave
+//                            .stream()
+//                            .map(MethodCallExpression::FromMCE)
+//                            .collect(Collectors.toList())
+//            );
 
-            methodCallExpressionDao.create(
-                    callsToSave
-                            .stream()
-                            .map(MethodCallExpression::FromMCE)
-                            .collect(Collectors.toList())
-            );
+            methodCallExpressionDao.create(callsToSave);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
             long end = new Date().getTime();
-            logger.warn("saving " + callsToSave.size() + " calls took: " + ((end - start) / 1000) + " sec");
+            logger.warn("saving " + callsToSave.size() + " calls took: " + (end - start) + " ms");
         }
     }
 
-    public void createOrUpdateIncompleteCall(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+    public void createOrUpdateIncompleteCall(Collection<MethodCallExpression> callsToSave) {
         try {
             List<IncompleteMethodCallExpression> items = callsToSave
                     .stream()
@@ -928,10 +941,10 @@ public class DaoService {
         }
     }
 
-    public void updateCalls(Collection<com.insidious.plugin.pojo.MethodCallExpression> callsToSave) {
+    public void updateCalls(Collection<MethodCallExpression> callsToSave) {
         try {
-            for (com.insidious.plugin.pojo.MethodCallExpression methodCallExpression : callsToSave) {
-                methodCallExpressionDao.update(MethodCallExpression.FromMCE(methodCallExpression));
+            for (MethodCallExpression methodCallExpression : callsToSave) {
+                methodCallExpressionDao.update(methodCallExpression);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -939,12 +952,12 @@ public class DaoService {
     }
 
     public void createOrUpdateTestCandidate(
-            Collection<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidatesToSave) {
+            Collection<TestCandidateMetadata> candidatesToSave) {
         try {
             TestCandidateMetadata toSave;
-            for (com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata testCandidateMetadata : candidatesToSave) {
-                toSave = TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata);
-                testCandidateDao.create(toSave);
+            for (TestCandidateMetadata testCandidateMetadata : candidatesToSave) {
+//                toSave = TestCandidateMetadata.FromTestCandidateMetadata(testCandidateMetadata);
+                testCandidateDao.create(testCandidateMetadata);
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -1329,13 +1342,13 @@ public class DaoService {
 
         String[] callIdsList = threadState.getCallStack()
                 .split(",");
-        @NotNull List<com.insidious.plugin.pojo.MethodCallExpression> callStack;
+        @NotNull List<MethodCallExpression> callStack;
         callStack = new ArrayList<>(callIdsList.length);
         for (String callId : callIdsList) {
             if (callId.equals("")) {
                 continue;
             }
-            com.insidious.plugin.pojo.MethodCallExpression call = getMethodCallExpressionById(Long.parseLong(callId));
+            MethodCallExpression call = getMethodCallExpressionById(Long.parseLong(callId));
             callStack.add(call);
         }
 
@@ -1358,16 +1371,7 @@ public class DaoService {
         List<TestCandidateMetadata> dbCandidateStack = gson.fromJson(threadState.getCandidateStack(),
                 LIST_CANDIDATE_TYPE);
 
-        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidateStack =
-                dbCandidateStack.stream()
-                        .map(e -> {
-                            try {
-                                return convertTestCandidateMetadata(e, true);
-                            } catch (Exception ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        })
-                        .collect(Collectors.toList());
+        List<TestCandidateMetadata> candidateStack = dbCandidateStack;
 
 
         threadProcessingState.setCandidateStack(candidateStack);
@@ -1383,17 +1387,15 @@ public class DaoService {
                     .getId());
         }
 
-        List<com.insidious.plugin.pojo.MethodCallExpression> callStack = threadState.getCallStack();
+        List<MethodCallExpression> callStack = threadState.getCallStack();
         @NotNull String callStackList = Strings.join(callStack.stream()
-                .map(com.insidious.plugin.pojo.MethodCallExpression::getId)
+                .map(MethodCallExpression::getId)
                 .collect(Collectors.toList()), ",");
 
 
-        List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> candidateStack = threadState.getCandidateStack();
+        List<TestCandidateMetadata> candidateStack = threadState.getCandidateStack();
 
-        List<TestCandidateMetadata> dbCandidateStack = candidateStack.stream()
-                .map(TestCandidateMetadata::FromTestCandidateMetadata)
-                .collect(Collectors.toList());
+        List<TestCandidateMetadata> dbCandidateStack = candidateStack;
 
         daoThreadState.setCandidateStack(gson.toJson(dbCandidateStack));
 

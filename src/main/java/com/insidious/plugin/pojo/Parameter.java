@@ -3,7 +3,6 @@ package com.insidious.plugin.pojo;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.intellij.openapi.util.text.Strings;
 import net.openhft.chronicle.bytes.BytesIn;
 import net.openhft.chronicle.bytes.BytesMarshallable;
 import net.openhft.chronicle.bytes.BytesOut;
@@ -25,6 +24,7 @@ import java.util.stream.Collectors;
  * event also from where the information was identified
  */
 public class Parameter implements Serializable, BytesMarshallable {
+    public static final byte[] COMMA_CHARACTER = ",".getBytes();
     /**
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
@@ -104,7 +104,7 @@ public class Parameter implements Serializable, BytesMarshallable {
             bytes.writeInt(0);
         } else {
             bytes.writeInt(type.length());
-            bytes.write(type);
+            bytes.write(type.getBytes());
         }
         if (prob != null) {
             bytes.writeBoolean(true);
@@ -112,9 +112,27 @@ public class Parameter implements Serializable, BytesMarshallable {
         } else {
             bytes.writeBoolean(false);
         }
-        @NotNull String namesValue = Strings.join(names, ",");
-        bytes.writeInt(namesValue.length());
-        bytes.write(namesValue);
+
+        int totalLength = 0;
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            totalLength += name.length();
+            if (i > 0) {
+                totalLength += 1;
+            }
+        }
+
+
+        bytes.writeInt(totalLength);
+        for (int i = 0; i < names.size(); i++) {
+            String name = names.get(i);
+            if (i > 0) {
+                bytes.write(COMMA_CHARACTER);
+            }
+            bytes.write(name.getBytes());
+        }
+
+
         if (dataInfo != null) {
             bytes.writeBoolean(true);
             dataInfo.writeMarshallable(bytes);

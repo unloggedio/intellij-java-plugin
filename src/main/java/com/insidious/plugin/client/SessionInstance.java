@@ -84,7 +84,6 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import static com.googlecode.cqengine.query.QueryFactory.equal;
 import static com.googlecode.cqengine.query.QueryFactory.in;
 import static com.insidious.common.weaver.EventType.*;
 import static com.insidious.plugin.client.DatFileType.*;
@@ -114,6 +113,9 @@ public class SessionInstance {
     private ConcurrentIndexedCollection<ObjectInfoDocument> objectIndexCollection;
     private NewTestCandidateIdentifiedListener testCandidateListener;
     private File currentSessionArchiveBeingProcessed;
+    private Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
+    private Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
+    private ChronicleVariableContainer parameterContainer;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -173,42 +175,6 @@ public class SessionInstance {
         //         dataEvent.setSerializedValue(Base64.getEncoder().encodeToString(eventBlock.serializedData()).getBytes(
         //                StandardCharsets.UTF_8));
         return dataEvent;
-    }
-
-    private void addMethodToCandidate(ThreadProcessingState threadState, MethodCallExpression methodCall) {
-        TestCandidateMetadata topCandidate = threadState.getTopCandidate();
-        Parameter callSubject = methodCall.getSubject();
-        DataInfo callSubjectProbe = callSubject.getProbeInfo();
-        String type = callSubject.getType();
-        String methodName = methodCall.getMethodName();
-        if (type.startsWith("java.lang")
-                || type.startsWith("org.json")
-                || type.startsWith("java.util")
-                || type.startsWith("java.io")
-                || type.startsWith("org.slf4j")
-                || type.startsWith("org.springframework")) {
-            return;
-        }
-
-        if (methodCall.isStaticCall()) {
-            topCandidate.addMethodCall(methodCall);
-        } else {
-            if (!methodName.startsWith("<")) {
-                if (methodName.contains("$") || methodName.startsWith("<")
-                        || methodName.equals("hashCode")
-                        || methodName.equals("clone")
-                        || methodName.equals("setBeanFactory")
-                        || methodName.equals("invoke")
-                ) {
-                    return;
-                }
-                ClassInfo subjectClassInfo = classInfoIndexByName.get(type);
-                if (subjectClassInfo != null && subjectClassInfo.isPojo()) {
-                    return;
-                }
-                topCandidate.addMethodCall(methodCall);
-            }
-        }
     }
 
     @NotNull
@@ -1772,7 +1738,21 @@ public class SessionInstance {
                 .entries();
         io.close();
         long end = new Date().getTime();
-        logger.warn("Read events took: " + ((end - start) / 1000));
+        logger.warn("Read events took: " + (end - start) + " ms");
+        return events;
+    }
+
+    private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
+        long start = new Date().getTime();
+        logger.warn("Read events from file: " + archiveFile);
+        NameWithBytes nameWithBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
+        assert nameWithBytes != null;
+        KaitaiInsidiousEventParser eventsContainer =
+                new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(nameWithBytes.getBytes()));
+        ArrayList<KaitaiInsidiousEventParser.Block> events = eventsContainer.event()
+                .entries();
+        long end = new Date().getTime();
+        logger.warn("Read events took: " + (end - start) + " ms");
         return events;
     }
 
@@ -2242,7 +2222,7 @@ public class SessionInstance {
         }
 
         try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
-            ChronicleVariableContainer parameterContainer = new ChronicleVariableContainer(parameterIndex);
+            parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
             Set<Integer> allThreads = logFilesByThreadMap.keySet();
             int i = 0;
@@ -2337,7 +2317,8 @@ public class SessionInstance {
                 }
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
                 logger.warn("adding [" + objectIndexCollection.size() + "] objects to index");
-                archiveObjectIndex.getObjectIndex().parallelStream()
+                archiveObjectIndex.getObjectIndex()
+                        .parallelStream()
                         .forEach(e -> objectInfoIndex.put(e.getObjectId(), e));
                 objectIndexCollection = null;
             } else {
@@ -2371,8 +2352,7 @@ public class SessionInstance {
 
 
         this.currentSessionArchiveBeingProcessed = sessionArchive;
-        List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFile(sessionArchive,
-                logFile.getName());
+        List<KaitaiInsidiousEventParser.Block> eventsSublist = getEventsFromFileOld(sessionArchive, logFile.getName());
 
         if (eventsSublist.size() == 0) {
             logFile.setStatus(Constants.COMPLETED);
@@ -2382,17 +2362,19 @@ public class SessionInstance {
 
         List<DataEventWithSessionId> eventsToSave = new ArrayList<>();
         List<DataInfo> probesToSave = new ArrayList<>();
-        Set<MethodCallExpression> callsToSave = new HashSet<>();
-        Set<MethodCallExpression> callsToUpdate = new HashSet<>();
-        List<TestCandidateMetadata> candidatesToSave = new ArrayList<>();
+        Set<com.insidious.plugin.pojo.dao.MethodCallExpression> callsToSave = new HashSet<>();
+        Set<com.insidious.plugin.pojo.dao.MethodCallExpression> callsToUpdate = new HashSet<>();
+        List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> candidatesToSave = new ArrayList<>();
         Date start = new Date();
 //            Parameter parameterInstance = new Parameter();
         String nameFromProbe;
         String typeFromProbe;
         boolean isModified = false;
-        TestCandidateMetadata completedExceptional;
-        MethodCallExpression methodCall;
-        MethodCallExpression topCall;
+        com.insidious.plugin.pojo.dao.TestCandidateMetadata completedExceptional;
+        com.insidious.plugin.pojo.dao.MethodCallExpression methodCall;
+        com.insidious.plugin.pojo.dao.MethodCallExpression topCall;
+//        methodCallMap = new HashMap<>();
+//        methodCallSubjectTypeMap = new HashMap<>();
         String existingParameterType;
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
@@ -2416,7 +2398,7 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-            if (eventBlock.eventId() == 1595) {
+            if (eventBlock.eventId() == 78619) {
                 logger.warn("here: " + logFile);
             }
             switch (probeInfo.getEventType()) {
@@ -2558,8 +2540,7 @@ public class SessionInstance {
 //                        testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1).getFields()
 //                                .add(existingParameter);
                     threadState.getTopCandidate()
-                            .getFields()
-                            .add(existingParameter);
+                            .addField(existingParameter.getValue());
                     String fieldType = ClassTypeUtils.getDottedClassName(
                             probeInfo.getAttribute("Type", null));
                     if (fieldType.startsWith("org.slf4j") || fieldType.startsWith("com.google")) {
@@ -2727,19 +2708,29 @@ public class SessionInstance {
                         isModified = eventValue != 0;
                     }
 
-                    String methodName = probeInfo.getAttribute("Name", null);
-//                        if (methodName.equals("checkIfContainsConfirmedStatus")) {
-//                            logger.warn("here it is");
-//                        }
 
-//                        logger.warn("Method " + methodName + ": " + currentCallId);
+                    String methodName = probeInfo.getAttribute("Name", null);
+
+
+                    if (existingParameter.getValue() == 0
+                            && "Static".equals(probeInfo.getAttribute("CallType", null))
+                            && !methodName.startsWith("<") && !methodName.contains("$")) {
+                        String ownerClass = ClassTypeUtils.getJavaClassName(
+                                probeInfo.getAttribute("Owner", null));
+                        existingParameter.setValue((long) ownerClass.hashCode());
+                        isModified = true;
+                    }
+
                     currentCallId++;
-                    methodCall = new MethodCallExpression(methodName, existingParameter, new LinkedList<>(),
-                            null, threadState.getCallStackSize());
+                    methodCall = new com.insidious.plugin.pojo.dao.MethodCallExpression(methodName,
+                            existingParameter.getValue(), new LinkedList<>(),
+                            0, threadState.getCallStackSize());
                     methodCall.setThreadId(threadId);
                     methodCall.setId(currentCallId);
-                    methodCall.setEntryProbeInfo(probeInfo);
-                    methodCall.setEntryProbe(dataEvent);
+                    methodCallMap.put(currentCallId, methodCall);
+                    methodCallSubjectTypeMap.put(currentCallId, existingParameter.getType());
+                    methodCall.setEntryProbeInfoId(probeInfo.getDataId());
+                    methodCall.setEntryProbeId(dataEvent.getNanoTime());
 
                     MethodInfo methodDescription = methodInfoByNameIndex.get(
                             probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
@@ -2760,18 +2751,9 @@ public class SessionInstance {
 
                     if ("Static".equals(probeInfo.getAttribute("CallType", null))) {
                         methodCall.setStaticCall(true);
-                        methodCall.setSubject(existingParameter);
+                        methodCall.setSubject(existingParameter.getValue());
                     }
                     methodCall.setMethodAccess(1);
-
-                    if (existingParameter.getValue() == 0
-                            && "Static".equals(probeInfo.getAttribute("CallType", null))
-                            && !methodName.startsWith("<") && !methodName.contains("$")) {
-                        String ownerClass = ClassTypeUtils.getJavaClassName(
-                                probeInfo.getAttribute("Owner", null));
-                        existingParameter.setValue((long) ownerClass.hashCode());
-                        isModified = true;
-                    }
 
 
                     if (threadState.getCallStackSize() > 0) {
@@ -2790,7 +2772,7 @@ public class SessionInstance {
                 case CALL_PARAM:
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-                    MethodCallExpression currentMethodCallExpression = threadState.getTopCall();
+                    com.insidious.plugin.pojo.dao.MethodCallExpression currentMethodCallExpression = threadState.getTopCall();
                     isModified = false;
                     if ((existingParameter.getType() == null || existingParameter.getType()
                             .endsWith(".Object"))) {
@@ -2821,8 +2803,8 @@ public class SessionInstance {
                         }
                     }
                     saveProbe = true;
-                    currentMethodCallExpression.addArgument(existingParameter);
-                    currentMethodCallExpression.addArgumentProbe(dataEvent);
+                    currentMethodCallExpression.addArgument(existingParameter.getValue());
+                    currentMethodCallExpression.addArgumentProbe(dataEvent.getNanoTime());
                     if (!isModified) {
                         existingParameter = null;
                     }
@@ -2839,14 +2821,13 @@ public class SessionInstance {
                         @NotNull String expectedClassName = ClassTypeUtils.getDottedClassName(
                                 methodInfo.getClassName());
                         String owner = ClassTypeUtils.getDottedClassName(
-                                methodCall.getEntryProbeInfo()
+                                probeInfoIndex.get(methodCall.getEntryProbeInfo_id())
                                         .getAttribute("Owner", null));
                         if (owner == null) {
                             methodCall = null;
                         } else {
                             // sometimes we can enter a method_entry without a call
-                            if (!methodCall.getSubject()
-                                    .getType()
+                            if (!methodCallSubjectTypeMap.get(methodCall.getId())
                                     .startsWith(expectedClassName)
                                     || !methodInfo.getMethodName()
                                     .equals(methodCall.getMethodName())) {
@@ -2855,15 +2836,29 @@ public class SessionInstance {
                         }
                     }
 
-                    TestCandidateMetadata newCandidate = new TestCandidateMetadata();
+                    com.insidious.plugin.pojo.dao.TestCandidateMetadata newCandidate =
+                            new com.insidious.plugin.pojo.dao.TestCandidateMetadata();
 
                     newCandidate.setEntryProbeIndex(eventBlock.eventId());
-
-
                     isModified = false;
+
+
+
                     if (methodCall == null) {
-                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
-                                existingParameter);
+                        existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
+                        if (existingParameter.getValue() == 0
+                                && ((methodInfo.getAccess() & 8) == 8)
+                                && !methodInfo.getMethodName().startsWith("<")
+                                && !methodInfo.getMethodName().contains("$")) {
+                            String ownerClass = ClassTypeUtils.getJavaClassName(
+                                    classInfoIndex.get(probeInfo.getClassId())
+                                            .getClassName());
+                            existingParameter.setValue((long) ownerClass.hashCode());
+                            isModified = true;
+                            existingParameter.setType(ownerClass);
+                            existingParameter.setProbeInfo(probeInfo);
+                            existingParameter.setProb(dataEvent);
+                        }
                         if (existingParameter.getProb() == null) {
 
                             existingParameter.setProbeInfo(probeInfo);
@@ -2884,18 +2879,21 @@ public class SessionInstance {
 
 
 //                            logger.warn("Method " + methodInfo.getMethodName() + ": " + currentCallId);
-                        methodCall = new MethodCallExpression(methodInfo.getMethodName(), existingParameter,
-                                new LinkedList<>(), null, threadState.getCallStackSize());
+                        methodCall = new com.insidious.plugin.pojo.dao.MethodCallExpression(methodInfo.getMethodName(),
+                                existingParameter.getValue(),
+                                new LinkedList<>(), 0, threadState.getCallStackSize());
 
                         saveProbe = true;
                         methodCall.setThreadId(threadId);
-                        methodCall.setEntryProbeInfo(probeInfo);
-                        methodCall.setEntryProbe(dataEvent);
+                        methodCall.setEntryProbeInfoId(probeInfo.getDataId());
+                        methodCall.setEntryProbeId(dataEvent.getNanoTime());
                         methodCall.setMethodDefinitionId(probeInfo.getMethodId());
                         methodCall.setStaticCall((methodInfo.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC);
 
                         currentCallId++;
                         methodCall.setId(currentCallId);
+                        methodCallMap.put(currentCallId, methodCall);
+                        methodCallSubjectTypeMap.put(currentCallId, existingParameter.getType());
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
@@ -2911,7 +2909,7 @@ public class SessionInstance {
                         }
                         saveProbe = true;
                     }
-                    newCandidate.setMainMethod(methodCall);
+                    newCandidate.setMainMethod(methodCall.getId());
                     threadState.pushTopCandidate(newCandidate);
 
                     if (existingParameter == null) {
@@ -2919,19 +2917,6 @@ public class SessionInstance {
                                 existingParameter);
                     }
 
-                    if (existingParameter.getValue() == 0 && ((methodInfo.getAccess() & 8) == 8)
-                            && !methodInfo.getMethodName()
-                            .startsWith("<") && !methodInfo.getMethodName()
-                            .contains("$")) {
-                        String ownerClass = ClassTypeUtils.getJavaClassName(
-                                classInfoIndex.get(probeInfo.getClassId())
-                                        .getClassName());
-                        existingParameter.setValue((long) ownerClass.hashCode());
-                        isModified = true;
-                        existingParameter.setType(ownerClass);
-                        existingParameter.setProbeInfo(probeInfo);
-                        existingParameter.setProb(dataEvent);
-                    }
 
 
                     int methodAccess = methodInfo.getAccess();
@@ -2972,15 +2957,15 @@ public class SessionInstance {
                     }
                     saveProbe = true;
 
-                    MethodCallExpression methodExpression = threadState.getTopCall();
+                    com.insidious.plugin.pojo.dao.MethodCallExpression methodExpression = threadState.getTopCall();
 
-                    EventType entryProbeEventType = methodExpression.getEntryProbeInfo()
+                    EventType entryProbeEventType = probeInfoIndex.get(methodExpression.getEntryProbeInfo_id())
                             .getEventType();
                     if (entryProbeEventType == EventType.CALL) {
                         // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
                     } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
-                        methodExpression.addArgument(existingParameter);
-                        methodExpression.addArgumentProbe(dataEvent);
+                        methodExpression.addArgument(existingParameter.getValue());
+                        methodExpression.addArgumentProbe(dataEvent.getNanoTime());
                     } else {
                         throw new RuntimeException("unexpected entry probe event type");
                     }
@@ -2991,9 +2976,9 @@ public class SessionInstance {
 
                 case CATCH:
                     ClassInfo classInfo = classInfoIndex.get(probeInfo.getClassId());
-                    Parameter topCallSubject = threadState.getTopCall()
-                            .getSubject();
-                    String topCallSubjectType = topCallSubject.getType();
+                    String topCallSubjectType = methodCallSubjectTypeMap.get(threadState.getTopCall().getId());
+//                            parameterContainer.getParameterByValue(threadState.getTopCall().getSubject()).getType();
+//                    String topCallSubjectType = topCallSubject.getType();
                     String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
 
 
@@ -3015,8 +3000,8 @@ public class SessionInstance {
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
                         topCall = threadState.popCall();
-                        topCall.setReturnValue(existingParameter);
-                        topCall.setReturnDataEvent(dataEvent);
+                        topCall.setReturnValue_id(existingParameter.getValue());
+                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
                         callsToSave.add(topCall);
                         threadState.setMostRecentReturnedCall(topCall);
 
@@ -3049,37 +3034,29 @@ public class SessionInstance {
 
                     // we need to pop only 1 call here from the stack
                     topCall = threadState.popCall();
-                    topCall.setReturnValue(existingParameter);
-                    topCall.setReturnDataEvent(dataEvent);
+                    topCall.setReturnValue_id(existingParameter.getValue());
+                    topCall.setReturnDataEvent(dataEvent.getNanoTime());
                     callsToSave.add(topCall);
                     threadState.setMostRecentReturnedCall(topCall);
                     completedExceptional = threadState.popTopCandidate();
 
                     completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
-                    MethodCallExpression completedMainMethod = (MethodCallExpression) completedExceptional.getMainMethod();
-                    if (completedExceptional.getMainMethod() != null) {
-                        DataEventWithSessionId entryProbe = completedMainMethod.getEntryProbe();
-                        if (entryProbe != null) {
-                            completedExceptional.setCallTimeNanoSecond(
-                                    eventBlock.timestamp() - entryProbe.getRecordedAt());
-                        }
-                    }
-                    if (completedExceptional.getMainMethod() != null) {
+                    com.insidious.plugin.pojo.dao.MethodCallExpression completedMainMethod =
+                            methodCallMap.get(completedExceptional.getMainMethod());
+
+                    if (completedMainMethod != null) {
                         completedExceptional.setTestSubject(completedMainMethod.getSubject());
                     }
 
 
                     if (threadState.candidateSize() > 0) {
-                        TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                        MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                        if (newCurrentMainMethod.getSubject()
-                                .getType()
-                                .equals(completedMainMethod.getSubject()
-                                        .getType())) {
-                            for (Parameter parameter : completedExceptional.getFields()
-                                    .all()) {
-                                newCurrent.getFields()
-                                        .add(parameter);
+                        com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
+//                        com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod
+//                                = methodCallMap.get(newCurrent.getMainMethod());
+                        if (methodCallSubjectTypeMap.get(newCurrent.getMainMethod())
+                                .equals(methodCallSubjectTypeMap.get(completedMainMethod.getId()))) {
+                            for (long parameterValue : completedExceptional.getFields()) {
+                                newCurrent.addField(parameterValue);
                             }
                         }
 
@@ -3102,8 +3079,8 @@ public class SessionInstance {
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
 //                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
 
-                    MethodCallExpression currentCallExpression = threadState.getTopCall();
-                    entryProbeEventType = currentCallExpression.getEntryProbeInfo()
+                    com.insidious.plugin.pojo.dao.MethodCallExpression currentCallExpression = threadState.getTopCall();
+                    entryProbeEventType = probeInfoIndex.get(currentCallExpression.getEntryProbeInfo_id())
                             .getEventType();
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     isModified = false;
@@ -3125,12 +3102,12 @@ public class SessionInstance {
 
                         if (topCall.getMethodName()
                                 .startsWith("<")) {
-                            topCall.setReturnValue(topCall.getSubject());
+                            topCall.setReturnValue_id(topCall.getSubject());
 
                         } else {
-                            topCall.setReturnValue(existingParameter);
+                            topCall.setReturnValue_id(existingParameter.getValue());
                         }
-                        topCall.setReturnDataEvent(dataEvent);
+                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
                         callsToSave.add(topCall);
                         threadState.setMostRecentReturnedCall(topCall);
 
@@ -3140,32 +3117,26 @@ public class SessionInstance {
                     }
 
 
-                    TestCandidateMetadata completed = threadState.popTopCandidate();
+                    com.insidious.plugin.pojo.dao.TestCandidateMetadata completed = threadState.popTopCandidate();
 
                     completed.setExitProbeIndex(eventBlock.eventId());
-                    if (completed.getMainMethod() != null) {
-                        DataEventWithSessionId entryProbe = ((MethodCallExpression) (completed.getMainMethod())).getEntryProbe();
-                        if (entryProbe != null) {
-                            completed.setCallTimeNanoSecond(
-                                    eventBlock.timestamp() - entryProbe.getRecordedAt());
-                        }
-                    }
-                    if (completed.getMainMethod() != null) {
+                    if (completed.getMainMethod() != 0) {
                         completed.setTestSubject(
-                                ((MethodCallExpression) completed.getMainMethod()).getSubject());
+                                methodCallMap.get(completed.getMainMethod()).getSubject());
                     }
 
                     if (threadState.candidateSize() > 0) {
-                        TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-                        MethodCallExpression newCurrentMainMethod = (MethodCallExpression) newCurrent.getMainMethod();
-                        Parameter completedCallSubject = ((MethodCallExpression) completed.getMainMethod()).getSubject();
-                        Parameter newCurrentCallSubject = newCurrentMainMethod.getSubject();
-                        if (newCurrentCallSubject.getType()
-                                .equals(completedCallSubject.getType())) {
-                            for (Parameter parameter : completed.getFields()
-                                    .all()) {
-                                newCurrent.getFields()
-                                        .add(parameter);
+                        com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
+                        com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod = methodCallMap.get(
+                                newCurrent.getMainMethod());
+//                        Parameter completedCallSubject = parameterContainer.getParameterByValue(
+//                                methodCallMap.get(completed.getMainMethod()).getSubject());
+//                        Parameter newCurrentCallSubject = parameterContainer.getParameterByValue(
+//                                newCurrentMainMethod.getSubject());
+                        if (methodCallSubjectTypeMap.get(newCurrentMainMethod.getId())
+                                .equals(methodCallSubjectTypeMap.get(completed.getMainMethod()))) {
+                            for (long parameter : completed.getFields()) {
+                                newCurrent.addField(parameter);
                             }
                         }
 
@@ -3204,15 +3175,15 @@ public class SessionInstance {
                         isModified = true;
                     }
 
-                    MethodCallExpression callExpression = threadState.getTopCall();
-                    EventType entryEventType = callExpression.getEntryProbeInfo()
+                    com.insidious.plugin.pojo.dao.MethodCallExpression callExpression = threadState.getTopCall();
+                    EventType entryEventType = probeInfoIndex.get(callExpression.getEntryProbeInfo_id())
                             .getEventType();
                     if (entryEventType == EventType.CALL) {
                         // we pop it now
 
                         topCall = threadState.popCall();
-                        topCall.setReturnValue(existingParameter);
-                        topCall.setReturnDataEvent(dataEvent);
+                        topCall.setReturnValue_id(existingParameter.getValue());
+                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
                         callsToSave.add(topCall);
                         threadState.setMostRecentReturnedCall(topCall);
 
@@ -3236,15 +3207,16 @@ public class SessionInstance {
                     }
                     break;
                 case NEW_OBJECT_CREATED:
-                    MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();
+                    com.insidious.plugin.pojo.dao.MethodCallExpression theCallThatJustEnded = threadState.getMostRecentReturnedCall();
                     String upcomingObjectType = threadState.popNextNewObjectType();
-                    existingParameter = theCallThatJustEnded.getSubject();
+                    existingParameter = parameterContainer.getParameterByValue(theCallThatJustEnded.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     existingParameter.setProbeInfo(probeInfo);
                     existingParameter.setValue(0L);
                     existingParameter.setProb(dataEvent);
                     existingParameter.setType(ClassTypeUtils.getDottedClassName(upcomingObjectType));
-                    theCallThatJustEnded.setReturnValue(existingParameter);
+                    theCallThatJustEnded.setReturnValue_id(existingParameter.getValue());
+                    theCallThatJustEnded.setSubject(existingParameter.getValue());
                     if (!callsToSave.contains(theCallThatJustEnded)) {
                         callsToUpdate.add(theCallThatJustEnded);
                     }
@@ -3253,13 +3225,13 @@ public class SessionInstance {
 
                 case METHOD_OBJECT_INITIALIZED:
                     topCall = threadState.getTopCall();
-                    existingParameter = topCall.getSubject();
+                    existingParameter = parameterContainer.getParameterByValue(topCall.getSubject());
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
                     existingParameter.setProbeInfo(probeInfo);
                     existingParameter.setProb(dataEvent);
                     saveProbe = true;
-                    topCall.setSubject(existingParameter);
-                    topCall.setReturnValue(existingParameter);
+                    topCall.setSubject(existingParameter.getValue());
+                    topCall.setReturnValue_id(existingParameter.getValue());
 
                     break;
             }
@@ -3298,16 +3270,15 @@ public class SessionInstance {
             Map<Long, Integer> matchedProbe = new HashMap<>();
             for (int j = 0; j < threadState.getCallStack()
                     .size(); j++) {
-                MethodCallExpression call = threadState.getCallStack()
+                com.insidious.plugin.pojo.dao.MethodCallExpression call = threadState.getCallStack()
                         .get(j);
-                long dataId = call.getEntryProbe()
+                long dataId = probeInfoIndex.get(call.getEntryProbeInfo_id())
                         .getDataId();
                 infiniteRecursionDetectedMessage
                         .append("Probe [")
                         .append(dataId)
                         .append("][")
-                        .append(call.getEntryProbe()
-                                .getNanoTime())
+                        .append(call.getEntryProbe_id())
                         .append("] call to ")
                         .append(call.toString())
                         .append("<br />");
@@ -3347,11 +3318,13 @@ public class SessionInstance {
         return newTestCaseIdentified;
     }
 
-    private void addMethodAsTestCandidate(List<TestCandidateMetadata> candidatesToSave, TestCandidateMetadata completedExceptional) {
-        if (completedExceptional.getTestSubject() != null) {
-            MethodCallExpression mainMethod = (MethodCallExpression) completedExceptional.getMainMethod();
-            ClassInfo subjectClassInfo = classInfoIndexByName.get(mainMethod.getSubject()
-                    .getType());
+    private void addMethodAsTestCandidate(
+            List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> candidatesToSave,
+            com.insidious.plugin.pojo.dao.TestCandidateMetadata completedExceptional
+    ) {
+        if (completedExceptional.getTestSubject() != 0) {
+            com.insidious.plugin.pojo.dao.MethodCallExpression mainMethod = methodCallMap.get(completedExceptional.getMainMethod());
+            ClassInfo subjectClassInfo = classInfoIndexByName.get(methodCallSubjectTypeMap.get(mainMethod.getId()));
             String candidateMethodName = mainMethod.getMethodName();
 
             if ((subjectClassInfo != null && subjectClassInfo.isPojo()) ||

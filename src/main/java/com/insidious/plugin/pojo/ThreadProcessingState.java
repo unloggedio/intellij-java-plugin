@@ -10,10 +10,10 @@ import java.util.List;
 public class ThreadProcessingState {
     private List<Long> valueStack = new ArrayList<>();
     private int threadId;
-    private List<MethodCallExpression> callStack = new ArrayList<>();
+    private List<com.insidious.plugin.pojo.dao.MethodCallExpression> callStack = new ArrayList<>();
     private List<String> nextNewObjectType = new LinkedList<>();
-    private List<TestCandidateMetadata> testCandidateMetadataStack = new ArrayList<>();
-    private MethodCallExpression mostRecentReturnedCall;
+    private List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> testCandidateMetadataStack = new ArrayList<>();
+    private com.insidious.plugin.pojo.dao.MethodCallExpression mostRecentReturnedCall;
 
     public ThreadProcessingState(int threadId) {
         this.threadId = threadId;
@@ -35,15 +35,15 @@ public class ThreadProcessingState {
         this.threadId = threadId;
     }
 
-    public List<MethodCallExpression> getCallStack() {
+    public List<com.insidious.plugin.pojo.dao.MethodCallExpression> getCallStack() {
         return callStack;
     }
 
-    public void setCallStack(List<MethodCallExpression> callStack) {
+    public void setCallStack(List<com.insidious.plugin.pojo.dao.MethodCallExpression> callStack) {
         this.callStack = callStack;
     }
 
-    public MethodCallExpression getTopCall() {
+    public com.insidious.plugin.pojo.dao.MethodCallExpression getTopCall() {
         return callStack.get(callStack.size() - 1);
     }
 
@@ -51,11 +51,11 @@ public class ThreadProcessingState {
         return callStack.size();
     }
 
-    public void pushCall(MethodCallExpression methodCall) {
+    public void pushCall(com.insidious.plugin.pojo.dao.MethodCallExpression methodCall) {
         callStack.add(methodCall);
     }
 
-    public MethodCallExpression popCall() {
+    public com.insidious.plugin.pojo.dao.MethodCallExpression popCall() {
         return callStack.remove(callStack.size() - 1);
     }
 
@@ -83,15 +83,15 @@ public class ThreadProcessingState {
         return valueStack.remove(valueStack.size() - 1);
     }
 
-    public TestCandidateMetadata getTopCandidate() {
+    public com.insidious.plugin.pojo.dao.TestCandidateMetadata getTopCandidate() {
         return testCandidateMetadataStack.get(testCandidateMetadataStack.size() - 1);
     }
 
-    public TestCandidateMetadata popTopCandidate() {
+    public com.insidious.plugin.pojo.dao.TestCandidateMetadata popTopCandidate() {
         return testCandidateMetadataStack.remove(testCandidateMetadataStack.size() - 1);
     }
 
-    public void pushTopCandidate(TestCandidateMetadata testCandidateMetadata) {
+    public void pushTopCandidate(com.insidious.plugin.pojo.dao.TestCandidateMetadata testCandidateMetadata) {
         testCandidateMetadataStack.add(testCandidateMetadata);
     }
 
@@ -99,19 +99,19 @@ public class ThreadProcessingState {
         return testCandidateMetadataStack.size();
     }
 
-    public List<TestCandidateMetadata> getCandidateStack() {
+    public List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> getCandidateStack() {
         return testCandidateMetadataStack;
     }
 
-    public void setCandidateStack(List<TestCandidateMetadata> candidateStack) {
+    public void setCandidateStack(List<com.insidious.plugin.pojo.dao.TestCandidateMetadata> candidateStack) {
         this.testCandidateMetadataStack = candidateStack;
     }
 
-    public void setMostRecentReturnedCall(MethodCallExpression mostRecentReturnedCall) {
+    public void setMostRecentReturnedCall(com.insidious.plugin.pojo.dao.MethodCallExpression mostRecentReturnedCall) {
         this.mostRecentReturnedCall = mostRecentReturnedCall;
     }
 
-    public MethodCallExpression getMostRecentReturnedCall() {
+    public com.insidious.plugin.pojo.dao.MethodCallExpression getMostRecentReturnedCall() {
         return mostRecentReturnedCall;
     }
 }

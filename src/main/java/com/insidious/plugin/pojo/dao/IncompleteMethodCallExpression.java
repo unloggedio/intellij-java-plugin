@@ -1,6 +1,5 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.intellij.openapi.util.text.Strings;
@@ -57,12 +56,12 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     public IncompleteMethodCallExpression(
             String methodName,
             long subject,
-            List<Long> arguments,
+            String arguments,
             long returnValue_id
     ) {
         this.methodName = methodName;
         this.subject_id = subject;
-        this.arguments = Strings.join(arguments, ",");
+        this.arguments = arguments;
         this.returnValue_id = returnValue_id;
     }
 
@@ -78,28 +77,25 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                methodCallExpression.getArguments()
-                        .stream()
-                        .map(com.insidious.plugin.pojo.Parameter::getValue)
-                        .collect(Collectors.toList()),
+                Strings.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getNanoTime());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
-                .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
+        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes(), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
+                    .getNanoTime());
         }
         return methodCallExpression1;
     }
 
-    public static IncompleteMethodCallExpression IncompleteFromMCE(MethodCallExpression methodCallExpression) {
+    public static IncompleteMethodCallExpression FromIncompleteMCE(MethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
             return null;
         }
@@ -111,24 +107,24 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                methodCallExpression.getArguments()
-                        .stream()
-                        .map(com.insidious.plugin.pojo.Parameter::getValue)
-                        .collect(Collectors.toList()),
+                Strings.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getNanoTime());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
-                .stream().map(DataEventWithSessionId::getNanoTime).collect(Collectors.toList()));
+        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
+                .stream()
+                .map(DataEventWithSessionId::getNanoTime)
+                .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
-            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent().getNanoTime());
+            methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
+                    .getNanoTime());
         }
         return methodCallExpression1;
     }
@@ -163,13 +159,8 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public void setEntryProbeInfo_id(DataInfo entryProbeInfo_id) {
-        this.entryProbeInfo_id = entryProbeInfo_id.getDataId();
-    }
-
-    @Override
-    public void setEntryProbeInfo(ProbeInfo entryProbeInfo) {
-        this.entryProbeInfo_id = entryProbeInfo.getDataId();
+    public void setEntryProbeInfoId(int probeInfoId) {
+        this.entryProbeInfo_id = probeInfoId;
     }
 
     @Override
@@ -178,8 +169,8 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public void setSubject(Parameter testSubject) {
-        this.subject_id = testSubject.value;
+    public void setSubject(long testSubjectId) {
+        this.subject_id = testSubjectId;
     }
 
     @Override
@@ -206,8 +197,8 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public void setReturnValue_id(Parameter returnValue_id) {
-        this.returnValue_id = returnValue_id.value;
+    public void setReturnValue_id(long returnValue_id) {
+        this.returnValue_id = returnValue_id;
     }
 
     @Override
@@ -241,8 +232,8 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public void setEntryProbeId(DataEventWithSessionId entryProbe_id) {
-        this.entryProbe_id = entryProbe_id.getNanoTime();
+    public void setEntryProbeId(long eventId) {
+        this.entryProbe_id = eventId;
     }
 
     @Override
@@ -278,9 +269,13 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         return argsProbeList;
     }
 
+    public String getArgumentProbesString() {
+        return argumentProbes;
+    }
+
     @Override
-    public void setArgumentProbes(List<Long> argumentProbes) {
-        this.argumentProbes = Strings.join(argumentProbes, ",");
+    public void setArgumentProbes(String argumentProbes) {
+        this.argumentProbes = argumentProbes;
     }
 
     @Override
@@ -304,8 +299,8 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public void setParentId(long parentId) {
-        this.parentId = parentId;
+    public int getMethodDefinitionId() {
+        return methodDefinitionId;
     }
 
     @Override
@@ -314,13 +309,13 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
     }
 
     @Override
-    public int getMethodDefinitionId() {
-        return methodDefinitionId;
+    public long getParentId() {
+        return parentId;
     }
 
     @Override
-    public long getParentId() {
-        return parentId;
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
     }
 
     public int getThreadId() {

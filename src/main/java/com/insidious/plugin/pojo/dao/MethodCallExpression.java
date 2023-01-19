@@ -1,7 +1,7 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -58,12 +58,14 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
             String methodName,
             long subject,
             List<Long> arguments,
-            long returnValue_id
+            long returnValue_id,
+            int callStack
     ) {
         this.methodName = methodName;
         this.subject_id = subject;
         this.arguments = Strings.join(arguments, ",");
         this.returnValue_id = returnValue_id;
+        this.callStack = callStack;
     }
 
     public static MethodCallExpression FromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
@@ -82,28 +84,88 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                         .stream()
                         .map(com.insidious.plugin.pojo.Parameter::getValue)
                         .collect(Collectors.toList()),
-                returnParameterValue
+                returnParameterValue,
+                methodCallExpression.getCallStack()
         );
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
+                .getNanoTime());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
+                .getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(StringUtil.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getNanoTime)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
                     .getNanoTime());
         }
         return methodCallExpression1;
     }
+
+    public static MethodCallExpression FromMCE(IncompleteMethodCallExpression methodCallExpression) {
+        if (methodCallExpression == null) {
+            return null;
+        }
+
+        long returnParameterValue = methodCallExpression.getReturnValue_id();
+        long subjectParameterValue = methodCallExpression.getSubject();
+        MethodCallExpression methodCallExpression1 = new MethodCallExpression(
+                methodCallExpression.getMethodName(),
+                subjectParameterValue,
+                methodCallExpression.getArguments(),
+                returnParameterValue,
+                methodCallExpression.getCallStack()
+        );
+        methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe_id());
+        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
+        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo_id());
+        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
+        methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
+        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
+        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbesString());
+        methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent());
+        return methodCallExpression1;
+    }
+
+    public static IncompleteMethodCallExpression IncompleteFromMCE(MethodCallExpression methodCallExpression) {
+        if (methodCallExpression == null) {
+            return null;
+        }
+
+        long returnParameterValue = methodCallExpression.getReturnValue_id();
+        long subjectParameterValue = methodCallExpression.getSubject();
+        IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
+                methodCallExpression.getMethodName(),
+                subjectParameterValue,
+                methodCallExpression.getArgumentsString(),
+                returnParameterValue
+        );
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe_id());
+        methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
+        methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo_id());
+        methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
+        methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
+        methodCallExpression1.setId(methodCallExpression.getId());
+        methodCallExpression1.setParentId(methodCallExpression.getParentId());
+        methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
+        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbesString());
+        methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent());
+        return methodCallExpression1;
+    }
+
 
     public static IncompleteMethodCallExpression IncompleteFromMCE(com.insidious.plugin.pojo.MethodCallExpression methodCallExpression) {
         if (methodCallExpression == null) {
@@ -117,25 +179,27 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                methodCallExpression.getArguments()
+                StringUtil.join(methodCallExpression.getArguments()
                         .stream()
                         .map(com.insidious.plugin.pojo.Parameter::getValue)
-                        .collect(Collectors.toList()),
+                        .collect(Collectors.toList()), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
+                .getNanoTime());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
-        methodCallExpression1.setEntryProbeInfo_id(methodCallExpression.getEntryProbeInfo());
+        methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
+                .getDataId());
         methodCallExpression1.setCallStack(methodCallExpression.getCallStack());
         methodCallExpression1.setThreadId(methodCallExpression.getThreadId());
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(StringUtil.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getNanoTime)
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
                     .getNanoTime());
@@ -143,7 +207,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return methodCallExpression1;
     }
 
-    public static com.insidious.plugin.pojo.MethodCallExpression ToMCE(MethodCallExpressionInterface methodCallExpression) {
+    public static com.insidious.plugin.pojo.MethodCallExpression ToMCEFromDao(MethodCallExpressionInterface methodCallExpression) {
         com.insidious.plugin.pojo.MethodCallExpression methodCallExpression1 = new com.insidious.plugin.pojo.MethodCallExpression(
                 methodCallExpression.getMethodName(), null, new LinkedList<>(), null, 0
         );
@@ -170,20 +234,16 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return entryProbeInfo_id;
     }
 
-    public void setEntryProbeInfo_id(DataInfo entryProbeInfo_id) {
-        this.entryProbeInfo_id = entryProbeInfo_id.getDataId();
-    }
-
-    public void setEntryProbeInfo(ProbeInfo entryProbeInfo) {
-        this.entryProbeInfo_id = entryProbeInfo.getDataId();
+    public void setEntryProbeInfoId(int probeId) {
+        this.entryProbeInfo_id = probeId;
     }
 
     public long getSubject() {
         return subject_id;
     }
 
-    public void setSubject(Parameter testSubject) {
-        this.subject_id = testSubject.value;
+    public void setSubject(long subjectValue) {
+        this.subject_id = subjectValue;
     }
 
     public List<Long> getArguments() {
@@ -202,12 +262,16 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         this.arguments = arguments;
     }
 
+    public String getArgumentsString() {
+        return arguments;
+    }
+
     public long getReturnValue_id() {
         return returnValue_id;
     }
 
-    public void setReturnValue_id(Parameter returnValue_id) {
-        this.returnValue_id = returnValue_id.value;
+    public void setReturnValue_id(long returnParameterValue) {
+        this.returnValue_id = returnParameterValue;
     }
 
     public String getMethodName() {
@@ -235,8 +299,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return entryProbe_id;
     }
 
-    public void setEntryProbeId(DataEventWithSessionId entryProbe_id) {
-        this.entryProbe_id = entryProbe_id.getNanoTime();
+    public void setEntryProbeId(long eventId) {
+        this.entryProbe_id = eventId;
     }
 
     public int getCallStack() {
@@ -267,8 +331,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         return argsProbeList;
     }
 
-    public void setArgumentProbes(List<Long> argumentProbes) {
-        this.argumentProbes = Strings.join(argumentProbes, ",");
+    public void setArgumentProbes(String argumentProbes) {
+        this.argumentProbes = argumentProbes;
+    }
+
+    public String getArgumentProbesString() {
+        return argumentProbes;
     }
 
     public long getReturnDataEvent() {
@@ -312,4 +380,21 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     public void setThreadId(int threadId) {
         this.threadId = threadId;
     }
+
+    public void addArgument(long parameterValue) {
+        if (arguments == null || arguments.length() == 0) {
+            arguments = String.valueOf(parameterValue);
+        } else {
+            arguments = arguments + "," + parameterValue;
+        }
+    }
+
+    public void addArgumentProbe(long eventId) {
+        if (argumentProbes == null || argumentProbes.length() == 0) {
+            argumentProbes = String.valueOf(eventId);
+        } else {
+            argumentProbes = argumentProbes + "," + eventId;
+        }
+    }
+
 }

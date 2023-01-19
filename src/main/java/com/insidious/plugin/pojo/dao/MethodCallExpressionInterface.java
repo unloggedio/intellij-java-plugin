@@ -1,8 +1,5 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.insidious.common.weaver.DataInfo;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-
 import java.util.List;
 
 public interface MethodCallExpressionInterface {
@@ -12,13 +9,11 @@ public interface MethodCallExpressionInterface {
 
     int getEntryProbeInfo_id();
 
-    void setEntryProbeInfo_id(DataInfo entryProbeInfo_id);
-
-    void setEntryProbeInfo(ProbeInfo entryProbeInfo);
+    void setEntryProbeInfoId(int probeInfoId);
 
     long getSubject();
 
-    void setSubject(Parameter testSubject);
+    void setSubject(long subjectId);
 
     List<Long> getArguments();
 
@@ -26,7 +21,7 @@ public interface MethodCallExpressionInterface {
 
     long getReturnValue_id();
 
-    void setReturnValue_id(Parameter returnValue_id);
+    void setReturnValue_id(long returnValue_id);
 
     String getMethodName();
 
@@ -40,7 +35,7 @@ public interface MethodCallExpressionInterface {
 
     long getEntryProbe_id();
 
-    void setEntryProbeId(DataEventWithSessionId entryProbe_id);
+    void setEntryProbeId(long eventId);
 
     int getCallStack();
 
@@ -52,7 +47,7 @@ public interface MethodCallExpressionInterface {
 
     List<Long> getArgumentProbes();
 
-    void setArgumentProbes(List<Long> argumentProbes);
+    void setArgumentProbes(String argumentProbes);
 
     long getReturnDataEvent();
 

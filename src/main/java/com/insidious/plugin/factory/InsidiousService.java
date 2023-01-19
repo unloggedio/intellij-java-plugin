@@ -1191,8 +1191,7 @@ public class InsidiousService implements Disposable {
             if (file.isDirectory()) {
                 File[] files_l2 = file.listFiles();
                 for (File file1 : files_l2) {
-                    if (file1.getName()
-                            .contains(".selog")) {
+                    if (file1.getName().contains(".selog") || file1.getName().startsWith("index-")) {
                         return true;
                     }
                 }
