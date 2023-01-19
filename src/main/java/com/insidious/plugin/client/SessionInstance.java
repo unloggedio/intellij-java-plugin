@@ -2337,8 +2337,9 @@ public class SessionInstance {
                 }
                 objectIndexCollection = archiveObjectIndex.getObjectIndex();
                 logger.warn("adding [" + objectIndexCollection.size() + "] objects to index");
-                objectIndexCollection.parallelStream()
+                archiveObjectIndex.getObjectIndex().parallelStream()
                         .forEach(e -> objectInfoIndex.put(e.getObjectId(), e));
+                objectIndexCollection = null;
             } else {
                 // we already have the latest object info index
                 break;
@@ -2415,7 +2416,7 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-            if (eventBlock.valueId() == 1688794097) {
+            if (eventBlock.eventId() == 1595) {
                 logger.warn("here: " + logFile);
             }
             switch (probeInfo.getEventType()) {
@@ -2778,7 +2779,6 @@ public class SessionInstance {
                                 .getId());
                     }
                     threadState.pushCall(methodCall);
-//                        addMethodToCandidate(threadState, methodCall);
                     if (!isModified) {
                         existingParameter = null;
                     }
@@ -2994,9 +2994,7 @@ public class SessionInstance {
                     Parameter topCallSubject = threadState.getTopCall()
                             .getSubject();
                     String topCallSubjectType = topCallSubject.getType();
-                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(
-                            classInfo
-                                    .getClassName());
+                    String currentProbeClassOwner = ClassTypeUtils.getDottedClassName(classInfo.getClassName());
 
 
                     if (!topCallSubjectType.equals(currentProbeClassOwner)) {
@@ -3004,7 +3002,7 @@ public class SessionInstance {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         if (existingParameter.getType() == null) {
-                            ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
                                     existingParameter.getValue());
                             if (objectInfoDocument != null) {
                                 TypeInfoDocument typeInfoDocument = getTypeFromTypeIndex(
@@ -3031,7 +3029,7 @@ public class SessionInstance {
 
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter.getType() == null) {
-                        ObjectInfoDocument objectInfoDocument = getObjectInfoDocumentRaw(
+                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
                                 existingParameter.getValue());
                         if (objectInfoDocument == null) {
                             logger.error("object info document is null for [" + existingParameter.getValue() + "] in " +
@@ -3392,16 +3390,16 @@ public class SessionInstance {
         return objectInfoIndex.get(parameterValue);
     }
 
-    private ObjectInfoDocument getObjectInfoDocumentRaw(long parameterValue) {
-        ResultSet<ObjectInfoDocument> result = objectIndexCollection.retrieve(
-                equal(ObjectInfoDocument.OBJECT_ID, parameterValue));
-        if (result.size() == 0) {
-            return null;
-        }
-        ObjectInfoDocument objectInfo = result.uniqueResult();
-        result.close();
-        return objectInfo;
-    }
+//    private ObjectInfoDocument getObjectInfoDocumentRaw(long parameterValue) {
+//        ResultSet<ObjectInfoDocument> result = objectIndexCollection.retrieve(
+//                equal(ObjectInfoDocument.OBJECT_ID, parameterValue));
+//        if (result.size() == 0) {
+//            return null;
+//        }
+//        ObjectInfoDocument objectInfo = result.uniqueResult();
+//        result.close();
+//        return objectInfo;
+//    }
 
     private long getFolderSize(File folder) {
         long length = 0;

@@ -207,6 +207,9 @@ public class CandidateMetadataFactory {
                     subjectStaticFieldMock.getTemplateMap()
                             .add(childParameter);
 
+                    // set the name for this parameter forced.
+                    nameFactory.setNameForParameter(subjectStaticFieldMock, staticCallSubjectMockInstance.getName());
+
                     objectRoutineScript.addStaticMock(subjectStaticFieldMock);
                 }
 
