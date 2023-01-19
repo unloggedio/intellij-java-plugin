@@ -6,16 +6,11 @@ public class WaitingScreen {
     private JPanel basePanel;
     private JLabel mainTextLabel;
     private JPanel container;
-
-    public WaitingScreen()
-    {
-        System.out.println("Waiting screen");
-    }
+    public WaitingScreen() {}
     public JPanel getCompenent()
     {
         return basePanel;
     }
-
     public void setText(String text)
     {
         this.mainTextLabel.setText(text);

@@ -172,9 +172,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     @Override
-    public void onSelect(String moduleName) {
-
-    }
+    public void onSelect(String moduleName) {}
 
     public JComponent getContent() {
         return mainPanel;
@@ -366,10 +364,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 type = "jackson-" + version;
             }
         }
+        checkProgressIndicator("Downloading Unlogged agent", "version : "+type);
         String url = (host + type + extention).trim();
         logger.info("[Downloading from] " + url);
         InsidiousNotification.notifyMessage(
-                "Downloading agent for dependency :" + type,
+                "Downloading agent for dependency : " + type,
                 NotificationType.INFORMATION);
         downloadAgent(url, true);
     }
@@ -434,6 +433,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public boolean md5Check(String agentVersion, File agent) {
+        checkProgressIndicator("Checking md5 checksum", null);
         try {
             byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
             byte[] hash = MessageDigest.getInstance("MD5")
@@ -523,6 +523,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else {
             //search is complete
             this.dependencies_status = depVersions;
+            logger.info("[Dependency search status] "+depVersions.toString());
             if (this.dependencies_status.get("jackson-databind") != null) {
                 this.insidiousService.getProjectTypeInfo().
                         setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
@@ -772,8 +773,15 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             VirtualFile file = psipomFile.getVirtualFile();
             File pomFile = new File(file.getPath());
             String source = psipomFile.getText();
-            String[] parts = source.split("<dependencies>", 2);
-            String finalstring = parts[0] + "\n<dependencies>" + text + "" + parts[1];
+            String[] parts = source.split("<dependencies>");
+            String finalstring = parts[0];
+            StringBuilder builder = new StringBuilder(finalstring);
+            //+ "\n<dependencies>" + text + "" + parts[1];
+            for(int i=1;i<parts.length;i++)
+            {
+                builder.append("\n<dependencies>" + text + "" + parts[i]);
+            }
+            finalstring = builder.toString();
             try (FileOutputStream out = new FileOutputStream(pomFile)) {
                 out.write(finalstring
                         .getBytes(StandardCharsets.UTF_8));
