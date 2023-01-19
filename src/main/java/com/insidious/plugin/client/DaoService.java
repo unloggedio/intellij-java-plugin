@@ -217,7 +217,7 @@ public class DaoService {
                 MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
                         testCandidateMetadata.getMainMethod());
                 logger.warn("main method isn't public: " + mainMethodCallExpression);
-                converted.setMainMethod(MethodCallExpression.ToMCEFromDao(mainMethodCallExpression));
+                converted.setMainMethod(buildFromDbMce(List.of(mainMethodCallExpression)).get(0));
             }
 
 
@@ -273,7 +273,7 @@ public class DaoService {
                     .collect(Collectors.toList());
 
             List<MethodCallExpressionInterface> callsToBuild = mceList.stream()
-                    .filter(e -> !constructedValues.contains(e.getSubject()))
+                    .filter(e -> !constructedValues.contains(e.getSubject()) || testCandidateMetadata.getTestSubject() == e.getSubject())
                     .filter(e -> !e.getMethodName()
                             .equals("<clinit>"))
                     .collect(Collectors.toList());

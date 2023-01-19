@@ -2398,9 +2398,9 @@ public class SessionInstance {
             Parameter existingParameter = null;
             boolean saveProbe = false;
             isModified = false;
-            if (eventBlock.eventId() == 78619) {
-                logger.warn("here: " + logFile);
-            }
+//            if (eventBlock.eventId() == 78619) {
+//                logger.warn("here: " + logFile);
+//            }
             switch (probeInfo.getEventType()) {
 
                 case LABEL:
@@ -3037,6 +3037,7 @@ public class SessionInstance {
                     topCall.setReturnValue_id(existingParameter.getValue());
                     topCall.setReturnDataEvent(dataEvent.getNanoTime());
                     callsToSave.add(topCall);
+
                     threadState.setMostRecentReturnedCall(topCall);
                     completedExceptional = threadState.popTopCandidate();
 
@@ -3051,8 +3052,6 @@ public class SessionInstance {
 
                     if (threadState.candidateSize() > 0) {
                         com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
-//                        com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod
-//                                = methodCallMap.get(newCurrent.getMainMethod());
                         if (methodCallSubjectTypeMap.get(newCurrent.getMainMethod())
                                 .equals(methodCallSubjectTypeMap.get(completedMainMethod.getId()))) {
                             for (long parameterValue : completedExceptional.getFields()) {
@@ -3067,6 +3066,8 @@ public class SessionInstance {
                     }
 
                     addMethodAsTestCandidate(candidatesToSave, completedExceptional);
+                    methodCallMap.remove(completedExceptional.getMainMethod());
+                    methodCallSubjectTypeMap.remove(completedExceptional.getMainMethod());
 
                     if (!isModified) {
                         existingParameter = null;
@@ -3109,6 +3110,7 @@ public class SessionInstance {
                         }
                         topCall.setReturnDataEvent(dataEvent.getNanoTime());
                         callsToSave.add(topCall);
+
                         threadState.setMostRecentReturnedCall(topCall);
 
                     } else {
@@ -3121,18 +3123,14 @@ public class SessionInstance {
 
                     completed.setExitProbeIndex(eventBlock.eventId());
                     if (completed.getMainMethod() != 0) {
-                        completed.setTestSubject(
-                                methodCallMap.get(completed.getMainMethod()).getSubject());
+                        completed.setTestSubject(methodCallMap.get(completed.getMainMethod()).getSubject());
                     }
 
                     if (threadState.candidateSize() > 0) {
                         com.insidious.plugin.pojo.dao.TestCandidateMetadata newCurrent = threadState.getTopCandidate();
                         com.insidious.plugin.pojo.dao.MethodCallExpression newCurrentMainMethod = methodCallMap.get(
                                 newCurrent.getMainMethod());
-//                        Parameter completedCallSubject = parameterContainer.getParameterByValue(
-//                                methodCallMap.get(completed.getMainMethod()).getSubject());
-//                        Parameter newCurrentCallSubject = parameterContainer.getParameterByValue(
-//                                newCurrentMainMethod.getSubject());
+
                         if (methodCallSubjectTypeMap.get(newCurrentMainMethod.getId())
                                 .equals(methodCallSubjectTypeMap.get(completed.getMainMethod()))) {
                             for (long parameter : completed.getFields()) {
@@ -3150,6 +3148,8 @@ public class SessionInstance {
                     }
 
                     addMethodAsTestCandidate(candidatesToSave, completed);
+                    methodCallMap.remove(completed.getMainMethod());
+                    methodCallSubjectTypeMap.remove(completed.getMainMethod());
 
                     if (!isModified) {
                         existingParameter = null;
@@ -3159,7 +3159,6 @@ public class SessionInstance {
                 case CALL_RETURN:
 
                     dataEvent = createDataEventFromBlock(threadId, eventBlock);
-//                                LoggerUtil.logEvent("SCAN", callStack.size(), instructionIndex, dataEvent, probeInfo, classInfo, methodInfo);
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
 
                     isModified = false;
@@ -3185,6 +3184,9 @@ public class SessionInstance {
                         topCall.setReturnValue_id(existingParameter.getValue());
                         topCall.setReturnDataEvent(dataEvent.getNanoTime());
                         callsToSave.add(topCall);
+                        methodCallMap.remove(topCall.getId());
+                        methodCallSubjectTypeMap.remove(topCall.getId());
+
                         threadState.setMostRecentReturnedCall(topCall);
 
                     } else if (entryEventType == EventType.METHOD_ENTRY) {
