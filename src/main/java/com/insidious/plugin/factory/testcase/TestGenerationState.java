@@ -14,6 +14,9 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.bouncycastle.crypto.digests.MD5Digest;
+import org.bouncycastle.jcajce.provider.digest.MD5;
 
 import javax.lang.model.element.Modifier;
 import java.util.HashMap;
@@ -36,6 +39,8 @@ public class TestGenerationState {
     private final ParameterNameFactory parameterNameFactory;
     private VariableContainer variableContainer;
     private Map<String, Boolean> mockedCallsMap = new HashMap<>();
+    private boolean setupNeedsJsonResources;
+
     public TestGenerationState(ParameterNameFactory parameterNameFactory) {
         this.parameterNameFactory = parameterNameFactory;
     }
@@ -73,8 +78,9 @@ public class TestGenerationState {
 
         String value = new String(lhsExpression.getProb()
                 .getSerializedValue());
-        if (valueResourceStringMap.containsKey(value)) {
-            valueResourceStringMap.get(value);
+        String valueHash = DigestUtils.md5Hex(value);
+        if (valueResourceStringMap.containsKey(valueHash)) {
+            valueResourceStringMap.get(valueHash);
         }
         String referenceNameForValue = null;
         for (int i = 0; i < 100; i++) {
@@ -89,7 +95,7 @@ public class TestGenerationState {
                     logger.warn("Object was not serialized properly: " + value1 + " -> " + jse.getMessage());
                 }
                 valueResourceMap.put(referenceNameForValue, value1);
-                valueResourceStringMap.put(value, referenceNameForValue);
+                valueResourceStringMap.put(valueHash, referenceNameForValue);
                 break;
             }
         }
@@ -133,5 +139,13 @@ public class TestGenerationState {
             }
         }
 
+    }
+
+    public void setSetupNeedsJsonResources(boolean setupNeedsJsonResources) {
+        this.setupNeedsJsonResources = setupNeedsJsonResources;
+    }
+
+    public boolean isSetupNeedsJsonResources() {
+        return setupNeedsJsonResources;
     }
 }

@@ -131,8 +131,8 @@ public class InsidiousService implements Disposable {
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
     private Content onboardingConfigurationWindowContent;
-    private ProjectTypeInfo projectTypeInfo=new ProjectTypeInfo();
-    private boolean liveViewAdded=false;
+    private ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
+    private boolean liveViewAdded = false;
     private Content liveWindowContent;
     private Content onboardingContent;
 
@@ -845,8 +845,9 @@ public class InsidiousService implements Disposable {
                         basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
                 resourcesDirFile.mkdirs();
-                String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
                 String resourceJson = gson.toJson(valueResourceMap);
+
+                String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
                 try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
@@ -854,6 +855,19 @@ public class InsidiousService implements Disposable {
                         .refreshAndFindFileByUrl(Path.of(testResourcesFilePath)
                                 .toUri()
                                 .toString());
+
+                if (testCaseScript.getTestGenerationState()
+                        .isSetupNeedsJsonResources()) {
+
+                    String setupJsonFilePath = testResourcesDirPath + "/" + "setup" + ".json";
+                    try (FileOutputStream resourceFile = new FileOutputStream(setupJsonFilePath)) {
+                        resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
+                    }
+                    VirtualFileManager.getInstance()
+                            .refreshAndFindFileByUrl(Path.of(setupJsonFilePath)
+                                    .toUri()
+                                    .toString());
+                }
             }
 
 
@@ -1191,7 +1205,9 @@ public class InsidiousService implements Disposable {
             if (file.isDirectory()) {
                 File[] files_l2 = file.listFiles();
                 for (File file1 : files_l2) {
-                    if (file1.getName().contains(".selog") || file1.getName().startsWith("index-")) {
+                    if (file1.getName()
+                            .contains(".selog") || file1.getName()
+                            .startsWith("index-")) {
                         return true;
                     }
                 }
@@ -1667,26 +1683,22 @@ public class InsidiousService implements Disposable {
         });
     }
 
-    public void addLiveView()
-    {
-        if(!liveViewAdded)
-        {
-            toolWindow.getContentManager().addContent(liveWindowContent);
-            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
+    public void addLiveView() {
+        if (!liveViewAdded) {
+            toolWindow.getContentManager()
+                    .addContent(liveWindowContent);
+            toolWindow.getContentManager()
+                    .setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
-            try
-            {
+            try {
                 liveViewWindow.setTreeStateToLoading();
                 liveViewWindow.loadSession();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 //exception setting state
             }
-        }
-        else
-        {
-            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
+        } else {
+            toolWindow.getContentManager()
+                    .setSelectedContent(liveWindowContent);
         }
     }
 }
