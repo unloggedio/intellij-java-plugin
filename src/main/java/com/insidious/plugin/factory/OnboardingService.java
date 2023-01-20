@@ -6,17 +6,19 @@ import java.util.Map;
 
 public interface OnboardingService {
 
-    public Map<String,String> fetchMissingDependencies();
+    Map<String, String> fetchMissingDependencies();
 
     void postProcessDependencies(Map<String, String> missing, HashSet<String> selectedDependencies);
 
-    public Map<String, String> getDependencyStatus();
+    Map<String, String> getDependencyStatus();
 
-    public List<String> fetchModules();
+    List<String> fetchModules();
 
-    public String fetchBasePackage();
+    String fetchBasePackage();
 
-    public String fetchBasePackageForModule(String modulename);
+    String fetchBasePackageForModule(String modulename);
 
-    public boolean canGoToDocumention();
+    boolean canGoToDocumention();
+
+    void copyDependenciesToClipboard(Map<String, String> missing);
 }
