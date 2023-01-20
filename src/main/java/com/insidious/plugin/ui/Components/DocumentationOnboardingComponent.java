@@ -4,7 +4,9 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -35,6 +37,8 @@ public class DocumentationOnboardingComponent {
     private VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private InsidiousService insidiousService;
     private boolean addOpens = false;
+    private static final Logger logger = LoggerUtil.getInstance(DocumentationOnboardingComponent.class);
+
     public DocumentationOnboardingComponent(InsidiousService insidiousService)
     {
         this.insidiousService = insidiousService;
@@ -99,7 +103,7 @@ public class DocumentationOnboardingComponent {
     private void routeToDocumentationpage() {
         String link = "https://docs.unlogged.io?parms=" + this.vmOptionsConstructionService
                 .getVMParameters(this.currentBasePackage);
-        System.out.println("URL for docs " + link);
+        //System.out.println("URL for docs " + link);
         try {
             String decodedURL = URLDecoder.decode(link, StandardCharsets.UTF_8);
             URL url = new URL(decodedURL);
@@ -110,7 +114,7 @@ public class DocumentationOnboardingComponent {
                     java.awt.Desktop.getDesktop()
                             .browse(uri);
                 } catch (Exception e) {
-                    System.out.println("Exception sending parameters to docs.");
+                    logger.error("Exception sending parameters to docs. "+e);
                 }
             } else {
                 //no browser

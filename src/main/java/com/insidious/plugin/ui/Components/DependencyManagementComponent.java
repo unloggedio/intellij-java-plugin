@@ -3,6 +3,8 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -16,6 +18,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class DependencyManagementComponent {
+    private static final Logger logger = LoggerUtil.getInstance(DependencyManagementComponent.class);
     private JPanel mainPanel;
     private JPanel packagesSelectionPanel;
     private JPanel packageManagementBorderParent;
@@ -28,18 +31,14 @@ public class DependencyManagementComponent {
     private JButton addToDependenciesButton;
     private JPanel missingDependenciesPanel;
     private JLabel body_label;
-    private Map<String,String> missing_ = new TreeMap<>();
-    private OnboardingService onboardingService;
-    private InsidiousService insidiousService;
-    private HashSet<String> selectedDependencies = new HashSet<>();
+    private JButton copyDependenciesButton;
+    private Map<String, String> missing_ = new TreeMap<>();
+    private final OnboardingService onboardingService;
+    private final InsidiousService insidiousService;
+    private final HashSet<String> selectedDependencies = new HashSet<>();
 
-    public JPanel getComponent() {
-        return mainPanel;
-    }
-
-    public DependencyManagementComponent(Map<String,String> missing, OnboardingService onboardingService, InsidiousService insidiousService)
-    {
-        this.missing_= missing;
+    public DependencyManagementComponent(Map<String, String> missing, OnboardingService onboardingService, InsidiousService insidiousService) {
+        this.missing_ = missing;
         this.onboardingService = onboardingService;
         this.insidiousService = insidiousService;
         addToDependenciesButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -51,23 +50,34 @@ public class DependencyManagementComponent {
             }
         });
         updateDependenciesTab();
+        copyDependenciesButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                copyDependenciesToClipboard();
+            }
+        });
     }
 
-    private void updateDependenciesTab()
-    {
+    public JPanel getComponent() {
+        return mainPanel;
+    }
+
+    private void copyDependenciesToClipboard() {
+        onboardingService.copyDependenciesToClipboard(this.missing_);
+    }
+
+    private void updateDependenciesTab() {
         this.missingDependenciesPanel.removeAll();
         this.missing_ = new TreeMap<>();
-        Map<String,String> dep_Status = onboardingService.getDependencyStatus();
-        for(String key : dep_Status.keySet())
-        {
-            if(dep_Status.get(key)==null &&
-                !insidiousService.getProjectTypeInfo().
-                        getDependencies_addedManually().contains(key))
-            {
-                this.missing_.put(key,dep_Status.get(key));
+        Map<String, String> dep_Status = onboardingService.getDependencyStatus();
+        for (String key : dep_Status.keySet()) {
+            if (dep_Status.get(key) == null &&
+                    !insidiousService.getProjectTypeInfo().
+                            getDependencies_addedManually().contains(key)) {
+                this.missing_.put(key, dep_Status.get(key));
             }
         }
-        System.out.println("Missing _ "+missing_);
+        logger.info("Missing Dependencies : " + missing_.toString());
         int GridRows = 16;
         if (missing_.size() > GridRows) {
             GridRows = missing_.size();
@@ -84,7 +94,7 @@ public class DependencyManagementComponent {
             JLabel label = new JLabel();
             label.setText(dependency);
             label.setIcon(UI_Utils.ARROW_YELLOW_RIGHT);
-            label.setBorder(new EmptyBorder(4,8,0,0));
+            label.setBorder(new EmptyBorder(4, 8, 0, 0));
             gridPanel.add(label, constraints);
             i++;
         }

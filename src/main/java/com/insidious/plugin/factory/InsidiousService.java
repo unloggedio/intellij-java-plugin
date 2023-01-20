@@ -358,21 +358,21 @@ public class InsidiousService implements Disposable {
                     int modulesIndexEnd = text.indexOf("</modules>");
 
                     String substring_modules = text.substring(modulesIndexStart, modulesIndexEnd);
-                    System.out.println("Modules Section - ");
-                    System.out.println(substring_modules);
+                    //System.out.println("Modules Section - ");
+                    //System.out.println(substring_modules);
                     Set<String> modulesFromPom = getModulesListFromString(substring_modules);
                     return modulesFromPom;
                 } else if (text.contains("<java.version>")) {
                     String java_version = text.substring(text.indexOf("<java.version>") + 1,
                             text.indexOf("</java.version>"));
-                    System.out.println("Java version");
-                    System.out.println("" + java_version);
+                    //System.out.println("Java version");
+                    //System.out.println("" + java_version);
                 }
             }
             return modules;
         }
-        System.out.println("[Modules] Pom -");
-        System.out.println(modules.toString());
+        //System.out.println("[Modules] Pom -");
+        //System.out.println(modules.toString());
 
         try {
             modules = new HashSet<String>();
@@ -413,12 +413,12 @@ public class InsidiousService implements Disposable {
                         }
                     }
                 }
-                System.out.println("[Modules] Gradle - ");
-                System.out.println(modules.toString());
+                //System.out.println("[Modules] Gradle - ");
+                //System.out.println(modules.toString());
                 return modules;
             }
         } catch (Exception ex) {
-            System.out.println("Exception fetching gradle modules " + ex);
+            logger.info("Exception fetching gradle modules " + ex);
             ex.printStackTrace();
         }
         return null;
@@ -1695,6 +1695,7 @@ public class InsidiousService implements Disposable {
                 liveViewWindow.loadSession();
             } catch (Exception e) {
                 //exception setting state
+                logger.error("Failed to start scan after proceed.");
             }
         } else {
             toolWindow.getContentManager()

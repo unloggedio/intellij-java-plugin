@@ -64,15 +64,20 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     private Project project;
     private InsidiousService insidiousService;
     private List<ModulePanel> modulePanelList;
-    private HashSet<String> selectedPackages = new HashSet<>(); //these are packages that will be excluded in the vm params
+
+    //these are packages that will be excluded in the vm params
+    private HashSet<String> selectedPackages = new HashSet<>();
     private HashSet<String> selectedDependencies = new HashSet<>();
     private String JVMoptionsBase = "";
     private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
-    private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png", OnboardingConfigurationWindow.class);
-    private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png", OnboardingConfigurationWindow.class);
+    private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png",
+            OnboardingConfigurationWindow.class);
+    private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png",
+            OnboardingConfigurationWindow.class);
     private boolean agentDownloadInitiated = false;
     private boolean addopens = false;
     private WaitingScreen waitingScreen;
+    private boolean dependenciesAdditionAttempted = false;
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -113,7 +118,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (insidiousService.areLogsPresent()) {
             //go to live
             runDownloadCheckWhenLogsExist();
-            setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW, this);
+            setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,
+                    this);
             //insidiousService.addLiveView();
         } else {
             //check for dependencies
@@ -130,10 +136,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 });
     }
 
-    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state, OnboardingService onboardingService) {
-        System.out.println("Init scaffold screen");
+    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state,
+                               OnboardingService onboardingService) {
         this.mainPanel.removeAll();
-        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService, state, this);
+        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService, state,
+                this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -142,13 +149,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         gridPanel.add(scaffold.getComponent(), constraints);
         this.mainPanel.add(gridPanel, BorderLayout.CENTER);
         this.mainPanel.revalidate();
-        System.out.println("Init scaffold done");
     }
 
-    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state, Map<String, String> missing_dependencies, OnboardingService onboardingService) {
-        System.out.println("Init scaffold screen");
+    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state,
+                               Map<String, String> missing_dependencies,
+                               OnboardingService onboardingService) {
         this.mainPanel.removeAll();
-        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService, state, missing_dependencies,
+        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService,
+                state, missing_dependencies,
                 onboardingService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
@@ -158,7 +166,23 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         gridPanel.add(scaffold.getComponent(), constraints);
         this.mainPanel.add(gridPanel, BorderLayout.CENTER);
         this.mainPanel.revalidate();
-        System.out.println("Init scaffold done");
+    }
+
+    public void setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES state,
+                                            Map<String, String> missing_dependencies,
+                                            OnboardingService onboardingService) {
+        this.mainPanel.removeAll();
+        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService,
+                state, missing_dependencies,
+                onboardingService);
+        GridLayout gridLayout = new GridLayout(1, 1);
+        JPanel gridPanel = new JPanel(gridLayout);
+        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+        gridPanel.add(scaffold.getComponent(), constraints);
+        this.mainPanel.add(gridPanel, BorderLayout.CENTER);
+        this.mainPanel.revalidate();
     }
 
     @Override
@@ -177,7 +201,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     @Override
     public void onSelect(String moduleName) {
-
     }
 
     public JComponent getContent() {
@@ -214,14 +237,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         for (Module module : modules) {
             modules_from_mm.add(module.getName());
         }
-        System.out.println(modules);
+        //System.out.println(modules);
         try {
-            System.out.println("Fetching from POM.xml/settings.gradle");
+            logger.info("Fetching from POM.xml/settings.gradle");
             Set<String> modules_from_pg = insidiousService.fetchModuleNames();
             modules_from_mm.addAll(modules_from_pg);
         } catch (Exception e) {
-            System.out.println("Exception fetching modules");
-            System.out.println(e);
+            logger.error("Exception fetching modules " + e);
             e.printStackTrace();
             if (modules.size() > 0) {
                 List<String> modules_s = new ArrayList<>();
@@ -334,7 +356,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
         File agentFile = new File(absolutePath);
-        System.out.println("Does agent exist? " + agentFile.exists());
         if (agentFile.exists() == false) {
             return true;
         }
@@ -353,7 +374,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent() {
         if (!shouldDownloadAgent()) {
-            System.out.println("No need to download agent. Required version is already present");
+            logger.info("No need to download agent. Required version is already present");
             //agent already exists with correct version
             return;
         }
@@ -372,16 +393,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 type = "jackson-" + version;
             }
         }
+        checkProgressIndicator("Downloading Unlogged agent", "version : " + type);
         String url = (host + type + extention).trim();
         logger.info("[Downloading from] " + url);
         InsidiousNotification.notifyMessage(
-                "Downloading agent from link ." + url + ". Downloading to " + Constants.VIDEOBUG_AGENT_PATH,
+                "Downloading agent for dependency : " + type,
                 NotificationType.INFORMATION);
         downloadAgent(url, true);
     }
 
     private void downloadAgent(String url, boolean overwrite) {
-        logger.info("[starting download]");
+        logger.info("[Starting agent download]");
         UsageInsightTracker.getInstance()
                 .RecordEvent("AgentDownloadStart", null);
         Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
@@ -409,6 +431,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         "Agent md5 check failed."
                                 + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
                         NotificationType.ERROR);
+                logger.info("Agent MD5 check failed, checksums are different.");
                 UsageInsightTracker.getInstance()
                         .RecordEvent("MD5checkFailed", null);
             }
@@ -439,12 +462,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public boolean md5Check(String agentVersion, File agent) {
+        checkProgressIndicator("Checking md5 checksum", null);
         try {
             byte[] data = Files.readAllBytes(Paths.get(agent.getPath()));
             byte[] hash = MessageDigest.getInstance("MD5")
                     .digest(data);
             String checksum = new BigInteger(1, hash).toString(16);
-            System.out.println("Checksum of file " + checksum);
+            //System.out.println("Checksum of file " + checksum);
             switch (agentVersion) {
                 case "gson":
                     if (checksum.equals(Checksums.AGENT_GSON)) {
@@ -483,7 +507,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     break;
             }
         } catch (Exception e) {
-            System.out.println("Failed to get checksum of downloaded file.");
+            logger.info("Failed to get checksum of downloaded file.");
         }
         return false;
     }
@@ -508,7 +532,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 if (lib.getName()
                         .contains(dependency + ":")) {
                     String version = fetchVersionFromLibName(lib.getName(), dependency);
-                    System.out.println("Version of " + dependency + " is " + version);
+                    logger.info("Version of " + dependency + " is " + version);
                     depVersions.replace(dependency, version);
                 }
             }
@@ -516,7 +540,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             count++;
         }
         if (count == 0) {
-            System.out.println("Project import not complete, waiting.");
+            //logger.info("Project import not complete, waiting.");
             Timer timer = new Timer(3000, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent arg0) {
@@ -528,6 +552,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else {
             //search is complete
             this.dependencies_status = depVersions;
+            logger.info("[Dependency search status] " + depVersions.toString());
             if (this.dependencies_status.get("jackson-databind") != null) {
                 this.insidiousService.getProjectTypeInfo().
                         setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
@@ -538,10 +563,18 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             UsageInsightTracker.getInstance()
                     .RecordEvent("DependencyScanEnd", null);
             if (fetchMissingDependencies().size() == 0) {
-                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS, this);
+                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
+                        this);
             } else {
-                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-                        fetchMissingDependencies(), this);
+                if (dependenciesAdditionAttempted) {
+                    System.out.println("[SYNC FAILED POST WRITE]");
+                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
+                            fetchMissingDependencies(), this);
+                } else {
+                    System.out.println("[NO ATTEMPT TO WRITE]");
+                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
+                            fetchMissingDependencies(), this);
+                }
             }
         }
     }
@@ -567,7 +600,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         if (count == 0) {
             //import of project not complete, wait and rerun
-            System.out.println("Project import not complete, waiting.");
+            //System.out.println("Project import not complete, waiting.");
             Timer timer = new Timer(3000, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent arg0) {
@@ -602,7 +635,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 if (lib.getName()
                         .contains(dependency)) {
                     String version = fetchVersionFromLibName(lib.getName(), dependency);
-                    System.out.println("Version of " + dependency + " is " + version);
+                    logger.info("Version of " + dependency + " is " + version);
                     depVersions.replace(dependency, version);
                 }
             }
@@ -612,14 +645,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (count == 0) {
             return false;
         } else {
-            System.out.println("[DEP SEARCH] Can go to Doc section");
-            System.out.println(depVersions);
+            logger.info("[DEP SEARCH] Can go to Doc section");
+            logger.info(depVersions.toString());
             this.dependencies_status = depVersions;
             if (fetchMissingDependencies().size() == 0) {
-                System.out.println("can go to docs");
                 return true;
             } else {
-                System.out.println("can't go to docs");
                 return false;
             }
         }
@@ -660,13 +691,16 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         if (insidiousService.getProjectTypeInfo()
                 .isMaven()) {
+            System.out.println("[WRTITING TO POM]");
             writeToPom(dependencies_local);
         } else {
             //check if has build.gradle
             if (true) {
+                System.out.println("[WRTITING TO GRADLE]");
                 writeToGradle(dependencies_local);
             } else {
                 //add to lib
+                System.out.println("[NOT MVN OR GRADLE]");
             }
         }
         postprocessCheck();
@@ -677,7 +711,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return this.dependencies_status;
     }
 
-    public void writeToGradle(TreeMap<String, String> dependencies) {
+    public boolean writeToGradle(TreeMap<String, String> dependencies) {
         @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
                 GlobalSearchScope.projectScope(project));
         PsiFile targetFile;
@@ -686,7 +720,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else if (gradleFileSearchResult.length > 1) {
             targetFile = fetchBaseFile(gradleFileSearchResult);
         } else {
-            return;
+            return false;
         }
 
         StringBuilder sb = new StringBuilder();
@@ -709,20 +743,21 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 sb.append("implementation '" + group_name + ":" + artifact_name + "'\n");
             }
         }
-        System.out.println("Adding to build.gradle");
-        System.out.println(sb.toString());
+        logger.info("Adding to build.gradle");
+        logger.info(sb.toString());
+        dependenciesAdditionAttempted = true;
         if (sb.toString()
                 .trim()
                 .equals("")) {
             //nothing to write
-            InsidiousNotification.notifyMessage("Nothing to write into build.gradle", NotificationType.ERROR);
-            return;
+            logger.info("Noting to write into build.gradle");
+            return false;
         }
         write_gradle(targetFile, sb.toString());
-
+        return true;
     }
 
-    public void writeToPom(TreeMap<String, String> dependencies) {
+    private boolean writeToPom(TreeMap<String, String> dependencies) {
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         PsiFile targetFile;
@@ -733,7 +768,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else if (pomFileSearchResult.length > 1) {
             targetFile = fetchBaseFile(pomFileSearchResult);
         } else {
-            return;
+            return false;
         }
 
         for (String dependency : dependencies.keySet()) {
@@ -758,17 +793,19 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 sb.append("</dependency>\n");
             }
         }
-
-        System.out.println("Adding to Pom");
-        System.out.println(sb.toString());
+//        System.out.println("DEPENDENCIES mvn "+dependencies);
+        logger.info("Adding to pom.xml");
+        logger.info(sb.toString());
+        dependenciesAdditionAttempted = true;
         if (sb.toString()
                 .trim()
                 .equals("")) {
             //nothing to write
-            InsidiousNotification.notifyMessage("Nothing to write into pom.xml", NotificationType.ERROR);
-            return;
+            logger.info("Noting to write into pox.xml");
+            return false;
         }
         write_pom(targetFile, sb.toString());
+        return true;
     }
 
     //use dom?
@@ -777,8 +814,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             VirtualFile file = psipomFile.getVirtualFile();
             File pomFile = new File(file.getPath());
             String source = psipomFile.getText();
-            String[] parts = source.split("<dependencies>", 2);
-            String finalstring = parts[0] + "\n<dependencies>" + text + "" + parts[1];
+            String[] parts = source.split("<dependencies>");
+            String finalstring = parts[0];
+            StringBuilder builder = new StringBuilder(finalstring);
+            //+ "\n<dependencies>" + text + "" + parts[1];
+            for (int i = 1; i < parts.length; i++) {
+                builder.append("\n<dependencies>" + text + "" + parts[i]);
+            }
+            finalstring = builder.toString();
             try (FileOutputStream out = new FileOutputStream(pomFile)) {
                 out.write(finalstring
                         .getBytes(StandardCharsets.UTF_8));
@@ -793,14 +836,16 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             UsageInsightTracker.getInstance()
                     .RecordEvent("PomDependenciesAdded", null);
         } catch (Exception e) {
-            System.out.println("Failed to write to pom file " + e);
+            logger.info("Failed to write to pom file " + e);
             e.printStackTrace();
             InsidiousNotification.notifyMessage(
                     "Failed to write to pom."
                             + e.getMessage(), NotificationType.ERROR
             );
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("exception", e.getMessage());
             UsageInsightTracker.getInstance()
-                    .RecordEvent("FailedToAddPomDependencies", null);
+                    .RecordEvent("FailedToAddPomDependencies", eventProperties);
         }
     }
 
@@ -825,14 +870,16 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             UsageInsightTracker.getInstance()
                     .RecordEvent("GradleDependenciesAdded", null);
         } catch (Exception e) {
-            System.out.println("Failed to write to build.gradle file " + e);
+            logger.info("Failed to write to build.gradle file " + e);
             e.printStackTrace();
             InsidiousNotification.notifyMessage(
                     "Failed to write to build.gradle. "
                             + e.getMessage(), NotificationType.ERROR
             );
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("exception", e.getMessage());
             UsageInsightTracker.getInstance()
-                    .RecordEvent("FailedToAddGradleDependencies", null);
+                    .RecordEvent("FailedToAddGradleDependencies", eventProperties);
         }
     }
 
@@ -857,10 +904,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     public boolean shouldWriteDependency(PsiFile file, String dependency) {
         String text = file.getText();
         if (text.contains(dependency)) {
-            System.out.println("Should write dependency? " + dependency + " : false");
+            logger.info("Should write dependency? " + dependency + " : false");
             return false;
         } else {
-            System.out.println("Should write dependency? " + dependency + " : true");
+            logger.info("Should write dependency? " + dependency + " : true");
             return true;
         }
     }
@@ -892,6 +939,35 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 ProgressIndicatorProvider.getGlobalProgressIndicator()
                         .setText(text1);
             }
+        }
+    }
+
+    public void copyDependenciesToClipboard(Map<String, String> dependencies) {
+        StringBuilder sb = new StringBuilder();
+        for (String dependency : dependencies.keySet()) {
+            sb.append(getDependencyAdditionText(dependency));
+        }
+        String final_str = sb.toString();
+        insidiousService.copyToClipboard(final_str);
+        InsidiousNotification.notifyMessage("Dependencies copied to clipboard.",
+                NotificationType.INFORMATION);
+    }
+
+    public String getDependencyAdditionText(String dependency) {
+        StringBuilder sb = new StringBuilder();
+        if (insidiousService.getProjectTypeInfo().isMaven()) {
+            String group_id = "com.fasterxml.jackson.datatype";
+            String artifact_id = dependency;
+            sb.append("<dependency>\n");
+            sb.append("<groupId>" + group_id + "</groupId>\n");
+            sb.append("<artifactId>" + artifact_id + "</artifactId>\n");
+            sb.append("</dependency>\n");
+            return sb.toString();
+        } else {
+            String group_name = "com.fasterxml.jackson.datatype";
+            String artifact_name = dependency;
+            sb.append("implementation '" + group_name + ":" + artifact_name + "'\n");
+            return sb.toString();
         }
     }
 }
