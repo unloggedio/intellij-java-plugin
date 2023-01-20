@@ -845,9 +845,8 @@ public class InsidiousService implements Disposable {
                         basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
                 resourcesDirFile.mkdirs();
-                String resourceJson = gson.toJson(valueResourceMap);
-
                 String testResourcesFilePath = testResourcesDirPath + "/" + testCaseScript.getTestMethodName() + ".json";
+                String resourceJson = gson.toJson(valueResourceMap);
                 try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
@@ -855,19 +854,6 @@ public class InsidiousService implements Disposable {
                         .refreshAndFindFileByUrl(Path.of(testResourcesFilePath)
                                 .toUri()
                                 .toString());
-
-                if (testCaseScript.getTestGenerationState()
-                        .isSetupNeedsJsonResources()) {
-
-                    String setupJsonFilePath = testResourcesDirPath + "/" + "setup" + ".json";
-                    try (FileOutputStream resourceFile = new FileOutputStream(setupJsonFilePath)) {
-                        resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
-                    }
-                    VirtualFileManager.getInstance()
-                            .refreshAndFindFileByUrl(Path.of(setupJsonFilePath)
-                                    .toUri()
-                                    .toString());
-                }
             }
 
 
@@ -1206,8 +1192,7 @@ public class InsidiousService implements Disposable {
                 File[] files_l2 = file.listFiles();
                 for (File file1 : files_l2) {
                     if (file1.getName()
-                            .contains(".selog") || file1.getName()
-                            .startsWith("index-")) {
+                            .contains(".selog")) {
                         return true;
                     }
                 }
@@ -1560,7 +1545,6 @@ public class InsidiousService implements Disposable {
         // yikes right
         try {
 
-
             String oldFolderPath = project.getBasePath() + "/src/test/java/io.unlogged";
             String oldFilePath = project.getBasePath() + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
             File oldFolder = Path.of(oldFolderPath)
@@ -1599,8 +1583,8 @@ public class InsidiousService implements Disposable {
             Pattern versionCaptureRegex = Pattern.compile("UnloggedTestUtils.Version: V([0-9]+)");
             Matcher versionMatcher = versionCaptureRegex.matcher(utilFileContents);
             if (versionMatcher.find()) {
-                int version = Integer.parseInt(versionMatcher.group(1));
-                if (version == 1) {
+                int versionGroup = Integer.parseInt(versionMatcher.group(1));
+                if (versionGroup == 1) {
                     return;
                 }
             }
@@ -1608,11 +1592,20 @@ public class InsidiousService implements Disposable {
             utilFile.delete();
         }
 
+        String version = getProjectTypeInfo()
+                .getJacksonDatabindVersion();
 
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass()
                     .getClassLoader()
-                    .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+                    .getResourceAsStream("code/gson/UnloggedTestUtil.java");
+
+            if (version != null) {
+                testUtilClassCode = this.getClass()
+                        .getClassLoader()
+                        .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+            }
+            
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
@@ -1685,10 +1678,8 @@ public class InsidiousService implements Disposable {
 
     public void addLiveView() {
         if (!liveViewAdded) {
-            toolWindow.getContentManager()
-                    .addContent(liveWindowContent);
-            toolWindow.getContentManager()
-                    .setSelectedContent(liveWindowContent, true);
+            toolWindow.getContentManager().addContent(liveWindowContent);
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
             try {
                 liveViewWindow.setTreeStateToLoading();
@@ -1698,8 +1689,7 @@ public class InsidiousService implements Disposable {
                 logger.error("Failed to start scan after proceed.");
             }
         } else {
-            toolWindow.getContentManager()
-                    .setSelectedContent(liveWindowContent);
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
         }
     }
 }

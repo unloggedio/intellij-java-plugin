@@ -13,6 +13,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 
 /**
+ * For Gson
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
  * UnloggedTestUtils.Version: V3
  */
@@ -47,6 +48,7 @@ public class UnloggedTestUtils {
     public static <T> T ValueOf(String key, Type type) {
         return valueOf(key, type);
     }
+
     public static <T> T ValueOf(String key, TypeReference typeReference) {
         return valueOf(key, typeReference.getType());
     }
