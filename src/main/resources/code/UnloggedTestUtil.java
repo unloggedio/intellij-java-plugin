@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat;
 
 /**
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V1
+ * UnloggedTestUtils.Version: V3
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
@@ -47,13 +47,13 @@ public class UnloggedTestUtils {
         readFileJson();
     }
 
-    public static void LoadResources(Class<?> className, String patientLeadService) throws IOException {
-        testResourceFilePath = UNLOGGED_FIXTURES_PATH + className.getSimpleName() + "/" + patientLeadService + ".json";
+    public static void LoadResources(Class<?> className, String resourceFileName) throws IOException {
+        testResourceFilePath = UNLOGGED_FIXTURES_PATH + className.getSimpleName() + "/" + resourceFileName + ".json";
         readFileJson();
     }
 
-    public static void loadResources(Class<?> className, String patientLeadService) throws IOException {
-        testResourceFilePath = UNLOGGED_FIXTURES_PATH + className.getSimpleName() + "/" + patientLeadService + ".json";
+    public static void loadResources(Class<?> className, String resourceFileName) throws IOException {
+        testResourceFilePath = UNLOGGED_FIXTURES_PATH + className.getSimpleName() + "/" + resourceFileName + ".json";
         readFileJson();
     }
 

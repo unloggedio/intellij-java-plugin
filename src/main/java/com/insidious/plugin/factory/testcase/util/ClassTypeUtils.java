@@ -75,6 +75,7 @@ public class ClassTypeUtils {
                 || lastPart.equals("byte")
                 || lastPart.equals("float")
                 || lastPart.equals("class")
+                || lastPart.equals("enum")
                 || lastPart.equals("double")
                 || lastPart.equals("short")) {
             return lastPart + "Value";

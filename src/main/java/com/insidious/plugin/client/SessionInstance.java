@@ -3142,7 +3142,7 @@ public class SessionInstance {
 //                                newCurrent.getFields().all().addAll(completed.gertFields().all());
                     } else {
                         if (threadState.getCallStackSize() > 0) {
-                            logger.error("inconsistent call stack state, flushing calls list");
+                            logger.warn("inconsistent call stack state, flushing calls list: " + threadState.getCallStack());
 //                                        callStack.clear();
                         }
                     }
@@ -3587,7 +3587,10 @@ public class SessionInstance {
                     PsiPrimitiveType primitiveType = (PsiPrimitiveType) typeFromSourceCode;
                 } else if (typeFromSourceCode instanceof PsiClassReferenceType) {
                     PsiClassReferenceType classReferenceType = (PsiClassReferenceType) typeFromSourceCode;
-                    if (!classReferenceType.getReference()
+                    if (parameterFromProbe.getType() == null) {
+                        parameterFromProbe.setType(classReferenceType.getReference().getQualifiedName());
+
+                    } else if (!classReferenceType.getReference()
                             .getQualifiedName()
                             .startsWith(parameterFromProbe.getType())) {
                         logger.warn(

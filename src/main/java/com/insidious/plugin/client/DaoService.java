@@ -4,6 +4,7 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.common.weaver.Descriptor;
+import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
@@ -273,7 +274,8 @@ public class DaoService {
                     .collect(Collectors.toList());
 
             List<MethodCallExpressionInterface> callsToBuild = mceList.stream()
-                    .filter(e -> !constructedValues.contains(e.getSubject()) || testCandidateMetadata.getTestSubject() == e.getSubject())
+                    .filter(e -> !constructedValues.contains(
+                            e.getSubject()) || testCandidateMetadata.getTestSubject() == e.getSubject())
                     .filter(e -> !e.getMethodName()
                             .equals("<clinit>"))
                     .collect(Collectors.toList());
@@ -566,8 +568,10 @@ public class DaoService {
 
             MethodCallExpressionInterface dbMce = dbMceMap.get(methodCallExpression.getId());
 
-            MethodDefinition methodDefinition = methodDefinitionMap.get(
-                    (long) methodCallExpression.getMethodDefinitionId());
+            MethodDefinition methodDefinition = null;
+            if (methodCallExpression.getMethodDefinitionId() != 0) {
+                methodDefinition = methodDefinitionMap.get((long) methodCallExpression.getMethodDefinitionId());
+            }
 
 
             if (methodCallExpression.isStaticCall() || dbMce.getSubject() == 0) {
@@ -592,7 +596,7 @@ public class DaoService {
             }
             if (methodCallExpression.getSubject()
                     .getType()
-                    .startsWith("org.apache.commons.collections")) {
+                    .startsWith("org.apache.commons.")) {
                 continue;
             }
             if (methodCallExpression.getSubject()
@@ -608,6 +612,8 @@ public class DaoService {
 //                subject.setTypeForced(subjectTypeFromProbe);
 //            }
             finalCallsList.add(methodCallExpression);
+            methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
+            methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
 
 
             List<com.insidious.plugin.pojo.Parameter> arguments = new LinkedList<>();
@@ -617,11 +623,23 @@ public class DaoService {
             if (methodDefinition != null) {
                 argumentTypesFromMethodDefinition = methodDefinition.getArgumentTypes()
                         .split(",");
+            } else if (methodCallExpression.getEntryProbeInfo()
+                    .getEventType() == EventType.CALL) {
+                String callDescFromEntryProbe = methodCallExpression.getEntryProbeInfo()
+                        .getAttribute("Desc", null);
+                if (callDescFromEntryProbe != null) {
+                    List<String> descriptorData = ClassTypeUtils.splitMethodDesc(callDescFromEntryProbe);
+                    String returnType = descriptorData.remove(descriptorData.size() - 1);
+                    argumentTypesFromMethodDefinition =
+                            descriptorData.stream()
+                                    .map(ClassTypeUtils::getJavaClassName)
+                                    .toArray(String[]::new);
+                }
             }
 
             for (int i = 0; i < dbMceArguments.size(); i++) {
                 String argumentTypeFromMethodDefinition = null;
-                if (methodDefinition != null && methodDefinition.getId() != 0) {
+                if (argumentTypesFromMethodDefinition.length > 0) {
                     argumentTypeFromMethodDefinition = argumentTypesFromMethodDefinition[i];
                 }
                 Long argument = dbMceArguments.get(i);
@@ -752,8 +770,6 @@ public class DaoService {
 
             methodCallExpression.setReturnDataEvent(returnDataEvent);
 
-            methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
-            methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
         }
         return finalCallsList;
     }
