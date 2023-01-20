@@ -819,7 +819,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             StringBuilder builder = new StringBuilder(finalstring);
             //+ "\n<dependencies>" + text + "" + parts[1];
             for (int i = 1; i < parts.length; i++) {
-                builder.append("\n<dependencies>" + text + "" + parts[i]);
+                if(!parts[i-1].contains("<dependencyManagement>"))
+                {
+                    builder.append("\n<dependencies>" + text + "" + parts[i]);
+                }
+                else
+                {
+                    builder.append("\n<dependencies>"+ "" + parts[i]);
+                }
             }
             finalstring = builder.toString();
             try (FileOutputStream out = new FileOutputStream(pomFile)) {
