@@ -1608,11 +1608,20 @@ public class InsidiousService implements Disposable {
             utilFile.delete();
         }
 
+        String version = getProjectTypeInfo()
+                .getJacksonDatabindVersion();
 
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass()
                     .getClassLoader()
-                    .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+                    .getResourceAsStream("code/gson/UnloggedTestUtil.java");
+
+            if (version != null) {
+                testUtilClassCode = this.getClass()
+                        .getClassLoader()
+                        .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+            }
+
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
