@@ -252,8 +252,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 }
             }
         } finally {
-            return new ArrayList<>(modules_from_mm);
+            return new ArrayList<>(filterModules(modules_from_mm));
         }
+    }
+
+    private Set<String> filterModules(Set<String> modules)
+    {
+        Set<String> final_Modules = new TreeSet<>();
+        for(String module : modules)
+        {
+            if(!(module.endsWith(".main") || module.endsWith(".test")))
+            {
+                String[] parts = module.split("\\.");
+                String module_last = parts[parts.length-1];
+                if(isValidJavaModule(module_last))
+                {
+                    final_Modules.add(module_last);
+                }
+            }
+        }
+        return final_Modules;
+    }
+
+    public boolean isValidJavaModule(String modulename)
+    {
+        Collection<VirtualFile> virtualFiles =
+                FileBasedIndex.getInstance()
+                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
+                                GlobalSearchScope.projectScope(project));
+        List<String> components = new ArrayList<String>();
+        for (VirtualFile vf : virtualFiles) {
+            PsiFile psifile = PsiManager.getInstance(project)
+                    .findFile(vf);
+            if (psifile instanceof PsiJavaFile && vf.getPath()
+                    .contains(modulename)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

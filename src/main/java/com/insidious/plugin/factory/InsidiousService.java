@@ -970,10 +970,118 @@ public class InsidiousService implements Disposable {
                     .openFile(newFile, true, true);
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
+            try {
+                ensureTestUtilClass(basePath);
+            }
+            catch (Exception e)
+            {
+                logger.error("Failed to save UnloggedUtils to correct spot.");
+            }
             return newFile;
         }
 //        VirtualFileManager.getInstance().syncRefresh();
         return null;
+    }
+
+    public void ensureTestUtilClass(String basePath) throws IOException {
+        String testOutputDirPath=null;
+        if(basePath!=null)
+        {
+            testOutputDirPath = basePath +"src/test/java/io/unlogged";
+        }
+        else {
+            basePath = project.getBasePath();
+            testOutputDirPath = project.getBasePath() + "/src/test/java/io/unlogged";
+        }
+        if(basePath.charAt(basePath.length()-1)=='/')
+        {
+            basePath = new StringBuilder(basePath).
+                    deleteCharAt(basePath.length()-1).toString();
+        }
+        File dirPath = new File(testOutputDirPath);
+        if (!dirPath.exists()) {
+            dirPath.mkdirs();
+        }
+
+        // yikes right
+        try {
+            String oldFolderPath = basePath + "/src/test/java/io.unlogged";
+            String oldFilePath = basePath + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
+            File oldFolder = Path.of(oldFolderPath)
+                    .toFile();
+            File oldUtilFile = Path.of(oldFilePath)
+                    .toFile();
+            if (oldUtilFile.exists()) {
+                @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                                .toUri()
+                                .toString());
+                oldUtilFile.delete();
+                oldFolder.delete();
+                if (oldFileInstance != null) {
+                    oldFileInstance.refresh(true, false);
+                }
+                @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                                .toUri()
+                                .toString());
+                if (oldFolderInstance != null) {
+                    oldFolderInstance.refresh(true, false);
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Failed to delete the old version of the file: " + e.getMessage());
+            // this is absolutely almost a mess
+        }
+
+        String utilFilePath = testOutputDirPath + "/UnloggedTestUtils.java";
+        File utilFile = new File(utilFilePath);
+        if (utilFile.exists()) {
+            String utilFileContents = IOUtils.toString(new FileInputStream(utilFile), StandardCharsets.UTF_8);
+            Pattern versionCaptureRegex = Pattern.compile("UnloggedTestUtils.Version: V([0-9]+)");
+            Matcher versionMatcher = versionCaptureRegex.matcher(utilFileContents);
+            if (versionMatcher.find()) {
+                int version = Integer.parseInt(versionMatcher.group(1));
+                if (version == 1) {
+                    return;
+                }
+            }
+            // util file already exist
+            utilFile.delete();
+        }
+
+        String version = getProjectTypeInfo()
+                .getJacksonDatabindVersion();
+
+        try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
+            InputStream testUtilClassCode = this.getClass()
+                    .getClassLoader()
+                    .getResourceAsStream("code/gson/UnloggedTestUtil.java");
+
+            if (version != null) {
+                testUtilClassCode = this.getClass()
+                        .getClassLoader()
+                        .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+            }
+
+            assert testUtilClassCode != null;
+            IOUtils.copy(testUtilClassCode, writer);
+        }
+        @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                        .toUri()
+                        .toString());
+
+        newFile.refresh(true, false);
+
+//        @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
+//        @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
+//        CodeStyleManager.getInstance(project).reformatText(testFilePsiInstance, ranges);
+
+//        @NotNull PsiElement formattedCode = CodeStyleManagerImpl.getInstance(project).reformat(testFilePsiInstance);
+
     }
 
     public void doSearch(SearchQuery searchQuery) throws APICallException, IOException, SQLException {
@@ -1608,11 +1716,20 @@ public class InsidiousService implements Disposable {
             utilFile.delete();
         }
 
+        String version = getProjectTypeInfo()
+                .getJacksonDatabindVersion();
 
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass()
                     .getClassLoader()
-                    .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+                    .getResourceAsStream("code/gson/UnloggedTestUtil.java");
+
+            if (version != null) {
+                testUtilClassCode = this.getClass()
+                        .getClassLoader()
+                        .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+            }
+
             assert testUtilClassCode != null;
             IOUtils.copy(testUtilClassCode, writer);
         }
