@@ -2376,6 +2376,7 @@ public class SessionInstance {
 //        methodCallMap = new HashMap<>();
 //        methodCallSubjectTypeMap = new HashMap<>();
         String existingParameterType;
+        Parameter parameterInstance = new Parameter();
         for (KaitaiInsidiousEventParser.Block e : eventsSublist) {
 
             KaitaiInsidiousEventParser.DetailedEventBlock eventBlock = e.block();
@@ -2395,7 +2396,7 @@ public class SessionInstance {
                     throw new RuntimeException(ex);
                 }
             }
-            Parameter existingParameter = null;
+            Parameter existingParameter = parameterInstance;
             boolean saveProbe = false;
             isModified = false;
 //            if (eventBlock.eventId() == 78619) {
@@ -2728,7 +2729,8 @@ public class SessionInstance {
                     methodCall.setThreadId(threadId);
                     methodCall.setId(currentCallId);
                     methodCallMap.put(currentCallId, methodCall);
-                    methodCallSubjectTypeMap.put(currentCallId, existingParameter.getType());
+                    methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
+                            probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
                     methodCall.setEntryProbeId(dataEvent.getNanoTime());
 
@@ -2893,7 +2895,8 @@ public class SessionInstance {
                         currentCallId++;
                         methodCall.setId(currentCallId);
                         methodCallMap.put(currentCallId, methodCall);
-                        methodCallSubjectTypeMap.put(currentCallId, existingParameter.getType());
+                        methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
+                                methodInfo.getClassName()));
 //                            if (threadState.candidateSize() > 0) {
 //                                addMethodToCandidate(threadState, methodCall);
 //                            }
@@ -3334,6 +3337,8 @@ public class SessionInstance {
                     || candidateMethodName.equals("getTargetSource")
                     || candidateMethodName.equals("isFrozen")
                     || candidateMethodName.equals("invoke")
+                    || candidateMethodName.equals("doFilter")
+                    || candidateMethodName.equals("resolveToken")
                     || candidateMethodName.equals("toString")
                     || candidateMethodName.contains("$")
                     || candidateMethodName.equals("getIndex")

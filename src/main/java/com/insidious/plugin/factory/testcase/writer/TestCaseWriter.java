@@ -141,6 +141,8 @@ public class TestCaseWriter {
             String parameterType = parameter.getType();
             if (parameterType != null && parameterType.endsWith("[]")) {
                 compareAgainst = "";
+            } else if (parameterType.equals("java.lang.Class")) {
+                compareAgainst = new String(parameter.getProb().getSerializedValue());
             } else if (parameter.getProb() != null
                     && parameter.getProb()
                     .getSerializedValue().length > 0
