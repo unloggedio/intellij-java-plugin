@@ -126,7 +126,7 @@ public class InsidiousService implements Disposable {
     private TracePoint pendingSelectTrace;
     private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
-    private int TOOL_WINDOW_HEIGHT = 410;
+    private int TOOL_WINDOW_HEIGHT = 430;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
