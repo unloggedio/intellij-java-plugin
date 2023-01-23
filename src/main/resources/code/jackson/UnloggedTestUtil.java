@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
@@ -12,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
@@ -29,9 +31,52 @@ public class UnloggedTestUtils {
     private static JsonNode sourceObject = null;
 
     static {
+//        register jackson module if they are present
+        try {
+            //checks for presence of this module class, if not present throws exception
+            Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
+            objectMapper.registerModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
+        } catch (ClassNotFoundException e) {
+            // jdk8 module not found
+        } catch (InvocationTargetException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
+            objectMapper.registerModule((Module) jodaModule.getDeclaredConstructor().newInstance());
+
+        } catch (ClassNotFoundException e) {
+
+        } catch (InvocationTargetException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+
+        try {
+            Class<?> jsrJavaTimeModule = Class.forName("com.fasterxml.jackson.datatype.jsr310.JavaTimeModule");
+            objectMapper.registerModule((Module) jsrJavaTimeModule.getDeclaredConstructor().newInstance());
+        } catch (ClassNotFoundException e) {
+            // joda not present
+//                e.printStackTrace();
+        } catch (InvocationTargetException
+                 | InstantiationException
+                 | IllegalAccessException
+                 | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+
+
         DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
         objectMapper.setDateFormat(df);
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
+        objectMapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, true);
         objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
             @Override
             public boolean hasIgnoreMarker(AnnotatedMember m) {
