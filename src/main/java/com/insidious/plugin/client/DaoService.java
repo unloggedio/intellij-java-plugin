@@ -228,8 +228,9 @@ public class DaoService {
                 mce.setId(call);
                 callsList.add(mce);
             }
-            converted.setMainMethod(MethodCallExpression.ToMCEFromDao(
-                    getMethodCallExpressionById(testCandidateMetadata.getMainMethod())));
+            List<MethodCallExpressionInterface> mces = new ArrayList<>();
+            mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
+            converted.setMainMethod(buildFromDbMce(mces).get(0));
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
@@ -773,7 +774,6 @@ public class DaoService {
         }
         return finalCallsList;
     }
-
 
     public List<Parameter>
     getParameterByValue(Collection<Long> values) throws Exception {
