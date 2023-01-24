@@ -33,10 +33,7 @@ import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 
 import javax.lang.model.element.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TestCaseService implements Runnable {
@@ -86,7 +83,8 @@ public class TestCaseService implements Runnable {
                 .size());
         logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
+            if (objectRoutine.getName()
+                    .equalsIgnoreCase("<init>")) {
                 continue;
             }
             MethodSpec methodSpec = objectRoutine.toMethodSpec()
@@ -96,7 +94,8 @@ public class TestCaseService implements Runnable {
 
 //        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
 
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.")
+                .size() > 0) {
             typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
         }
 
@@ -249,8 +248,10 @@ public class TestCaseService implements Runnable {
                                 .collect(Collectors.toList()));
                     } else {
                         nameChosen = true;
-                        fieldParameter.getNames().clear();
-                        fieldParameter.setName(fieldMatchingNameAndType.get(0).getName());
+                        fieldParameter.getNames()
+                                .clear();
+                        fieldParameter.setName(fieldMatchingNameAndType.get(0)
+                                .getName());
                     }
                     if (!nameChosen && fieldMatchingParameterType.size() == 1) {
                         // if we didn't find a field with matching name
@@ -288,7 +289,10 @@ public class TestCaseService implements Runnable {
             return;
         }
         isProcessing = true;
+        long startTime = new Date().getTime();
         sessionInstance.scanDataAndBuildReplay();
+        long endTime = new Date().getTime();
+        logger.warn("Scan took: " + (endTime - startTime) + " ms");
         isProcessing = false;
     }
 

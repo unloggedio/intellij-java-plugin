@@ -277,8 +277,8 @@ public class DaoService {
             List<MethodCallExpressionInterface> callsToBuild = mceList.stream()
                     .filter(e -> !constructedValues.contains(
                             e.getSubject()) || testCandidateMetadata.getTestSubject() == e.getSubject())
-                    .filter(e -> !e.getMethodName()
-                            .equals("<clinit>"))
+                    .filter(e -> !e.getMethodName().equals("<clinit>"))
+                    .filter(e -> !e.getMethodName().equals("intercept"))
                     .collect(Collectors.toList());
 
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(callsToBuild);
@@ -606,6 +606,12 @@ public class DaoService {
                 continue;
             }
 
+            if (methodCallExpression.getSubject()
+                    .getType()
+                    .startsWith("org.springframework.aop")) {
+                continue;
+            }
+
 //            com.insidious.plugin.pojo.Parameter subject = methodCallExpression.getSubject();
 //            DataInfo subjectProbeInfo = subject.getProbeInfo();
 //            String subjectTypeFromProbe = subjectProbeInfo.getAttribute("Type", null);
@@ -665,8 +671,7 @@ public class DaoService {
                         && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(argumentTypeFromProbe);
                 }
-                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null ||
-                        !existingType.equals(argumentTypeFromMethodDefinition))) {
+                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null)) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
 
@@ -698,10 +703,9 @@ public class DaoService {
             DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
 
             String returnParamType = returnParam.getType();
-            if ((returnParamType == null || returnParamType.equals(
-                    "") || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
-                        .getString()));
+            if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
+                    && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
+                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc().getString()));
             }
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));

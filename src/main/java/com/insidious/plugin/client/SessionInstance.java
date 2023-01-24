@@ -2393,7 +2393,7 @@ public class SessionInstance {
                     throw new RuntimeException(ex);
                 }
             }
-            Parameter existingParameter = null;
+            Parameter existingParameter = parameterInstance;
             boolean saveProbe = false;
             isModified = false;
 //            if (eventBlock.eventId() == 1207640) {
@@ -3276,20 +3276,8 @@ public class SessionInstance {
                         existingParameter.setProbeInfo(probeInfo);
                         existingParameter.setProb(dataEvent);
                         saveProbe = true;
-                        ObjectInfoDocument objectInfo = getObjectInfoDocument(existingParameter.getValue());
-                        if (objectInfo != null) {
-                            TypeInfoDocument typeInfo = typeInfoIndex.get(objectInfo.getTypeId());
-                            if (!typeInfo.getTypeName()
-                                    .startsWith("com.sun.proxy")) {
-                                existingParameter.setType(typeInfo.getTypeName());
-                            } else {
-                                existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                        probeInfo.getAttribute("Type", "V")));
-                            }
-                        } else {
-                            existingParameter.setType(ClassTypeUtils.getDottedClassName(
-                                    ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
-                        }
+                        existingParameter.setType(ClassTypeUtils.getDottedClassName(
+                                ClassTypeUtils.getDottedClassName(probeInfo.getAttribute("Type", "V"))));
 
                         isModified = true;
                     }
