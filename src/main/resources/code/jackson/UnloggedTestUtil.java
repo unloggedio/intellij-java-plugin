@@ -18,6 +18,7 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
 /**
  * For Jackson
@@ -32,43 +33,25 @@ public class UnloggedTestUtils {
 
     static {
 //        register jackson module if they are present
-        try {
-            //checks for presence of this module class, if not present throws exception
-            Class<?> jdk8Module = Class.forName("com.fasterxml.jackson.datatype.jdk8.Jdk8Module");
-            objectMapper.registerModule((Module) jdk8Module.getDeclaredConstructor().newInstance());
-        } catch (ClassNotFoundException e) {
-            // jdk8 module not found
-        } catch (InvocationTargetException
-                 | InstantiationException
-                 | IllegalAccessException
-                 | NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+        List<String> jacksonModuleNames = List.of(
+                "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
+                "com.fasterxml.jackson.datatype.joda.JodaModule",
+                "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
+        );
 
-        try {
-            Class<?> jodaModule = Class.forName("com.fasterxml.jackson.datatype.joda.JodaModule");
-            objectMapper.registerModule((Module) jodaModule.getDeclaredConstructor().newInstance());
-
-        } catch (ClassNotFoundException e) {
-
-        } catch (InvocationTargetException
-                 | InstantiationException
-                 | IllegalAccessException
-                 | NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-
-        try {
-            Class<?> jsrJavaTimeModule = Class.forName("com.fasterxml.jackson.datatype.jsr310.JavaTimeModule");
-            objectMapper.registerModule((Module) jsrJavaTimeModule.getDeclaredConstructor().newInstance());
-        } catch (ClassNotFoundException e) {
-            // joda not present
-//                e.printStackTrace();
-        } catch (InvocationTargetException
-                 | InstantiationException
-                 | IllegalAccessException
-                 | NoSuchMethodException e) {
-            throw new RuntimeException(e);
+        for (String moduleName : jacksonModuleNames) {
+            try {
+                //checks for presence of this module class, if not present throws exception
+                Class<?> jacksonModuleClass = Class.forName(moduleName);
+                objectMapper.registerModule((Module) jacksonModuleClass.getDeclaredConstructor().newInstance());
+            } catch (ClassNotFoundException e) {
+                // jdk8 module not found
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
         }
 
 

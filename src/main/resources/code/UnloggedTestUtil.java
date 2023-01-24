@@ -3,36 +3,63 @@ package io.unlogged;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.List;
 
 /**
+ * For Jackson
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
  * UnloggedTestUtils.Version: V3
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
-    private final static Gson gson = new GsonBuilder().serializeNulls().create();
+    private final static ObjectMapper objectMapper = new ObjectMapper();
     public static String testResourceFilePath = null;
-    private static JsonObject sourceObject = null;
+    private static JsonNode sourceObject = null;
 
     static {
+//        register jackson module if they are present
+        List<String> jacksonModuleNames = List.of(
+                "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
+                "com.fasterxml.jackson.datatype.joda.JodaModule",
+                "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
+                );
+
+        for (String moduleName : jacksonModuleNames) {
+            try {
+                //checks for presence of this module class, if not present throws exception
+                Class<?> jacksonModuleClass = Class.forName(moduleName);
+                objectMapper.registerModule((Module) jacksonModuleClass.getDeclaredConstructor().newInstance());
+            } catch (ClassNotFoundException e) {
+                // jdk8 module not found
+            } catch (InvocationTargetException
+                     | InstantiationException
+                     | IllegalAccessException
+                     | NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+
         DateFormat df = new SimpleDateFormat("MMM d, yyyy HH:mm:ss aaa");
         objectMapper.setDateFormat(df);
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
+        objectMapper.configure(DeserializationFeature.ACCEPT_FLOAT_AS_INT, true);
         objectMapper.setAnnotationIntrospector(new JacksonAnnotationIntrospector() {
             @Override
             public boolean hasIgnoreMarker(AnnotatedMember m) {
@@ -61,35 +88,26 @@ public class UnloggedTestUtils {
         InputStream inputStream = UnloggedTestUtils.class.getClassLoader().getResourceAsStream(testResourceFilePath);
         assert inputStream != null;
         String stringSource = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
-        sourceObject = gson.fromJson(stringSource, JsonObject.class);
+        sourceObject = objectMapper.readValue(stringSource, JsonNode.class);
     }
 
     public static <T> T ValueOf(String key, Type type) {
-        if (!sourceObject.keySet().contains(key)) {
-            return null;
-        }
-        return gson.fromJson(sourceObject.get(key).toString(), type);
+        return valueOf(key, type);
     }
+
     public static <T> T ValueOf(String key, TypeReference typeReference) {
         return valueOf(key, typeReference.getType());
     }
 
-    public static <T> T ValueOf(String key, TypeReference<T> typeRef) throws JsonProcessingException {
-        if (!sourceObject.keySet().contains(key)) {
-            return null;
-        }
-
-        Jdk8Module jdk8Module = new Jdk8Module();
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(jdk8Module);
-        return mapper.readValue(sourceObject.get(key).toString(), typeRef);
-    }
-
     public static <T> T valueOf(String key, Type type) {
-        if (!sourceObject.keySet().contains(key)) {
+        if (!sourceObject.has(key)) {
             return null;
         }
-        return gson.fromJson(sourceObject.get(key).toString(), type);
+        try {
+            return objectMapper.readValue(sourceObject.get(key).toString(), objectMapper.getTypeFactory().constructType(type));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static void injectField(Object targetInstance, String name, Object targetObject) throws

@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory.testcase;
 
+import com.insidious.common.weaver.TypeInfo;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.extension.InsidiousNotification;
@@ -221,11 +222,20 @@ public class TestCaseService implements Runnable {
                 continue;
             }
 
+            List<String> typeNames = new LinkedList<>();
+            typeNames.add(fieldParameter.getType());
+
+            TypeInfo fieldTypeInfo = sessionInstance.getTypeInfo(fieldParameter.getType());
+            for (int interfaceTypeId : fieldTypeInfo.getInterfaces()) {
+                TypeInfo interfaceTypeInfo = sessionInstance.getTypeInfo(interfaceTypeId);
+                typeNames.add(interfaceTypeInfo.getTypeNameFromClass());
+            }
+
+
             if (classPsiInstance != null) {
                 List<PsiField> fieldMatchingParameterType = Arrays.stream(classPsiInstance.getFields())
-                        .filter(e -> e.getType()
-                                .getCanonicalText()
-                                .equals(fieldParameter.getType()))
+                        .filter(e -> typeNames.contains(e.getType()
+                                .getCanonicalText()))
                         .collect(Collectors.toList());
                 if (fieldMatchingParameterType.size() > 0) {
 
@@ -248,10 +258,8 @@ public class TestCaseService implements Runnable {
                                 .collect(Collectors.toList()));
                     } else {
                         nameChosen = true;
-                        fieldParameter.getNames()
-                                .clear();
-                        fieldParameter.setName(fieldMatchingNameAndType.get(0)
-                                .getName());
+                        fieldParameter.getNames().clear();
+                        fieldParameter.setName(fieldMatchingNameAndType.get(0).getName());
                     }
                     if (!nameChosen && fieldMatchingParameterType.size() == 1) {
                         // if we didn't find a field with matching name
