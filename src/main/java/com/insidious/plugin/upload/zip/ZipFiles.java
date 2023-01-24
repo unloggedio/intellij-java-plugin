@@ -52,7 +52,7 @@ public class ZipFiles {
      * @param dir
      * @param zipFileName
      */
-    public void zipDirectory(File dir, String zipFileName) {
+    public void zipDirectory(File dir, String zipFileName) throws IOException {
         OutputStream fos;
 
         try {
@@ -71,10 +71,7 @@ public class ZipFiles {
 
                 //now zip files one by one
                 //create ZipOutputStream to write to the zip file
-
                 for (String filePath : filesListInDir) {
-                    System.out.println("Zipping " + filePath);
-
                     File fileTobeZipped = new File(filePath);
                     //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
                     ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
@@ -83,6 +80,7 @@ public class ZipFiles {
                         zos.putNextEntry(ze);
                     } catch (IOException e) {
                         e.printStackTrace();
+                        throw e;
                     }
 
                     FileInputStream fis;
@@ -94,8 +92,9 @@ public class ZipFiles {
                             zos.write(buffer, 0, len);
                         }
                         fis.close();
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         e.printStackTrace();
+                        throw e;
                     } finally {
                         zos.closeEntry();
                     }
@@ -103,11 +102,13 @@ public class ZipFiles {
                 zos.close();
             } catch (IOException e) {
                 e.printStackTrace();
+                throw e;
             } finally {
                 fos.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
+            throw e;
         }
     }
 
