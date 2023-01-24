@@ -1,7 +1,9 @@
 package com.insidious.plugin.upload.minio;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.upload.zip.ZipFiles;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -40,18 +42,20 @@ public class ReportIssue {
                 zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
 
                 checkProgressIndicator("Zipping session logs to upload", null);
-//                File file = new File(pathPrefix + "/" + zipFileName);
-//                if (!file.exists()) {
-                zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + File.separator + zipFileName);
-//                }
+                
+                try {
+                    zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + File.separator + zipFileName);
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage("Failed to zip the report logs!", NotificationType.ERROR);
+                }
 
                 checkProgressIndicator("Uploading session logs and idea.log", null);
                 FileUploader fileUploader = new FileUploader();
                 try {
-                    
+
                     fileUploader.uploadFile(sessionObjectKey, pathPrefix + File.separator + zipFileName);
                 } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
-                    throw new RuntimeException(ex);
+                    InsidiousNotification.notifyMessage("Failed to upload report logs!", NotificationType.ERROR);
                 }
 
                 checkProgressIndicator("Issue Upload completed!", null);

@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReportIssueForm extends JFrame implements ActionListener {
 
@@ -38,7 +40,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         this.project = project;
 
         setTitle("Unlogged Inc.");
-        setBounds(400, 150, 800, 600);
+        setBounds(400, 150, 750, 600);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
 
@@ -46,64 +48,83 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         c.setLayout(null);
 
         title = new JLabel("Report Issue");
-        title.setFont(new Font("Sans", Font.PLAIN, 24));
+        title.setFont(new Font("", Font.PLAIN, 24));
         title.setSize(300, 30);
         title.setLocation(300, 30);
         c.add(title);
 
         errorText = new JLabel();
-        errorText.setFont(new Font("Sans", Font.PLAIN, 12));
         errorText.setLocation(300, 50);
         errorText.setSize(150, 30);
         c.add(errorText);
 
         userEmailLabel = new JLabel("Email");
-        userEmailLabel.setFont(new Font("Sans", Font.PLAIN, 16));
         userEmailLabel.setSize(100, 30);
         userEmailLabel.setLocation(50, 80);
         c.add(userEmailLabel);
 
         userEmail = new JTextField();
-        userEmail.setFont(new Font("Sans", Font.PLAIN, 16));
         userEmail.setSize(300, 30);
         userEmail.setLocation(150, 80);
         c.add(userEmail);
 
         issueTitleLabel = new JLabel("Issue Title");
-        issueTitleLabel.setFont(new Font("Sans", Font.PLAIN, 16));
         issueTitleLabel.setSize(100, 30);
         issueTitleLabel.setLocation(50, 130);
         c.add(issueTitleLabel);
 
         issueTitle = new JTextField();
-        issueTitle.setFont(new Font("Sans", Font.PLAIN, 16));
         issueTitle.setSize(300, 30);
         issueTitle.setLocation(150, 130);
+        issueTitle.setToolTipText("The generated test");
         c.add(issueTitle);
 
+        List<String> checkboxes = new ArrayList<>();
+        checkboxes.add("Test Fails on running");
+        checkboxes.add("Test doesn't compile");
+        checkboxes.add("Generate Test button fails");
+        checkboxes.add("Wrong Class of variable");
+        checkboxes.add("Other");
+
+        int x = 50;
+        int y = 150;
+        int d = 0;
+
+        for (int i = 0; i < checkboxes.size(); i++) {
+            JCheckBox checkBox = new JCheckBox();
+            checkBox.setSize(180, 30);
+            checkBox.setText(checkboxes.get(i));
+
+            if (i % 3 == 0) {
+                y += 30;
+                d = 0;
+            }
+            checkBox.setLocation(x + d, y);
+            d += 200;
+            c.add(checkBox);
+        }
+
         descriptionLabel = new JLabel("Description");
-        descriptionLabel.setFont(new Font("Sans Serif", Font.PLAIN, 16));
         descriptionLabel.setSize(100, 30);
-        descriptionLabel.setLocation(50, 180);
+        descriptionLabel.setLocation(50, 250);
         c.add(descriptionLabel);
 
         description = new JTextArea();
-        description.setFont(new Font("Sans Serif", Font.PLAIN, 16));
         description.setLineWrap(false);
         description.setEnabled(true);
         description.setEditable(true);
+        description.setToolTipText("Add Stacktrace, sample code which can help us recreate the issue");
 
         JBScrollPane scroll = new JBScrollPane(description,
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-        scroll.setSize(550, 300);
-        scroll.setLocation(150, 180);
+        scroll.setSize(550, 250);
+        scroll.setLocation(150, 250);
         c.add(scroll);
 
         submitButton = new JButton("Send Email");
-        submitButton.setFont(new Font("Sans Serif", Font.PLAIN, 15));
-        submitButton.setSize(150, 40);
-        submitButton.setLocation(550, 500);
+        submitButton.setSize(150, 30);
+        submitButton.setLocation(550, 510);
         submitButton.addActionListener(this);
         c.add(submitButton);
     }
@@ -113,11 +134,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         if (userEmail.getText().length() <= 5 || !userEmail.getText().contains("@")) {
             errorText.append("Email is mandatory\n");
             userEmail.setBackground(Color.red);
-        }
-
-        if (issueTitle.getText().length() < 5) {
-            errorText.append("Issue Title is mandatory");
-            issueTitle.setBackground(Color.red);
         }
 
         return errorText.length() == 0;
