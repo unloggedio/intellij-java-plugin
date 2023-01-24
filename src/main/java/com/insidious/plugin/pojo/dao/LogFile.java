@@ -62,4 +62,14 @@ public class LogFile implements Comparable<LogFile> {
     public int getThreadId() {
         return threadId;
     }
+
+    @Override
+    public String toString() {
+        return "LogFile{" +
+                "name='" + name + '\'' +
+                ", archiveName='" + archiveName + '\'' +
+                ", status='" + status + '\'' +
+                ", threadId=" + threadId +
+                '}';
+    }
 }

@@ -403,41 +403,6 @@ public class MethodCallExpression implements Expression, Serializable {
         }
     }
 
-    @Override
-    public String toString() {
-
-        String owner = null;
-        if (subject != null && subject.getProbeInfo() != null) {
-            String owner1 = subject.getProbeInfo()
-                    .getAttribute("Owner", null);
-            if (owner1 != null) {
-                owner = "[" + owner1 + "]";
-
-            }
-        }
-        String name = "";
-        if (subject != null) {
-            name = subject.getName() + ".";
-        }
-        String methodName1 = methodName;
-        String methodCallOnVariableString = name + methodName1;
-        if (subject != null && subject.getType() != null) {
-            if (methodName.equals("<init>")) {
-                methodCallOnVariableString = "new " + ClassName.bestGuess(subject.getType())
-                        .simpleName();
-            } else {
-                methodCallOnVariableString = ClassName.bestGuess(subject.getType())
-                        .simpleName() + "." + methodName1;
-            }
-        }
-        return
-//                ((returnValue == null || returnValue.getName() == null || returnValue.getException()) ? "" : (returnValue.getName() + " = ")) +
-                methodCallOnVariableString + "(" + Strings.join(arguments.stream()
-                        .map(Parameter::getType)
-                        .collect(Collectors.toList()), ", ") + " args)" +
-                        (returnValue != null && returnValue.isException() ? " throws " + returnValue.getType() : "");
-    }
-
     public void writeReturnValue(
             ObjectRoutineScript objectRoutine,
             TestCaseGenerationConfiguration testCaseGenerationConfiguration,
@@ -600,5 +565,14 @@ public class MethodCallExpression implements Expression, Serializable {
 
     public void setMethodDefinitionId(int methodDefinitionId) {
         this.methodDefinitionId = methodDefinitionId;
+    }
+
+    @Override
+    public String toString() {
+        return "MethodCallExpression{" +
+                "methodName='" + methodName + '\'' +
+                ", subject=" + subject.getType() +
+                ", id=" + id +
+                '}';
     }
 }

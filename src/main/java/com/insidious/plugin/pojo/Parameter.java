@@ -76,11 +76,15 @@ public class Parameter implements Serializable, BytesMarshallable {
             byte[] typeBytes = new byte[typeLength];
             bytes.read(typeBytes);
             type = new String(typeBytes);
+        } else {
+            type = null;
         }
         boolean hasProbe = bytes.readBoolean();
         if (hasProbe) {
             prob = new DataEventWithSessionId();
             prob.readMarshallable(bytes);
+        } else {
+            prob = null;
         }
         int namesLength = bytes.readInt();
         if (namesLength > 0) {
@@ -94,6 +98,8 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (hasInfo) {
             dataInfo = new DataInfo();
             dataInfo.readMarshallable(bytes);
+        } else {
+            dataInfo = null;
         }
     }
 

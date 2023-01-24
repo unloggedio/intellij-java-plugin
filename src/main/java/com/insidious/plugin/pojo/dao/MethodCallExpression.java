@@ -397,4 +397,12 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         }
     }
 
+    @Override
+    public String toString() {
+        return "{" +
+                "methodName='" + methodName + '\'' +
+                ", subject_id=" + subject_id +
+                ", entryProbe_id=" + entryProbe_id +
+                '}';
+    }
 }
