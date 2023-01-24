@@ -13,6 +13,18 @@ public class ProjectTypeInfo {
     private final boolean downloadAgent = true;
     private Set<String> dependencies_addedManually = new HashSet<>();
     private final String defaultAgentType = "jackson-2.13"; //or 'gson' if you want to use gson.
+    private Boolean usesGson = null;
+    public void setDependencies_addedManually(Set<String> dependencies_addedManually) {
+        this.dependencies_addedManually = dependencies_addedManually;
+    }
+
+    public Boolean getUsesGson() {
+        return usesGson;
+    }
+
+    public void setUsesGson(Boolean usesGson) {
+        this.usesGson = usesGson;
+    }
 
     public String getDefaultAgentType() {
         return defaultAgentType;
@@ -46,6 +58,11 @@ public class ProjectTypeInfo {
         return detectDependencies;
     }
 
+    private final boolean useOnboarding_V3=true;
+
+    public boolean isUseOnboarding_V3() {
+        return useOnboarding_V3;
+    }
 
     public String getJacksonDatabindVersion() {
         return jacksonDatabindVersion;
@@ -54,7 +71,6 @@ public class ProjectTypeInfo {
     public void setJacksonDatabindVersion(String jacksonDatabindVersion) {
         this.jacksonDatabindVersion = jacksonDatabindVersion;
     }
-
     public List<String> getDependenciesToWatch()
     {
         List<String> dependenciesToWatch = new ArrayList<>();
@@ -62,6 +78,7 @@ public class ProjectTypeInfo {
         dependenciesToWatch.add("jackson-datatype-joda");
         dependenciesToWatch.add("jackson-datatype-jdk8");
         dependenciesToWatch.add("jackson-databind");
+        dependenciesToWatch.add("gson");
         return dependenciesToWatch;
     }
 

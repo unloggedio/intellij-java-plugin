@@ -30,7 +30,7 @@
               <foreground color="-1"/>
               <icon value="icons/png/waiting_icon_teal_64.png"/>
               <iconTextGap value="8"/>
-              <text value="Unlogged is waiting for Indexing to complete"/>
+              <text value="Unlogged is waiting for IDE Indexing to complete"/>
             </properties>
           </component>
         </children>

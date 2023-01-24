@@ -588,10 +588,20 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else {
             //search is complete
             this.dependencies_status = depVersions;
+            System.out.println("[Dependency search status]" + depVersions.toString());
             logger.info("[Dependency search status] " + depVersions.toString());
             if (this.dependencies_status.get("jackson-databind") != null) {
                 this.insidiousService.getProjectTypeInfo().
                         setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
+            }
+            if (this.dependencies_status.get("gson") != null) {
+                this.insidiousService.getProjectTypeInfo().
+                        setUsesGson(true);
+            }
+            else
+            {
+                this.insidiousService.getProjectTypeInfo().
+                        setUsesGson(false);
             }
             if (!agentDownloadInitiated) {
                 downloadAgentinBackground();
@@ -724,6 +734,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
+        }
+        if (dependencies_local.containsKey("gson")) {
+            dependencies_local.remove("gson");
         }
         if (insidiousService.getProjectTypeInfo()
                 .isMaven()) {
