@@ -89,7 +89,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.FileSystems;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.List;
@@ -154,7 +154,8 @@ public class InsidiousService implements Disposable {
             }
 
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
-            Path.of(pathToSessions)
+            FileSystems.getDefault()
+                    .getPath(pathToSessions)
                     .toFile()
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
@@ -853,7 +854,8 @@ public class InsidiousService implements Disposable {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
                 VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(testResourcesFilePath)
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(testResourcesFilePath)
                                 .toUri()
                                 .toString());
 
@@ -865,7 +867,8 @@ public class InsidiousService implements Disposable {
                         resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                     }
                     VirtualFileManager.getInstance()
-                            .refreshAndFindFileByUrl(Path.of(setupJsonFilePath)
+                            .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                    .getPath(setupJsonFilePath)
                                     .toUri()
                                     .toString());
                 }
@@ -897,8 +900,8 @@ public class InsidiousService implements Disposable {
                 JavaParser javaParser = new JavaParser(new ParserConfiguration());
                 ParseResult<CompilationUnit> parsedFile = javaParser.parse(
                         testcaseFile);
-                if (parsedFile.getResult()
-                        .isEmpty() || !parsedFile.isSuccessful()) {
+                if (!parsedFile.getResult()
+                        .isPresent() || !parsedFile.isSuccessful()) {
                     InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
                             " to" +
                             " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
@@ -954,7 +957,8 @@ public class InsidiousService implements Disposable {
 
 
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                    .refreshAndFindFileByUrl(Path.of(testcaseFile.getAbsolutePath())
+                    .refreshAndFindFileByUrl(FileSystems.getDefault()
+                            .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
                             .toString());
             if (newFile == null) {
@@ -963,7 +967,9 @@ public class InsidiousService implements Disposable {
             newFile.refresh(true, false);
 
 
-            FileContentUtil.reparseFiles(project, List.of(newFile), true);
+            List<VirtualFile> newFile1 = new ArrayList<>();
+            newFile1.add(newFile);
+            FileContentUtil.reparseFiles(project, newFile1, true);
             @Nullable Document newDocument = FileDocumentManager.getInstance()
                     .getDocument(newFile);
 
@@ -1004,13 +1010,16 @@ public class InsidiousService implements Disposable {
         try {
             String oldFolderPath = basePath + "/src/test/java/io.unlogged";
             String oldFilePath = basePath + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
-            File oldFolder = Path.of(oldFolderPath)
+            File oldFolder = FileSystems.getDefault()
+                    .getPath(oldFolderPath)
                     .toFile();
-            File oldUtilFile = Path.of(oldFilePath)
+            File oldUtilFile = FileSystems.getDefault()
+                    .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
                 @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 oldUtilFile.delete();
@@ -1019,7 +1028,8 @@ public class InsidiousService implements Disposable {
                     oldFileInstance.refresh(true, false);
                 }
                 @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 if (oldFolderInstance != null) {
@@ -1067,7 +1077,8 @@ public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                .refreshAndFindFileByUrl(FileSystems.getDefault()
+                        .getPath(utilFile.getAbsolutePath())
                         .toUri()
                         .toString());
 
@@ -1666,13 +1677,16 @@ public class InsidiousService implements Disposable {
 
             String oldFolderPath = project.getBasePath() + "/src/test/java/io.unlogged";
             String oldFilePath = project.getBasePath() + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
-            File oldFolder = Path.of(oldFolderPath)
+            File oldFolder = FileSystems.getDefault()
+                    .getPath(oldFolderPath)
                     .toFile();
-            File oldUtilFile = Path.of(oldFilePath)
+            File oldUtilFile = FileSystems.getDefault()
+                    .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
                 @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 oldUtilFile.delete();
@@ -1681,7 +1695,8 @@ public class InsidiousService implements Disposable {
                     oldFileInstance.refresh(true, false);
                 }
                 @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 if (oldFolderInstance != null) {
@@ -1729,7 +1744,8 @@ public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                .refreshAndFindFileByUrl(FileSystems.getDefault()
+                        .getPath(utilFile.getAbsolutePath())
                         .toUri()
                         .toString());
 
@@ -1785,7 +1801,9 @@ public class InsidiousService implements Disposable {
                             .addAll(testCandidateMetadata.getCallsList());
 
                     testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+                    List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+                    testCaseUnit1.add(testCaseUnit);
+                    TestSuite testSuite = new TestSuite(testCaseUnit1);
                     saveTestSuite(testSuite);
                 } catch (Exception e) {
                     throw new RuntimeException(e);

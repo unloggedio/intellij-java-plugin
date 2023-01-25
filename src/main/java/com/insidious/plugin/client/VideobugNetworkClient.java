@@ -13,7 +13,6 @@ import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
@@ -30,6 +29,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -48,7 +48,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     public static final String GENERATE_PROJECT_TOKEN_URL = "/api/auth/generateAgentToken";
     private final Logger logger = LoggerUtil.getInstance(VideobugNetworkClient.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+    private final TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<DataResponse<DataEventWithSessionId>>() {
     };
     OkHttpClient client;
     private String endpoint;
@@ -90,13 +90,16 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (response) {
+                try {
+
                     if (response.code() == 200) {
                         callback.success();
                     } else {
                         callback.error(Objects.requireNonNull(response.body())
                                 .string());
                     }
+                } finally {
+                    response.close();
                 }
             }
         });
@@ -116,7 +119,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
                     @Override
                     public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                        try (response) {
+                        try {
                             if (response.code() == 401) {
                                 signInCallback.error("invalid credentials");
                                 return;
@@ -130,6 +133,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                                 VideobugNetworkClient.this.endpoint = signinRequest.getEndpoint();
                                 signInCallback.success(token);
                             }
+                        } finally {
+                            response.close();
                         }
                     }
                 });
@@ -150,7 +155,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
-                try (response) {
+                try {
                     JSONObject jsonProjects = new JSONObject(
                             Objects.requireNonNull(response.body())
                                     .string());
@@ -162,6 +167,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                         String project_id = projectIdJson.getString("id");
                         getProjectCallback.success(project_id);
                     }
+                } finally {
+                    response.close();
                 }
 
             }
@@ -171,7 +178,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
         logger.info("Get project by name => " + projectName);
-        TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<>() {
+        TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<DataResponse<ProjectItem>>() {
         };
         DataResponse<ProjectItem> projectList = get(Constants.PROJECT_URL + "?name=" + projectName, typeReference);
 
@@ -197,13 +204,15 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (response) {
+                try {
                     String responseBody = Objects.requireNonNull(response.body())
                             .string();
                     logger.info("create project successful response - " + responseBody);
                     JSONObject jsonObject = new JSONObject(responseBody);
                     String projectId = jsonObject.getString("id");
                     newProjectCallback.success(projectId);
+                } finally {
+                    response.close();
                 }
             }
         });
@@ -323,7 +332,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     @Override
     public DataResponse<ExecutionSession> fetchProjectSessions() throws APICallException, IOException {
         String executionsUrl = PROJECT_URL + "/" + this.project.getId() + PROJECT_EXECUTIONS_URL;
-        TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
+        TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<DataResponse<ExecutionSession>>() {
         };
 
         DataResponse<ExecutionSession> sessionDataResponse = get(executionsUrl, typeReference);
@@ -354,7 +363,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                try (response) {
+                try {
                     if (response.body() == null) {
                         logger.error("get project session response is empty");
                         getProjectSessionsCallback.error("Failed to read response from server");
@@ -372,7 +381,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                         getProjectSessionsCallback.error("Failed to connect with server to list sessions");
                         return;
                     }
-                    TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<>() {
+                    TypeReference<DataResponse<ExecutionSession>> typeReference = new TypeReference<DataResponse<ExecutionSession>>() {
                     };
                     String responseBody = Objects.requireNonNull(response.body())
                             .string();
@@ -381,6 +390,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                             .size() + "] sessions for project" +
                             "[" + project.getId() + "] - " + responseBody);
                     getProjectSessionsCallback.success(sessionList.getItems());
+                } finally {
+                    response.close();
                 }
             }
         });
@@ -424,7 +435,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
-                try (response) {
+                try {
                     if (response.code() != 200) {
                         ExceptionResponse errorResponse = objectMapper.readValue(
                                 Objects.requireNonNull(response.body())
@@ -461,6 +472,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 } finally {
+                    response.close();
                     getProjectSessionErrorsCallback.completed();
                 }
 
@@ -505,7 +517,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
             @Override
             public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
 
-                try (response) {
+                try {
 
 
                     String responseBodyString = Objects.requireNonNull(response.body())
@@ -517,7 +529,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                         return;
                     }
 
-                    TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<>() {
+                    TypeReference<DataResponse<DataEventWithSessionId>> typeReference = new TypeReference<DataResponse<DataEventWithSessionId>>() {
                     };
 
                     DataResponse<DataEventWithSessionId> traceResponse = objectMapper.readValue(
@@ -527,6 +539,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                     tracePoints.forEach(e -> e.setExecutionSession(session));
                     getProjectSessionErrorsCallback.success(tracePoints);
                 } finally {
+                    response.close();
                     getProjectSessionErrorsCallback.completed();
                 }
 
@@ -645,7 +658,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
-        Path fileURiString = Path.of(insidiousLocalPath);
+        Path fileURiString = FileSystems.getDefault().getPath(insidiousLocalPath);
 
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
