@@ -21,10 +21,8 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -36,13 +34,8 @@ import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.ProgramRunnerUtil;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.execution.configurations.ConfigurationTypeUtil;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -77,7 +70,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
-import com.intellij.xdebugger.XDebuggerManager;
 import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -91,7 +83,6 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.sql.SQLException;
-import java.text.DateFormat;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -101,7 +92,7 @@ import java.util.regex.Pattern;
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
 @Storage("insidious.xml")
-public class InsidiousService implements Disposable {
+final public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
@@ -137,11 +128,13 @@ public class InsidiousService implements Disposable {
     private Content liveWindowContent;
     private Content onboardingContent;
 
-    public InsidiousService(Project project) {
+    public InsidiousService() {
+        logger.info("starting insidious service");
+//        start();
+    }
+
+    private void start() {
         try {
-
-
-            this.project = project;
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project)
@@ -160,16 +153,21 @@ public class InsidiousService implements Disposable {
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 //            this.testCaseService = new TestCaseService(client.getSessionInstance());
-            this.insidiousConfiguration = ServiceManager.getService(InsidiousConfigurationState.class);
+            this.insidiousConfiguration = ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
 
-            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
-                    .getDebugSessions());
+//            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
+//                    .getDebugSessions());
+            this.initiateUI();
 
-            ReadAction.nonBlocking(this::getProjectPackageName);
-
-            ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache);
-            ReadAction.nonBlocking(this::initiateUI);
-
+            ProgressManager.getInstance()
+                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
+                        @Override
+                        protected String compute(@NotNull ProgressIndicator indicator) throws Exception {
+                            getProjectPackageName();
+                            checkAndEnsureJavaAgentCache();
+                            return "ok";
+                        }
+                    });
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
@@ -178,6 +176,7 @@ public class InsidiousService implements Disposable {
             e.printStackTrace();
             logger.error("exception in videobug service init", e);
         }
+
     }
 
     public ProjectTypeInfo getProjectTypeInfo() {
@@ -482,28 +481,10 @@ public class InsidiousService implements Disposable {
         setAppTokenOnUi();
     }
 
-    public void init() {
-        ApplicationManager.getApplication()
-                .invokeLater(this::initiateUI);
-
-//        if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
-//            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " + insidiousConfiguration.getServerUrl());
-//            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-//            if (insidiousCredentials != null) {
-//                Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
-//                if (credentials != null) {
-//                    String password = credentials.getPasswordAsString();
-//                    try {
-//                        if (password != null) {
-////                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
-//                        }
-//                    } catch (Exception e) {
-//                        logger.error("failed to signin", e);
-//                        InsidiousNotification.notifyMessage("Failed to sign in -" + e.getMessage(), NotificationType.ERROR);
-//                    }
-//                }
-//            }
-//        }
+    public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        this.project = project;
+        this.toolWindow = toolWindow;
+        start();
     }
 
     public boolean isLoggedIn() {
@@ -1198,38 +1179,38 @@ public class InsidiousService implements Disposable {
     }
 
     private synchronized void startDebugSession() {
-        logger.info("start debug session");
-        if (true) {
-            return;
-        }
-
-        debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
-                .getDebugSessions());
-
-
-        if (debugSession != null) {
-            return;
-        }
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("module", currentModule.getName());
-        UsageInsightTracker.getInstance()
-                .RecordEvent("StartDebugSession", eventProperties);
-
-        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
-                        InsidiousRunConfigType.class)
-                .createTemplateConfiguration(project);
-
-        ApplicationManager.getApplication()
-                .invokeLater(() -> {
-                    try {
-                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
-                                        runConfiguration)
-                                .build();
-                        ProgramRunnerUtil.executeConfiguration(env, false, false);
-                    } catch (Throwable e) {
-                        logger.error("failed to execute configuration", e);
-                    }
-                });
+//        logger.info("start debug session");
+//        if (true) {
+//            return;
+//        }
+//
+//        debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
+//                .getDebugSessions());
+//
+//
+//        if (debugSession != null) {
+//            return;
+//        }
+//        JSONObject eventProperties = new JSONObject();
+//        eventProperties.put("module", currentModule.getName());
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("StartDebugSession", eventProperties);
+//
+//        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
+//                        InsidiousRunConfigType.class)
+//                .createTemplateConfiguration(project);
+//
+//        ApplicationManager.getApplication()
+//                .invokeLater(() -> {
+//                    try {
+//                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
+//                                        runConfiguration)
+//                                .build();
+//                        ProgramRunnerUtil.executeConfiguration(env, false, false);
+//                    } catch (Throwable e) {
+//                        logger.error("failed to execute configuration", e);
+//                    }
+//                });
 
 
     }
@@ -1342,8 +1323,8 @@ public class InsidiousService implements Disposable {
         ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
                 .getHeight());
         ContentManager contentManager = this.toolWindow.getContentManager();
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
+        if (liveViewWindow == null) {
+//            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
@@ -1501,64 +1482,64 @@ public class InsidiousService implements Disposable {
 
     public void loadTracePoint(TracePoint selectedTrace) {
 
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("value", selectedTrace.getMatchedValueId());
-        eventProperties.put("classId", selectedTrace.getClassId());
-        eventProperties.put("className", selectedTrace.getClassname());
-        eventProperties.put("dataId", selectedTrace.getDataId());
-        eventProperties.put("fileName", selectedTrace.getFilename());
-        eventProperties.put("nanoTime", selectedTrace.getNanoTime());
-        eventProperties.put("lineNumber", selectedTrace.getLineNumber());
-        eventProperties.put("threadId", selectedTrace.getThreadId());
-
-        UsageInsightTracker.getInstance()
-                .RecordEvent("FetchByTracePoint", eventProperties);
-
-        if (debugSession == null || getActiveDebugSession(
-                ServiceManager.getService(XDebuggerManager.class)
-                        .getDebugSessions()) == null) {
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("StartDebugSessionAtSelectTracepoint", null);
-            pendingSelectTrace = selectedTrace;
-            startDebugSession();
-            return;
-        }
-
-        ProgressManager.getInstance()
-                .run(new Task.Modal(project, "Unlogged", true) {
-                    public void run(@NotNull ProgressIndicator indicator) {
-
-                        try {
-                            logger.info("set trace point in connector => " + selectedTrace.getClassname());
-                            indicator.setText(
-                                    "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
-                                            .format(new Date(selectedTrace.getNanoTime())));
-                            if (connector != null) {
-                                connector.setTracePoint(selectedTrace, indicator);
-                            } else {
-                                pendingTrace = selectedTrace;
-                            }
-
-
-                        } catch (ProcessCanceledException pce) {
-                            throw pce;
-                        } catch (Exception e) {
-                            logger.error("failed to set trace point", e);
-                            InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
-                                    NotificationType.ERROR);
-                            return;
-                        } finally {
-                            indicator.stop();
-                        }
-
-                        if (debugSession.isPaused()) {
-                            debugSession.resume();
-                        }
-                        debugSession.pause();
-
-
-                    }
-                });
+//        JSONObject eventProperties = new JSONObject();
+//        eventProperties.put("value", selectedTrace.getMatchedValueId());
+//        eventProperties.put("classId", selectedTrace.getClassId());
+//        eventProperties.put("className", selectedTrace.getClassname());
+//        eventProperties.put("dataId", selectedTrace.getDataId());
+//        eventProperties.put("fileName", selectedTrace.getFilename());
+//        eventProperties.put("nanoTime", selectedTrace.getNanoTime());
+//        eventProperties.put("lineNumber", selectedTrace.getLineNumber());
+//        eventProperties.put("threadId", selectedTrace.getThreadId());
+//
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("FetchByTracePoint", eventProperties);
+//
+//        if (debugSession == null || getActiveDebugSession(
+//                ServiceManager.getService(XDebuggerManager.class)
+//                        .getDebugSessions()) == null) {
+//            UsageInsightTracker.getInstance()
+//                    .RecordEvent("StartDebugSessionAtSelectTracepoint", null);
+//            pendingSelectTrace = selectedTrace;
+//            startDebugSession();
+//            return;
+//        }
+//
+//        ProgressManager.getInstance()
+//                .run(new Task.Modal(project, "Unlogged", true) {
+//                    public void run(@NotNull ProgressIndicator indicator) {
+//
+//                        try {
+//                            logger.info("set trace point in connector => " + selectedTrace.getClassname());
+//                            indicator.setText(
+//                                    "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
+//                                            .format(new Date(selectedTrace.getNanoTime())));
+//                            if (connector != null) {
+//                                connector.setTracePoint(selectedTrace, indicator);
+//                            } else {
+//                                pendingTrace = selectedTrace;
+//                            }
+//
+//
+//                        } catch (ProcessCanceledException pce) {
+//                            throw pce;
+//                        } catch (Exception e) {
+//                            logger.error("failed to set trace point", e);
+//                            InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
+//                                    NotificationType.ERROR);
+//                            return;
+//                        } finally {
+//                            indicator.stop();
+//                        }
+//
+//                        if (debugSession.isPaused()) {
+//                            debugSession.resume();
+//                        }
+//                        debugSession.pause();
+//
+//
+//                    }
+//                });
 
 
     }
@@ -1574,7 +1555,7 @@ public class InsidiousService implements Disposable {
 
     public void setToolWindow(ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
-        init();
+        init(project, toolWindow);
     }
 
     public Map<String, Boolean> getDefaultExceptionClassList() {
@@ -1831,5 +1812,10 @@ public class InsidiousService implements Disposable {
             toolWindow.getContentManager()
                     .setSelectedContent(liveWindowContent);
         }
+    }
+
+    public void runActivity(@NotNull Project project) {
+        this.project = project;
+        start();
     }
 }

@@ -14,6 +14,7 @@ import com.insidious.plugin.pojo.TestSuite;
 import com.insidious.plugin.upload.minio.ReportIssueForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
@@ -29,6 +30,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -37,7 +39,6 @@ public class LiveViewWindow implements TreeSelectionListener,
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     static boolean isLoading = false;
     private final Project project;
-    private final InsidiousService insidiousService;
     private final VideobugTreeCellRenderer cellRenderer;
     private final ActionListener pauseActionListener;
     private final ActionListener resumeActionListener;
@@ -68,7 +69,6 @@ public class LiveViewWindow implements TreeSelectionListener,
     public LiveViewWindow(Project project, InsidiousService insidiousService) {
 
         this.project = project;
-        this.insidiousService = insidiousService;
 
         this.processLogsSwitch.addActionListener(selectSessionActionListener());
         pauseActionListener = pauseCheckingForNewLogs();
@@ -113,6 +113,8 @@ public class LiveViewWindow implements TreeSelectionListener,
 
 
     private void copyVMParameter() {
+        InsidiousService insidiousService = ApplicationManager.getApplication()
+                .getService(InsidiousService.class);
         String vmParamString = insidiousService.getJavaAgentString();
         insidiousService.copyToClipboard(vmParamString);
         InsidiousNotification.notifyMessage("VM options copied to clipboard.",
@@ -178,16 +180,15 @@ public class LiveViewWindow implements TreeSelectionListener,
         pauseProcessingButton.addActionListener(pauseActionListener);
     }
 
-    public void setTreeStateToLoading()
-    {
-        if(!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
+    public void setTreeStateToLoading() {
+        if (!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
             mainTree.setModel(new DefaultTreeModel(
                     new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
         }
     }
-    public void updateTreeStateOnScanFailure()
-    {
-        if(!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
+
+    public void updateTreeStateOnScanFailure() {
+        if (!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
             mainTree.setModel(new DefaultTreeModel(
                     new DefaultMutableTreeNode(new StringBuilder("Failed to set session"))));
         }
@@ -201,6 +202,8 @@ public class LiveViewWindow implements TreeSelectionListener,
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         checkProgressIndicator("Loading session", null);
+                        final InsidiousService insidiousService = ApplicationManager.getApplication()
+                                .getService(InsidiousService.class);
                         insidiousService.getClient()
                                 .getProjectSessions(new GetProjectSessionsCallback() {
                                     @Override
@@ -367,9 +370,13 @@ public class LiveViewWindow implements TreeSelectionListener,
 
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
 
-        TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+        List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+        testCaseUnit1.add(testCaseUnit);
+        TestSuite testSuite = new TestSuite(testCaseUnit1);
         //insidiousService.ensureTestUtilClass();
-        insidiousService.saveTestSuite(testSuite);
+        ApplicationManager.getApplication()
+                .getService(InsidiousService.class)
+                .saveTestSuite(testSuite);
 
         InsidiousNotification.notifyMessage("Testcase generated for " + testCaseUnit.getTestMethodName() + "()",
                 NotificationType.INFORMATION);
@@ -389,7 +396,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         try {
             treeModel = new LiveViewTestCandidateListTree(
-                    project, insidiousService.getClient()
+                    project, ApplicationManager.getApplication().getService(InsidiousService.class).getClient()
                     .getSessionInstance());
             mainTree.setModel(treeModel);
             mainTree.validate();

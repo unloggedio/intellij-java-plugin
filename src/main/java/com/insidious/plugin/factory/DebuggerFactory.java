@@ -37,11 +37,9 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
             logger.info("Start insidious debugger");
             this.currentProject = project;
-            InsidiousService insidiousService = ServiceManager.getService(InsidiousService.class);
-//            if (insidiousService.isLoggedIn()) {
-//                insidiousService.startDebugSession();
-//            }
-            insidiousService.setToolWindow(toolWindow);
+
+            InsidiousService insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
+            insidiousService.init(project, toolWindow);
         }catch (Exception e) {
             logger.info("exception in create tool window", e);
         }
