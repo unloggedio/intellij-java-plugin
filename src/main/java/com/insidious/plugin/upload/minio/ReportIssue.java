@@ -51,7 +51,9 @@ public class ReportIssue {
                 try {
                     zipFiles.zipDirectory(seLogDirPath, pathPrefix + File.separator + zipFileName);
                 } catch (Exception e) {
-                    InsidiousNotification.notifyMessage("Failed to zip the report logs!", NotificationType.ERROR);
+                    InsidiousNotification.notifyMessage("Failed to submit bug report. Please try again!\n" +
+                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.", NotificationType.ERROR);
+                    e.printStackTrace();
                 }
 
                 checkProgressIndicator("Uploading session logs and idea.log", null);
@@ -59,7 +61,9 @@ public class ReportIssue {
                 try {
                     fileUploader.uploadFile(sessionObjectKey, pathPrefix + File.separator + zipFileName);
                 } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
-                    InsidiousNotification.notifyMessage("Failed to upload report logs!", NotificationType.ERROR);
+                    InsidiousNotification.notifyMessage("Failed to submit bug report. Please try again!\n" +
+                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>", NotificationType.ERROR);
+                    ex.printStackTrace();
                 }
 
                 checkProgressIndicator("Issue Upload completed!", null);

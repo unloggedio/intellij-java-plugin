@@ -51,12 +51,12 @@ public class ZipFiles {
                         zos.write(buffer, 0, len);
                     }
                 } catch (IOException e) {
-                    throw new IOException("Failed to Zip selogger directory!");
+                    throw new IOException("Failed to Zip selogger directory!", e);
                 }
                 zos.closeEntry();
             }
         } catch (IOException e) {
-            throw new IOException("Failed to Zip selogger directory!");
+            throw new IOException("Failed to Zip selogger directory!", e);
         }
     }
 
@@ -67,12 +67,12 @@ public class ZipFiles {
      * @throws IOException
      */
     private void populateFilesList(File dir) throws IOException {
-        if (dir.exists())
+        if (!dir.exists())
             return;
         File[] files = dir.listFiles();
         for (File file : files) {
             if (file.isFile()) {
-                if (!file.getName().endsWith(".dat"))
+                if (!file.getName().endsWith(".dat") && !file.getName().endsWith(".dat-wal") && !file.getName().endsWith(".dat-shm"))
                     filesListInDir.add(file.getAbsolutePath());
             } else {
                 if (!file.getName().equals("cache")) {
