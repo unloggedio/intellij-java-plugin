@@ -60,20 +60,20 @@ public class ConfigurationWindow {
         this.insidiousService = ServiceManager.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
 
-        email.setText(this.insidiousService.getConfiguration().username);
-        if (!"test@example.com".equals(this.insidiousService.getConfiguration().username)) {
-            password.setText("");
-        }
-        serverEndpoint.setText(this.insidiousService.getConfiguration().serverUrl);
+//        email.setText(this.insidiousService.getConfiguration().username);
+//        if (!"test@example.com".equals(this.insidiousService.getConfiguration().username)) {
+//            password.setText("");
+//        }
+//        serverEndpoint.setText(this.insidiousService.getConfiguration().serverUrl);
 
-        useOfflineLocalRecordingsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                insidiousService.initiateUseLocal();
-//                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
-//                }
-            }
-        });
+//        useOfflineLocalRecordingsButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                insidiousService.initiateUseLocal();
+////                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
+////                }
+//            }
+//        });
 
 //        generateTestCases.addActionListener(new ActionListener() {
 //            @Override
@@ -93,21 +93,21 @@ public class ConfigurationWindow {
 //            }
 //        });
 
-        signInButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                String usernameText = email.getText();
-                String passwordText = new String(password.getPassword());
-                String videobugURL = serverEndpoint.getText();
-                try {
-                    insidiousService.signin(videobugURL, usernameText, passwordText);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
-                }
-            }
-        });
-        loginSupportTextArea.setLineWrap(true);
+//        signInButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                String usernameText = email.getText();
+//                String passwordText = new String(password.getPassword());
+//                String videobugURL = serverEndpoint.getText();
+//                try {
+//                    insidiousService.signin(videobugURL, usernameText, passwordText);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                    Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
+//                }
+//            }
+//        });
+//        loginSupportTextArea.setLineWrap(true);
 
 //        logoutButton.addActionListener(e -> {
 //            insidiousService.logout();
@@ -117,49 +117,49 @@ public class ConfigurationWindow {
 //            loginSupportTextArea.setText("");
 //        });
 
-        downloadJavaAgentToButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                InsidiousNotification.notifyMessage(
-                        "Downloading videobug java agent to $HOME/.videobug/videobug-java-agent.jar. Please wait for the download to complete.",
-                        NotificationType.INFORMATION
-                );
-                insidiousService.ensureAgentJar(true);
-            }
-        });
+//        downloadJavaAgentToButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent e) {
+//                InsidiousNotification.notifyMessage(
+//                        "Downloading videobug java agent to $HOME/.videobug/videobug-java-agent.jar. Please wait for the download to complete.",
+//                        NotificationType.INFORMATION
+//                );
+//                insidiousService.ensureAgentJar(true);
+//            }
+//        });
 
-        signUpButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                String usernameText = email.getText();
-                String passwordText = new String(password.getPassword());
-                String videobugURL = serverEndpoint.getText();
-                insidiousService.signup(videobugURL, usernameText, passwordText,
-                        new SignUpCallback() {
-                            @Override
-                            public void error(String string) {
-                                loginSupportTextArea.setText("Failed to signup\n" + string);
-                                Notifications.Bus.notify(
-                                        InsidiousNotification.balloonNotificationGroup
-                                                .createNotification(
-                                                        "Failed to signup - " + string, NotificationType.ERROR), project);
-
-                            }
-
-                            @Override
-                            public void success() {
-                                try {
-                                    insidiousService.signin(videobugURL, usernameText, passwordText);
-                                    loginSupportTextArea.setText("\nSignup was successful!");
-                                    ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
-                                            .submit(backgroundThreadExecutor);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        });
-            }
-        });
+//        signUpButton.addActionListener(new ActionListener() {
+//            @Override
+//            public void actionPerformed(ActionEvent actionEvent) {
+//                String usernameText = email.getText();
+//                String passwordText = new String(password.getPassword());
+//                String videobugURL = serverEndpoint.getText();
+//                insidiousService.signup(videobugURL, usernameText, passwordText,
+//                        new SignUpCallback() {
+//                            @Override
+//                            public void error(String string) {
+//                                loginSupportTextArea.setText("Failed to signup\n" + string);
+//                                Notifications.Bus.notify(
+//                                        InsidiousNotification.balloonNotificationGroup
+//                                                .createNotification(
+//                                                        "Failed to signup - " + string, NotificationType.ERROR), project);
+//
+//                            }
+//
+//                            @Override
+//                            public void success() {
+//                                try {
+//                                    insidiousService.signin(videobugURL, usernameText, passwordText);
+//                                    loginSupportTextArea.setText("\nSignup was successful!");
+//                                    ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
+//                                            .submit(backgroundThreadExecutor);
+//                                } catch (IOException e) {
+//                                    e.printStackTrace();
+//                                }
+//                            }
+//                        });
+//            }
+//        });
 //        buySingleUserLicenseButton.addActionListener(new ActionListener() {
 //            @Override
 //            public void actionPerformed(ActionEvent actionEvent) {

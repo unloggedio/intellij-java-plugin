@@ -487,15 +487,6 @@ final public class InsidiousService implements Disposable {
         start();
     }
 
-    public boolean isLoggedIn() {
-        return this.client.getToken() != null;
-    }
-
-    public void signup(String serverUrl, String usernameText, String passwordText, SignUpCallback signupCallback) {
-        this.client = new VideobugNetworkClient(serverUrl);
-        this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
-    }
-
     public boolean isValidEmailAddress(String email) {
         String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
         java.util.regex.Pattern p = java.util.regex.Pattern.compile(ePattern);
@@ -503,95 +494,6 @@ final public class InsidiousService implements Disposable {
         return m.matches();
     }
 
-    public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
-        this.client = new VideobugNetworkClient(serverUrl);
-        logger.info("signin with username [" + usernameText + "] on server " + serverUrl);
-
-        if (!isValidEmailAddress(usernameText)) {
-            credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
-            return;
-        }
-
-        if (passwordText == null || passwordText.length() < 4) {
-            if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLabel("Enter a valid password, at least 4 characters");
-            }
-            return;
-        }
-
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("email", usernameText);
-        eventProperties.put("server", serverUrl);
-        UsageInsightTracker.getInstance()
-                .RecordEvent("SignInAttempt", eventProperties);
-
-        insidiousConfiguration.setServerUrl(serverUrl);
-        insidiousConfiguration.setUsername(usernameText);
-
-        try {
-            client.signin(SigninRequest.from(serverUrl, usernameText, passwordText), new SignInCallback() {
-                @Override
-                public void error(String errorMessage) {
-                    if (credentialsToolbarWindow != null) {
-                        credentialsToolbarWindow.setErrorLabel("Sign in failed: " + errorMessage);
-                    }
-
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("email", usernameText);
-                    eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance()
-                            .RecordEvent("SignInFailed", eventProperties);
-
-
-                    InsidiousNotification.notifyMessage(
-                            "Failed to login VideoBug at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
-                            NotificationType.ERROR);
-
-                }
-
-                @Override
-                public void success(String token) {
-                    ReadAction.run(() -> InsidiousService.this.ensureAgentJar(false));
-                    ReadAction.run(InsidiousService.this::setupProject);
-
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("email", usernameText);
-                    eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance()
-                            .RecordEvent("SignInSuccess", eventProperties);
-
-
-                    Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
-                    insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-                    PasswordSafe.getInstance()
-                            .set(insidiousCredentials, credentials);
-
-                    ApplicationManager.getApplication()
-                            .invokeLater(() -> {
-                                InsidiousNotification.notifyMessage(
-                                        "VideoBug logged in at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
-                                        NotificationType.INFORMATION);
-
-                            });
-                }
-            });
-
-
-        } catch (UnauthorizedException e) {
-
-            logger.error("Failed to signin for user " + usernameText, e);
-            e.printStackTrace();
-            if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLabel("Sign in failed!");
-            }
-        } catch (Throwable e) {
-            logger.error("failed to connect with server", e);
-            InsidiousNotification.notifyMessage("Failed to connect with server - " + e.getMessage(),
-                    NotificationType.ERROR);
-        }
-        ApplicationManager.getApplication()
-                .invokeLater(this::initiateUI);
-    }
 
     private void setupProject() {
 
