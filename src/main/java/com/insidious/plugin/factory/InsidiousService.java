@@ -972,9 +972,7 @@ public class InsidiousService implements Disposable {
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             try {
                 ensureTestUtilClass(basePath);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 logger.error("Failed to save UnloggedUtils to correct spot.");
             }
             return newFile;
@@ -984,19 +982,16 @@ public class InsidiousService implements Disposable {
     }
 
     public void ensureTestUtilClass(String basePath) throws IOException {
-        String testOutputDirPath=null;
-        if(basePath!=null)
-        {
-            testOutputDirPath = basePath +"src/test/java/io/unlogged";
-        }
-        else {
+        String testOutputDirPath = null;
+        if (basePath != null) {
+            testOutputDirPath = basePath + "src/test/java/io/unlogged";
+        } else {
             basePath = project.getBasePath();
             testOutputDirPath = project.getBasePath() + "/src/test/java/io/unlogged";
         }
-        if(basePath.charAt(basePath.length()-1)=='/')
-        {
+        if (basePath.charAt(basePath.length() - 1) == '/') {
             basePath = new StringBuilder(basePath).
-                    deleteCharAt(basePath.length()-1).toString();
+                    deleteCharAt(basePath.length() - 1).toString();
         }
         File dirPath = new File(testOutputDirPath);
         if (!dirPath.exists()) {
@@ -1716,18 +1711,15 @@ public class InsidiousService implements Disposable {
             utilFile.delete();
         }
 
-        String version = getProjectTypeInfo()
-                .getJacksonDatabindVersion();
-
         try (FileOutputStream writer = new FileOutputStream(utilFilePath)) {
             InputStream testUtilClassCode = this.getClass()
                     .getClassLoader()
-                    .getResourceAsStream("code/gson/UnloggedTestUtil.java");
+                    .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
 
-            if (version != null) {
+            if (projectTypeInfo.getUsesGson()) {
                 testUtilClassCode = this.getClass()
                         .getClassLoader()
-                        .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
+                        .getResourceAsStream("code/gson/UnloggedTestUtil.java");
             }
 
             assert testUtilClassCode != null;
