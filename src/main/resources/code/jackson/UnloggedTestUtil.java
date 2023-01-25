@@ -105,7 +105,7 @@ public class UnloggedTestUtils {
         }
         try {
             return objectMapper.readValue(sourceObject.get(key).toString(), objectMapper.getTypeFactory().constructType(type));
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
