@@ -11,16 +11,21 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ReportIssueForm extends JFrame implements ActionListener {
 
+
+    static final String NO_SELOG_FOLDER_NAME = "empty-selogger-folder";
+    private Map<String, Boolean> checkboxes = new HashMap<>();
     private Container c;
     private JLabel title;
     private JLabel userEmailLabel;
@@ -30,9 +35,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
     private JLabel descriptionLabel;
     private JTextArea description;
     private JButton submitButton;
-
     private JScrollPane scroll;
-
     private JLabel errorText;
     private Project project;
 
@@ -79,21 +82,29 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         issueTitle.setToolTipText("The generated test");
         c.add(issueTitle);
 
-        List<String> checkboxes = new ArrayList<>();
-        checkboxes.add("Test Fails on running");
-        checkboxes.add("Test doesn't compile");
-        checkboxes.add("Generate Test button fails");
-        checkboxes.add("Wrong Class of variable");
-        checkboxes.add("Other");
-
         int x = 50;
         int y = 150;
         int d = 0;
 
-        for (int i = 0; i < checkboxes.size(); i++) {
+        checkboxes.put("Test Fails on running", false);
+        checkboxes.put("Test doesn't compile", false);
+        checkboxes.put("Generate Test button fails", false);
+        checkboxes.put("Wrong Class of variable", false);
+        checkboxes.put("Other", false);
+
+        int i = 0;
+        for (Map.Entry<String, Boolean> me : checkboxes.entrySet()) {
             JCheckBox checkBox = new JCheckBox();
             checkBox.setSize(180, 30);
-            checkBox.setText(checkboxes.get(i));
+            checkBox.setText(me.getKey());
+            checkBox.addItemListener(new ItemListener() {
+                public void itemStateChanged(ItemEvent e) {
+                    if (e.getStateChange() == ItemEvent.SELECTED) {
+                        JCheckBox item = (JCheckBox) e.getItem();
+                        checkboxes.put(item.getText(), item.isSelected());
+                    }
+                }
+            });
 
             if (i % 3 == 0) {
                 y += 30;
@@ -102,6 +113,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
             checkBox.setLocation(x + d, y);
             d += 200;
             c.add(checkBox);
+            i++;
         }
 
         descriptionLabel = new JLabel("Description");
@@ -148,15 +160,19 @@ public class ReportIssueForm extends JFrame implements ActionListener {
 
         File selogDir = new File(reportIssue.getLatestSeLogFolderPath());
 
-        String s3BucketParentPath = userEmail.getText() + "/" + selogDir.getName() + "-" + Time.uniqueId();
-        String sessionObjectKey = s3BucketParentPath + "/" + selogDir.getName() + ".zip";
+        String dirName = !selogDir.getName().equals("") ? selogDir.getName() : NO_SELOG_FOLDER_NAME;
+        String s3BucketParentPath = userEmail.getText() + "/" + dirName + "-" + Time.uniqueId();
+        String sessionObjectKey = s3BucketParentPath + "/" + dirName + ".zip";
 
         System.out.println(sessionObjectKey);
 
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
 
         String issueDescription = "Issue Raised by: `" + userEmail.getText() + "`\n\n"
-                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")" + "\n\n" + description.getText();
+                + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "" : "session folder was empty, session zip only contains idea.log! \n\n")
+                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")"
+                + "\n\n"
+                + description.getText();
 
         Desktop desktop = Desktop.getDesktop();
         String gitlabMail = "contact-project+insidious1-server-32379664-issue-@incoming.gitlab.com";

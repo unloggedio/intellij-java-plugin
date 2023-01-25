@@ -37,22 +37,23 @@ public class ReportIssue {
             public void run(@NotNull ProgressIndicator indicator) {
                 ZipFiles zipFiles = new ZipFiles();
                 seLogDirPath = getLatestSeLogFolderPath();
-                int lastIndexOf = seLogDirPath.lastIndexOf(File.separator);
-                pathPrefix = seLogDirPath.substring(0, lastIndexOf);
-                zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
+                if (!seLogDirPath.equals("")) {
+                    int lastIndexOf = seLogDirPath.lastIndexOf(File.separator);
+                    pathPrefix = seLogDirPath.substring(0, lastIndexOf);
+                    zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
 
-                checkProgressIndicator("Zipping session logs to upload", null);
-                
+                    checkProgressIndicator("Zipping session logs to upload", null);
+                }
                 try {
-                    zipFiles.zipDirectory(new File(seLogDirPath), pathPrefix + File.separator + zipFileName);
+                    zipFiles.zipDirectory(seLogDirPath, pathPrefix + File.separator + zipFileName);
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage("Failed to zip the report logs!", NotificationType.ERROR);
                 }
 
+
                 checkProgressIndicator("Uploading session logs and idea.log", null);
                 FileUploader fileUploader = new FileUploader();
                 try {
-
                     fileUploader.uploadFile(sessionObjectKey, pathPrefix + File.separator + zipFileName);
                 } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
                     InsidiousNotification.notifyMessage("Failed to upload report logs!", NotificationType.ERROR);
@@ -80,9 +81,13 @@ public class ReportIssue {
                         .startsWith("selogger-output-"))
                 .collect(Collectors.toList());
 
-        File latestSessionDir = sessionFolders.get(0);
+        File latestSessionDir = null;
+        if (sessionFolders.size() > 0) {
+            latestSessionDir = sessionFolders.get(0);
+            return latestSessionDir.getAbsolutePath();
+        }
 
-        return latestSessionDir.getAbsolutePath();
+        return "";
     }
 
     private void checkProgressIndicator(String text1, String text2) {

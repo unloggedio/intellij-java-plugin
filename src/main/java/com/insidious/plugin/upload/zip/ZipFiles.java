@@ -15,10 +15,15 @@ public class ZipFiles {
     /**
      * This method zips the directory
      *
-     * @param dir
+     * @param dirPath
      * @param zipFileName
      */
-    public void zipDirectory(File dir, String zipFileName) throws IOException {
+    public void zipDirectory(String dirPath, String zipFileName) throws IOException {
+        File dir = null;
+        if (!dirPath.equals("")) {
+            dir = new File(dirPath);
+        }
+
         OutputStream fos;
 
         try {
@@ -27,9 +32,9 @@ public class ZipFiles {
 
             try {
                 zos = new ZipOutputStream(fos);
-
                 // adding the selogger folder files
-                populateFilesList(dir);
+                if (!dirPath.equals(""))
+                    populateFilesList(dir);
 
                 // adding the idea.log file also in the zip file to upload
                 Path ideaLogFilePath = LoggerFactory.getLogFilePath();
@@ -85,6 +90,8 @@ public class ZipFiles {
      * @throws IOException
      */
     private void populateFilesList(File dir) throws IOException {
+        if (dir.getPath().equals(""))
+            return;
         File[] files = dir.listFiles();
         for (File file : files) {
             if (file.isFile()) {
