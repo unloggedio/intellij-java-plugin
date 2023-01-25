@@ -41,15 +41,18 @@ public class ReportIssue {
                     int lastIndexOf = seLogDirPath.lastIndexOf(File.separator);
                     pathPrefix = seLogDirPath.substring(0, lastIndexOf);
                     zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
-
-                    checkProgressIndicator("Zipping session logs to upload", null);
+                } else {
+                    pathPrefix = System.getProperty("user.home") + File.separator + ".videobug" + File.separator + "sessions";
+                    zipFileName = "empty-selogger-folder.zip";
                 }
+
+                checkProgressIndicator("Zipping session logs to upload", null);
+
                 try {
                     zipFiles.zipDirectory(seLogDirPath, pathPrefix + File.separator + zipFileName);
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage("Failed to zip the report logs!", NotificationType.ERROR);
                 }
-
 
                 checkProgressIndicator("Uploading session logs and idea.log", null);
                 FileUploader fileUploader = new FileUploader();

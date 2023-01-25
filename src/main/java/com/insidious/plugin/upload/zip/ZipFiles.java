@@ -2,7 +2,10 @@ package com.insidious.plugin.upload.zip;
 
 import com.intellij.idea.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,62 +27,36 @@ public class ZipFiles {
             dir = new File(dirPath);
         }
 
-        OutputStream fos;
+        try (FileOutputStream fos = new FileOutputStream(zipFileName);
+             ZipOutputStream zos = new ZipOutputStream(fos)) {
+            // adding the selogger folder files
+            if (!dirPath.equals(""))
+                populateFilesList(dir);
 
-        try {
-            fos = new BufferedOutputStream(new FileOutputStream(zipFileName));
-            ZipOutputStream zos;
+            // adding the idea.log file also in the zip file to upload
+            Path ideaLogFilePath = LoggerFactory.getLogFilePath();
+            filesListInDir.add(ideaLogFilePath.toString());
 
-            try {
-                zos = new ZipOutputStream(fos);
-                // adding the selogger folder files
-                if (!dirPath.equals(""))
-                    populateFilesList(dir);
-
-                // adding the idea.log file also in the zip file to upload
-                Path ideaLogFilePath = LoggerFactory.getLogFilePath();
-                filesListInDir.add(ideaLogFilePath.toString());
-
-                //now zip files one by one
-                //create ZipOutputStream to write to the zip file
-                for (String filePath : filesListInDir) {
-                    File fileTobeZipped = new File(filePath);
-                    //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
-                    ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
-
-                    try {
-                        zos.putNextEntry(ze);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        throw e;
+            //now zip files one by one
+            //create ZipOutputStream to write to the zip file
+            for (String filePath : filesListInDir) {
+                File fileTobeZipped = new File(filePath);
+                //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
+                ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
+                zos.putNextEntry(ze);
+                try (FileInputStream fis = new FileInputStream(filePath)) {
+                    byte[] buffer = new byte[1024];
+                    int len;
+                    while ((len = fis.read(buffer)) > 0) {
+                        zos.write(buffer, 0, len);
                     }
-
-                    FileInputStream fis;
-                    try {
-                        fis = new FileInputStream(filePath);
-                        byte[] buffer = new byte[1024];
-                        int len;
-                        while ((len = fis.read(buffer)) > 0) {
-                            zos.write(buffer, 0, len);
-                        }
-                        fis.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        throw e;
-                    } finally {
-                        zos.closeEntry();
-                    }
+                } catch (IOException e) {
+                    throw new IOException("Failed to Zip selogger directory!");
                 }
-                zos.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw e;
-            } finally {
-                fos.close();
+                zos.closeEntry();
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            throw e;
+            throw new IOException("Failed to Zip selogger directory!");
         }
     }
 
@@ -90,7 +67,7 @@ public class ZipFiles {
      * @throws IOException
      */
     private void populateFilesList(File dir) throws IOException {
-        if (dir.getPath().equals(""))
+        if (dir.exists())
             return;
         File[] files = dir.listFiles();
         for (File file : files) {
