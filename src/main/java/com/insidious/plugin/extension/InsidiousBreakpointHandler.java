@@ -149,9 +149,9 @@ public class InsidiousBreakpointHandler extends XBreakpointHandler {
                 notifyCaught = ebp.getXBreakpoint().getProperties().NOTIFY_CAUGHT;
                 notifyUncaught = ebp.getXBreakpoint().getProperties().NOTIFY_UNCAUGHT;
             }
-            this.myProcess
-                    .getConnector()
-                    .createExceptionBreakpoint(referenceType, notifyCaught, notifyUncaught, 2, breakpoint);
+//            this.myProcess
+//                    .getConnector()
+//                    .createExceptionBreakpoint(referenceType, notifyCaught, notifyUncaught, 2, breakpoint);
         }
 
 
@@ -180,7 +180,7 @@ public class InsidiousBreakpointHandler extends XBreakpointHandler {
         public void sendBreakpoint(Breakpoint breakpoint, ReferenceType referenceType) {
             if (breakpoint instanceof MethodBreakpoint) {
                 MethodBreakpoint bp = (MethodBreakpoint) breakpoint;
-                this.myProcess.getConnector().createMethodBreakpoint(referenceType, bp);
+//                this.myProcess.getConnector().createMethodBreakpoint(referenceType, bp);
             }
         }
 
@@ -209,7 +209,7 @@ public class InsidiousBreakpointHandler extends XBreakpointHandler {
         @Override
         public void sendBreakpoint(Breakpoint breakpoint, ReferenceType referenceType) {
             MethodBreakpoint bp = (MethodBreakpoint) breakpoint;
-            this.myProcess.getConnector().createMethodBreakpoint(referenceType, bp);
+//            this.myProcess.getConnector().createMethodBreakpoint(referenceType, bp);
         }
 
 
@@ -239,9 +239,9 @@ public class InsidiousBreakpointHandler extends XBreakpointHandler {
             if (breakpoint instanceof FieldBreakpoint) {
                 FieldBreakpoint fbp = (FieldBreakpoint) breakpoint;
                 try {
-                    this.myProcess
-                            .getConnector()
-                            .createFieldWatchpoint(referenceType, fbp.getFieldName(), fbp);
+//                    this.myProcess
+//                            .getConnector()
+//                            .createFieldWatchpoint(referenceType, fbp.getFieldName(), fbp);
                 } catch (Exception e) {
                     logger.error("failed to evaluate", e);
                 }

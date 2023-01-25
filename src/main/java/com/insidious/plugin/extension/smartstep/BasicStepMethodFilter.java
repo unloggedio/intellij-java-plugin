@@ -11,7 +11,6 @@ import com.insidious.plugin.extension.util.DebuggerUtil;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
-import com.intellij.debugger.engine.StepIntoMethodBreakpoint;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.openapi.application.ReadAction;
@@ -179,12 +178,12 @@ public class BasicStepMethodFilter implements NamedMethodFilter {
             }
 
 
-            try {
-                StepIntoMethodBreakpoint breakpoint = new StepIntoMethodBreakpoint(this.myDeclaringClassName.getName(virtualMachineProxy), this.myTargetMethodName, (this.myTargetMethodSignature != null) ? this.myTargetMethodSignature.getName(virtualMachineProxy) : null, debugProcess.getProject());
-                debugProcess.getConnector().createSteppingBreakpoint(context, breakpoint, hint);
-            } catch (EvaluateException e) {
-                logger.error("failed", e);
-            }
+//            try {
+//                StepIntoMethodBreakpoint breakpoint = new StepIntoMethodBreakpoint(this.myDeclaringClassName.getName(virtualMachineProxy), this.myTargetMethodName, (this.myTargetMethodSignature != null) ? this.myTargetMethodSignature.getName(virtualMachineProxy) : null, debugProcess.getProject());
+//                debugProcess.getConnector().createSteppingBreakpoint(context, breakpoint, hint);
+//            } catch (EvaluateException e) {
+//                logger.error("failed", e);
+//            }
         }
         return false;
     }

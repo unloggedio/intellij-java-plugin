@@ -3,6 +3,8 @@ package com.insidious.plugin.extension;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nullable;
@@ -30,7 +32,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
             if (!project.isOpen()) {
                 return;
             }
-            InsidiousService service = project.getService(InsidiousService.class);
+            InsidiousService service = ServiceManager.getService(InsidiousService.class);
             service.setDebugSession(null);
             service.setDebugProcess(null);
         } catch (Exception e) {

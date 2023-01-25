@@ -12,6 +12,7 @@ import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.xdebugger.XDebuggerManager;
@@ -46,14 +47,14 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
         RemoteConnection connection;
         try {
-            VideobugClientInterface client = env.getProject().getService(InsidiousService.class).getClient();
+            VideobugClientInterface client = ServiceManager.getService(InsidiousService.class).getClient();
             connection = new RemoteConnection(client.getEndpoint());
             ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         } catch (UnauthorizedException e) {
-            env.getProject().getService(InsidiousService.class).showCredentialsWindow();
+            ServiceManager.getService(InsidiousService.class).showCredentialsWindow();
             return null;
         }
         boolean pollTimeout = false;
@@ -78,6 +79,6 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
     @Override
     public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
-        super.execute(environment);
+//        super.execute(environment);
     }
 }

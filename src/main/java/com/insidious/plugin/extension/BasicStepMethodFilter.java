@@ -3,7 +3,6 @@ package com.insidious.plugin.extension;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.NoDataException;
 import com.intellij.debugger.SourcePosition;
-import com.intellij.debugger.engine.StepIntoMethodBreakpoint;
 import com.intellij.debugger.engine.evaluation.EvaluateException;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.openapi.application.ReadAction;
@@ -68,18 +67,19 @@ public class BasicStepMethodFilter implements NamedMethodFilter {
         return (aClass != null && aClass.hasAnnotation("java.lang.FunctionalInterface"));
     }
 
-    private static boolean signatureMatches(Method method, String expectedSignature) throws EvaluateException {
-        if (expectedSignature.equals(method.signature())) {
-            return true;
-        }
-
-        for (Method candidate : method.declaringType().methodsByName(method.name())) {
-            if (candidate != method && candidate
-                    .isBridge() && expectedSignature
-                    .equals(candidate.signature())) {
-                return true;
-            }
-        }
+    private static boolean signatureMatches(Method method, String expectedSignature) {
+//        if (expectedSignature.equals(method.signature())) {
+//            return true;
+//        }
+//
+//        for (Method candidate : method.declaringType().methodsByName(method.name())) {
+//            if (candidate != method && candidate
+//                    .isBridge() && expectedSignature
+//                    .equals(candidate.signature())) {
+//                return true;
+//            }
+//        }
+//        return false;
         return false;
     }
 
@@ -179,12 +179,12 @@ public class BasicStepMethodFilter implements NamedMethodFilter {
             }
 
 
-            try {
-                StepIntoMethodBreakpoint breakpoint = new StepIntoMethodBreakpoint(this.myDeclaringClassName.getName(virtualMachineProxy), this.myTargetMethodName, (this.myTargetMethodSignature != null) ? this.myTargetMethodSignature.getName(virtualMachineProxy) : null, debugProcess.getProject());
-                debugProcess.getConnector().createSteppingBreakpoint(context, breakpoint, hint);
-            } catch (EvaluateException e) {
-                logger.error("failed to evaluate", e);
-            }
+//            try {
+//                StepIntoMethodBreakpoint breakpoint = new StepIntoMethodBreakpoint(this.myDeclaringClassName.getName(virtualMachineProxy), this.myTargetMethodName, (this.myTargetMethodSignature != null) ? this.myTargetMethodSignature.getName(virtualMachineProxy) : null, debugProcess.getProject());
+//                debugProcess.getConnector().createSteppingBreakpoint(context, breakpoint, hint);
+//            } catch (EvaluateException e) {
+//                logger.error("failed to evaluate", e);
+//            }
         }
         return false;
     }

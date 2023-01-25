@@ -10,6 +10,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
@@ -56,7 +57,7 @@ public class ConfigurationWindow {
 
     public ConfigurationWindow(Project project, ToolWindow toolWindow) {
         this.project = project;
-        this.insidiousService = project.getService(InsidiousService.class);
+        this.insidiousService = ServiceManager.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
 
         email.setText(this.insidiousService.getConfiguration().username);

@@ -1,8 +1,7 @@
 package com.insidious.plugin.pojo.dao;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
-import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.openapi.util.text.Strings;
+import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -99,7 +98,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(StringUtil.join(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getNanoTime)
                 .collect(Collectors.toList()), ","));
@@ -179,7 +178,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
-                StringUtil.join(methodCallExpression.getArguments()
+                Strings.join(methodCallExpression.getArguments()
                         .stream()
                         .map(com.insidious.plugin.pojo.Parameter::getValue)
                         .collect(Collectors.toList()), ","),
@@ -196,7 +195,7 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setId(methodCallExpression.getId());
         methodCallExpression1.setParentId(methodCallExpression.getParentId());
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
-        methodCallExpression1.setArgumentProbes(StringUtil.join(methodCallExpression.getArgumentProbes()
+        methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
                 .stream()
                 .map(DataEventWithSessionId::getNanoTime)
                 .collect(Collectors.toList()), ","));

@@ -12,6 +12,8 @@ import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.requests.ClassPrepareRequestor;
 import com.intellij.debugger.ui.breakpoints.Breakpoint;
 import com.intellij.debugger.ui.breakpoints.WildcardMethodBreakpoint;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XDebugSession;
 import com.intellij.openapi.project.Project;
@@ -365,7 +367,7 @@ public class InsidiousDebuggerEventThread implements Runnable {
 
     private void close(boolean closedByUser) {
         stopListening();
-        this.debugProcess.getProject().getService(XDebugSession.class).stop();
+        ServiceManager.getService(XDebugSession.class).stop();
 //        this.debugProcess.closeProcess(closedByUser);
     }
 

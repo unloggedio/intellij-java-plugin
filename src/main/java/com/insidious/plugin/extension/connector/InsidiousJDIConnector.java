@@ -10,9 +10,9 @@ import com.intellij.debugger.engine.DebugProcess;
 import com.intellij.debugger.engine.requests.LocatableEventRequestor;
 import com.intellij.debugger.requests.ClassPrepareRequestor;
 import com.intellij.debugger.requests.Requestor;
-import com.intellij.debugger.ui.breakpoints.Breakpoint;
-import com.intellij.debugger.ui.breakpoints.MethodBreakpoint;
-import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
+//import com.intellij.debugger.ui.breakpoints.Breakpoint;
+//import com.intellij.debugger.ui.breakpoints.MethodBreakpoint;
+//import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.util.Key;
@@ -199,10 +199,10 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
 
     }
 
-    public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
-        logger.warn("method not implemented createFieldWatchpoint- " + new Exception().getStackTrace()[0].getFileName());
-
-    }
+//    public void createFieldWatchpoint(ReferenceType declaringType, String name, Breakpoint myJumpToAssignmentBreakpoint) {
+//        logger.warn("method not implemented createFieldWatchpoint- " + new Exception().getStackTrace()[0].getFileName());
+//
+//    }
 
     public Iterable<? extends ModificationWatchpointRequest> getModificationWatchpointsWithRequestor(Requestor jumpToAssignmentBreakpoint) {
         logger.warn("method not implemented getModificationWatchpointsWithRequestor- " + new Exception().getStackTrace()[0].getFileName());
@@ -223,20 +223,20 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
         return Collections.emptyList();
     }
 
-    public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught,
-                                          boolean notifyUncaught, int i, Breakpoint breakpoint) {
-        logger.warn("method not implemented createExceptionBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
-
-    }
+//    public void createExceptionBreakpoint(ReferenceType referenceType, boolean notifyCaught,
+//                                          boolean notifyUncaught, int i, Breakpoint breakpoint) {
+//        logger.warn("method not implemented createExceptionBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
+//
+//    }
 
     public List<ExceptionRequest> getAllExceptionBreakpoints() {
         logger.warn("method not implemented getAllExceptionBreakpoints- " + new Exception().getStackTrace()[0].getFileName());
         return null;
     }
 
-    public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
-        logger.warn("method not implemented createMethodBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
-    }
+//    public void createMethodBreakpoint(ReferenceType referenceType, MethodBreakpoint bp) {
+//        logger.warn("method not implemented createMethodBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
+//    }
 
     public List<EventRequest> getAllMethodRequests() {
         logger.warn("method not implemented getAllMethodRequests- " + new Exception().getStackTrace()[0].getFileName());
@@ -248,10 +248,10 @@ public class InsidiousJDIConnector implements InsidiousVirtualMachineProxy {
         return null;
     }
 
-    public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
-        logger.warn("method not implemented createSteppingBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
-
-    }
+//    public void createSteppingBreakpoint(InsidiousXSuspendContext context, SteppingBreakpoint breakpoint, RequestHint hint) {
+//        logger.warn("method not implemented createSteppingBreakpoint- " + new Exception().getStackTrace()[0].getFileName());
+//
+//    }
 
     public void setTracePoint(TracePoint tracePoint, ProgressIndicator indicator) throws Exception {
         this.virtualMachine.setTracePoint(tracePoint);

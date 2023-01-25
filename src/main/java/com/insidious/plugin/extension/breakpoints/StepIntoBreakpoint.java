@@ -1,20 +1,18 @@
 package com.insidious.plugin.extension.breakpoints;
 
+import com.insidious.plugin.extension.connector.RequestHint;
+import com.insidious.plugin.extension.smartstep.BreakpointStepMethodFilter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.debugger.SourcePosition;
 import com.intellij.debugger.ui.breakpoints.RunToCursorBreakpoint;
-import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
-import com.insidious.plugin.extension.connector.RequestHint;
-import com.insidious.plugin.extension.smartstep.BreakpointStepMethodFilter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
 public class StepIntoBreakpoint
-        extends RunToCursorBreakpoint
-        implements SteppingBreakpoint {
+        extends RunToCursorBreakpoint {
     private static final Logger logger = LoggerUtil.getInstance(StepIntoBreakpoint.class);
 
     @NotNull

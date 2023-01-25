@@ -34,17 +34,17 @@ public class InsidiousApplicationState implements RunProfileState {
         this.environment = environment;
     }
 
-    @Override
-    public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
-        @NotNull ProcessHandler processHandler = new InsidiousProcessHandler(getRunProfileName());
-        InsidiousService insidiousService = configuration.getProject().getService(InsidiousService.class);
-
-        this.consoleView = new ConsoleViewImpl(configuration.getProject(), false);
-        processHandler.putUserData(KEY, this);
-        this.consoleView.attachToProcess(processHandler);
-        DefaultExecutionResult executionResult = new DefaultExecutionResult(this.consoleView, processHandler);
-        return executionResult;
-    }
+//    @Override
+//    public @Nullable ExecutionResult execute(Executor executor, @NotNull ProgramRunner<?> runner) throws ExecutionException {
+//        @NotNull ProcessHandler processHandler = new InsidiousProcessHandler(getRunProfileName());
+//        InsidiousService insidiousService = configuration.getProject().getService(InsidiousService.class);
+//
+//        this.consoleView = new ConsoleViewImpl(configuration.getProject(), false);
+//        processHandler.putUserData(KEY, this);
+//        this.consoleView.attachToProcess(processHandler);
+//        DefaultExecutionResult executionResult = new DefaultExecutionResult(this.consoleView, processHandler);
+//        return executionResult;
+//    }
 
 
     public String getRunProfileName() {
@@ -85,5 +85,11 @@ public class InsidiousApplicationState implements RunProfileState {
 
     public void setConsoleBuilder(TextConsoleBuilder builder) {
         this.consoleBuilder = builder;
+    }
+
+    @Nullable
+    @Override
+    public ExecutionResult execute(Executor executor, @NotNull ProgramRunner runner) throws ExecutionException {
+        return null;
     }
 }

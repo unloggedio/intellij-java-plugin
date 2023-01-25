@@ -49,6 +49,7 @@ import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -158,9 +159,9 @@ public class InsidiousService implements Disposable {
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 //            this.testCaseService = new TestCaseService(client.getSessionInstance());
-            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+            this.insidiousConfiguration = ServiceManager.getService(InsidiousConfigurationState.class);
 
-            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
+            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
                     .getDebugSessions());
 
             ReadAction.nonBlocking(this::getProjectPackageName);
@@ -972,9 +973,7 @@ public class InsidiousService implements Disposable {
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
             try {
                 ensureTestUtilClass(basePath);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 logger.error("Failed to save UnloggedUtils to correct spot.");
             }
             return newFile;
@@ -984,19 +983,17 @@ public class InsidiousService implements Disposable {
     }
 
     public void ensureTestUtilClass(String basePath) throws IOException {
-        String testOutputDirPath=null;
-        if(basePath!=null)
-        {
-            testOutputDirPath = basePath +"src/test/java/io/unlogged";
-        }
-        else {
+        String testOutputDirPath = null;
+        if (basePath != null) {
+            testOutputDirPath = basePath + "src/test/java/io/unlogged";
+        } else {
             basePath = project.getBasePath();
             testOutputDirPath = project.getBasePath() + "/src/test/java/io/unlogged";
         }
-        if(basePath.charAt(basePath.length()-1)=='/')
-        {
+        if (basePath.charAt(basePath.length() - 1) == '/') {
             basePath = new StringBuilder(basePath).
-                    deleteCharAt(basePath.length()-1).toString();
+                    deleteCharAt(basePath.length() - 1)
+                    .toString();
         }
         File dirPath = new File(testOutputDirPath);
         if (!dirPath.exists()) {
@@ -1195,7 +1192,7 @@ public class InsidiousService implements Disposable {
             return;
         }
 
-        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
+        debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
                 .getDebugSessions());
 
 
@@ -1273,8 +1270,7 @@ public class InsidiousService implements Disposable {
                             toolWindow.getContentManager()
                                     .removeContent(traceContent, true);
                         }
-                        ContentFactory contentFactory = ApplicationManager.getApplication()
-                                .getService(ContentFactory.class);
+                        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
                         ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                         Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(),
                                 "Credentials",
@@ -1288,7 +1284,7 @@ public class InsidiousService implements Disposable {
     private void addAgentToRunConfig() {
 
 
-        List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class)
+        List<RunnerAndConfigurationSettings> allSettings = ServiceManager.getService(RunManager.class)
                 .getAllSettings();
 
 //        for (RunnerAndConfigurationSettings runSetting : allSettings) {
@@ -1326,8 +1322,7 @@ public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication()
-                .getService(ContentFactory.class);
+        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
@@ -1446,7 +1441,7 @@ public class InsidiousService implements Disposable {
         }
     }
 
-    public void loadSession() throws IOException {
+    public void loadSession() {
 
         if (currentModule == null) {
             currentModule = ModuleManager.getInstance(project)
@@ -1509,7 +1504,7 @@ public class InsidiousService implements Disposable {
                 .RecordEvent("FetchByTracePoint", eventProperties);
 
         if (debugSession == null || getActiveDebugSession(
-                project.getService(XDebuggerManager.class)
+                ServiceManager.getService(XDebuggerManager.class)
                         .getDebugSessions()) == null) {
             UsageInsightTracker.getInstance()
                     .RecordEvent("StartDebugSessionAtSelectTracepoint", null);

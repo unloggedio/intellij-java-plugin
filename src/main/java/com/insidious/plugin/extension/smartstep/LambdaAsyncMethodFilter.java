@@ -11,7 +11,6 @@ import com.intellij.debugger.engine.evaluation.EvaluationContextImpl;
 import com.intellij.debugger.impl.DebuggerUtilsEx;
 import com.intellij.debugger.jdi.MethodBytecodeUtil;
 import com.intellij.debugger.jdi.StackFrameProxyImpl;
-import com.intellij.debugger.ui.breakpoints.SteppingBreakpoint;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiMethod;
 import com.intellij.util.containers.ContainerUtil;
@@ -71,9 +70,9 @@ public class LambdaAsyncMethodFilter extends BasicStepMethodFilter {
                         StepIntoBreakpoint breakpoint = new LambdaInstanceBreakpoint(project, lambdaId, pos, this.myMethodFilter);
 
 
-                        context.getDebugProcess()
-                                .getConnector()
-                                .createSteppingBreakpoint(context, breakpoint, hint);
+//                        context.getDebugProcess()
+//                                .getConnector()
+//                                .createSteppingBreakpoint(context, breakpoint, hint);
                         return -100;
                     }
                 }

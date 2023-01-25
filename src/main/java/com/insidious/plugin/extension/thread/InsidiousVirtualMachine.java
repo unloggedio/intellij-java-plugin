@@ -7,6 +7,8 @@ import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.TracePoint;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
@@ -503,7 +505,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
         }
-        this.replayData = this.project.getService(InsidiousService.class)
+        this.replayData = ServiceManager.getService(InsidiousService.class)
                 .getClient().fetchDataEvents(filterDataEventRequest);
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
