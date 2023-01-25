@@ -40,6 +40,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
     private JButton submitButton;
     private JScrollPane scroll;
     private JLabel errorText;
+    private JLabel titleErrorText;
     private Project project;
 
     public ReportIssueForm(Project project) {
@@ -60,9 +61,9 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         c.add(title);
 
         errorText = new JLabel();
-        errorText.setLocation(170, 60);
         errorText.setForeground(Color.red);
         errorText.setSize(150, 30);
+        errorText.setLocation(170, 67);
         c.add(errorText);
 
         userEmailLabel = new JLabel("Email");
@@ -74,6 +75,12 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         userEmail.setSize(300, 30);
         userEmail.setLocation(120, 90);
         c.add(userEmail);
+
+        titleErrorText = new JLabel();
+        titleErrorText.setForeground(Color.red);
+        titleErrorText.setSize(200, 30);
+        titleErrorText.setLocation(170, 117);
+        c.add(titleErrorText);
 
         issueTitleLabel = new JLabel("Issue Title");
         issueTitleLabel.setSize(100, 30);
@@ -168,10 +175,19 @@ public class ReportIssueForm extends JFrame implements ActionListener {
             errorText.setText("Email is mandatory\n");
             userEmail.setBackground(Color.RED);
         } else {
+            userEmail.setBackground(UIManager.getColor("TextField:background"));
             errorText.setText("");
         }
 
-        return errorText.getText().length() == 0;
+        if (issueTitle.getText().length() <= 5) {
+            titleErrorText.setText("Add a title to describe the issue");
+            issueTitle.setBackground(Color.RED);
+        } else {
+            issueTitle.setBackground(UIManager.getColor("TextField:background"));
+            titleErrorText.setText("");
+        }
+
+        return errorText.getText().length() == 0 && titleErrorText.getText().length() == 0;
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -204,7 +220,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
             }
         }
 
-
         String issueDescription = "Issue Raised by: `" + userEmail.getText() + "`\n\n"
                 + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "session folder was empty, session zip only contains idea.log! \n\n" : "")
                 + checkBoxLabel.toString()
@@ -230,6 +245,6 @@ public class ReportIssueForm extends JFrame implements ActionListener {
 
         ProgressManager.getInstance().run(reportIssue.zippingAndUploadTask(project, sessionObjectKey));
 
-        c.setVisible(false);
+        setVisible(false);
     }
 }

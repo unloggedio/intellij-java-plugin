@@ -2,9 +2,7 @@ package com.insidious.plugin.upload.minio;
 
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
-import io.minio.StatObjectArgs;
 import io.minio.UploadObjectArgs;
-import io.minio.errors.ErrorResponseException;
 import io.minio.errors.MinioException;
 
 import java.io.IOException;
@@ -20,7 +18,7 @@ public class FileUploader {
     final static String BUCKET_REGION = "ap-south-1";
 
     public String uploadFile(String objectKey, String pathToFile)
-            throws IOException, NoSuchAlgorithmException, InvalidKeyException {
+            throws IOException, NoSuchAlgorithmException, InvalidKeyException, RuntimeException {
         try {
             // Create a minioClient with the MinIO server playground, its access key and secret key.
             MinioClient minioClient =
@@ -45,25 +43,7 @@ public class FileUploader {
 
             return ENDPOINT + "/" + (response == null ? objectKey : response.object());
         } catch (MinioException e) {
-            System.out.println("Error occurred: " + e);
-            System.out.println("HTTP trace: " + e.httpTrace());
-        }
-
-        return null;
-    }
-
-    public boolean isObjectExist(MinioClient minioClient, String objectKey) {
-        try {
-            minioClient.statObject(StatObjectArgs.builder()
-                    .bucket(BUCKET_NAME)
-                    .object(objectKey).build());
-            return true;
-        } catch (ErrorResponseException e) {
-            e.printStackTrace();
-            return false;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            throw new RuntimeException(e);
         }
     }
 }
