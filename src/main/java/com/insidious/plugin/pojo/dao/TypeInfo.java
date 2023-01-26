@@ -1,13 +1,10 @@
 package com.insidious.plugin.pojo.dao;
 
 
-import com.intellij.openapi.util.text.Strings;
+import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
 
 @DatabaseTable(tableName = "type_info")
 public class TypeInfo {

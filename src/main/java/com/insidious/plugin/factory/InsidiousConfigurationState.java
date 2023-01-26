@@ -1,7 +1,9 @@
 package com.insidious.plugin.factory;
 
 import com.insidious.plugin.pojo.SearchRecord;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.project.Project;
@@ -50,7 +52,7 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     }
 
     public static InsidiousConfigurationState getInstance(Project project) {
-        return project.getService(InsidiousConfigurationState.class);
+        return ServiceManager.getService(InsidiousConfigurationState.class);
     }
 
     public String getUsername() {

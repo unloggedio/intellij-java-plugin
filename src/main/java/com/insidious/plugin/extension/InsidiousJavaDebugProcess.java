@@ -20,7 +20,9 @@ import com.intellij.execution.ExecutionResult;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.ui.ConsoleView;
 import com.intellij.execution.ui.ExecutionConsole;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.projectRoots.Sdk;
@@ -84,7 +86,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
         this.connector = new InsidiousJDIConnector(this);
 
-        session.getProject().getService(InsidiousService.class).setConnector(this.connector);
+        ServiceManager.getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(
                 getSession().getProject(), this);
@@ -115,7 +117,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                                                    @NotNull RemoteConnection connection)
             throws APICallException, IOException {
         logger.info("Creating InsidiousJavaDebugProcess with port " +
-                session.getProject().getService(InsidiousService.class).getClient().getEndpoint());
+                ServiceManager.getService(InsidiousService.class).getClient().getEndpoint());
 
         return new InsidiousJavaDebugProcess(session, connection);
     }
@@ -137,8 +139,8 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     @Override
     public void sessionInitialized() {
-        getProject().getService(InsidiousService.class).setDebugSession(getSession());
-        getProject().getService(InsidiousService.class).setDebugProcess(this);
+        ServiceManager.getService(InsidiousService.class).setDebugSession(getSession());
+        ServiceManager.getService(InsidiousService.class).setDebugProcess(this);
     }
 
     @NotNull
@@ -168,7 +170,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void attachVM(String timeout) throws Exception {
         try {
-            VideobugClientInterface client = this.getSession().getProject().getService(InsidiousService.class).getClient();
+            VideobugClientInterface client = ServiceManager.getService(InsidiousService.class).getClient();
             logger.info(String.format("Attaching to VM on endpoint [%s]", client.getEndpoint()));
             this.connector.attachVirtualMachine(this.myConnection.getHostName(), client.getEndpoint(),
                     this.myConnection.isUseSockets(), false, timeout);
@@ -399,9 +401,9 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                 (suspendContext.getSuspendPolicy() == 1) ?
                         "SuspendThread" :
                         "SuspendAll");
-        getConnector()
-                .createFieldWatchpoint(field
-                        .declaringType(), field.name(), this.myJumpToAssignmentBreakpoint);
+//        getConnector()
+//                .createFieldWatchpoint(field
+//                        .declaringType(), field.name(), this.myJumpToAssignmentBreakpoint);
     }
 
     public void cancelJumpToAssignmentBreakpoint() {

@@ -9,7 +9,6 @@ import com.intellij.execution.configurations.*;
 import com.intellij.execution.filters.TextConsoleBuilderFactory;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.util.ProgramParametersUtil;
-import com.intellij.openapi.options.SettingsEditor;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NonNls;
@@ -102,7 +101,6 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration implemen
     }
 
     @Nullable
-    @Override
     public String getDefaultTargetName() {
         return null;
     }

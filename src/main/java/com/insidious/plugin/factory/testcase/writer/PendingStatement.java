@@ -34,7 +34,7 @@ public class PendingStatement {
     public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
     public static final ClassName JACKSON_TYPE_REFERENCE_CLASS = ClassName.bestGuess(
             "com.fasterxml.jackson.core.type.TypeReference");
-    private static final Pattern anyRegexPicker = Pattern.compile("any\\(([^)]+.class)\\)");
+    private static final Pattern anyRegexPicker = Pattern.compile("[( ,]any\\(([^)]+.class)\\)");
     private static final Logger logger = LoggerUtil.getInstance(PendingStatement.class);
     private final ObjectRoutineScript objectRoutine;
     private final List<Expression> expressionList = new ArrayList<>();
@@ -249,7 +249,7 @@ public class PendingStatement {
                 String matchedString = matcher.group();
                 String className = matcher.group(1);
                 ClassName classNameType = ClassName.bestGuess(className.split("\\.class")[0]);
-                int matchedStartIndex = parameterString.indexOf(matchedString);
+                int matchedStartIndex = parameterString.indexOf(matchedString) + 1;
                 parameterString = parameterString.substring(0, matchedStartIndex) + "any($T.class)" +
                         parameterString.substring(matchedStartIndex + matchedString.length());
 //                parameterString = parameterString.replaceFirst(matchedString, "$T.class");

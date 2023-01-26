@@ -7,6 +7,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 
@@ -17,16 +18,16 @@ import java.util.Vector;
 
 public class SearchByWindowCommon {
     protected final List<TracePoint> tracePointList = new LinkedList<>();
+    protected final DefaultTableModel searchResultsTableModel;
     private final Vector<Object> tableColumnNames;
     private final Project project;
-    protected final DefaultTableModel searchResultsTableModel;
     private final InsidiousService insidiousService;
     private Logger logger = LoggerUtil.getInstance(SearchByWindowCommon.class);
 
     public SearchByWindowCommon(Vector<Object> tableColumnNames, Project project) {
         this.tableColumnNames = tableColumnNames;
         this.project = project;
-        this.insidiousService = project.getService(InsidiousService.class);
+        this.insidiousService = ServiceManager.getService(InsidiousService.class);
         this.searchResultsTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -59,7 +60,8 @@ public class SearchByWindowCommon {
         try {
 
             logger.info(String.format("Fetch by exception for session [%s] on thread [%s]",
-                    selectedTrace.getExecutionSession().getSessionId(), selectedTrace.getThreadId()));
+                    selectedTrace.getExecutionSession()
+                            .getSessionId(), selectedTrace.getThreadId()));
 
             insidiousService.loadTracePoint(selectedTrace);
 

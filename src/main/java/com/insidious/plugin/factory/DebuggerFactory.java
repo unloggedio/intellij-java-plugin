@@ -4,6 +4,8 @@ import com.insidious.plugin.ui.ConfigurationWindow;
 import com.insidious.plugin.ui.SearchByTypesWindow;
 import com.insidious.plugin.ui.SearchByValueWindow;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
@@ -35,11 +37,9 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
 
             logger.info("Start insidious debugger");
             this.currentProject = project;
-            InsidiousService insidiousService = project.getService(InsidiousService.class);
-//            if (insidiousService.isLoggedIn()) {
-//                insidiousService.startDebugSession();
-//            }
-            insidiousService.setToolWindow(toolWindow);
+
+            InsidiousService insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
+            insidiousService.init(project, toolWindow);
         }catch (Exception e) {
             logger.info("exception in create tool window", e);
         }

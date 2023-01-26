@@ -1,6 +1,6 @@
 package com.insidious.plugin.pojo.dao;
 
-import com.intellij.openapi.util.text.Strings;
+import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 

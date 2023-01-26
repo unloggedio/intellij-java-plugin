@@ -31,9 +31,9 @@ public class ClassInstanceMethodFilter
                     if (breakpoint != null) {
                         breakpoint.addInstanceFilter(reference.uniqueID());
                         breakpoint.setInstanceFiltersEnabled(true);
-                        context.getDebugProcess()
-                                .getConnector()
-                                .createSteppingBreakpoint(context, breakpoint, hint);
+//                        context.getDebugProcess()
+//                                .getConnector()
+//                                .createSteppingBreakpoint(context, breakpoint, hint);
                         return -100;
                     }
                 }

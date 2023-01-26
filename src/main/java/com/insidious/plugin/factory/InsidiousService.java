@@ -21,10 +21,8 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
-import com.insidious.plugin.extension.InsidiousExecutor;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.extension.InsidiousRunConfigType;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
 import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -36,19 +34,15 @@ import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
 import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.ProgramRunnerUtil;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.execution.configurations.ConfigurationTypeUtil;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.runners.ExecutionEnvironmentBuilder;
 import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -76,7 +70,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.xdebugger.XDebugSession;
-import com.intellij.xdebugger.XDebuggerManager;
 import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -88,9 +81,8 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.nio.file.FileSystems;
 import java.sql.SQLException;
-import java.text.DateFormat;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -100,7 +92,7 @@ import java.util.regex.Pattern;
 import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
 
 @Storage("insidious.xml")
-public class InsidiousService implements Disposable {
+final public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
@@ -136,11 +128,13 @@ public class InsidiousService implements Disposable {
     private Content liveWindowContent;
     private Content onboardingContent;
 
-    public InsidiousService(Project project) {
+    public InsidiousService() {
+        logger.info("starting insidious service");
+//        start();
+    }
+
+    private void start() {
         try {
-
-
-            this.project = project;
 
             logger.info("started insidious service - project name - " + project.getName());
             if (ModuleManager.getInstance(project)
@@ -153,21 +147,27 @@ public class InsidiousService implements Disposable {
             }
 
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
-            Path.of(pathToSessions)
+            FileSystems.getDefault()
+                    .getPath(pathToSessions)
                     .toFile()
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 //            this.testCaseService = new TestCaseService(client.getSessionInstance());
-            this.insidiousConfiguration = project.getService(InsidiousConfigurationState.class);
+            this.insidiousConfiguration = ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
 
-            debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
-                    .getDebugSessions());
+//            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
+//                    .getDebugSessions());
+            this.initiateUI();
 
-            ReadAction.nonBlocking(this::getProjectPackageName);
-
-            ReadAction.nonBlocking(InsidiousService.this::checkAndEnsureJavaAgentCache);
-            ReadAction.nonBlocking(this::initiateUI);
-
+            ProgressManager.getInstance()
+                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
+                        @Override
+                        protected String compute(@NotNull ProgressIndicator indicator) throws Exception {
+                            getProjectPackageName();
+                            checkAndEnsureJavaAgentCache();
+                            return "ok";
+                        }
+                    });
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
@@ -176,6 +176,7 @@ public class InsidiousService implements Disposable {
             e.printStackTrace();
             logger.error("exception in videobug service init", e);
         }
+
     }
 
     public ProjectTypeInfo getProjectTypeInfo() {
@@ -480,37 +481,10 @@ public class InsidiousService implements Disposable {
         setAppTokenOnUi();
     }
 
-    public void init() {
-        ApplicationManager.getApplication()
-                .invokeLater(this::initiateUI);
-
-//        if (!StringUtil.isEmpty(insidiousConfiguration.getUsername())) {
-//            logger.info("username is not empty in configuration - [" + insidiousConfiguration.getUsername() + "] with server url " + insidiousConfiguration.getServerUrl());
-//            insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-//            if (insidiousCredentials != null) {
-//                Credentials credentials = PasswordSafe.getInstance().get(insidiousCredentials);
-//                if (credentials != null) {
-//                    String password = credentials.getPasswordAsString();
-//                    try {
-//                        if (password != null) {
-////                            signin(insidiousConfiguration.serverUrl, insidiousConfiguration.username, password);
-//                        }
-//                    } catch (Exception e) {
-//                        logger.error("failed to signin", e);
-//                        InsidiousNotification.notifyMessage("Failed to sign in -" + e.getMessage(), NotificationType.ERROR);
-//                    }
-//                }
-//            }
-//        }
-    }
-
-    public boolean isLoggedIn() {
-        return this.client.getToken() != null;
-    }
-
-    public void signup(String serverUrl, String usernameText, String passwordText, SignUpCallback signupCallback) {
-        this.client = new VideobugNetworkClient(serverUrl);
-        this.client.signup(serverUrl, usernameText, passwordText, signupCallback);
+    public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        this.project = project;
+        this.toolWindow = toolWindow;
+        start();
     }
 
     public boolean isValidEmailAddress(String email) {
@@ -520,95 +494,6 @@ public class InsidiousService implements Disposable {
         return m.matches();
     }
 
-    public void signin(String serverUrl, String usernameText, String passwordText) throws IOException {
-        this.client = new VideobugNetworkClient(serverUrl);
-        logger.info("signin with username [" + usernameText + "] on server " + serverUrl);
-
-        if (!isValidEmailAddress(usernameText)) {
-            credentialsToolbarWindow.setErrorLabel("Enter a valid email address");
-            return;
-        }
-
-        if (passwordText == null || passwordText.length() < 4) {
-            if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLabel("Enter a valid password, at least 4 characters");
-            }
-            return;
-        }
-
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("email", usernameText);
-        eventProperties.put("server", serverUrl);
-        UsageInsightTracker.getInstance()
-                .RecordEvent("SignInAttempt", eventProperties);
-
-        insidiousConfiguration.setServerUrl(serverUrl);
-        insidiousConfiguration.setUsername(usernameText);
-
-        try {
-            client.signin(SigninRequest.from(serverUrl, usernameText, passwordText), new SignInCallback() {
-                @Override
-                public void error(String errorMessage) {
-                    if (credentialsToolbarWindow != null) {
-                        credentialsToolbarWindow.setErrorLabel("Sign in failed: " + errorMessage);
-                    }
-
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("email", usernameText);
-                    eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance()
-                            .RecordEvent("SignInFailed", eventProperties);
-
-
-                    InsidiousNotification.notifyMessage(
-                            "Failed to login VideoBug at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
-                            NotificationType.ERROR);
-
-                }
-
-                @Override
-                public void success(String token) {
-                    ReadAction.run(() -> InsidiousService.this.ensureAgentJar(false));
-                    ReadAction.run(InsidiousService.this::setupProject);
-
-                    JSONObject eventProperties = new JSONObject();
-                    eventProperties.put("email", usernameText);
-                    eventProperties.put("server", serverUrl);
-                    UsageInsightTracker.getInstance()
-                            .RecordEvent("SignInSuccess", eventProperties);
-
-
-                    Credentials credentials = new Credentials(insidiousConfiguration.getUsername(), passwordText);
-                    insidiousCredentials = createCredentialAttributes("VideoBug", insidiousConfiguration.getUsername());
-                    PasswordSafe.getInstance()
-                            .set(insidiousCredentials, credentials);
-
-                    ApplicationManager.getApplication()
-                            .invokeLater(() -> {
-                                InsidiousNotification.notifyMessage(
-                                        "VideoBug logged in at [" + serverUrl + "] for module [" + currentModule.getName() + "]",
-                                        NotificationType.INFORMATION);
-
-                            });
-                }
-            });
-
-
-        } catch (UnauthorizedException e) {
-
-            logger.error("Failed to signin for user " + usernameText, e);
-            e.printStackTrace();
-            if (credentialsToolbarWindow != null) {
-                credentialsToolbarWindow.setErrorLabel("Sign in failed!");
-            }
-        } catch (Throwable e) {
-            logger.error("failed to connect with server", e);
-            InsidiousNotification.notifyMessage("Failed to connect with server - " + e.getMessage(),
-                    NotificationType.ERROR);
-        }
-        ApplicationManager.getApplication()
-                .invokeLater(this::initiateUI);
-    }
 
     private void setupProject() {
 
@@ -852,7 +737,8 @@ public class InsidiousService implements Disposable {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
                 VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(testResourcesFilePath)
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(testResourcesFilePath)
                                 .toUri()
                                 .toString());
 
@@ -864,7 +750,8 @@ public class InsidiousService implements Disposable {
                         resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                     }
                     VirtualFileManager.getInstance()
-                            .refreshAndFindFileByUrl(Path.of(setupJsonFilePath)
+                            .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                    .getPath(setupJsonFilePath)
                                     .toUri()
                                     .toString());
                 }
@@ -896,8 +783,8 @@ public class InsidiousService implements Disposable {
                 JavaParser javaParser = new JavaParser(new ParserConfiguration());
                 ParseResult<CompilationUnit> parsedFile = javaParser.parse(
                         testcaseFile);
-                if (parsedFile.getResult()
-                        .isEmpty() || !parsedFile.isSuccessful()) {
+                if (!parsedFile.getResult()
+                        .isPresent() || !parsedFile.isSuccessful()) {
                     InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
                             " to" +
                             " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
@@ -953,7 +840,8 @@ public class InsidiousService implements Disposable {
 
 
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                    .refreshAndFindFileByUrl(Path.of(testcaseFile.getAbsolutePath())
+                    .refreshAndFindFileByUrl(FileSystems.getDefault()
+                            .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
                             .toString());
             if (newFile == null) {
@@ -962,7 +850,9 @@ public class InsidiousService implements Disposable {
             newFile.refresh(true, false);
 
 
-            FileContentUtil.reparseFiles(project, List.of(newFile), true);
+            List<VirtualFile> newFile1 = new ArrayList<>();
+            newFile1.add(newFile);
+            FileContentUtil.reparseFiles(project, newFile1, true);
             @Nullable Document newDocument = FileDocumentManager.getInstance()
                     .getDocument(newFile);
 
@@ -991,7 +881,8 @@ public class InsidiousService implements Disposable {
         }
         if (basePath.charAt(basePath.length() - 1) == '/') {
             basePath = new StringBuilder(basePath).
-                    deleteCharAt(basePath.length() - 1).toString();
+                    deleteCharAt(basePath.length() - 1)
+                    .toString();
         }
         File dirPath = new File(testOutputDirPath);
         if (!dirPath.exists()) {
@@ -1002,13 +893,16 @@ public class InsidiousService implements Disposable {
         try {
             String oldFolderPath = basePath + "/src/test/java/io.unlogged";
             String oldFilePath = basePath + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
-            File oldFolder = Path.of(oldFolderPath)
+            File oldFolder = FileSystems.getDefault()
+                    .getPath(oldFolderPath)
                     .toFile();
-            File oldUtilFile = Path.of(oldFilePath)
+            File oldUtilFile = FileSystems.getDefault()
+                    .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
                 @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 oldUtilFile.delete();
@@ -1017,7 +911,8 @@ public class InsidiousService implements Disposable {
                     oldFileInstance.refresh(true, false);
                 }
                 @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 if (oldFolderInstance != null) {
@@ -1065,7 +960,8 @@ public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                .refreshAndFindFileByUrl(FileSystems.getDefault()
+                        .getPath(utilFile.getAbsolutePath())
                         .toUri()
                         .toString());
 
@@ -1185,38 +1081,38 @@ public class InsidiousService implements Disposable {
     }
 
     private synchronized void startDebugSession() {
-        logger.info("start debug session");
-        if (true) {
-            return;
-        }
-
-        debugSession = getActiveDebugSession(project.getService(XDebuggerManager.class)
-                .getDebugSessions());
-
-
-        if (debugSession != null) {
-            return;
-        }
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("module", currentModule.getName());
-        UsageInsightTracker.getInstance()
-                .RecordEvent("StartDebugSession", eventProperties);
-
-        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
-                        InsidiousRunConfigType.class)
-                .createTemplateConfiguration(project);
-
-        ApplicationManager.getApplication()
-                .invokeLater(() -> {
-                    try {
-                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
-                                        runConfiguration)
-                                .build();
-                        ProgramRunnerUtil.executeConfiguration(env, false, false);
-                    } catch (Throwable e) {
-                        logger.error("failed to execute configuration", e);
-                    }
-                });
+//        logger.info("start debug session");
+//        if (true) {
+//            return;
+//        }
+//
+//        debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
+//                .getDebugSessions());
+//
+//
+//        if (debugSession != null) {
+//            return;
+//        }
+//        JSONObject eventProperties = new JSONObject();
+//        eventProperties.put("module", currentModule.getName());
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("StartDebugSession", eventProperties);
+//
+//        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
+//                        InsidiousRunConfigType.class)
+//                .createTemplateConfiguration(project);
+//
+//        ApplicationManager.getApplication()
+//                .invokeLater(() -> {
+//                    try {
+//                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
+//                                        runConfiguration)
+//                                .build();
+//                        ProgramRunnerUtil.executeConfiguration(env, false, false);
+//                    } catch (Throwable e) {
+//                        logger.error("failed to execute configuration", e);
+//                    }
+//                });
 
 
     }
@@ -1268,8 +1164,7 @@ public class InsidiousService implements Disposable {
                             toolWindow.getContentManager()
                                     .removeContent(traceContent, true);
                         }
-                        ContentFactory contentFactory = ApplicationManager.getApplication()
-                                .getService(ContentFactory.class);
+                        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
                         ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                         Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(),
                                 "Credentials",
@@ -1283,7 +1178,7 @@ public class InsidiousService implements Disposable {
     private void addAgentToRunConfig() {
 
 
-        List<RunnerAndConfigurationSettings> allSettings = project.getService(RunManager.class)
+        List<RunnerAndConfigurationSettings> allSettings = ServiceManager.getService(RunManager.class)
                 .getAllSettings();
 
 //        for (RunnerAndConfigurationSettings runSetting : allSettings) {
@@ -1321,8 +1216,7 @@ public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication()
-                .getService(ContentFactory.class);
+        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
@@ -1331,8 +1225,8 @@ public class InsidiousService implements Disposable {
         ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
                 .getHeight());
         ContentManager contentManager = this.toolWindow.getContentManager();
-        if (credentialsToolbarWindow == null) {
-            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
+        if (liveViewWindow == null) {
+//            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
@@ -1441,7 +1335,7 @@ public class InsidiousService implements Disposable {
         }
     }
 
-    public void loadSession() throws IOException {
+    public void loadSession() {
 
         if (currentModule == null) {
             currentModule = ModuleManager.getInstance(project)
@@ -1490,64 +1384,64 @@ public class InsidiousService implements Disposable {
 
     public void loadTracePoint(TracePoint selectedTrace) {
 
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("value", selectedTrace.getMatchedValueId());
-        eventProperties.put("classId", selectedTrace.getClassId());
-        eventProperties.put("className", selectedTrace.getClassname());
-        eventProperties.put("dataId", selectedTrace.getDataId());
-        eventProperties.put("fileName", selectedTrace.getFilename());
-        eventProperties.put("nanoTime", selectedTrace.getNanoTime());
-        eventProperties.put("lineNumber", selectedTrace.getLineNumber());
-        eventProperties.put("threadId", selectedTrace.getThreadId());
-
-        UsageInsightTracker.getInstance()
-                .RecordEvent("FetchByTracePoint", eventProperties);
-
-        if (debugSession == null || getActiveDebugSession(
-                project.getService(XDebuggerManager.class)
-                        .getDebugSessions()) == null) {
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("StartDebugSessionAtSelectTracepoint", null);
-            pendingSelectTrace = selectedTrace;
-            startDebugSession();
-            return;
-        }
-
-        ProgressManager.getInstance()
-                .run(new Task.Modal(project, "Unlogged", true) {
-                    public void run(@NotNull ProgressIndicator indicator) {
-
-                        try {
-                            logger.info("set trace point in connector => " + selectedTrace.getClassname());
-                            indicator.setText(
-                                    "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
-                                            .format(new Date(selectedTrace.getNanoTime())));
-                            if (connector != null) {
-                                connector.setTracePoint(selectedTrace, indicator);
-                            } else {
-                                pendingTrace = selectedTrace;
-                            }
-
-
-                        } catch (ProcessCanceledException pce) {
-                            throw pce;
-                        } catch (Exception e) {
-                            logger.error("failed to set trace point", e);
-                            InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
-                                    NotificationType.ERROR);
-                            return;
-                        } finally {
-                            indicator.stop();
-                        }
-
-                        if (debugSession.isPaused()) {
-                            debugSession.resume();
-                        }
-                        debugSession.pause();
-
-
-                    }
-                });
+//        JSONObject eventProperties = new JSONObject();
+//        eventProperties.put("value", selectedTrace.getMatchedValueId());
+//        eventProperties.put("classId", selectedTrace.getClassId());
+//        eventProperties.put("className", selectedTrace.getClassname());
+//        eventProperties.put("dataId", selectedTrace.getDataId());
+//        eventProperties.put("fileName", selectedTrace.getFilename());
+//        eventProperties.put("nanoTime", selectedTrace.getNanoTime());
+//        eventProperties.put("lineNumber", selectedTrace.getLineNumber());
+//        eventProperties.put("threadId", selectedTrace.getThreadId());
+//
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("FetchByTracePoint", eventProperties);
+//
+//        if (debugSession == null || getActiveDebugSession(
+//                ServiceManager.getService(XDebuggerManager.class)
+//                        .getDebugSessions()) == null) {
+//            UsageInsightTracker.getInstance()
+//                    .RecordEvent("StartDebugSessionAtSelectTracepoint", null);
+//            pendingSelectTrace = selectedTrace;
+//            startDebugSession();
+//            return;
+//        }
+//
+//        ProgressManager.getInstance()
+//                .run(new Task.Modal(project, "Unlogged", true) {
+//                    public void run(@NotNull ProgressIndicator indicator) {
+//
+//                        try {
+//                            logger.info("set trace point in connector => " + selectedTrace.getClassname());
+//                            indicator.setText(
+//                                    "Loading trace point " + selectedTrace.getClassname() + ":" + selectedTrace.getLineNumber() + " for value " + selectedTrace.getMatchedValueId() + " in thread " + selectedTrace.getThreadId() + " at time " + DateFormat.getInstance()
+//                                            .format(new Date(selectedTrace.getNanoTime())));
+//                            if (connector != null) {
+//                                connector.setTracePoint(selectedTrace, indicator);
+//                            } else {
+//                                pendingTrace = selectedTrace;
+//                            }
+//
+//
+//                        } catch (ProcessCanceledException pce) {
+//                            throw pce;
+//                        } catch (Exception e) {
+//                            logger.error("failed to set trace point", e);
+//                            InsidiousNotification.notifyMessage("Failed to set select trace point " + e.getMessage(),
+//                                    NotificationType.ERROR);
+//                            return;
+//                        } finally {
+//                            indicator.stop();
+//                        }
+//
+//                        if (debugSession.isPaused()) {
+//                            debugSession.resume();
+//                        }
+//                        debugSession.pause();
+//
+//
+//                    }
+//                });
 
 
     }
@@ -1563,7 +1457,7 @@ public class InsidiousService implements Disposable {
 
     public void setToolWindow(ToolWindow toolWindow) {
         this.toolWindow = toolWindow;
-        init();
+        init(project, toolWindow);
     }
 
     public Map<String, Boolean> getDefaultExceptionClassList() {
@@ -1666,13 +1560,16 @@ public class InsidiousService implements Disposable {
 
             String oldFolderPath = project.getBasePath() + "/src/test/java/io.unlogged";
             String oldFilePath = project.getBasePath() + "/src/test/java/io.unlogged/UnloggedTestUtils.java";
-            File oldFolder = Path.of(oldFolderPath)
+            File oldFolder = FileSystems.getDefault()
+                    .getPath(oldFolderPath)
                     .toFile();
-            File oldUtilFile = Path.of(oldFilePath)
+            File oldUtilFile = FileSystems.getDefault()
+                    .getPath(oldFilePath)
                     .toFile();
             if (oldUtilFile.exists()) {
                 @Nullable VirtualFile oldFileInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldUtilFile.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldUtilFile.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 oldUtilFile.delete();
@@ -1681,7 +1578,8 @@ public class InsidiousService implements Disposable {
                     oldFileInstance.refresh(true, false);
                 }
                 @Nullable VirtualFile oldFolderInstance = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(Path.of(oldFolder.getAbsolutePath())
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(oldFolder.getAbsolutePath())
                                 .toUri()
                                 .toString());
                 if (oldFolderInstance != null) {
@@ -1726,7 +1624,8 @@ public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(Path.of(utilFile.getAbsolutePath())
+                .refreshAndFindFileByUrl(FileSystems.getDefault()
+                        .getPath(utilFile.getAbsolutePath())
                         .toUri()
                         .toString());
 
@@ -1782,7 +1681,9 @@ public class InsidiousService implements Disposable {
                             .addAll(testCandidateMetadata.getCallsList());
 
                     testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                    TestSuite testSuite = new TestSuite(List.of(testCaseUnit));
+                    List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
+                    testCaseUnit1.add(testCaseUnit);
+                    TestSuite testSuite = new TestSuite(testCaseUnit1);
                     saveTestSuite(testSuite);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -1810,5 +1711,10 @@ public class InsidiousService implements Disposable {
             toolWindow.getContentManager()
                     .setSelectedContent(liveWindowContent);
         }
+    }
+
+    public void runActivity(@NotNull Project project) {
+        this.project = project;
+        start();
     }
 }

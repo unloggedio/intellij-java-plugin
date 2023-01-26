@@ -5,6 +5,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.execution.process.ProcessOutputTypes;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.xdebugger.XDebugProcess;
 import com.intellij.xdebugger.XDebugSession;
@@ -112,7 +113,7 @@ public final class InsidiousDebugProcessStarterListener
                 "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
                 "                                       |___/ ", ProcessOutputTypes.SYSTEM);
 
-        InsidiousService insidiousService = debugProcess.getProject().getService(InsidiousService.class);
+        InsidiousService insidiousService = ServiceManager.getService(InsidiousService.class);
 
         processHandler.notifyTextAvailable("                                        \n" +
                 "                 .°...°°°°..            \n" +

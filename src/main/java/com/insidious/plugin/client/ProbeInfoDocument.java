@@ -13,7 +13,7 @@ public class ProbeInfoDocument implements Serializable {
 
 
     public static final SimpleAttribute<ProbeInfoDocument, Integer> PROBE_ID =
-            new SimpleAttribute<>("objectId") {
+            new SimpleAttribute<ProbeInfoDocument, Integer>("objectId") {
                 public Integer getValue(ProbeInfoDocument probeInfoDocument, QueryOptions queryOptions) {
                     return probeInfoDocument.dataId;
                 }

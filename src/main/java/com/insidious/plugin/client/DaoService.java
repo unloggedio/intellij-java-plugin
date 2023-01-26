@@ -14,9 +14,9 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.Strings;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.util.text.Strings;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
@@ -584,6 +584,11 @@ public class DaoService {
                 methodCallExpression.setSubject(
                         com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
                 );
+            }
+            if (methodCallExpression.getSubject()
+                    .getType() == null) {
+                logger.warn("type for subject of method call [" + dbMce + "] is null [" + methodCallExpression.getSubject() + "]");
+                continue;
             }
             if (methodCallExpression.getSubject()
                     .getType()
