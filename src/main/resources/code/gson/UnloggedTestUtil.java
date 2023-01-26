@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * For GSON
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V4
+ * UnloggedTestUtils.Version: V5
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
@@ -45,7 +45,7 @@ public class UnloggedTestUtils {
         sourceObject = gson.fromJson(stringSource, JsonObject.class);
     }
 
-    public static String toString(@NotNull InputStream stream) throws IOException {
+    public static String toString(InputStream stream) throws IOException {
 
         char[] buffer = new char[BUFFER_SIZE];
         StringBuilder out = new StringBuilder();

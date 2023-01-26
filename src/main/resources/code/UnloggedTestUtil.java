@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +24,7 @@ import java.util.List;
 /**
  * For Jackson
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V4
+ * UnloggedTestUtils.Version: V5
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
@@ -94,7 +93,7 @@ public class UnloggedTestUtils {
         sourceObject = objectMapper.readValue(stringSource, JsonNode.class);
     }
 
-    public static String toString(@NotNull InputStream stream) throws IOException {
+    public static String toString(InputStream stream) throws IOException {
 
         char[] buffer = new char[BUFFER_SIZE];
         StringBuilder out = new StringBuilder();
