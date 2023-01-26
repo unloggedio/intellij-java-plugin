@@ -13,7 +13,6 @@ public class DropDownCard_OBV3 {
     private JLabel card_Description;
     private JPanel refreshPanel;
     private JButton refreshButton;
-
     public JPanel getComponent() {
         return this.mainPanel;
     }
@@ -33,12 +32,15 @@ public class DropDownCard_OBV3 {
                 listener.selectedOption(moduleName,content.getType());
             }
         });
-        int index=0;
-        if(content.defaultSelected!=null)
+        if(content.options.size()>0)
         {
-            index=content.defaultSelected;
+            int index=0;
+            if(content.defaultSelected!=null)
+            {
+                index=content.defaultSelected;
+            }
+            itemSelector.setSelectedIndex(index);
         }
-        itemSelector.setSelectedIndex(index);
         this.refreshButton.setVisible(content.isShowRefresh());
         this.refreshButton.addMouseListener(new MouseAdapter() {
             @Override

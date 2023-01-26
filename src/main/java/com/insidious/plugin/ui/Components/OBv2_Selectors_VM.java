@@ -65,7 +65,10 @@ public class OBv2_Selectors_VM {
                 moduleChanged(moduleName);
             }
         });
-        moduleSelectionBox.setSelectedIndex(defaultIndex);
+        if(modules.size()>0)
+        {
+            moduleSelectionBox.setSelectedIndex(defaultIndex);
+        }
     }
 
     public JPanel getComponent()
