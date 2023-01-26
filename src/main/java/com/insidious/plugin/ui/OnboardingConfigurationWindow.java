@@ -688,6 +688,37 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
+    @Override
+    public String suggestAgentVersion() {
+        String version = null;
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext()) {
+            Library lib = lib_iterator.next();
+            if (lib.getName()
+                    .contains("jackson-databind:")) {
+                version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
+            }
+            count++;
+        }
+        if (count == 0) {
+            //libs not ready
+            return insidiousService.getProjectTypeInfo().getDefaultAgentType();
+
+        } else {
+            if(version==null)
+            {
+                return insidiousService.getProjectTypeInfo().getDefaultAgentType();
+            }
+            else
+            {
+                return "jackson-"+version;
+            }
+        }
+    }
+
     private Map<String,String> computeMissingDependenciesFromStatus(Map<String,String> deps)
     {
         Map<String,String> missing = new TreeMap<>();

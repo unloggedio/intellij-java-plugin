@@ -16,4 +16,6 @@ public interface CardActionListener {
     void refreshModules();
 
     void refreshDependencies();
+
+    void refreshSerializers();
 }

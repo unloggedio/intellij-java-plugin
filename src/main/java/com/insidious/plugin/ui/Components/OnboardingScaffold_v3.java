@@ -244,10 +244,21 @@ public class OnboardingScaffold_v3 implements CardActionListener {
         serializers.add("jackson-2.13");
         serializers.add("jackson-2.14");
         serializers.add("gson");
+
+        String suggestedAgent=onboardingService.suggestAgentVersion();
+        System.out.println("[SUGGESTED AGENT] "+suggestedAgent);
+        Integer defaultIntex=0;
+        if(serializers.contains(suggestedAgent))
+        {
+            defaultIntex = serializers.indexOf(suggestedAgent);
+        }
+
         DropdownCardInformation info_dependencies = new DropdownCardInformation("Serializer : ",
                 serializers,
                 "Select the serializer that your project uses. ");
         info_dependencies.setType(DROP_TYPES.SERIALIZER);
+        info_dependencies.setDefaultSelected(defaultIntex);
+        info_dependencies.setShowRefresh(true);
         content.add(info_dependencies);
         this.leftContainer.removeAll();
         Obv3_CardParent cardparent = new Obv3_CardParent(content, this);
@@ -381,6 +392,11 @@ public class OnboardingScaffold_v3 implements CardActionListener {
     @Override
     public void refreshDependencies() {
         loadDependenciesManagementSection();
+    }
+
+    @Override
+    public void refreshSerializers() {
+        loadProjectConfigSection();
     }
 
     private void recursiveFileCheck() {

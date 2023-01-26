@@ -188,6 +188,11 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         actionListener.refreshDependencies();
     }
 
+    @Override
+    public void refreshSerializerSelection() {
+        actionListener.refreshSerializers();
+    }
+
     private boolean shouldAddAction(Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action)
     {
         OnboardingScaffold_v3.ONBOARDING_ACTION actionType = action.keySet().iterator().next();

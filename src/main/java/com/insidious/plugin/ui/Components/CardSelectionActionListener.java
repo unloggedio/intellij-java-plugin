@@ -7,4 +7,5 @@ public interface CardSelectionActionListener {
     void setSelectionsForDependencyAddition(Set<String> dependencies);
     void refreshModules();
     void refreshDependencies();
+    void refreshSerializerSelection();
 }

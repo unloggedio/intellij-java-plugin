@@ -17,9 +17,11 @@ public class DropDownCard_OBV3 {
         return this.mainPanel;
     }
     private CardSelectionActionListener listener;
+    private DropdownCardInformation content;
 
     public DropDownCard_OBV3(DropdownCardInformation content, CardSelectionActionListener listener)
     {
+        this.content = content;
         this.listener = listener;
         this.card_Heading.setText(content.heading);
         this.card_Description.setText(content.description);
@@ -54,7 +56,14 @@ public class DropDownCard_OBV3 {
     {
         if(this.refreshButton.isVisible())
         {
-            listener.refreshModules();
+            if(this.content.getType().equals(OnboardingScaffold_v3.DROP_TYPES.MODULE))
+            {
+                listener.refreshModules();
+            }
+            else if(this.content.getType().equals(OnboardingScaffold_v3.DROP_TYPES.SERIALIZER))
+            {
+                listener.refreshSerializerSelection();
+            }
         }
     }
 }
