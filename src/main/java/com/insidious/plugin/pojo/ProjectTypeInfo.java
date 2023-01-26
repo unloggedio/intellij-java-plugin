@@ -4,19 +4,17 @@ import java.util.*;
 
 public class ProjectTypeInfo {
 
-    private String javaVersion;
-    private boolean isMaven=false;
     //feature flag to enable/disable searching from dependency tree
-    private final boolean detectDependencies=true;
-    private List<Map<String,String>> serializers = new ArrayList<>();
-    private String jacksonDatabindVersion = null;
+    private final boolean detectDependencies = true;
     private final boolean downloadAgent = true;
-    private Set<String> dependencies_addedManually = new HashSet<>();
     private final String defaultAgentType = "jackson-2.13"; //or 'gson' if you want to use gson.
+    private final boolean useOnboarding_V3 = true;
+    private String javaVersion;
+    private boolean isMaven = false;
+    private List<Map<String, String>> serializers = new ArrayList<>();
+    private String jacksonDatabindVersion = null;
+    private Set<String> dependencies_addedManually = new HashSet<>();
     private Boolean usesGson = null;
-    public void setDependencies_addedManually(Set<String> dependencies_addedManually) {
-        this.dependencies_addedManually = dependencies_addedManually;
-    }
 
     public Boolean getUsesGson() {
         return usesGson;
@@ -58,8 +56,6 @@ public class ProjectTypeInfo {
         return detectDependencies;
     }
 
-    private final boolean useOnboarding_V3=false;
-
     public boolean isUseOnboarding_V3() {
         return useOnboarding_V3;
     }
@@ -71,8 +67,8 @@ public class ProjectTypeInfo {
     public void setJacksonDatabindVersion(String jacksonDatabindVersion) {
         this.jacksonDatabindVersion = jacksonDatabindVersion;
     }
-    public List<String> getDependenciesToWatch()
-    {
+
+    public List<String> getDependenciesToWatch() {
         List<String> dependenciesToWatch = new ArrayList<>();
         dependenciesToWatch.add("jackson-datatype-hibernate5");
         dependenciesToWatch.add("jackson-datatype-joda");
@@ -88,14 +84,17 @@ public class ProjectTypeInfo {
         return dependencies_addedManually;
     }
 
+    public void setDependencies_addedManually(Set<String> dependencies_addedManually) {
+        this.dependencies_addedManually = dependencies_addedManually;
+    }
+
     public boolean isDownloadAgent() {
         return downloadAgent;
     }
 
-    public enum RUN_TYPES {MAVEN_CLI, GRADLE_CLI, INTELLIJ_APPLICATION, JAVA_JAR_CLI}
-
-    public RUN_TYPES[] getAllRunTypes()
-    {
+    public RUN_TYPES[] getAllRunTypes() {
         return RUN_TYPES.values();
     }
+
+    public enum RUN_TYPES {MAVEN_CLI, GRADLE_CLI, INTELLIJ_APPLICATION, JAVA_JAR_CLI}
 }

@@ -18,6 +18,8 @@ import java.util.Map;
 
 public class OnboardingV2Scaffold implements OnboardingStateManager {
     private static final Logger logger = LoggerUtil.getInstance(OnboardingV2Scaffold.class);
+    private final OnboardingService onboardingService;
+    private final InsidiousService insidiousService;
     private JPanel basePanel;
     private JPanel mainPanel;
     private JPanel leftPanel;
@@ -36,8 +38,6 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
     private JPanel centerPanel;
     private JPanel rightPanel;
     private JButton supportButton;
-    private final OnboardingService onboardingService;
-    private final InsidiousService insidiousService;
     private DocumentationOnboardingComponent documentation_instance;
     private DependencyManagementComponent dependency_instance;
 
@@ -137,7 +137,8 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
 
     public void loadDocumentationComponent() {
         this.centerPanel.removeAll();
-        DocumentationOnboardingComponent documentationOnboardingComponent = new DocumentationOnboardingComponent(insidiousService);
+        DocumentationOnboardingComponent documentationOnboardingComponent = new DocumentationOnboardingComponent(
+                insidiousService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -151,7 +152,8 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
 
     public void loadDependencyComponent(Map<String, String> missingDependencies, OnboardingService onboardingService) {
         this.centerPanel.removeAll();
-        DependencyManagementComponent dependencyManagementComponent = new DependencyManagementComponent(missingDependencies, onboardingService, insidiousService);
+        DependencyManagementComponent dependencyManagementComponent = new DependencyManagementComponent(
+                missingDependencies, onboardingService, insidiousService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -181,7 +183,8 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
         javaSelectionBox.addItemListener(new ItemListener() {
             public void itemStateChanged(ItemEvent event) {
                 if (event.getStateChange() == ItemEvent.SELECTED) {
-                    String version = event.getItem().toString();
+                    String version = event.getItem()
+                            .toString();
                     boolean add = version.startsWith(">");
                     if (documentation_instance != null) {
                         documentation_instance.setAddOpens(add);
@@ -209,7 +212,8 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
 //        moduleSelectionBox.removeAll();
         moduleSelectionBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                String moduleName = event.getItem().toString();
+                String moduleName = event.getItem()
+                        .toString();
                 String basePackage = onboardingService.fetchBasePackageForModule(moduleName);
                 this.basePackageLabel.setText(basePackage);
                 if (documentation_instance != null) {

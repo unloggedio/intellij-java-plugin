@@ -17,7 +17,6 @@ import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
-import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
@@ -33,16 +32,11 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
-import com.intellij.credentialStore.Credentials;
-import com.intellij.execution.RunManager;
-import com.intellij.execution.RunnerAndConfigurationSettings;
-import com.intellij.ide.passwordSafe.PasswordSafe;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
-import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -89,8 +83,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.intellij.remoteServer.util.CloudConfigurationUtil.createCredentialAttributes;
-
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
@@ -99,7 +91,7 @@ final public class InsidiousService implements Disposable {
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private Project project;
-//    private InsidiousConfigurationState insidiousConfiguration;
+    //    private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
@@ -159,13 +151,14 @@ final public class InsidiousService implements Disposable {
 //                    .getDebugSessions());
             this.initiateUI();
 
-            ApplicationManager.getApplication().runReadAction(new Runnable() {
-                @Override
-                public void run() {
-                    getProjectPackageName();
-                    checkAndEnsureJavaAgentCache();
-                }
-            });
+            ApplicationManager.getApplication()
+                    .runReadAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            getProjectPackageName();
+                            checkAndEnsureJavaAgentCache();
+                        }
+                    });
 //            ProgressManager.getInstance()
 //                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
 //                        @Override
@@ -523,7 +516,8 @@ final public class InsidiousService implements Disposable {
 
                     InsidiousNotification.notifyMessage(
                             "Failed to create new project for [" + currentModuleName + "] on server ["
-                                    + InsidiousConfigurationState.getInstance().getServerUrl(),
+                                    + InsidiousConfigurationState.getInstance()
+                                    .getServerUrl(),
                             NotificationType.ERROR);
 
                 }
@@ -1003,8 +997,10 @@ final public class InsidiousService implements Disposable {
         UsageInsightTracker.getInstance()
                 .RecordEvent("GetTracesByValue", eventProperties);
 
-        ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).addSearchQuery((String) searchQuery.getQuery(),
-                0);
+        ApplicationManager.getApplication()
+                .getService(InsidiousConfigurationState.class)
+                .addSearchQuery((String) searchQuery.getQuery(),
+                        0);
         searchByValueWindow.updateQueryList();
 
         long start = System.currentTimeMillis();
@@ -1065,9 +1061,11 @@ final public class InsidiousService implements Disposable {
                             searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
                         } else {
                             searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                            ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).addSearchQuery((String) searchQuery.getQuery(),
-                                    searchResultsHandler.getResults()
-                                            .size());
+                            ApplicationManager.getApplication()
+                                    .getService(InsidiousConfigurationState.class)
+                                    .addSearchQuery((String) searchQuery.getQuery(),
+                                            searchResultsHandler.getResults()
+                                                    .size());
                             searchByValueWindow.updateQueryList();
                         }
 
@@ -1172,7 +1170,8 @@ final public class InsidiousService implements Disposable {
                             toolWindow.getContentManager()
                                     .removeContent(traceContent, true);
                         }
-                        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+                        ContentFactory contentFactory = ApplicationManager.getApplication()
+                                .getService(ContentFactory.class);
                         ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                         Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(),
                                 "Credentials",
@@ -1224,7 +1223,8 @@ final public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+        ContentFactory contentFactory = ApplicationManager.getApplication()
+                .getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
@@ -1455,7 +1455,8 @@ final public class InsidiousService implements Disposable {
     }
 
     public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
-        ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).exceptionClassMap = exceptionClassList;
+        ApplicationManager.getApplication()
+                .getService(InsidiousConfigurationState.class).exceptionClassMap = exceptionClassList;
     }
 
 

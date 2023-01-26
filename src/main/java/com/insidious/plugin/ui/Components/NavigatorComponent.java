@@ -10,11 +10,11 @@ import java.util.ArrayList;
 public class NavigatorComponent implements NavigationManager{
     private JPanel mainPanel;
     private JPanel borderParent;
-    private OnboardingScaffold_v3 scaffold;
+    private OnboardingScaffoldV3 scaffold;
     private ArrayList<String> states = new ArrayList<>();
 
     private int currentState = 0;
-    public NavigatorComponent(OnboardingScaffold_v3 onboardingScaffoldV3)
+    public NavigatorComponent(OnboardingScaffoldV3 onboardingScaffoldV3)
     {
         this.scaffold = onboardingScaffoldV3;
         states = new ArrayList<>();

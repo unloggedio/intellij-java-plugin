@@ -1,6 +1,5 @@
 package io.unlogged;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,10 +7,12 @@ import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
@@ -24,10 +25,11 @@ import java.util.List;
 /**
  * For Jackson
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V4
+ * UnloggedTestUtils.Version: V5
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
+    public static final int BUFFER_SIZE = 8192;
     private final static ObjectMapper objectMapper = new ObjectMapper();
     public static String testResourceFilePath = null;
     private static JsonNode sourceObject = null;
@@ -88,8 +90,20 @@ public class UnloggedTestUtils {
     public static void readFileJson() throws IOException {
         InputStream inputStream = UnloggedTestUtils.class.getClassLoader().getResourceAsStream(testResourceFilePath);
         assert inputStream != null;
-        String stringSource = IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+        String stringSource = toString(inputStream);
         sourceObject = objectMapper.readValue(stringSource, JsonNode.class);
+    }
+
+    public static String toString(@NotNull InputStream stream) throws IOException {
+
+        char[] buffer = new char[BUFFER_SIZE];
+        StringBuilder out = new StringBuilder();
+        Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
+            out.append(buffer, 0, numRead);
+        }
+        return out.toString();
+
     }
 
     public static <T> T ValueOf(String key, Type type) {

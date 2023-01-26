@@ -5,7 +5,7 @@ import java.util.Map;
 
 public interface CardActionListener {
 
-    void performActions(List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION, String>> actions);
+    void performActions(List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION, String>> actions);
 
     String getBasePackageForModule(String moduleName);
 

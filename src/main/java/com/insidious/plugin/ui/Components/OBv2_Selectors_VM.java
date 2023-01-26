@@ -78,18 +78,18 @@ public class OBv2_Selectors_VM {
 
     public void moduleChanged(String module)
     {
-        List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.UPDATE_SELECTION,"module:"+module);
+        List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"module:"+module);
         actions.add(action);
         listener.performActions(actions);
     }
 
     public void javaVersionChanged(boolean addOpens)
     {
-        List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.UPDATE_SELECTION,"addopens:"+addOpens);
+        List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"addopens:"+addOpens);
         actions.add(action);
         listener.performActions(actions);
     }

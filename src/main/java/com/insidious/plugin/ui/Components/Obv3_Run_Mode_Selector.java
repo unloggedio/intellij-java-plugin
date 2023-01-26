@@ -114,18 +114,18 @@ public class Obv3_Run_Mode_Selector {
     public void selectedRunType(String seletion)
     {
         System.out.println("Selected : "+seletion);
-        List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.UPDATE_SELECTION,"runType:"+seletion);
+        List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"runType:"+seletion);
         actions.add(action);
         cardActionListener.performActions(actions);
     }
 
     public void continueClicked()
     {
-        List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.NEXT_STATE,"");
+        List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.NEXT_STATE,"");
         actions.add(action);
         cardActionListener.performActions(actions);
     }

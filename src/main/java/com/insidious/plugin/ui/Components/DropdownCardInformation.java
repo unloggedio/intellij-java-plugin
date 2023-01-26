@@ -7,7 +7,7 @@ public class DropdownCardInformation {
     String heading;
     List<String> options;
     String description;
-    OnboardingScaffold_v3.DROP_TYPES type;
+    OnboardingScaffoldV3.DROP_TYPES type;
     Integer defaultSelected = null;
     boolean showRefresh = false;
     public DropdownCardInformation(String heading, List<String> options, String description) {
@@ -40,11 +40,11 @@ public class DropdownCardInformation {
         this.description = description;
     }
 
-    public OnboardingScaffold_v3.DROP_TYPES getType() {
+    public OnboardingScaffoldV3.DROP_TYPES getType() {
         return type;
     }
 
-    public void setType(OnboardingScaffold_v3.DROP_TYPES type) {
+    public void setType(OnboardingScaffoldV3.DROP_TYPES type) {
         this.type = type;
     }
 

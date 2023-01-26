@@ -20,7 +20,7 @@ public class Obv3_CardParent implements CardSelectionActionListener{
     private JButton actionButton;
     private JPanel cardContainer;
     private JButton skipButton;
-    private List<Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
+    private List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> actions = new ArrayList<>();
     private CardActionListener actionListener;
     private Set<String> dependenciesToAdd = new TreeSet<>();
     public Obv3_CardParent(List<DropdownCardInformation> cards, CardActionListener actionListener)
@@ -52,8 +52,8 @@ public class Obv3_CardParent implements CardSelectionActionListener{
 
     private void proceedToAction()
     {
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.NEXT_STATE,"");
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.NEXT_STATE,"");
         if(shouldAddAction(action))
         {
             actions.add(action);
@@ -100,8 +100,8 @@ public class Obv3_CardParent implements CardSelectionActionListener{
 
     private void proceedToNextState()
     {
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.NEXT_STATE,"");
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.NEXT_STATE,"");
         if(shouldAddAction(action))
         {
             actions.add(action);
@@ -115,8 +115,8 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         {
             return;
         }
-        Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.ADD_DEPENDENCIES,this.dependenciesToAdd.toString());
+        Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.ADD_DEPENDENCIES,this.dependenciesToAdd.toString());
         if(shouldAddAction(action))
         {
             actions.add(action);
@@ -129,13 +129,13 @@ public class Obv3_CardParent implements CardSelectionActionListener{
     }
 
     @Override
-    public void selectedOption(String selection, OnboardingScaffold_v3.DROP_TYPES type) {
+    public void selectedOption(String selection, OnboardingScaffoldV3.DROP_TYPES type) {
         System.out.println("Selected : "+selection+" Type : "+type.toString());
         switch (type)
         {
             case JAVA_VERSION:
-                Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-                action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.UPDATE_SELECTION,"addopens:"+(selection.startsWith(">")?true:false));
+                Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
+                action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"addopens:"+(selection.startsWith(">")?true:false));
                 if(shouldAddAction(action))
                 {
                     actions.add(action);
@@ -144,26 +144,26 @@ public class Obv3_CardParent implements CardSelectionActionListener{
             case SERIALIZER:
                 action = new TreeMap<>();
                 boolean hasDownloadTask=false;
-                for(Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> item : actions)
+                for(Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> item : actions)
                 {
-                    OnboardingScaffold_v3.ONBOARDING_ACTION action_type = new ArrayList<>(item.keySet()).get(0);
-                    if(action_type.equals(OnboardingScaffold_v3.ONBOARDING_ACTION.DOWNLOAD_AGENT))
+                    OnboardingScaffoldV3.ONBOARDING_ACTION action_type = new ArrayList<>(item.keySet()).get(0);
+                    if(action_type.equals(OnboardingScaffoldV3.ONBOARDING_ACTION.DOWNLOAD_AGENT))
                     {
                         hasDownloadTask=true;
-                        item.replace(OnboardingScaffold_v3.ONBOARDING_ACTION.DOWNLOAD_AGENT,selection);
+                        item.replace(OnboardingScaffoldV3.ONBOARDING_ACTION.DOWNLOAD_AGENT,selection);
                     }
                 }
 
                 if(!hasDownloadTask)
                 {
                     action = new TreeMap<>();
-                    action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.DOWNLOAD_AGENT,""+(selection));
+                    action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.DOWNLOAD_AGENT,""+(selection));
                     actions.add(action);
                 }
                 break;
             case MODULE:
                 action = new TreeMap<>();
-                action.put(OnboardingScaffold_v3.ONBOARDING_ACTION.UPDATE_SELECTION,"module:"+selection);
+                action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"module:"+selection);
                 if(shouldAddAction(action))
                 {
                     actions.add(action);
@@ -193,11 +193,11 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         actionListener.refreshSerializers();
     }
 
-    private boolean shouldAddAction(Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> action)
+    private boolean shouldAddAction(Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action)
     {
-        OnboardingScaffold_v3.ONBOARDING_ACTION actionType = action.keySet().iterator().next();
+        OnboardingScaffoldV3.ONBOARDING_ACTION actionType = action.keySet().iterator().next();
         String parameter = action.get(actionType);
-        for(Map<OnboardingScaffold_v3.ONBOARDING_ACTION,String> entry : this.actions)
+        for(Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> entry : this.actions)
         {
             if(entry.containsKey(actionType))
             {

@@ -80,12 +80,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.project = project;
         this.insidiousService = insidiousService;
 
-        if(insidiousService.getProjectTypeInfo().isUseOnboarding_V3())
-        {
+        if (insidiousService.getProjectTypeInfo()
+                .isUseOnboarding_V3()) {
             loadOBV3Scaffold();
-        }
-        else
-        {
+        } else {
             waitingScreen = new WaitingScreen();
             GridLayout gridLayout = new GridLayout(1, 1);
             JPanel gridPanel = new JPanel(gridLayout);
@@ -245,7 +243,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         try {
             logger.info("Fetching from POM.xml/settings.gradle");
             Set<String> modules_from_pg = insidiousService.fetchModuleNames();
-            modules_from_mm.addAll(modules_from_pg);
+            if (modules_from_pg == null) {
+                logger.warn("module from fetch module name is null");
+            } else {
+                modules_from_mm.addAll(modules_from_pg);
+            }
         } catch (Exception e) {
             logger.error("Exception fetching modules " + e);
             e.printStackTrace();
@@ -255,22 +257,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     modules_s.add(module.getName());
                 }
             }
-        } finally {
-            return new ArrayList<>(filterModules(modules_from_mm));
         }
+        return new ArrayList<>(filterModules(modules_from_mm));
     }
 
-    private Set<String> filterModules(Set<String> modules)
-    {
+    private Set<String> filterModules(Set<String> modules) {
         Set<String> final_Modules = new TreeSet<>();
-        for(String module : modules)
-        {
-            if(!(module.endsWith(".main") || module.endsWith(".test")))
-            {
+        for (String module : modules) {
+            if (!(module.endsWith(".main") || module.endsWith(".test"))) {
                 String[] parts = module.split("\\.");
-                String module_last = parts[parts.length-1];
-                if(isValidJavaModule(module_last))
-                {
+                String module_last = parts[parts.length - 1];
+                if (isValidJavaModule(module_last)) {
                     final_Modules.add(module_last);
                 }
             }
@@ -278,8 +275,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return final_Modules;
     }
 
-    public boolean isValidJavaModule(String modulename)
-    {
+    public boolean isValidJavaModule(String modulename) {
         Collection<VirtualFile> virtualFiles =
                 FileBasedIndex.getInstance()
                         .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
@@ -615,9 +611,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             if (this.dependencies_status.get("gson") != null) {
                 this.insidiousService.getProjectTypeInfo().
                         setUsesGson(true);
-            }
-            else
-            {
+            } else {
                 this.insidiousService.getProjectTypeInfo().
                         setUsesGson(false);
             }
@@ -626,22 +620,22 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             }
             UsageInsightTracker.getInstance()
                     .RecordEvent("DependencyScanEnd", null);
-                if (fetchMissingDependencies().size() == 0) {
-                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
-                            this);
+            if (fetchMissingDependencies().size() == 0) {
+                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
+                        this);
+            } else {
+                System.out.println("[NO ATTEMPT TO WRITE]");
+                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
+                        fetchMissingDependencies(), this);
+                if (dependenciesAdditionAttempted) {
+                    System.out.println("[SYNC FAILED POST WRITE]");
+                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
+                            fetchMissingDependencies(), this);
                 } else {
                     System.out.println("[NO ATTEMPT TO WRITE]");
                     setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
                             fetchMissingDependencies(), this);
-                    if (dependenciesAdditionAttempted) {
-                        System.out.println("[SYNC FAILED POST WRITE]");
-                        setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
-                                fetchMissingDependencies(), this);
-                    } else {
-                        System.out.println("[NO ATTEMPT TO WRITE]");
-                        setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-                                fetchMissingDependencies(), this);
-                    }
+                }
             }
         }
     }
@@ -673,15 +667,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (count == 0) {
             return null;
         } else {
-            if(depVersions.containsKey("jackson-databind"))
-            {
+            if (depVersions.containsKey("jackson-databind")) {
                 depVersions.remove("jackson-databind");
             }
             try {
                 return computeMissingDependenciesFromStatus(depVersions);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 System.out.println("Exception removing unnecessary deps.");
             }
             return depVersions;
@@ -719,23 +710,19 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-    private Map<String,String> computeMissingDependenciesFromStatus(Map<String,String> deps)
-    {
-        Map<String,String> missing = new TreeMap<>();
-        for(String dep : deps.keySet())
-        {
-            if(deps.get(dep)==null)
-            {
-                missing.put(dep,deps.get(dep));
+    private Map<String, String> computeMissingDependenciesFromStatus(Map<String, String> deps) {
+        Map<String, String> missing = new TreeMap<>();
+        for (String dep : deps.keySet()) {
+            if (deps.get(dep) == null) {
+                missing.put(dep, deps.get(dep));
             }
         }
         return missing;
     }
 
-    private void loadOBV3Scaffold()
-    {
+    private void loadOBV3Scaffold() {
         this.mainPanel.removeAll();
-        OnboardingScaffold_v3 scaffold = new OnboardingScaffold_v3(this,insidiousService);
+        OnboardingScaffoldV3 scaffold = new OnboardingScaffoldV3(this, insidiousService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -985,13 +972,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             StringBuilder builder = new StringBuilder(finalstring);
             //+ "\n<dependencies>" + text + "" + parts[1];
             for (int i = 1; i < parts.length; i++) {
-                if(!parts[i-1].contains("<dependencyManagement>"))
-                {
+                if (!parts[i - 1].contains("<dependencyManagement>")) {
                     builder.append("\n<dependencies>" + text + "" + parts[i]);
-                }
-                else
-                {
-                    builder.append("\n<dependencies>"+ "" + parts[i]);
+                } else {
+                    builder.append("\n<dependencies>" + "" + parts[i]);
                 }
             }
             finalstring = builder.toString();
@@ -1135,8 +1119,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         StringBuilder sb = new StringBuilder();
         String group_id;
         String artifact_id = dependency;
-        switch (dependency)
-        {
+        switch (dependency) {
             case "commons-io":
                 group_id = "commons-io";
                 break;
@@ -1147,21 +1130,20 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 group_id = "com.fasterxml.jackson.datatype";
                 break;
         }
-        if (insidiousService.getProjectTypeInfo().isMaven()) {
+        if (insidiousService.getProjectTypeInfo()
+                .isMaven()) {
             sb.append("<dependency>\n");
             sb.append("<groupId>" + group_id + "</groupId>\n");
             sb.append("<artifactId>" + artifact_id + "</artifactId>\n");
-            if(dependency.equals("commons-io")) {
+            if (dependency.equals("commons-io")) {
                 sb.append("<version>" + "2.6" + "</version>\n");
             }
             sb.append("</dependency>\n");
             return sb.toString();
         } else {
-            if(dependency.equals("commons-io"))
-            {
+            if (dependency.equals("commons-io")) {
                 sb.append("implementation '" + group_id + ":" + artifact_id + ":2.6'\n");
-            }
-            else {
+            } else {
                 sb.append("implementation '" + group_id + ":" + artifact_id + "'\n");
             }
             return sb.toString();
