@@ -52,7 +52,7 @@ public class ReportIssue {
                     zipFiles.zipDirectory(seLogDirPath, pathPrefix + File.separator + zipFileName);
                     System.out.println("created zip file to upload at " + pathPrefix + File.separator + zipFileName);
                 } catch (Exception e) {
-                    InsidiousNotification.notifyMessage("Failed to submit bug report. Please try again!\n" +
+                    InsidiousNotification.notifyMessage("Failed to zip bug report. Please try again!\n" +
                             "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.", NotificationType.ERROR);
                     logger.warn(e.getMessage(), e);
                     return;

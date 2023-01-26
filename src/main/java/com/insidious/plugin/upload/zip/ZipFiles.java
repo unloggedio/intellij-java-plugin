@@ -45,8 +45,8 @@ public class ZipFiles {
             for (String filePath : filesListInDir) {
                 File fileTobeZipped = new File(filePath);
 
-                checkProgressIndicator("Zipping bug logs" + i + "/" + filesListInDir.size(), fileTobeZipped.getName());
-                
+                checkProgressIndicator("Zipping report logs " + i + "/" + filesListInDir.size(), fileTobeZipped.getName());
+
                 //for ZipEntry we need to keep only relative file path, so we used substring on absolute path
                 ZipEntry ze = new ZipEntry(fileTobeZipped.getName());
                 zos.putNextEntry(ze);
