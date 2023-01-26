@@ -71,6 +71,7 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -119,13 +120,13 @@ public class SessionInstance {
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
-        this.sessionDirectory = Path.of(executionSession.getPath())
+        this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath())
                 .toFile();
         File cacheDir = new File(this.sessionDirectory + "/cache/");
         cacheDir.mkdirs();
         this.executionSession = executionSession;
 
-        boolean dbFileExists = Path.of(executionSession.getDatabasePath())
+        boolean dbFileExists = FileSystems.getDefault().getPath(executionSession.getDatabasePath())
                 .toFile()
                 .exists();
         ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
@@ -193,7 +194,7 @@ public class SessionInstance {
 
     private List<File> refreshSessionArchivesList() throws IOException {
         if (sessionDirectory.listFiles() == null) {
-            return List.of();
+            return Collections.emptyList();
         }
         logger.info("refresh session archives list");
         List<File> sessionFiles = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
@@ -243,7 +244,7 @@ public class SessionInstance {
                         "index.type.dat"
                 );
                 for (String indexFile : indexFiles) {
-                    File toDelete = Path.of(executionSession.getPath(), indexFile)
+                    File toDelete = FileSystems.getDefault().getPath(executionSession.getPath(), indexFile)
                             .toFile();
                     toDelete.delete();
                 }
@@ -550,7 +551,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading probe info index");
-        File probeIndexFile = Path.of(executionSession.getPath(), "index.probe.dat")
+        File probeIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.probe.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, DataInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         DataInfo.class)
@@ -565,7 +566,7 @@ public class SessionInstance {
     private ChronicleMap<Long, DataEventWithSessionId> createEventIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading event info index");
-        File probeIndexFile = Path.of(executionSession.getPath(), "index.event.dat")
+        File probeIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.event.dat")
                 .toFile();
         DataEventWithSessionId averageValue = new DataEventWithSessionId();
         averageValue.setSerializedValue(new byte[10000]);
@@ -582,7 +583,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading type info index");
-        File typeIndexFile = Path.of(executionSession.getPath(), "index.type.dat")
+        File typeIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.type.dat")
                 .toFile();
 
         ChronicleMapBuilder<Integer, TypeInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
@@ -598,7 +599,7 @@ public class SessionInstance {
     private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading object info index");
-        File objectIndexFile = Path.of(executionSession.getPath(), "index.object.dat")
+        File objectIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.object.dat")
                 .toFile();
 
         ChronicleMapBuilder<Long, ObjectInfoDocument> probeInfoMapBuilder = ChronicleMapBuilder.of(Long.class,
@@ -613,7 +614,7 @@ public class SessionInstance {
 
     private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
-        File parameterIndexFile = Path.of(executionSession.getPath(), "index.parameter.dat")
+        File parameterIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.parameter.dat")
                 .toFile();
 
         Parameter averageValue = new Parameter(1L);
@@ -660,7 +661,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading method info index");
-        File methodIndexFile = Path.of(executionSession.getPath(), "index.method.dat")
+        File methodIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.method.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         MethodInfo.class)
@@ -677,7 +678,7 @@ public class SessionInstance {
     private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading method info by name index");
-        File methodIndexFile = Path.of(executionSession.getPath(), "index.method.name.dat")
+        File methodIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.method.name.dat")
                 .toFile();
         ChronicleMapBuilder<String, MethodInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
                         MethodInfo.class)
@@ -695,7 +696,7 @@ public class SessionInstance {
     private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = Path.of(executionSession.getPath(), "index.class.dat")
+        File classIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.class.dat")
                 .toFile();
         ChronicleMapBuilder<Integer, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(Integer.class,
                         ClassInfo.class)
@@ -712,7 +713,7 @@ public class SessionInstance {
     private ChronicleMap<String, ClassInfo> createClassInfoNameIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading class info index");
-        File classIndexFile = Path.of(executionSession.getPath(), "index.classname.dat")
+        File classIndexFile = FileSystems.getDefault().getPath(executionSession.getPath(), "index.classname.dat")
                 .toFile();
         ChronicleMapBuilder<String, ClassInfo> probeInfoMapBuilder = ChronicleMapBuilder.of(String.class,
                         ClassInfo.class)
@@ -823,7 +824,7 @@ public class SessionInstance {
                 matchedFilesForString = finalEventsIndex.querySessionFilesByValueId(valueId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
-                    int threadId = getThreadIdFromFileName(Path.of(filePath)
+                    int threadId = getThreadIdFromFileName(FileSystems.getDefault().getPath(filePath)
                             .getFileName()
                             .toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
@@ -849,7 +850,7 @@ public class SessionInstance {
             try {
 
                 checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
-                String fileName = Path.of(matchedFile.getPath())
+                String fileName = FileSystems.getDefault().getPath(matchedFile.getPath())
                         .getFileName()
                         .toString();
 
@@ -875,7 +876,8 @@ public class SessionInstance {
                         .map(e1 -> {
 
                             try {
-                                List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
+                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
+                                        Collections.singletonList(e1.getDataId())));
                                 logger.debug(
                                         "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
 
@@ -1000,7 +1002,8 @@ public class SessionInstance {
 
     private List<DataEventWithSessionId> getDataEventsFromPathByValueIds(byte[] bytes, Long[] valueIds) throws IOException {
 
-        Set<Long> ids = Set.of(valueIds);
+        Set<Long> ids = new HashSet<>(Arrays.asList(valueIds));
+
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
         return dataEvents.event()
@@ -1030,7 +1033,7 @@ public class SessionInstance {
 
     public TypeInfo getTypeInfo(Integer typeId) {
 
-        Map<String, TypeInfo> result = archiveIndex.getTypesById(Set.of(typeId));
+        Map<String, TypeInfo> result = archiveIndex.getTypesById(new HashSet<>(Collections.singletonList(typeId)));
         if (result.size() > 0) {
             return result.get(String.valueOf(typeId));
         }
@@ -1092,7 +1095,7 @@ public class SessionInstance {
         String cacheKey = bytesHex(bytes, indexFilterType.getFileName());
 
 
-        Path path = Path.of(this.sessionDirectory.getAbsolutePath(), cacheKey, indexFilterType.getFileName());
+        Path path = FileSystems.getDefault().getPath(this.sessionDirectory.getAbsolutePath(), cacheKey, indexFilterType.getFileName());
         Path parentPath = path.getParent();
         parentPath.toFile()
                 .mkdirs();
@@ -1285,7 +1288,7 @@ public class SessionInstance {
 //                        eventTypes.contains(EventType.valueOf(e.eventType().name())))
 //                .map(KaitaiUtils::toDataInfo).collect(Collectors.toList());
 
-        return List.of();
+        return Collections.emptyList();
 
     }
 
@@ -1359,7 +1362,7 @@ public class SessionInstance {
                 matchedFilesForString = finalEventsIndex.querySessionFilesByProbeId(probeId);
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
-                    int threadId = getThreadIdFromFileName(Path.of(filePath)
+                    int threadId = getThreadIdFromFileName(FileSystems.getDefault().getPath(filePath)
                             .getFileName()
                             .toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
@@ -1371,8 +1374,14 @@ public class SessionInstance {
                         ArrayList<Integer> arrayList = new ArrayList<>(Arrays.asList(existingProbes));
                         if (!arrayList.contains(probeId)) {
                             arrayList.add(probeId);
+                            Integer[] matchedProbeIds = new Integer[arrayList.size()];
+                            for (int i = 0; i < arrayList.size(); i++) {
+                                Integer integer = arrayList.get(i);
+                                matchedProbeIds[i] = integer;
+                            }
+
                             matchedFiles.get(filePath)
-                                    .setProbeIds(arrayList.toArray(Integer[]::new));
+                                    .setProbeIds(matchedProbeIds);
                         }
 
                     } else {
@@ -1391,7 +1400,7 @@ public class SessionInstance {
             try {
 
                 checkProgressIndicator(null, "Loading events data from " + matchedFile.getPath());
-                String fileName = Path.of(matchedFile.getPath())
+                String fileName = FileSystems.getDefault().getPath(matchedFile.getPath())
                         .getFileName()
                         .toString();
 
@@ -1418,7 +1427,8 @@ public class SessionInstance {
                         .map(e1 -> {
 
                             try {
-                                List<DataInfo> dataInfoList = getProbeInfo(Set.of(e1.getDataId()));
+                                List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
+                                        Collections.singletonList(e1.getDataId())));
                                 logger.debug(
                                         "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
 
@@ -1478,7 +1488,7 @@ public class SessionInstance {
 
     private List<DataEventWithSessionId> getDataEventsFromPathByProbeIds(byte[] bytes, Integer[] probeIds) {
 
-        Set<Integer> ids = Set.of(probeIds);
+        Set<Integer> ids = new HashSet<>(Arrays.asList(probeIds));
         KaitaiInsidiousEventParser dataEvents = new KaitaiInsidiousEventParser(new ByteBufferKaitaiStream(bytes));
 
         return dataEvents.event()
@@ -1668,7 +1678,7 @@ public class SessionInstance {
                 INDEX_OBJECT_DAT_FILE.getFileName());
         if (objectIndexFileBytes == null) {
             logger.warn("object index file bytes are empty, skipping");
-            return Set.of();
+            return new HashSet<>();
         }
 
 
@@ -1678,7 +1688,7 @@ public class SessionInstance {
         } catch (IOException e) {
 //            e.printStackTrace();
             logger.warn("failed to read object index file: " + e.getMessage());
-            return Set.of();
+            return new HashSet<>();
 
         }
         Query<ObjectInfoDocument> query = in(ObjectInfoDocument.OBJECT_TYPE_ID, typeIds);
@@ -1832,7 +1842,7 @@ public class SessionInstance {
                 for (UploadFile uploadFile : matchedFilesForString) {
                     String filePath = uploadFile.getPath();
                     logger.info("File matched for object id [" + objectId + "] -> " + uploadFile + " -> " + filePath);
-                    int threadId = getThreadIdFromFileName(Path.of(filePath)
+                    int threadId = getThreadIdFromFileName(FileSystems.getDefault().getPath(filePath)
                             .getFileName()
                             .toString());
                     UploadFile uploadFileToAdd = new UploadFile(filePath, threadId, null, null);
@@ -2285,7 +2295,7 @@ public class SessionInstance {
         // try to read the most recent object index from the archives we are about to process
         for (String lastArchiveName : archiveList) {
             int archiveIndexNumber = Integer.parseInt(lastArchiveName.split("-")[1]);
-            File lastSessionArchive = Path.of(executionSession.getPath(), lastArchiveName)
+            File lastSessionArchive = FileSystems.getDefault().getPath(executionSession.getPath(), lastArchiveName)
                     .toFile();
             int latestIndexReadNumber = -1;
             List<String> latestIndexRead = objectIndexRead.keySet()
@@ -2342,7 +2352,7 @@ public class SessionInstance {
             Set<Integer> existingProbes
     ) throws IOException, SQLException, FailedToReadClassWeaveException {
         boolean newTestCaseIdentified = false;
-        File sessionArchive = Path.of(executionSession.getPath(), logFile.getArchiveName())
+        File sessionArchive = FileSystems.getDefault().getPath(executionSession.getPath(), logFile.getArchiveName())
                 .toFile();
         int threadId = threadState.getThreadId();
         long currentCallId = daoService.getMaxCallId();
@@ -3527,7 +3537,7 @@ public class SessionInstance {
 
             if (objectIds.size() > 0) {
                 List<TracePoint> tracePointsByValueIds = getTracePointsByValueIds(sessionArchive,
-                        Set.copyOf(objectIds));
+                        new HashSet<>(objectIds));
                 tracePointsByValueIds.forEach(e -> e.setExecutionSession(executionSession));
                 clientCallBack.success(tracePointsByValueIds);
                 totalMatched += tracePointsByValueIds.size();

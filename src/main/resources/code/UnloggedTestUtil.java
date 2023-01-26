@@ -18,12 +18,13 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * For Jackson
  * Util functions used in test cases for loading JSON files created by Unlogged TestCaseGeneration
- * UnloggedTestUtils.Version: V3
+ * UnloggedTestUtils.Version: V4
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
@@ -33,11 +34,11 @@ public class UnloggedTestUtils {
 
     static {
 //        register jackson module if they are present
-        List<String> jacksonModuleNames = List.of(
+        List<String> jacksonModuleNames = Arrays.asList(
                 "com.fasterxml.jackson.datatype.jdk8.Jdk8Module",
                 "com.fasterxml.jackson.datatype.joda.JodaModule",
-                "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule",
-                );
+                "com.fasterxml.jackson.datatype.jsr310.JavaTimeModule"
+        );
 
         for (String moduleName : jacksonModuleNames) {
             try {
@@ -105,7 +106,7 @@ public class UnloggedTestUtils {
         }
         try {
             return objectMapper.readValue(sourceObject.get(key).toString(), objectMapper.getTypeFactory().constructType(type));
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

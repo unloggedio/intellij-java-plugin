@@ -159,15 +159,22 @@ final public class InsidiousService implements Disposable {
 //                    .getDebugSessions());
             this.initiateUI();
 
-            ProgressManager.getInstance()
-                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
-                        @Override
-                        protected String compute(@NotNull ProgressIndicator indicator) throws Exception {
-                            getProjectPackageName();
-                            checkAndEnsureJavaAgentCache();
-                            return "ok";
-                        }
-                    });
+            ApplicationManager.getApplication().runReadAction(new Runnable() {
+                @Override
+                public void run() {
+                    getProjectPackageName();
+                    checkAndEnsureJavaAgentCache();
+                }
+            });
+//            ProgressManager.getInstance()
+//                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
+//                        @Override
+//                        protected String compute(@NotNull ProgressIndicator indicator) throws Exception {
+//                            getProjectPackageName();
+//                            checkAndEnsureJavaAgentCache();
+//                            return "ok";
+//                        }
+//                    });
 
         } catch (ServiceNotReadyException snre) {
             logger.info("service not ready exception -> " + snre.getMessage());
@@ -1179,8 +1186,8 @@ final public class InsidiousService implements Disposable {
     private void addAgentToRunConfig() {
 
 
-        List<RunnerAndConfigurationSettings> allSettings = ServiceManager.getService(RunManager.class)
-                .getAllSettings();
+//        List<RunnerAndConfigurationSettings> allSettings = ServiceManager.getService(RunManager.class)
+//                .getAllSettings();
 
 //        for (RunnerAndConfigurationSettings runSetting : allSettings) {
 //            logger.info("runner config - " + runSetting.getName());
