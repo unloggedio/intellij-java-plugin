@@ -6,10 +6,7 @@ import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.ui.Components.ModulePanel;
-import com.insidious.plugin.ui.Components.OnboardingV2Scaffold;
-import com.insidious.plugin.ui.Components.WaitingScreen;
-import com.insidious.plugin.ui.Components.WaitingStateComponent;
+import com.insidious.plugin.ui.Components.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
@@ -83,24 +80,31 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.project = project;
         this.insidiousService = insidiousService;
 
-        waitingScreen = new WaitingScreen();
-        GridLayout gridLayout = new GridLayout(1, 1);
-        JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        gridPanel.add(waitingScreen.getCompenent(), constraints);
-        mainPanel.add(gridPanel, BorderLayout.CENTER);
-        this.mainPanel.revalidate();
-
-        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-        if (dumbService.isDumb()) {
-            InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
-                    NotificationType.INFORMATION);
+        if(insidiousService.getProjectTypeInfo().isUseOnboarding_V3())
+        {
+            loadOBV3Scaffold();
         }
-        dumbService.runWhenSmart(() -> {
-            startSetupInBackground_v3();
-        });
+        else
+        {
+            waitingScreen = new WaitingScreen();
+            GridLayout gridLayout = new GridLayout(1, 1);
+            JPanel gridPanel = new JPanel(gridLayout);
+            gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+            GridConstraints constraints = new GridConstraints();
+            constraints.setRow(0);
+            gridPanel.add(waitingScreen.getCompenent(), constraints);
+            mainPanel.add(gridPanel, BorderLayout.CENTER);
+            this.mainPanel.revalidate();
+
+            DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+            if (dumbService.isDumb()) {
+                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
+                        NotificationType.INFORMATION);
+            }
+            dumbService.runWhenSmart(() -> {
+                startSetupInBackground_v3();
+            });
+        }
     }
 
     private void startSetupInBackground_v3() {
@@ -231,7 +235,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     @Override
     public List<String> fetchModules() {
-        List<Module> modules = List.of(ModuleManager.getInstance(project)
+        List<Module> modules = Arrays.asList(ModuleManager.getInstance(project)
                 .getModules());
         Set<String> modules_from_mm = new HashSet<>();
         for (Module module : modules) {
@@ -438,6 +442,21 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         downloadAgent(url, true);
     }
 
+    private void downloadAgent(String version) {
+        agentDownloadInitiated = true;
+        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.1-SNAPSHOT-";
+        String type = version;
+        String extention = ".jar";
+
+        checkProgressIndicator("Downloading Unlogged agent", "version : " + type);
+        String url = (host + type + extention).trim();
+        logger.info("[Downloading from] " + url);
+        InsidiousNotification.notifyMessage(
+                "Downloading agent for dependency : " + type,
+                NotificationType.INFORMATION);
+        downloadAgent(url, true);
+    }
+
     private void downloadAgent(String url, boolean overwrite) {
         logger.info("[Starting agent download]");
         UsageInsightTracker.getInstance()
@@ -572,7 +591,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     depVersions.replace(dependency, version);
                 }
             }
-
             count++;
         }
         if (count == 0) {
@@ -604,25 +622,97 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         setUsesGson(false);
             }
             if (!agentDownloadInitiated) {
-                downloadAgentinBackground();
+                //downloadAgentinBackground();
             }
             UsageInsightTracker.getInstance()
                     .RecordEvent("DependencyScanEnd", null);
-            if (fetchMissingDependencies().size() == 0) {
-                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
-                        this);
-            } else {
-                if (dependenciesAdditionAttempted) {
-                    System.out.println("[SYNC FAILED POST WRITE]");
-                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
-                            fetchMissingDependencies(), this);
+                if (fetchMissingDependencies().size() == 0) {
+                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
+                            this);
                 } else {
                     System.out.println("[NO ATTEMPT TO WRITE]");
                     setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
                             fetchMissingDependencies(), this);
-                }
+                    if (dependenciesAdditionAttempted) {
+                        System.out.println("[SYNC FAILED POST WRITE]");
+                        setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
+                                fetchMissingDependencies(), this);
+                    } else {
+                        System.out.println("[NO ATTEMPT TO WRITE]");
+                        setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
+                                fetchMissingDependencies(), this);
+                    }
             }
         }
+    }
+
+    public Map<String, String> getMissingDependencies_v3() {
+
+        TreeMap<String, String> depVersions = new TreeMap<>();
+        for (String dependency : insidiousService.getProjectTypeInfo()
+                .getDependenciesToWatch()) {
+            depVersions.put(dependency, null);
+        }
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(insidiousService.getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext()) {
+            Library lib = lib_iterator.next();
+            for (String dependency : insidiousService.getProjectTypeInfo()
+                    .getDependenciesToWatch()) {
+                if (lib.getName()
+                        .contains(dependency + ":")) {
+                    String version = fetchVersionFromLibName(lib.getName(), dependency);
+                    logger.info("Version of " + dependency + " is " + version);
+                    depVersions.replace(dependency, version);
+                }
+            }
+            count++;
+        }
+        if (count == 0) {
+            return null;
+        } else {
+            if(depVersions.containsKey("jackson-databind"))
+            {
+                depVersions.remove("jackson-databind");
+            }
+            try {
+                return computeMissingDependenciesFromStatus(depVersions);
+            }
+            catch (Exception e)
+            {
+                System.out.println("Exception removing unnecessary deps.");
+            }
+            return depVersions;
+        }
+    }
+
+    private Map<String,String> computeMissingDependenciesFromStatus(Map<String,String> deps)
+    {
+        Map<String,String> missing = new TreeMap<>();
+        for(String dep : deps.keySet())
+        {
+            if(deps.get(dep)==null)
+            {
+                missing.put(dep,deps.get(dep));
+            }
+        }
+        return missing;
+    }
+
+    private void loadOBV3Scaffold()
+    {
+        this.mainPanel.removeAll();
+        OnboardingScaffold_v3 scaffold = new OnboardingScaffold_v3(this,insidiousService);
+        GridLayout gridLayout = new GridLayout(1, 1);
+        JPanel gridPanel = new JPanel(gridLayout);
+        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+        gridPanel.add(scaffold.getComponent(), constraints);
+        this.mainPanel.add(gridPanel, BorderLayout.CENTER);
+        this.mainPanel.revalidate();
     }
 
     private void searchDependencies_jacksonDatabind() {
@@ -658,7 +748,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         } else {
             //search is complete
             if (!agentDownloadInitiated) {
-                downloadAgentinBackground();
+                //downloadAgentinBackground();
             }
         }
     }
@@ -716,6 +806,19 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 .run(dl_task);
     }
 
+    public void downloadAgentinBackground(String version) {
+        Task.Backgroundable dl_task =
+                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        checkProgressIndicator("Downloading Unlogged agent", null);
+                        downloadAgent(version);
+                    }
+                };
+        ProgressManager.getInstance()
+                .run(dl_task);
+    }
+
     public String fetchVersionFromLibName(String name, String lib) {
         String[] parts = name
                 .split(lib + ":");
@@ -735,9 +838,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
         }
-        if (dependencies_local.containsKey("gson")) {
-            dependencies_local.remove("gson");
-        }
         if (insidiousService.getProjectTypeInfo()
                 .isMaven()) {
             System.out.println("[WRTITING TO POM]");
@@ -752,7 +852,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 System.out.println("[NOT MVN OR GRADLE]");
             }
         }
-        postprocessCheck();
+        //postprocessCheck();
     }
 
     @Override
@@ -785,12 +885,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         getDependencies_addedManually()
                         .add(dependency);
             }
-            String group_name = "com.fasterxml.jackson.datatype";
-            String artifact_name = dependency;
-            String version = dependencies.get(dependency);
-            if (version == null) {
-                sb.append("implementation '" + group_name + ":" + artifact_name + "'\n");
-            }
+            sb.append(getDependencyAdditionText(dependency));
         }
         logger.info("Adding to build.gradle");
         logger.info(sb.toString());
@@ -831,16 +926,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         getDependencies_addedManually()
                         .add(dependency);
             }
-            String group_id = "com.fasterxml.jackson.datatype";
-            String artifact_id = dependency;
-            String version = dependencies.get(dependency);
-            if (version == null) {
-                sb.append("<dependency>\n");
-                sb.append("<groupId>" + group_id + "</groupId>\n");
-                sb.append("<artifactId>" + artifact_id + "</artifactId>\n");
-//                sb.append("<version>"+version+"</version>\n");
-                sb.append("</dependency>\n");
-            }
+            sb.append(getDependencyAdditionText(dependency));
         }
 //        System.out.println("DEPENDENCIES mvn "+dependencies);
         logger.info("Adding to pom.xml");
@@ -1009,20 +1095,44 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 NotificationType.INFORMATION);
     }
 
+    @Override
+    public void downloadAgentForVersion(String version) {
+        downloadAgentinBackground(version);
+    }
+
     public String getDependencyAdditionText(String dependency) {
         StringBuilder sb = new StringBuilder();
+        String group_id;
+        String artifact_id = dependency;
+        switch (dependency)
+        {
+            case "commons-io":
+                group_id = "commons-io";
+                break;
+            case "gson":
+                group_id = "com.google.code.gson";
+                break;
+            default:
+                group_id = "com.fasterxml.jackson.datatype";
+                break;
+        }
         if (insidiousService.getProjectTypeInfo().isMaven()) {
-            String group_id = "com.fasterxml.jackson.datatype";
-            String artifact_id = dependency;
             sb.append("<dependency>\n");
             sb.append("<groupId>" + group_id + "</groupId>\n");
             sb.append("<artifactId>" + artifact_id + "</artifactId>\n");
+            if(dependency.equals("commons-io")) {
+                sb.append("<version>" + "2.6" + "</version>\n");
+            }
             sb.append("</dependency>\n");
             return sb.toString();
         } else {
-            String group_name = "com.fasterxml.jackson.datatype";
-            String artifact_name = dependency;
-            sb.append("implementation '" + group_name + ":" + artifact_name + "'\n");
+            if(dependency.equals("commons-io"))
+            {
+                sb.append("implementation '" + group_id + ":" + artifact_id + ":2.6'\n");
+            }
+            else {
+                sb.append("implementation '" + group_id + ":" + artifact_id + "'\n");
+            }
             return sb.toString();
         }
     }

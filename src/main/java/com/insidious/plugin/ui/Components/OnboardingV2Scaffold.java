@@ -206,7 +206,7 @@ public class OnboardingV2Scaffold implements OnboardingStateManager {
         DefaultComboBoxModel module_model = new DefaultComboBoxModel();
         module_model.addAll(modules);
         moduleSelectionBox.setModel(module_model);
-        moduleSelectionBox.removeAll();
+//        moduleSelectionBox.removeAll();
         moduleSelectionBox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
                 String moduleName = event.getItem().toString();

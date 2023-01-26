@@ -21,4 +21,9 @@ public interface OnboardingService {
     boolean canGoToDocumention();
 
     void copyDependenciesToClipboard(Map<String, String> missing);
-}
+
+    void downloadAgentForVersion(String version);
+
+    Map<String, String> getMissingDependencies_v3();
+
+    }

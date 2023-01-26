@@ -58,7 +58,7 @@ public class ProjectTypeInfo {
         return detectDependencies;
     }
 
-    private final boolean useOnboarding_V3=true;
+    private final boolean useOnboarding_V3=false;
 
     public boolean isUseOnboarding_V3() {
         return useOnboarding_V3;
@@ -79,6 +79,8 @@ public class ProjectTypeInfo {
         dependenciesToWatch.add("jackson-datatype-jdk8");
         dependenciesToWatch.add("jackson-databind");
         dependenciesToWatch.add("gson");
+        dependenciesToWatch.add("commons-io");
+        dependenciesToWatch.add("jackson-datatype-jsr310");
         return dependenciesToWatch;
     }
 
@@ -88,5 +90,12 @@ public class ProjectTypeInfo {
 
     public boolean isDownloadAgent() {
         return downloadAgent;
+    }
+
+    public enum RUN_TYPES {MAVEN_CLI, GRADLE_CLI, INTELLIJ_APPLICATION, JAVA_JAR_CLI}
+
+    public RUN_TYPES[] getAllRunTypes()
+    {
+        return RUN_TYPES.values();
     }
 }

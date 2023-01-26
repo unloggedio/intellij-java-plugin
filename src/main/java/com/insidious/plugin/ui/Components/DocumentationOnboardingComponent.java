@@ -5,9 +5,18 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.ui.UI_Utils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.execution.Executor;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.executors.DefaultRunExecutor;
+import com.intellij.execution.impl.DefaultJavaProgramRunner;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
@@ -33,6 +42,7 @@ public class DocumentationOnboardingComponent {
     private JLabel label_2;
     private JButton copyVMbutton;
     private JButton documentationButton;
+    private JButton runWithUnlogged;
     private String currentBasePackage;
     private VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private InsidiousService insidiousService;
@@ -55,6 +65,12 @@ public class DocumentationOnboardingComponent {
             }
         });
         this.documentationSection.setBorder(new LineBorder(UI_Utils.pink));
+        runWithUnlogged.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                runApplicationWithUnlogged();
+            }
+        });
     }
 
     public void setAddOpens(boolean add)
@@ -84,12 +100,14 @@ public class DocumentationOnboardingComponent {
 
     private void updateUIvmops()
     {
-        setVMtext(this.vmOptionsConstructionService.getPrettyVMtext(this.currentBasePackage));
+        this.vmOptionsConstructionService.setBasePackage(this.currentBasePackage);
+        setVMtext(this.vmOptionsConstructionService.getPrettyVMtext());
     }
 
     private void copyVMoptions()
     {
-        String params = vmOptionsConstructionService.getVMParameters(this.currentBasePackage);
+        this.vmOptionsConstructionService.setBasePackage(this.currentBasePackage);
+        String params = vmOptionsConstructionService.getVMParametersFull();
         if(vmOptionsConstructionService.addopens)
         {
            params = new StringBuilder(params).
@@ -101,8 +119,9 @@ public class DocumentationOnboardingComponent {
     }
 
     private void routeToDocumentationpage() {
+        this.vmOptionsConstructionService.setBasePackage(this.currentBasePackage);
         String link = "https://docs.unlogged.io?parms=" + this.vmOptionsConstructionService
-                .getVMParameters(this.currentBasePackage);
+                .getVMParametersFull();
         //System.out.println("URL for docs " + link);
         try {
             String decodedURL = URLDecoder.decode(link, StandardCharsets.UTF_8);
@@ -132,4 +151,37 @@ public class DocumentationOnboardingComponent {
             }
         }
     }
+
+    private void runApplicationWithUnlogged() {
+        //make run configuration selectable or add vm options to existing run config
+        //wip
+        System.out.println("[RUNNING WITH UNLOGGED]");
+        this.vmOptionsConstructionService.setBasePackage(this.currentBasePackage);
+        String params = vmOptionsConstructionService.getVMParametersFull();
+
+            System.out.println("[PARAMS RUN]" + params);
+            List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject().getService(RunManager.class)
+                    .getAllSettings();
+            for (RunnerAndConfigurationSettings runSetting : allSettings) {
+                System.out.println("runner config - " + runSetting.getName());
+                if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+
+                    logger.info("ApplicationConfiguration config - " + runSetting.getConfiguration()
+                            .getName());
+                    final ProgramRunner runner = DefaultJavaProgramRunner.getInstance();
+                    final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
+                    ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+                    applicationConfiguration.setVMParameters(params.trim());
+                    try {
+                             runner.execute(new ExecutionEnvironment(executor, runner, runSetting,
+                                     insidiousService.getProject()), null);
+                        break;
+                    } catch (Exception e) {
+                        logger.error("Failed to start application");
+                        System.out.println(e);
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
 }
