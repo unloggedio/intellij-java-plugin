@@ -505,7 +505,7 @@ public class InsidiousVirtualMachine implements VirtualMachine {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
             ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
         }
-        this.replayData = ServiceManager.getService(InsidiousService.class)
+        this.replayData = ApplicationManager.getApplication().getService(InsidiousService.class)
                 .getClient().fetchDataEvents(filterDataEventRequest);
 
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {

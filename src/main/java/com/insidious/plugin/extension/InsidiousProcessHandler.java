@@ -32,7 +32,7 @@ public class InsidiousProcessHandler extends ProcessHandler {
             if (!project.isOpen()) {
                 return;
             }
-            InsidiousService service = ServiceManager.getService(InsidiousService.class);
+            InsidiousService service = ApplicationManager.getApplication().getService(InsidiousService.class);
             service.setDebugSession(null);
             service.setDebugProcess(null);
         } catch (Exception e) {

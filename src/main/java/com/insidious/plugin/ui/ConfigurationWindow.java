@@ -57,7 +57,7 @@ public class ConfigurationWindow {
 
     public ConfigurationWindow(Project project, ToolWindow toolWindow) {
         this.project = project;
-        this.insidiousService = ServiceManager.getService(InsidiousService.class);
+        this.insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
         this.toolWindow = toolWindow;
 
 //        email.setText(this.insidiousService.getConfiguration().username);

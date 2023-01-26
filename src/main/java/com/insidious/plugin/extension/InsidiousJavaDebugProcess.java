@@ -86,7 +86,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
         this.connector = new InsidiousJDIConnector(this);
 
-        ServiceManager.getService(InsidiousService.class).setConnector(this.connector);
+        ApplicationManager.getApplication().getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(
                 getSession().getProject(), this);
@@ -117,7 +117,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
                                                    @NotNull RemoteConnection connection)
             throws APICallException, IOException {
         logger.info("Creating InsidiousJavaDebugProcess with port " +
-                ServiceManager.getService(InsidiousService.class).getClient().getEndpoint());
+                ApplicationManager.getApplication().getService(InsidiousService.class).getClient().getEndpoint());
 
         return new InsidiousJavaDebugProcess(session, connection);
     }
@@ -139,8 +139,8 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     @Override
     public void sessionInitialized() {
-        ServiceManager.getService(InsidiousService.class).setDebugSession(getSession());
-        ServiceManager.getService(InsidiousService.class).setDebugProcess(this);
+        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugSession(getSession());
+        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugProcess(this);
     }
 
     @NotNull
@@ -170,7 +170,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     public void attachVM(String timeout) throws Exception {
         try {
-            VideobugClientInterface client = ServiceManager.getService(InsidiousService.class).getClient();
+            VideobugClientInterface client = ApplicationManager.getApplication().getService(InsidiousService.class).getClient();
             logger.info(String.format("Attaching to VM on endpoint [%s]", client.getEndpoint()));
             this.connector.attachVirtualMachine(this.myConnection.getHostName(), client.getEndpoint(),
                     this.myConnection.isUseSockets(), false, timeout);

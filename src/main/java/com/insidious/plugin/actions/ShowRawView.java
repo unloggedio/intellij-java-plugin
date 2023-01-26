@@ -10,6 +10,6 @@ import org.jetbrains.annotations.NotNull;
 public class ShowRawView extends AnAction {
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        ServiceManager.getService(InsidiousService.class).attachRawView();
+        ApplicationManager.getApplication().getService(InsidiousService.class).attachRawView();
     }
 }

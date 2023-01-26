@@ -1,6 +1,7 @@
 package com.insidious.plugin.upload.zip;
 
 import com.intellij.idea.LoggerFactory;
+import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicatorProvider;
 
@@ -8,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +38,7 @@ public class ZipFiles {
                 populateFilesList(dir);
 
             // adding the idea.log file also in the zip file to upload
-            Path ideaLogFilePath = LoggerFactory.getLogFilePath();
+            Path ideaLogFilePath = FileSystems.getDefault().getPath(PathManager.getLogPath(), "idea.log");
             filesListInDir.add(ideaLogFilePath.toString());
 
             //now zip files one by one

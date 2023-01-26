@@ -47,14 +47,14 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
 
         RemoteConnection connection;
         try {
-            VideobugClientInterface client = ServiceManager.getService(InsidiousService.class).getClient();
+            VideobugClientInterface client = ApplicationManager.getApplication().getService(InsidiousService.class).getClient();
             connection = new RemoteConnection(client.getEndpoint());
             ((InsidiousApplicationState) state).setCommandSender(new CommandSender(connection));
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         } catch (UnauthorizedException e) {
-            ServiceManager.getService(InsidiousService.class).showCredentialsWindow();
+            ApplicationManager.getApplication().getService(InsidiousService.class).showCredentialsWindow();
             return null;
         }
         boolean pollTimeout = false;

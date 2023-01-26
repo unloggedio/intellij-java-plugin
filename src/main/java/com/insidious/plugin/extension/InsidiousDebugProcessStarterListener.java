@@ -113,7 +113,7 @@ public final class InsidiousDebugProcessStarterListener
                 "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
                 "                                       |___/ ", ProcessOutputTypes.SYSTEM);
 
-        InsidiousService insidiousService = ServiceManager.getService(InsidiousService.class);
+        InsidiousService insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
 
         processHandler.notifyTextAvailable("                                        \n" +
                 "                 .°...°°°°..            \n" +

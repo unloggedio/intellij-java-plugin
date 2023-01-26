@@ -119,33 +119,33 @@ public class SearchByTypesWindow extends SearchByWindowCommon {
     public void init() {
 
 
-        JTableHeader header = this.resultsTable.getTableHeader();
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        this.resultsTable.setCellEditor(this.resultsTable.getDefaultEditor(Boolean.class));
-
-        centerRenderer = new DefaultTableCellRenderer();
-        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
-        this.resultsTable.setModel(searchResultsTableModel);
-        this.resultsTable.setDefaultRenderer(Object.class, centerRenderer);
-        this.resultsTable.setAutoCreateRowSorter(true);
-
-
-        JTableHeader typeNameTableHeaders = this.classTypeListTable.getTableHeader();
-        typeNameTableHeaders.setFont(new Font("Fira Code", Font.PLAIN, 14));
-
-
-        exceptionMap = insidiousService.getDefaultExceptionClassList();
-        updateTypeNameTable();
-
-
-        classTypeListTable.getModel().addTableModelListener(tableModelEvent -> {
-            if (tableModelEvent.getFirstRow() == -1) {
-                return;
-            }
-            String exceptionClassName = (String) classTypeListTable.getModel().getValueAt(tableModelEvent.getFirstRow(), 0);
-            Boolean isSelected = (Boolean) classTypeListTable.getModel().getValueAt(tableModelEvent.getFirstRow(), 1);
-            exceptionMap.put(exceptionClassName, isSelected);
-        });
+//        JTableHeader header = this.resultsTable.getTableHeader();
+//        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+//        this.resultsTable.setCellEditor(this.resultsTable.getDefaultEditor(Boolean.class));
+//
+//        centerRenderer = new DefaultTableCellRenderer();
+//        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+//        this.resultsTable.setModel(searchResultsTableModel);
+//        this.resultsTable.setDefaultRenderer(Object.class, centerRenderer);
+//        this.resultsTable.setAutoCreateRowSorter(true);
+//
+//
+//        JTableHeader typeNameTableHeaders = this.classTypeListTable.getTableHeader();
+//        typeNameTableHeaders.setFont(new Font("Fira Code", Font.PLAIN, 14));
+//
+//
+//        exceptionMap = insidiousService.getDefaultExceptionClassList();
+//        updateTypeNameTable();
+//
+//
+//        classTypeListTable.getModel().addTableModelListener(tableModelEvent -> {
+//            if (tableModelEvent.getFirstRow() == -1) {
+//                return;
+//            }
+//            String exceptionClassName = (String) classTypeListTable.getModel().getValueAt(tableModelEvent.getFirstRow(), 0);
+//            Boolean isSelected = (Boolean) classTypeListTable.getModel().getValueAt(tableModelEvent.getFirstRow(), 1);
+//            exceptionMap.put(exceptionClassName, isSelected);
+//        });
 
     }
 

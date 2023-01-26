@@ -7,6 +7,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.VectorUtils;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -27,7 +28,7 @@ public class SearchByWindowCommon {
     public SearchByWindowCommon(Vector<Object> tableColumnNames, Project project) {
         this.tableColumnNames = tableColumnNames;
         this.project = project;
-        this.insidiousService = ServiceManager.getService(InsidiousService.class);
+        this.insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
         this.searchResultsTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {

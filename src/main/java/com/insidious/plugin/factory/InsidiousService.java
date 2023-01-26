@@ -99,7 +99,7 @@ final public class InsidiousService implements Disposable {
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private Project project;
-    private InsidiousConfigurationState insidiousConfiguration;
+//    private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
@@ -153,7 +153,7 @@ final public class InsidiousService implements Disposable {
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 //            this.testCaseService = new TestCaseService(client.getSessionInstance());
-            this.insidiousConfiguration = ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
+//            this.insidiousConfiguration = ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
 
 //            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
 //                    .getDebugSessions());
@@ -515,7 +515,8 @@ final public class InsidiousService implements Disposable {
                     logger.error("failed to create project - {}", errorMessage);
 
                     InsidiousNotification.notifyMessage(
-                            "Failed to create new project for [" + currentModuleName + "] on server [" + insidiousConfiguration.serverUrl,
+                            "Failed to create new project for [" + currentModuleName + "] on server ["
+                                    + InsidiousConfigurationState.getInstance().getServerUrl(),
                             NotificationType.ERROR);
 
                 }
@@ -995,7 +996,7 @@ final public class InsidiousService implements Disposable {
         UsageInsightTracker.getInstance()
                 .RecordEvent("GetTracesByValue", eventProperties);
 
-        insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+        ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).addSearchQuery((String) searchQuery.getQuery(),
                 0);
         searchByValueWindow.updateQueryList();
 
@@ -1057,7 +1058,7 @@ final public class InsidiousService implements Disposable {
                             searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
                         } else {
                             searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                            insidiousConfiguration.addSearchQuery((String) searchQuery.getQuery(),
+                            ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).addSearchQuery((String) searchQuery.getQuery(),
                                     searchResultsHandler.getResults()
                                             .size());
                             searchByValueWindow.updateQueryList();
@@ -1164,7 +1165,7 @@ final public class InsidiousService implements Disposable {
                             toolWindow.getContentManager()
                                     .removeContent(traceContent, true);
                         }
-                        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
+                        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
                         ConfigurationWindow credentialsToolbar = new ConfigurationWindow(project, toolWindow);
                         Content credentialContent = contentFactory.createContent(credentialsToolbar.getContent(),
                                 "Credentials",
@@ -1216,7 +1217,7 @@ final public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ServiceManager.getService(ContentFactory.class);
+        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
@@ -1447,7 +1448,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void setExceptionClassList(Map<String, Boolean> exceptionClassList) {
-        insidiousConfiguration.exceptionClassMap = exceptionClassList;
+        ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).exceptionClassMap = exceptionClassList;
     }
 
 
@@ -1460,13 +1461,13 @@ final public class InsidiousService implements Disposable {
         init(project, toolWindow);
     }
 
-    public Map<String, Boolean> getDefaultExceptionClassList() {
-        return insidiousConfiguration.exceptionClassMap;
-    }
+//    public Map<String, Boolean> getDefaultExceptionClassList() {
+//        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).exceptionClassMap;
+//    }
 
-    public InsidiousConfigurationState getConfiguration() {
-        return insidiousConfiguration;
-    }
+//    public InsidiousConfigurationState getConfiguration() {
+//        return insidiousConfiguration;
+//    }
 
     public void ensureAgentJar(boolean overwrite) {
         checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {

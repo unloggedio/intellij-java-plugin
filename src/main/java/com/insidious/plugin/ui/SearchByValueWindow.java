@@ -126,26 +126,26 @@ public class SearchByValueWindow extends SearchByWindowCommon {
         this.searchQueryHistoryTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public synchronized void valueChanged(ListSelectionEvent e) {
-                if (lock.isLocked()) {
-                    return;
-                }
-                if (!lock.tryLock()) {
-                    return;
-                }
-                List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
-                try {
-                    int firstItemSelected = e.getFirstIndex();
-                    if (firstItemSelected < 0 || firstItemSelected >= searchResults.size()) {
-                        return;
-                    }
-                    SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
-                    searchValueInput.setText(selectedSearchResult.getQuery());
-                    doSearch();
-                } catch (Exception ex) {
-                    logger.error("failed to do search", ex);
-                } finally {
-                    lock.unlock();
-                }
+//                if (lock.isLocked()) {
+//                    return;
+//                }
+//                if (!lock.tryLock()) {
+//                    return;
+//                }
+//                List<SearchRecord> searchResults = insidiousService.getConfiguration().getSearchRecords();
+//                try {
+//                    int firstItemSelected = e.getFirstIndex();
+//                    if (firstItemSelected < 0 || firstItemSelected >= searchResults.size()) {
+//                        return;
+//                    }
+//                    SearchRecord selectedSearchResult = searchResults.get(firstItemSelected);
+//                    searchValueInput.setText(selectedSearchResult.getQuery());
+//                    doSearch();
+//                } catch (Exception ex) {
+//                    logger.error("failed to do search", ex);
+//                } finally {
+//                    lock.unlock();
+//                }
             }
         });
 
@@ -158,26 +158,26 @@ public class SearchByValueWindow extends SearchByWindowCommon {
 
     public void updateQueryList() {
 
-        JTableHeader header = this.searchQueryHistoryTable.getTableHeader();
-        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
-        List<SearchRecord> searchQueries = insidiousService.getConfiguration().getSearchRecords();
-        Object[][] searchResultRows = new Object[searchQueries.size()][];
-        Object[] headers = {"Search query", "Time", "# Matched"};
-
-        int i = 0;
-        for (SearchRecord searchRecord : searchQueries) {
-
-            searchResultRows[i] = new String[]{
-                    searchRecord.getQuery(),
-                    searchRecord.getLastQueryDate().toString(),
-                    String.valueOf(searchRecord.getLastSearchResultCount())
-            };
-            i++;
-        }
-
-        searchHistoryTableModel.setDataVector(searchResultRows, headers);
-        this.searchQueryHistoryTable.setModel(searchHistoryTableModel);
-        this.searchQueryHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
+//        JTableHeader header = this.searchQueryHistoryTable.getTableHeader();
+//        header.setFont(new Font("Fira Code", Font.PLAIN, 14));
+//        List<SearchRecord> searchQueries = insidiousService.getConfiguration().getSearchRecords();
+//        Object[][] searchResultRows = new Object[searchQueries.size()][];
+//        Object[] headers = {"Search query", "Time", "# Matched"};
+//
+//        int i = 0;
+//        for (SearchRecord searchRecord : searchQueries) {
+//
+//            searchResultRows[i] = new String[]{
+//                    searchRecord.getQuery(),
+//                    searchRecord.getLastQueryDate().toString(),
+//                    String.valueOf(searchRecord.getLastSearchResultCount())
+//            };
+//            i++;
+//        }
+//
+//        searchHistoryTableModel.setDataVector(searchResultRows, headers);
+//        this.searchQueryHistoryTable.setModel(searchHistoryTableModel);
+//        this.searchQueryHistoryTable.setDefaultRenderer(Object.class, centerRenderer);
 
     }
 }

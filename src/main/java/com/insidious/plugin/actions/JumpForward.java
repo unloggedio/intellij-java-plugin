@@ -12,7 +12,7 @@ public class JumpForward extends AnAction {
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent e) {
-        ServiceManager.getService(InsidiousService.class).getDebugProcess().startStepOver(null);
+        ApplicationManager.getApplication().getService(InsidiousService.class).getDebugProcess().startStepOver(null);
 
     }
 

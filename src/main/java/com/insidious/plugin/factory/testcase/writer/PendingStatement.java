@@ -251,7 +251,7 @@ public class PendingStatement {
                 ClassName classNameType = ClassName.bestGuess(className.split("\\.class")[0]);
                 int matchedStartIndex = parameterString.indexOf(matchedString) + 1;
                 parameterString = parameterString.substring(0, matchedStartIndex) + "any($T.class)" +
-                        parameterString.substring(matchedStartIndex + matchedString.length());
+                        parameterString.substring(matchedStartIndex + matchedString.length() - 1);
 //                parameterString = parameterString.replaceFirst(matchedString, "$T.class");
                 trailingParameters.add(classNameType);
             }
