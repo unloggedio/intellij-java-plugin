@@ -586,6 +586,11 @@ public class DaoService {
                 );
             }
             if (methodCallExpression.getSubject()
+                    .getType() == null) {
+                logger.warn("type for subject of method call [" + dbMce + "] is null [" + methodCallExpression.getSubject() + "]");
+                continue;
+            }
+            if (methodCallExpression.getSubject()
                     .getType()
                     .startsWith("java.util.")) {
                 continue;

@@ -337,6 +337,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         if (name == null) {
             return false;
         }
+        name = name.replace('$', 'D');
         if (this.names.contains(name) || name.startsWith("(") || name.length() < 1) {
             return true;
         }
