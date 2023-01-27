@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class UnloggedTestUtils {
     public static final String UNLOGGED_FIXTURES_PATH = "unlogged-fixtures/";
+    public static final int BUFFER_SIZE = 8192;
     private final static Gson gson = new GsonBuilder().serializeNulls().create();
     public static String testResourceFilePath = null;
     private static JsonObject sourceObject = null;
@@ -41,7 +42,7 @@ public class UnloggedTestUtils {
     public static void readFileJson() throws IOException {
         InputStream inputStream = UnloggedTestUtils.class.getClassLoader().getResourceAsStream(testResourceFilePath);
         assert inputStream != null;
-        String stringSource = toString(inputStream, StandardCharsets.UTF_8);
+        String stringSource = toString(inputStream);
         sourceObject = gson.fromJson(stringSource, JsonObject.class);
     }
 
