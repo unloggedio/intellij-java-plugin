@@ -277,8 +277,10 @@ public class DaoService {
             List<MethodCallExpressionInterface> callsToBuild = mceList.stream()
                     .filter(e -> !constructedValues.contains(
                             e.getSubject()) || testCandidateMetadata.getTestSubject() == e.getSubject())
-                    .filter(e -> !e.getMethodName().equals("<clinit>"))
-                    .filter(e -> !e.getMethodName().equals("intercept"))
+                    .filter(e -> !e.getMethodName()
+                            .equals("<clinit>"))
+                    .filter(e -> !e.getMethodName()
+                            .equals("intercept"))
                     .collect(Collectors.toList());
 
             List<com.insidious.plugin.pojo.MethodCallExpression> callsList = buildFromDbMce(callsToBuild);
@@ -587,7 +589,8 @@ public class DaoService {
             }
             if (methodCallExpression.getSubject()
                     .getType() == null) {
-                logger.warn("type for subject of method call [" + dbMce + "] is null [" + methodCallExpression.getSubject() + "]");
+                logger.warn(
+                        "type for subject of method call [" + dbMce + "] is null [" + methodCallExpression.getSubject() + "]");
                 continue;
             }
             if (methodCallExpression.getSubject()
@@ -710,7 +713,16 @@ public class DaoService {
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
                     && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
-                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc().getString()));
+                returnParam.setTypeForced(ClassTypeUtils.getJavaClassName(eventProbe.getValueDesc()
+                        .getString()));
+            }
+            if (returnParam.getType() != null && returnParam.getType()
+                    .contains("$HibernateProxy")) {
+                returnParam.setTypeForced(
+                        returnParam.getType()
+                                .substring(0, returnParam.getType()
+                                        .indexOf("$Hibernate"))
+                );
             }
             returnParam.setProbeInfo(eventProbe);
             String typeFromProbe = ClassTypeUtils.getDottedClassName(eventProbe.getAttribute("Type", null));
