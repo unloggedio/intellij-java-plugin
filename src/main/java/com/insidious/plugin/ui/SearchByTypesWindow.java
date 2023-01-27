@@ -83,18 +83,18 @@ public class SearchByTypesWindow extends SearchByWindowCommon {
     }
 
     private void doSearch() {
-        clearResultsTable();
-        List<String> exceptionClassnameList = exceptionMap.entrySet()
-                .stream()
-                .filter(Map.Entry::getValue)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-
-        try {
-            insidiousService.doSearch(SearchQuery.ByType(exceptionClassnameList));
-        } catch (Exception e) {
-            logger.error("failed to load sessions for module", e);
-        }
+//        clearResultsTable();
+//        List<String> exceptionClassnameList = exceptionMap.entrySet()
+//                .stream()
+//                .filter(Map.Entry::getValue)
+//                .map(Map.Entry::getKey)
+//                .collect(Collectors.toList());
+//
+//        try {
+//            insidiousService.doSearch(SearchQuery.ByType(exceptionClassnameList));
+//        } catch (Exception e) {
+//            logger.error("failed to load sessions for module", e);
+//        }
 
     }
 

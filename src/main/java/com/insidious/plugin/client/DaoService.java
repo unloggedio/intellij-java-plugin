@@ -25,7 +25,6 @@ import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
-
 import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;

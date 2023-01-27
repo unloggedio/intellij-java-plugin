@@ -2,12 +2,22 @@ package com.insidious.plugin.pojo;
 
 
 import com.intellij.openapi.module.Module;
+
 public class ModuleInformation {
 
     private String name;
     private String type;
     private String path;
     private Module module;
+
+    public ModuleInformation() {
+    }
+
+    public ModuleInformation(String name, String type, String path) {
+        this.name = filerModuleName(name);
+        this.type = type;
+        this.path = filterPath(path);
+    }
 
     public String getName() {
         return name;
@@ -41,35 +51,20 @@ public class ModuleInformation {
         this.module = module;
     }
 
-    public ModuleInformation() {
-    }
-
-    public ModuleInformation(String name, String type, String path) {
-        this.name = filerModuleName(name);
-        this.type = type;
-        this.path = filterPath(path);
-    }
-
-    private String filterPath(String path)
-    {
+    private String filterPath(String path) {
         //project
-        if(path.contains("/.idea"))
-        {
+        if (path.contains("/.idea")) {
             return path.split("/\\.idea")[0];
-        }
-        else
-        {
+        } else {
             //internal module
-            return path.substring(0,path.lastIndexOf("/"));
+            return path.substring(0, path.lastIndexOf("/"));
         }
     }
 
-    private String filerModuleName(String modulename)
-    {
-        if(modulename.contains("."))
-        {
-            String parts[] =  modulename.split("\\.");
-            return parts[parts.length-1];
+    private String filerModuleName(String modulename) {
+        if (modulename.contains(".")) {
+            String parts[] = modulename.split("\\.");
+            return parts[parts.length - 1];
         }
         return modulename;
     }

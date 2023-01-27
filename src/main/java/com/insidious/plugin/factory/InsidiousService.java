@@ -14,7 +14,6 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.VideobugNetworkClient;
 import com.insidious.plugin.client.pojo.DataResponse;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
@@ -23,7 +22,6 @@ import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.extension.connector.InsidiousJDIConnector;
-import com.insidious.plugin.factory.callbacks.SearchResultsCallbackHandler;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
@@ -46,9 +44,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -72,7 +67,6 @@ import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -83,7 +77,6 @@ import java.nio.file.FileSystems;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -100,8 +93,6 @@ final public class InsidiousService implements Disposable {
     private VideobugClientInterface client;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
-    private SearchByTypesWindow searchByTypesWindow;
-    private SearchByValueWindow searchByValueWindow;
     private SingleWindowView singleWindowView;
     private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
@@ -124,12 +115,21 @@ final public class InsidiousService implements Disposable {
     private boolean liveViewAdded = false;
     private Content liveWindowContent;
     private Content onboardingContent;
-    private Map<String,ModuleInformation> moduleMap = new TreeMap<>();
-    public enum PROJECT_BUILD_SYSTEM {MAVEN,GRADLE,DEF}
-    private String selectedModule=null;
+    private Map<String, ModuleInformation> moduleMap = new TreeMap<>();
+    private String selectedModule = null;
 
     public InsidiousService() {
         logger.info("starting insidious service");
+
+//        Module module = ModuleManager.getInstance(project)
+//                .getModules()[0];
+
+//        @NotNull LibraryTable libraryTable = ModuleRootManager.getInstance(module)
+//                .getModifiableModel()
+//                .getModuleLibraryTable();
+//        @NotNull Library library = libraryTable.createLibrary("library ?");
+//        library.getModifiableModel()
+//        ModuleRootModificationUtil.addDependency(module, library);
 //        start();
     }
 
@@ -197,6 +197,15 @@ final public class InsidiousService implements Disposable {
                 .getSystemClipboard();
         clipboard.setContents(selection, selection);
         System.out.println(selection);
+    }
+
+    private XDebugSession getActiveDebugSession(XDebugSession[] debugSessions) {
+        for (XDebugSession session : debugSessions) {
+            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
+                return session;
+            }
+        }
+        return null;
     }
 
 //    private void setupNewExceptionListener() {
@@ -269,15 +278,6 @@ final public class InsidiousService implements Disposable {
 ////        });
 //    }
 
-    private XDebugSession getActiveDebugSession(XDebugSession[] debugSessions) {
-        for (XDebugSession session : debugSessions) {
-            if (session.getDebugProcess() instanceof InsidiousJavaDebugProcess) {
-                return session;
-            }
-        }
-        return null;
-    }
-
     public void checkAndEnsureJavaAgentCache() {
         checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
             @Override
@@ -348,7 +348,8 @@ final public class InsidiousService implements Disposable {
     private List<Module> selectJavaModules(List<Module> modules)
     {
         return modules.stream()
-                .filter(module -> module.getModuleTypeName().equals("JAVA_MODULE"))
+                .filter(module -> modules.get(0).getModuleTypeName() == null || module.getModuleTypeName().equals(
+                        "JAVA_MODULE"))
                 .collect(Collectors.toList());
     }
 
@@ -370,57 +371,48 @@ final public class InsidiousService implements Disposable {
         }
     }
 
-    private void registerModules_Manual(List<String> modules)
-    {
-        for(String module : modules)
-        {
-            if(this.selectedModule==null)
-            {
-                this.selectedModule=module;
+    private void registerModules_Manual(List<String> modules) {
+        for (String module : modules) {
+            if (this.selectedModule == null) {
+                this.selectedModule = module;
             }
             ModuleInformation info = new ModuleInformation();
             info.setName(module);
-            if(!this.moduleMap.containsKey(module))
-            {
-                this.moduleMap.put(info.getName(),info);
+            if (!this.moduleMap.containsKey(module)) {
+                this.moduleMap.put(info.getName(), info);
             }
         }
     }
 
-    public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename)
-    {
-        Module module = moduleMap.get(modulename).getModule();
+    public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename) {
+        Module module = moduleMap.get(modulename)
+                .getModule();
         System.out.println("Fetching build system type");
-        System.out.println("MODULE - > "+module.toString());
-        System.out.println("MOD MAP - > "+moduleMap.toString());
+        System.out.println("MODULE - > " + module.toString());
+        System.out.println("MOD MAP - > " + moduleMap.toString());
 
         PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
                 GlobalSearchScope.moduleScope(module));
-        if(pomFileSearchResult.length>0 || moduleHasFileOfType(modulename, "pom.xml"))
-        {
+        if (pomFileSearchResult.length > 0 || moduleHasFileOfType(modulename, "pom.xml")) {
             return PROJECT_BUILD_SYSTEM.MAVEN;
         }
         PsiFile[] gradleSearchResults = FilenameIndex.getFilesByName(project, "build.gradle",
-                GlobalSearchScope.moduleScope(moduleMap.get(modulename).getModule()));
-        if(gradleSearchResults.length>0 || moduleHasFileOfType(modulename, "build.gradle"))
-        {
+                GlobalSearchScope.moduleScope(moduleMap.get(modulename)
+                        .getModule()));
+        if (gradleSearchResults.length > 0 || moduleHasFileOfType(modulename, "build.gradle")) {
             return PROJECT_BUILD_SYSTEM.GRADLE;
         }
         return PROJECT_BUILD_SYSTEM.DEF;
     }
 
-    public List<String> fetchModules()
-    {
+    public List<String> fetchModules() {
         List<Module> modules = Arrays.asList(ModuleManager.getInstance(project)
                 .getModules());
         modules = selectJavaModules(modules);
-        if(modules.size()>0)
-        {
+        if (modules.size() > 0) {
             registerModules(modules);
             return new ArrayList<>(this.moduleMap.keySet());
-        }
-        else
-        {
+        } else {
             try {
                 logger.info("Fetching from POM.xml/settings.gradle");
                 Set<String> modules_from_pg = fetchModuleNamesFromFiles();
@@ -628,7 +620,6 @@ final public class InsidiousService implements Disposable {
         return m.matches();
     }
 
-
     private void setupProject() {
 
         if (currentModule == null) {
@@ -692,6 +683,10 @@ final public class InsidiousService implements Disposable {
 
     public void createProject(String projectName, NewProjectCallback newProjectCallback) {
         this.client.createProject(projectName, newProjectCallback);
+    }
+
+    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
+        this.client.getProjectToken(projectTokenCallback);
     }
 
 //    public void generateTestCases(ObjectWithTypeInfo object) throws Exception {
@@ -811,10 +806,6 @@ final public class InsidiousService implements Disposable {
 //
 //
 //    }
-
-    public void getProjectToken(ProjectTokenCallback projectTokenCallback) {
-        this.client.getProjectToken(projectTokenCallback);
-    }
 
     public String fetchPathToSaveTestCase(TestCaseUnit testCaseScript) {
         StringBuilder sb = new StringBuilder(testCaseScript.getClassName()
@@ -1086,7 +1077,7 @@ final public class InsidiousService implements Disposable {
                     .getClassLoader()
                     .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
 
-            if (projectTypeInfo.getUsesGson() != null && projectTypeInfo.getUsesGson() == true) {
+            if (projectTypeInfo.getUsesGson()) {
                 if (jacksonDatabindVersion == null)
                     testUtilClassCode = this.getClass()
                             .getClassLoader()
@@ -1104,158 +1095,6 @@ final public class InsidiousService implements Disposable {
                         .toString());
 
         newFile.refresh(true, false);
-
-//        @Nullable PsiFile testFilePsiInstance = PsiManager.getInstance(project).findFile(newFile);
-//        @NotNull Collection<? extends TextRange> ranges = ContainerUtil.newArrayList(testFilePsiInstance.getTextRange());
-//        CodeStyleManager.getInstance(project).reformatText(testFilePsiInstance, ranges);
-
-//        @NotNull PsiElement formattedCode = CodeStyleManagerImpl.getInstance(project).reformat(testFilePsiInstance);
-
-    }
-
-    public void doSearch(SearchQuery searchQuery) throws APICallException, IOException, SQLException {
-
-
-        refreshSession();
-        if (this.client.getCurrentSession() == null) {
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("Get" + searchQuery.getQueryType() + "NoSession", null);
-            loadSession();
-            return;
-        }
-
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("query", searchQuery.getQuery());
-        eventProperties.put("sessionId", client.getCurrentSession()
-                .getSessionId());
-        eventProperties.put("projectId", client.getCurrentSession()
-                .getProjectId());
-        UsageInsightTracker.getInstance()
-                .RecordEvent("GetTracesByValue", eventProperties);
-
-        ApplicationManager.getApplication()
-                .getService(InsidiousConfigurationState.class)
-                .addSearchQuery((String) searchQuery.getQuery(),
-                        0);
-        searchByValueWindow.updateQueryList();
-
-        long start = System.currentTimeMillis();
-        SearchResultsCallbackHandler searchResultsHandler = new SearchResultsCallbackHandler(searchQuery);
-
-        ProgressManager.getInstance()
-                .run(new Task.Modal(project, "Unlogged", true) {
-                    public void run(@NotNull ProgressIndicator indicator) {
-
-                        List<ExecutionSession> sessionList =
-                                null;
-                        try {
-                            sessionList = client.fetchProjectSessions()
-                                    .getItems();
-                        } catch (APICallException | IOException e) {
-                            InsidiousNotification.notifyMessage("Failed to get " +
-                                    "project sessions", NotificationType.ERROR);
-                            return;
-                        }
-                        if (sessionList.size() > 10) {
-                            sessionList = sessionList.subList(0, 10);
-                        }
-
-
-                        indicator.setText("Searching across " + sessionList.size() + " session");
-                        indicator.setText2("Filtering by class types");
-                        AtomicInteger done = new AtomicInteger(0);
-
-                        for (ExecutionSession executionSession : sessionList) {
-                            switch (searchQuery.getQueryType()) {
-                                case BY_TYPE:
-                                    client.queryTracePointsByTypes(searchQuery, executionSession.getSessionId(), -1,
-                                            searchResultsHandler);
-                                    break;
-                                case BY_VALUE:
-                                    client.queryTracePointsByValue(searchQuery, executionSession.getSessionId(),
-                                            searchResultsHandler);
-                                    break;
-                                case BY_PROBE:
-                                    client.queryTracePointsByEventType(searchQuery,
-                                            executionSession.getSessionId(), searchResultsHandler);
-                                    break;
-                            }
-
-                        }
-
-                        while (client instanceof VideobugNetworkClient &&
-                                searchResultsHandler.getDoneCount() != sessionList.size()) {
-                            try {
-                                Thread.sleep(300);
-                            } catch (InterruptedException e) {
-                                throw new ProcessCanceledException(e);
-                            }
-                        }
-
-                        if (searchQuery.getQueryType()
-                                .equals(QueryType.BY_TYPE)) {
-                            searchByTypesWindow.addTracePoints(searchResultsHandler.getResults());
-                        } else {
-                            searchByValueWindow.addTracePoints(searchResultsHandler.getResults());
-                            ApplicationManager.getApplication()
-                                    .getService(InsidiousConfigurationState.class)
-                                    .addSearchQuery((String) searchQuery.getQuery(),
-                                            searchResultsHandler.getResults()
-                                                    .size());
-                            searchByValueWindow.updateQueryList();
-                        }
-
-                        if (searchResultsHandler.getResults()
-                                .size() == 0) {
-
-                            JSONObject eventProperties = new JSONObject();
-                            eventProperties.put("query", searchQuery.getQuery());
-                            UsageInsightTracker.getInstance()
-                                    .RecordEvent("NoResult" + searchQuery.getQueryType(), eventProperties);
-
-                            InsidiousNotification.notifyMessage("No data events matched", NotificationType.INFORMATION);
-                        }
-
-                    }
-                });
-
-
-    }
-
-    private synchronized void startDebugSession() {
-//        logger.info("start debug session");
-//        if (true) {
-//            return;
-//        }
-//
-//        debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
-//                .getDebugSessions());
-//
-//
-//        if (debugSession != null) {
-//            return;
-//        }
-//        JSONObject eventProperties = new JSONObject();
-//        eventProperties.put("module", currentModule.getName());
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("StartDebugSession", eventProperties);
-//
-//        @NotNull RunConfiguration runConfiguration = ConfigurationTypeUtil.findConfigurationType(
-//                        InsidiousRunConfigType.class)
-//                .createTemplateConfiguration(project);
-//
-//        ApplicationManager.getApplication()
-//                .invokeLater(() -> {
-//                    try {
-//                        ExecutionEnvironment env = ExecutionEnvironmentBuilder.create(project, new InsidiousExecutor(),
-//                                        runConfiguration)
-//                                .build();
-//                        ProgramRunnerUtil.executeConfiguration(env, false, false);
-//                    } catch (Throwable e) {
-//                        logger.error("failed to execute configuration", e);
-//                    }
-//                });
-
 
     }
 
@@ -1374,29 +1213,29 @@ final public class InsidiousService implements Disposable {
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
 
-            liveViewWindow = new LiveViewWindow(project, this);
-            liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-            liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-            liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
+        liveViewWindow = new LiveViewWindow(project, this);
+        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
+        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
 
-            onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
-            onboardingConfigurationWindowContent = contentFactory.createContent(
-                    onboardingConfigurationWindow.getContent(), "Get Started", false);
+        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
+        onboardingConfigurationWindowContent = contentFactory.createContent(
+                onboardingConfigurationWindow.getContent(), "Get Started", false);
 
-            singleWindowView = new SingleWindowView(project, this);
-            singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+        singleWindowView = new SingleWindowView(project, this);
+        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
 
-            onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-            onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
-            contentManager.addContent(onboardingConfigurationWindowContent);
-            setupProject();
+        onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
+        contentManager.addContent(onboardingConfigurationWindowContent);
+        setupProject();
 
-            if (areLogsPresent()) {
-                contentManager.addContent(liveWindowContent);
-                contentManager.setSelectedContent(liveWindowContent, true);
-                liveViewAdded = true;
-            }
+        if (areLogsPresent()) {
+            contentManager.addContent(liveWindowContent);
+            contentManager.setSelectedContent(liveWindowContent, true);
+            liveViewAdded = true;
+        }
         //}
 
 //        Content rawViewContent2 = contentManager.findContent("Raw");
@@ -1595,7 +1434,6 @@ final public class InsidiousService implements Disposable {
                 .getService(InsidiousConfigurationState.class).exceptionClassMap = exceptionClassList;
     }
 
-
     public VideobugClientInterface getClient() {
         return client;
     }
@@ -1604,14 +1442,6 @@ final public class InsidiousService implements Disposable {
         this.toolWindow = toolWindow;
         init(project, toolWindow);
     }
-
-//    public Map<String, Boolean> getDefaultExceptionClassList() {
-//        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).exceptionClassMap;
-//    }
-
-//    public InsidiousConfigurationState getConfiguration() {
-//        return insidiousConfiguration;
-//    }
 
     public void ensureAgentJar(boolean overwrite) {
         checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {
@@ -1627,6 +1457,14 @@ final public class InsidiousService implements Disposable {
             }
         });
     }
+
+//    public Map<String, Boolean> getDefaultExceptionClassList() {
+//        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class).exceptionClassMap;
+//    }
+
+//    public InsidiousConfigurationState getConfiguration() {
+//        return insidiousConfiguration;
+//    }
 
     public void refreshSession() throws APICallException, IOException, SQLException {
         logger.info("fetch latest session for module: " + currentModule.getName());
@@ -1678,7 +1516,6 @@ final public class InsidiousService implements Disposable {
             currentModule = null;
         }
     }
-
 
     public void generateAndUploadReport() {
         UsageInsightTracker.getInstance()
@@ -1762,7 +1599,7 @@ final public class InsidiousService implements Disposable {
                     .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
 
             // if project only uses Gson inject Gson else prefer jackson
-            if (projectTypeInfo.getUsesGson() != null && projectTypeInfo.getUsesGson() == true) {
+            if (projectTypeInfo.getUsesGson()) {
                 if (jacksonDatabindVersion == null)
                     testUtilClassCode = this.getClass()
                             .getClassLoader()
@@ -1787,7 +1624,6 @@ final public class InsidiousService implements Disposable {
 //        @NotNull PsiElement formattedCode = CodeStyleManagerImpl.getInstance(project).reformat(testFilePsiInstance);
 
     }
-
 
     public void attachRawView() {
         if (rawViewAdded) {
@@ -1867,78 +1703,74 @@ final public class InsidiousService implements Disposable {
         start();
     }
 
-    public void setCurrentModule(String module)
-    {
-        this.selectedModule=module;
+    public void setCurrentModule(String module) {
+        this.selectedModule = module;
     }
 
-    public String getSelectedModule() {
+    public String getSelectedModuleName() {
         return selectedModule;
     }
 
+    public ModuleInformation getSelectedModuleInstance() {
+        return moduleMap.get(selectedModule);
+    }
+
     public PsiFile getTargetFileForModule(String selectedModule, PROJECT_BUILD_SYSTEM type) {
-        Module module = moduleMap.get(selectedModule).getModule();
-        PsiFile[] searchResult=null;
+        Module module = moduleMap.get(selectedModule)
+                .getModule();
+        PsiFile[] searchResult = null;
         String fileToSearch;
-        if(type.equals(PROJECT_BUILD_SYSTEM.MAVEN))
-        {
+        if (type.equals(PROJECT_BUILD_SYSTEM.MAVEN)) {
             fileToSearch = "pom.xml";
         } else if (type.equals(PROJECT_BUILD_SYSTEM.GRADLE)) {
             fileToSearch = "build.gradle";
-        }
-        else {
+        } else {
             return null;
         }
-        if(module!=null)
-        {
+        if (module != null) {
             searchResult = FilenameIndex.getFilesByName(project, fileToSearch,
                     GlobalSearchScope.moduleScope(module));
         }
-        if(searchResult!=null && searchResult.length==0)
-        {
+        if (searchResult != null && searchResult.length == 0) {
             searchResult = FilenameIndex.getFilesByName(project, fileToSearch,
                     GlobalSearchScope.projectScope(project));
-            searchResult = findFilesUnderModule(getSelectedModule(),searchResult);
+            searchResult = findFilesUnderModule(getSelectedModuleName(), searchResult);
         }
         if (searchResult.length > 1) {
             return fetchBaseFile(searchResult);
-        }
-        else
-        {
-            if(searchResult.length>0)
-            {
+        } else {
+            if (searchResult.length > 0) {
                 return searchResult[0];
             }
         }
         return null;
     }
 
-    private PsiFile[] findFilesUnderModule(String module, PsiFile[] files)
-    {
+    private PsiFile[] findFilesUnderModule(String module, PsiFile[] files) {
         List<PsiFile> res = new ArrayList<>();
-        for(int i=0;i<files.length;i++)
-        {
-            if(files[i].getVirtualFile().getPath().contains(module))
-            {
+        for (int i = 0; i < files.length; i++) {
+            if (files[i].getVirtualFile()
+                    .getPath()
+                    .contains(module)) {
                 res.add(files[i]);
             }
         }
         return res.toArray(new PsiFile[res.size()]);
     }
 
-    public boolean moduleHasFileOfType(String module, String key)
-    {
+    public boolean moduleHasFileOfType(String module, String key) {
         PsiFile[] searchResult = FilenameIndex.getFilesByName(project, key,
                 GlobalSearchScope.projectScope(project));
-        for(int i=0;i<searchResult.length;i++)
-        {
-            if(searchResult[i].getVirtualFile().getPath().contains(module))
-            {
+        for (int i = 0; i < searchResult.length; i++) {
+            if (searchResult[i].getVirtualFile()
+                    .getPath()
+                    .contains(module)) {
                 return true;
             }
         }
         return false;
     }
+
     public PsiFile fetchBaseFile(PsiFile[] files) {
         Map<Integer, PsiFile> sizemaps = new HashMap<>();
         for (PsiFile file : files) {
@@ -1951,4 +1783,6 @@ final public class InsidiousService implements Disposable {
         Collections.sort(keys);
         return sizemaps.get(keys.get(0));
     }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

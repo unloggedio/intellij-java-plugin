@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.util.Strings;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -119,7 +120,7 @@ public class Obv3_CardParent implements CardSelectionActionListener{
             return;
         }
         Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.ADD_DEPENDENCIES,this.dependenciesToAdd.toString());
+        action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.ADD_DEPENDENCIES, Strings.join(this.dependenciesToAdd, ","));
         if(shouldAddAction(action))
         {
             actions.add(action);

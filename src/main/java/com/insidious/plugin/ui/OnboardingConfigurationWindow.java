@@ -3,6 +3,7 @@ package com.insidious.plugin.ui;
 import com.insidious.plugin.Checksums;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.DependencyService;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -24,7 +25,6 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
-import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
@@ -313,25 +313,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return version;
     }
 
-    public String[] trimVersions(String[] versions) {
-        String[] trimmedVersions = new String[versions.length];
-        for (int i = 0; i < versions.length; i++) {
-            String versionParts[] = versions[i].split("\\.");
-            if (versionParts.length > 2) {
-                trimmedVersions[i] = versionParts[0] + "." + versionParts[1];
-            } else {
-                trimmedVersions[i] = versions[i];
-            }
-        }
-        return trimmedVersions;
-    }
-
     public boolean shouldDownloadAgent() {
         if (!insidiousService.getProjectTypeInfo()
                 .isDownloadAgent()) {
             return false;
         }
-        Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
+        Path fileURiString = Constants.VIDEOBUG_AGENT_PATH;
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
         File agentFile = new File(absolutePath);
@@ -358,7 +345,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             return;
         }
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.1-SNAPSHOT-";
+        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = insidiousService.getProjectTypeInfo()
                 .getDefaultAgentType();
         String extention = ".jar";
@@ -383,7 +370,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent(String version) {
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.1-SNAPSHOT-";
+        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
@@ -400,7 +387,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         logger.info("[Starting agent download]");
         UsageInsightTracker.getInstance()
                 .RecordEvent("AgentDownloadStart", null);
-        Path fileURiString = Path.of(Constants.VIDEOBUG_AGENT_PATH.toUri());
+        Path fileURiString = Constants.VIDEOBUG_AGENT_PATH;
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();
 
@@ -797,7 +784,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     @Override
-    public void postProcessDependencies(Map<String, String> dependencies, HashSet<String> selections) {
+    public void postProcessDependencies(Map<String, String> dependencies, Set<String> selections) {
         TreeMap<String, String> dependencies_local = new TreeMap<>();
         for (String dep : selections) {
             if (dependencies.containsKey(dep)) {
@@ -808,24 +795,27 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
         }
-        System.out.println("CURRENT MODULE -> before writing :"+insidiousService.getSelectedModule());
-        if (insidiousService.
-                findBuildSystemForModule(insidiousService.getSelectedModule())
-                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
-            System.out.println("[WRTITING TO POM]");
-            writeToPom(dependencies_local);
-        } else {
-            //check if has build.gradle
-            if (insidiousService.
-                    findBuildSystemForModule(insidiousService.getSelectedModule())
-                    .equals(InsidiousService.PROJECT_BUILD_SYSTEM.GRADLE)) {
-                System.out.println("[WRTITING TO GRADLE]");
-                writeToGradle(dependencies_local);
-            } else {
-                //add to lib
-                System.out.println("[NOT MVN OR GRADLE]");
-            }
-        }
+        System.out.println("CURRENT MODULE -> before writing :" + insidiousService.getSelectedModuleName());
+        new DependencyService().addDependency(project, selections,
+                insidiousService.getSelectedModuleInstance(), insidiousService.getProjectTypeInfo());
+
+//        if (insidiousService.
+//                findBuildSystemForModule(insidiousService.getSelectedModuleName())
+//                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
+//            System.out.println("[WRTITING TO POM]");
+//            writeToPom(dependencies_local);
+//        } else {
+//            //check if has build.gradle
+//            if (insidiousService.
+//                    findBuildSystemForModule(insidiousService.getSelectedModuleName())
+//                    .equals(InsidiousService.PROJECT_BUILD_SYSTEM.GRADLE)) {
+//                System.out.println("[WRTITING TO GRADLE]");
+//                writeToGradle(dependencies_local);
+//            } else {
+//                //add to lib
+//                System.out.println("[NOT MVN OR GRADLE]");
+//            }
+//        }
         //postprocessCheck();
     }
 
@@ -835,16 +825,15 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public boolean writeToGradle(TreeMap<String, String> dependencies) {
-        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
-                GlobalSearchScope.projectScope(project));
         PsiFile targetFile;
-        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModule(), InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
-        if(targetFile==null)
-        {
+        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModuleName(),
+                InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+        if (targetFile == null) {
             return false;
         }
 
-        System.out.println("Writing into Gradle file |||| -> "+targetFile.getVirtualFile().getPath());
+        System.out.println("Writing into Gradle file |||| -> " + targetFile.getVirtualFile()
+                .getPath());
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
@@ -880,14 +869,15 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         sb.append("\n");
         PsiFile targetFile;
 
-        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModule(), InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModuleName(),
+                InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
 
-        if(targetFile==null)
-        {
+        if (targetFile == null) {
             return false;
         }
 
-        System.out.println("Writing into POM file |||| -> "+targetFile.getVirtualFile().getPath());
+        System.out.println("Writing into POM file |||| -> " + targetFile.getVirtualFile()
+                .getPath());
 
         for (String dependency : dependencies.keySet()) {
             if (!shouldWriteDependency(targetFile, dependency) ||
@@ -1086,7 +1076,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 group_id = "com.fasterxml.jackson.datatype";
                 break;
         }
-        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModule())
+        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModuleName())
                 .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
         if (isMaven) {
             sb.append("<dependency>\n");

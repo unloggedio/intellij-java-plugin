@@ -78,21 +78,21 @@ public class SearchByValueWindow extends SearchByWindowCommon {
 
     private void doSearch() {
 
-        if (searchValueInput.getText().equals("")) {
-            Notifications.Bus.notify(
-                    InsidiousNotification.balloonNotificationGroup
-                            .createNotification("Cannot search with empty string", NotificationType.ERROR),
-                    project);
-            return;
-        }
-        this.clearResultsTable();
-        try {
-            updateQueryList();
-            insidiousService.doSearch(SearchQuery.ByValue(searchValueInput.getText()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Failed to refresh sessions", e);
-        }
+//        if (searchValueInput.getText().equals("")) {
+//            Notifications.Bus.notify(
+//                    InsidiousNotification.balloonNotificationGroup
+//                            .createNotification("Cannot search with empty string", NotificationType.ERROR),
+//                    project);
+//            return;
+//        }
+//        this.clearResultsTable();
+//        try {
+//            updateQueryList();
+//            insidiousService.doSearch(SearchQuery.ByValue(searchValueInput.getText()));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            logger.error("Failed to refresh sessions", e);
+//        }
 
     }
 

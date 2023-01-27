@@ -1,14 +1,14 @@
 package com.insidious.plugin.factory;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface OnboardingService {
 
     Map<String, String> fetchMissingDependencies();
 
-    void postProcessDependencies(Map<String, String> missing, HashSet<String> selectedDependencies);
+    void postProcessDependencies(Map<String, String> missing, Set<String> selectedDependencies);
 
     Map<String, String> getDependencyStatus();
 

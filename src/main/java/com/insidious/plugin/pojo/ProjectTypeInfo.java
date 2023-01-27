@@ -14,13 +14,13 @@ public class ProjectTypeInfo {
     private List<Map<String, String>> serializers = new ArrayList<>();
     private String jacksonDatabindVersion = null;
     private Set<String> dependencies_addedManually = new HashSet<>();
-    private Boolean usesGson = null;
+    private boolean usesGson = false;
 
-    public Boolean getUsesGson() {
+    public boolean getUsesGson() {
         return usesGson;
     }
 
-    public void setUsesGson(Boolean usesGson) {
+    public void setUsesGson(boolean usesGson) {
         this.usesGson = usesGson;
     }
 
@@ -74,8 +74,8 @@ public class ProjectTypeInfo {
         dependenciesToWatch.add("jackson-datatype-joda");
         dependenciesToWatch.add("jackson-datatype-jdk8");
         dependenciesToWatch.add("jackson-databind");
+        dependenciesToWatch.add("jackson-core");
         dependenciesToWatch.add("gson");
-        dependenciesToWatch.add("commons-io");
         dependenciesToWatch.add("jackson-datatype-jsr310");
         return dependenciesToWatch;
     }
@@ -92,10 +92,9 @@ public class ProjectTypeInfo {
         return downloadAgent;
     }
 
-    public enum RUN_TYPES {INTELLIJ_APPLICATION, MAVEN_CLI, GRADLE_CLI, JAVA_JAR_CLI}
-
-    public RUN_TYPES[] getAllRunTypes()
-    {
+    public RUN_TYPES[] getAllRunTypes() {
         return RUN_TYPES.values();
     }
+
+    public enum RUN_TYPES {INTELLIJ_APPLICATION, MAVEN_CLI, GRADLE_CLI, JAVA_JAR_CLI}
 }

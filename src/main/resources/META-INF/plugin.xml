@@ -24,7 +24,9 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xdebugger</depends>
     <depends>com.intellij.modules.java</depends>
-
+    <depends>org.jetbrains.idea.maven</depends>
+    <depends>org.jetbrains.plugins.gradle</depends>
+    <depends>org.jetbrains.plugins.gradle.maven</depends>
     <actions>
         <!-- Add your actions here -->
 
