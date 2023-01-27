@@ -76,6 +76,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     switch (parts[0]) {
                         case "module":
                             this.status.setCurrentModule(parts[1]);
+                            onboardingService.setSelectedModule(parts[1]);
                             updateVMParams(parts[1]);
                             break;
                         case "addopens":

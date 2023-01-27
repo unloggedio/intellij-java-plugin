@@ -12,8 +12,6 @@ import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
@@ -233,64 +231,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     @Override
     public List<String> fetchModules() {
-        List<Module> modules = Arrays.asList(ModuleManager.getInstance(project)
-                .getModules());
-        Set<String> modules_from_mm = new HashSet<>();
-        for (Module module : modules) {
-            modules_from_mm.add(module.getName());
-        }
-        //System.out.println(modules);
-        try {
-            logger.info("Fetching from POM.xml/settings.gradle");
-            Set<String> modules_from_pg = insidiousService.fetchModuleNames();
-            if (modules_from_pg == null) {
-                logger.warn("module from fetch module name is null");
-            } else {
-                modules_from_mm.addAll(modules_from_pg);
-            }
-        } catch (Exception e) {
-            logger.error("Exception fetching modules " + e);
-            e.printStackTrace();
-            if (modules.size() > 0) {
-                List<String> modules_s = new ArrayList<>();
-                for (Module module : modules) {
-                    modules_s.add(module.getName());
-                }
-            }
-        }
-        return new ArrayList<>(filterModules(modules_from_mm));
+        return insidiousService.fetchModules();
     }
 
-    private Set<String> filterModules(Set<String> modules) {
-        Set<String> final_Modules = new TreeSet<>();
-        for (String module : modules) {
-            if (!(module.endsWith(".main") || module.endsWith(".test"))) {
-                String[] parts = module.split("\\.");
-                String module_last = parts[parts.length - 1];
-                if (isValidJavaModule(module_last)) {
-                    final_Modules.add(module_last);
-                }
-            }
-        }
-        return final_Modules;
-    }
-
-    public boolean isValidJavaModule(String modulename) {
-        Collection<VirtualFile> virtualFiles =
-                FileBasedIndex.getInstance()
-                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
-                                GlobalSearchScope.projectScope(project));
-        List<String> components = new ArrayList<String>();
-        for (VirtualFile vf : virtualFiles) {
-            PsiFile psifile = PsiManager.getInstance(project)
-                    .findFile(vf);
-            if (psifile instanceof PsiJavaFile && vf.getPath()
-                    .contains(modulename)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     @Override
     public String fetchBasePackage() {
@@ -714,6 +657,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
+    @Override
+    public void setSelectedModule(String module) {
+        insidiousService.setCurrentModule(module);
+    }
+
     private Map<String, String> computeMissingDependenciesFromStatus(Map<String, String> deps) {
         Map<String, String> missing = new TreeMap<>();
         for (String dep : deps.keySet()) {
@@ -860,13 +808,17 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
         }
-        if (insidiousService.getProjectTypeInfo()
-                .isMaven()) {
+        System.out.println("CURRENT MODULE -> before writing :"+insidiousService.getSelectedModule());
+        if (insidiousService.
+                findBuildSystemForModule(insidiousService.getSelectedModule())
+                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
             System.out.println("[WRTITING TO POM]");
             writeToPom(dependencies_local);
         } else {
             //check if has build.gradle
-            if (true) {
+            if (insidiousService.
+                    findBuildSystemForModule(insidiousService.getSelectedModule())
+                    .equals(InsidiousService.PROJECT_BUILD_SYSTEM.GRADLE)) {
                 System.out.println("[WRTITING TO GRADLE]");
                 writeToGradle(dependencies_local);
             } else {
@@ -886,13 +838,13 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
                 GlobalSearchScope.projectScope(project));
         PsiFile targetFile;
-        if (gradleFileSearchResult.length == 1) {
-            targetFile = gradleFileSearchResult[0];
-        } else if (gradleFileSearchResult.length > 1) {
-            targetFile = fetchBaseFile(gradleFileSearchResult);
-        } else {
+        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModule(), InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+        if(targetFile==null)
+        {
             return false;
         }
+
+        System.out.println("Writing into Gradle file |||| -> "+targetFile.getVirtualFile().getPath());
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
@@ -919,7 +871,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             logger.info("Noting to write into build.gradle");
             return false;
         }
-        write_gradle(targetFile, sb.toString());
+        writeGradle(targetFile, sb.toString());
         return true;
     }
 
@@ -927,15 +879,15 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         StringBuilder sb = new StringBuilder();
         sb.append("\n");
         PsiFile targetFile;
-        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
-                GlobalSearchScope.projectScope(project));
-        if (pomFileSearchResult.length == 1) {
-            targetFile = pomFileSearchResult[0];
-        } else if (pomFileSearchResult.length > 1) {
-            targetFile = fetchBaseFile(pomFileSearchResult);
-        } else {
+
+        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModule(), InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+
+        if(targetFile==null)
+        {
             return false;
         }
+
+        System.out.println("Writing into POM file |||| -> "+targetFile.getVirtualFile().getPath());
 
         for (String dependency : dependencies.keySet()) {
             if (!shouldWriteDependency(targetFile, dependency) ||
@@ -961,12 +913,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             logger.info("Noting to write into pox.xml");
             return false;
         }
-        write_pom(targetFile, sb.toString());
+        writePom(targetFile, sb.toString());
         return true;
     }
 
     //use dom?
-    void write_pom(PsiFile psipomFile, String text) {
+    void writePom(PsiFile psipomFile, String text) {
         try {
             VirtualFile file = psipomFile.getVirtualFile();
             File pomFile = new File(file.getPath());
@@ -1010,7 +962,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-    void write_gradle(PsiFile psiGradleFile, String text) {
+    void writeGradle(PsiFile psiGradleFile, String text) {
         try {
             VirtualFile file = psiGradleFile.getVirtualFile();
             File pomFile = new File(file.getPath());
@@ -1134,8 +1086,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 group_id = "com.fasterxml.jackson.datatype";
                 break;
         }
-        if (insidiousService.getProjectTypeInfo()
-                .isMaven()) {
+        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModule())
+                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+        if (isMaven) {
             sb.append("<dependency>\n");
             sb.append("<groupId>" + group_id + "</groupId>\n");
             sb.append("<artifactId>" + artifact_id + "</artifactId>\n");

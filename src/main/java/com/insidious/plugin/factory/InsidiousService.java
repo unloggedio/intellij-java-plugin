@@ -32,6 +32,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
@@ -56,6 +57,8 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiManager;
+import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
@@ -63,6 +66,7 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
+import com.intellij.util.indexing.FileBasedIndex;
 import com.intellij.xdebugger.XDebugSession;
 import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
@@ -82,6 +86,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable {
@@ -119,6 +124,9 @@ final public class InsidiousService implements Disposable {
     private boolean liveViewAdded = false;
     private Content liveWindowContent;
     private Content onboardingContent;
+    private Map<String,ModuleInformation> moduleMap = new TreeMap<>();
+    public enum PROJECT_BUILD_SYSTEM {MAVEN,GRADLE,DEF}
+    private String selectedModule=null;
 
     public InsidiousService() {
         logger.info("starting insidious service");
@@ -337,8 +345,134 @@ final public class InsidiousService implements Disposable {
 
     }
 
+    private List<Module> selectJavaModules(List<Module> modules)
+    {
+        return modules.stream()
+                .filter(module -> module.getModuleTypeName().equals("JAVA_MODULE"))
+                .collect(Collectors.toList());
+    }
+
+    private void registerModules(List<Module> modules)
+    {
+        for(Module module : modules)
+        {
+            if(module.getName().endsWith(".main") || module.getName().endsWith(".test"))
+            {
+                continue;
+            }
+            ModuleInformation info = new ModuleInformation(module.getName(),module.getModuleTypeName(),module.getModuleFilePath());
+            info.setModule(module);
+            if(selectedModule==null)
+            {
+                selectedModule=info.getName();
+            }
+            this.moduleMap.put(info.getName(),info);
+        }
+    }
+
+    private void registerModules_Manual(List<String> modules)
+    {
+        for(String module : modules)
+        {
+            if(this.selectedModule==null)
+            {
+                this.selectedModule=module;
+            }
+            ModuleInformation info = new ModuleInformation();
+            info.setName(module);
+            if(!this.moduleMap.containsKey(module))
+            {
+                this.moduleMap.put(info.getName(),info);
+            }
+        }
+    }
+
+    public PROJECT_BUILD_SYSTEM findBuildSystemForModule(String modulename)
+    {
+        Module module = moduleMap.get(modulename).getModule();
+        System.out.println("Fetching build system type");
+        System.out.println("MODULE - > "+module.toString());
+        System.out.println("MOD MAP - > "+moduleMap.toString());
+
+        PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
+                GlobalSearchScope.moduleScope(module));
+        if(pomFileSearchResult.length>0 || moduleHasFileOfType(modulename, "pom.xml"))
+        {
+            return PROJECT_BUILD_SYSTEM.MAVEN;
+        }
+        PsiFile[] gradleSearchResults = FilenameIndex.getFilesByName(project, "build.gradle",
+                GlobalSearchScope.moduleScope(moduleMap.get(modulename).getModule()));
+        if(gradleSearchResults.length>0 || moduleHasFileOfType(modulename, "build.gradle"))
+        {
+            return PROJECT_BUILD_SYSTEM.GRADLE;
+        }
+        return PROJECT_BUILD_SYSTEM.DEF;
+    }
+
+    public List<String> fetchModules()
+    {
+        List<Module> modules = Arrays.asList(ModuleManager.getInstance(project)
+                .getModules());
+        modules = selectJavaModules(modules);
+        if(modules.size()>0)
+        {
+            registerModules(modules);
+            return new ArrayList<>(this.moduleMap.keySet());
+        }
+        else
+        {
+            try {
+                logger.info("Fetching from POM.xml/settings.gradle");
+                Set<String> modules_from_pg = fetchModuleNamesFromFiles();
+                if (modules_from_pg == null) {
+                    logger.warn("No modules found");
+                } else {
+                    registerModules_Manual(new ArrayList<>(modules_from_pg));
+                    return new ArrayList<>(modules_from_pg);
+                }
+            } catch (Exception e) {
+                logger.error("Exception fetching modules " + e);
+                e.printStackTrace();
+            }
+        }
+        List<String> res = new ArrayList<>();
+        res.add(project.getName());
+        return res;
+    }
+
+    private Set<String> filterModules(Set<String> modules) {
+        Set<String> final_Modules = new TreeSet<>();
+        for (String module : modules) {
+            if (!(module.endsWith(".main") || module.endsWith(".test"))) {
+                String[] parts = module.split("\\.");
+                String module_last = parts[parts.length - 1];
+                if (isValidJavaModule(module_last)) {
+                    final_Modules.add(module_last);
+                }
+            }
+        }
+        return final_Modules;
+    }
+
+    public boolean isValidJavaModule(String modulename) {
+        Collection<VirtualFile> virtualFiles =
+                FileBasedIndex.getInstance()
+                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
+                                GlobalSearchScope.projectScope(project));
+        List<String> components = new ArrayList<String>();
+        for (VirtualFile vf : virtualFiles) {
+            PsiFile psifile = PsiManager.getInstance(project)
+                    .findFile(vf);
+            if (psifile instanceof PsiJavaFile && vf.getPath()
+                    .contains(modulename)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     //to be simplified and cleaned up
-    public Set<String> fetchModuleNames() {
+    public Set<String> fetchModuleNamesFromFiles() {
         if (!project.isInitialized()) {
             return null;
         }
@@ -1233,7 +1367,7 @@ final public class InsidiousService implements Disposable {
         ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
                 .getHeight());
         ContentManager contentManager = this.toolWindow.getContentManager();
-        if (liveViewWindow == null) {
+        //if (liveViewWindow == null) {
 //            credentialsToolbarWindow = new ConfigurationWindow(project, this.toolWindow);
 //            @NotNull Content credentialContent = contentFactory.createContent(credentialsToolbarWindow.getContent(), "Credentials", false);
 //            contentManager.addContent(credentialContent);
@@ -1261,7 +1395,7 @@ final public class InsidiousService implements Disposable {
                 contentManager.setSelectedContent(liveWindowContent, true);
                 liveViewAdded = true;
             }
-        }
+        //}
 
 //        Content rawViewContent2 = contentManager.findContent("Raw");
 //        if (rawViewContent2 == null) {
@@ -1725,5 +1859,90 @@ final public class InsidiousService implements Disposable {
     public void runActivity(@NotNull Project project) {
         this.project = project;
         start();
+    }
+
+    public void setCurrentModule(String module)
+    {
+        this.selectedModule=module;
+    }
+
+    public String getSelectedModule() {
+        return selectedModule;
+    }
+
+    public PsiFile getTargetFileForModule(String selectedModule, PROJECT_BUILD_SYSTEM type) {
+        Module module = moduleMap.get(selectedModule).getModule();
+        PsiFile[] searchResult=null;
+        String fileToSearch;
+        if(type.equals(PROJECT_BUILD_SYSTEM.MAVEN))
+        {
+            fileToSearch = "pom.xml";
+        } else if (type.equals(PROJECT_BUILD_SYSTEM.GRADLE)) {
+            fileToSearch = "build.gradle";
+        }
+        else {
+            return null;
+        }
+        if(module!=null)
+        {
+            searchResult = FilenameIndex.getFilesByName(project, fileToSearch,
+                    GlobalSearchScope.moduleScope(module));
+        }
+        if(searchResult!=null && searchResult.length==0)
+        {
+            searchResult = FilenameIndex.getFilesByName(project, fileToSearch,
+                    GlobalSearchScope.projectScope(project));
+            searchResult = findFilesUnderModule(getSelectedModule(),searchResult);
+        }
+        if (searchResult.length > 1) {
+            return fetchBaseFile(searchResult);
+        }
+        else
+        {
+            if(searchResult.length>0)
+            {
+                return searchResult[0];
+            }
+        }
+        return null;
+    }
+
+    private PsiFile[] findFilesUnderModule(String module, PsiFile[] files)
+    {
+        List<PsiFile> res = new ArrayList<>();
+        for(int i=0;i<files.length;i++)
+        {
+            if(files[i].getVirtualFile().getPath().contains(module))
+            {
+                res.add(files[i]);
+            }
+        }
+        return res.toArray(new PsiFile[res.size()]);
+    }
+
+    public boolean moduleHasFileOfType(String module, String key)
+    {
+        PsiFile[] searchResult = FilenameIndex.getFilesByName(project, key,
+                GlobalSearchScope.projectScope(project));
+        for(int i=0;i<searchResult.length;i++)
+        {
+            if(searchResult[i].getVirtualFile().getPath().contains(module))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    public PsiFile fetchBaseFile(PsiFile[] files) {
+        Map<Integer, PsiFile> sizemaps = new HashMap<>();
+        for (PsiFile file : files) {
+            Integer ps = file.getVirtualFile()
+                    .getPath()
+                    .length();
+            sizemaps.put(ps, file);
+        }
+        List<Integer> keys = new ArrayList<>(sizemaps.keySet());
+        Collections.sort(keys);
+        return sizemaps.get(keys.get(0));
     }
 }
