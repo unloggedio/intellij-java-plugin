@@ -27,8 +27,8 @@ public class Obv3_CardParent implements CardSelectionActionListener{
     {
         this.actionListener = actionListener;
         this.cardContainer.removeAll();
-        GridLayout gridLayout = new GridLayout(1, cards.size());
-        gridLayout.setHgap(16);
+        GridLayout gridLayout = new GridLayout(cards.size(), 1);
+        gridLayout.setVgap(16);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
         for(int i=0;i<cards.size();i++)
@@ -38,7 +38,10 @@ public class Obv3_CardParent implements CardSelectionActionListener{
             constraints.setRow(i);
             gridPanel.add(card.getComponent(), constraints);
         }
-        this.cardContainer.add(gridPanel, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(gridPanel);
+        scrollPane.setBorder(new EmptyBorder(0,0,0,0));
+        this.cardContainer.setPreferredSize(scrollPane.getSize());
+        this.cardContainer.add(scrollPane, BorderLayout.CENTER);
         this.cardContainer.revalidate();
         actionButton.setText("Continue");
         skipButton.setVisible(false);
@@ -65,8 +68,8 @@ public class Obv3_CardParent implements CardSelectionActionListener{
     {
         this.actionListener = actionListener;
         this.cardContainer.removeAll();
-        GridLayout gridLayout = new GridLayout(1, cards.size());
-        gridLayout.setHgap(16);
+        GridLayout gridLayout = new GridLayout(cards.size(), 1);
+        gridLayout.setVgap(16);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
         for(int i=0;i<cards.size();i++)

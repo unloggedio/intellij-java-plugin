@@ -14,7 +14,7 @@ public class Obv3_RunType_Element {
 
     public Obv3_RunType_Element(ProjectTypeInfo.RUN_TYPES type)
     {
-        this.iconHolder.setText(type.toString());
+        //this.iconHolder.setText(type.toString());
     }
 
     public void setContent(JRadioButton contentPanel)
@@ -27,6 +27,11 @@ public class Obv3_RunType_Element {
     public JPanel getComponent()
     {
         return mainPanel;
+    }
+
+    public void setIcon_rs(Icon icon)
+    {
+        this.iconHolder.setIcon(icon);
     }
 
 }

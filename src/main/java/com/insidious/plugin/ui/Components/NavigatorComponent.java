@@ -19,8 +19,8 @@ public class NavigatorComponent implements NavigationManager{
         this.scaffold = onboardingScaffoldV3;
         states = new ArrayList<>();
         states.add("Module Selection");
-        states.add("Project Config");
-        states.add("Dependencies Check");
+        states.add("JDK and Json serializer");
+        states.add("Required Dependencies");
         states.add("Run Config");
         states.add("Run!");
 
@@ -59,11 +59,11 @@ public class NavigatorComponent implements NavigationManager{
                 scaffold.loadModuleSection();
                 currentState=0;
                 break;
-            case "Dependencies Check":
+            case "Required Dependencies":
                 scaffold.loadDependenciesManagementSection();
                 currentState=2;
                 break;
-            case "Project Config":
+            case "JDK and Json serializer":
                 scaffold.loadProjectConfigSection();
                 currentState=1;
                 break;

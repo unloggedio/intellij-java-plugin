@@ -92,9 +92,10 @@ public class ProjectTypeInfo {
         return downloadAgent;
     }
 
-    public RUN_TYPES[] getAllRunTypes() {
+    public enum RUN_TYPES {INTELLIJ_APPLICATION, MAVEN_CLI, GRADLE_CLI, JAVA_JAR_CLI}
+
+    public RUN_TYPES[] getAllRunTypes()
+    {
         return RUN_TYPES.values();
     }
-
-    public enum RUN_TYPES {MAVEN_CLI, GRADLE_CLI, INTELLIJ_APPLICATION, JAVA_JAR_CLI}
 }

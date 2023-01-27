@@ -44,7 +44,7 @@
                   </grid>
                 </constraints>
                 <properties>
-                  <dividerLocation value="620"/>
+                  <dividerLocation value="540"/>
                   <dividerSize value="1"/>
                 </properties>
                 <border type="none"/>

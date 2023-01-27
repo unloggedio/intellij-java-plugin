@@ -30,7 +30,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private JPanel leftGrid;
     private JPanel rightGrid;
     private JSplitPane splitParent;
-    private Obv3_Documentation_Generic documentation_generic;
+    private Obv3_Documentation_Generic documentationSection;
     private OnboardingService onboardingService;
     private OnBoardingStatus status = new OnBoardingStatus();
     private VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
@@ -39,13 +39,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private NavigatorComponent navigator;
     private Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
 
-    public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService) {
-        this.insidiousService = insidiousService;
-        this.onboardingService = onboardingService;
-        loadNavigator();
-        loadModuleSection();
-        loadRightMock();
-    }
+    public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
 
     @Override
     public void performActions(List<Map<ONBOARDING_ACTION, String>> actions) {
@@ -124,10 +118,20 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         return onboardingService.fetchBasePackageForModule(moduleName);
     }
 
-    public void loadRightMock() {
+    public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService)
+    {
+        this.insidiousService = insidiousService;
+        this.onboardingService = onboardingService;
+        loadNavigator();
+        loadModuleSection();
+    }
+
+    public void loadDocumentation(DOCUMENTATION_TYPE type)
+    {
         this.rightContainer.removeAll();
         Obv3_Documentation_Generic docs = new Obv3_Documentation_Generic();
-        this.documentation_generic = docs;
+        this.documentationSection = docs;
+        docs.setContent(getDocumentationTextFor(type));
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -138,7 +142,57 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.rightContainer.revalidate();
     }
 
-    public void loadNavigator() {
+    public String getDocumentationTextFor(DOCUMENTATION_TYPE type)
+    {
+        StringBuilder sb = new StringBuilder();
+        switch (type)
+        {
+            case MODULE:
+                sb.append("MODULE\n");
+                sb.append("The plugin will generate test cases in the directory relative to the selected module. " +
+                        "Choosing the correct module is important so that the imports in the test case work out of the box.\n" +
+                        "\n" +
+                        "Based on your current selection, the test cases will be generated at the following location");
+                sb.append("\n <path-here>/src/test/java/<com>/<package>/<name>\n");
+                break;
+            case PROJECT_CONFIG:
+                sb.append("JDK\n");
+                sb.append("Select the JDK which you will use to run your application. For JDK 17 the following VM argument is also needed along with the -javaagent argument\n" +
+                        "\n" +
+                        "--add-opens=java.base/java.util=ALL-UNNAMED\n");
+                sb.append("JSON Serializer\n");
+                sb.append("Select GSON or Jackson based on what you are already using in the project. This will ensure that the serialized data uses correct field names respecting your existing annotations.\n" +
+                        "\n" +
+                        "If you are not using either, prefer Jackson.");
+                break;
+            case DEPENDENCIES:
+                sb.append("Required dependencies\n");
+                sb.append("Add the following dependencies to record data.\n" +
+                        "\n" +
+                        "GSON Based on your selection\n" +
+                        "\n" +
+                        "Jackson Based on your selection\n" +
+                        "\n" +
+                        "JavaTimeModule (only for jackson) Support for Java date/time types (Instant, LocalDateTime, etc)\n" +
+                        "\n" +
+                        "JodaModule (only for jackson) Support for Joda data types\n" +
+                        "\n" +
+                        "Hibernate5Module (only for jackson) Support for Hibernate (https://hibernate.org) specific datatypes and properties; especially lazy-loading aspects\n" +
+                        "\n" +
+                        "Jdk8Module (only for jackson) Support for new Java 8 datatypes outside of date/time: most notably Optional, OptionalLong, OptionalDouble\n");
+                break;
+            case RUN_TYPE:
+                sb.append("Run Config\n");
+                sb.append("Choose your preferred way of running your application. Based on your selection we can show you the easiest way to add the javaagent to your application and get started with generating tests.\n" +
+                        "\n" +
+                        "For more options like Docker/Kubernetes/Tomcat, check our documentation at https://docs.unlogged.io\n");
+                break;
+        }
+        return sb.toString();
+    }
+
+    public void loadNavigator()
+    {
         this.navGrid.removeAll();
         navigator = new NavigatorComponent(this);
         GridLayout gridLayout = new GridLayout(1, 1);
@@ -181,7 +235,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.add(gridPanel, BorderLayout.CENTER);
         this.leftContainer.revalidate();
 
-        loadRightMock();
+        loadDocumentation(DOCUMENTATION_TYPE.MODULE);
     }
 
     public void loadDependenciesManagementSection() {
@@ -203,7 +257,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.add(gridPanel, BorderLayout.CENTER);
         this.leftContainer.revalidate();
 
-        loadRightMock();
+        loadDocumentation(DOCUMENTATION_TYPE.DEPENDENCIES);
     }
 
     public void loadProjectConfigSection() {
@@ -255,7 +309,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.add(gridPanel, BorderLayout.CENTER);
         this.leftContainer.revalidate();
 
-        loadRightMock();
+        loadDocumentation(DOCUMENTATION_TYPE.PROJECT_CONFIG);
     }
 
     public void loadRunConfigSection() {
@@ -271,7 +325,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.add(gridPanel, BorderLayout.CENTER);
         this.leftContainer.revalidate();
 
-        loadRightMock();
+        loadDocumentation(DOCUMENTATION_TYPE.RUN_TYPE);
     }
 
     public void loadRunSection(boolean logsPresent) {

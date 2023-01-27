@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.util.IconLoader;
 
 import javax.swing.*;
@@ -27,6 +28,10 @@ public class UI_Utils {
     public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png",UI_Utils.class);
     public static Icon WAITING_COMPONENT_SUCCESS = IconLoader.getIcon("/icons/png/success_icon_green_64.png",UI_Utils.class);
     public static Icon ARROW_YELLOW_RIGHT = IconLoader.getIcon("/icons/png/arrow_yellow_right.png",UI_Utils.class);
+    public static Icon MAVEN_ICON = IconLoader.getIcon("/icons/png/maven_Icon_20.png",UI_Utils.class);
+    public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png",UI_Utils.class);
+    public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png",UI_Utils.class);
+    public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png",UI_Utils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {
@@ -74,5 +79,39 @@ public class UI_Utils {
             e.printStackTrace();
             label.setIcon(fallback);
         }
+    }
+
+    public static Icon getIconForRuntype(ProjectTypeInfo.RUN_TYPES type)
+    {
+        switch (type)
+        {
+            case MAVEN_CLI:
+                return MAVEN_ICON;
+            case GRADLE_CLI:
+                return GRADLE_ICON;
+            case INTELLIJ_APPLICATION:
+                return INTELLIJ_ICON;
+            case JAVA_JAR_CLI:
+                return JAVA_ICON;
+        }
+
+        return null;
+    }
+
+    public static String getDisplayNameForType(ProjectTypeInfo.RUN_TYPES type)
+    {
+        switch (type)
+        {
+            case MAVEN_CLI:
+                return "Maven CLI Application";
+            case GRADLE_CLI:
+                return "Gradle CLI Application";
+            case INTELLIJ_APPLICATION:
+                return "IntelliJ Idea Application";
+            case JAVA_JAR_CLI:
+                return "Java jar command";
+        }
+
+        return null;
     }
 }

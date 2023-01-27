@@ -51,6 +51,7 @@
                   <borderPainted value="false"/>
                   <contentAreaFilled value="false"/>
                   <foreground color="-1"/>
+                  <icon value="icons/png/next_icon_v3.png"/>
                   <opaque value="true"/>
                   <text value="Continue"/>
                 </properties>

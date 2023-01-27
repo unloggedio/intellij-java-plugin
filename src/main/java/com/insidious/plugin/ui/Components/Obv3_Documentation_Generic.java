@@ -8,6 +8,7 @@ public class Obv3_Documentation_Generic {
     private JPanel topPanel;
     private JLabel headingLabel;
     private JPanel centerPanel;
+    private JScrollPane scrollParent;
     private JTextArea documentationTextArea;
 
     public Obv3_Documentation_Generic()
@@ -18,5 +19,9 @@ public class Obv3_Documentation_Generic {
     public JPanel getComponent()
     {
         return this.mainPanel;
+    }
+
+    public void setContent(String documentationText) {
+        this.documentationTextArea.setText(documentationText);
     }
 }
