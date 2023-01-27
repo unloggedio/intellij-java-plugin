@@ -1086,7 +1086,7 @@ final public class InsidiousService implements Disposable {
                     .getClassLoader()
                     .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
 
-            if (projectTypeInfo.getUsesGson()) {
+            if (projectTypeInfo.getUsesGson() != null && projectTypeInfo.getUsesGson() == true) {
                 if (jacksonDatabindVersion == null)
                     testUtilClassCode = this.getClass()
                             .getClassLoader()
@@ -1762,7 +1762,7 @@ final public class InsidiousService implements Disposable {
                     .getResourceAsStream("code/jackson/UnloggedTestUtil.java");
 
             // if project only uses Gson inject Gson else prefer jackson
-            if (projectTypeInfo.getUsesGson()) {
+            if (projectTypeInfo.getUsesGson() != null && projectTypeInfo.getUsesGson() == true) {
                 if (jacksonDatabindVersion == null)
                     testUtilClassCode = this.getClass()
                             .getClassLoader()
