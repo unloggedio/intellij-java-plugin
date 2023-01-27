@@ -6,7 +6,10 @@
       <xy x="58" y="62" width="354" height="49"/>
     </constraints>
     <properties>
-      <maximumSize width="80" height="30"/>
+      <maximumSize width="0" height="0"/>
+      <minimumSize width="0" height="0"/>
+      <preferredSize width="0" height="24"/>
+      <requestFocusEnabled value="true"/>
     </properties>
     <border type="none"/>
     <children>
@@ -15,6 +18,7 @@
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="4" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
+          <horizontalAlignment value="2"/>
           <icon value="icons/png/icon_number_1.png"/>
           <text value="Nav"/>
         </properties>

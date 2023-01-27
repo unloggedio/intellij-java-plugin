@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.ui.UI_Utils;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -32,6 +33,7 @@ public class NavigatorComponent implements NavigationManager{
         {
             NavigationElement element = new NavigationElement(this);
             element.setNavigationStageText(states.get(i));
+            element.setNumberIcon(UI_Utils.getNumberedIconFor(i+1));
             GridConstraints constraints = new GridConstraints();
             constraints.setColumn(i);
             gridPanel.add(element.getComponent(), constraints);

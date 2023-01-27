@@ -15,25 +15,20 @@
         <properties/>
         <border type="empty"/>
         <children>
-          <grid id="e618f" binding="topPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="4" left="8" bottom="8" right="4"/>
+          <grid id="e618f" binding="topPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+            <margin top="16" left="16" bottom="0" right="4"/>
             <constraints border-constraint="North"/>
             <properties/>
             <border type="empty"/>
             <children>
               <component id="711dd" class="javax.swing.JLabel" binding="headingLabel">
                 <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="2" use-parent-layout="false"/>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
                 </constraints>
                 <properties>
                   <text value="Documentation"/>
                 </properties>
               </component>
-              <hspacer id="d6408">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-              </hspacer>
             </children>
           </grid>
           <grid id="7e56a" binding="centerPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
@@ -46,18 +41,23 @@
                 <constraints>
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
                 </constraints>
-                <properties/>
+                <properties>
+                  <horizontalScrollBarPolicy value="31"/>
+                </properties>
                 <border type="empty"/>
                 <children>
                   <component id="32706" class="javax.swing.JTextArea" binding="documentationTextArea">
                     <constraints/>
                     <properties>
                       <background color="-14671840"/>
-                      <columns value="5"/>
+                      <columns value="0"/>
                       <editable value="false"/>
+                      <font name="JetBrains Mono"/>
                       <foreground color="-16659211"/>
                       <lineWrap value="true"/>
-                      <rows value="200"/>
+                      <margin top="8" left="8" bottom="8" right="8"/>
+                      <rows value="0"/>
+                      <text value=""/>
                       <wrapStyleWord value="true"/>
                     </properties>
                   </component>

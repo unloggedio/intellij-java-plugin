@@ -11,7 +11,6 @@ public class DropDownCard_OBV3 {
     private JLabel card_Heading;
     private JComboBox itemSelector;
     private JLabel card_Description;
-    private JPanel refreshPanel;
     private JButton refreshButton;
     public JPanel getComponent() {
         return this.mainPanel;

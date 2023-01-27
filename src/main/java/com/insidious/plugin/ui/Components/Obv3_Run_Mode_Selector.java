@@ -43,7 +43,7 @@ public class Obv3_Run_Mode_Selector {
     {
         this.container.removeAll();
         ProjectTypeInfo.RUN_TYPES[] types = ProjectTypeInfo.RUN_TYPES.values();
-        int GridRows = 12;
+        int GridRows = 8;
         if (types.length > GridRows) {
             GridRows = types.length;
         }
@@ -51,16 +51,16 @@ public class Obv3_Run_Mode_Selector {
         Dimension d = new Dimension();
         d.setSize(-1, 30);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridLayout.setVgap(8);
+        gridLayout.setVgap(4);
         buttonGroup = new ButtonGroup();
         int c=0;
         for (int i=0;i<types.length;i++) {
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(c);
             c++;
-            constraints.setIndent(16);
+            constraints.setIndent(4);
             JRadioButton label = new JRadioButton();
-            label.setText(types[i].toString());
+            label.setText(getNameForType(types[i]));
             label.setBorder(new EmptyBorder(4, 8, 0, 0));
             ProjectTypeInfo.RUN_TYPES type = types[i];
             label.addMouseListener(new MouseAdapter() {
@@ -101,7 +101,7 @@ public class Obv3_Run_Mode_Selector {
         scrollPane.setBorder(emptyBorder);
         container.setPreferredSize(scrollPane.getSize());
         container.add(scrollPane, BorderLayout.CENTER);
-        if (types.length<= 5) {
+        if (types.length<= 3) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
         this.container.revalidate();
@@ -129,5 +129,21 @@ public class Obv3_Run_Mode_Selector {
         action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.NEXT_STATE,"");
         actions.add(action);
         cardActionListener.performActions(actions);
+    }
+
+    private String getNameForType(ProjectTypeInfo.RUN_TYPES type)
+    {
+        switch (type)
+        {
+            case MAVEN_CLI:
+                return "Maven CLI";
+            case GRADLE_CLI:
+                return "Gradle CLI";
+            case INTELLIJ_APPLICATION:
+                return "IntelliJ Application";
+            case JAVA_JAR_CLI:
+                return "Java jar command";
+        }
+        return "IntelliJ Application";
     }
 }

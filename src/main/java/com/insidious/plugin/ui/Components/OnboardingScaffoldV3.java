@@ -149,22 +149,20 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         switch (type)
         {
             case MODULE:
-                sb.append("MODULE\n");
-                sb.append("The plugin will generate test cases in the directory relative to the selected module. " +
-                        "Choosing the correct module is important so that the imports in the test case work out of the box.\n" +
+                sb.append("The plugin will generate unit tests in the directory relative to the selected module. " +
+                        "Choosing the correct module is important since the imports in the unit test work out of the box.\n" +
                         "\n" +
                         "Based on your current selection, the test cases will be generated at the following location");
-                sb.append("\n <path-here>/src/test/java/<com>/<package>/<name>\n");
+                sb.append("\n<path-here>/src/test/java/<com>/<package>/<name>\n");
                 break;
             case PROJECT_CONFIG:
-                sb.append("JDK\n");
-                sb.append("Select the JDK which you will use to run your application. For JDK 17 the following VM argument is also needed along with the -javaagent argument\n" +
-                        "\n" +
-                        "--add-opens=java.base/java.util=ALL-UNNAMED\n");
+                sb.append("JDK Version\n");
+                sb.append("Select the JDK you use to run your application. We need the right JDK version so that we can construct the right VM argument\n" +
+                        "\n");
                 sb.append("JSON Serializer\n");
-                sb.append("Select GSON or Jackson based on what you are already using in the project. This will ensure that the serialized data uses correct field names respecting your existing annotations.\n" +
+                sb.append("Select GSON or Jackson based on what you are already using in the module. This ensures that the serialized data uses correct field names respecting your existing annotations.\n" +
                         "\n" +
-                        "If you are not using either, prefer Jackson.");
+                        "If you are not using either, select the latest Jackson version.");
                 break;
             case DEPENDENCIES:
                 sb.append("Required dependencies\n");
@@ -186,7 +184,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 sb.append("Run Config\n");
                 sb.append("Choose your preferred way of running your application. Based on your selection we can show you the easiest way to add the javaagent to your application and get started with generating tests.\n" +
                         "\n" +
-                        "For more options like Docker/Kubernetes/Tomcat, check our documentation at https://docs.unlogged.io\n");
+                        "Support for Docker/Kubernetes/Tomcat deployment is coming soon.");
                 break;
         }
         return sb.toString();
@@ -266,9 +264,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         List<String> java_versions = new ArrayList<>();
         java_versions.add("<11");
         java_versions.add(">=11");
-        DropdownCardInformation info_java = new DropdownCardInformation("Java Version : ",
+        DropdownCardInformation info_java = new DropdownCardInformation("JDK version : ",
                 java_versions,
-                "Select the java version of your project.");
+                "Select the JDK version of your project.");
         info_java.setType(DROP_TYPES.JAVA_VERSION);
         info_java.setDefaultSelected(0);
         if (this.status.isAddOpens() != null && this.status.isAddOpens()) {
@@ -292,7 +290,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             defaultIntex = serializers.indexOf(suggestedAgent);
         }
 
-        DropdownCardInformation info_dependencies = new DropdownCardInformation("Serializer : ",
+        DropdownCardInformation info_dependencies = new DropdownCardInformation("JSON Serializer : ",
                 serializers,
                 "Select the serializer that your project uses. ");
         info_dependencies.setType(DROP_TYPES.SERIALIZER);

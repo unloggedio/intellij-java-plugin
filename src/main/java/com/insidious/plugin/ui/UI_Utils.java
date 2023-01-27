@@ -32,6 +32,11 @@ public class UI_Utils {
     public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png",UI_Utils.class);
     public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png",UI_Utils.class);
     public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png",UI_Utils.class);
+    public static Icon ICON_1_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_1_teal.png",UI_Utils.class);
+    public static Icon ICON_2_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_2_teal.png",UI_Utils.class);
+    public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png",UI_Utils.class);
+    public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png",UI_Utils.class);
+    public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png",UI_Utils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {
@@ -113,5 +118,25 @@ public class UI_Utils {
         }
 
         return null;
+    }
+
+    public static Icon getNumberedIconFor(int number)
+    {
+        switch (number)
+        {
+            case 1:
+                return ICON_1_TEAL;
+            case 2:
+                return ICON_2_TEAL;
+            case 3:
+                return ICON_3_TEAL;
+            case 4:
+                return ICON_4_TEAL;
+            case 5:
+                return ICON_5_TEAL;
+            default:
+                return ICON_1_TEAL;
+
+        }
     }
 }

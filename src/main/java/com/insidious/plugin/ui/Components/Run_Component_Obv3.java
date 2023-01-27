@@ -27,7 +27,7 @@ public class Run_Component_Obv3 {
         this.listener = listener;
         this.headingLabel.setText("Run Unlogged with "+ UI_Utils.getDisplayNameForType(defaultType));
         this.headingLabel.setIcon(UI_Utils.getIconForRuntype(defaultType));
-        setDescriptionText();
+        setDescriptionText(defaultType);
         if(logsPresent)
         {
             this.logsPresent = logsPresent;
@@ -66,11 +66,28 @@ public class Run_Component_Obv3 {
         this.VMoptionsArea.setText(text);
     }
 
-    private void setDescriptionText()
+    private void setDescriptionText(ProjectTypeInfo.RUN_TYPES type)
     {
-        this.descriptionText.setText("<html><body>" +
-                "<p>Copy this command and run inside your terminal so that your application starts running with our agent.</p>" +
-                "<p>Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.</p>" +
-                "</body></html>");
+        if(type.equals(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION))
+        {
+            this.descriptionText.setText("<html><body>" +
+                    "<p>Add these VM parameters into your run configuration and start your application.</p>" +
+                    "<p>Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.</p>" +
+                    "</body></html>");
+        }
+        else if(type.equals(ProjectTypeInfo.RUN_TYPES.GRADLE_CLI))
+        {
+            this.descriptionText.setText("<html><body>" +
+                    "<p>Add these VM paramters into your build.gradle and start your application.</p>" +
+                    "<p>Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.</p>" +
+                    "</body></html>");
+        }
+        else
+        {
+            this.descriptionText.setText("<html><body>" +
+                    "<p>Copy this command and run inside your terminal so that your application starts running with our agent.</p>" +
+                    "<p>Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.</p>" +
+                    "</body></html>");
+        }
     }
 }

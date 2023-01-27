@@ -42,4 +42,9 @@ public class NavigationElement {
     {
         this.navigationStageText.setText(text);
     }
+
+    public void setNumberIcon(Icon icon)
+    {
+        this.navigationStageText.setIcon(icon);
+    }
 }
