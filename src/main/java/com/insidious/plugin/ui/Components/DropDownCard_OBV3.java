@@ -56,11 +56,11 @@ public class DropDownCard_OBV3 {
     {
         if(this.refreshButton.isVisible())
         {
-            if(this.content.getType().equals(OnboardingScaffold_v3.DROP_TYPES.MODULE))
+            if(this.content.getType().equals(OnboardingScaffoldV3.DROP_TYPES.MODULE))
             {
                 listener.refreshModules();
             }
-            else if(this.content.getType().equals(OnboardingScaffold_v3.DROP_TYPES.SERIALIZER))
+            else if(this.content.getType().equals(OnboardingScaffoldV3.DROP_TYPES.SERIALIZER))
             {
                 listener.refreshSerializerSelection();
             }

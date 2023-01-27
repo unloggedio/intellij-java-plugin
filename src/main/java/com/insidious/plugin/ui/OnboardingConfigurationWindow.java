@@ -526,6 +526,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                         return true;
                     }
                     break;
+                case "jackson-2.8":
+                    if (checksum.equals(Checksums.AGENT_JACKSON_2_8)) {
+                        return true;
+                    }
+                    break;
                 case "jackson-2.9":
                     if (checksum.equals(Checksums.AGENT_JACKSON_2_9)) {
                         return true;
@@ -696,16 +701,15 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         if (count == 0) {
             //libs not ready
-            return insidiousService.getProjectTypeInfo().getDefaultAgentType();
+            return insidiousService.getProjectTypeInfo()
+                    .getDefaultAgentType();
 
         } else {
-            if(version==null)
-            {
-                return insidiousService.getProjectTypeInfo().getDefaultAgentType();
-            }
-            else
-            {
-                return "jackson-"+version;
+            if (version == null) {
+                return insidiousService.getProjectTypeInfo()
+                        .getDefaultAgentType();
+            } else {
+                return "jackson-" + version;
             }
         }
     }
