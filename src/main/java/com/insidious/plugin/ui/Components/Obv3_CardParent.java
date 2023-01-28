@@ -134,7 +134,7 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         {
             case JAVA_VERSION:
                 Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
-                action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"addopens:"+(selection.startsWith(">")?true:false));
+                action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"jdk:"+selection);
                 if(shouldAddAction(action))
                 {
                     actions.add(action);

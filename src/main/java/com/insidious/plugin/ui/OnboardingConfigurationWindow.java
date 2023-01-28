@@ -305,6 +305,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return basePackage;
     }
 
+    public String fetchPackagePathForModule(String modulename)
+    {
+        String source = fetchBasePackageForModule(modulename);
+        return source.replaceAll("\\.","/");
+    }
+
     public String trimVersion(String version) {
         String versionParts[] = version.split("\\.");
         if (versionParts.length > 2) {

@@ -47,8 +47,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private InsidiousService insidiousService;
     private NavigatorComponent navigator;
     private Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
-
     public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
+    List<String> jdkVersions_ref = Arrays.asList("8","11","17","18");
 
     @Override
     public void performActions(List<Map<ONBOARDING_ACTION, String>> actions) {
@@ -87,14 +87,14 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                             onboardingService.setSelectedModule(parts[1]);
                             updateVMParams(parts[1]);
                             break;
-                        case "addopens":
-                            if (parts[1].equals("true")) {
-                                this.status.setAddOpens(true);
-                                updateVMParams(true);
-                            } else {
-                                this.status.setAddOpens(false);
-                                updateVMParams(false);
+                        case "jdk":
+                            this.status.setJdkVersion(parts[1]);
+                            boolean addOpens=false;
+                            if(Integer.parseInt(parts[1])>=17)
+                            {
+                                addOpens=true;
                             }
+                            updateVMParams(addOpens,parts[1]);
                             break;
                         case "runType":
                             ProjectTypeInfo.RUN_TYPES type = ProjectTypeInfo.RUN_TYPES.valueOf(parts[1]);
@@ -115,7 +115,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
     }
 
-    public void updateVMParams(boolean addopens) {
+    public void updateVMParams(boolean addopens, String jdkversion) {
         this.vmOptionsConstructionService.setAddopens(addopens);
         if (this.runComponent != null) {
             this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
@@ -159,9 +159,13 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             case MODULE:
                 sb.append("The plugin will generate unit tests in the directory relative to the selected module. " +
                         "Choosing the correct module is important since the imports in the unit test work out of the box.\n" +
-                        "\n" +
-                        "Based on your current selection, the test cases will be generated at the following location");
-                sb.append("\n<path-here>/src/test/java/<com>/<package>/<name>\n");
+                        "\n");
+                if(this.insidiousService.getSelectedModuleInstance().getPath()!=null)
+                {
+                    sb.append("Based on your current selection, the test cases will be generated at the following location");
+                    sb.append("\n"+insidiousService.getSelectedModuleInstance().getPath()+"/src/test/java/{your.package.name}"
+                            +"\n");
+                }
                 break;
             case PROJECT_CONFIG:
                 sb.append("JDK Version\n");
@@ -272,15 +276,17 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     public void loadProjectConfigSection() {
         List<DropdownCardInformation> content = new ArrayList<>();
         List<String> java_versions = new ArrayList<>();
-        java_versions.add("<11");
-        java_versions.add(">=11");
+        java_versions.add("8");
+        java_versions.add("11");
+        java_versions.add("17");
+        java_versions.add("18");
         DropdownCardInformation info_java = new DropdownCardInformation("JDK version : ",
                 java_versions,
                 "Select the JDK version of your project.");
         info_java.setType(DROP_TYPES.JAVA_VERSION);
         info_java.setDefaultSelected(0);
-        if (this.status.isAddOpens() != null && this.status.isAddOpens()) {
-            info_java.setDefaultSelected(1);
+        if (this.status.getJdkVersion() != null) {
+            info_java.setDefaultSelected(java_versions.indexOf(this.status.getJdkVersion()));
         }
         content.add(info_java);
         List<String> serializers = new ArrayList<>();
@@ -347,8 +353,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
         defIndices.add(defIndex);
         Integer java_version_index = 0;
-        if (this.status.isAddOpens() != null && this.status.isAddOpens()) {
-            java_version_index = 1;
+        if (this.status.getJdkVersion() != null) {
+            java_version_index = jdkVersions_ref.indexOf(this.status.getJdkVersion());
         }
         defIndices.add(java_version_index);
         OBv2_Selectors_VM cardparent = new OBv2_Selectors_VM(modules, defIndices, this);
@@ -449,6 +455,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         String currentModule;
         Boolean addOpens;
         ProjectTypeInfo.RUN_TYPES runType = ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION;
+        String jdkVersion;
 
         public String getCurrentModule() {
             return currentModule;
@@ -475,6 +482,14 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         public void setRunType(ProjectTypeInfo.RUN_TYPES runType) {
             System.out.println("SET RUN TYPE to " + runType.toString());
             this.runType = runType;
+        }
+
+        public String getJdkVersion() {
+            return jdkVersion;
+        }
+
+        public void setJdkVersion(String jdkVersion) {
+            this.jdkVersion = jdkVersion;
         }
     }
 

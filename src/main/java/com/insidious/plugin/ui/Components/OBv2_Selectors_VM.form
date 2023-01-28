@@ -79,8 +79,10 @@
                     <properties>
                       <maximumRowCount value="2"/>
                       <model>
-                        <item value="&lt; Java 11"/>
-                        <item value="&gt;= Java 11"/>
+                        <item value="8"/>
+                        <item value="11"/>
+                        <item value="17"/>
+                        <item value="18"/>
                       </model>
                     </properties>
                   </component>

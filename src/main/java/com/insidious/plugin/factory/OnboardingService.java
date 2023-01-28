@@ -29,4 +29,6 @@ public interface OnboardingService {
     String suggestAgentVersion();
 
     void setSelectedModule(String part);
+
+    String fetchPackagePathForModule(String modulename);
 }
