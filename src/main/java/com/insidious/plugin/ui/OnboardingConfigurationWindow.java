@@ -351,7 +351,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             return;
         }
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = insidiousService.getProjectTypeInfo()
                 .getDefaultAgentType();
         String extention = ".jar";
@@ -376,7 +376,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent(String version) {
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
@@ -604,8 +604,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             }
             count++;
         }
-        System.out.println("[DEP VERSIONS] "+depVersions.toString());
-        logger.info("[DEP VERSIONS] Results of dependency search : "+depVersions.toString());
+        System.out.println("[DEP VERSIONS] " + depVersions.toString());
+        logger.info("[DEP VERSIONS] Results of dependency search : " + depVersions.toString());
         if (count == 0) {
             //returns everything if not indexed/project import not done.
             return depVersions;
