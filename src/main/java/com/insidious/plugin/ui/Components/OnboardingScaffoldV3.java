@@ -6,6 +6,15 @@ import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.execution.Executor;
+import com.intellij.execution.ProgramRunnerUtil;
+import com.intellij.execution.RunManager;
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.application.ApplicationConfiguration;
+import com.intellij.execution.executors.DefaultRunExecutor;
+import com.intellij.execution.impl.DefaultJavaProgramRunner;
+import com.intellij.execution.runners.ExecutionEnvironment;
+import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -467,5 +476,69 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             System.out.println("SET RUN TYPE to " + runType.toString());
             this.runType = runType;
         }
+    }
+
+    @Override
+    public boolean runApplicationWithUnlogged() {
+        if(insidiousService.hasProgramRunning())
+        {
+            return false;
+        }
+
+        System.out.println("[RUNNING WITH UNLOGGED]");
+        String params = vmOptionsConstructionService.getVMParametersFull();
+
+        System.out.println("[PARAMS RUN]" + params);
+        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject().getService(RunManager.class)
+                .getAllSettings();
+        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+            System.out.println("runner config - " + runSetting.getName());
+            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+
+                logger.info("ApplicationConfiguration config - " + runSetting.getConfiguration()
+                        .getName());
+                final ProgramRunner runner = DefaultJavaProgramRunner.getInstance();
+                final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
+                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+                applicationConfiguration.setVMParameters(params.trim());
+                try {
+                    runner.execute(new ExecutionEnvironment(executor, runner, runSetting,
+                            insidiousService.getProject()), null);
+                    //insidiousService.registerProgramRunner(runner);
+                    return true;
+                } catch (Exception e) {
+                    System.out.println("Failed to start application");
+                    System.out.println(e);
+                    e.printStackTrace();
+                    //insidiousService.removeRunners();
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean hasRunnableApplicationConfig()
+    {
+        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject().getService(RunManager.class)
+                .getAllSettings();
+        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+            System.out.println("runner config - " + runSetting.getName());
+            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isApplicationRunning()
+    {
+        if(insidiousService.hasProgramRunning())
+        {
+            return true;
+        }
+        return false;
     }
 }

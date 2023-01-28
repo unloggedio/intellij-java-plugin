@@ -30,6 +30,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.visitor.GradleFileVisitor;
 import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.credentialStore.CredentialAttributes;
+import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -117,6 +118,8 @@ final public class InsidiousService implements Disposable {
     private Content onboardingContent;
     private Map<String, ModuleInformation> moduleMap = new TreeMap<>();
     private String selectedModule = null;
+
+    private List<ProgramRunner> programRunners = new ArrayList<>();
 
     public InsidiousService() {
         logger.info("starting insidious service");
@@ -1785,4 +1788,32 @@ final public class InsidiousService implements Disposable {
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public boolean hasProgramRunning() {
+        if(programRunners.size()>0)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public boolean registerProgramRunner(ProgramRunner runner) {
+        if(this.programRunners.size()>0)
+        {
+            return false;
+        }
+        else
+        {
+            this.programRunners.add(runner);
+            return true;
+        }
+    }
+
+    public void removeRunners()
+    {
+        this.programRunners = new ArrayList<>();
+    }
 }

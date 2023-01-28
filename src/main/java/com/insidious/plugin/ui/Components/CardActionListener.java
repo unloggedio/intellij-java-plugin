@@ -18,4 +18,10 @@ public interface CardActionListener {
     void refreshDependencies();
 
     void refreshSerializers();
+
+    boolean hasRunnableApplicationConfig();
+
+    boolean runApplicationWithUnlogged();
+
+    boolean isApplicationRunning();
 }
