@@ -600,7 +600,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             count++;
         }
         if (count == 0) {
-            return null;
+            //returns everything if not indexed/project import not done.
+            return depVersions;
         } else {
             if (depVersions.containsKey("jackson-databind")) {
                 depVersions.remove("jackson-databind");
@@ -797,7 +798,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         System.out.println("CURRENT MODULE -> before writing :" + insidiousService.getSelectedModuleName());
         new DependencyService().addDependency(project, selections,
-                insidiousService.getSelectedModuleInstance(), insidiousService.getProjectTypeInfo());
+                insidiousService.getSelectedModuleInstance(), insidiousService);
 
 //        if (insidiousService.
 //                findBuildSystemForModule(insidiousService.getSelectedModuleName())

@@ -2,7 +2,7 @@ package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
-import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -42,7 +42,7 @@ public class DependencyManagementComponent {
         this.onboardingService = onboardingService;
         this.insidiousService = insidiousService;
         addToDependenciesButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        checksPanel.setBorder(new LineBorder(UI_Utils.yellow_alert));
+        checksPanel.setBorder(new LineBorder(UIUtils.yellow_alert));
         addToDependenciesButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -93,7 +93,7 @@ public class DependencyManagementComponent {
             constraints.setIndent(16);
             JLabel label = new JLabel();
             label.setText(dependency);
-            label.setIcon(UI_Utils.ARROW_YELLOW_RIGHT);
+            label.setIcon(UIUtils.ARROW_YELLOW_RIGHT);
             label.setBorder(new EmptyBorder(4, 8, 0, 0));
             gridPanel.add(label, constraints);
             i++;

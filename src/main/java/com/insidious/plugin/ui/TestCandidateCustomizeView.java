@@ -58,7 +58,7 @@ public class TestCandidateCustomizeView {
         this.testCandidateTree.setToggleClickCount(0);
         setDefaultSelection();
         setDocumentationText();
-        UI_Utils.setDividerColorForSplitPane(splitPane, UI_Utils.teal);
+        UIUtils.setDividerColorForSplitPane(splitPane, UIUtils.teal);
 
         this.testCandidateTree.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent me) {

@@ -3,7 +3,7 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.VMoptionsConstructionService;
-import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.Executor;
 import com.intellij.execution.RunManager;
@@ -64,7 +64,7 @@ public class DocumentationOnboardingComponent {
                 routeToDocumentationpage();
             }
         });
-        this.documentationSection.setBorder(new LineBorder(UI_Utils.pink));
+        this.documentationSection.setBorder(new LineBorder(UIUtils.pink));
         runWithUnlogged.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

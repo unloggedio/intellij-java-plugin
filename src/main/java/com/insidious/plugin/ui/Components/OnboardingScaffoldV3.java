@@ -63,10 +63,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     HashSet<String> deps = new HashSet<>(Arrays.asList(dependencies_string.split(",")));
                     Map<String, String> refs = onboardingService.getMissingDependencies_v3();
                     if (refs.size() > 0) {
-                        onboardingService.postProcessDependencies(refs,
-                                deps);
+                        onboardingService.postProcessDependencies(refs, deps);
                     }
-                    loadDependenciesManagementSection();
+                    navigator.loadNextState();
                     break;
                 case UPDATE_SELECTION:
                     String parameter = action.get(ONBOARDING_ACTION.UPDATE_SELECTION)
@@ -165,20 +164,19 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                         "If you are not using either, select the latest Jackson version.");
                 break;
             case DEPENDENCIES:
-                sb.append("Required dependencies\n");
-                sb.append("Add the following dependencies to record data.\n" +
+                sb.append("Required dependencies \n\n");
+                sb.append("Add the following dependencies to record data - \n\n" +
+                        "‣ GSON Based on your selection\n" +
                         "\n" +
-                        "GSON Based on your selection\n" +
+                        "‣ Jackson Based on your selection\n" +
                         "\n" +
-                        "Jackson Based on your selection\n" +
+                        "‣ JavaTimeModule (only for jackson) Support for Java date/time types (Instant, LocalDateTime, etc)\n" +
                         "\n" +
-                        "JavaTimeModule (only for jackson) Support for Java date/time types (Instant, LocalDateTime, etc)\n" +
+                        "‣ JodaModule (only for jackson) Support for Joda data types\n" +
                         "\n" +
-                        "JodaModule (only for jackson) Support for Joda data types\n" +
+                        "‣ Hibernate5Module (only for jackson) Support for Hibernate (https://hibernate.org) specific datatypes and properties; especially lazy-loading aspects\n" +
                         "\n" +
-                        "Hibernate5Module (only for jackson) Support for Hibernate (https://hibernate.org) specific datatypes and properties; especially lazy-loading aspects\n" +
-                        "\n" +
-                        "Jdk8Module (only for jackson) Support for new Java 8 datatypes outside of date/time: most notably Optional, OptionalLong, OptionalDouble\n");
+                        "‣ Jdk8Module (only for jackson) Support for new Java 8 datatypes outside of date/time: most notably Optional, OptionalLong, OptionalDouble\n");
                 break;
             case RUN_TYPE:
                 sb.append("Run Config\n");
@@ -241,10 +239,13 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         List<DependencyCardInformation> content = new ArrayList<>();
         List<String> dependencies = new ArrayList<>(onboardingService.getMissingDependencies_v3()
                 .keySet());
+        System.out.println("DEPENDENCIES missing -> "+dependencies);
         content.add(new DependencyCardInformation(
                 dependencies.size() == 0 ? "No Missing Dependencies" : "Missing dependencies",
-                "Add these dependencies so that we can serialise/deserialise data properly.",
+                dependencies.size() == 0 ? "No other dependencies needed." : "Add these dependencies so that we can serialise/deserialise data properly.",
                 dependencies));
+        content.get(0).setShowSkipButton(dependencies.size()>0);
+        content.get(0).setPrimaryButtonText(dependencies.size() == 0 ? "Proceed" : "Add Dependencies");
         this.leftContainer.removeAll();
         Obv3_CardParent cardparent = new Obv3_CardParent(content, true, this);
         GridLayout gridLayout = new GridLayout(1, 1);

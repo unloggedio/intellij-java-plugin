@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.pojo.ProjectTypeInfo;
-import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.ui.UIUtils;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -72,7 +72,7 @@ public class Obv3_Run_Mode_Selector {
 
             Obv3_RunType_Element element = new Obv3_RunType_Element(type);
             element.setContent(label);
-            element.setIcon_rs(UI_Utils.getIconForRuntype(types[i]));
+            element.setIcon_rs(UIUtils.getIconForRuntype(types[i]));
 
             gridPanel.add(element.getComponent(), constraints);
             buttonGroup.add(label);

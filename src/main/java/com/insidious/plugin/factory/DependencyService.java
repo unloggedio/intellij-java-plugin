@@ -64,7 +64,7 @@ public class DependencyService {
             Project project,
             final Collection<String> dependencies,
             final ModuleInformation moduleInformation,
-            final ProjectTypeInfo projectTypeInfo) {
+            final InsidiousService insidiousService) {
 
         @NotNull LibraryTable librariesTable = LibraryTablesRegistrar.getInstance()
                 .getLibraryTable(project);
@@ -73,18 +73,21 @@ public class DependencyService {
                 if (library.getName().contains("jackson-core")) {
                     String[] parts = library.getName()
                             .split(":");
-                    projectTypeInfo.setJacksonDatabindVersion(parts[parts.length - 1]);
+                    insidiousService.getProjectTypeInfo()
+                            .setJacksonDatabindVersion(parts[parts.length - 1]);
                 }
             }
         }
 
 
         List<MavenId> ids = dependencies.stream()
-                .map(e -> getMavenDependency(e, projectTypeInfo.getJacksonDatabindVersion()))
+                .map(e -> getMavenDependency(e, insidiousService.getProjectTypeInfo()
+                        .getJacksonDatabindVersion()))
                 .collect(
                         Collectors.toList());
 
-        if (projectTypeInfo.isMaven()) {
+        if (insidiousService.findBuildSystemForModule(moduleInformation.getName())
+                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
             MavenProjectsManager manager = MavenProjectsManager.getInstance(project);
             @NotNull List<MavenProject> mavenProjects = manager.getProjects();
             MavenProject mavenProject = null;

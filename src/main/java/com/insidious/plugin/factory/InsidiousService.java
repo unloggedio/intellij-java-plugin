@@ -1203,7 +1203,7 @@ final public class InsidiousService implements Disposable {
         if (this.toolWindow == null) {
             return;
         }
-        toolWindow.setIcon(UI_Utils.UNLOGGED_ICON_DARK);
+        toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         ToolWindowEx ex = (ToolWindowEx) toolWindow;
         ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
                 .getHeight());
@@ -1216,7 +1216,7 @@ final public class InsidiousService implements Disposable {
         liveViewWindow = new LiveViewWindow(project, this);
         liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
         liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        liveWindowContent.setIcon(UI_Utils.TEST_CASES_ICON_PINK);
+        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
 
         onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
         onboardingConfigurationWindowContent = contentFactory.createContent(
@@ -1227,7 +1227,7 @@ final public class InsidiousService implements Disposable {
 
 
         onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingConfigurationWindowContent.setIcon(UI_Utils.ONBOARDING_ICON_PINK);
+        onboardingConfigurationWindowContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
         contentManager.addContent(onboardingConfigurationWindowContent);
         setupProject();
 

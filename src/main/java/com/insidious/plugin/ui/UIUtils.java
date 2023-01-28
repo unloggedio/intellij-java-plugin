@@ -9,7 +9,7 @@ import javax.swing.plaf.basic.BasicSplitPaneDivider;
 import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 
-public class UI_Utils {
+public class UIUtils {
 
     static final String gifPath = "/icons/gif/";
     public static Color teal = new Color(1, 204, 245);
@@ -18,25 +18,27 @@ public class UI_Utils {
     public static Color green = new Color(56,161,105);
     public static Color yellow_alert = new Color(225,163,54);
 
-    public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png",UI_Utils.class);
-    public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png",UI_Utils.class);
-    public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png",UI_Utils.class);
-    public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png",UI_Utils.class);
-    public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png",UI_Utils.class);
-    public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png",UI_Utils.class);
-    public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png",UI_Utils.class);
-    public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png",UI_Utils.class);
-    public static Icon WAITING_COMPONENT_SUCCESS = IconLoader.getIcon("/icons/png/success_icon_green_64.png",UI_Utils.class);
-    public static Icon ARROW_YELLOW_RIGHT = IconLoader.getIcon("/icons/png/arrow_yellow_right.png",UI_Utils.class);
-    public static Icon MAVEN_ICON = IconLoader.getIcon("/icons/png/maven_Icon_20.png",UI_Utils.class);
-    public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png",UI_Utils.class);
-    public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png",UI_Utils.class);
-    public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png",UI_Utils.class);
-    public static Icon ICON_1_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_1_teal.png",UI_Utils.class);
-    public static Icon ICON_2_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_2_teal.png",UI_Utils.class);
-    public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png",UI_Utils.class);
-    public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png",UI_Utils.class);
-    public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png",UI_Utils.class);
+    public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
+    public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
+    public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
+    public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
+    public static Icon TEST_CASES_ICON_DARK = IconLoader.getIcon("/icons/png/test_case_icon_dark.png", UIUtils.class);
+    public static Icon TEST_CASES_ICON_PINK = IconLoader.getIcon("/icons/png/test_cases_icon_pink.png", UIUtils.class);
+    public static Icon TEST_CASES_ICON_TEAL = IconLoader.getIcon("/icons/png/test_cases_icon_teal.png", UIUtils.class);
+    public static Icon WAITING_COMPONENT_WAITING = IconLoader.getIcon("/icons/png/waiting_icon_yellow_64.png", UIUtils.class);
+    public static Icon WAITING_COMPONENT_SUCCESS = IconLoader.getIcon("/icons/png/success_icon_green_64.png", UIUtils.class);
+    public static Icon ARROW_YELLOW_RIGHT = IconLoader.getIcon("/icons/png/arrow_yellow_right.png", UIUtils.class);
+    public static Icon MAVEN_ICON = IconLoader.getIcon("/icons/png/maven_Icon_20.png", UIUtils.class);
+    public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png", UIUtils.class);
+    public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png", UIUtils.class);
+    public static Icon JAVA_ICON = IconLoader.getIcon("/icons/png/java_logo_20.png", UIUtils.class);
+    public static Icon ICON_1_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_1_teal.png", UIUtils.class);
+    public static Icon ICON_2_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_2_teal.png", UIUtils.class);
+    public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png", UIUtils.class);
+    public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png", UIUtils.class);
+    public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png", UIUtils.class);
+    public static Icon MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/alert_icon_yellow.png", UIUtils.class);
+    public static Icon NO_MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/no_missing_dependencies_icon_20.png", UIUtils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {
@@ -61,7 +63,7 @@ public class UI_Utils {
     public static void setGifIconForButton(JButton button, String gif, Icon fallback)
     {
         try {
-                ImageIcon loadingIcon = new ImageIcon(UI_Utils.class.getResource(gifPath+gif));
+                ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath+gif));
                 button.setIcon(loadingIcon);
         }
         catch(Exception e)
@@ -75,7 +77,7 @@ public class UI_Utils {
     public static void setGifIconForLabel(JLabel label, String gif, Icon fallback)
     {
         try {
-            ImageIcon loadingIcon = new ImageIcon(UI_Utils.class.getResource(gifPath+gif));
+            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath+gif));
             label.setIcon(loadingIcon);
         }
         catch(Exception e)

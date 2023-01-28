@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.ui.ModuleSelectionListener;
-import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.ui.UIUtils;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -53,7 +53,7 @@ public class ModulePanel {
     private void hoverStateManager(MouseEvent me, boolean mouseEntered) {
         if (mouseEntered) {
             Color color = new Color(1, 204, 245,50);
-            Border border = new LineBorder(UI_Utils.teal);
+            Border border = new LineBorder(UIUtils.teal);
             mainPanel.setBorder(border);
             this.labelParent.setOpaque(true);
             Color transparent = new Color(1, 204, 245,1);

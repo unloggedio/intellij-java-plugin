@@ -94,7 +94,7 @@ public class TestCandidateMetadataView {
 
     public void setSelectedState(boolean status) {
         if (status) {
-            Border border = new LineBorder(UI_Utils.teal);
+            Border border = new LineBorder(UIUtils.teal);
             contentPanel.setBorder(border);
         } else {
             Color color = new Color(187, 187, 187);

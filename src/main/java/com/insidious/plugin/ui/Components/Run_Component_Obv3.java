@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.pojo.ProjectTypeInfo;
-import com.insidious.plugin.ui.UI_Utils;
+import com.insidious.plugin.ui.UIUtils;
 
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
@@ -25,8 +25,8 @@ public class Run_Component_Obv3 {
     public Run_Component_Obv3(ProjectTypeInfo.RUN_TYPES defaultType, boolean logsPresent, CardActionListener listener)
     {
         this.listener = listener;
-        this.headingLabel.setText("Run Unlogged with "+ UI_Utils.getDisplayNameForType(defaultType));
-        this.headingLabel.setIcon(UI_Utils.getIconForRuntype(defaultType));
+        this.headingLabel.setText("Run Unlogged with "+ UIUtils.getDisplayNameForType(defaultType));
+        this.headingLabel.setIcon(UIUtils.getIconForRuntype(defaultType));
         setDescriptionText(defaultType);
         if(logsPresent)
         {

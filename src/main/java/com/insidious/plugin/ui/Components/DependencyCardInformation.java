@@ -7,6 +7,8 @@ public class DependencyCardInformation {
     private String heading;
     private String description;
     private List<String> dependencies;
+    private boolean showSkipButton = true;
+    private String primaryButtonText;
 
     public DependencyCardInformation(String heading, String description, List<String> dependencies) {
         this.heading = heading;
@@ -36,5 +38,21 @@ public class DependencyCardInformation {
 
     public void setDependencies(List<String> dependencies) {
         this.dependencies = dependencies;
+    }
+
+    public boolean isShowSkipButton() {
+        return showSkipButton;
+    }
+
+    public void setShowSkipButton(boolean showSkipButton) {
+        this.showSkipButton = showSkipButton;
+    }
+
+    public String getPrimaryButtonText() {
+        return primaryButtonText;
+    }
+
+    public void setPrimaryButtonText(String primaryButtonText) {
+        this.primaryButtonText = primaryButtonText;
     }
 }

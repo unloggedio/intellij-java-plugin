@@ -80,13 +80,13 @@ public class Obv3_CardParent implements CardSelectionActionListener{
             constraints.setRow(i);
             gridPanel.add(card.getComponent(), constraints);
         }
+        this.skipButton.setVisible(cards.get(0).isShowSkipButton());
         this.cardContainer.add(gridPanel, BorderLayout.CENTER);
         this.cardContainer.revalidate();
 
         if(changeButton)
         {
-            actionButton.setText("Add dependencies");
-            skipButton.setVisible(true);
+            actionButton.setText(cards.get(0).getPrimaryButtonText());
             skipButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {

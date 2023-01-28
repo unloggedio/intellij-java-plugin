@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.ui.UIUtils;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
@@ -44,20 +45,13 @@ public class ListCard_OBV3 {
     {
         this.contentContainer.removeAll();
 
-        if(missing_==null)
+        if(missing_==null || (missing_!=null && missing_.size()==0))
         {
-            GridLayout gridLayout = new GridLayout(1, 1);
-            JPanel gridPanel = new JPanel(gridLayout);
-            JLabel label = new JLabel();
-            GridConstraints constraints = new GridConstraints();
-            constraints.setRow(0);
-            label.setText("<html><body>No dependencies found <br>please refresh project import</body></html>");
-            gridPanel.add(label, constraints);
-            contentContainer.add(gridPanel, BorderLayout.CENTER);
-            contentContainer.revalidate();
+            this.headingText.setIcon(UIUtils.NO_MISSING_DEPENDENCIES_ICON);
             return;
         }
 
+        this.headingText.setIcon(UIUtils.MISSING_DEPENDENCIES_ICON);
         int GridRows = 16;
         if (missing_.size() > GridRows) {
             GridRows = missing_.size();

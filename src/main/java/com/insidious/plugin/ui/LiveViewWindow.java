@@ -95,7 +95,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         } catch (Exception ex) {
             InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
         }
-        UI_Utils.setDividerColorForSplitPane(splitPanel, UI_Utils.teal);
+        UIUtils.setDividerColorForSplitPane(splitPanel, UIUtils.teal);
         this.processLogsSwitch.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
@@ -124,7 +124,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private void updateRefreshButtonState() {
         this.processLogsSwitch.setEnabled(!isLoading);
         if (isLoading) {
-            UI_Utils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
+            UIUtils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
         } else {
             this.processLogsSwitch.setIcon(refreshDefaultIcon);
         }

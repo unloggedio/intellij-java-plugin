@@ -62,7 +62,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         });
         assertEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertNotEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        UI_Utils.setDividerColorForSplitPane(mainSplitPane, UI_Utils.teal);
+        UIUtils.setDividerColorForSplitPane(mainSplitPane, UIUtils.teal);
     }
 
     public void constructCandidatesList(List<TestCandidateMetadata> testCandidateMetadataList, TestCaseService testCaseService, SessionInstance sessionInstance) {
