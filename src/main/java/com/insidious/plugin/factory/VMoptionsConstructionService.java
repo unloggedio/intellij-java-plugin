@@ -14,7 +14,7 @@ public class VMoptionsConstructionService {
     private final String addOpensOption = "--add-opens=java.base/java.util=ALL-UNNAMED";
     public String basePackage = "your.package";
     private Map<ProjectTypeInfo.RUN_TYPES,String> runType_CommandMap = new TreeMap<>();
-    String quoute_type = "'"; // use "\"" or "'"
+    String quoute_type = "\""; // use "\"" or "'"
 
     public VMoptionsConstructionService()
     {
