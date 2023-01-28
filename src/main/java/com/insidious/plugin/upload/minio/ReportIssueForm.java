@@ -5,29 +5,25 @@ package com.insidious.plugin.upload.minio;// Java program to implement
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBScrollPane;
-import net.openhft.chronicle.core.util.Time;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ReportIssueForm extends JFrame implements ActionListener {
 
-    static final String NO_SELOG_FOLDER_NAME = "empty-selogger-folder";
-    private final String HINT_TEXT = "// My Test Case generation fails at for this method \n\n"
+    private final String HINT_TEXT = "// My Test Case generation fails for this method \n\n"
+            + "```java\n"
             + "public class UserRepo {\n"
             + "   public Optional<User> findUserInDB(long id){\n"
             + "      String queryString  = \"SELECT * FROM users WHERE id=($1)\";\n"
             + "      return dbConn.query(queryString, id);\n"
             + "   }\n"
-            + "}\n";
+            + "}\n"
+            + "```\n";
+
     private Map<String, Boolean> checkboxes = new HashMap<>();
     private Container c;
     private JLabel title;
@@ -57,44 +53,44 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         title = new JLabel("Report Issue");
         title.setFont(new Font("", Font.PLAIN, 20));
         title.setSize(300, 30);
-        title.setLocation(300, 20);
+        title.setLocation(300, 15);
         c.add(title);
 
         errorText = new JLabel();
         errorText.setForeground(Color.red);
         errorText.setSize(150, 30);
-        errorText.setLocation(170, 67);
+        errorText.setLocation(170, 52);
         c.add(errorText);
 
         userEmailLabel = new JLabel("Email");
         userEmailLabel.setSize(100, 30);
-        userEmailLabel.setLocation(50, 90);
+        userEmailLabel.setLocation(50, 75);
         c.add(userEmailLabel);
 
         userEmail = new JTextField();
         userEmail.setSize(300, 30);
-        userEmail.setLocation(120, 90);
+        userEmail.setLocation(120, 75);
         c.add(userEmail);
 
         titleErrorText = new JLabel();
         titleErrorText.setForeground(Color.red);
         titleErrorText.setSize(200, 30);
-        titleErrorText.setLocation(170, 117);
+        titleErrorText.setLocation(170, 102);
         c.add(titleErrorText);
 
         issueTitleLabel = new JLabel("Issue Title");
         issueTitleLabel.setSize(100, 30);
-        issueTitleLabel.setLocation(50, 140);
+        issueTitleLabel.setLocation(50, 125);
         c.add(issueTitleLabel);
 
         issueTitle = new JTextField();
         issueTitle.setSize(300, 30);
-        issueTitle.setLocation(120, 140);
+        issueTitle.setLocation(120, 125);
         issueTitle.setToolTipText("The generated test");
         c.add(issueTitle);
 
-        int x = 50;
-        int y = 150;
+        int x = 120;
+        int y = 135;
         int d = 0;
 
         checkboxes.put("Test Fails on running", false);
@@ -129,7 +125,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
 
         descriptionLabel = new JLabel("Description");
         descriptionLabel.setSize(100, 30);
-        descriptionLabel.setLocation(50, 250);
+        descriptionLabel.setLocation(48, 235);
         c.add(descriptionLabel);
 
         description = new JTextArea();
@@ -137,7 +133,7 @@ public class ReportIssueForm extends JFrame implements ActionListener {
         description.setText(HINT_TEXT);
         description.setForeground(Color.GRAY);
         description.setEnabled(true);
-        description.setMargin(new Insets(2, 4, 2, 4));
+        description.setMargin(new Insets(4, 8, 2, 4));
         description.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -160,12 +156,20 @@ public class ReportIssueForm extends JFrame implements ActionListener {
                 ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
         scroll.setSize(550, 250);
-        scroll.setLocation(130, 250);
+        scroll.setLocation(120, 235);
         c.add(scroll);
 
-        submitButton = new JButton("Send Email");
+        JTextPane note = new JTextPane();
+        note.setText("Note: On submitting this form we will upload session logs for debugging purpose.\n         After upload completion, you will be redirected to Gmail for finally submitting the report.");
+        note.setFont(new Font("", Font.PLAIN, 12));
+        note.setForeground(Color.GRAY);
+        note.setLocation(120, 495);
+        note.setSize(600, 30);
+        c.add(note);
+
+        submitButton = new JButton("Submit");
         submitButton.setSize(150, 30);
-        submitButton.setLocation(530, 510);
+        submitButton.setLocation(530, 530);
         submitButton.addActionListener(this);
         c.add(submitButton);
     }
@@ -199,51 +203,23 @@ public class ReportIssueForm extends JFrame implements ActionListener {
             description.setText("");
         }
 
-        ReportIssue reportIssue = new ReportIssue();
-
-        File selogDir = new File(reportIssue.getLatestSeLogFolderPath());
-
-        String dirName = !selogDir.getName().equals("") ? selogDir.getName() : NO_SELOG_FOLDER_NAME;
-        String s3BucketParentPath = userEmail.getText() + "/" + dirName + "-" + Time.uniqueId();
-        String sessionObjectKey = s3BucketParentPath + "/" + dirName + ".zip";
-
-        System.out.println(sessionObjectKey);
-
-        String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + sessionObjectKey;
-
         StringBuilder checkBoxLabel = new StringBuilder();
 
         for (Map.Entry<String, Boolean> me : checkboxes.entrySet()) {
             if (me.getValue()) {
                 checkBoxLabel.append(me.getKey())
-                        .append("\n");
+                        .append(", ");
             }
         }
 
-        String issueDescription = "Issue Raised by: `" + userEmail.getText() + "`\n\n"
-                + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "session folder was empty, session zip only contains idea.log! \n\n" : "")
-                + checkBoxLabel.toString()
-                + "\n"
-                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")"
-                + "\n\n"
-                + description.getText();
+        ReportIssue reportIssue = new ReportIssue();
 
-        Desktop desktop = Desktop.getDesktop();
-        String gitlabMail = "contact-project+insidious1-server-32379664-issue-@incoming.gitlab.com";
-
-        String mailFromBrowser = "https://mail.google.com/mail/?view=cm&fs=1&to=" + URLEncoder.encode(gitlabMail, StandardCharsets.UTF_8).replace("+", "%20")
-                + "&su=" + URLEncoder.encode(issueTitle.getText(), StandardCharsets.UTF_8).replace("+", "%20")
-                + "&body=" + URLEncoder.encode(issueDescription, StandardCharsets.UTF_8).replace("+", "%20");
-
-        URI uri = URI.create(mailFromBrowser);
-
-        try {
-            desktop.browse(uri);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-
-        ProgressManager.getInstance().run(reportIssue.zippingAndUploadTask(project, sessionObjectKey));
+        ProgressManager.getInstance().run(
+                reportIssue.zippingAndUploadTask(project,
+                        userEmail.getText(),
+                        issueTitle.getText(),
+                        description.getText(),
+                        checkBoxLabel.toString()));
 
         setVisible(false);
     }
