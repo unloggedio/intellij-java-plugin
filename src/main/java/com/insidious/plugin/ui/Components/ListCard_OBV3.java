@@ -44,7 +44,6 @@ public class ListCard_OBV3 {
     private void loadDependencies(List<String> missing_)
     {
         this.contentContainer.removeAll();
-
         if(missing_==null || (missing_!=null && missing_.size()==0))
         {
             this.headingText.setIcon(UIUtils.NO_MISSING_DEPENDENCIES_ICON);
@@ -77,7 +76,6 @@ public class ListCard_OBV3 {
                         {
                             selections.add(dependency);
                         }
-
                     }
                     else
                     {

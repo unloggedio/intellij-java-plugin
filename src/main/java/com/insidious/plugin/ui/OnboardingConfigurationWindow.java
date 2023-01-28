@@ -576,7 +576,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public Map<String, String> getMissingDependencies_v3() {
-
         TreeMap<String, String> depVersions = new TreeMap<>();
         for (String dependency : insidiousService.getProjectTypeInfo()
                 .getDependenciesToWatch()) {
@@ -599,6 +598,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             }
             count++;
         }
+        System.out.println("[DEP VERSIONS] "+depVersions.toString());
+        logger.info("[DEP VERSIONS] Results of dependency search : "+depVersions.toString());
         if (count == 0) {
             //returns everything if not indexed/project import not done.
             return depVersions;

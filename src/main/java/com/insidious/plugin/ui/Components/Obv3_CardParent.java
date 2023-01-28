@@ -114,11 +114,6 @@ public class Obv3_CardParent implements CardSelectionActionListener{
     }
 
     private void proceedToAddDependency() {
-
-        if(this.dependenciesToAdd.size()==0)
-        {
-            return;
-        }
         Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
         action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.ADD_DEPENDENCIES, Strings.join(this.dependenciesToAdd, ","));
         if(shouldAddAction(action))
