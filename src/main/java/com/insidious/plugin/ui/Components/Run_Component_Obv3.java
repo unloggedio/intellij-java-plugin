@@ -38,14 +38,14 @@ public class Run_Component_Obv3 {
         {
             listener.checkForSelogs();
         }
-        if(defaultType.equals(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION))
-        {
-            checkIfRunnable();
-        }
-        else
-        {
-            hideRunButton();
-        }
+//        if(defaultType.equals(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION))
+//        {
+//            checkIfRunnable();
+//        }
+//        else
+//        {
+//            hideRunButton();
+//        }
         waitingForLogs.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
