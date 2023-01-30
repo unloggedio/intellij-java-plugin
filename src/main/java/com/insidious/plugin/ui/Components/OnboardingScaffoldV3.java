@@ -556,4 +556,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
         return false;
     }
+
+    public void setDividerLocation(int location)
+    {
+        this.splitParent.setDividerLocation(location);
+    }
 }
