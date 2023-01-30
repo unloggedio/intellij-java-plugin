@@ -67,6 +67,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     String version = action.get(ONBOARDING_ACTION.DOWNLOAD_AGENT);
                     System.out.println("DOWNLOADING AGENT FOR - " + version);
                     onboardingService.downloadAgentForVersion(version);
+                    if (version.startsWith("jackson")) {
+                        insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(version);
+                    }
                     break;
                 case ADD_DEPENDENCIES:
                     //trigger add dependencies, no need to pass anything
