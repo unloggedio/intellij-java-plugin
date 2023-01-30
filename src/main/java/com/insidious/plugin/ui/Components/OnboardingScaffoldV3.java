@@ -326,6 +326,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
         content.add(info_java);
         List<String> serializers = new ArrayList<>();
+        serializers.add("jackson-2.8");
         serializers.add("jackson-2.9");
         serializers.add("jackson-2.10");
         serializers.add("jackson-2.11");
