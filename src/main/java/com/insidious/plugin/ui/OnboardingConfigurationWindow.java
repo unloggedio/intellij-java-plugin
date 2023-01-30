@@ -351,7 +351,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             return;
         }
         agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
         String type = insidiousService.getProjectTypeInfo()
                 .getDefaultAgentType();
         String extention = ".jar";
@@ -376,7 +376,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent(String version) {
         agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
