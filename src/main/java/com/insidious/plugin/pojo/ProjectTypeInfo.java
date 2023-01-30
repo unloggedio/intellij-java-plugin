@@ -70,7 +70,7 @@ public class ProjectTypeInfo {
 
     public List<String> getDependenciesToWatch() {
         List<String> dependenciesToWatch = new ArrayList<>();
-        if (jacksonDatabindVersion == null) {
+        if (jacksonDatabindVersion == null || jacksonDatabindVersion.startsWith("gson")) {
             dependenciesToWatch.add("gson");
         } else {
             dependenciesToWatch.add("jackson-datatype-hibernate5");
