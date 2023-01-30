@@ -63,7 +63,7 @@ public class NavigatorComponent implements NavigationManager{
                 currentState=0;
                 break;
             case "Required Dependencies":
-                scaffold.setDividerLocation(620);
+                scaffold.setDividerLocation(1020);
                 scaffold.loadDependenciesManagementSection();
                 currentState=2;
                 break;

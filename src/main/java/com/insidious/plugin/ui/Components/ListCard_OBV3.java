@@ -87,6 +87,8 @@ public class ListCard_OBV3 {
                 }
             });
             label.setText(getDisplayTextForDependency(dependency));
+            Font font = new Font("JetBrains Mono",0,15);
+            label.setFont(font);
             gridPanel.add(label, constraints);
             i++;
         }
@@ -117,13 +119,13 @@ public class ListCard_OBV3 {
         switch (dependency)
         {
             case "jackson-datatype-jsr310":
-                return dependency+" (For Java date/time types such as Instant, LocalDateTime, etc)";
+                return dependency+" (Check if you are using Java date/time types such as Instant, LocalDateTime, etc)";
             case "jackson-datatype-joda":
-                return dependency + " (Support for Joda data types)";
+                return dependency + " (Check if you are using Joda data types)";
             case "jackson-datatype-hibernate5":
-                return dependency + " (Support for Hibernate specific datatypes and properties; especially lazy-loading aspects)";
+                return dependency + " (Check if you are using Hibernate specific datatypes and properties such as lazy-loading aspects)";
             case "jackson-datatype-jdk8":
-                return dependency + " (Support for new Java 8 datatypes such as Optional, OptionalLong, OptionalDouble)";
+                return dependency + " (Check if you are using new Java 8 datatypes such as Optional, OptionalLong, OptionalDouble)";
             default:
                 return dependency;
 

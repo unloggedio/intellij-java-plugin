@@ -117,7 +117,7 @@ public class VMoptionsConstructionService {
         String command = runType_CommandMap.get(runType);
         command = command.replace("{PARAMS}",getVMParametersWithQuoteType(quoteType));
         command = command.replace("{OPENS}",getOpensStringIfNeeded());
-        return command;
+        return command.trim();
     }
 
 }
