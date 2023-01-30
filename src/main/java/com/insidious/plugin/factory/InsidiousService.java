@@ -415,23 +415,34 @@ final public class InsidiousService implements Disposable {
             registerModules(modules);
             return new ArrayList<>(this.moduleMap.keySet());
         } else {
-            try {
-                logger.info("Fetching from POM.xml/settings.gradle");
-                Set<String> modules_from_pg = fetchModuleNamesFromFiles();
-                if (modules_from_pg == null) {
-                    logger.warn("No modules found");
-                } else {
-                    registerModules_Manual(new ArrayList<>(modules_from_pg));
-                    return new ArrayList<>(modules_from_pg);
-                }
-            } catch (Exception e) {
-                logger.error("Exception fetching modules " + e);
-                e.printStackTrace();
+//            try {
+//                logger.info("Fetching from POM.xml/settings.gradle");
+//                Set<String> modules_from_pg = fetchModuleNamesFromFiles();
+//                if (modules_from_pg == null) {
+//                    logger.warn("No modules found");
+//                } else {
+//                    registerModules_Manual(new ArrayList<>(modules_from_pg));
+//                    return new ArrayList<>(modules_from_pg);
+//                }
+//            } catch (Exception e) {
+//                logger.error("Exception fetching modules " + e);
+//                e.printStackTrace();
+//            }
+//        }
+            List<String> res = new ArrayList<>();
+            if(!this.moduleMap.containsKey(this.project.getName()))
+            {
+                ModuleInformation info = new ModuleInformation(this.project.getName(),
+                        "JAVA_MODULE",this.project.getBasePath());
+                this.moduleMap.put(this.project.getName(),info);
             }
+            if(this.selectedModule==null)
+            {
+                this.selectedModule=this.project.getName();
+            }
+            res.add(project.getName());
+            return res;
         }
-        List<String> res = new ArrayList<>();
-        res.add(project.getName());
-        return res;
     }
 
     private Set<String> filterModules(Set<String> modules) {
