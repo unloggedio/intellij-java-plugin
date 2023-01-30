@@ -160,7 +160,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 sb.append("The plugin will generate unit tests in the directory relative to the selected module. " +
                         "Choosing the correct module is important since the imports in the unit test work out of the box.\n" +
                         "\n");
-                if(this.insidiousService.getSelectedModuleInstance().getPath()!=null)
+                if(this.insidiousService.getSelectedModuleInstance()!=null && this.insidiousService.getSelectedModuleInstance().getPath()!=null)
                 {
                     sb.append("Based on your current selection, the test cases will be generated at the following location");
                     sb.append("\n"+insidiousService.getSelectedModuleInstance().getPath()+"/src/test/java/{your.package.name}"

@@ -356,6 +356,8 @@ final public class InsidiousService implements Disposable {
     }
 
     private void registerModules(List<Module> modules) {
+
+        this.moduleMap = new TreeMap<>();
         for (Module module : modules) {
             if (module.getName().endsWith(".main") || module.getName().endsWith(".test")) {
                 continue;
@@ -370,6 +372,8 @@ final public class InsidiousService implements Disposable {
     }
 
     private void registerModules_Manual(List<String> modules) {
+
+        this.moduleMap = new TreeMap<>();
         for (String module : modules) {
             if (this.selectedModule == null) {
                 this.selectedModule = module;
