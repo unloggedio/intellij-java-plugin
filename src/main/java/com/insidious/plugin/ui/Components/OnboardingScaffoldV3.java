@@ -7,7 +7,6 @@ import com.insidious.plugin.factory.VMoptionsConstructionService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.Executor;
-import com.intellij.execution.ProgramRunnerUtil;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.application.ApplicationConfiguration;
@@ -18,6 +17,7 @@ import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.Timer;
 import javax.swing.*;
@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.*;
 
 public class OnboardingScaffoldV3 implements CardActionListener {
+    List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
     private JPanel mainParentPanel;
     private JPanel MainBorderParent;
     private JPanel NavigationPanelParent;
@@ -47,8 +48,13 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private InsidiousService insidiousService;
     private NavigatorComponent navigator;
     private Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
-    public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
-    List<String> jdkVersions_ref = Arrays.asList("8","11","17","18");
+
+    public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService) {
+        this.insidiousService = insidiousService;
+        this.onboardingService = onboardingService;
+        loadNavigator();
+        loadModuleSection();
+    }
 
     @Override
     public void performActions(List<Map<ONBOARDING_ACTION, String>> actions) {
@@ -89,12 +95,11 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                             break;
                         case "jdk":
                             this.status.setJdkVersion(parts[1]);
-                            boolean addOpens=false;
-                            if(Integer.parseInt(parts[1])>=17)
-                            {
-                                addOpens=true;
+                            boolean addOpens = false;
+                            if (Integer.parseInt(parts[1]) >= 17) {
+                                addOpens = true;
                             }
-                            updateVMParams(addOpens,parts[1]);
+                            updateVMParams(addOpens, parts[1]);
                             break;
                         case "runType":
                             ProjectTypeInfo.RUN_TYPES type = ProjectTypeInfo.RUN_TYPES.valueOf(parts[1]);
@@ -127,16 +132,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         return onboardingService.fetchBasePackageForModule(moduleName);
     }
 
-    public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService)
-    {
-        this.insidiousService = insidiousService;
-        this.onboardingService = onboardingService;
-        loadNavigator();
-        loadModuleSection();
-    }
-
-    public void loadDocumentation(DOCUMENTATION_TYPE type)
-    {
+    public void loadDocumentation(DOCUMENTATION_TYPE type) {
         this.rightContainer.removeAll();
         Obv3_Documentation_Generic docs = new Obv3_Documentation_Generic();
         this.documentationSection = docs;
@@ -151,30 +147,32 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.rightContainer.revalidate();
     }
 
-    public String getDocumentationTextFor(DOCUMENTATION_TYPE type)
-    {
+    public String getDocumentationTextFor(DOCUMENTATION_TYPE type) {
         StringBuilder sb = new StringBuilder();
-        switch (type)
-        {
+        switch (type) {
             case MODULE:
                 sb.append("The plugin will generate unit tests in the directory relative to the selected module. " +
                         "Choosing the correct module is important since the imports in the unit test work out of the box.\n" +
                         "\n");
-                if(this.insidiousService.getSelectedModuleInstance()!=null && this.insidiousService.getSelectedModuleInstance().getPath()!=null)
-                {
-                    sb.append("Based on your current selection, the test cases will be generated at the following location");
-                    sb.append("\n"+insidiousService.getSelectedModuleInstance().getPath()+"/src/test/java/{your.package.name}"
-                            +"\n");
+                if (this.insidiousService.getSelectedModuleInstance() != null && this.insidiousService.getSelectedModuleInstance()
+                        .getPath() != null) {
+                    sb.append(
+                            "Based on your current selection, the test cases will be generated at the following location");
+                    sb.append("\n" + insidiousService.getSelectedModuleInstance()
+                            .getPath() + "/src/test/java/{your.package.name}"
+                            + "\n");
                 }
                 break;
             case PROJECT_CONFIG:
                 sb.append("JDK Version\n");
-                sb.append("Select the JDK you use to run your application. We need the right JDK version so that we can construct the right VM argument\n" +
-                        "\n");
+                sb.append(
+                        "Select the JDK you use to run your application. We need the right JDK version so that we can construct the right VM argument\n" +
+                                "\n");
                 sb.append("JSON Serializer\n");
-                sb.append("Select GSON or Jackson based on what you are already using in the module. This ensures that the serialized data uses correct field names respecting your existing annotations.\n" +
-                        "\n" +
-                        "If you are not using either, select the latest Jackson version.");
+                sb.append(
+                        "Select GSON or Jackson based on what you are already using in the module. This ensures that the serialized data uses correct field names respecting your existing annotations.\n" +
+                                "\n" +
+                                "If you are not using either, select the latest Jackson version.");
                 break;
             case DEPENDENCIES:
                 sb.append("Required dependencies \n\n");
@@ -193,16 +191,16 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 break;
             case RUN_TYPE:
                 sb.append("Run Config\n");
-                sb.append("Choose your preferred way of running your application. Based on your selection we can show you the easiest way to add the javaagent to your application and get started with generating tests.\n" +
-                        "\n" +
-                        "Support for Docker/Kubernetes/Tomcat deployment is coming soon.");
+                sb.append(
+                        "Choose your preferred way of running your application. Based on your selection we can show you the easiest way to add the javaagent to your application and get started with generating tests.\n" +
+                                "\n" +
+                                "Support for Docker/Kubernetes/Tomcat deployment is coming soon.");
                 break;
         }
         return sb.toString();
     }
 
-    public void loadNavigator()
-    {
+    public void loadNavigator() {
         this.navGrid.removeAll();
         navigator = new NavigatorComponent(this);
         GridLayout gridLayout = new GridLayout(1, 1);
@@ -252,13 +250,15 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         List<DependencyCardInformation> content = new ArrayList<>();
         List<String> dependencies = new ArrayList<>(onboardingService.getMissingDependencies_v3()
                 .keySet());
-        System.out.println("DEPENDENCIES missing -> "+dependencies);
+        System.out.println("DEPENDENCIES missing -> " + dependencies);
         content.add(new DependencyCardInformation(
                 dependencies.size() == 0 ? "No Missing Dependencies" : "Missing dependencies",
                 dependencies.size() == 0 ? "No other dependencies needed." : "Add these dependencies so that we can serialise/deserialise data properly.",
                 dependencies));
-        content.get(0).setShowSkipButton(dependencies.size()>0);
-        content.get(0).setPrimaryButtonText(dependencies.size() == 0 ? "Proceed" : "Add Dependencies");
+        content.get(0)
+                .setShowSkipButton(dependencies.size() > 0);
+        content.get(0)
+                .setPrimaryButtonText(dependencies.size() == 0 ? "Proceed" : "Add Dependencies");
         this.leftContainer.removeAll();
         Obv3_CardParent cardparent = new Obv3_CardParent(content, true, this);
         GridLayout gridLayout = new GridLayout(1, 1);
@@ -298,11 +298,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         serializers.add("jackson-2.14");
         serializers.add("gson");
 
-        String suggestedAgent=onboardingService.suggestAgentVersion();
-        System.out.println("[SUGGESTED AGENT] "+suggestedAgent);
-        Integer defaultIntex=0;
-        if(serializers.contains(suggestedAgent))
-        {
+        String suggestedAgent = insidiousService.suggestAgentVersion();
+        System.out.println("[SUGGESTED AGENT] " + suggestedAgent);
+        Integer defaultIntex = 0;
+        if (serializers.contains(suggestedAgent)) {
             defaultIntex = serializers.indexOf(suggestedAgent);
         }
 
@@ -317,7 +316,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         Obv3_CardParent cardparent = new Obv3_CardParent(content, this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(cardparent.getComponent(), constraints);
@@ -333,7 +332,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         cardparent = new Obv3_Run_Mode_Selector(this.status.getRunType(), this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(cardparent.getComponent(), constraints);
@@ -360,7 +359,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         OBv2_Selectors_VM cardparent = new OBv2_Selectors_VM(modules, defIndices, this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(cardparent.getComponent(), constraints);
@@ -447,6 +446,74 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         return insidiousService.areLogsPresent();
     }
 
+    @Override
+    public boolean runApplicationWithUnlogged() {
+        if (insidiousService.hasProgramRunning()) {
+            return false;
+        }
+
+        System.out.println("[RUNNING WITH UNLOGGED]");
+        String params = vmOptionsConstructionService.getVMParametersFull();
+
+        System.out.println("[PARAMS RUN]" + params);
+        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject()
+                .getService(RunManager.class)
+                .getAllSettings();
+        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+            System.out.println("runner config - " + runSetting.getName());
+            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+
+                logger.info("ApplicationConfiguration config - " + runSetting.getConfiguration()
+                        .getName());
+                final ProgramRunner runner = DefaultJavaProgramRunner.getInstance();
+                final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
+                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
+                applicationConfiguration.setVMParameters(params.trim());
+                try {
+                    runner.execute(new ExecutionEnvironment(executor, runner, runSetting,
+                            insidiousService.getProject()), null);
+                    //insidiousService.registerProgramRunner(runner);
+                    return true;
+                } catch (Exception e) {
+                    System.out.println("Failed to start application");
+                    System.out.println(e);
+                    e.printStackTrace();
+                    //insidiousService.removeRunners();
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean hasRunnableApplicationConfig() {
+        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject()
+                .getService(RunManager.class)
+                .getAllSettings();
+        for (RunnerAndConfigurationSettings runSetting : allSettings) {
+            System.out.println("runner config - " + runSetting.getName());
+            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isApplicationRunning() {
+        if (insidiousService.hasProgramRunning()) {
+            return true;
+        }
+        return false;
+    }
+
+    public void setDividerLocation(int location) {
+        this.splitParent.setDividerLocation(location);
+    }
+
+    public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
+
     public enum DROP_TYPES {MODULE, JAVA_VERSION, SERIALIZER}
 
     public enum ONBOARDING_ACTION {UPDATE_SELECTION, DOWNLOAD_AGENT, ADD_DEPENDENCIES, NEXT_STATE}
@@ -491,74 +558,5 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         public void setJdkVersion(String jdkVersion) {
             this.jdkVersion = jdkVersion;
         }
-    }
-
-    @Override
-    public boolean runApplicationWithUnlogged() {
-        if(insidiousService.hasProgramRunning())
-        {
-            return false;
-        }
-
-        System.out.println("[RUNNING WITH UNLOGGED]");
-        String params = vmOptionsConstructionService.getVMParametersFull();
-
-        System.out.println("[PARAMS RUN]" + params);
-        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject().getService(RunManager.class)
-                .getAllSettings();
-        for (RunnerAndConfigurationSettings runSetting : allSettings) {
-            System.out.println("runner config - " + runSetting.getName());
-            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-
-                logger.info("ApplicationConfiguration config - " + runSetting.getConfiguration()
-                        .getName());
-                final ProgramRunner runner = DefaultJavaProgramRunner.getInstance();
-                final Executor executor = DefaultRunExecutor.getRunExecutorInstance();
-                ApplicationConfiguration applicationConfiguration = (ApplicationConfiguration) runSetting.getConfiguration();
-                applicationConfiguration.setVMParameters(params.trim());
-                try {
-                    runner.execute(new ExecutionEnvironment(executor, runner, runSetting,
-                            insidiousService.getProject()), null);
-                    //insidiousService.registerProgramRunner(runner);
-                    return true;
-                } catch (Exception e) {
-                    System.out.println("Failed to start application");
-                    System.out.println(e);
-                    e.printStackTrace();
-                    //insidiousService.removeRunners();
-                    return false;
-                }
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean hasRunnableApplicationConfig()
-    {
-        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject().getService(RunManager.class)
-                .getAllSettings();
-        for (RunnerAndConfigurationSettings runSetting : allSettings) {
-            System.out.println("runner config - " + runSetting.getName());
-            if (runSetting.getConfiguration() instanceof ApplicationConfiguration) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public boolean isApplicationRunning()
-    {
-        if(insidiousService.hasProgramRunning())
-        {
-            return true;
-        }
-        return false;
-    }
-
-    public void setDividerLocation(int location)
-    {
-        this.splitParent.setDividerLocation(location);
     }
 }
