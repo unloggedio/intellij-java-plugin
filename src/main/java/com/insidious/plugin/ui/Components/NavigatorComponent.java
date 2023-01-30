@@ -13,7 +13,7 @@ public class NavigatorComponent implements NavigationManager{
     private JPanel borderParent;
     private OnboardingScaffoldV3 scaffold;
     private ArrayList<String> states = new ArrayList<>();
-
+    private ArrayList<NavigationElement> elements = new ArrayList<>();
     private int currentState = 0;
     public NavigatorComponent(OnboardingScaffoldV3 onboardingScaffoldV3)
     {
@@ -26,6 +26,7 @@ public class NavigatorComponent implements NavigationManager{
         states.add("Run!");
 
         this.borderParent.removeAll();
+        this.elements = new ArrayList<>();
         GridLayout gridLayout = new GridLayout(1, 30);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -34,6 +35,7 @@ public class NavigatorComponent implements NavigationManager{
             NavigationElement element = new NavigationElement(this);
             element.setNavigationStageText(states.get(i));
             element.setNumberIcon(UIUtils.getNumberedIconFor(i+1));
+            elements.add(element);
             GridConstraints constraints = new GridConstraints();
             constraints.setColumn(i);
             gridPanel.add(element.getComponent(), constraints);
@@ -58,29 +60,30 @@ public class NavigatorComponent implements NavigationManager{
         switch (state)
         {
             case "Module Selection":
+                currentState=0;
                 scaffold.setDividerLocation(440);
                 scaffold.loadModuleSection();
-                currentState=0;
                 break;
             case "Required Dependencies":
+                currentState=2;
                 scaffold.setDividerLocation(1020);
                 scaffold.loadDependenciesManagementSection();
-                currentState=2;
                 break;
             case "JDK and Json serializer":
+                currentState=1;
                 scaffold.setDividerLocation(440);
                 scaffold.loadProjectConfigSection();
-                currentState=1;
                 break;
             case "Run Config":
+                currentState=3;
                 scaffold.setDividerLocation(440);
                 scaffold.loadRunConfigSection();
-                currentState=3;
                 break;
             case "Run!":
-                scaffold.setDividerLocation(420);
-                scaffold.loadRunSection(scaffold.checkIfLogsArePresent());
                 currentState=4;
+                scaffold.setDividerLocation(420);
+                setNavElementVisibleStates(false);
+                scaffold.loadRunSection(scaffold.checkIfLogsArePresent());
                 break;
         }
     }
@@ -92,5 +95,35 @@ public class NavigatorComponent implements NavigationManager{
             currentState++;
             loadState(this.states.get(currentState));
         }
+    }
+
+    public void refreshOptions()
+    {
+        for(int i=0;i<this.elements.size();i++)
+        {
+            if(i<currentState)
+            {
+                elements.get(i).getComponent().setVisible(false);
+            }
+            else
+            {
+                elements.get(i).getComponent().setVisible(true);
+            }
+        }
+    }
+
+    public void setNavElementVisibleStates(boolean state)
+    {
+        for(int i=0;i<this.elements.size();i++)
+        {
+            elements.get(i).getComponent().setVisible(state);
+        }
+    }
+
+    public void restartOnboarding()
+    {
+        this.currentState=0;
+        setNavElementVisibleStates(true);
+        loadState(this.states.get(currentState));
     }
 }

@@ -5,6 +5,8 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ public class OBv2_Selectors_VM {
     private JPanel includePanel;
     private JLabel includeHeadingLabel;
     private JLabel basePackageLabel;
+    private JButton restartButton;
     private CardActionListener listener;
     private Integer defaultIndex = null;
     private Integer java_defaultIndex = null;
@@ -31,6 +34,12 @@ public class OBv2_Selectors_VM {
         this.java_defaultIndex = defaultindices.get(1);
         this.listener = listener;
         setupProjectInformationSection(modules);
+        restartButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                restartOnboarding();
+            }
+        });
     }
 
     private void setupProjectInformationSection(List<String> modules) {
@@ -88,6 +97,11 @@ public class OBv2_Selectors_VM {
         action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"jdk:"+jdkversion);
         actions.add(action);
         listener.performActions(actions);
+    }
+
+    public void restartOnboarding()
+    {
+        listener.triggerOnboardingRestart();
     }
 
 

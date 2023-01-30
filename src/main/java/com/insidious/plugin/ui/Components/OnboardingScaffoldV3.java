@@ -567,4 +567,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             this.jdkVersion = jdkVersion;
         }
     }
+
+    @Override
+    public void triggerOnboardingRestart() {
+        navigator.restartOnboarding();
+    }
 }

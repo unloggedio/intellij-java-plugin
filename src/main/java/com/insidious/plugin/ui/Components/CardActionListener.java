@@ -24,4 +24,6 @@ public interface CardActionListener {
     boolean runApplicationWithUnlogged();
 
     boolean isApplicationRunning();
+
+    void triggerOnboardingRestart();
 }
