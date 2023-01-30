@@ -1,10 +1,7 @@
 package com.insidious.plugin.factory;
 
-import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.ModuleInformation;
-import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.notification.NotificationType;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -14,7 +11,6 @@ import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.psi.util.PsiUtilBase;
@@ -68,23 +64,32 @@ public class DependencyService {
 
         @NotNull LibraryTable librariesTable = LibraryTablesRegistrar.getInstance()
                 .getLibraryTable(project);
+        String jacksonVersion = null;
         for (Library library : librariesTable.getLibraries()) {
-            if (library.getName().startsWith("Gradle:")) {
-                if (library.getName().contains("jackson-core")) {
+            if (library.getName()
+                    .startsWith("Gradle:") || library.getName()
+                    .startsWith("Maven:")) {
+                if (library.getName()
+                        .contains("jackson-core")) {
                     String[] parts = library.getName()
                             .split(":");
-                    insidiousService.getProjectTypeInfo()
-                            .setJacksonDatabindVersion(parts[parts.length - 1]);
+                    jacksonVersion = parts[parts.length - 1];
+                    break;
                 }
             }
         }
-
+        String finalJacksonVersion = jacksonVersion;
 
         List<MavenId> ids = dependencies.stream()
-                .map(e -> getMavenDependency(e, insidiousService.getProjectTypeInfo()
-                        .getJacksonDatabindVersion()))
+                .map(e -> getMavenDependency(e, finalJacksonVersion))
                 .collect(
                         Collectors.toList());
+
+        VirtualFile gradleFile =
+                LocalFileSystem.getInstance()
+                        .findFileByIoFile(new File(moduleInformation.getPath() + File.separator +
+                                "build.gradle"));
+
 
         if (insidiousService.findBuildSystemForModule(moduleInformation.getName())
                 .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
@@ -142,15 +147,12 @@ public class DependencyService {
                     .saveAllDocuments();
             MavenProjectsManager.getInstance(project)
                     .forceUpdateAllProjectsOrFindAllAvailablePomFiles();
-        } else {
+        } else if (gradleFile != null) {
 
-            VirtualFile gradleFile =
-                    LocalFileSystem.getInstance().findFileByIoFile(new File(moduleInformation.getPath() + File.separator +
-                    "build.gradle"));
-            if (gradleFile == null) {
-                InsidiousNotification.notifyMessage("Failed to locate build.gradle in " + moduleInformation.getPath(),
-                        NotificationType.ERROR);
-            }
+//            if (gradleFile == null) {
+//                InsidiousNotification.notifyMessage("Failed to locate build.gradle in " + moduleInformation.getPath(),
+//                        NotificationType.ERROR);
+//            }
             PsiFile file = PsiUtilBase.getPsiFile(project, gradleFile);
 
             WriteCommandAction.writeCommandAction(project, file)

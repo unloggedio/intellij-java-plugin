@@ -46,6 +46,9 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.roots.libraries.Library;
+import com.intellij.openapi.roots.libraries.LibraryTable;
+import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -89,6 +92,7 @@ final public class InsidiousService implements Disposable {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting()
             .create();
     private final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
+    private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private Project project;
     //    private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
@@ -112,7 +116,6 @@ final public class InsidiousService implements Disposable {
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
     private Content onboardingConfigurationWindowContent;
-    private ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private boolean liveViewAdded = false;
     private Content liveWindowContent;
     private Content onboardingContent;
@@ -350,8 +353,9 @@ final public class InsidiousService implements Disposable {
 
     private List<Module> selectJavaModules(List<Module> modules) {
         return modules.stream()
-                .filter(module -> module.getModuleTypeName() == null || module.getModuleTypeName().equals(
-                        "JAVA_MODULE"))
+                .filter(module -> module.getModuleTypeName() == null || module.getModuleTypeName()
+                        .equals(
+                                "JAVA_MODULE"))
                 .collect(Collectors.toList());
     }
 
@@ -359,10 +363,13 @@ final public class InsidiousService implements Disposable {
 
         this.moduleMap = new TreeMap<>();
         for (Module module : modules) {
-            if (module.getName().endsWith(".main") || module.getName().endsWith(".test")) {
+            if (module.getName()
+                    .endsWith(".main") || module.getName()
+                    .endsWith(".test")) {
                 continue;
             }
-            ModuleInformation info = new ModuleInformation(module.getName(), module.getModuleTypeName(), module.getModuleFilePath());
+            ModuleInformation info = new ModuleInformation(module.getName(), module.getModuleTypeName(),
+                    module.getModuleFilePath());
             info.setModule(module);
             if (selectedModule == null) {
                 selectedModule = info.getName();
@@ -1786,7 +1793,50 @@ final public class InsidiousService implements Disposable {
         return sizemaps.get(keys.get(0));
     }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+    public String fetchVersionFromLibName(String name, String lib) {
+        String[] parts = name
+                .split(lib + ":");
+        String version = trimVersion(parts[parts.length - 1].trim());
+        return version;
+    }
+
+    public String trimVersion(String version) {
+        String versionParts[] = version.split("\\.");
+        if (versionParts.length > 2) {
+            return versionParts[0] + "." + versionParts[1];
+        }
+        return version;
+    }
+
+
+    public String suggestAgentVersion() {
+        String version = null;
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+                .getLibraryTable(getProject());
+        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+        int count = 0;
+        while (lib_iterator.hasNext()) {
+            Library lib = lib_iterator.next();
+            if (lib.getName()
+                    .contains("jackson-databind:")) {
+                version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
+            }
+            count++;
+        }
+        if (count == 0) {
+            //libs not ready
+            return getProjectTypeInfo()
+                    .DEFAULT_PREFERRED_JSON_MAPPER();
+
+        } else {
+            if (version == null) {
+                return getProjectTypeInfo()
+                        .DEFAULT_PREFERRED_JSON_MAPPER();
+            } else {
+                return "jackson-" + version;
+            }
+        }
+    }
 
     public boolean hasProgramRunning() {
         if (programRunners.size() > 0) {
@@ -1808,4 +1858,6 @@ final public class InsidiousService implements Disposable {
     public void removeRunners() {
         this.programRunners = new ArrayList<>();
     }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

@@ -26,7 +26,6 @@ public interface OnboardingService {
 
     Map<String, String> getMissingDependencies_v3();
 
-    String suggestAgentVersion();
 
     void setSelectedModule(String part);
 

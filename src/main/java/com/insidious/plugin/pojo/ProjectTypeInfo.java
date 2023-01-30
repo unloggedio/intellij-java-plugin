@@ -7,7 +7,7 @@ public class ProjectTypeInfo {
     //feature flag to enable/disable searching from dependency tree
     private final boolean detectDependencies = true;
     private final boolean downloadAgent = true;
-    private final String defaultAgentType = "jackson-2.13"; //or 'gson' if you want to use gson.
+    private final String DEFAULT_PREFERRED_JSON_MAPPER = "jackson-2.13"; //or 'gson' if you want to use gson.
     private final boolean useOnboarding_V3 = true;
     private String javaVersion;
     private boolean isMaven = false;
@@ -24,8 +24,8 @@ public class ProjectTypeInfo {
         this.usesGson = usesGson;
     }
 
-    public String getDefaultAgentType() {
-        return defaultAgentType;
+    public String DEFAULT_PREFERRED_JSON_MAPPER() {
+        return DEFAULT_PREFERRED_JSON_MAPPER;
     }
 
     public String getJavaVersion() {
@@ -71,12 +71,15 @@ public class ProjectTypeInfo {
     public List<String> getDependenciesToWatch() {
         List<String> dependenciesToWatch = new ArrayList<>();
         dependenciesToWatch.add("jackson-datatype-hibernate5");
-        dependenciesToWatch.add("jackson-datatype-joda");
-        dependenciesToWatch.add("jackson-datatype-jdk8");
-        dependenciesToWatch.add("jackson-databind");
-        dependenciesToWatch.add("jackson-core");
-        dependenciesToWatch.add("gson");
-        dependenciesToWatch.add("jackson-datatype-jsr310");
+        if (jacksonDatabindVersion == null) {
+            dependenciesToWatch.add("gson");
+        } else {
+            dependenciesToWatch.add("jackson-datatype-joda");
+            dependenciesToWatch.add("jackson-datatype-jdk8");
+            dependenciesToWatch.add("jackson-databind");
+            dependenciesToWatch.add("jackson-core");
+            dependenciesToWatch.add("jackson-datatype-jsr310");
+        }
         return dependenciesToWatch;
     }
 

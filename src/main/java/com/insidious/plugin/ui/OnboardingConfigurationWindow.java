@@ -11,10 +11,8 @@ import com.insidious.plugin.ui.Components.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
-import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -28,15 +26,13 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
-import javax.swing.Timer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -82,59 +78,59 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 .isUseOnboarding_V3()) {
             loadOBV3Scaffold();
         } else {
-            waitingScreen = new WaitingScreen();
-            GridLayout gridLayout = new GridLayout(1, 1);
-            JPanel gridPanel = new JPanel(gridLayout);
-            gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-            GridConstraints constraints = new GridConstraints();
-            constraints.setRow(0);
-            gridPanel.add(waitingScreen.getCompenent(), constraints);
-            mainPanel.add(gridPanel, BorderLayout.CENTER);
-            this.mainPanel.revalidate();
-
-            DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-            if (dumbService.isDumb()) {
-                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
-                        NotificationType.INFORMATION);
-            }
-            dumbService.runWhenSmart(() -> {
-                startSetupInBackground_v3();
-            });
+//            waitingScreen = new WaitingScreen();
+//            GridLayout gridLayout = new GridLayout(1, 1);
+//            JPanel gridPanel = new JPanel(gridLayout);
+//            gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+//            GridConstraints constraints = new GridConstraints();
+//            constraints.setRow(0);
+//            gridPanel.add(waitingScreen.getCompenent(), constraints);
+//            mainPanel.add(gridPanel, BorderLayout.CENTER);
+//            this.mainPanel.revalidate();
+//
+//            DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+//            if (dumbService.isDumb()) {
+//                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
+//                        NotificationType.INFORMATION);
+//            }
+//            dumbService.runWhenSmart(() -> {
+//                startSetupInBackground_v3();
+//            });
         }
     }
 
-    private void startSetupInBackground_v3() {
-
-        ApplicationManager.getApplication()
-                .runReadAction(new Runnable() {
-                    public void run() {
-                        setup();
-                    }
-                });
-    }
+//    private void startSetupInBackground_v3() {
+//
+//        ApplicationManager.getApplication()
+//                .runReadAction(new Runnable() {
+//                    public void run() {
+//                        setup();
+//                    }
+//                });
+//    }
 
     //go to docs/missing deps
-    private void setup() {
-        if (insidiousService.areLogsPresent()) {
-            //go to live
-            runDownloadCheckWhenLogsExist();
-            setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,
-                    this);
-            //insidiousService.addLiveView();
-        } else {
-            //check for dependencies
-            processCheck();
-        }
-    }
+//    private void setup() {
+//        if (insidiousService.areLogsPresent()) {
+//            //go to live
+//            runDownloadCheckWhenLogsExist();
+//            setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,
+//                    this);
+//            //insidiousService.addLiveView();
+//        } else {
+//            //check for dependencies
+//            processCheck();
+//        }
+//    }
 
-    private void runDownloadCheckWhenLogsExist() {
-        ApplicationManager.getApplication()
-                .runReadAction(new Runnable() {
-                    public void run() {
-                        searchDependencies_jacksonDatabind();
-                    }
-                });
-    }
+//    private void runDownloadCheckWhenLogsExist() {
+//        ApplicationManager.getApplication()
+//                .runReadAction(new Runnable() {
+//                    public void run() {
+//                        searchDependencies_jacksonDatabind();
+//                    }
+//                });
+//    }
 
     public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state,
                                OnboardingService onboardingService) {
@@ -143,7 +139,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(scaffold.getComponent(), constraints);
@@ -160,7 +156,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 onboardingService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(scaffold.getComponent(), constraints);
@@ -177,7 +173,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 onboardingService);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(scaffold.getComponent(), constraints);
@@ -213,7 +209,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         StringBuilder packagename = new StringBuilder();
         for (String part : parts) {
-            packagename.append(part + ".");
+            packagename.append(part)
+                    .append(".");
         }
         packagename.deleteCharAt(packagename.length() - 1);
         return packagename.toString();
@@ -305,19 +302,11 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return basePackage;
     }
 
-    public String fetchPackagePathForModule(String modulename)
-    {
+    public String fetchPackagePathForModule(String modulename) {
         String source = fetchBasePackageForModule(modulename);
-        return source.replaceAll("\\.","/");
+        return source.replaceAll("\\.", "/");
     }
 
-    public String trimVersion(String version) {
-        String versionParts[] = version.split("\\.");
-        if (versionParts.length > 2) {
-            return versionParts[0] + "." + versionParts[1];
-        }
-        return version;
-    }
 
     public boolean shouldDownloadAgent() {
         if (!insidiousService.getProjectTypeInfo()
@@ -352,8 +341,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         agentDownloadInitiated = true;
         String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
-        String type = insidiousService.getProjectTypeInfo()
-                .getDefaultAgentType();
+        String type = insidiousService.getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
         String extention = ".jar";
 
         if (insidiousService.getProjectTypeInfo()
@@ -505,81 +493,81 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     //fetch all the dependencies from agent.
-    private void searchDependencies_generic() {
-        UsageInsightTracker.getInstance()
-                .RecordEvent("DependencyScanStart", null);
-        TreeMap<String, String> depVersions = new TreeMap<>();
-        for (String dependency : insidiousService.getProjectTypeInfo()
-                .getDependenciesToWatch()) {
-            depVersions.put(dependency, null);
-        }
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-                .getLibraryTable(insidiousService.getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
-            for (String dependency : insidiousService.getProjectTypeInfo()
-                    .getDependenciesToWatch()) {
-                if (lib.getName()
-                        .contains(dependency + ":")) {
-                    String version = fetchVersionFromLibName(lib.getName(), dependency);
-                    logger.info("Version of " + dependency + " is " + version);
-                    depVersions.replace(dependency, version);
-                }
-            }
-            count++;
-        }
-        if (count == 0) {
-            //logger.info("Project import not complete, waiting.");
-            Timer timer = new Timer(3000, new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent arg0) {
-                    searchDependencies_generic();
-                }
-            });
-            timer.setRepeats(false);
-            timer.start();
-        } else {
-            //search is complete
-            this.dependencies_status = depVersions;
-            System.out.println("[Dependency search status]" + depVersions.toString());
-            logger.info("[Dependency search status] " + depVersions.toString());
-            if (this.dependencies_status.get("jackson-databind") != null) {
-                this.insidiousService.getProjectTypeInfo().
-                        setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
-            }
-            if (this.dependencies_status.get("gson") != null) {
-                this.insidiousService.getProjectTypeInfo().
-                        setUsesGson(true);
-            } else {
-                this.insidiousService.getProjectTypeInfo().
-                        setUsesGson(false);
-            }
-            if (!agentDownloadInitiated) {
-                //downloadAgentinBackground();
-            }
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("DependencyScanEnd", null);
-            if (fetchMissingDependencies().size() == 0) {
-                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
-                        this);
-            } else {
-                System.out.println("[NO ATTEMPT TO WRITE]");
-                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-                        fetchMissingDependencies(), this);
-                if (dependenciesAdditionAttempted) {
-                    System.out.println("[SYNC FAILED POST WRITE]");
-                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
-                            fetchMissingDependencies(), this);
-                } else {
-                    System.out.println("[NO ATTEMPT TO WRITE]");
-                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-                            fetchMissingDependencies(), this);
-                }
-            }
-        }
-    }
+//    private void searchDependencies_generic() {
+//        UsageInsightTracker.getInstance()
+//                .RecordEvent("DependencyScanStart", null);
+//        TreeMap<String, String> depVersions = new TreeMap<>();
+//        for (String dependency : insidiousService.getProjectTypeInfo()
+//                .getDependenciesToWatch()) {
+//            depVersions.put(dependency, null);
+//        }
+//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+//                .getLibraryTable(insidiousService.getProject());
+//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+//        int count = 0;
+//        while (lib_iterator.hasNext()) {
+//            Library lib = lib_iterator.next();
+//            for (String dependency : insidiousService.getProjectTypeInfo()
+//                    .getDependenciesToWatch()) {
+//                if (lib.getName()
+//                        .contains(dependency + ":")) {
+//                    String version = fetchVersionFromLibName(lib.getName(), dependency);
+//                    logger.info("Version of " + dependency + " is " + version);
+//                    depVersions.replace(dependency, version);
+//                }
+//            }
+//            count++;
+//        }
+//        if (count == 0) {
+//            //logger.info("Project import not complete, waiting.");
+//            Timer timer = new Timer(3000, new ActionListener() {
+//                @Override
+//                public void actionPerformed(ActionEvent arg0) {
+//                    searchDependencies_generic();
+//                }
+//            });
+//            timer.setRepeats(false);
+//            timer.start();
+//        } else {
+//            //search is complete
+//            this.dependencies_status = depVersions;
+//            System.out.println("[Dependency search status]" + depVersions.toString());
+//            logger.info("[Dependency search status] " + depVersions.toString());
+//            if (this.dependencies_status.get("jackson-databind") != null) {
+//                this.insidiousService.getProjectTypeInfo().
+//                        setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
+//            }
+//            if (this.dependencies_status.get("gson") != null) {
+//                this.insidiousService.getProjectTypeInfo().
+//                        setUsesGson(true);
+//            } else {
+//                this.insidiousService.getProjectTypeInfo().
+//                        setUsesGson(false);
+//            }
+//            if (!agentDownloadInitiated) {
+//                //downloadAgentinBackground();
+//            }
+//            UsageInsightTracker.getInstance()
+//                    .RecordEvent("DependencyScanEnd", null);
+//            if (fetchMissingDependencies().size() == 0) {
+//                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
+//                        this);
+//            } else {
+//                System.out.println("[NO ATTEMPT TO WRITE]");
+//                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
+//                        fetchMissingDependencies(), this);
+//                if (dependenciesAdditionAttempted) {
+//                    System.out.println("[SYNC FAILED POST WRITE]");
+//                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
+//                            fetchMissingDependencies(), this);
+//                } else {
+//                    System.out.println("[NO ATTEMPT TO WRITE]");
+//                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
+//                            fetchMissingDependencies(), this);
+//                }
+//            }
+//        }
+//    }
 
     public Map<String, String> getMissingDependencies_v3() {
         TreeMap<String, String> depVersions = new TreeMap<>();
@@ -597,7 +585,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     .getDependenciesToWatch()) {
                 if (lib.getName()
                         .contains(dependency + ":")) {
-                    String version = fetchVersionFromLibName(lib.getName(), dependency);
+                    String version = insidiousService.fetchVersionFromLibName(lib.getName(), dependency);
                     logger.info("Version of " + dependency + " is " + version);
                     depVersions.replace(dependency, version);
                 }
@@ -619,36 +607,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 System.out.println("Exception removing unnecessary deps.");
             }
             return depVersions;
-        }
-    }
-
-    @Override
-    public String suggestAgentVersion() {
-        String version = null;
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-                .getLibraryTable(insidiousService.getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
-            if (lib.getName()
-                    .contains("jackson-databind:")) {
-                version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
-            }
-            count++;
-        }
-        if (count == 0) {
-            //libs not ready
-            return insidiousService.getProjectTypeInfo()
-                    .getDefaultAgentType();
-
-        } else {
-            if (version == null) {
-                return insidiousService.getProjectTypeInfo()
-                        .getDefaultAgentType();
-            } else {
-                return "jackson-" + version;
-            }
         }
     }
 
@@ -680,43 +638,43 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.mainPanel.revalidate();
     }
 
-    private void searchDependencies_jacksonDatabind() {
-        TreeMap<String, String> depVersions = new TreeMap<>();
-        for (String dependency : insidiousService.getProjectTypeInfo()
-                .getDependenciesToWatch()) {
-            depVersions.put(dependency, null);
-        }
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-                .getLibraryTable(insidiousService.getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
-            if (lib.getName()
-                    .contains("jackson-databind:")) {
-                insidiousService.getProjectTypeInfo()
-                        .setJacksonDatabindVersion(fetchVersionFromLibName(lib.getName(), "jackson-databind"));
-            }
-            count++;
-        }
-        if (count == 0) {
-            //import of project not complete, wait and rerun
-            //System.out.println("Project import not complete, waiting.");
-            Timer timer = new Timer(3000, new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent arg0) {
-                    searchDependencies_generic();
-                }
-            });
-            timer.setRepeats(false);
-            timer.start();
-        } else {
-            //search is complete
-            if (!agentDownloadInitiated) {
-                //downloadAgentinBackground();
-            }
-        }
-    }
+//    private void searchDependencies_jacksonDatabind() {
+//        TreeMap<String, String> depVersions = new TreeMap<>();
+//        for (String dependency : insidiousService.getProjectTypeInfo()
+//                .getDependenciesToWatch()) {
+//            depVersions.put(dependency, null);
+//        }
+//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+//                .getLibraryTable(insidiousService.getProject());
+//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+//        int count = 0;
+//        while (lib_iterator.hasNext()) {
+//            Library lib = lib_iterator.next();
+//            if (lib.getName()
+//                    .contains("jackson-databind:")) {
+//                insidiousService.getProjectTypeInfo()
+//                        .setJacksonDatabindVersion(fetchVersionFromLibName(lib.getName(), "jackson-databind"));
+//            }
+//            count++;
+//        }
+//        if (count == 0) {
+//            //import of project not complete, wait and rerun
+//            //System.out.println("Project import not complete, waiting.");
+//            Timer timer = new Timer(3000, new ActionListener() {
+//                @Override
+//                public void actionPerformed(ActionEvent arg0) {
+//                    searchDependencies_generic();
+//                }
+//            });
+//            timer.setRepeats(false);
+//            timer.start();
+//        } else {
+//            //search is complete
+//            if (!agentDownloadInitiated) {
+//                //downloadAgentinBackground();
+//            }
+//        }
+//    }
 
     @Override
     public boolean canGoToDocumention() {
@@ -733,9 +691,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             Library lib = lib_iterator.next();
             for (String dependency : insidiousService.getProjectTypeInfo()
                     .getDependenciesToWatch()) {
-                if (lib.getName()
-                        .contains(dependency)) {
-                    String version = fetchVersionFromLibName(lib.getName(), dependency);
+                if (lib.getName().contains(dependency)) {
+                    String version =  insidiousService. fetchVersionFromLibName(lib.getName(), dependency);
                     logger.info("Version of " + dependency + " is " + version);
                     depVersions.replace(dependency, version);
                 }
@@ -784,12 +741,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                 .run(dl_task);
     }
 
-    public String fetchVersionFromLibName(String name, String lib) {
-        String[] parts = name
-                .split(lib + ":");
-        String version = trimVersion(parts[parts.length - 1].trim());
-        return version;
-    }
 
     @Override
     public void postProcessDependencies(Map<String, String> dependencies, Set<String> selections) {
@@ -994,23 +945,23 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-    public void postprocessCheck() {
-        ApplicationManager.getApplication()
-                .runReadAction(new Runnable() {
-                    public void run() {
-                        searchDependencies_generic();
-                    }
-                });
-    }
+//    public void postprocessCheck() {
+//        ApplicationManager.getApplication()
+//                .runReadAction(new Runnable() {
+//                    public void run() {
+//                        searchDependencies_generic();
+//                    }
+//                });
+//    }
 
-    public void processCheck() {
-        ApplicationManager.getApplication()
-                .runReadAction(new Runnable() {
-                    public void run() {
-                        searchDependencies_generic();
-                    }
-                });
-    }
+//    public void processCheck() {
+//        ApplicationManager.getApplication()
+//                .runReadAction(new Runnable() {
+//                    public void run() {
+//                        searchDependencies_generic();
+//                    }
+//                });
+//    }
 
     public boolean shouldWriteDependency(PsiFile file, String dependency) {
         String text = file.getText();

@@ -19,6 +19,9 @@ import java.util.TreeMap;
 
 public class DependencyManagementComponent {
     private static final Logger logger = LoggerUtil.getInstance(DependencyManagementComponent.class);
+    private final OnboardingService onboardingService;
+    private final InsidiousService insidiousService;
+    private final HashSet<String> selectedDependencies = new HashSet<>();
     private JPanel mainPanel;
     private JPanel packagesSelectionPanel;
     private JPanel packageManagementBorderParent;
@@ -33,9 +36,6 @@ public class DependencyManagementComponent {
     private JLabel body_label;
     private JButton copyDependenciesButton;
     private Map<String, String> missing_ = new TreeMap<>();
-    private final OnboardingService onboardingService;
-    private final InsidiousService insidiousService;
-    private final HashSet<String> selectedDependencies = new HashSet<>();
 
     public DependencyManagementComponent(Map<String, String> missing, OnboardingService onboardingService, InsidiousService insidiousService) {
         this.missing_ = missing;
@@ -73,7 +73,8 @@ public class DependencyManagementComponent {
         for (String key : dep_Status.keySet()) {
             if (dep_Status.get(key) == null &&
                     !insidiousService.getProjectTypeInfo().
-                            getDependencies_addedManually().contains(key)) {
+                            getDependencies_addedManually()
+                            .contains(key)) {
                 this.missing_.put(key, dep_Status.get(key));
             }
         }
