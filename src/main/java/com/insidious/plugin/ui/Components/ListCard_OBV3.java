@@ -65,7 +65,6 @@ public class ListCard_OBV3 {
             constraints.setRow(i);
             constraints.setIndent(16);
             JCheckBox label = new JCheckBox();
-            label.setText(dependency);
             label.setBorder(new EmptyBorder(4, 8, 0, 0));
             label.addMouseListener(new MouseAdapter() {
                 @Override
@@ -87,6 +86,9 @@ public class ListCard_OBV3 {
                     listener.setSelectionsForDependencyAddition(selections);
                 }
             });
+            label.setText(getDisplayTextForDependency(dependency));
+            Font font = new Font("JetBrains Mono",0,15);
+            label.setFont(font);
             gridPanel.add(label, constraints);
             i++;
         }
@@ -112,4 +114,21 @@ public class ListCard_OBV3 {
         listener.refreshDependencies();
     }
 
+    public String getDisplayTextForDependency(String dependency)
+    {
+        switch (dependency)
+        {
+            case "jackson-datatype-jsr310":
+                return dependency+" (Check if you are using Java date/time types such as Instant, LocalDateTime, etc)";
+            case "jackson-datatype-joda":
+                return dependency + " (Check if you are using Joda data types)";
+            case "jackson-datatype-hibernate5":
+                return dependency + " (Check if you are using Hibernate specific datatypes and properties such as lazy-loading aspects)";
+            case "jackson-datatype-jdk8":
+                return dependency + " (Check if you are using new Java 8 datatypes such as Optional, OptionalLong, OptionalDouble)";
+            default:
+                return dependency;
+
+        }
+    }
 }

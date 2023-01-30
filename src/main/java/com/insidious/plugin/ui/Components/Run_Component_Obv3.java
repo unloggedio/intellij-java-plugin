@@ -15,7 +15,6 @@ public class Run_Component_Obv3 {
     private JPanel MainContent;
     private JPanel textAreaParent;
     private JTextArea VMoptionsArea;
-    private JPanel buttonGroup;
     private JButton runWithUnlogged;
     private JButton waitingForLogs;
     private JLabel headingLabel;

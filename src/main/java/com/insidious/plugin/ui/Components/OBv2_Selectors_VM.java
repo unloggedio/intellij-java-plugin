@@ -12,7 +12,6 @@ import java.util.TreeMap;
 
 public class OBv2_Selectors_VM {
     private JPanel mainPanel;
-    private JPanel leftPanel;
     private JPanel topParentPanel;
     private JPanel moduleSelectionPanel;
     private JComboBox moduleSelectionBox;
@@ -22,9 +21,7 @@ public class OBv2_Selectors_VM {
     private JComboBox javaSelectionBox;
     private JPanel includePanel;
     private JLabel includeHeadingLabel;
-    private JPanel BasePackagePanel;
     private JLabel basePackageLabel;
-    private JPanel bottomPanelparent;
     private CardActionListener listener;
     private Integer defaultIndex = null;
     private Integer java_defaultIndex = null;

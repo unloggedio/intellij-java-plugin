@@ -58,22 +58,27 @@ public class NavigatorComponent implements NavigationManager{
         switch (state)
         {
             case "Module Selection":
+                scaffold.setDividerLocation(440);
                 scaffold.loadModuleSection();
                 currentState=0;
                 break;
             case "Required Dependencies":
+                scaffold.setDividerLocation(1020);
                 scaffold.loadDependenciesManagementSection();
                 currentState=2;
                 break;
             case "JDK and Json serializer":
+                scaffold.setDividerLocation(440);
                 scaffold.loadProjectConfigSection();
                 currentState=1;
                 break;
             case "Run Config":
+                scaffold.setDividerLocation(440);
                 scaffold.loadRunConfigSection();
                 currentState=3;
                 break;
             case "Run!":
+                scaffold.setDividerLocation(420);
                 scaffold.loadRunSection(scaffold.checkIfLogsArePresent());
                 currentState=4;
                 break;
