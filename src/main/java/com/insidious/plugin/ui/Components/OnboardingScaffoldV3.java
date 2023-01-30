@@ -104,9 +104,14 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     System.out.println("UPDATE SELECTION TRIGGERED " + parameter);
                     switch (parts[0]) {
                         case "module":
+                            System.out.println("Updating module");
                             this.status.setCurrentModule(parts[1]);
                             onboardingService.setSelectedModule(parts[1]);
                             updateVMParams(parts[1]);
+                            if(navigator.shouldReloadDocumentation())
+                            {
+                                loadDocumentation(DOCUMENTATION_TYPE.MODULE);
+                            }
                             eventProperties = new JSONObject();
                             eventProperties.put("selection",parts[1]);
                             UsageInsightTracker.getInstance().RecordEvent("Module_Update_v3", eventProperties);

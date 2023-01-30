@@ -116,6 +116,13 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         actionListener.performActions(this.actions);
     }
 
+    private void proceedToUpdateModule(Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action)
+    {
+        List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String>> acts = new ArrayList<>();
+        acts.add(action);
+        actionListener.performActions(acts);
+    }
+
     private void proceedToAddDependency() {
         Map<OnboardingScaffoldV3.ONBOARDING_ACTION,String> action = new TreeMap<>();
         action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.ADD_DEPENDENCIES, Strings.join(this.dependenciesToAdd, ","));
@@ -166,10 +173,7 @@ public class Obv3_CardParent implements CardSelectionActionListener{
             case MODULE:
                 action = new TreeMap<>();
                 action.put(OnboardingScaffoldV3.ONBOARDING_ACTION.UPDATE_SELECTION,"module:"+selection);
-                if(shouldAddAction(action))
-                {
-                    actions.add(action);
-                }
+                proceedToUpdateModule(action);
                 break;
         }
     }

@@ -129,4 +129,13 @@ public class NavigatorComponent implements NavigationManager{
         loadState(this.states.get(currentState));
         UsageInsightTracker.getInstance().RecordEvent("StartOverTriggered", null);
     }
+
+    public boolean shouldReloadDocumentation()
+    {
+        if(currentState==0)
+        {
+            return true;
+        }
+        return false;
+    }
 }
