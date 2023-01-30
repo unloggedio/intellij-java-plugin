@@ -41,6 +41,7 @@ public class Obv3_CardParent implements CardSelectionActionListener{
         }
         JScrollPane scrollPane = new JScrollPane(gridPanel);
         scrollPane.setBorder(new EmptyBorder(0,0,0,0));
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         this.cardContainer.setPreferredSize(scrollPane.getSize());
         this.cardContainer.add(scrollPane, BorderLayout.CENTER);
         this.cardContainer.revalidate();
