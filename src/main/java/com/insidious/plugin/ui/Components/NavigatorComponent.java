@@ -1,7 +1,9 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -125,5 +127,6 @@ public class NavigatorComponent implements NavigationManager{
         this.currentState=0;
         setNavElementVisibleStates(true);
         loadState(this.states.get(currentState));
+        UsageInsightTracker.getInstance().RecordEvent("StartOverTriggered", null);
     }
 }

@@ -18,6 +18,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
+import org.json.JSONObject;
 
 import javax.swing.Timer;
 import javax.swing.*;
@@ -65,14 +66,17 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             switch (action_to_perform) {
                 case DOWNLOAD_AGENT:
                     String version = action.get(ONBOARDING_ACTION.DOWNLOAD_AGENT);
-                    System.out.println("DOWNLOADING AGENT FOR - " + version);
-                    onboardingService.downloadAgentForVersion(version);
                     if (version.startsWith("jackson")) {
                         insidiousService.getProjectTypeInfo().setJacksonDatabindVersion(version);
                     }
+                    System.out.println("DOWNLOADING AGENT FOR - " + version);
+                    onboardingService.downloadAgentForVersion(version);
+                    JSONObject eventProperties = new JSONObject();
+                    eventProperties.put("version",version);
+                    UsageInsightTracker.getInstance().RecordEvent("Agent_Download_v3", eventProperties);
                     break;
                 case ADD_DEPENDENCIES:
-                    //trigger add dependencies, no need to pass anything
+                    //trigger add dependencies
                     System.out.println("ADD DEPENDENCIES TRIGGERED");
                     String dependencies_string = action.get(ONBOARDING_ACTION.ADD_DEPENDENCIES);
                     System.out.println("[SELECTED DEPENDENCIES] " + dependencies_string);
@@ -88,6 +92,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     if (refs.size() > 0) {
                         onboardingService.postProcessDependencies(refs, deps);
                     }
+                    eventProperties = new JSONObject();
+                    eventProperties.put("Adding dependencies",dependencies_string);
+                    UsageInsightTracker.getInstance().RecordEvent("Add_Dependencies_v3", eventProperties);
                     navigator.loadNextState();
                     break;
                 case UPDATE_SELECTION:
@@ -100,6 +107,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                             this.status.setCurrentModule(parts[1]);
                             onboardingService.setSelectedModule(parts[1]);
                             updateVMParams(parts[1]);
+                            eventProperties = new JSONObject();
+                            eventProperties.put("selection",parts[1]);
+                            UsageInsightTracker.getInstance().RecordEvent("Module_Update_v3", eventProperties);
                             break;
                         case "jdk":
                             this.status.setJdkVersion(parts[1]);
@@ -108,10 +118,16 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                                 addOpens = true;
                             }
                             updateVMParams(addOpens, parts[1]);
+                            eventProperties = new JSONObject();
+                            eventProperties.put("selection",parts[1]);
+                            UsageInsightTracker.getInstance().RecordEvent("JDK_selection_v3", eventProperties);
                             break;
                         case "runType":
                             ProjectTypeInfo.RUN_TYPES type = ProjectTypeInfo.RUN_TYPES.valueOf(parts[1]);
                             this.status.setRunType(type);
+                            eventProperties = new JSONObject();
+                            eventProperties.put("selection",parts[1]);
+                            UsageInsightTracker.getInstance().RecordEvent("RunType_selection_v3", eventProperties);
                             break;
                     }
                     break;
@@ -137,7 +153,12 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public String getBasePackageForModule(String moduleName) {
-        return onboardingService.fetchBasePackageForModule(moduleName);
+        String packageName = onboardingService.fetchBasePackageForModule(moduleName);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("module",moduleName);
+        eventProperties.put("package",packageName);
+        UsageInsightTracker.getInstance().RecordEvent("BasePackageForModule", eventProperties);
+        return packageName;
     }
 
     public void loadDocumentation(DOCUMENTATION_TYPE type) {
@@ -252,6 +273,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.revalidate();
 
         loadDocumentation(DOCUMENTATION_TYPE.MODULE);
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("DefaultModule",this.status.currentModule);
+        UsageInsightTracker.getInstance().RecordEvent("ModuleSelection_Load", eventProperties);
     }
 
     public void loadDependenciesManagementSection() {
@@ -267,6 +292,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 .setShowSkipButton(dependencies.size() > 0);
         content.get(0)
                 .setPrimaryButtonText(dependencies.size() == 0 ? "Proceed" : "Add Dependencies");
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("Dependencies Needed",dependencies);
+        UsageInsightTracker.getInstance().RecordEvent("RequiredDependencies_Load", eventProperties);
         this.leftContainer.removeAll();
         Obv3_CardParent cardparent = new Obv3_CardParent(content, true, this);
         GridLayout gridLayout = new GridLayout(1, 1);
@@ -308,6 +336,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
         String suggestedAgent = insidiousService.suggestAgentVersion();
         System.out.println("[SUGGESTED AGENT] " + suggestedAgent);
+
         Integer defaultIntex = 0;
         if (serializers.contains(suggestedAgent)) {
             defaultIntex = serializers.indexOf(suggestedAgent);
@@ -332,6 +361,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.leftContainer.revalidate();
 
         loadDocumentation(DOCUMENTATION_TYPE.PROJECT_CONFIG);
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("SuggestedAgent",suggestedAgent);
+        UsageInsightTracker.getInstance().RecordEvent("JDKandSerializerSelection_Load", eventProperties);
     }
 
     public void loadRunConfigSection() {
@@ -392,6 +425,12 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         gridPanel.add(runSection.getComponent(), constraints);
         this.rightContainer.add(gridPanel, BorderLayout.CENTER);
         this.rightContainer.revalidate();
+
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("DefaultModule",this.status.getCurrentModule());
+        eventProperties.put("DefaultJDK",this.status.getJdkVersion());
+        eventProperties.put("DefaultRunType",this.status.getRunType().toString());
+        UsageInsightTracker.getInstance().RecordEvent("Run_Load", eventProperties);
     }
 
     @Override

@@ -1,7 +1,9 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.util.Strings;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

@@ -71,6 +71,7 @@ import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -1716,6 +1717,7 @@ final public class InsidiousService implements Disposable {
             toolWindow.getContentManager()
                     .setSelectedContent(liveWindowContent);
         }
+        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
     }
 
     public void runActivity(@NotNull Project project) {
