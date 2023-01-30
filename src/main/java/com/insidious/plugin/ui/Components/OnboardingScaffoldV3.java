@@ -93,7 +93,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                         onboardingService.postProcessDependencies(refs, deps);
                     }
                     eventProperties = new JSONObject();
-                    eventProperties.put("Adding dependencies",dependencies_string);
+                    eventProperties.put("adding_dependencies",dependencies_string);
                     UsageInsightTracker.getInstance().RecordEvent("Add_Dependencies_v3", eventProperties);
                     navigator.loadNextState();
                     break;
@@ -275,7 +275,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         loadDocumentation(DOCUMENTATION_TYPE.MODULE);
 
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("DefaultModule",this.status.currentModule);
+        eventProperties.put("default_module",this.status.currentModule);
         UsageInsightTracker.getInstance().RecordEvent("ModuleSelection_Load", eventProperties);
     }
 
@@ -293,7 +293,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         content.get(0)
                 .setPrimaryButtonText(dependencies.size() == 0 ? "Proceed" : "Add Dependencies");
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("Dependencies Needed",dependencies);
+        eventProperties.put("dependencies_needed",dependencies);
         UsageInsightTracker.getInstance().RecordEvent("RequiredDependencies_Load", eventProperties);
         this.leftContainer.removeAll();
         Obv3_CardParent cardparent = new Obv3_CardParent(content, true, this);
@@ -363,7 +363,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         loadDocumentation(DOCUMENTATION_TYPE.PROJECT_CONFIG);
 
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("SuggestedAgent",suggestedAgent);
+        eventProperties.put("suggested_agent",suggestedAgent);
         UsageInsightTracker.getInstance().RecordEvent("JDKandSerializerSelection_Load", eventProperties);
     }
 
@@ -427,9 +427,9 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.rightContainer.revalidate();
 
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("DefaultModule",this.status.getCurrentModule());
-        eventProperties.put("DefaultJDK",this.status.getJdkVersion());
-        eventProperties.put("DefaultRunType",this.status.getRunType().toString());
+        eventProperties.put("default_module",this.status.getCurrentModule());
+        eventProperties.put("default_jdk",this.status.getJdkVersion());
+        eventProperties.put("default_run_type",this.status.getRunType().toString());
         UsageInsightTracker.getInstance().RecordEvent("Run_Load", eventProperties);
     }
 
