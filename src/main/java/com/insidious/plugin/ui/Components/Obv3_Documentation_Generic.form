@@ -6,7 +6,7 @@
       <xy x="64" y="39" width="469" height="291"/>
     </constraints>
     <properties/>
-    <border type="none"/>
+    <border type="empty"/>
     <children>
       <grid id="8d1de" binding="borderParent" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>

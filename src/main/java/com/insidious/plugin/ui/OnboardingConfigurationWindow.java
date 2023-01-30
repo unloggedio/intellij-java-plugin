@@ -305,6 +305,12 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return basePackage;
     }
 
+    public String fetchPackagePathForModule(String modulename)
+    {
+        String source = fetchBasePackageForModule(modulename);
+        return source.replaceAll("\\.","/");
+    }
+
     public String trimVersion(String version) {
         String versionParts[] = version.split("\\.");
         if (versionParts.length > 2) {
@@ -345,7 +351,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             return;
         }
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = insidiousService.getProjectTypeInfo()
                 .getDefaultAgentType();
         String extention = ".jar";
@@ -370,7 +376,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void downloadAgent(String version) {
         agentDownloadInitiated = true;
-        String host = "https://s3.us-west-2.amazonaws.com/dev.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
+        String host = "https://builds.bug.video/videobug-java-agent-1.10.2-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
 
@@ -576,7 +582,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public Map<String, String> getMissingDependencies_v3() {
-
         TreeMap<String, String> depVersions = new TreeMap<>();
         for (String dependency : insidiousService.getProjectTypeInfo()
                 .getDependenciesToWatch()) {
@@ -599,6 +604,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             }
             count++;
         }
+        System.out.println("[DEP VERSIONS] " + depVersions.toString());
+        logger.info("[DEP VERSIONS] Results of dependency search : " + depVersions.toString());
         if (count == 0) {
             //returns everything if not indexed/project import not done.
             return depVersions;

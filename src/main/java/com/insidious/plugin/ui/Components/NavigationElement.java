@@ -14,16 +14,10 @@ public class NavigationElement {
     public NavigationElement(NavigationManager navigationManager)
     {
         this.navigationManager=navigationManager;
-        navigationStageText.addMouseListener(new MouseAdapter() {
+        mainPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 triggerNavigate();
-            }
-        });
-        rightIcon.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                 triggerNavigate();
             }
         });
     }

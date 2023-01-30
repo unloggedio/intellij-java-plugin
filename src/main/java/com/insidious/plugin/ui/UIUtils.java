@@ -17,7 +17,6 @@ public class UIUtils {
     public static Color red = new Color(245,101,101);
     public static Color green = new Color(56,161,105);
     public static Color yellow_alert = new Color(225,163,54);
-
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
@@ -39,6 +38,7 @@ public class UIUtils {
     public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png", UIUtils.class);
     public static Icon MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/alert_icon_yellow.png", UIUtils.class);
     public static Icon NO_MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/no_missing_dependencies_icon_20.png", UIUtils.class);
+    public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {
