@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OnboardingScaffoldV3 implements CardActionListener {
     List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
@@ -75,7 +76,11 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     dependencies_string = dependencies_string
                             .replaceAll("\\[", "")
                             .replaceAll("\\]", "");
-                    HashSet<String> deps = new HashSet<>(Arrays.asList(dependencies_string.split(",")));
+                    HashSet<String> deps =
+                            Arrays.stream(dependencies_string.split(","))
+                                    .filter(e -> e.length() > 0)
+                                    .collect(Collectors.toCollection(HashSet::new)
+                                    );
                     Map<String, String> refs = onboardingService.getMissingDependencies_v3();
                     if (refs.size() > 0) {
                         onboardingService.postProcessDependencies(refs, deps);

@@ -61,6 +61,9 @@ public class DependencyService {
             final Collection<String> dependencies,
             final ModuleInformation moduleInformation,
             final InsidiousService insidiousService) {
+        if (dependencies.size() == 0) {
+            return;
+        }
 
         @NotNull LibraryTable librariesTable = LibraryTablesRegistrar.getInstance()
                 .getLibraryTable(project);

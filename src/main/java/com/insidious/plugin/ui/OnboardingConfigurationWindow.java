@@ -758,24 +758,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         new DependencyService().addDependency(project, selections,
                 insidiousService.getSelectedModuleInstance(), insidiousService);
 
-//        if (insidiousService.
-//                findBuildSystemForModule(insidiousService.getSelectedModuleName())
-//                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN)) {
-//            System.out.println("[WRTITING TO POM]");
-//            writeToPom(dependencies_local);
-//        } else {
-//            //check if has build.gradle
-//            if (insidiousService.
-//                    findBuildSystemForModule(insidiousService.getSelectedModuleName())
-//                    .equals(InsidiousService.PROJECT_BUILD_SYSTEM.GRADLE)) {
-//                System.out.println("[WRTITING TO GRADLE]");
-//                writeToGradle(dependencies_local);
-//            } else {
-//                //add to lib
-//                System.out.println("[NOT MVN OR GRADLE]");
-//            }
-//        }
-        //postprocessCheck();
     }
 
     @Override
