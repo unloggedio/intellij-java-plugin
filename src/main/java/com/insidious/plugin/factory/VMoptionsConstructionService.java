@@ -21,8 +21,13 @@ public class VMoptionsConstructionService {
         runType_CommandMap.put(ProjectTypeInfo.RUN_TYPES.MAVEN_CLI,
                 "mvn spring-boot:run -Dspring-boot.run.jvmArguments=\"{PARAMS}\" {OPENS}");
         runType_CommandMap.put(ProjectTypeInfo.RUN_TYPES.GRADLE_CLI,
-                "applicationDefaultJvmArgs = [\"{PARAMS}\",\n" +
-                        "\"{OPENS}\"]");
+                "apply plugin: \"java\"\n" +
+                        "apply plugin: \"application\"\n" +
+                        "\n" +
+                        "application {\n" +
+                        "\tapplicationDefaultJvmArgs = [\"{PARAMS}\",\n" +
+                        "\"{OPENS}\"]\n" +
+                        "}");
         runType_CommandMap.put(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION,
                 "{PARAMS} {OPENS}");
         runType_CommandMap.put(ProjectTypeInfo.RUN_TYPES.JAVA_JAR_CLI,
