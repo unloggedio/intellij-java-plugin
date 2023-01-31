@@ -20,7 +20,6 @@ public class Run_Component_Obv3 {
     private JScrollPane scrollParent;
     private JPanel MainContent;
     private JPanel textAreaParent;
-    private JPanel bottomPanel;
     private JLabel iconHolder;
     private CardActionListener listener;
 
