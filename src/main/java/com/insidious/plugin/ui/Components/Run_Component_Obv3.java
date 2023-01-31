@@ -62,7 +62,7 @@ public class Run_Component_Obv3 {
         {
             this.descriptionText_Area.setText("" +
                     "We have found a run configuration, click on Run with unlogged.</p>" +
-                    "Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.</p>" +
+                    "Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will be ready to start generating the unit tests.</p>" +
                     "");
             this.runWithUnlogged.setVisible(true);
 //            if(listener.isApplicationRunning())
@@ -130,7 +130,7 @@ public class Run_Component_Obv3 {
         {
             this.descriptionText_Area.setText("" +
                     "Add these VM paramters into your build.gradle and start your application.\n" +
-                    "\nOnce you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will<br> be ready to start generating the unit tests.\n" +
+                    "\nOnce you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will be ready to start generating the unit tests.\n" +
                     "");
         }
         else
