@@ -29,6 +29,7 @@ public class Run_Component_Obv3 {
         this.listener = listener;
         this.headingLabel.setText("Run Unlogged with "+ UIUtils.getDisplayNameForType(defaultType));
         this.headingLabel.setIcon(UIUtils.getIconForRuntype(defaultType));
+        setGifIconForType(defaultType);
         setDescriptionText(defaultType);
         if(logsPresent)
         {
@@ -166,5 +167,24 @@ public class Run_Component_Obv3 {
         waitingForLogs.setOpaque(true);
         waitingForLogs.setBackground(UIUtils.green);
         waitingForLogs.setForeground(Color.white);
+    }
+
+    void setGifIconForType(ProjectTypeInfo.RUN_TYPES type)
+    {
+        switch (type)
+        {
+            case INTELLIJ_APPLICATION:
+                UIUtils.setGifIconForLabel(this.iconHolder,"intellij_run.gif",null);
+                break;
+            case GRADLE_CLI:
+                UIUtils.setGifIconForLabel(this.iconHolder,"gradle_run.gif",null);
+                break;
+            case MAVEN_CLI:
+                UIUtils.setGifIconForLabel(this.iconHolder,"maven_cli.gif",null);
+                break;
+            case JAVA_JAR_CLI:
+                UIUtils.setGifIconForLabel(this.iconHolder,"java_jar_cmd.gif",null);
+                break;
+        }
     }
 }
