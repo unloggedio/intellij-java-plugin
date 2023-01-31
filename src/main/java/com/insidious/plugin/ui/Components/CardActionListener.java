@@ -26,4 +26,6 @@ public interface CardActionListener {
     boolean isApplicationRunning();
 
     void triggerOnboardingRestart();
+
+    String getCurrentBasePackage();
 }

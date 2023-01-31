@@ -11,7 +11,7 @@ import java.awt.*;
 
 public class UIUtils {
 
-    static final String gifPath = "/icons/gif/";
+    public static final String gifPath = "/icons/gif/";
     public static Color teal = new Color(1, 204, 245);
     public static Color pink = new Color(254,100,216);
     public static Color red = new Color(245,101,101);
@@ -71,6 +71,18 @@ public class UIUtils {
             System.out.println("Exception setting Gif icon for button "+e);
             e.printStackTrace();
             button.setIcon(fallback);
+        }
+    }
+
+    public static Image getImageForGif(String gif)
+    {
+        try {
+            ImageIcon loadingIcon = new ImageIcon(UIUtils.class.getResource(gifPath+gif));
+            return loadingIcon.getImage();
+        }
+        catch(Exception e)
+        {
+           return null;
         }
     }
 

@@ -1,98 +1,138 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.Components.Run_Component_Obv3">
-  <grid id="126a1" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+  <grid id="126a1" binding="mainPanel" layout-manager="GridLayoutManager" row-count="2" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="45" y="34" width="474" height="215"/>
+      <xy x="45" y="34" width="862" height="377"/>
     </constraints>
     <properties/>
-    <border type="empty"/>
+    <border type="none"/>
     <children>
-      <grid id="f9d96" binding="borderPaent" layout-manager="BorderLayout" hgap="0" vgap="0">
+      <grid id="1a55f" binding="GifPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="8" bottom="0" right="0"/>
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <maximum-size width="496" height="-1"/>
+          </grid>
         </constraints>
         <properties/>
-        <border type="empty"/>
+        <border type="none"/>
         <children>
-          <grid id="15c5d" binding="MainContent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="16" left="0" bottom="0" right="0"/>
-            <constraints border-constraint="Center"/>
-            <properties/>
-            <border type="empty"/>
+          <component id="ab0c0" class="javax.swing.JLabel" binding="iconHolder">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <icon value="icons/gif/intellij_480.gif"/>
+              <text value=""/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <grid id="d798a" binding="InstructionsPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="1" row-span="2" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <minimum-size width="480" height="-1"/>
+          </grid>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <scrollpane id="656e4" binding="scrollParent">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <horizontalScrollBarPolicy value="31"/>
+            </properties>
+            <border type="none"/>
             <children>
-              <grid id="761d8" binding="textAreaParent" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="8">
-                <margin top="0" left="8" bottom="0" right="8"/>
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="6" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
+              <grid id="f2c0c" binding="MainContent" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                <margin top="4" left="0" bottom="0" right="0"/>
+                <constraints/>
                 <properties/>
-                <border type="empty"/>
+                <border type="none"/>
                 <children>
-                  <component id="9d87d" class="javax.swing.JTextArea" binding="VMoptionsArea">
+                  <grid id="f4561" binding="textAreaParent" layout-manager="GridLayoutManager" row-count="3" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="0" left="8" bottom="16" right="8"/>
                     <constraints>
-                      <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
-                        <preferred-size width="150" height="50"/>
-                      </grid>
+                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="6" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <autoscrolls value="false"/>
-                      <background color="-14671840"/>
-                      <columns value="1"/>
-                      <editable value="false"/>
-                      <foreground color="-16659211"/>
-                      <lineWrap value="true"/>
-                      <margin top="8" left="8" bottom="8" right="8"/>
-                      <rows value="100"/>
-                      <wrapStyleWord value="true"/>
-                    </properties>
-                  </component>
-                  <component id="daef2" class="javax.swing.JLabel" binding="descriptionText">
+                    <properties/>
+                    <border type="empty"/>
+                    <children>
+                      <component id="683f7" class="javax.swing.JTextArea" binding="VMoptionsArea">
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                            <preferred-size width="150" height="50"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <autoscrolls value="false"/>
+                          <background color="-14671840"/>
+                          <columns value="1"/>
+                          <editable value="false"/>
+                          <foreground color="-16659211"/>
+                          <lineWrap value="true"/>
+                          <margin top="8" left="8" bottom="16" right="8"/>
+                          <rows value="100"/>
+                          <wrapStyleWord value="true"/>
+                        </properties>
+                      </component>
+                      <component id="68df5" class="javax.swing.JLabel" binding="headingLabel">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <font size="16"/>
+                          <horizontalAlignment value="0"/>
+                          <horizontalTextPosition value="4"/>
+                          <text value="Heading"/>
+                        </properties>
+                      </component>
+                      <component id="f95f9" class="javax.swing.JTextArea" binding="descriptionText_Area">
+                        <constraints>
+                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                            <preferred-size width="150" height="50"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <font size="12"/>
+                          <lineWrap value="true"/>
+                          <margin top="16" left="4" bottom="4" right="4"/>
+                          <opaque value="false"/>
+                          <wrapStyleWord value="true"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
+                  <grid id="c228a" binding="bottomPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                    <margin top="8" left="8" bottom="8" right="8"/>
                     <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                      <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
                     </constraints>
-                    <properties>
-                      <horizontalAlignment value="0"/>
-                      <text value="Text in white"/>
-                    </properties>
-                  </component>
-                  <component id="79b06" class="javax.swing.JLabel" binding="headingLabel">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <font size="16"/>
-                      <horizontalAlignment value="0"/>
-                      <horizontalTextPosition value="4"/>
-                      <text value="Heading"/>
-                    </properties>
-                  </component>
-                </children>
-              </grid>
-              <grid id="c3a" binding="bottomPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="8" left="8" bottom="0" right="8"/>
-                <constraints>
-                  <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties/>
-                <border type="empty"/>
-                <children>
-                  <component id="d761" class="javax.swing.JButton" binding="waitingForLogs">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
-                        <minimum-size width="240" height="-1"/>
-                      </grid>
-                    </constraints>
-                    <properties>
-                      <icon value="icons/png/waiting_icon_grey.png"/>
-                      <margin top="0" left="0" bottom="0" right="0"/>
-                      <text value="Waiting for logs"/>
-                    </properties>
-                  </component>
+                    <properties/>
+                    <border type="empty"/>
+                    <children>
+                      <component id="eef1e" class="javax.swing.JButton" binding="waitingForLogs">
+                        <constraints>
+                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                            <minimum-size width="240" height="-1"/>
+                          </grid>
+                        </constraints>
+                        <properties>
+                          <icon value="icons/png/waiting_icon_grey.png"/>
+                          <margin top="0" left="0" bottom="0" right="0"/>
+                          <text value="Waiting for logs"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
                 </children>
               </grid>
             </children>
-          </grid>
+          </scrollpane>
         </children>
       </grid>
     </children>

@@ -24,7 +24,7 @@ public class NavigatorComponent implements NavigationManager{
         states.add("Module Selection");
         states.add("JDK and Json serializer");
         states.add("Required Dependencies");
-        states.add("Run Config");
+//        states.add("Run Config");
         states.add("Run!");
 
         this.borderParent.removeAll();
@@ -76,15 +76,15 @@ public class NavigatorComponent implements NavigationManager{
                 scaffold.setDividerLocation(440);
                 scaffold.loadProjectConfigSection();
                 break;
-            case "Run Config":
-                currentState=3;
-                scaffold.setDividerLocation(440);
-                scaffold.loadRunConfigSection();
-                break;
+//            case "Run Config":
+//                currentState=3;
+//                scaffold.setDividerLocation(440);
+//                scaffold.loadRunConfigSection();
+//                break;
             case "Run!":
-                currentState=4;
-                scaffold.setDividerLocation(420);
-                setNavElementVisibleStates(false);
+                currentState=3;
+                scaffold.setDividerLocation(400);
+                //setNavElementVisibleStates(false);
                 scaffold.loadRunSection(scaffold.checkIfLogsArePresent());
                 break;
         }
@@ -133,6 +133,14 @@ public class NavigatorComponent implements NavigationManager{
     public boolean shouldReloadDocumentation()
     {
         if(currentState==0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean shouldReloadRun() {
+        if(currentState==3)
         {
             return true;
         }

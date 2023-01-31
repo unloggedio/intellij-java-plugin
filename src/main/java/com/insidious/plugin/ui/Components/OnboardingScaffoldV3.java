@@ -130,6 +130,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                         case "runType":
                             ProjectTypeInfo.RUN_TYPES type = ProjectTypeInfo.RUN_TYPES.valueOf(parts[1]);
                             this.status.setRunType(type);
+                            if(navigator.shouldReloadRun())
+                            {
+                                loadRunSection(checkIfLogsArePresent());
+                            }
                             eventProperties = new JSONObject();
                             eventProperties.put("selection",parts[1]);
                             UsageInsightTracker.getInstance().RecordEvent("RunType_selection_v3", eventProperties);
@@ -390,20 +394,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     }
 
     public void loadRunSection(boolean logsPresent) {
+
         this.leftContainer.removeAll();
-        List<Integer> defIndices = new ArrayList<>();
-        Integer defIndex = 0;
-        List<String> modules = onboardingService.fetchModules();
-        if (this.status.currentModule != null) {
-            defIndex = modules.indexOf(this.status.currentModule);
-        }
-        defIndices.add(defIndex);
-        Integer java_version_index = 0;
-        if (this.status.getJdkVersion() != null) {
-            java_version_index = jdkVersions_ref.indexOf(this.status.getJdkVersion());
-        }
-        defIndices.add(java_version_index);
-        OBv2_Selectors_VM cardparent = new OBv2_Selectors_VM(modules, defIndices, this);
+        Obv3_Run_Mode_Selector cardparent;
+        cardparent = new Obv3_Run_Mode_Selector(this.status.getRunType(), this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(JBUI.Borders.empty());
@@ -617,4 +611,10 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     public void triggerOnboardingRestart() {
         navigator.restartOnboarding();
     }
+
+    @Override
+    public String getCurrentBasePackage() {
+        return onboardingService.fetchBasePackageForModule(this.status.currentModule);
+    }
+
 }

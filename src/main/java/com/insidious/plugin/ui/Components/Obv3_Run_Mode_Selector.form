@@ -49,6 +49,7 @@
                   <icon value="icons/png/next_icon_v3.png"/>
                   <opaque value="true"/>
                   <text value="Continue"/>
+                  <visible value="false"/>
                 </properties>
               </component>
             </children>
