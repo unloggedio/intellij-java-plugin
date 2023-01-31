@@ -571,8 +571,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     public Map<String, String> getMissingDependencies_v3() {
         TreeMap<String, String> depVersions = new TreeMap<>();
-        for (String dependency : insidiousService.getProjectTypeInfo()
-                .getDependenciesToWatch()) {
+        List<String> dependenciesToWatch = insidiousService.getProjectTypeInfo()
+                .getDependenciesToWatch();
+        for (String dependency : dependenciesToWatch) {
             depVersions.put(dependency, null);
         }
         LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
@@ -581,8 +582,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         int count = 0;
         while (lib_iterator.hasNext()) {
             Library lib = lib_iterator.next();
-            for (String dependency : insidiousService.getProjectTypeInfo()
-                    .getDependenciesToWatch()) {
+            for (String dependency : dependenciesToWatch) {
                 if (lib.getName()
                         .contains(dependency + ":")) {
                     String version = insidiousService.fetchVersionFromLibName(lib.getName(), dependency);
@@ -598,9 +598,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             //returns everything if not indexed/project import not done.
             return depVersions;
         } else {
-            if (depVersions.containsKey("jackson-databind")) {
-                depVersions.remove("jackson-databind");
-            }
+//            if (depVersions.containsKey("jackson-databind")) {
+//                depVersions.remove("jackson-databind");
+//            }
             try {
                 return computeMissingDependenciesFromStatus(depVersions);
             } catch (Exception e) {

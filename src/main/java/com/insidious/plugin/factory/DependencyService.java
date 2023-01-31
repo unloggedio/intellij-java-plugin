@@ -81,6 +81,22 @@ public class DependencyService {
                 }
             }
         }
+        if (jacksonVersion == null) {
+            if (insidiousService.getProjectTypeInfo()
+                    .getJacksonDatabindVersion() != null) {
+            String jacksonVersionFromProjectType = insidiousService.getProjectTypeInfo()
+                    .getJacksonDatabindVersion().split("-")[1];
+            switch (jacksonVersionFromProjectType) {
+                case "2.8": jacksonVersion = "2.8.11"; break;
+                case "2.9": jacksonVersion = "2.9.10"; break;
+                case "2.10": jacksonVersion = "2.10.5"; break;
+                case "2.11": jacksonVersion = "2.11.4"; break;
+                case "2.12": jacksonVersion = "2.12.7"; break;
+                case "2.13": jacksonVersion = "2.13.5"; break;
+                case "2.14": jacksonVersion = "2.14.2"; break;
+            }
+            }
+        }
         String finalJacksonVersion = jacksonVersion;
 
         List<MavenId> ids = dependencies.stream()
@@ -183,7 +199,7 @@ public class DependencyService {
                                 for (MavenId mavenId : ids) {
                                     closableBlock.addStatementBefore(
                                             factory.createStatementFromText(
-                                                    String.format("compile '%s'\n", getMavenArtifactKey(mavenId))),
+                                                    String.format("implementation '%s'\n", getMavenArtifactKey(mavenId))),
                                             null);
                                 }
                             }
@@ -202,7 +218,15 @@ public class DependencyService {
                 groupId = "com.google.code.gson";
                 version = "2.10";
                 break;
-            case "jackson":
+            case "jackson-core":
+                groupId = "com.fasterxml.jackson.core";
+                break;
+            case "jackson-databind":
+                groupId = "com.fasterxml.jackson.core";
+                break;
+            case "jackson-annotations":
+                groupId = "com.fasterxml.jackson.core";
+                break;
             default:
                 groupId = "com.fasterxml.jackson.datatype";
                 break;
