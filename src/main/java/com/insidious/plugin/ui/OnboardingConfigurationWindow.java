@@ -13,6 +13,7 @@ import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -77,29 +78,24 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         UsageInsightTracker.getInstance()
                 .RecordEvent("OnboardingFlowStarted", null);
 
-        if (insidiousService.getProjectTypeInfo()
-                .isUseOnboarding_V3()) {
-            loadOBV3Scaffold();
-        } else {
-//            waitingScreen = new WaitingScreen();
-//            GridLayout gridLayout = new GridLayout(1, 1);
-//            JPanel gridPanel = new JPanel(gridLayout);
-//            gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-//            GridConstraints constraints = new GridConstraints();
-//            constraints.setRow(0);
-//            gridPanel.add(waitingScreen.getCompenent(), constraints);
-//            mainPanel.add(gridPanel, BorderLayout.CENTER);
-//            this.mainPanel.revalidate();
-//
-//            DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
-//            if (dumbService.isDumb()) {
-//                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
-//                        NotificationType.INFORMATION);
-//            }
-//            dumbService.runWhenSmart(() -> {
-//                startSetupInBackground_v3();
-//            });
+        waitingScreen = new WaitingScreen();
+        GridLayout gridLayout = new GridLayout(1, 1);
+        JPanel gridPanel = new JPanel(gridLayout);
+        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(0);
+        gridPanel.add(waitingScreen.getCompenent(), constraints);
+        mainPanel.add(gridPanel, BorderLayout.CENTER);
+        this.mainPanel.revalidate();
+
+        DumbService dumbService = DumbService.getInstance(insidiousService.getProject());
+        if (dumbService.isDumb()) {
+            InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
+                    NotificationType.INFORMATION);
         }
+        dumbService.runWhenSmart(() -> {
+            loadOBV3Scaffold();
+        });
     }
 
 //    private void startSetupInBackground_v3() {

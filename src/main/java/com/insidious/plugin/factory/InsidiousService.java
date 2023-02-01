@@ -163,16 +163,7 @@ final public class InsidiousService implements Disposable {
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 
-
-            DumbService dumbService = DumbService.getInstance(project);
-            if (dumbService.isDumb()) {
-                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
-                        NotificationType.INFORMATION);
-                dumbService.runWhenSmart(this::initiateUI);
-            } else {
-                this.initiateUI();
-            }
-
+            this.initiateUI();
 
             ApplicationManager.getApplication()
                     .runReadAction(new Runnable() {
