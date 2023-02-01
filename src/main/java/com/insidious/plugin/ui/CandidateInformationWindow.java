@@ -61,6 +61,13 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
                 }
             }
         });
+
+        assertNotEqualsBtn.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent me) {
+                UsageInsightTracker.getInstance().
+                        RecordEvent("AssertNotEqualsSelected", null);
+            }
+        });
         assertEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         assertNotEqualsBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         UIUtils.setDividerColorForSplitPane(mainSplitPane, UIUtils.teal);

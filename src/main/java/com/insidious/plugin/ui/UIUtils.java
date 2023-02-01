@@ -124,7 +124,7 @@ public class UIUtils {
             case MAVEN_CLI:
                 return "Maven CLI Application";
             case GRADLE_CLI:
-                return "Gradle CLI Application";
+                return "Gradle Application";
             case INTELLIJ_APPLICATION:
                 return "IntelliJ Idea Application";
             case JAVA_JAR_CLI:

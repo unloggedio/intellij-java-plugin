@@ -138,7 +138,7 @@ public class Obv3_Run_Mode_Selector {
             case MAVEN_CLI:
                 return "Maven";
             case GRADLE_CLI:
-                return "Gradle";
+                return "Gradle Bootrun";
             case INTELLIJ_APPLICATION:
                 return "IntelliJ Application";
             case JAVA_JAR_CLI:
