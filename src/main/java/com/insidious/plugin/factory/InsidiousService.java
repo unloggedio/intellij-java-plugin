@@ -1697,6 +1697,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void addLiveView() {
+        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
         if (!liveViewAdded) {
             toolWindow.getContentManager()
                     .addContent(liveWindowContent);
@@ -1714,8 +1715,6 @@ final public class InsidiousService implements Disposable {
             toolWindow.getContentManager()
                     .setSelectedContent(liveWindowContent);
         }
-        UsageInsightTracker.getInstance()
-                .RecordEvent("ProceedingToLiveView", null);
     }
 
     public void runActivity(@NotNull Project project) {

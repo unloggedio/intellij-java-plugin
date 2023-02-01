@@ -48,6 +48,9 @@ public class TestCandidateCustomizeView {
         this.testGenerationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE);
 
+        UsageInsightTracker.getInstance().
+                RecordEvent("CustomizeViewLoaded", null);
+
         TestCandidateTreeModel candidateTree = new TestCandidateTreeModel(
                 testCandidateMetadata, testGenerationConfiguration, sessionInstance);
         this.testCandidateTree.setModel(candidateTree);
