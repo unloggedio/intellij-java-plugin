@@ -25,6 +25,7 @@ import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
+
 import java.lang.reflect.Type;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -217,7 +218,7 @@ public class DaoService {
                 MethodCallExpression mainMethodCallExpression = getMethodCallExpressionById(
                         testCandidateMetadata.getMainMethod());
                 logger.warn("main method isn't public: " + mainMethodCallExpression);
-                converted.setMainMethod(buildFromDbMce(List.of(mainMethodCallExpression)).get(0));
+                converted.setMainMethod(buildFromDbMce(Collections.singletonList(mainMethodCallExpression)).get(0));
             }
 
 
@@ -420,7 +421,7 @@ public class DaoService {
                                             .equals("body"))
                                     .findFirst();
 
-                            if (bodyResponseParameter.isEmpty()) {
+                            if (!bodyResponseParameter.isPresent()) {
                                 throw new RuntimeException("expecting a body call on the " +
                                         "return parameter okhttp3.Response was not found");
                             }
@@ -446,7 +447,7 @@ public class DaoService {
                             com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
 
                             VariableContainer variableContainer = VariableContainer.from(
-                                    List.of(stringCall.getReturnValue())
+                                    Collections.singletonList(stringCall.getReturnValue())
                             );
 
                             // TODO: also use header and code method call response to create more accurate response
@@ -586,35 +587,30 @@ public class DaoService {
                         com.insidious.plugin.pojo.Parameter.cloneParameter(parameterMap.get(dbMce.getSubject()))
                 );
             }
-            if (methodCallExpression.getSubject()
-                    .getType() == null) {
+            com.insidious.plugin.pojo.Parameter subjectParameter = methodCallExpression.getSubject();
+            if (subjectParameter.getType() == null) {
                 logger.warn(
-                        "type for subject of method call [" + dbMce + "] is null [" + methodCallExpression.getSubject() + "]");
+                        "type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
                 continue;
             }
-            if (methodCallExpression.getSubject()
-                    .getType()
+            if (subjectParameter.getType()
                     .startsWith("java.util.")) {
                 continue;
             }
-            if (methodCallExpression.getSubject()
-                    .getType()
+            if (subjectParameter.getType()
                     .startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (methodCallExpression.getSubject()
-                    .getType()
+            if (subjectParameter.getType()
                     .startsWith("org.apache.commons.")) {
                 continue;
             }
-            if (methodCallExpression.getSubject()
-                    .getType()
+            if (subjectParameter.getType()
                     .startsWith("org.springframework.cglib")) {
                 continue;
             }
 
-            if (methodCallExpression.getSubject()
-                    .getType()
+            if (subjectParameter.getType()
                     .startsWith("org.springframework.aop")) {
                 continue;
             }
@@ -628,6 +624,36 @@ public class DaoService {
             finalCallsList.add(methodCallExpression);
             methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
             methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
+
+            if (subjectParameter.getType()
+                    .contains(".$")) {
+                logger.warn(
+                        "call subject type contains '.$', replacing with type from somewhere else: " + subjectParameter.getType());
+                // this comes up when a proxy for an object is created
+                // eg jdk.proxy2.$Proxy127
+                String subjectTypeFromMethodDefinition = null;
+                if (methodDefinition != null) {
+                    subjectTypeFromMethodDefinition = methodDefinition.getOwnerType();
+                }
+                String subjectTypeFromProbeInfo = null;
+                DataInfo probeInfo = subjectParameter.getProbeInfo();
+                switch (probeInfo.getEventType()) {
+                    default:
+                        subjectTypeFromProbeInfo = probeInfo.getAttribute("Type", null);
+                }
+                if (subjectTypeFromProbeInfo != null) {
+                    subjectParameter.setTypeForced(ClassTypeUtils.getJavaClassName(subjectTypeFromProbeInfo));
+                } else if (subjectTypeFromMethodDefinition != null) {
+                    subjectParameter.setTypeForced(subjectTypeFromMethodDefinition);
+                } else {
+                    String callOwnerFromProbe = methodCallExpression.getEntryProbeInfo()
+                            .getAttribute("Owner", null);
+                    if (callOwnerFromProbe != null) {
+                        subjectParameter.setTypeForced(ClassTypeUtils.getJavaClassName(callOwnerFromProbe));
+                    }
+                }
+
+            }
 
 
             List<com.insidious.plugin.pojo.Parameter> arguments = new LinkedList<>();
@@ -742,7 +768,7 @@ public class DaoService {
                                         .equals("body"))
                                 .findFirst();
 
-                        if (bodyResponseParameter.isEmpty()) {
+                        if (!bodyResponseParameter.isPresent()) {
                             throw new RuntimeException("expecting a body call on the " +
                                     "return parameter okhttp3.Response was not found");
                         }
@@ -769,7 +795,7 @@ public class DaoService {
                         com.insidious.plugin.pojo.MethodCallExpression stringCall = responseBodyCalls.get(0);
 
                         VariableContainer variableContainer = VariableContainer.from(
-                                List.of(stringCall.getReturnValue())
+                                Collections.singletonList(stringCall.getReturnValue())
                         );
 
                         // TODO: also use header and code method call response to create more accurate response
@@ -798,7 +824,7 @@ public class DaoService {
     public List<Parameter>
     getParameterByValue(Collection<Long> values) throws Exception {
         if (values.size() == 0) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         String query = "select * from parameter where value in (" + StringUtils.join(values, ",") + ")";
@@ -807,7 +833,7 @@ public class DaoService {
         List<Parameter> resultList = queryResult.getResults();
         queryResult.close();
         if (resultList.size() == 0) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         return new ArrayList<>(resultList);
@@ -816,7 +842,7 @@ public class DaoService {
     public List<DataEventWithSessionId>
     getProbes(Collection<Long> values) throws Exception {
         if (values.size() == 0) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         String query = "select * from data_event where nanotime in (" + StringUtils.join(values, ",") + ")";
@@ -826,7 +852,7 @@ public class DaoService {
         List<DataEventWithSessionId> resultList = queryResult.getResults();
         queryResult.close();
         if (resultList.size() == 0) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         return new ArrayList<>(resultList);
@@ -835,7 +861,7 @@ public class DaoService {
     public List<DataInfo>
     getProbesInfo(Collection<Integer> values) throws Exception {
         if (values.size() == 0) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         String query = "select * from probe_info where dataid in (" + StringUtils.join(values, ",") + ")";
@@ -1071,7 +1097,7 @@ public class DaoService {
                     .collect(Collectors.toList());
         } catch (SQLException e) {
             e.printStackTrace();
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -1104,7 +1130,7 @@ public class DaoService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return List.of();
+            return Collections.emptyList();
         }
 
         return packageList;
@@ -1115,7 +1141,7 @@ public class DaoService {
             return logFilesDao.queryForAll();
         } catch (SQLException e) {
             e.printStackTrace();
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -1124,7 +1150,7 @@ public class DaoService {
             return archiveFileDao.queryForAll();
         } catch (SQLException e) {
             e.printStackTrace();
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -1136,7 +1162,7 @@ public class DaoService {
                     .collect(Collectors.toList());
         } catch (SQLException e) {
             e.printStackTrace();
-            return List.of();
+            return Collections.emptyList();
         }
     }
 

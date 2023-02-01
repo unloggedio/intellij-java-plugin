@@ -45,6 +45,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -71,7 +72,6 @@ import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -159,12 +159,17 @@ final public class InsidiousService implements Disposable {
                     .toFile()
                     .mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
-//            this.testCaseService = new TestCaseService(client.getSessionInstance());
-//            this.insidiousConfiguration = ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
 
-//            debugSession = getActiveDebugSession(ServiceManager.getService(XDebuggerManager.class)
-//                    .getDebugSessions());
-            this.initiateUI();
+
+            DumbService dumbService = DumbService.getInstance(project);
+            if (dumbService.isDumb()) {
+                InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
+                        NotificationType.INFORMATION);
+                dumbService.runWhenSmart(this::initiateUI);
+            } else {
+                this.initiateUI();
+            }
+
 
             ApplicationManager.getApplication()
                     .runReadAction(new Runnable() {
@@ -174,19 +179,13 @@ final public class InsidiousService implements Disposable {
                             checkAndEnsureJavaAgentCache();
                         }
                     });
-//            ProgressManager.getInstance()
-//                    .run(new Task.WithResult<String, Exception>(project, "Unlogged agent check", false) {
-//                        @Override
-//                        protected String compute(@NotNull ProgressIndicator indicator) throws Exception {
-//                            getProjectPackageName();
-//                            checkAndEnsureJavaAgentCache();
-//                            return "ok";
-//                        }
-//                    });
+
 
         } catch (ServiceNotReadyException snre) {
+            snre.printStackTrace();
             logger.info("service not ready exception -> " + snre.getMessage());
         } catch (ProcessCanceledException ignored) {
+            ignored.printStackTrace();
         } catch (Throwable e) {
             e.printStackTrace();
             logger.error("exception in videobug service init", e);
@@ -438,15 +437,13 @@ final public class InsidiousService implements Disposable {
 //            }
 //        }
             List<String> res = new ArrayList<>();
-            if(!this.moduleMap.containsKey(this.project.getName()))
-            {
+            if (!this.moduleMap.containsKey(this.project.getName())) {
                 ModuleInformation info = new ModuleInformation(this.project.getName(),
-                        "JAVA_MODULE",this.project.getBasePath());
-                this.moduleMap.put(this.project.getName(),info);
+                        "JAVA_MODULE", this.project.getBasePath());
+                this.moduleMap.put(this.project.getName(), info);
             }
-            if(this.selectedModule==null)
-            {
-                this.selectedModule=this.project.getName();
+            if (this.selectedModule == null) {
+                this.selectedModule = this.project.getName();
             }
             res.add(project.getName());
             return res;
@@ -1717,7 +1714,8 @@ final public class InsidiousService implements Disposable {
             toolWindow.getContentManager()
                     .setSelectedContent(liveWindowContent);
         }
-        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("ProceedingToLiveView", null);
     }
 
     public void runActivity(@NotNull Project project) {

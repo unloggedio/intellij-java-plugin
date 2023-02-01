@@ -106,9 +106,9 @@ public class ObjectRoutine {
         scriptContainer.setCreatedVariables(testGenerationState.getVariableContainer()
                 .clone());
 
-        List<ClassName> annotations = List.of(generationConfiguration.getTestAnnotationType());
+        List<ClassName> annotations = Collections.singletonList(generationConfiguration.getTestAnnotationType());
         if (getRoutineName().equals("<init>")) {
-            annotations = List.of(generationConfiguration.getTestBeforeAnnotationType());
+            annotations = Collections.singletonList(generationConfiguration.getTestBeforeAnnotationType());
         }
         annotations.forEach(scriptContainer::addAnnotation);
 
