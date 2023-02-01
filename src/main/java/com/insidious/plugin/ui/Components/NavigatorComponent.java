@@ -3,16 +3,20 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.uiDesigner.core.GridConstraints;
-import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
 public class NavigatorComponent implements NavigationManager{
     private JPanel mainPanel;
     private JPanel borderParent;
+    private JPanel BorderParentPanel;
+    private JPanel actionsPanel;
+    private JButton supportButton;
     private OnboardingScaffoldV3 scaffold;
     private ArrayList<String> states = new ArrayList<>();
     private ArrayList<NavigationElement> elements = new ArrayList<>();
@@ -44,6 +48,12 @@ public class NavigatorComponent implements NavigationManager{
         }
         this.borderParent.add(gridPanel, BorderLayout.CENTER);
         this.borderParent.revalidate();
+        supportButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                routeToDiscord();
+            }
+        });
     }
 
     public JPanel getComponent()
@@ -145,5 +155,18 @@ public class NavigatorComponent implements NavigationManager{
             return true;
         }
         return false;
+    }
+
+    private void routeToDiscord() {
+        String link = "https://discord.gg/Hhwvay8uTa";
+        if (Desktop.isDesktopSupported()) {
+            try {
+                java.awt.Desktop.getDesktop()
+                        .browse(java.net.URI.create(link));
+            } catch (Exception e) {
+            }
+        } else {
+            //no browser
+        }
     }
 }
