@@ -73,7 +73,7 @@ public class DependencyService {
                     .startsWith("Gradle:") || library.getName()
                     .startsWith("Maven:")) {
                 if (library.getName()
-                        .contains("jackson-core")) {
+                        .contains("com.fasterxml.jackson.core:jackson-core")) {
                     String[] parts = library.getName()
                             .split(":");
                     jacksonVersion = parts[parts.length - 1];
