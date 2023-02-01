@@ -74,6 +74,9 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.project = project;
         this.insidiousService = insidiousService;
 
+        UsageInsightTracker.getInstance()
+                .RecordEvent("OnboardingFlowStarted", null);
+
         if (insidiousService.getProjectTypeInfo()
                 .isUseOnboarding_V3()) {
             loadOBV3Scaffold();
@@ -443,6 +446,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             byte[] hash = MessageDigest.getInstance("MD5")
                     .digest(data);
             String checksum = new BigInteger(1, hash).toString(16);
+            while (checksum.length()<32)
+            {
+                checksum = "0"+checksum;
+            }
             //System.out.println("Checksum of file " + checksum);
             switch (agentVersion) {
                 case "gson":

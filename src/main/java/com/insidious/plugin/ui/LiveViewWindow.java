@@ -334,6 +334,8 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void onSelect(TestCandidateMetadata testCandidateMetadata) {
         try {
+            UsageInsightTracker.getInstance().
+                    RecordEvent("CandidateSelected", null);
             TestCandidateCustomizeView testCandidateView = new TestCandidateCustomizeView(
                     testCandidateMetadata, sessionInstance, this);
             this.candidateListPanel.removeAll();
