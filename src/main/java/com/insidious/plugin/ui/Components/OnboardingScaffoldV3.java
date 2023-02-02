@@ -525,7 +525,6 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                     System.out.println("Failed to start application");
                     System.out.println(e);
                     e.printStackTrace();
-                    //insidiousService.removeRunners();
                     return false;
                 }
             }

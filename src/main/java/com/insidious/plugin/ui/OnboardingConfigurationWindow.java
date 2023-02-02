@@ -67,7 +67,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     private boolean agentDownloadInitiated = false;
     private boolean addopens = false;
     private WaitingScreen waitingScreen;
-    private boolean dependenciesAdditionAttempted = false;
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -220,61 +219,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     public String fetchPackagePathForModule(String modulename) {
         String source = fetchBasePackageForModule(modulename);
         return source.replaceAll("\\.", "/");
-    }
-
-
-    public boolean shouldDownloadAgent() {
-        if (!insidiousService.getProjectTypeInfo()
-                .isDownloadAgent()) {
-            return false;
-        }
-        Path fileURiString = Constants.VIDEOBUG_AGENT_PATH;
-        String absolutePath = fileURiString.toAbsolutePath()
-                .toString();
-        File agentFile = new File(absolutePath);
-        if (agentFile.exists() == false) {
-            return true;
-        }
-        String version = insidiousService.getProjectTypeInfo()
-                .getJacksonDatabindVersion();
-        if (version != null) {
-            version = "jackson-" + version;
-        } else {
-            version = "gson";
-        }
-        if (md5Check(version, agentFile)) {
-            return false;
-        }
-        return true;
-    }
-
-    private void downloadAgent() {
-        if (!shouldDownloadAgent()) {
-            logger.info("No need to download agent. Required version is already present");
-            //agent already exists with correct version
-            return;
-        }
-        agentDownloadInitiated = true;
-        String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
-        String type = insidiousService.getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
-        String extention = ".jar";
-
-        if (insidiousService.getProjectTypeInfo()
-                .getJacksonDatabindVersion() != null) {
-            //fetch jackson
-            String version = insidiousService.getProjectTypeInfo()
-                    .getJacksonDatabindVersion();
-            if (version != null) {
-                type = "jackson-" + version;
-            }
-        }
-        checkProgressIndicator("Downloading Unlogged agent", "version : " + type);
-        String url = (host + type + extention).trim();
-        logger.info("[Downloading from] " + url);
-        InsidiousNotification.notifyMessage(
-                "Downloading agent for dependency : " + type,
-                NotificationType.INFORMATION);
-        downloadAgent(url, true);
     }
 
     private void downloadAgent(String version) {
@@ -515,20 +459,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-
-    public void downloadAgentinBackground() {
-        Task.Backgroundable dl_task =
-                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        checkProgressIndicator("Downloading Unlogged agent", null);
-                        downloadAgent();
-                    }
-                };
-        ProgressManager.getInstance()
-                .run(dl_task);
-    }
-
     public void downloadAgentinBackground(String version) {
         Task.Backgroundable dl_task =
                 new Task.Backgroundable(project, "Unlogged, Inc.", true) {
@@ -559,197 +489,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         new DependencyService().addDependency(project, selections,
                 insidiousService.getSelectedModuleInstance(), insidiousService);
 
-    }
-
-    @Override
-    public Map<String, String> getDependencyStatus() {
-        return this.dependencies_status;
-    }
-
-    public boolean writeToGradle(TreeMap<String, String> dependencies) {
-        PsiFile targetFile;
-        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModuleName(),
-                InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
-        if (targetFile == null) {
-            return false;
-        }
-
-        System.out.println("Writing into Gradle file |||| -> " + targetFile.getVirtualFile()
-                .getPath());
-
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n");
-        for (String dependency : dependencies.keySet()) {
-            if (!shouldWriteDependency(targetFile, dependency) ||
-                    insidiousService.getProjectTypeInfo()
-                            .getDependencies_addedManually()
-                            .contains(dependency)) {
-                continue;
-            } else {
-                insidiousService.getProjectTypeInfo().
-                        getDependencies_addedManually()
-                        .add(dependency);
-            }
-            sb.append(getDependencyAdditionText(dependency));
-        }
-        logger.info("Adding to build.gradle");
-        logger.info(sb.toString());
-        dependenciesAdditionAttempted = true;
-        if (sb.toString()
-                .trim()
-                .equals("")) {
-            //nothing to write
-            logger.info("Noting to write into build.gradle");
-            return false;
-        }
-        writeGradle(targetFile, sb.toString());
-        return true;
-    }
-
-    private boolean writeToPom(TreeMap<String, String> dependencies) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n");
-        PsiFile targetFile;
-
-        targetFile = insidiousService.getTargetFileForModule(insidiousService.getSelectedModuleName(),
-                InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
-
-        if (targetFile == null) {
-            return false;
-        }
-
-        System.out.println("Writing into POM file |||| -> " + targetFile.getVirtualFile()
-                .getPath());
-
-        for (String dependency : dependencies.keySet()) {
-            if (!shouldWriteDependency(targetFile, dependency) ||
-                    insidiousService.getProjectTypeInfo()
-                            .getDependencies_addedManually()
-                            .contains(dependency)) {
-                continue;
-            } else {
-                insidiousService.getProjectTypeInfo().
-                        getDependencies_addedManually()
-                        .add(dependency);
-            }
-            sb.append(getDependencyAdditionText(dependency));
-        }
-//        System.out.println("DEPENDENCIES mvn "+dependencies);
-        logger.info("Adding to pom.xml");
-        logger.info(sb.toString());
-        dependenciesAdditionAttempted = true;
-        if (sb.toString()
-                .trim()
-                .equals("")) {
-            //nothing to write
-            logger.info("Noting to write into pox.xml");
-            return false;
-        }
-        writePom(targetFile, sb.toString());
-        return true;
-    }
-
-    //use dom?
-    void writePom(PsiFile psipomFile, String text) {
-        try {
-            VirtualFile file = psipomFile.getVirtualFile();
-            File pomFile = new File(file.getPath());
-            String source = psipomFile.getText();
-            String[] parts = source.split("<dependencies>");
-            String finalstring = parts[0];
-            StringBuilder builder = new StringBuilder(finalstring);
-            //+ "\n<dependencies>" + text + "" + parts[1];
-            for (int i = 1; i < parts.length; i++) {
-                if (!parts[i - 1].contains("<dependencyManagement>")) {
-                    builder.append("\n<dependencies>" + text + "" + parts[i]);
-                } else {
-                    builder.append("\n<dependencies>" + "" + parts[i]);
-                }
-            }
-            finalstring = builder.toString();
-            try (FileOutputStream out = new FileOutputStream(pomFile)) {
-                out.write(finalstring
-                        .getBytes(StandardCharsets.UTF_8));
-
-            } catch (Exception e) {
-                InsidiousNotification.notifyMessage(
-                        "Failed to add dependencies to pom.xml", NotificationType.ERROR);
-            }
-            InsidiousNotification.notifyMessage(
-                    "Dependencies added to pom.xml " + text, NotificationType.INFORMATION
-            );
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("PomDependenciesAdded", null);
-        } catch (Exception e) {
-            logger.info("Failed to write to pom file " + e);
-            e.printStackTrace();
-            InsidiousNotification.notifyMessage(
-                    "Failed to write to pom."
-                            + e.getMessage(), NotificationType.ERROR
-            );
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("exception", e.getMessage());
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("FailedToAddPomDependencies", eventProperties);
-        }
-    }
-
-    void writeGradle(PsiFile psiGradleFile, String text) {
-        try {
-            VirtualFile file = psiGradleFile.getVirtualFile();
-            File pomFile = new File(file.getPath());
-            String source = psiGradleFile.getText();
-            String[] parts = source.split("dependencies \\{", 2);
-            String finalstring = parts[0] + "\ndependencies {" + text + "" + parts[1];
-
-            try (FileOutputStream out = new FileOutputStream(pomFile)) {
-                out.write(finalstring
-                        .getBytes(StandardCharsets.UTF_8));
-            } catch (Exception e) {
-                InsidiousNotification.notifyMessage(
-                        "Failed to add dependencies to build.gradle", NotificationType.INFORMATION);
-            }
-            InsidiousNotification.notifyMessage(
-                    "Dependencies added to build.gradle " + text, NotificationType.INFORMATION
-            );
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("GradleDependenciesAdded", null);
-        } catch (Exception e) {
-            logger.info("Failed to write to build.gradle file " + e);
-            e.printStackTrace();
-            InsidiousNotification.notifyMessage(
-                    "Failed to write to build.gradle. "
-                            + e.getMessage(), NotificationType.ERROR
-            );
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("exception", e.getMessage());
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("FailedToAddGradleDependencies", eventProperties);
-        }
-    }
-
-    public boolean shouldWriteDependency(PsiFile file, String dependency) {
-        String text = file.getText();
-        if (text.contains(dependency)) {
-            logger.info("Should write dependency? " + dependency + " : false");
-            return false;
-        } else {
-            logger.info("Should write dependency? " + dependency + " : true");
-            return true;
-        }
-    }
-
-    public PsiFile fetchBaseFile(PsiFile[] files) {
-        Map<Integer, PsiFile> sizemaps = new HashMap<>();
-        for (PsiFile file : files) {
-            Integer ps = file.getVirtualFile()
-                    .getPath()
-                    .length();
-            sizemaps.put(ps, file);
-        }
-        List<Integer> keys = new ArrayList<>(sizemaps.keySet());
-        Collections.sort(keys);
-        return sizemaps.get(keys.get(0));
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -819,5 +558,10 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             }
             return sb.toString();
         }
+    }
+
+    @Override
+    public Map<String, String> getDependencyStatus() {
+        return this.dependencies_status;
     }
 }
