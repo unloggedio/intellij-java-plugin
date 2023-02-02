@@ -1851,18 +1851,5 @@ final public class InsidiousService implements Disposable {
         }
     }
 
-    public boolean registerProgramRunner(ProgramRunner runner) {
-        if (this.programRunners.size() > 0) {
-            return false;
-        } else {
-            this.programRunners.add(runner);
-            return true;
-        }
-    }
-
-    public void removeRunners() {
-        this.programRunners = new ArrayList<>();
-    }
-
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }
