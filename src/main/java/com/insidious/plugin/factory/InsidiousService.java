@@ -861,6 +861,7 @@ final public class InsidiousService implements Disposable {
             if (basePath == null) {
                 basePath = project.getBasePath();
             }
+            logger.info("[TEST CASE SAVE] basepath : "+basePath);
             Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
             if (valueResourceMap.values()
@@ -904,7 +905,7 @@ final public class InsidiousService implements Disposable {
             File outputDir = new File(testOutputDirPath);
             outputDir.mkdirs();
             File testcaseFile = new File(testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
-
+            logger.info("[TEST CASE SAVE] testcaseFile : "+testcaseFile.getAbsolutePath());
 
             if (!testcaseFile.exists()) {
                 try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
@@ -1027,7 +1028,7 @@ final public class InsidiousService implements Disposable {
         if (!dirPath.exists()) {
             dirPath.mkdirs();
         }
-
+        logger.info("[TEST CASE SAVE] UnloggedUtils path : "+basePath);
         // yikes right
         try {
             String oldFolderPath = basePath + "/src/test/java/io.unlogged";

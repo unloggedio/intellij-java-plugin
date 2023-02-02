@@ -55,8 +55,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     private JLabel selectionHeading1;
     private Project project;
     private InsidiousService insidiousService;
-    private List<ModulePanel> modulePanelList;
-
     //these are packages that will be excluded in the vm params
     private HashSet<String> selectedPackages = new HashSet<>();
     private HashSet<String> selectedDependencies = new HashSet<>();
@@ -96,88 +94,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         dumbService.runWhenSmart(() -> {
             loadOBV3Scaffold();
         });
-    }
-
-//    private void startSetupInBackground_v3() {
-//
-//        ApplicationManager.getApplication()
-//                .runReadAction(new Runnable() {
-//                    public void run() {
-//                        setup();
-//                    }
-//                });
-//    }
-
-    //go to docs/missing deps
-//    private void setup() {
-//        if (insidiousService.areLogsPresent()) {
-//            //go to live
-//            runDownloadCheckWhenLogsExist();
-//            setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_LIVE_VIEW,
-//                    this);
-//            //insidiousService.addLiveView();
-//        } else {
-//            //check for dependencies
-//            processCheck();
-//        }
-//    }
-
-//    private void runDownloadCheckWhenLogsExist() {
-//        ApplicationManager.getApplication()
-//                .runReadAction(new Runnable() {
-//                    public void run() {
-//                        searchDependencies_jacksonDatabind();
-//                    }
-//                });
-//    }
-
-    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state,
-                               OnboardingService onboardingService) {
-        this.mainPanel.removeAll();
-        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService, state,
-                this);
-        GridLayout gridLayout = new GridLayout(1, 1);
-        JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(JBUI.Borders.empty());
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        gridPanel.add(scaffold.getComponent(), constraints);
-        this.mainPanel.add(gridPanel, BorderLayout.CENTER);
-        this.mainPanel.revalidate();
-    }
-
-    public void setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES state,
-                               Map<String, String> missing_dependencies,
-                               OnboardingService onboardingService) {
-        this.mainPanel.removeAll();
-        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService,
-                state, missing_dependencies,
-                onboardingService);
-        GridLayout gridLayout = new GridLayout(1, 1);
-        JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(JBUI.Borders.empty());
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        gridPanel.add(scaffold.getComponent(), constraints);
-        this.mainPanel.add(gridPanel, BorderLayout.CENTER);
-        this.mainPanel.revalidate();
-    }
-
-    public void setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES state,
-                                            Map<String, String> missing_dependencies,
-                                            OnboardingService onboardingService) {
-        this.mainPanel.removeAll();
-        OnboardingV2Scaffold scaffold = new OnboardingV2Scaffold(this.insidiousService,
-                state, missing_dependencies,
-                onboardingService);
-        GridLayout gridLayout = new GridLayout(1, 1);
-        JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(JBUI.Borders.empty());
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(0);
-        gridPanel.add(scaffold.getComponent(), constraints);
-        this.mainPanel.add(gridPanel, BorderLayout.CENTER);
-        this.mainPanel.revalidate();
     }
 
     @Override
@@ -495,83 +411,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         return false;
     }
 
-    //fetch all the dependencies from agent.
-//    private void searchDependencies_generic() {
-//        UsageInsightTracker.getInstance()
-//                .RecordEvent("DependencyScanStart", null);
-//        TreeMap<String, String> depVersions = new TreeMap<>();
-//        for (String dependency : insidiousService.getProjectTypeInfo()
-//                .getDependenciesToWatch()) {
-//            depVersions.put(dependency, null);
-//        }
-//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-//                .getLibraryTable(insidiousService.getProject());
-//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-//        int count = 0;
-//        while (lib_iterator.hasNext()) {
-//            Library lib = lib_iterator.next();
-//            for (String dependency : insidiousService.getProjectTypeInfo()
-//                    .getDependenciesToWatch()) {
-//                if (lib.getName()
-//                        .contains(dependency + ":")) {
-//                    String version = fetchVersionFromLibName(lib.getName(), dependency);
-//                    logger.info("Version of " + dependency + " is " + version);
-//                    depVersions.replace(dependency, version);
-//                }
-//            }
-//            count++;
-//        }
-//        if (count == 0) {
-//            //logger.info("Project import not complete, waiting.");
-//            Timer timer = new Timer(3000, new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent arg0) {
-//                    searchDependencies_generic();
-//                }
-//            });
-//            timer.setRepeats(false);
-//            timer.start();
-//        } else {
-//            //search is complete
-//            this.dependencies_status = depVersions;
-//            System.out.println("[Dependency search status]" + depVersions.toString());
-//            logger.info("[Dependency search status] " + depVersions.toString());
-//            if (this.dependencies_status.get("jackson-databind") != null) {
-//                this.insidiousService.getProjectTypeInfo().
-//                        setJacksonDatabindVersion(this.dependencies_status.get("jackson-databind"));
-//            }
-//            if (this.dependencies_status.get("gson") != null) {
-//                this.insidiousService.getProjectTypeInfo().
-//                        setUsesGson(true);
-//            } else {
-//                this.insidiousService.getProjectTypeInfo().
-//                        setUsesGson(false);
-//            }
-//            if (!agentDownloadInitiated) {
-//                //downloadAgentinBackground();
-//            }
-//            UsageInsightTracker.getInstance()
-//                    .RecordEvent("DependencyScanEnd", null);
-//            if (fetchMissingDependencies().size() == 0) {
-//                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.WAITING_FOR_LOGS,
-//                        this);
-//            } else {
-//                System.out.println("[NO ATTEMPT TO WRITE]");
-//                setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-//                        fetchMissingDependencies(), this);
-//                if (dependenciesAdditionAttempted) {
-//                    System.out.println("[SYNC FAILED POST WRITE]");
-//                    setupWithState_PostAddition(WaitingStateComponent.WAITING_COMPONENT_STATES.SWITCH_TO_DOCUMENTATION,
-//                            fetchMissingDependencies(), this);
-//                } else {
-//                    System.out.println("[NO ATTEMPT TO WRITE]");
-//                    setupWithState(WaitingStateComponent.WAITING_COMPONENT_STATES.AWAITING_DEPENDENCY_ADDITION,
-//                            fetchMissingDependencies(), this);
-//                }
-//            }
-//        }
-//    }
-
     public Map<String, String> getMissingDependencies_v3() {
         TreeMap<String, String> depVersions = new TreeMap<>();
         List<String> dependenciesToWatch = insidiousService.getProjectTypeInfo()
@@ -601,9 +440,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             //returns everything if not indexed/project import not done.
             return depVersions;
         } else {
-//            if (depVersions.containsKey("jackson-databind")) {
-//                depVersions.remove("jackson-databind");
-//            }
             try {
                 return computeMissingDependenciesFromStatus(depVersions);
             } catch (Exception e) {
@@ -640,44 +476,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.mainPanel.add(gridPanel, BorderLayout.CENTER);
         this.mainPanel.revalidate();
     }
-
-//    private void searchDependencies_jacksonDatabind() {
-//        TreeMap<String, String> depVersions = new TreeMap<>();
-//        for (String dependency : insidiousService.getProjectTypeInfo()
-//                .getDependenciesToWatch()) {
-//            depVersions.put(dependency, null);
-//        }
-//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-//                .getLibraryTable(insidiousService.getProject());
-//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-//        int count = 0;
-//        while (lib_iterator.hasNext()) {
-//            Library lib = lib_iterator.next();
-//            if (lib.getName()
-//                    .contains("jackson-databind:")) {
-//                insidiousService.getProjectTypeInfo()
-//                        .setJacksonDatabindVersion(fetchVersionFromLibName(lib.getName(), "jackson-databind"));
-//            }
-//            count++;
-//        }
-//        if (count == 0) {
-//            //import of project not complete, wait and rerun
-//            //System.out.println("Project import not complete, waiting.");
-//            Timer timer = new Timer(3000, new ActionListener() {
-//                @Override
-//                public void actionPerformed(ActionEvent arg0) {
-//                    searchDependencies_generic();
-//                }
-//            });
-//            timer.setRepeats(false);
-//            timer.start();
-//        } else {
-//            //search is complete
-//            if (!agentDownloadInitiated) {
-//                //downloadAgentinBackground();
-//            }
-//        }
-//    }
 
     @Override
     public boolean canGoToDocumention() {
@@ -929,24 +727,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
                     .RecordEvent("FailedToAddGradleDependencies", eventProperties);
         }
     }
-
-//    public void postprocessCheck() {
-//        ApplicationManager.getApplication()
-//                .runReadAction(new Runnable() {
-//                    public void run() {
-//                        searchDependencies_generic();
-//                    }
-//                });
-//    }
-
-//    public void processCheck() {
-//        ApplicationManager.getApplication()
-//                .runReadAction(new Runnable() {
-//                    public void run() {
-//                        searchDependencies_generic();
-//                    }
-//                });
-//    }
 
     public boolean shouldWriteDependency(PsiFile file, String dependency) {
         String text = file.getText();
