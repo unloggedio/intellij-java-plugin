@@ -31,6 +31,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class OnboardingScaffoldV3 implements CardActionListener {
+    private static final Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
+    private final OnboardingService onboardingService;
+    private final OnBoardingStatus status = new OnBoardingStatus();
+    private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
+    private final InsidiousService insidiousService;
     List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
     private JPanel mainParentPanel;
     private JPanel MainBorderParent;
@@ -42,13 +47,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private JPanel leftGrid;
     private JPanel rightGrid;
     private JSplitPane splitParent;
-    private final OnboardingService onboardingService;
-    private final OnBoardingStatus status = new OnBoardingStatus();
-    private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private Run_Component_Obv3 runComponent = null;
-    private final InsidiousService insidiousService;
     private NavigatorComponent navigator;
-    private static final Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
 
     public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService) {
         this.insidiousService = insidiousService;

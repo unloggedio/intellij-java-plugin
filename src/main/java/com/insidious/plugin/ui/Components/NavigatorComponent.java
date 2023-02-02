@@ -11,7 +11,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
-public class NavigatorComponent implements NavigationManager{
+public class NavigatorComponent implements NavigationManager {
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel BorderParentPanel;
@@ -21,8 +21,8 @@ public class NavigatorComponent implements NavigationManager{
     private ArrayList<String> states = new ArrayList<>();
     private ArrayList<NavigationElement> elements = new ArrayList<>();
     private int currentState = 0;
-    public NavigatorComponent(OnboardingScaffoldV3 onboardingScaffoldV3)
-    {
+
+    public NavigatorComponent(OnboardingScaffoldV3 onboardingScaffoldV3) {
         this.scaffold = onboardingScaffoldV3;
         states = new ArrayList<>();
         states.add("Module Selection");
@@ -36,11 +36,10 @@ public class NavigatorComponent implements NavigationManager{
         GridLayout gridLayout = new GridLayout(1, 30);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
-        for(int i=0;i<states.size();i++)
-        {
+        for (int i = 0; i < states.size(); i++) {
             NavigationElement element = new NavigationElement(this);
             element.setNavigationStageText(states.get(i));
-            element.setNumberIcon(UIUtils.getNumberedIconFor(i+1));
+            element.setNumberIcon(UIUtils.getNumberedIconFor(i + 1));
             elements.add(element);
             GridConstraints constraints = new GridConstraints();
             constraints.setColumn(i);
@@ -56,33 +55,30 @@ public class NavigatorComponent implements NavigationManager{
         });
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return mainPanel;
     }
 
     @Override
     public void NavigateToState(String state) {
-        System.out.println("Navigating to "+state);
+        System.out.println("Navigating to " + state);
         loadState(state);
     }
 
-    public void loadState(String state)
-    {
-        switch (state)
-        {
+    public void loadState(String state) {
+        switch (state) {
             case "Module Selection":
-                currentState=0;
+                currentState = 0;
                 scaffold.setDividerLocation(440);
                 scaffold.loadModuleSection();
                 break;
             case "Required Dependencies":
-                currentState=2;
+                currentState = 2;
                 scaffold.setDividerLocation(1020);
                 scaffold.loadDependenciesManagementSection();
                 break;
             case "JDK and Json serializer":
-                currentState=1;
+                currentState = 1;
                 scaffold.setDividerLocation(440);
                 scaffold.loadProjectConfigSection();
                 break;
@@ -92,7 +88,7 @@ public class NavigatorComponent implements NavigationManager{
 //                scaffold.loadRunConfigSection();
 //                break;
             case "Run!":
-                currentState=3;
+                currentState = 3;
                 scaffold.setDividerLocation(400);
                 //setNavElementVisibleStates(false);
                 scaffold.loadRunSection(scaffold.checkIfLogsArePresent());
@@ -100,58 +96,52 @@ public class NavigatorComponent implements NavigationManager{
         }
     }
 
-    public void loadNextState()
-    {
-        if(currentState+1<this.states.size())
-        {
+    public void loadNextState() {
+        if (currentState + 1 < this.states.size()) {
             currentState++;
             loadState(this.states.get(currentState));
         }
     }
 
-    public void refreshOptions()
-    {
-        for(int i=0;i<this.elements.size();i++)
-        {
-            if(i<currentState)
-            {
-                elements.get(i).getComponent().setVisible(false);
-            }
-            else
-            {
-                elements.get(i).getComponent().setVisible(true);
+    public void refreshOptions() {
+        for (int i = 0; i < this.elements.size(); i++) {
+            if (i < currentState) {
+                elements.get(i)
+                        .getComponent()
+                        .setVisible(false);
+            } else {
+                elements.get(i)
+                        .getComponent()
+                        .setVisible(true);
             }
         }
     }
 
-    public void setNavElementVisibleStates(boolean state)
-    {
-        for(int i=0;i<this.elements.size();i++)
-        {
-            elements.get(i).getComponent().setVisible(state);
+    public void setNavElementVisibleStates(boolean state) {
+        for (int i = 0; i < this.elements.size(); i++) {
+            elements.get(i)
+                    .getComponent()
+                    .setVisible(state);
         }
     }
 
-    public void restartOnboarding()
-    {
-        this.currentState=0;
+    public void restartOnboarding() {
+        this.currentState = 0;
         setNavElementVisibleStates(true);
         loadState(this.states.get(currentState));
-        UsageInsightTracker.getInstance().RecordEvent("StartOverTriggered", null);
+        UsageInsightTracker.getInstance()
+                .RecordEvent("StartOverTriggered", null);
     }
 
-    public boolean shouldReloadDocumentation()
-    {
-        if(currentState==0)
-        {
+    public boolean shouldReloadDocumentation() {
+        if (currentState == 0) {
             return true;
         }
         return false;
     }
 
     public boolean shouldReloadRun() {
-        if(currentState==3)
-        {
+        if (currentState == 3) {
             return true;
         }
         return false;

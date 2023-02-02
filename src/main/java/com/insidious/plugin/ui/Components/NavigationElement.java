@@ -11,9 +11,8 @@ public class NavigationElement {
 
     private NavigationManager navigationManager;
 
-    public NavigationElement(NavigationManager navigationManager)
-    {
-        this.navigationManager=navigationManager;
+    public NavigationElement(NavigationManager navigationManager) {
+        this.navigationManager = navigationManager;
         mainPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -22,23 +21,19 @@ public class NavigationElement {
         });
     }
 
-    void triggerNavigate()
-    {
+    void triggerNavigate() {
         this.navigationManager.NavigateToState(this.navigationStageText.getText());
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return mainPanel;
     }
 
-    public void setNavigationStageText(String text)
-    {
+    public void setNavigationStageText(String text) {
         this.navigationStageText.setText(text);
     }
 
-    public void setNumberIcon(Icon icon)
-    {
+    public void setNumberIcon(Icon icon) {
         this.navigationStageText.setIcon(icon);
     }
 }

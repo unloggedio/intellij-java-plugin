@@ -12,25 +12,21 @@ public class Obv3_RunType_Element {
     private JPanel rightIconContainer;
     private JLabel iconHolder;
 
-    public Obv3_RunType_Element(ProjectTypeInfo.RUN_TYPES type)
-    {
+    public Obv3_RunType_Element(ProjectTypeInfo.RUN_TYPES type) {
         //this.iconHolder.setText(type.toString());
     }
 
-    public void setContent(JRadioButton contentPanel)
-    {
+    public void setContent(JRadioButton contentPanel) {
         this.centerPanel.removeAll();
         centerPanel.add(contentPanel, BorderLayout.CENTER);
         centerPanel.revalidate();
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return mainPanel;
     }
 
-    public void setIcon_rs(Icon icon)
-    {
+    public void setIcon_rs(Icon icon) {
         this.iconHolder.setIcon(icon);
     }
 

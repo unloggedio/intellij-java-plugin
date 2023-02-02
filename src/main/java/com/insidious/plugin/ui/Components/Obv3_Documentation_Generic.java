@@ -11,13 +11,11 @@ public class Obv3_Documentation_Generic {
     private JScrollPane scrollParent;
     private JTextArea documentationTextArea;
 
-    public Obv3_Documentation_Generic()
-    {
+    public Obv3_Documentation_Generic() {
 
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return this.mainPanel;
     }
 

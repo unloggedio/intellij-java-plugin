@@ -6,7 +6,6 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -14,6 +13,8 @@ import java.util.List;
 import java.util.*;
 
 public class Obv3_CardParent implements CardSelectionActionListener {
+    private final List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION, String>> actions = new ArrayList<>();
+    private final CardActionListener actionListener;
     private JPanel mainPanel;
     private JPanel borderParenlPanel;
     private JPanel topPanel;
@@ -23,8 +24,6 @@ public class Obv3_CardParent implements CardSelectionActionListener {
     private JButton actionButton;
     private JPanel cardContainer;
     private JButton skipButton;
-    private final List<Map<OnboardingScaffoldV3.ONBOARDING_ACTION, String>> actions = new ArrayList<>();
-    private final CardActionListener actionListener;
     private Set<String> dependenciesToAdd = new TreeSet<>();
 
     public Obv3_CardParent(List<DropdownCardInformation> cards, CardActionListener actionListener) {
