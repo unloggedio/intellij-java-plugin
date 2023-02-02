@@ -56,18 +56,18 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     private Project project;
     private InsidiousService insidiousService;
     //these are packages that will be excluded in the vm params
-    private HashSet<String> selectedPackages = new HashSet<>();
-    private HashSet<String> selectedDependencies = new HashSet<>();
-    private String JVMoptionsBase = "";
-    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
-    private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png",
-            OnboardingConfigurationWindow.class);
-    private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png",
-            OnboardingConfigurationWindow.class);
-    private boolean agentDownloadInitiated = false;
-    private boolean addopens = false;
+//    private HashSet<String> selectedPackages = new HashSet<>();
+//    private HashSet<String> selectedDependencies = new HashSet<>();
+//    private String JVMoptionsBase = "";
+//    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
+//    private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png",
+//            OnboardingConfigurationWindow.class);
+//    private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png",
+//            OnboardingConfigurationWindow.class);
+//    private boolean agentDownloadInitiated = false;
+//    private boolean addopens = false;
     private WaitingScreen waitingScreen;
-    private boolean dependenciesAdditionAttempted = false;
+//    private boolean dependenciesAdditionAttempted = false;
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
@@ -254,7 +254,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             //agent already exists with correct version
             return;
         }
-        agentDownloadInitiated = true;
+//        agentDownloadInitiated = true;
         String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
         String type = insidiousService.getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
         String extention = ".jar";
@@ -278,7 +278,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     private void downloadAgent(String version) {
-        agentDownloadInitiated = true;
+//        agentDownloadInitiated = true;
         String host = "https://builds.bug.video/videobug-java-agent-1.10.3-SNAPSHOT-";
         String type = version;
         String extention = ".jar";
@@ -594,7 +594,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
         logger.info("Adding to build.gradle");
         logger.info(sb.toString());
-        dependenciesAdditionAttempted = true;
+//        dependenciesAdditionAttempted = true;
         if (sb.toString()
                 .trim()
                 .equals("")) {
@@ -637,7 +637,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 //        System.out.println("DEPENDENCIES mvn "+dependencies);
         logger.info("Adding to pom.xml");
         logger.info(sb.toString());
-        dependenciesAdditionAttempted = true;
+//        dependenciesAdditionAttempted = true;
         if (sb.toString()
                 .trim()
                 .equals("")) {

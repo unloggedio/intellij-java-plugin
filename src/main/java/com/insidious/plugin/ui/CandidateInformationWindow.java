@@ -8,7 +8,10 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 import com.intellij.notification.NotificationType;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
 import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -82,7 +85,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
         GridLayout gridLayout = new GridLayout(GridRows, 1);
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0,0,0,0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         for (int i = 0; i < testCandidateMetadataList.size(); i++) {
             TestCandidateMetadata testCandidateMetadata = testCandidateMetadataList.get(i);
             GridConstraints constraints = new GridConstraints();
@@ -97,8 +100,8 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             gridPanel.add(contentPanel, constraints);
         }
 
-        JScrollPane scrollPane = new JScrollPane(gridPanel);
-        scrollPane.setBorder(new EmptyBorder(0,0,0,0));
+        JScrollPane scrollPane = new JBScrollPane(gridPanel);
+        scrollPane.setBorder(JBUI.Borders.empty());
         candidateListParent.setPreferredSize(scrollPane.getSize());
         candidateListParent.add(scrollPane, BorderLayout.CENTER);
         if (testCandidateMetadataList.size() <= 4) {
@@ -144,8 +147,8 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             this.inputSP.setLayout(new GridLayout(1, 1));
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(1);
-            JTree inputTree = new JTree(inputRoot);
-            JScrollPane scrollPane = new JScrollPane(inputTree);
+            JTree inputTree = new Tree(inputRoot);
+            JScrollPane scrollPane = new JBScrollPane(inputTree);
             this.inputSP.setPreferredSize(scrollPane.getSize());
             this.inputSP.add(scrollPane, BorderLayout.CENTER);
             inputTree.setCellRenderer(ioTreeCellRenderer);
@@ -157,8 +160,8 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             this.outputSP.setLayout(new GridLayout(1, 1));
             GridConstraints constraints1 = new GridConstraints();
             constraints1.setRow(1);
-            JTree outputTree = new JTree(outputroot);
-            JScrollPane scrollPane1 = new JScrollPane(outputTree);
+            JTree outputTree = new Tree(outputroot);
+            JScrollPane scrollPane1 = new JBScrollPane(outputTree);
             this.outputSP.setPreferredSize(scrollPane1.getSize());
             this.outputSP.add(scrollPane1, BorderLayout.CENTER);
             outputTree.setCellRenderer(ioTreeCellRenderer);
@@ -190,7 +193,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("long", name, "" + arg.getValue(), true));
             case "Z":
-                String booleanValue = (arg.getValue() == 0 ? false : true) + "";
+                String booleanValue = (arg.getValue() != 0) + "";
                 return new DefaultMutableTreeNode(
                         new ParameterInformation("boolean", name, booleanValue, true));
             case "S":

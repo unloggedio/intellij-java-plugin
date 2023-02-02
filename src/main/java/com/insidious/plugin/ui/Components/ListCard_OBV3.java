@@ -1,10 +1,13 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.ui.UIUtils;
+import com.intellij.openapi.ui.VerticalFlowLayout;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicBorders;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -26,10 +29,11 @@ public class ListCard_OBV3 {
     private Set<String> selections = new TreeSet<>();
     private DependencyCardInformation dependencyCardInformation;
     private CardSelectionActionListener listener;
+
     public ListCard_OBV3(DependencyCardInformation dependencyCardInformation, CardSelectionActionListener listener) {
 
         this.listener = listener;
-        this.dependencyCardInformation=dependencyCardInformation;
+        this.dependencyCardInformation = dependencyCardInformation;
         this.headingText.setText(dependencyCardInformation.getHeading());
         this.descriptionText.setText(dependencyCardInformation.getDescription());
         this.refreshButton.addMouseListener(new MouseAdapter() {
@@ -41,11 +45,9 @@ public class ListCard_OBV3 {
         loadDependencies(dependencyCardInformation.getDependencies());
     }
 
-    private void loadDependencies(List<String> missing_)
-    {
+    private void loadDependencies(List<String> missing_) {
         this.contentContainer.removeAll();
-        if(missing_==null || (missing_!=null && missing_.size()==0))
-        {
+        if (missing_ == null || (missing_ != null && missing_.size() == 0)) {
             this.headingText.setIcon(UIUtils.NO_MISSING_DEPENDENCIES_ICON);
             return;
         }
@@ -55,9 +57,9 @@ public class ListCard_OBV3 {
         if (missing_.size() > GridRows) {
             GridRows = missing_.size();
         }
-        GridLayout gridLayout = new GridLayout(GridRows, 1);
-        Dimension d = new Dimension();
-        d.setSize(-1, 30);
+        LayoutManager gridLayout = new VerticalFlowLayout(GridRows, 1);
+//        Dimension d = new Dimension();
+//        d.setSize(-1, 30);
         JPanel gridPanel = new JPanel(gridLayout);
         int i = 0;
         for (String dependency : missing_) {
@@ -65,21 +67,16 @@ public class ListCard_OBV3 {
             constraints.setRow(i);
             constraints.setIndent(16);
             JCheckBox label = new JCheckBox();
-            label.setBorder(new EmptyBorder(4, 8, 0, 0));
+            label.setBorder(new BasicBorders.MarginBorder());
             label.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    if(label.isSelected())
-                    {
-                        if(!selections.contains(dependency))
-                        {
+                    if (label.isSelected()) {
+                        if (!selections.contains(dependency)) {
                             selections.add(dependency);
                         }
-                    }
-                    else
-                    {
-                        if(selections.contains(dependency))
-                        {
+                    } else {
+                        if (selections.contains(dependency)) {
                             selections.remove(dependency);
                         }
                     }
@@ -87,13 +84,13 @@ public class ListCard_OBV3 {
                 }
             });
             label.setText(getDisplayTextForDependency(dependency));
-            Font font = new Font("JetBrains Mono",0,15);
+            Font font = new Font("JetBrains Mono", 0, 15);
             label.setFont(font);
             gridPanel.add(label, constraints);
             i++;
         }
         gridPanel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
-        JScrollPane scrollPane = new JScrollPane(gridPanel);
+        JScrollPane scrollPane = new JBScrollPane(gridPanel);
         EmptyBorder emptyBorder = new EmptyBorder(0, 0, 0, 0);
         scrollPane.setBorder(emptyBorder);
         contentContainer.setPreferredSize(scrollPane.getSize());
@@ -104,22 +101,18 @@ public class ListCard_OBV3 {
         this.contentContainer.revalidate();
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return mainPanel;
     }
 
-    public void refreshDependencies()
-    {
+    public void refreshDependencies() {
         listener.refreshDependencies();
     }
 
-    public String getDisplayTextForDependency(String dependency)
-    {
-        switch (dependency)
-        {
+    public String getDisplayTextForDependency(String dependency) {
+        switch (dependency) {
             case "jackson-datatype-jsr310":
-                return dependency+" (Check if you are using Java date/time types such as Instant, LocalDateTime, etc)";
+                return dependency + " (Check if you are using Java date/time types such as Instant, LocalDateTime, etc)";
             case "jackson-datatype-joda":
                 return dependency + " (Check if you are using Joda data types)";
             case "jackson-datatype-hibernate5":
