@@ -58,9 +58,10 @@ public class DependencyService {
 
     public void addDependency(
             Project project,
-            final Collection<String> dependencies,
-            final ModuleInformation moduleInformation,
-            final InsidiousService insidiousService) {
+            final Collection<String> dependencies
+//            final ModuleInformation moduleInformation,
+//            final InsidiousService insidiousService
+    ) {
         if (dependencies.size() == 0) {
             return;
         }
@@ -81,6 +82,7 @@ public class DependencyService {
                 }
             }
         }
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
         if (jacksonVersion == null) {
             if (insidiousService.getProjectTypeInfo()
                     .getJacksonDatabindVersion() != null) {
@@ -104,6 +106,7 @@ public class DependencyService {
                 .collect(
                         Collectors.toList());
 
+        ModuleInformation moduleInformation = project.getService(InsidiousService.class).getSelectedModuleInstance();
         VirtualFile gradleFile =
                 LocalFileSystem.getInstance()
                         .findFileByIoFile(new File(moduleInformation.getPath() + File.separator +

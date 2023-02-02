@@ -7,7 +7,8 @@ import com.insidious.plugin.factory.DependencyService;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.OnboardingService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.ui.Components.*;
+import com.insidious.plugin.ui.Components.OnboardingScaffoldV3;
+import com.insidious.plugin.ui.Components.WaitingScreen;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.notification.NotificationType;
@@ -18,7 +19,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
-import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
@@ -27,7 +27,6 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
-import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
@@ -39,7 +38,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,14 +45,13 @@ import java.security.MessageDigest;
 import java.util.List;
 import java.util.*;
 
-public class OnboardingConfigurationWindow implements ModuleSelectionListener, OnboardingService {
+public class OnboardingConfigurationWindow implements OnboardingService {
     private static final Logger logger = LoggerUtil.getInstance(OnboardingConfigurationWindow.class);
+    private final Project project;
     public TreeMap<String, String> dependencies_status = new TreeMap<>();
     private JPanel mainPanel;
     private JPanel modulesParentPanel;
     private JLabel selectionHeading1;
-    private Project project;
-    private InsidiousService insidiousService;
     //these are packages that will be excluded in the vm params
 //    private HashSet<String> selectedPackages = new HashSet<>();
 //    private HashSet<String> selectedDependencies = new HashSet<>();
@@ -70,7 +67,6 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
-        this.insidiousService = insidiousService;
 
         UsageInsightTracker.getInstance()
                 .RecordEvent("OnboardingFlowStarted", null);
@@ -100,17 +96,14 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         TreeMap<String, String> missing_dependencies = new TreeMap<>();
         for (String key : dependencies_status.keySet()) {
             if (dependencies_status.get(key) == null &&
-                    !insidiousService.getProjectTypeInfo().
+                    !project.getService(InsidiousService.class)
+                            .getProjectTypeInfo().
                             getDependencies_addedManually()
                             .contains(key)) {
                 missing_dependencies.put(key, dependencies_status.get(key));
             }
         }
         return missing_dependencies;
-    }
-
-    @Override
-    public void onSelect(String moduleName) {
     }
 
     public JComponent getContent() {
@@ -142,7 +135,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     @Override
     public List<String> fetchModules() {
-        return insidiousService.fetchModules();
+        return project.getService(InsidiousService.class)
+                .fetchModules();
     }
 
 
@@ -302,9 +296,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
             byte[] hash = MessageDigest.getInstance("MD5")
                     .digest(data);
             String checksum = new BigInteger(1, hash).toString(16);
-            while (checksum.length()<32)
-            {
-                checksum = "0"+checksum;
+            while (checksum.length() < 32) {
+                checksum = "0" + checksum;
             }
             //System.out.println("Checksum of file " + checksum);
             switch (agentVersion) {
@@ -356,6 +349,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
     }
 
     public Map<String, String> getMissingDependencies_v3() {
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
         TreeMap<String, String> depVersions = new TreeMap<>();
         List<String> dependenciesToWatch = insidiousService.getProjectTypeInfo()
                 .getDependenciesToWatch();
@@ -395,7 +389,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     @Override
     public void setSelectedModule(String module) {
-        insidiousService.setCurrentModule(module);
+        project.getService(InsidiousService.class)
+                .setCurrentModule(module);
     }
 
     private Map<String, String> computeMissingDependenciesFromStatus(Map<String, String> deps) {
@@ -410,7 +405,7 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
 
     private void loadOBV3Scaffold() {
         this.mainPanel.removeAll();
-        OnboardingScaffoldV3 scaffold = new OnboardingScaffoldV3(this, insidiousService);
+        OnboardingScaffoldV3 scaffold = new OnboardingScaffoldV3(this, project);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -421,43 +416,45 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         this.mainPanel.revalidate();
     }
 
-    @Override
-    public boolean canGoToDocumention() {
-        TreeMap<String, String> depVersions = new TreeMap<>();
-        for (String dependency : insidiousService.getProjectTypeInfo()
-                .getDependenciesToWatch()) {
-            depVersions.put(dependency, null);
-        }
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-                .getLibraryTable(insidiousService.getProject());
-        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-        int count = 0;
-        while (lib_iterator.hasNext()) {
-            Library lib = lib_iterator.next();
-            for (String dependency : insidiousService.getProjectTypeInfo()
-                    .getDependenciesToWatch()) {
-                if (lib.getName().contains(dependency)) {
-                    String version =  insidiousService. fetchVersionFromLibName(lib.getName(), dependency);
-                    logger.info("Version of " + dependency + " is " + version);
-                    depVersions.replace(dependency, version);
-                }
-            }
-
-            count++;
-        }
-        if (count == 0) {
-            return false;
-        } else {
-            logger.info("[DEP SEARCH] Can go to Doc section");
-            logger.info(depVersions.toString());
-            this.dependencies_status = depVersions;
-            if (fetchMissingDependencies().size() == 0) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
+//    @Override
+//    public boolean canGoToDocumention() {
+//        InsidiousService insidiousService = project.getService(InsidiousService.class);
+//        TreeMap<String, String> depVersions = new TreeMap<>();
+//        for (String dependency : insidiousService.getProjectTypeInfo()
+//                .getDependenciesToWatch()) {
+//            depVersions.put(dependency, null);
+//        }
+//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
+//                .getLibraryTable(insidiousService.getProject());
+//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
+//        int count = 0;
+//        while (lib_iterator.hasNext()) {
+//            Library lib = lib_iterator.next();
+//            for (String dependency : insidiousService.getProjectTypeInfo()
+//                    .getDependenciesToWatch()) {
+//                if (lib.getName()
+//                        .contains(dependency)) {
+//                    String version = insidiousService.fetchVersionFromLibName(lib.getName(), dependency);
+//                    logger.info("Version of " + dependency + " is " + version);
+//                    depVersions.replace(dependency, version);
+//                }
+//            }
+//
+//            count++;
+//        }
+//        if (count == 0) {
+//            return false;
+//        } else {
+//            logger.info("[DEP SEARCH] Can go to Doc section");
+//            logger.info(depVersions.toString());
+//            this.dependencies_status = depVersions;
+//            if (fetchMissingDependencies().size() == 0) {
+//                return true;
+//            } else {
+//                return false;
+//            }
+//        }
+//    }
 
     public void downloadAgentinBackground(String version) {
         Task.Backgroundable dl_task =
@@ -485,9 +482,8 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
         }
-        System.out.println("CURRENT MODULE -> before writing :" + insidiousService.getSelectedModuleName());
-        new DependencyService().addDependency(project, selections,
-                insidiousService.getSelectedModuleInstance(), insidiousService);
+//        System.out.println("CURRENT MODULE -> before writing :" + insidiousService.getSelectedModuleName());
+        new DependencyService().addDependency(project, selections);
 
     }
 
@@ -508,60 +504,74 @@ public class OnboardingConfigurationWindow implements ModuleSelectionListener, O
         }
     }
 
-    public void copyDependenciesToClipboard(Map<String, String> dependencies) {
-        StringBuilder sb = new StringBuilder();
-        for (String dependency : dependencies.keySet()) {
-            sb.append(getDependencyAdditionText(dependency));
-        }
-        String final_str = sb.toString();
-        insidiousService.copyToClipboard(final_str);
-        InsidiousNotification.notifyMessage("Dependencies copied to clipboard.",
-                NotificationType.INFORMATION);
-    }
+//    public void copyDependenciesToClipboard(Map<String, String> dependencies) {
+//        StringBuilder sb = new StringBuilder();
+//        for (String dependency : dependencies.keySet()) {
+//            sb.append(getDependencyAdditionText(dependency));
+//        }
+//        String final_str = sb.toString();
+//        project.getService(InsidiousService.class)
+//                .copyToClipboard(final_str);
+//        InsidiousNotification.notifyMessage("Dependencies copied to clipboard.",
+//                NotificationType.INFORMATION);
+//    }
 
     @Override
     public void downloadAgentForVersion(String version) {
         downloadAgentinBackground(version);
     }
 
-    public String getDependencyAdditionText(String dependency) {
-        StringBuilder sb = new StringBuilder();
-        String group_id;
-        String artifact_id = dependency;
-        switch (dependency) {
-            case "commons-io":
-                group_id = "commons-io";
-                break;
-            case "gson":
-                group_id = "com.google.code.gson";
-                break;
-            default:
-                group_id = "com.fasterxml.jackson.datatype";
-                break;
-        }
-        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModuleName())
-                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
-        if (isMaven) {
-            sb.append("<dependency>\n");
-            sb.append("<groupId>" + group_id + "</groupId>\n");
-            sb.append("<artifactId>" + artifact_id + "</artifactId>\n");
-            if (dependency.equals("commons-io")) {
-                sb.append("<version>" + "2.6" + "</version>\n");
-            }
-            sb.append("</dependency>\n");
-            return sb.toString();
-        } else {
-            if (dependency.equals("commons-io")) {
-                sb.append("implementation '" + group_id + ":" + artifact_id + ":2.6'\n");
-            } else {
-                sb.append("implementation '" + group_id + ":" + artifact_id + "'\n");
-            }
-            return sb.toString();
-        }
-    }
+//    public String getDependencyAdditionText(String dependency) {
+//        StringBuilder sb = new StringBuilder();
+//        String group_id;
+//        String artifact_id = dependency;
+//        switch (dependency) {
+//            case "commons-io":
+//                group_id = "commons-io";
+//                break;
+//            case "gson":
+//                group_id = "com.google.code.gson";
+//                break;
+//            default:
+//                group_id = "com.fasterxml.jackson.datatype";
+//                break;
+//        }
+//        InsidiousService insidiousService = project.getService(InsidiousService.class);
+//        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModuleName())
+//                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
+//        if (isMaven) {
+//            sb.append("<dependency>\n");
+//            sb.append("<groupId>")
+//                    .append(group_id)
+//                    .append("</groupId>\n");
+//            sb.append("<artifactId>")
+//                    .append(artifact_id)
+//                    .append("</artifactId>\n");
+//            if (dependency.equals("commons-io")) {
+//                sb.append("<version>" + "2.6" + "</version>\n");
+//            }
+//            sb.append("</dependency>\n");
+//            return sb.toString();
+//        } else {
+//            if (dependency.equals("commons-io")) {
+//                sb.append("implementation '")
+//                        .append(group_id)
+//                        .append(":")
+//                        .append(artifact_id)
+//                        .append(":2.6'\n");
+//            } else {
+//                sb.append("implementation '")
+//                        .append(group_id)
+//                        .append(":")
+//                        .append(artifact_id)
+//                        .append("'\n");
+//            }
+//            return sb.toString();
+//        }
+//    }
 
-    @Override
-    public Map<String, String> getDependencyStatus() {
-        return this.dependencies_status;
-    }
+//    @Override
+//    public Map<String, String> getDependencyStatus() {
+//        return this.dependencies_status;
+//    }
 }

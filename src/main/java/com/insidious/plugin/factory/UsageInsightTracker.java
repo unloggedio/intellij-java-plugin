@@ -2,6 +2,7 @@ package com.insidious.plugin.factory;
 
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
+import com.intellij.openapi.application.ApplicationManager;
 import org.json.JSONObject;
 
 import java.util.Locale;

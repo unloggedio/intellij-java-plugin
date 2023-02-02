@@ -10,22 +10,15 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.callbacks.AgentDownloadUrlCallback;
-import com.insidious.plugin.callbacks.AgentJarDownloadCompleteCallback;
-import com.insidious.plugin.callbacks.NewProjectCallback;
-import com.insidious.plugin.callbacks.ProjectTokenCallback;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
-import com.insidious.plugin.visitor.GradleFileVisitor;
-import com.insidious.plugin.visitor.PomFileVisitor;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
@@ -872,7 +865,8 @@ final public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
+        ContentFactory contentFactory = ApplicationManager.getApplication()
+                .getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }

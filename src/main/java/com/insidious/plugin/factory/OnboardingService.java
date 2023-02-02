@@ -10,7 +10,7 @@ public interface OnboardingService {
 
     void postProcessDependencies(Map<String, String> missing, Set<String> selectedDependencies);
 
-    Map<String, String> getDependencyStatus();
+//    Map<String, String> getDependencyStatus();
 
     List<String> fetchModules();
 
@@ -18,9 +18,9 @@ public interface OnboardingService {
 
     String fetchBasePackageForModule(String modulename);
 
-    boolean canGoToDocumention();
+//    boolean canGoToDocumention();
 
-    void copyDependenciesToClipboard(Map<String, String> missing);
+//    void copyDependenciesToClipboard(Map<String, String> missing);
 
     void downloadAgentForVersion(String version);
 

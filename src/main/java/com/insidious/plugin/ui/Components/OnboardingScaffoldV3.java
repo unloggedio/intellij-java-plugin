@@ -16,6 +16,7 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONObject;
@@ -35,7 +36,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private final OnboardingService onboardingService;
     private final OnBoardingStatus status = new OnBoardingStatus();
     private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
-    private final InsidiousService insidiousService;
+    private final Project project;
     List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
     private JPanel mainParentPanel;
     private JPanel MainBorderParent;
@@ -50,8 +51,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     private Run_Component_Obv3 runComponent = null;
     private NavigatorComponent navigator;
 
-    public OnboardingScaffoldV3(OnboardingService onboardingService, InsidiousService insidiousService) {
-        this.insidiousService = insidiousService;
+    public OnboardingScaffoldV3(OnboardingService onboardingService, Project project) {
+        this.project = project;
         this.onboardingService = onboardingService;
         loadNavigator();
         loadModuleSection();
@@ -66,7 +67,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 case DOWNLOAD_AGENT:
                     String version = action.get(ONBOARDING_ACTION.DOWNLOAD_AGENT);
                     if (version.startsWith("jackson")) {
-                        insidiousService.getProjectTypeInfo()
+                        project.getService(InsidiousService.class).getProjectTypeInfo()
                                 .setJacksonDatabindVersion(version);
                     }
                     System.out.println("DOWNLOADING AGENT FOR - " + version);
@@ -190,12 +191,13 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     public String getDocumentationTextFor(DOCUMENTATION_TYPE type) {
         StringBuilder sb = new StringBuilder();
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
         switch (type) {
             case MODULE:
                 sb.append("The plugin will generate unit tests in the directory relative to the selected module. " +
                         "Choosing the correct module is important since the imports in the unit test work out of the box.\n" +
                         "\n");
-                if (this.insidiousService.getSelectedModuleInstance() != null && this.insidiousService.getSelectedModuleInstance()
+                if (insidiousService.getSelectedModuleInstance() != null && insidiousService.getSelectedModuleInstance()
                         .getPath() != null) {
                     sb.append(
                             "Based on your current selection, the test cases will be generated at the following location");
@@ -349,7 +351,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         serializers.add("jackson-2.14");
         serializers.add("gson");
 
-        String suggestedAgent = insidiousService.suggestAgentVersion();
+        String suggestedAgent = project.getService(InsidiousService.class).suggestAgentVersion();
         System.out.println("[SUGGESTED AGENT] " + suggestedAgent);
 
         Integer defaultIntex = 0;
@@ -448,7 +450,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public void loadLiveLiew() {
-        insidiousService.addLiveView();
+        project.getService(InsidiousService.class).addLiveView();
     }
 
     @Override
@@ -477,7 +479,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     private void runSelogCheck() {
         //System.out.println("In check for selogs");
-        if (insidiousService.areLogsPresent()) {
+        if (project.getService(InsidiousService.class).areLogsPresent()) {
             //switch state
             System.out.println("Can Switch to LIVE VIEW");
             loadRunSection(true);
@@ -498,11 +500,12 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     }
 
     public boolean checkIfLogsArePresent() {
-        return insidiousService.areLogsPresent();
+        return project.getService(InsidiousService.class).areLogsPresent();
     }
 
     @Override
     public boolean runApplicationWithUnlogged() {
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
         if (insidiousService.hasProgramRunning()) {
             return false;
         }
@@ -542,7 +545,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public boolean hasRunnableApplicationConfig() {
-        List<RunnerAndConfigurationSettings> allSettings = insidiousService.getProject()
+        List<RunnerAndConfigurationSettings> allSettings = project.getService(InsidiousService.class).getProject()
                 .getService(RunManager.class)
                 .getAllSettings();
         for (RunnerAndConfigurationSettings runSetting : allSettings) {
@@ -556,7 +559,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public boolean isApplicationRunning() {
-        if (insidiousService.hasProgramRunning()) {
+        if (project.getService(InsidiousService.class).hasProgramRunning()) {
             return true;
         }
         return false;
