@@ -113,8 +113,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
 
     private void copyVMParameter() {
-        InsidiousService insidiousService = ApplicationManager.getApplication()
-                .getService(InsidiousService.class);
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
         String vmParamString = insidiousService.getJavaAgentString();
         insidiousService.copyToClipboard(vmParamString);
         InsidiousNotification.notifyMessage("VM options copied to clipboard.",
@@ -194,7 +193,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         }
     }
 
-    public void loadSession() throws Exception {
+    public void loadSession() {
         isLoading = true;
         updateRefreshButtonState();
         Task.Backgroundable task =
@@ -202,8 +201,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         checkProgressIndicator("Loading session", null);
-                        final InsidiousService insidiousService = ApplicationManager.getApplication()
-                                .getService(InsidiousService.class);
+                        final InsidiousService insidiousService = project.getService(InsidiousService.class);
                         insidiousService.getClient()
                                 .getProjectSessions(new GetProjectSessionsCallback() {
                                     @Override
@@ -376,8 +374,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         testCaseUnit1.add(testCaseUnit);
         TestSuite testSuite = new TestSuite(testCaseUnit1);
         //insidiousService.ensureTestUtilClass();
-        ApplicationManager.getApplication()
-                .getService(InsidiousService.class)
+        project.getService(InsidiousService.class)
                 .saveTestSuite(testSuite);
 
         InsidiousNotification.notifyMessage("Testcase generated for " + testCaseUnit.getTestMethodName() + "()",
@@ -398,8 +395,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         try {
             treeModel = new LiveViewTestCandidateListTree(
-                    project, ApplicationManager.getApplication().getService(InsidiousService.class).getClient()
-                    .getSessionInstance());
+                    project, project.getService(InsidiousService.class).getClient().getSessionInstance());
             mainTree.setModel(treeModel);
             mainTree.validate();
             mainTree.repaint();

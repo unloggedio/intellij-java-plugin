@@ -1,6 +1,5 @@
 package com.insidious.plugin.extension;
 
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 
@@ -10,7 +9,7 @@ public class RemoteConnection {
     private boolean myUseSockets;
     private String myHostName;
 
-    public RemoteConnection(String address) throws UnauthorizedException {
+    public RemoteConnection(String address) {
         this.address = address;
     }
 

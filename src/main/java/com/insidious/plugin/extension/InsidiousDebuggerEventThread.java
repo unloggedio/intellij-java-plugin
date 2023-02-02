@@ -366,8 +366,8 @@ public class InsidiousDebuggerEventThread implements Runnable {
     }
 
     private void close(boolean closedByUser) {
-        stopListening();
-        ApplicationManager.getApplication().getService(XDebugSession.class).stop();
+//        stopListening();
+//        ApplicationManager.getApplication().getService(XDebugSession.class).stop();
 //        this.debugProcess.closeProcess(closedByUser);
     }
 

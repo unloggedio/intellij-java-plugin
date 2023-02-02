@@ -9,7 +9,6 @@ import com.insidious.plugin.callbacks.*;
 import com.insidious.plugin.client.pojo.*;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
@@ -176,7 +175,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
+    public ProjectItem fetchProjectByName(String projectName) throws ProjectDoesNotExistException, IOException {
         logger.info("Get project by name => " + projectName);
         TypeReference<DataResponse<ProjectItem>> typeReference = new TypeReference<DataResponse<ProjectItem>>() {
         };
@@ -309,7 +308,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     }
 
-    private <T> T get(String url, TypeReference<T> typeReference) throws IOException, UnauthorizedException {
+    private <T> T get(String url, TypeReference<T> typeReference) throws IOException {
         Request request = new Request.Builder()
                 .url(url.startsWith("http") ? url : endpoint + url)
                 .addHeader("Authorization", "Bearer " + token)
@@ -319,7 +318,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
                 .execute();
 
         if (response.code() == 401) {
-            throw new UnauthorizedException();
+            throw new RuntimeException("unauthorized");
         }
 
         T result = null;
@@ -631,7 +630,7 @@ public class VideobugNetworkClient implements VideobugClientInterface {
     }
 
     @Override
-    public void setProject(String projectName) throws ProjectDoesNotExistException, UnauthorizedException, IOException {
+    public void setProject(String projectName) throws ProjectDoesNotExistException, IOException {
         this.project = fetchProjectByName(projectName);
     }
 
@@ -658,7 +657,8 @@ public class VideobugNetworkClient implements VideobugClientInterface {
 
     @Override
     public void downloadAgentFromUrl(String url, String insidiousLocalPath, boolean overwrite) {
-        Path fileURiString = FileSystems.getDefault().getPath(insidiousLocalPath);
+        Path fileURiString = FileSystems.getDefault()
+                .getPath(insidiousLocalPath);
 
         String absolutePath = fileURiString.toAbsolutePath()
                 .toString();

@@ -1,7 +1,6 @@
 package com.insidious.plugin.extension;
 
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.ExecutionResult;
@@ -39,10 +38,10 @@ public class InsidiousDebugProcessStarter extends XDebugProcessStarter {
             debugProcess.addDebugProcessListener(listener);
             debugProcess.setExecutionResult(executionResult);
 
-        } catch (UnauthorizedException e) {
-            logger.error("failed to fetch project sessions", e);
-            e.printStackTrace();
-            throw new ExecutionException(e);
+//        } catch (UnauthorizedException e) {
+//            logger.error("failed to fetch project sessions", e);
+//            e.printStackTrace();
+//            throw new ExecutionException(e);
         } catch (APICallException e) {
             logger.error("failed to fetch project sessions", e);
             e.printStackTrace();

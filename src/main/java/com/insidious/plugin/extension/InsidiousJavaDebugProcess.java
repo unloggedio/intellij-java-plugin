@@ -86,7 +86,7 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
         this.connector = new InsidiousJDIConnector(this);
 
-        ApplicationManager.getApplication().getService(InsidiousService.class).setConnector(this.connector);
+//        ApplicationManager.getApplication().getService(InsidiousService.class).setConnector(this.connector);
 
         InsidiousThreadsDebuggerTree tree = new InsidiousThreadsDebuggerTree(
                 getSession().getProject(), this);
@@ -116,9 +116,6 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     public static InsidiousJavaDebugProcess create(@NotNull XDebugSession session,
                                                    @NotNull RemoteConnection connection)
             throws APICallException, IOException {
-        logger.info("Creating InsidiousJavaDebugProcess with port " +
-                ApplicationManager.getApplication().getService(InsidiousService.class).getClient().getEndpoint());
-
         return new InsidiousJavaDebugProcess(session, connection);
     }
 
@@ -139,8 +136,8 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
 
     @Override
     public void sessionInitialized() {
-        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugSession(getSession());
-        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugProcess(this);
+//        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugSession(getSession());
+//        ApplicationManager.getApplication().getService(InsidiousService.class).setDebugProcess(this);
     }
 
     @NotNull
@@ -169,24 +166,24 @@ public class InsidiousJavaDebugProcess extends XDebugProcess {
     }
 
     public void attachVM(String timeout) throws Exception {
-        try {
-            VideobugClientInterface client = ApplicationManager.getApplication().getService(InsidiousService.class).getClient();
-            logger.info(String.format("Attaching to VM on endpoint [%s]", client.getEndpoint()));
-            this.connector.attachVirtualMachine(this.myConnection.getHostName(), client.getEndpoint(),
-                    this.myConnection.isUseSockets(), false, timeout);
-
-            this.connector.createThreadStartRequest();
-
-            this.insidiousEventReaderthread = new InsidiousDebuggerEventThread(this);
-            this.myDebugProcessDispatcher.getMulticaster().processAttached(this);
-            logger.info("Process Attached");
-            beginTelemetrySession();
-        } catch (Exception ex) {
-            logger.error("Couldn't attach to target VM:", ex);
-            if (!getState().isErrored()) {
-                throw new Exception(ex);
-            }
-        }
+//        try {
+//            VideobugClientInterface client = ApplicationManager.getApplication().getService(InsidiousService.class).getClient();
+//            logger.info(String.format("Attaching to VM on endpoint [%s]", client.getEndpoint()));
+//            this.connector.attachVirtualMachine(this.myConnection.getHostName(), client.getEndpoint(),
+//                    this.myConnection.isUseSockets(), false, timeout);
+//
+//            this.connector.createThreadStartRequest();
+//
+//            this.insidiousEventReaderthread = new InsidiousDebuggerEventThread(this);
+//            this.myDebugProcessDispatcher.getMulticaster().processAttached(this);
+//            logger.info("Process Attached");
+//            beginTelemetrySession();
+//        } catch (Exception ex) {
+//            logger.error("Couldn't attach to target VM:", ex);
+//            if (!getState().isErrored()) {
+//                throw new Exception(ex);
+//            }
+//        }
     }
 
     public void startInsidiousEventReaderThread() {

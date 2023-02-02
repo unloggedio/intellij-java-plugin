@@ -12,14 +12,9 @@ public class DropDownCard_OBV3 {
     private JComboBox itemSelector;
     private JLabel card_Description;
     private JButton refreshButton;
-    public JPanel getComponent() {
-        return this.mainPanel;
-    }
     private CardSelectionActionListener listener;
     private DropdownCardInformation content;
-
-    public DropDownCard_OBV3(DropdownCardInformation content, CardSelectionActionListener listener)
-    {
+    public DropDownCard_OBV3(DropdownCardInformation content, CardSelectionActionListener listener) {
         this.content = content;
         this.listener = listener;
         this.card_Heading.setText(content.heading);
@@ -29,16 +24,15 @@ public class DropDownCard_OBV3 {
         itemSelector.setModel(module_model);
         itemSelector.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                String moduleName = event.getItem().toString();
-                listener.selectedOption(moduleName,content.getType());
+                String moduleName = event.getItem()
+                        .toString();
+                listener.selectedOption(moduleName, content.getType());
             }
         });
-        if(content.options.size()>0)
-        {
-            int index=0;
-            if(content.defaultSelected!=null)
-            {
-                index=content.defaultSelected;
+        if (content.options.size() > 0) {
+            int index = 0;
+            if (content.defaultSelected != null) {
+                index = content.defaultSelected;
             }
             itemSelector.setSelectedIndex(index);
         }
@@ -51,16 +45,17 @@ public class DropDownCard_OBV3 {
         });
     }
 
-    void triggerRefresh()
-    {
-        if(this.refreshButton.isVisible())
-        {
-            if(this.content.getType().equals(OnboardingScaffoldV3.DROP_TYPES.MODULE))
-            {
+    public JPanel getComponent() {
+        return this.mainPanel;
+    }
+
+    void triggerRefresh() {
+        if (this.refreshButton.isVisible()) {
+            if (this.content.getType()
+                    .equals(OnboardingScaffoldV3.DROP_TYPES.MODULE)) {
                 listener.refreshModules();
-            }
-            else if(this.content.getType().equals(OnboardingScaffoldV3.DROP_TYPES.SERIALIZER))
-            {
+            } else if (this.content.getType()
+                    .equals(OnboardingScaffoldV3.DROP_TYPES.SERIALIZER)) {
                 listener.refreshSerializerSelection();
             }
         }

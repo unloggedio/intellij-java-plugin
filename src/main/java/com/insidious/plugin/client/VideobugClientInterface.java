@@ -11,7 +11,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.client.pojo.exceptions.APICallException;
 import com.insidious.plugin.client.pojo.exceptions.ProjectDoesNotExistException;
-import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
+//import com.insidious.plugin.client.pojo.exceptions.UnauthorizedException;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -31,12 +31,12 @@ public interface VideobugClientInterface {
 
     void signup(String serverUrl, String username, String password, SignUpCallback callback);
 
-    void signin(SigninRequest signinRequest, SignInCallback signInCallback) throws UnauthorizedException;
+    void signin(SigninRequest signinRequest, SignInCallback signInCallback);
 
     void getProjectByName(String projectName, GetProjectCallback getProjectCallback);
 
     ProjectItem fetchProjectByName(String projectName)
-            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+            throws ProjectDoesNotExistException, IOException;
 
     void createProject(String projectName, NewProjectCallback newProjectCallback);
 
@@ -77,7 +77,7 @@ public interface VideobugClientInterface {
     ProjectItem getProject();
 
     void setProject(String projectName)
-            throws ProjectDoesNotExistException, UnauthorizedException, IOException;
+            throws ProjectDoesNotExistException, IOException;
 
     String getEndpoint();
 

@@ -93,52 +93,52 @@ public final class InsidiousDebugProcessStarterListener
 
 
     public void processAttached(@NotNull XDebugProcess process) {
-        logger.info("Process has been attached.");
-        updateInsidiousCommandSender(this.state, this.debugProcess);
-
-        ProcessHandler processHandler = process.getProcessHandler();
-
-        String message = DebuggerBundle.message("status.connected", myConnection + "\n");
-        processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\nFind trace points to start debugging in the VideoBug tool window", ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\nAfter fetching a session from trace point, you can step back and forward using the <- and -> arrow buttons above", ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\nYou can also assign it a keyboard shortcut, just like F8", ProcessOutputTypes.SYSTEM);
-
-
-        processHandler.notifyTextAvailable("\n\n", ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("        _     _              ___             \n" +
-                " /\\   /(_) __| | ___  ___   / __\\_   _  __ _ \n" +
-                " \\ \\ / | |/ _` |/ _ \\/ _ \\ /__\\/| | | |/ _` |\n" +
-                "  \\ V /| | (_| |  __| (_) / \\/  | |_| | (_| |\n" +
-                "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
-                "                                       |___/ ", ProcessOutputTypes.SYSTEM);
-
-        InsidiousService insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
-
-        processHandler.notifyTextAvailable("                                        \n" +
-                "                 .°...°°°°..            \n" +
-                "                  ....     .°*°.        \n" +
-                "      .     .*O##@@@@@@##Oo°   *o°      \n" +
-                "     O*   o@@@@@@@@@@@@@@@@@@O.  *o     \n" +
-                "    #°  °#oo#@#Oo**°°°*oO#@#o*#O  °#    \n" +
-                "   oo  .@#*                  °O@o  oo   \n" +
-                "   #.  o@#@o   OO°     o#o   @@@#  .#   \n" +
-                "   oo  .@#@.   ..       .    O@@o  oo   \n" +
-                "    #°  °@@                  o@o  °#    \n" +
-                "     o*   *                  ..  *o     \n" +
-                "      °o*                      *o°      \n" +
-                "        .°*°.              .°*°.        \n" +
-                "            ..°°°°°°°°°°°°..            \n" +
-                "                                        ", ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
-        processHandler.notifyTextAvailable("\n", ProcessOutputTypes.SYSTEM);
-
-
-        if (!this.state.isErrored()) {
-            ApplicationManager.getApplication().invokeLater(() -> initialiseTimeline(process));
-        }
+//        logger.info("Process has been attached.");
+//        updateInsidiousCommandSender(this.state, this.debugProcess);
+//
+//        ProcessHandler processHandler = process.getProcessHandler();
+//
+//        String message = DebuggerBundle.message("status.connected", myConnection + "\n");
+//        processHandler.notifyTextAvailable(message, ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\nFind trace points to start debugging in the VideoBug tool window", ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\nAfter fetching a session from trace point, you can step back and forward using the <- and -> arrow buttons above", ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\nYou can also assign it a keyboard shortcut, just like F8", ProcessOutputTypes.SYSTEM);
+//
+//
+//        processHandler.notifyTextAvailable("\n\n", ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("        _     _              ___             \n" +
+//                " /\\   /(_) __| | ___  ___   / __\\_   _  __ _ \n" +
+//                " \\ \\ / | |/ _` |/ _ \\/ _ \\ /__\\/| | | |/ _` |\n" +
+//                "  \\ V /| | (_| |  __| (_) / \\/  | |_| | (_| |\n" +
+//                "   \\_/ |_|\\__,_|\\___|\\___/\\_____/\\__,_|\\__, |\n" +
+//                "                                       |___/ ", ProcessOutputTypes.SYSTEM);
+//
+//        InsidiousService insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
+//
+//        processHandler.notifyTextAvailable("                                        \n" +
+//                "                 .°...°°°°..            \n" +
+//                "                  ....     .°*°.        \n" +
+//                "      .     .*O##@@@@@@##Oo°   *o°      \n" +
+//                "     O*   o@@@@@@@@@@@@@@@@@@O.  *o     \n" +
+//                "    #°  °#oo#@#Oo**°°°*oO#@#o*#O  °#    \n" +
+//                "   oo  .@#*                  °O@o  oo   \n" +
+//                "   #.  o@#@o   OO°     o#o   @@@#  .#   \n" +
+//                "   oo  .@#@.   ..       .    O@@o  oo   \n" +
+//                "    #°  °@@                  o@o  °#    \n" +
+//                "     o*   *                  ..  *o     \n" +
+//                "      °o*                      *o°      \n" +
+//                "        .°*°.              .°*°.        \n" +
+//                "            ..°°°°°°°°°°°°..            \n" +
+//                "                                        ", ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\n The agent jar is available at: " + insidiousService.getVideoBugAgentPath(), ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\n Set the following as vm option parameter", ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\n" + insidiousService.getJavaAgentString(), ProcessOutputTypes.SYSTEM);
+//        processHandler.notifyTextAvailable("\n", ProcessOutputTypes.SYSTEM);
+//
+//
+//        if (!this.state.isErrored()) {
+//            ApplicationManager.getApplication().invokeLater(() -> initialiseTimeline(process));
+//        }
     }
 
 

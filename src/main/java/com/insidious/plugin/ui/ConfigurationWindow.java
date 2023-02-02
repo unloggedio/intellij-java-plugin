@@ -51,138 +51,20 @@ public class ConfigurationWindow {
     private JPanel buttonsPanel;
     private JTextField supportEmailAddress;
     private JButton getInTouchButton;
-    private final InsidiousService insidiousService;
+
     private final ExecutorService backgroundThreadExecutor = Executors.newFixedThreadPool(5);
 
 
     public ConfigurationWindow(Project project, ToolWindow toolWindow) {
         this.project = project;
-        this.insidiousService = ApplicationManager.getApplication().getService(InsidiousService.class);
+//        this.insidiousService = project.getService(InsidiousService.class);
         this.toolWindow = toolWindow;
-
-//        email.setText(this.insidiousService.getConfiguration().username);
-//        if (!"test@example.com".equals(this.insidiousService.getConfiguration().username)) {
-//            password.setText("");
-//        }
-//        serverEndpoint.setText(this.insidiousService.getConfiguration().serverUrl);
-
-//        useOfflineLocalRecordingsButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                insidiousService.initiateUseLocal();
-////                if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
-////                }
-//            }
-//        });
-
-//        generateTestCases.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                try {
-//
-//                    @Nullable String classNamesList =
-//                            Messages.showInputDialog("Class names list", "Videobug", null);
-//                    if (classNamesList == null || classNamesList.length() == 0) {
-//                        return;
-//                    }
-//
-//                    insidiousService.generateTestCases(Arrays.asList(classNamesList.split(",")));
-//                } catch (Exception ex) {
-//                    throw new RuntimeException(ex);
-//                }
-//            }
-//        });
-
-//        signInButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                String usernameText = email.getText();
-//                String passwordText = new String(password.getPassword());
-//                String videobugURL = serverEndpoint.getText();
-//                try {
-//                    insidiousService.signin(videobugURL, usernameText, passwordText);
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                    Messages.showErrorDialog(project, "Couldn't connect with server - " + e.getMessage(), "Failed");
-//                }
-//            }
-//        });
-//        loginSupportTextArea.setLineWrap(true);
-
-//        logoutButton.addActionListener(e -> {
-//            insidiousService.logout();
-//            email.setText("");
-//            password.setText("");
-//            serverEndpoint.setText(insidiousService.getConfiguration().getDefaultCloudServerUrl());
-//            loginSupportTextArea.setText("");
-//        });
-
-//        downloadJavaAgentToButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//                InsidiousNotification.notifyMessage(
-//                        "Downloading videobug java agent to $HOME/.videobug/videobug-java-agent.jar. Please wait for the download to complete.",
-//                        NotificationType.INFORMATION
-//                );
-//                insidiousService.ensureAgentJar(true);
-//            }
-//        });
-
-//        signUpButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                String usernameText = email.getText();
-//                String passwordText = new String(password.getPassword());
-//                String videobugURL = serverEndpoint.getText();
-//                insidiousService.signup(videobugURL, usernameText, passwordText,
-//                        new SignUpCallback() {
-//                            @Override
-//                            public void error(String string) {
-//                                loginSupportTextArea.setText("Failed to signup\n" + string);
-//                                Notifications.Bus.notify(
-//                                        InsidiousNotification.balloonNotificationGroup
-//                                                .createNotification(
-//                                                        "Failed to signup - " + string, NotificationType.ERROR), project);
-//
-//                            }
-//
-//                            @Override
-//                            public void success() {
-//                                try {
-//                                    insidiousService.signin(videobugURL, usernameText, passwordText);
-//                                    loginSupportTextArea.setText("\nSignup was successful!");
-//                                    ReadAction.nonBlocking(insidiousService::checkAndEnsureJavaAgentCache)
-//                                            .submit(backgroundThreadExecutor);
-//                                } catch (IOException e) {
-//                                    e.printStackTrace();
-//                                }
-//                            }
-//                        });
-//            }
-//        });
-//        buySingleUserLicenseButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent actionEvent) {
-//                try {
-//                    java.awt.Desktop.getDesktop().browse(java.net.URI.create("https://buy.stripe.com/7sIeUU7KU2LK2FW4gg"));
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        });
-
-//        reportIssuesButton.addActionListener(new ActionListener() {
-//            @Override
-//            public void actionPerformed(ActionEvent e) {
-//               insidiousService.generateAndUploadReport();
-//            }
-//        });
 
         getInTouchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String emailValue = supportEmailAddress.getText();
-                if (!insidiousService.isValidEmailAddress(emailValue)) {
+                if (!project.getService(InsidiousService.class).isValidEmailAddress(emailValue)) {
                     Messages.showErrorDialog("Please enter a valid email address", "Videobug");
                     return;
                 }
@@ -190,7 +72,7 @@ public class ConfigurationWindow {
                 eventProperties.put("email", emailValue);
                 UsageInsightTracker.getInstance().RecordEvent("RequestSupport", eventProperties);
                 Messages.showMessageDialog("Someone from videobug will get in touch with you soon.", "Videobug", Messages.getInformationIcon());
-                insidiousService.generateAndUploadReport();
+                project.getService(InsidiousService.class).generateAndUploadReport();
 
             }
         });

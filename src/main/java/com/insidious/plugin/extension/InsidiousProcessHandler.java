@@ -23,22 +23,22 @@ public class InsidiousProcessHandler extends ProcessHandler {
 
     @Override
     protected void destroyProcessImpl() {
-        try {
-            InsidiousJavaDebugProcess debugProcess = getInsidiousJavaDebugProcess();
-            if (debugProcess == null) {
-                return;
-            }
-            Project project = debugProcess.getProject();
-            if (!project.isOpen()) {
-                return;
-            }
-            InsidiousService service = ApplicationManager.getApplication().getService(InsidiousService.class);
-            service.setDebugSession(null);
-            service.setDebugProcess(null);
-        } catch (Exception e) {
-            logger.error("failed to destroy process", e);
-        }
-        notifyProcessTerminated(0);
+//        try {
+//            InsidiousJavaDebugProcess debugProcess = getInsidiousJavaDebugProcess();
+//            if (debugProcess == null) {
+//                return;
+//            }
+//            Project project = debugProcess.getProject();
+//            if (!project.isOpen()) {
+//                return;
+//            }
+//            InsidiousService service = ApplicationManager.getApplication().getService(InsidiousService.class);
+//            service.setDebugSession(null);
+//            service.setDebugProcess(null);
+//        } catch (Exception e) {
+//            logger.error("failed to destroy process", e);
+//        }
+//        notifyProcessTerminated(0);
     }
 
     @Override

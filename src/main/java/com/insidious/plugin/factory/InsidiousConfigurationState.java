@@ -51,9 +51,9 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
         exceptionClassMap.put("java.lang.ArithmeticException", true);
     }
 
-    public static InsidiousConfigurationState getInstance() {
-        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
-    }
+//    public static InsidiousConfigurationState getInstance() {
+//        return ApplicationManager.getApplication().getService(InsidiousConfigurationState.class);
+//    }
 
     public String getUsername() {
         return username;

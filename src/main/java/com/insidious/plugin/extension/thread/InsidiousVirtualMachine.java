@@ -499,24 +499,24 @@ public class InsidiousVirtualMachine implements VirtualMachine {
     }
 
     public void setTracePoint(TracePoint tracePoint) throws Exception {
-        FilteredDataEventsRequest filterDataEventRequest = tracePoint.toFilterDataEventRequest();
-        filterDataEventRequest.setPageInfo(new PageInfo(0, 10000));
-
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
-        }
-        this.replayData = ApplicationManager.getApplication().getService(InsidiousService.class)
-                .getClient().fetchDataEvents(filterDataEventRequest);
-
-        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
-                    "Creating frames from: " + this.replayData.getDataEvents().size() + " events");
-        }
-
-
-        threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
-
-        threadReferenceGroup.setThreadReferenceGroup(List.of(new InsidiousThreadReference(threadReferenceGroup, replayData, tracePoint)));
+//        FilteredDataEventsRequest filterDataEventRequest = tracePoint.toFilterDataEventRequest();
+//        filterDataEventRequest.setPageInfo(new PageInfo(0, 10000));
+//
+//        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2("Fetching data slice");
+//        }
+//        this.replayData = ApplicationManager.getApplication().getService(InsidiousService.class)
+//                .getClient().fetchDataEvents(filterDataEventRequest);
+//
+//        if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
+//            ProgressIndicatorProvider.getGlobalProgressIndicator().setText2(
+//                    "Creating frames from: " + this.replayData.getDataEvents().size() + " events");
+//        }
+//
+//
+//        threadReferenceGroup = new InsidiousThreadGroupReference(this, replayData, tracePoint);
+//
+//        threadReferenceGroup.setThreadReferenceGroup(List.of(new InsidiousThreadReference(threadReferenceGroup, replayData, tracePoint)));
 
     }
 
