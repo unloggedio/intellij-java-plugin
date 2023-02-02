@@ -4,6 +4,7 @@ import com.insidious.plugin.ui.UIUtils;
 import com.intellij.openapi.ui.VerticalFlowLayout;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -91,7 +92,7 @@ public class ListCard_OBV3 {
         }
         gridPanel.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
-        EmptyBorder emptyBorder = new EmptyBorder(0, 0, 0, 0);
+        EmptyBorder emptyBorder = JBUI.Borders.empty();
         scrollPane.setBorder(emptyBorder);
         contentContainer.setPreferredSize(scrollPane.getSize());
         contentContainer.add(scrollPane, BorderLayout.CENTER);

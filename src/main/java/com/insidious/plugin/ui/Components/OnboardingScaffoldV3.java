@@ -181,7 +181,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         docs.setContent(getDocumentationTextFor(type));
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(docs.getComponent(), constraints);
@@ -248,7 +248,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         navigator = new NavigatorComponent(this);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(navigator.getComponent(), constraints);
@@ -427,7 +427,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
         gridLayout = new GridLayout(1, 1);
         gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(runSection.getComponent(), constraints);

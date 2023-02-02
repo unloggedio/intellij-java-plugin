@@ -3,6 +3,7 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -35,7 +36,7 @@ public class NavigatorComponent implements NavigationManager {
         this.elements = new ArrayList<>();
         GridLayout gridLayout = new GridLayout(1, 30);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         for (int i = 0; i < states.size(); i++) {
             NavigationElement element = new NavigationElement(this);
             element.setNavigationStageText(states.get(i));

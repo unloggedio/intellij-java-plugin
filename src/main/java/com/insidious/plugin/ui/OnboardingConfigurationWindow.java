@@ -27,6 +27,7 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
@@ -74,7 +75,7 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         waitingScreen = new WaitingScreen();
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(waitingScreen.getCompenent(), constraints);
@@ -86,25 +87,23 @@ public class OnboardingConfigurationWindow implements OnboardingService {
             InsidiousNotification.notifyMessage("Unlogged is waiting for the indexing to complete.",
                     NotificationType.INFORMATION);
         }
-        dumbService.runWhenSmart(() -> {
-            loadOBV3Scaffold();
-        });
+        dumbService.runWhenSmart(this::loadOBV3Scaffold);
     }
 
-    @Override
-    public Map<String, String> fetchMissingDependencies() {
-        TreeMap<String, String> missing_dependencies = new TreeMap<>();
-        for (String key : dependencies_status.keySet()) {
-            if (dependencies_status.get(key) == null &&
-                    !project.getService(InsidiousService.class)
-                            .getProjectTypeInfo().
-                            getDependencies_addedManually()
-                            .contains(key)) {
-                missing_dependencies.put(key, dependencies_status.get(key));
-            }
-        }
-        return missing_dependencies;
-    }
+//    @Override
+//    public Map<String, String> fetchMissingDependencies() {
+//        TreeMap<String, String> missing_dependencies = new TreeMap<>();
+//        for (String key : dependencies_status.keySet()) {
+//            if (dependencies_status.get(key) == null &&
+//                    !project.getService(InsidiousService.class)
+//                            .getProjectTypeInfo().
+//                            getDependencies_addedManually()
+//                            .contains(key)) {
+//                missing_dependencies.put(key, dependencies_status.get(key));
+//            }
+//        }
+//        return missing_dependencies;
+//    }
 
     public JComponent getContent() {
         return mainPanel;
@@ -408,7 +407,7 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         OnboardingScaffoldV3 scaffold = new OnboardingScaffoldV3(this, project);
         GridLayout gridLayout = new GridLayout(1, 1);
         JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        gridPanel.setBorder(JBUI.Borders.empty());
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(0);
         gridPanel.add(scaffold.getComponent(), constraints);

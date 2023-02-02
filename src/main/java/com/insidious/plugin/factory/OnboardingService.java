@@ -6,7 +6,7 @@ import java.util.Set;
 
 public interface OnboardingService {
 
-    Map<String, String> fetchMissingDependencies();
+//    Map<String, String> fetchMissingDependencies();
 
     void postProcessDependencies(Map<String, String> missing, Set<String> selectedDependencies);
 
