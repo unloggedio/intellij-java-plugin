@@ -23,7 +23,7 @@
               <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <icon value="icons/gif/intellij_480.gif"/>
+              <icon value="icons/gif/intellij_run.gif"/>
               <text value=""/>
             </properties>
           </component>
