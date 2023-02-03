@@ -486,8 +486,6 @@ public class OnboardingScaffoldV3 implements CardActionListener {
             UsageInsightTracker.getInstance()
                     .RecordEvent("LogsReady", null);
         } else {
-            //System.out.println("TIMER CHECK FOR SELOGS");
-            //run till you have selogs (5 seconds at a time)
             Timer timer = new Timer(5000, new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent arg0) {
@@ -530,7 +528,6 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 try {
                     runner.execute(new ExecutionEnvironment(executor, runner, runSetting,
                             insidiousService.getProject()), null);
-                    //insidiousService.registerProgramRunner(runner);
                     return true;
                 } catch (Exception e) {
                     System.out.println("Failed to start application");
@@ -598,15 +595,6 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         public void setCurrentModule(String currentModule) {
             this.currentModule = currentModule;
             System.out.println("SET CURRENT MODULE to " + currentModule);
-        }
-
-        public Boolean isAddOpens() {
-            return addOpens;
-        }
-
-        public void setAddOpens(Boolean addOpens) {
-            this.addOpens = addOpens;
-            System.out.println("SET ADD OPENS to " + addOpens);
         }
 
         public ProjectTypeInfo.RUN_TYPES getRunType() {

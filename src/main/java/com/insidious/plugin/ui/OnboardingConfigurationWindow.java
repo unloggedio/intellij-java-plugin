@@ -53,17 +53,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
     private JPanel mainPanel;
     private JPanel modulesParentPanel;
     private JLabel selectionHeading1;
-    //these are packages that will be excluded in the vm params
-//    private HashSet<String> selectedPackages = new HashSet<>();
-//    private HashSet<String> selectedDependencies = new HashSet<>();
-//    private String JVMoptionsBase = "";
-//    private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH;
-//    private Icon moduleIcon = IconLoader.getIcon("icons/png/moduleIcon.png",
-//            OnboardingConfigurationWindow.class);
-//    private Icon packageIcon = IconLoader.getIcon("icons/png/package_v1.png",
-//            OnboardingConfigurationWindow.class);
-//    private boolean agentDownloadInitiated = false;
-//    private boolean addopens = false;
     private WaitingScreen waitingScreen;
 
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
@@ -89,21 +78,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         }
         dumbService.runWhenSmart(this::loadOBV3Scaffold);
     }
-
-//    @Override
-//    public Map<String, String> fetchMissingDependencies() {
-//        TreeMap<String, String> missing_dependencies = new TreeMap<>();
-//        for (String key : dependencies_status.keySet()) {
-//            if (dependencies_status.get(key) == null &&
-//                    !project.getService(InsidiousService.class)
-//                            .getProjectTypeInfo().
-//                            getDependencies_addedManually()
-//                            .contains(key)) {
-//                missing_dependencies.put(key, dependencies_status.get(key));
-//            }
-//        }
-//        return missing_dependencies;
-//    }
 
     public JComponent getContent() {
         return mainPanel;
@@ -298,7 +272,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
             while (checksum.length() < 32) {
                 checksum = "0" + checksum;
             }
-            //System.out.println("Checksum of file " + checksum);
             switch (agentVersion) {
                 case "gson":
                     if (checksum.equals(Checksums.AGENT_GSON)) {
@@ -415,46 +388,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         this.mainPanel.revalidate();
     }
 
-//    @Override
-//    public boolean canGoToDocumention() {
-//        InsidiousService insidiousService = project.getService(InsidiousService.class);
-//        TreeMap<String, String> depVersions = new TreeMap<>();
-//        for (String dependency : insidiousService.getProjectTypeInfo()
-//                .getDependenciesToWatch()) {
-//            depVersions.put(dependency, null);
-//        }
-//        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-//                .getLibraryTable(insidiousService.getProject());
-//        Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
-//        int count = 0;
-//        while (lib_iterator.hasNext()) {
-//            Library lib = lib_iterator.next();
-//            for (String dependency : insidiousService.getProjectTypeInfo()
-//                    .getDependenciesToWatch()) {
-//                if (lib.getName()
-//                        .contains(dependency)) {
-//                    String version = insidiousService.fetchVersionFromLibName(lib.getName(), dependency);
-//                    logger.info("Version of " + dependency + " is " + version);
-//                    depVersions.replace(dependency, version);
-//                }
-//            }
-//
-//            count++;
-//        }
-//        if (count == 0) {
-//            return false;
-//        } else {
-//            logger.info("[DEP SEARCH] Can go to Doc section");
-//            logger.info(depVersions.toString());
-//            this.dependencies_status = depVersions;
-//            if (fetchMissingDependencies().size() == 0) {
-//                return true;
-//            } else {
-//                return false;
-//            }
-//        }
-//    }
-
     public void downloadAgentinBackground(String version) {
         Task.Backgroundable dl_task =
                 new Task.Backgroundable(project, "Unlogged, Inc.", true) {
@@ -503,74 +436,8 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         }
     }
 
-//    public void copyDependenciesToClipboard(Map<String, String> dependencies) {
-//        StringBuilder sb = new StringBuilder();
-//        for (String dependency : dependencies.keySet()) {
-//            sb.append(getDependencyAdditionText(dependency));
-//        }
-//        String final_str = sb.toString();
-//        project.getService(InsidiousService.class)
-//                .copyToClipboard(final_str);
-//        InsidiousNotification.notifyMessage("Dependencies copied to clipboard.",
-//                NotificationType.INFORMATION);
-//    }
-
     @Override
     public void downloadAgentForVersion(String version) {
         downloadAgentinBackground(version);
     }
-
-//    public String getDependencyAdditionText(String dependency) {
-//        StringBuilder sb = new StringBuilder();
-//        String group_id;
-//        String artifact_id = dependency;
-//        switch (dependency) {
-//            case "commons-io":
-//                group_id = "commons-io";
-//                break;
-//            case "gson":
-//                group_id = "com.google.code.gson";
-//                break;
-//            default:
-//                group_id = "com.fasterxml.jackson.datatype";
-//                break;
-//        }
-//        InsidiousService insidiousService = project.getService(InsidiousService.class);
-//        boolean isMaven = insidiousService.findBuildSystemForModule(insidiousService.getSelectedModuleName())
-//                .equals(InsidiousService.PROJECT_BUILD_SYSTEM.MAVEN);
-//        if (isMaven) {
-//            sb.append("<dependency>\n");
-//            sb.append("<groupId>")
-//                    .append(group_id)
-//                    .append("</groupId>\n");
-//            sb.append("<artifactId>")
-//                    .append(artifact_id)
-//                    .append("</artifactId>\n");
-//            if (dependency.equals("commons-io")) {
-//                sb.append("<version>" + "2.6" + "</version>\n");
-//            }
-//            sb.append("</dependency>\n");
-//            return sb.toString();
-//        } else {
-//            if (dependency.equals("commons-io")) {
-//                sb.append("implementation '")
-//                        .append(group_id)
-//                        .append(":")
-//                        .append(artifact_id)
-//                        .append(":2.6'\n");
-//            } else {
-//                sb.append("implementation '")
-//                        .append(group_id)
-//                        .append(":")
-//                        .append(artifact_id)
-//                        .append("'\n");
-//            }
-//            return sb.toString();
-//        }
-//    }
-
-//    @Override
-//    public Map<String, String> getDependencyStatus() {
-//        return this.dependencies_status;
-//    }
 }
