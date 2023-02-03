@@ -7,6 +7,7 @@
     </constraints>
     <properties>
       <opaque value="false"/>
+      <preferredSize width="235" height="-1"/>
     </properties>
     <border type="line">
       <color color="-4473925"/>

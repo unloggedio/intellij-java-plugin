@@ -33,16 +33,6 @@ public class SingleWindowView {
             }
         });
         this.insidiousService = insidiousService;
-//        mainTree.addTreeExpansionListener(SingleWindowView.this);
-//        mainTree.addTreeWillExpandListener(SingleWindowView.this);
-//        mainTree.addTreeSelectionListener(SingleWindowView.this);
-//        treeModel = new VideobugTreeModel(insidiousService);
-//        mainTree.setModel(treeModel);
-
-//        mainTree.setCellRenderer(cellRenderer);
-//        TreeUtil.installActions(mainTree);
-
-//        resultPanel.setDividerLocation(0.99d);
         constraints = new GridConstraints();
         constraints.setFill(GridConstraints.FILL_BOTH);
 

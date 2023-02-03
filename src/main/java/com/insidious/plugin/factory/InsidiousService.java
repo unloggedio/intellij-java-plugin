@@ -80,22 +80,17 @@ final public class InsidiousService implements Disposable {
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private Project project;
-    //    private InsidiousConfigurationState insidiousConfiguration;
     private VideobugClientInterface client;
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
     private SingleWindowView singleWindowView;
     private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
-    //    private InsidiousJDIConnector connector;
-//    private ConfigurationWindow credentialsToolbarWindow;
     private ToolWindow toolWindow;
-    //    private CredentialAttributes insidiousCredentials;
     private String appToken;
     private String javaAgentString = "-javaagent:\"" + Constants.VIDEOBUG_AGENT_PATH + "=i=YOUR.PACKAGE.NAME\"";
     private TracePoint pendingTrace;
     private TracePoint pendingSelectTrace;
-    private AboutUsWindow aboutUsWindow;
     private LiveViewWindow liveViewWindow;
     private int TOOL_WINDOW_HEIGHT = 430;
     private Content singleWindowContent;
@@ -138,16 +133,6 @@ final public class InsidiousService implements Disposable {
 
             this.initiateUI();
 
-//            ApplicationManager.getApplication()
-//                    .runReadAction(new Runnable() {
-//                        @Override
-//                        public void run() {
-////                            getProjectPackageName();
-////                            checkAndEnsureJavaAgentCache();
-//                        }
-//                    });
-
-
         } catch (ServiceNotReadyException snre) {
             snre.printStackTrace();
             logger.info("service not ready exception -> " + snre.getMessage());
@@ -171,73 +156,6 @@ final public class InsidiousService implements Disposable {
         clipboard.setContents(selection, selection);
         System.out.println(selection);
     }
-
-//    public void checkAndEnsureJavaAgentCache() {
-//        checkAndEnsureJavaAgent(false, new AgentJarDownloadCompleteCallback() {
-//            @Override
-//            public void error(String message) {
-//
-//            }
-//
-//            @Override
-//            public void success(String url, String path) {
-//                InsidiousNotification.notifyMessage("Agent jar download complete", NotificationType.INFORMATION);
-//            }
-//        });
-//    }
-
-//    public void checkAndEnsureJavaAgent(boolean overwrite, AgentJarDownloadCompleteCallback agentJarDownloadCompleteCallback) {
-//
-//        //returning from this to prevent downloading agent 1.8.1
-//        if (true) {
-//            return;
-//        }
-//        File insidiousFolder = new File(Constants.VIDEOBUG_HOME_PATH.toString());
-//        if (!insidiousFolder.exists()) {
-//            insidiousFolder.mkdir();
-//        }
-//
-//        if (overwrite) {
-//            Constants.VIDEOBUG_AGENT_PATH.toFile()
-//                    .delete();
-//        }
-//
-//        if (!Constants.VIDEOBUG_AGENT_PATH.toFile()
-//                .exists() && !overwrite) {
-//            InsidiousNotification.notifyMessage(
-//                    "Downloading Unlogged java agent jar to $HOME/.videobug/videobug-java-agent.jar",
-//                    NotificationType.INFORMATION);
-//        }
-//
-//        if (Constants.VIDEOBUG_AGENT_PATH.toFile()
-//                .exists()) {
-//            return;
-//        }
-//
-//
-//        client.getAgentDownloadUrl(new AgentDownloadUrlCallback() {
-//            @Override
-//            public void error(String error) {
-//                logger.error("failed to get url from server to download the java agent - " + error);
-//                agentJarDownloadCompleteCallback.error(
-//                        "failed to get url from server to download the java agent - " + error);
-//            }
-//
-//            @Override
-//            public void success(String url) {
-//                try {
-//                    logger.info(
-//                            "agent download link: " + url + ", downloading to path " + Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath());
-//                    client.downloadAgentFromUrl(url, Constants.VIDEOBUG_AGENT_PATH.toString(), overwrite);
-//                    setAppTokenOnUi();
-//                    agentJarDownloadCompleteCallback.success(url, Constants.VIDEOBUG_AGENT_PATH.toString());
-//                } catch (Exception e) {
-//                    logger.info("failed to download agent - ", e);
-//                }
-//            }
-//        });
-//
-//    }
 
     private List<Module> selectJavaModules(List<Module> modules) {
         return modules.stream()
@@ -263,21 +181,6 @@ final public class InsidiousService implements Disposable {
                 selectedModule = info.getName();
             }
             this.moduleMap.put(info.getName(), info);
-        }
-    }
-
-    private void registerModules_Manual(List<String> modules) {
-
-        this.moduleMap = new TreeMap<>();
-        for (String module : modules) {
-            if (this.selectedModule == null) {
-                this.selectedModule = module;
-            }
-            ModuleInformation info = new ModuleInformation();
-            info.setName(module);
-            if (!this.moduleMap.containsKey(module)) {
-                this.moduleMap.put(info.getName(), info);
-            }
         }
     }
 
@@ -310,20 +213,6 @@ final public class InsidiousService implements Disposable {
             registerModules(modules);
             return new ArrayList<>(this.moduleMap.keySet());
         } else {
-//            try {
-//                logger.info("Fetching from POM.xml/settings.gradle");
-//                Set<String> modules_from_pg = fetchModuleNamesFromFiles();
-//                if (modules_from_pg == null) {
-//                    logger.warn("No modules found");
-//                } else {
-//                    registerModules_Manual(new ArrayList<>(modules_from_pg));
-//                    return new ArrayList<>(modules_from_pg);
-//                }
-//            } catch (Exception e) {
-//                logger.error("Exception fetching modules " + e);
-//                e.printStackTrace();
-//            }
-//        }
             List<String> res = new ArrayList<>();
             if (!this.moduleMap.containsKey(this.project.getName())) {
                 ModuleInformation info = new ModuleInformation(this.project.getName(),
@@ -336,20 +225,6 @@ final public class InsidiousService implements Disposable {
             res.add(project.getName());
             return res;
         }
-    }
-
-    private Set<String> filterModules(Set<String> modules) {
-        Set<String> final_Modules = new TreeSet<>();
-        for (String module : modules) {
-            if (!(module.endsWith(".main") || module.endsWith(".test"))) {
-                String[] parts = module.split("\\.");
-                String module_last = parts[parts.length - 1];
-                if (isValidJavaModule(module_last)) {
-                    final_Modules.add(module_last);
-                }
-            }
-        }
-        return final_Modules;
     }
 
     public boolean isValidJavaModule(String modulename) {
@@ -369,94 +244,6 @@ final public class InsidiousService implements Disposable {
         return false;
     }
 
-    //to be simplified and cleaned up
-    public Set<String> fetchModuleNamesFromFiles() {
-        if (!project.isInitialized()) {
-            return null;
-        }
-        if (currentModule == null) {
-            return null;
-        }
-        //fetch module names from all pom files in the project, also fetch base packages (not always useful from pom)
-        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
-                GlobalSearchScope.projectScope(project));
-        Set<String> modules = new HashSet<String>();
-        if (pomFileSearchResult.length > 0) {
-            projectTypeInfo.setMaven(true);
-            for (int x = 0; x < pomFileSearchResult.length; x++) {
-                @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[x];
-                String text = pomPsiFile.getText();
-                if (text.contains("<modules>")) {
-                    int modulesIndexStart = text.indexOf("<modules>");
-                    int modulesIndexEnd = text.indexOf("</modules>");
-
-                    String substring_modules = text.substring(modulesIndexStart, modulesIndexEnd);
-                    //System.out.println("Modules Section - ");
-                    //System.out.println(substring_modules);
-                    Set<String> modulesFromPom = getModulesListFromString(substring_modules);
-                    return modulesFromPom;
-                } else if (text.contains("<java.version>")) {
-                    String java_version = text.substring(text.indexOf("<java.version>") + 1,
-                            text.indexOf("</java.version>"));
-                    //System.out.println("Java version");
-                    //System.out.println("" + java_version);
-                }
-            }
-            return modules;
-        }
-        //System.out.println("[Modules] Pom -");
-        //System.out.println(modules.toString());
-
-        try {
-            modules = new HashSet<String>();
-            @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "settings.gradle",
-                    GlobalSearchScope.projectScope(project));
-            if (gradleFileSearchResult.length > 0) {
-                logger.info("found setting.gradle file");
-                for (int x = 0; x < gradleFileSearchResult.length; x++) {
-                    PsiFile settingsGradle = gradleFileSearchResult[x];
-                    String text = settingsGradle.getText();
-                    //System.out.println("Gradle settings text");
-                    //System.out.println("" + text);
-
-                    String[] lines = text.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
-                        String line = lines[i];
-                        if (line.contains("rootProject.name")) {
-                            int start = line.indexOf("'") + 1;
-                            int end = line.lastIndexOf("'");
-                            String moduleName = line.substring(start, end);
-                            //System.out.println("Module name root : " + moduleName);
-                            modules.add(moduleName);
-                        }
-                        if (line.startsWith("include") && line.contains("(")) {
-                            String modulesSection = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
-                            System.out.println("(Include) " + modulesSection);
-                            String[] temp = modulesSection.replaceAll("'", "")
-                                    .split(",");
-                            for (int c = 0; c < temp.length; c++) {
-                                //System.out.println("Gradle module found :" + temp[c]);
-                                modules.add(temp[c].trim());
-                            }
-                        } else if (line.startsWith("include")) {
-                            String[] parts = line.split("\'");
-                            //System.out.println("Parts "+Arrays.asList(parts));
-                            //System.out.println("Module name [i] s " + parts[1]);
-                            modules.add(parts[1].trim());
-                        }
-                    }
-                }
-                //System.out.println("[Modules] Gradle - ");
-                //System.out.println(modules.toString());
-                return modules;
-            }
-        } catch (Exception ex) {
-            logger.info("Exception fetching gradle modules " + ex);
-            ex.printStackTrace();
-        }
-        return null;
-    }
-
     public Set<String> getModulesListFromString(String pomSection) {
         Set<String> modules = new HashSet<>();
         String[] parts = pomSection.split("<modules>");
@@ -473,45 +260,6 @@ final public class InsidiousService implements Disposable {
         System.out.println("Modules - from pom string : " + modules);
         return modules;
     }
-
-//    private void getProjectPackageName() {
-//        if (!project.isInitialized()) {
-//            return;
-//        }
-//        if (currentModule == null) {
-//            return;
-//        }
-//        logger.info("looking up package name for the module [" + currentModule.getName() + "]");
-//        @NotNull PsiFile[] pomFileSearchResult = FilenameIndex.getFilesByName(project, "pom.xml",
-//                GlobalSearchScope.projectScope(project));
-//        if (pomFileSearchResult.length > 0) {
-//            @NotNull XmlFile pomPsiFile = (XmlFile) pomFileSearchResult[0];
-//            logger.info("found pom.xml file at");
-//
-//            PomFileVisitor visitor = new PomFileVisitor();
-//            pomPsiFile.accept(visitor);
-//            if (visitor.getPackageName() != null) {
-//                packageName = visitor.getPackageName();
-////                setAppTokenOnUi();
-//                return;
-//            }
-//        }
-//
-//        @NotNull PsiFile[] gradleFileSearchResult = FilenameIndex.getFilesByName(project, "build.gradle",
-//                GlobalSearchScope.projectScope(project));
-//        if (gradleFileSearchResult.length > 0) {
-//            logger.info("found build.gradle file at");
-//            @NotNull PsiFile gradlePsiFile = gradleFileSearchResult[0];
-//            GradleFileVisitor visitor = new GradleFileVisitor();
-//            gradlePsiFile.accept(visitor);
-//            if (visitor.getPackageName() != null) {
-//                packageName = visitor.getPackageName();
-////                setAppTokenOnUi();
-//            }
-//        }
-//        packageName = "org/company/package";
-//        setAppTokenOnUi();
-//    }
 
     public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         this.project = project;
@@ -826,23 +574,6 @@ final public class InsidiousService implements Disposable {
         this.debugProcess = debugProcess;
     }
 
-//    public void setConnector(InsidiousJDIConnector connector) {
-//        this.connector = connector;
-//        if (pendingTrace != null) {
-//            try {
-//                connector.setTracePoint(pendingTrace, null);
-//                debugProcess.startPausing();
-//            } catch (Exception e) {
-//                logger.error("failed to set trace point", e);
-//            }
-//            pendingTrace = null;
-//        }
-//    }
-
-//    private void addAgentToRunConfig() {
-//
-//    }
-
     // works for current sessions structure,
     // will need refactor when project/module based logs are stored
     public boolean areLogsPresent() {
@@ -888,67 +619,14 @@ final public class InsidiousService implements Disposable {
         singleWindowView = new SingleWindowView(project, this);
         singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
-
         onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         onboardingConfigurationWindowContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
         contentManager.addContent(onboardingConfigurationWindowContent);
-//        setupProject();
-
         if (areLogsPresent()) {
             contentManager.addContent(liveWindowContent);
             contentManager.setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
         }
-        //}
-
-//        Content rawViewContent2 = contentManager.findContent("Raw");
-//        if (rawViewContent2 == null) {
-//        Content singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
-//            contentManager.addContent(singleWindowContent);
-//        }
-
-
-//        if (isLoggedIn() && searchByTypesWindow == null) {
-//
-//            searchByTypesWindow = new SearchByTypesWindow(project, this);
-//            searchByValueWindow = new SearchByValueWindow(project, this);
-//            singleWindowView = new SingleWindowView(project, this);
-//            liveViewWindow = new LiveViewWindow(project, this);
-//            aboutUsWindow = new AboutUsWindow();
-//
-//            // create the windows
-//            Content bugsContent = contentFactory.createContent(searchByTypesWindow.getContent(), "Exceptions", false);
-//            Content traceContent = contentFactory.createContent(searchByValueWindow.getContent(), "Traces", false);
-//            Content liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Live View", false);
-//            Content aboutWindowContent = contentFactory.createContent(aboutUsWindow.getContent(), "About", false);
-//
-//
-//            Content content = contentManager.findContent("Exceptions");
-//            if (content == null) {
-//                contentManager.addContent(bugsContent);
-//            }
-//            Content traceContent2 = contentManager.findContent("Traces");
-//            if (traceContent2 == null) {
-//                contentManager.addContent(traceContent);
-//            }
-//
-//
-//
-//            Content liveWindowContent2 = contentManager.findContent("Live");
-//            if (liveWindowContent2 == null) {
-////                contentManager.addContent(liveWindowContent);
-//            }
-//            Content aboutVideobug = contentManager.findContent("About");
-//            if (aboutVideobug == null) {
-////                contentManager.addContent(aboutWindowContent);
-//            }
-//        }
-//        if (isLoggedIn() && client.getProject() == null) {
-//            logger.info("user is logged in by project is null, setting up project");
-//            setupProject();
-//        }
-
-
     }
 
     public String getJavaAgentString() {
@@ -960,47 +638,9 @@ final public class InsidiousService implements Disposable {
                 .toString();
     }
 
-//    private void setAppTokenOnUi() {
-//        logger.info("set app token - " + appToken + " with package name " + packageName);
-//
-//        String[] vmParamsToAdd = new String[]{
-//                "--add-opens=java.base/java.util=ALL-UNNAMED", "-javaagent:\""
-//                + Constants.VIDEOBUG_AGENT_PATH + "=i=" + DEFAULT_PACKAGE_NAME
-////                + ",server=" + (insidiousConfiguration != null ? insidiousConfiguration.serverUrl : "https://cloud.bug.video")
-////                + ",token=" + "localhost-token"
-//                + "\""
-//        };
-//
-//        javaAgentString = String.join(" ", vmParamsToAdd);
-//
-//        if (appToken != null && !Objects.equals(packageName, "YOUR.PACKAGE.NAME")) {
-//            addAgentToRunConfig();
-//        }
-//    }
-
     public VideobugClientInterface getClient() {
         return client;
     }
-
-//    public void setToolWindow(ToolWindow toolWindow) {
-//        this.toolWindow = toolWindow;
-//        init(project, toolWindow);
-//    }
-
-//    public void ensureAgentJar(boolean overwrite) {
-//        checkAndEnsureJavaAgent(overwrite, new AgentJarDownloadCompleteCallback() {
-//            @Override
-//            public void error(String message) {
-//                InsidiousNotification.notifyMessage("Failed to download java agent: " + message,
-//                        NotificationType.ERROR);
-//            }
-//
-//            @Override
-//            public void success(String url, String path) {
-//                InsidiousNotification.notifyMessage("Agent jar download complete", NotificationType.INFORMATION);
-//            }
-//        });
-//    }
 
     @Override
     public void dispose() {

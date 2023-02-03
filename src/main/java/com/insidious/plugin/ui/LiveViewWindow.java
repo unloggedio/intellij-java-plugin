@@ -73,10 +73,8 @@ public class LiveViewWindow implements TreeSelectionListener,
         this.processLogsSwitch.addActionListener(selectSessionActionListener());
         pauseActionListener = pauseCheckingForNewLogs();
         resumeActionListener = resumeCheckingForNewLogs();
-//        pauseProcessingButton.addActionListener(pauseActionListener);
         topControlPanel.remove(pauseProcessingButton);
         topControlPanel.remove(progressBar1);
-        //set default tree here.
         mainTree.setModel(new DefaultTreeModel(
                 new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
         reportIssueForm = new ReportIssueForm(project);
@@ -297,8 +295,6 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     @Override
     public void valueChanged(TreeSelectionEvent e) {
-//        logger.warn("value selection event - " + e.getPath() + " - " + e.getPath()
-//                .getLastPathComponent());
         Object selectedNode = e.getPath()
                 .getLastPathComponent();
         if (selectedNode.getClass()
@@ -323,10 +319,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         candidateListPanel.add(candidateInformationWindow.getMainPanel(), constraints);
         headingText.setText("Test Candidates for " + methodNode.getMethodName() + " (most recent first)");
         this.candidateListPanel.revalidate();
-    }
-
-    private void setLoadingState(boolean status) {
-        candidateLoadProgressbar.setVisible(status);
     }
 
     @Override
@@ -373,7 +365,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
         testCaseUnit1.add(testCaseUnit);
         TestSuite testSuite = new TestSuite(testCaseUnit1);
-        //insidiousService.ensureTestUtilClass();
         project.getService(InsidiousService.class)
                 .saveTestSuite(testSuite);
 

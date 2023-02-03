@@ -91,7 +91,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             TestCandidateMetadataView testCandidatePreviewPanel = new TestCandidateMetadataView(
-                    testCandidateMetadata, testCaseService, this, sessionInstance);
+                    testCandidateMetadata, testCaseService, this);
             if (i == 0) {
                 testCandidatePreviewPanel.setSelectedState(true);
             }

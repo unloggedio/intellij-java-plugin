@@ -414,7 +414,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         if (dependencies_local.containsKey("jackson-databind")) {
             dependencies_local.remove("jackson-databind");
         }
-//        System.out.println("CURRENT MODULE -> before writing :" + insidiousService.getSelectedModuleName());
         new DependencyService().addDependency(project, selections);
 
     }

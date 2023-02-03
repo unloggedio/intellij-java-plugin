@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestCandidateCustomizeView {
-
     private final TestCandidateMetadata testCandidateMetadata;
     private final SessionInstance sessionInstance;
     private final TestCaseGenerationConfiguration testGenerationConfiguration;
@@ -156,14 +155,6 @@ public class TestCandidateCustomizeView {
         } catch (Exception e) {
             e.printStackTrace();
             System.out.println("Exception selecting default candidate nodes");
-        }
-    }
-
-    private void printSelections() {
-        System.out.println("Selections - ");
-        TreePath[] paths = this.testCandidateTree.getSelectionPaths();
-        for (int i = 0; i < paths.length; i++) {
-            System.out.println("Selection : " + i + " " + paths[i].toString());
         }
     }
 

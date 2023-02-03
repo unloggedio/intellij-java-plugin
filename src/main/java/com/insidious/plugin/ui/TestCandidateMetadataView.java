@@ -24,14 +24,12 @@ public class TestCandidateMetadataView {
     private JLabel candidateNumber;
     private JPanel cardPanel;
     private JPanel borderParent;
-
     private Dimension contentPanelDimensions = new Dimension(-1, 30);
 
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
             TestCaseService testCaseService,
-            TestSelectionListener candidateSelectionListener,
-            SessionInstance sessionInstance
+            TestSelectionListener candidateSelectionListener
     ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.testCaseService = testCaseService;
@@ -78,14 +76,6 @@ public class TestCandidateMetadataView {
 
     public Component getContentPanel() {
         return contentPanel;
-    }
-
-    public Dimension getContentPanelDimensions() {
-        return contentPanelDimensions;
-    }
-
-    public void setContentPanelDimensions(Dimension contentPanelDimensions) {
-        this.contentPanelDimensions = contentPanelDimensions;
     }
 
     public void setCandidateNumberIndex(int candidateNumberIndex) {
