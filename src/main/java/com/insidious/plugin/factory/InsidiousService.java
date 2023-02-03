@@ -432,7 +432,11 @@ final public class InsidiousService implements Disposable {
 
 
             }
-
+            try {
+                ensureTestUtilClass(basePath);
+            } catch (Exception e) {
+                logger.info("[ERROR] Failed to save UnloggedUtils to correct spot.");
+            }
 
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
@@ -455,11 +459,6 @@ final public class InsidiousService implements Disposable {
                     .openFile(newFile, true, true);
 
             logger.info("Test case generated in [" + testCaseScript.getClassName() + "]\n" + testCaseScript);
-            try {
-                ensureTestUtilClass(basePath);
-            } catch (Exception e) {
-                logger.error("Failed to save UnloggedUtils to correct spot.");
-            }
             return newFile;
         }
 //        VirtualFileManager.getInstance().syncRefresh();
