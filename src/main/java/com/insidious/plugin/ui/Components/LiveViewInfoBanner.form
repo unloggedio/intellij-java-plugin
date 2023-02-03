@@ -67,7 +67,7 @@
                   <foreground color="-16659211"/>
                   <lineWrap value="true"/>
                   <margin top="8" left="8" bottom="8" right="8"/>
-                  <text value="The Unlogged agent will record data from these APIs, store in logs.  The plugin will scan the logs and present test candidates &lt;-- here."/>
+                  <text value="The Unlogged agent will record data from these APIs, store in logs.  &#10;The plugin will scan the logs and present test candidates &lt;-- here."/>
                   <wrapStyleWord value="true"/>
                 </properties>
               </component>
@@ -88,7 +88,7 @@
               <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="1" fill="0" indent="0" use-parent-layout="false"/>
             </constraints>
             <properties>
-              <icon value="icons/gif/intellij_run.gif"/>
+              <icon value="icons/gif/postman_gif.gif"/>
               <text value=""/>
             </properties>
           </component>

@@ -237,8 +237,8 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                 updateRefreshButtonState();
                                                 return;
                                             } else {
-                                                headingText.setText(
-                                                        "Select a class and method to start generating test case for it.");
+//                                                headingText.setText(
+//                                                        "Select a class and method to start generating test case for it.");
                                                 copyVMParameterButton.setVisible(false);
                                             }
                                             ExecutionSession executionSession = executionSessionList.get(0);
@@ -408,6 +408,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     public void loadInfoBanner()
     {
+        this.headingText.setText("");
         LiveViewInfoBanner banner = new LiveViewInfoBanner();
         this.candidateListPanel.removeAll();
         this.candidateListPanel.setLayout(new GridLayout(1, 1));
