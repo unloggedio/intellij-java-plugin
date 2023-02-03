@@ -11,10 +11,10 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.TestCaseUnit;
 import com.insidious.plugin.pojo.TestSuite;
+import com.insidious.plugin.ui.Components.LiveViewInfoBanner;
 import com.insidious.plugin.upload.minio.ReportIssueForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.*;
 import com.intellij.openapi.project.Project;
@@ -60,6 +60,8 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JProgressBar progressBar1;
     private JButton pauseProcessingButton;
     private JButton reportIssueButton;
+    private JPanel sessionControls;
+    private JLabel activeSessionLabel;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
@@ -88,6 +90,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         mainTree.addTreeSelectionListener(this);
         copyVMParameterButton.addActionListener(e -> copyVMParameter());
         refreshDefaultIcon = this.processLogsSwitch.getIcon();
+        loadInfoBanner();
         try {
             loadSession();
         } catch (Exception ex) {
@@ -140,9 +143,7 @@ public class LiveViewWindow implements TreeSelectionListener,
                 InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
                         NotificationType.ERROR);
             } finally {
-                candidateListPanel.removeAll();
-                candidateListPanel.revalidate();
-                candidateListPanel.repaint();
+                loadInfoBanner();
             }
         };
     }
@@ -403,5 +404,16 @@ public class LiveViewWindow implements TreeSelectionListener,
             logger.error("failed to query new candidates", e);
             throw new RuntimeException(e);
         }
+    }
+
+    public void loadInfoBanner()
+    {
+        LiveViewInfoBanner banner = new LiveViewInfoBanner();
+        this.candidateListPanel.removeAll();
+        this.candidateListPanel.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(1);
+        candidateListPanel.add(banner.getComponent(), constraints);
+        this.candidateListPanel.revalidate();
     }
 }

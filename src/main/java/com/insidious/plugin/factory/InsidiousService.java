@@ -723,6 +723,7 @@ final public class InsidiousService implements Disposable {
             liveViewAdded = true;
             try {
                 liveViewWindow.setTreeStateToLoading();
+                liveViewWindow.loadInfoBanner();
                 liveViewWindow.loadSession();
             } catch (Exception e) {
                 //exception setting state

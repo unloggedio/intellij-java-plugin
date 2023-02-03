@@ -17,6 +17,8 @@ public class UIUtils {
     public static Color red = new Color(245,101,101);
     public static Color green = new Color(56,161,105);
     public static Color yellow_alert = new Color(225,163,54);
+    public static Color DefaultForegoround = new Color(187,187,187);
+    public static Color NeutralGrey = new Color(81,85,87);
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);

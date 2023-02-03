@@ -78,7 +78,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
 
     public void constructCandidatesList(List<TestCandidateMetadata> testCandidateMetadataList, TestCaseService testCaseService, SessionInstance sessionInstance) {
         this.candidateListParent.removeAll();
-        int GridRows = 6;
+        int GridRows = 4;
         if (testCandidateMetadataList.size() > GridRows) {
             GridRows = testCandidateMetadataList.size();
         }
