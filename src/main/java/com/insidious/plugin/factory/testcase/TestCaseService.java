@@ -356,19 +356,16 @@ public class TestCaseService implements Runnable {
             try {
                 Thread.sleep(2000);
                 if (this.refreshButtonStateManager.isProcessing()) {
-                    System.out.println("STATE_PROCESSING");
                     continue;
                 }
                 if(sessionInstance.hasNewZips())
                 {
                     //set state to new logs
-                    System.out.println("HAS NEW ZIPS");
                     this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
                 }
                 else
                 {
                     //set state to no new logs
-                    System.out.println("NO NEW ZIPS");
                     this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
                 }
             } catch (Exception e) {

@@ -258,14 +258,12 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                         sessionInstance.getExecutionSession()
                                                                 .getSessionId(), executionSession.getSessionId()))
                                                 {
-                                                    System.out.println("CASE 1");
                                                     startScan_Full=true;
                                                     sessionInstance.close();
                                                 }
                                                 else
                                                 {
                                                     //resume scan
-                                                    System.out.println("CASE 2");
                                                     startScan_Full = false;
                                                     testCaseService.processLogFiles();
                                                     treeModel = new LiveViewTestCandidateListTree(
@@ -275,7 +273,6 @@ public class LiveViewWindow implements TreeSelectionListener,
                                                 }
                                             }
                                             if(startScan_Full) {
-                                                System.out.println("CASE 3");
                                                 sessionInstance = new SessionInstance(executionSession, project);
                                                 insidiousService.getClient()
                                                         .setSessionInstance(sessionInstance);
