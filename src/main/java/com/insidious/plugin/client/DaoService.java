@@ -1395,6 +1395,11 @@ public class DaoService {
         return logFilesDao.queryForEq("status", Constants.PENDING);
     }
 
+    public long getPendingLogFilesToProcessCount() throws SQLException {
+        return logFilesDao.queryBuilder()
+                .where().eq("status", Constants.PENDING).countOf();
+    }
+
     public ThreadProcessingState getThreadState(Integer threadId) throws Exception {
         ThreadState threadState = threadStateDao.queryForId(threadId);
         if (threadState == null) {

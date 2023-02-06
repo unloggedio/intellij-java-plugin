@@ -117,6 +117,7 @@ public class SessionInstance {
     private Map<Long, com.insidious.plugin.pojo.dao.MethodCallExpression> methodCallMap = new HashMap<>();
     private Map<Long, String> methodCallSubjectTypeMap = new HashMap<>();
     private ChronicleVariableContainer parameterContainer;
+    private Date lastScannedTimeStamp;
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
@@ -2256,6 +2257,7 @@ public class SessionInstance {
             throw new RuntimeException(e);
         }
 
+        this.lastScannedTimeStamp = new Date();
         try {
             long scanEndTime = System.currentTimeMillis();
             float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
@@ -3889,13 +3891,26 @@ public class SessionInstance {
             if (testCandidateMetadataList.size() < limit) {
                 break;
             }
-
         }
-
-
     }
 
     public Project getProject() {
         return project;
+    }
+
+    public boolean hasNewZips() {
+        try {
+            return daoService.getPendingLogFilesToProcessCount() > 0 ? true : false;
+        }
+        catch (Exception e)
+        {
+            System.out.println("Error checking for new zips. "+e);
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public Date getLastScannedTimeStamp() {
+        return lastScannedTimeStamp;
     }
 }

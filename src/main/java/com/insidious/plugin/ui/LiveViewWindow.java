@@ -31,11 +31,14 @@ import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.text.SimpleDateFormat;
 
 public class LiveViewWindow implements TreeSelectionListener,
-        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener {
+        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener,
+        RefreshButtonStateManager {
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     static boolean isLoading = false;
     private final Project project;
@@ -61,7 +64,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JButton pauseProcessingButton;
     private JButton reportIssueButton;
     private JPanel sessionControls;
-    private JLabel activeSessionLabel;
+    private JLabel statusTextHeading;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
     private TestCandidateMethodAggregate selectedTestCandidateAggregate;
@@ -122,11 +125,12 @@ public class LiveViewWindow implements TreeSelectionListener,
     }
 
     private void updateRefreshButtonState() {
-        this.processLogsSwitch.setEnabled(!isLoading);
         if (isLoading) {
-            UIUtils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
-        } else {
-            this.processLogsSwitch.setIcon(refreshDefaultIcon);
+            setState_Processing();
+        }
+        else
+        {
+            processLogsSwitch.setText("Updating");
         }
         mainPanel.validate();
         mainPanel.repaint();
@@ -243,23 +247,48 @@ public class LiveViewWindow implements TreeSelectionListener,
                                             }
                                             ExecutionSession executionSession = executionSessionList.get(0);
 
-                                            if (sessionInstance != null && !Objects.equals(
-                                                    sessionInstance.getExecutionSession()
-                                                            .getSessionId(), executionSession.getSessionId())) {
-                                                sessionInstance.close();
-//                                                sessionInstance = new SessionInstance(executionSession, project);
-                                            } else if (sessionInstance == null) {
+                                            //has session instance, check if it's the same as the last one
+                                            //if yes, refresh
+
+                                            //else
+                                            //process logs
+                                            boolean startScan_Full=true;
+                                            if (sessionInstance != null) {
+                                                if(!Objects.equals(
+                                                        sessionInstance.getExecutionSession()
+                                                                .getSessionId(), executionSession.getSessionId()))
+                                                {
+                                                    System.out.println("CASE 1");
+                                                    startScan_Full=true;
+                                                    sessionInstance.close();
+                                                }
+                                                else
+                                                {
+                                                    //resume scan
+                                                    System.out.println("CASE 2");
+                                                    startScan_Full = false;
+                                                    testCaseService.processLogFiles();
+                                                    treeModel = new LiveViewTestCandidateListTree(
+                                                            project, insidiousService.getClient()
+                                                            .getSessionInstance());
+                                                    mainTree.setModel(treeModel);
+                                                }
                                             }
-                                            sessionInstance = new SessionInstance(executionSession, project);
-                                            insidiousService.getClient()
-                                                    .setSessionInstance(sessionInstance);
-                                            testCaseService = new TestCaseService(sessionInstance);
-                                            sessionInstance.setTestCandidateListener(LiveViewWindow.this);
-                                            testCaseService.processLogFiles();
-                                            treeModel = new LiveViewTestCandidateListTree(
-                                                    project, insidiousService.getClient()
-                                                    .getSessionInstance());
-                                            mainTree.setModel(treeModel);
+                                            if(startScan_Full) {
+                                                System.out.println("CASE 3");
+                                                sessionInstance = new SessionInstance(executionSession, project);
+                                                insidiousService.getClient()
+                                                        .setSessionInstance(sessionInstance);
+                                                testCaseService = new TestCaseService(sessionInstance);
+                                                sessionInstance.setTestCandidateListener(LiveViewWindow.this);
+                                                testCaseService.processLogFiles();
+                                                testCaseService.setRefreshButtonStateManager(getLiveViewReference());
+                                                testCaseService.startRun();
+                                                treeModel = new LiveViewTestCandidateListTree(
+                                                        project, insidiousService.getClient()
+                                                        .getSessionInstance());
+                                                mainTree.setModel(treeModel);
+                                            }
                                         } catch (Exception ex) {
                                             ex.printStackTrace();
                                             setPauseScanningState();
@@ -416,5 +445,51 @@ public class LiveViewWindow implements TreeSelectionListener,
         constraints.setRow(1);
         candidateListPanel.add(banner.getComponent(), constraints);
         this.candidateListPanel.revalidate();
+    }
+
+    @Override
+    public void setState_NewLogs(Date lastScannedTimeStamp) {
+        processLogsSwitch.setBackground(UIUtils.green);
+        processLogsSwitch.setText("New logs available");
+        processLogsSwitch.setIcon(UIUtils.NEW_LOGS_TO_PROCESS_ICON);
+        statusTextHeading.setText("Last Scan completed at : "+
+                getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
+    }
+
+    @Override
+    public void setState_NoNewLogs(Date lastScannedTimeStamp) {
+        processLogsSwitch.setBackground(UIUtils.NeutralGrey);
+        processLogsSwitch.setText("No New logs available");
+        processLogsSwitch.setIcon(UIUtils.NO_NEW_LOGS_TO_PROCESS_ICON);
+        statusTextHeading.setText("Last Scan completed at : "+
+                getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
+    }
+
+    @Override
+    public void setState_Processing() {
+        UIUtils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
+        processLogsSwitch.setBackground(UIUtils.teal);
+        processLogsSwitch.setText("Processing Logs");
+        statusTextHeading.setText("");
+    }
+
+    @Override
+    public boolean isProcessing() {
+        return isLoading;
+    }
+
+    private LiveViewWindow getLiveViewReference()
+    {
+        return this;
+    }
+
+    private String getFormattedDate(Date date)
+    {
+        if(date==null)
+        {
+            return "";
+        }
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss | dd MMM, yyyy");
+        return formatter.format(date);
     }
 }

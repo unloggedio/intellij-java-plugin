@@ -15,6 +15,7 @@ import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.ui.RefreshButtonStateManager;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
@@ -43,12 +44,25 @@ public class TestCaseService implements Runnable {
     private final Project project;
     private boolean pauseCheckingForNewLogs;
     private boolean isProcessing;
-
+    private RefreshButtonStateManager refreshButtonStateManager;
 
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
         this.project = sessionInstance.getProject();
 //        this.sessionInstance.submitTask(this);
+    }
+
+    public void startRun()
+    {
+        this.sessionInstance.submitTask(this);
+    }
+
+    public RefreshButtonStateManager getRefreshButtonStateManager() {
+        return refreshButtonStateManager;
+    }
+
+    public void setRefreshButtonStateManager(RefreshButtonStateManager refreshButtonStateManager) {
+        this.refreshButtonStateManager = refreshButtonStateManager;
     }
 
     @NotNull
@@ -308,8 +322,8 @@ public class TestCaseService implements Runnable {
         return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
     }
 
-    @Override
-    public void run() {
+//    @Override
+    public void run_old() {
         while (true) {
             try {
                 Thread.sleep(2000);
@@ -333,5 +347,34 @@ public class TestCaseService implements Runnable {
 
     public void setPauseCheckingForNewLogs(boolean pauseCheckingForNewLogs) {
         this.pauseCheckingForNewLogs = pauseCheckingForNewLogs;
+    }
+
+    @Override
+    public void run()
+    {
+        while (true) {
+            try {
+                Thread.sleep(2000);
+                if (this.refreshButtonStateManager.isProcessing()) {
+                    System.out.println("STATE_PROCESSING");
+                    continue;
+                }
+                if(sessionInstance.hasNewZips())
+                {
+                    //set state to new logs
+                    System.out.println("HAS NEW ZIPS");
+                    this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
+                }
+                else
+                {
+                    //set state to no new logs
+                    System.out.println("NO NEW ZIPS");
+                    this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
+                }
+            } catch (Exception e) {
+                logger.error("exception in testcase service scanner shutting down", e);
+                throw new RuntimeException(e);
+            }
+        }
     }
 }
