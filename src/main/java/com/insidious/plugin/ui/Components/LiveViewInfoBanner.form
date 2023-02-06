@@ -3,7 +3,7 @@
   <grid id="497a3" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="0" left="0" bottom="0" right="0"/>
     <constraints>
-      <xy x="11" y="7" width="1031" height="2455"/>
+      <xy x="11" y="7" width="1031" height="2472"/>
     </constraints>
     <properties/>
     <border type="empty"/>
@@ -67,7 +67,7 @@
                   <foreground color="-16659211"/>
                   <lineWrap value="true"/>
                   <margin top="8" left="8" bottom="8" right="8"/>
-                  <text value="The Unlogged agent will record data from these APIs, store in logs.  &#10;The plugin will scan the logs and present test candidates &lt;-- here."/>
+                  <text value="The Unlogged agent will record data from these APIs, store in logs.  &#10;The plugin will scan the logs and present test candidates.&#10;&#10;&lt;-- here"/>
                   <wrapStyleWord value="true"/>
                 </properties>
               </component>
