@@ -4,6 +4,8 @@ import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.ui.UIUtils;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -21,9 +23,13 @@ public class Run_Component_Obv3 {
     private JPanel MainContent;
     private JPanel textAreaParent;
     private JLabel iconHolder;
+    private JTextField baseLabelTextField;
+    private JLabel basePackageLabel;
+    private JPanel basePackageSelectionPanel;
     private CardActionListener listener;
-
     private boolean logsPresent = false;
+
+    private String fallbackPackage;
 
     public Run_Component_Obv3(ProjectTypeInfo.RUN_TYPES defaultType, boolean logsPresent, CardActionListener listener) {
         this.listener = listener;
@@ -37,57 +43,40 @@ public class Run_Component_Obv3 {
         } else {
             listener.checkForSelogs();
         }
-//        if(defaultType.equals(ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION))
-//        {
-//            checkIfRunnable();
-//        }
-//        else
-//        {
-//            hideRunButton();
-//        }
         waitingForLogs.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 handleTransition();
             }
         });
-    }
+        baseLabelTextField.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                UpdateBasePackage();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                UpdateBasePackage();
+            }
+            public void insertUpdate(DocumentEvent e) {
+                UpdateBasePackage();
+            }
 
-    void checkIfRunnable() {
-        if (listener.hasRunnableApplicationConfig()) {
-            this.descriptionText_Area.setText("" +
-                    "We have found a run configuration, click on Run with unlogged.</p>" +
-                    "Once you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will be ready to start generating the unit tests.</p>" +
-                    "");
-            this.runWithUnlogged.setVisible(true);
-//            if(listener.isApplicationRunning())
-//            {
-//                setRunButtonState(false);
-//            }
-//           else
-//            {
-            runWithUnlogged.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    triggerRunWithUnlogged();
+            private void UpdateBasePackage() {
+                try
+                {
+                    if(baseLabelTextField.getText()!=null && !baseLabelTextField.getText().equals("Label")) {
+                            updateVmOptionsBasePackage(baseLabelTextField.getText());
+                    }
                 }
-            });
-//            }
-        } else {
-            hideRunButton();
-        }
-    }
-
-    void hideRunButton() {
-        this.runWithUnlogged.setVisible(false);
-    }
-
-    void triggerRunWithUnlogged() {
-        listener.runApplicationWithUnlogged();
-//        if(listener.runApplicationWithUnlogged())
-//        {
-//            setRunButtonState(false);
-//        }
+                catch (IllegalStateException e)
+                {
+                    //nothing to do
+                }
+                catch (Exception e)
+                {
+                    setBasePackageText(fallbackPackage);
+                }
+            }
+        });
     }
 
     void handleTransition() {
@@ -102,6 +91,11 @@ public class Run_Component_Obv3 {
 
     public void setVMtext(String text) {
         this.VMoptionsArea.setText(text);
+    }
+
+    public void updateVmOptionsBasePackage(String packageString)
+    {
+        listener.updateBasePackage(packageString);
     }
 
     private void setDescriptionText(ProjectTypeInfo.RUN_TYPES type) {
@@ -120,18 +114,6 @@ public class Run_Component_Obv3 {
                     "Copy this command and run inside your terminal so that your application starts running with our agent.\n" +
                     "\nOnce you run the application with the agent, access your application from Postman, Swagger or UI and Unlogged will be ready to start generating the unit tests.\n" +
                     "");
-        }
-    }
-
-    private void setRunButtonState(boolean status) {
-        if (!status) {
-            this.runWithUnlogged.setBorderPainted(true);
-            this.runWithUnlogged.setOpaque(false);
-            this.runWithUnlogged.setContentAreaFilled(false);
-        } else {
-            this.runWithUnlogged.setBorderPainted(false);
-            this.runWithUnlogged.setOpaque(true);
-            this.runWithUnlogged.setContentAreaFilled(false);
         }
     }
 
@@ -160,5 +142,17 @@ public class Run_Component_Obv3 {
                 UIUtils.setGifIconForLabel(this.iconHolder, "java_jar_cmd.gif", null);
                 break;
         }
+    }
+
+    public void setBasePackageText(String basePackage) {
+        this.baseLabelTextField.setText(basePackage);
+    }
+
+    public void setFallbackPackage(String fallbackPackage) {
+        this.fallbackPackage = fallbackPackage;
+    }
+
+    public String getFallbackPackage() {
+        return fallbackPackage;
     }
 }

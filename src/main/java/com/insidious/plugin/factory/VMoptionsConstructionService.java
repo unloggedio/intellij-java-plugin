@@ -3,8 +3,7 @@ package com.insidious.plugin.factory;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class VMoptionsConstructionService {
 
@@ -15,6 +14,7 @@ public class VMoptionsConstructionService {
     public String basePackage = "your.package";
     private Map<ProjectTypeInfo.RUN_TYPES,String> runType_CommandMap = new TreeMap<>();
     String quoute_type = "\""; // use "\"" or "'"
+    private Set<String> included_packages = new TreeSet<>();
 
     public VMoptionsConstructionService()
     {
@@ -40,7 +40,12 @@ public class VMoptionsConstructionService {
     public String getVMParametersFull() {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(JVMoptionsBase);
-        newVMParams.append("i=" + basePackage);
+        List<String> packages = new ArrayList<>(this.included_packages);
+        for(String pack : packages)
+        {
+            newVMParams.append("i=" + pack+",");
+        }
+        newVMParams.deleteCharAt(newVMParams.length()-1);
         newVMParams.append(quoute_type);
         if(this.addopens)
         {
@@ -51,7 +56,12 @@ public class VMoptionsConstructionService {
     public String getVMParameters() {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(JVMoptionsBase);
-        newVMParams.append("i=" + basePackage);
+        List<String> packages = new ArrayList<>(this.included_packages);
+        for(String pack : packages)
+        {
+            newVMParams.append("i=" + pack+",");
+        }
+        newVMParams.deleteCharAt(newVMParams.length()-1);
         newVMParams.append(quoute_type);
         return newVMParams.toString();
     }
@@ -59,7 +69,12 @@ public class VMoptionsConstructionService {
     public String getVMParametersWithQuoteType(String quoteSample) {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(getJVMoptionsBase(quoteSample));
-        newVMParams.append("i=" + basePackage);
+        List<String> packages = new ArrayList<>(this.included_packages);
+        for(String pack : packages)
+        {
+            newVMParams.append("i=" + pack+",");
+        }
+        newVMParams.deleteCharAt(newVMParams.length()-1);
         newVMParams.append(quoteSample);
         return newVMParams.toString();
     }
@@ -77,7 +92,12 @@ public class VMoptionsConstructionService {
     public String getPrettyVMtext() {
         StringBuilder newVMParams = new StringBuilder();
         newVMParams.append(JVMoptionsBase);
-        newVMParams.append("\ni=" + basePackage);
+        List<String> packages = new ArrayList<>(this.included_packages);
+        for(String pack : packages)
+        {
+            newVMParams.append("\ni=" + pack+",");
+        }
+        newVMParams.deleteCharAt(newVMParams.length()-1);
         newVMParams.append(quoute_type);
         if(this.addopens)
         {
@@ -105,7 +125,18 @@ public class VMoptionsConstructionService {
     }
 
     public void setBasePackage(String basePackage) {
-        this.basePackage = basePackage;
+
+        this.basePackage = basePackage.trim();
+        if(basePackage.contains(","))
+        {
+            String[] parts = basePackage.trim().split(",");
+            this.included_packages = new TreeSet<>(Arrays.asList(parts));
+        }
+        else
+        {
+            this.included_packages = new TreeSet<>();
+            this.included_packages.add(basePackage);
+        }
     }
 
     public String getVMOptionsForRunType(ProjectTypeInfo.RUN_TYPES runType)
@@ -124,5 +155,4 @@ public class VMoptionsConstructionService {
         command = command.replace("{OPENS}",getOpensStringIfNeeded());
         return command.trim();
     }
-
 }

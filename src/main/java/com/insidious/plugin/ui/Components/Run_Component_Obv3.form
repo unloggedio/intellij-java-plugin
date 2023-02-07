@@ -62,7 +62,7 @@
                 <properties/>
                 <border type="empty"/>
                 <children>
-                  <grid id="f4561" binding="textAreaParent" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                  <grid id="f4561" binding="textAreaParent" layout-manager="GridLayoutManager" row-count="5" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
                     <margin top="0" left="8" bottom="0" right="8"/>
                     <constraints>
                       <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="6" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
@@ -72,7 +72,7 @@
                     <children>
                       <component id="683f7" class="javax.swing.JTextArea" binding="VMoptionsArea">
                         <constraints>
-                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                          <grid row="3" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
                             <preferred-size width="150" height="50"/>
                           </grid>
                         </constraints>
@@ -90,7 +90,7 @@
                       </component>
                       <component id="68df5" class="javax.swing.JLabel" binding="headingLabel">
                         <constraints>
-                          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+                          <grid row="0" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
                         </constraints>
                         <properties>
                           <font size="16"/>
@@ -101,11 +101,12 @@
                       </component>
                       <component id="f95f9" class="javax.swing.JTextArea" binding="descriptionText_Area">
                         <constraints>
-                          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                          <grid row="1" column="0" row-span="1" col-span="2" vsize-policy="6" hsize-policy="6" anchor="0" fill="3" indent="0" use-parent-layout="false">
                             <preferred-size width="150" height="50"/>
                           </grid>
                         </constraints>
                         <properties>
+                          <editable value="false"/>
                           <font size="12"/>
                           <lineWrap value="true"/>
                           <margin top="16" left="4" bottom="4" right="4"/>
@@ -115,7 +116,7 @@
                       </component>
                       <component id="eef1e" class="javax.swing.JButton" binding="waitingForLogs">
                         <constraints>
-                          <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false">
+                          <grid row="4" column="0" row-span="1" col-span="2" vsize-policy="0" hsize-policy="3" anchor="0" fill="0" indent="0" use-parent-layout="false">
                             <minimum-size width="240" height="-1"/>
                           </grid>
                         </constraints>
@@ -127,6 +128,34 @@
                           <text value="Waiting for logs"/>
                         </properties>
                       </component>
+                      <grid id="17906" binding="basePackageSelectionPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+                        <margin top="4" left="4" bottom="4" right="16"/>
+                        <constraints>
+                          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+                        </constraints>
+                        <properties>
+                          <toolTipText value="Select what packages you want to include. Separate with commas for multiple packages. &#10;(Like package.a,package.b,package.c)"/>
+                        </properties>
+                        <border type="none"/>
+                        <children>
+                          <component id="82696" class="javax.swing.JLabel" binding="basePackageLabel">
+                            <constraints>
+                              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+                            </constraints>
+                            <properties>
+                              <text value="Packages to Include :"/>
+                            </properties>
+                          </component>
+                          <component id="449c0" class="javax.swing.JTextField" binding="baseLabelTextField">
+                            <constraints>
+                              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="6" anchor="8" fill="1" indent="0" use-parent-layout="false">
+                                <preferred-size width="150" height="-1"/>
+                              </grid>
+                            </constraints>
+                            <properties/>
+                          </component>
+                        </children>
+                      </grid>
                     </children>
                   </grid>
                 </children>

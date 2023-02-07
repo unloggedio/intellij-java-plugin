@@ -154,6 +154,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.vmOptionsConstructionService.setBasePackage(onboardingService.fetchBasePackageForModule(modulename));
         if (this.runComponent != null) {
             this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
+            this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
     }
 
@@ -161,6 +163,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.vmOptionsConstructionService.setAddopens(addopens);
         if (this.runComponent != null) {
             this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
+            this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
     }
 
@@ -424,6 +428,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.runComponent = runSection;
         if (this.status.currentModule != null) {
             runSection.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            runSection.setBasePackageText(vmOptionsConstructionService.getBasePackage());
+            runSection.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
         gridLayout = new GridLayout(1, 1);
         gridPanel = new JPanel(gridLayout);
@@ -615,4 +621,14 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
     }
 
+    public void updateBasePackage(String text)
+    {
+        this.vmOptionsConstructionService.setBasePackage(text);
+        if (this.runComponent!=null)
+        {
+            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
+            this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
+        }
+    }
 }

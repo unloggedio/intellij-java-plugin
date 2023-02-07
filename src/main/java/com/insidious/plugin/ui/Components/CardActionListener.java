@@ -28,4 +28,6 @@ public interface CardActionListener {
     void triggerOnboardingRestart();
 
     String getCurrentBasePackage();
+
+    void updateBasePackage(String text);
 }
