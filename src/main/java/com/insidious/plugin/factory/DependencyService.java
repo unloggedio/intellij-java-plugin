@@ -65,7 +65,6 @@ public class DependencyService {
         if (dependencies.size() == 0) {
             return;
         }
-
         @NotNull LibraryTable librariesTable = LibraryTablesRegistrar.getInstance()
                 .getLibraryTable(project);
         String jacksonVersion = null;
@@ -155,6 +154,10 @@ public class DependencyService {
                             MavenDomDependency existingDependency = dependencyMap.get(each);
                             if (existingDependency == null) {
                                 MavenDomDependency dependency = MavenDomUtil.createDomDependency(model, null, each);
+                                if(each.getArtifactId().contains("junit"))
+                                {
+                                    dependency.getScope().setValue("test");
+                                }
                             } else {
                                 if ("test".equals(existingDependency.getScope()
                                         .getStringValue())) {
@@ -230,14 +233,21 @@ public class DependencyService {
             case "jackson-annotations":
                 groupId = "com.fasterxml.jackson.core";
                 break;
+            case "junit":
+                groupId = "junit";
+                break;
+            case "junit-jupiter-engine":
+                groupId = "org.junit.jupiter";
+                version = "5.1.1";
+                break;
+            case "junit-platform-runner":
+                groupId = "org.junit.platform";
+                version = "1.1.1";
+                break;
             default:
                 groupId = "com.fasterxml.jackson.datatype";
                 break;
         }
-
         return new MavenId(groupId, dependency, version);
-
     }
-
-
 }
