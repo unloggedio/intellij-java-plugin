@@ -80,8 +80,13 @@ public class ProjectTypeInfo {
             dependenciesToWatch.add("jackson-core");
             dependenciesToWatch.add("jackson-datatype-jsr310");
         }
+        dependenciesToWatch.add("junit-jupiter-engine");
+        dependenciesToWatch.add("junit-platform-runner");
+        dependenciesToWatch.add("junit");
         return dependenciesToWatch;
     }
+
+    private String junitVersion;
 
     public Set<String> getDependencies_addedManually() {
         return dependencies_addedManually;
@@ -100,4 +105,12 @@ public class ProjectTypeInfo {
     }
 
     public enum RUN_TYPES {INTELLIJ_APPLICATION, MAVEN_CLI, GRADLE_CLI, JAVA_JAR_CLI}
+
+    public String getJunitVersion() {
+        return junitVersion;
+    }
+
+    public void setJunitVersion(String junitVersion) {
+        this.junitVersion = junitVersion;
+    }
 }

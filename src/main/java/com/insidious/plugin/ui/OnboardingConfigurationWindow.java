@@ -55,9 +55,11 @@ public class OnboardingConfigurationWindow implements OnboardingService {
     private JLabel selectionHeading1;
     private WaitingScreen waitingScreen;
 
+    private InsidiousService insidiousService;
+
     public OnboardingConfigurationWindow(Project project, InsidiousService insidiousService) {
         this.project = project;
-
+        this.insidiousService = insidiousService;
         UsageInsightTracker.getInstance()
                 .RecordEvent("OnboardingFlowStarted", null);
 
@@ -359,7 +361,8 @@ public class OnboardingConfigurationWindow implements OnboardingService {
             try {
                 return computeMissingDependenciesFromStatus(depVersions);
             } catch (Exception e) {
-                System.out.println("Exception removing unnecessary deps.");
+                System.out.println("Exception removing unnecessary deps. "+e);
+                e.printStackTrace();
             }
             return depVersions;
         }
@@ -376,6 +379,37 @@ public class OnboardingConfigurationWindow implements OnboardingService {
         for (String dep : deps.keySet()) {
             if (deps.get(dep) == null) {
                 missing.put(dep, deps.get(dep));
+            }
+        }
+        if(missing.containsKey("junit"))
+        {
+            if(!missing.containsKey("junit-jupiter-engine"))
+            {
+                //has junit 5, prefer this
+                insidiousService.getProjectTypeInfo().setJunitVersion("5");
+                missing.remove("junit");
+            }
+            else
+            {
+                //no junit 5, use 4
+                insidiousService.getProjectTypeInfo().setJunitVersion("4");
+                if(missing.containsKey("junit-platform-runner"))
+                {
+                    missing.remove("junit-platform-runner");
+                }
+                System.out.println("Case 2");
+            }
+        }
+        else
+        {
+            insidiousService.getProjectTypeInfo().setJunitVersion("5");
+            if(!missing.containsKey("junit-jupiter-engine"))
+            {
+                missing.put("junit-jupiter-engine",null);
+            }
+            if(!missing.containsKey("junit-platform-runner"))
+            {
+                missing.put("junit-platform-runnern",null);
             }
         }
         return missing;
