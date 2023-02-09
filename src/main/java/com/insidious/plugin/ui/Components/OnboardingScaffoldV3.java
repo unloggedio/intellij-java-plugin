@@ -431,6 +431,12 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         project.getService(InsidiousConfigurationState.class).getOnboardingStatus().setCompleted(true);
         onboardingService.setSelectedModule(this.status.getCurrentModule());
         updateVMParams(this.status.getCurrentModule());
+        if(!project.getService(InsidiousService.class).areModulesRegistered())
+        {
+            project.getService(InsidiousService.class).setCurrentModule(this.status.getCurrentModule());
+            //registering modules
+            project.getService(InsidiousService.class).fetchModules();
+        }
         this.leftContainer.removeAll();
         Obv3_Run_Mode_Selector cardparent;
         cardparent = new Obv3_Run_Mode_Selector(this.status.getRunType(), this);

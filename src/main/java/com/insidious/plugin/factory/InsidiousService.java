@@ -811,4 +811,9 @@ final public class InsidiousService implements Disposable {
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public boolean areModulesRegistered()
+    {
+        return this.moduleMap.size()>0 ? true : false;
+    }
 }
