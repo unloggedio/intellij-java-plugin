@@ -183,7 +183,6 @@ public class OnboardingConfigurationWindow implements OnboardingService {
                 }
             }
         }
-        System.out.println(ret);
         String basePackage = buildPackageNameFromList(components);
         if (basePackage.equals("?")) {
             return fetchBasePackage();

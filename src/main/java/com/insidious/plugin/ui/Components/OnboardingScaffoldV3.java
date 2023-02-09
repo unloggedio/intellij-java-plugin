@@ -1,9 +1,8 @@
 package com.insidious.plugin.ui.Components;
 
-import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.OnboardingService;
-import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.factory.VMoptionsConstructionService;
+import com.insidious.plugin.factory.*;
+import com.insidious.plugin.pojo.InsidiousOnboardingStatus;
+import com.insidious.plugin.pojo.OnBoardingStatus;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.Executor;
@@ -33,8 +32,8 @@ import java.util.stream.Collectors;
 
 public class OnboardingScaffoldV3 implements CardActionListener {
     private static final Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
-    private final OnboardingService onboardingService;
-    private final OnBoardingStatus status = new OnBoardingStatus();
+    private OnboardingService onboardingService;
+    private OnBoardingStatus status = new OnBoardingStatus();
     private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private final Project project;
     List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
@@ -55,7 +54,29 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         this.project = project;
         this.onboardingService = onboardingService;
         loadNavigator();
-        loadModuleSection();
+        InsidiousOnboardingStatus status_per =
+                project.getService(InsidiousConfigurationState.class).getOnboardingStatus();
+        if(status_per!=null)
+        {
+            if(status_per.isCompleted()) {
+                this.status = status_per.getStatus();
+                loadRunSection(project.getService(InsidiousService.class).areLogsPresent());
+                this.navigator.loadState("Run!");
+            }
+            else
+            {
+                this.status = status_per.getStatus();
+                loadModuleSection();
+            }
+        }
+        else
+        {
+            status_per = new InsidiousOnboardingStatus();
+            status_per.setCompleted(false);
+            status_per.setStatus(this.status);
+            project.getService(InsidiousConfigurationState.class).setOnboardingStatus(status_per);
+            loadModuleSection();
+        }
     }
 
     @Override
@@ -153,7 +174,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     public void updateVMParams(String modulename) {
         this.vmOptionsConstructionService.setBasePackage(onboardingService.fetchBasePackageForModule(modulename));
         if (this.runComponent != null) {
-            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.getRunType()));
             this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
             this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
@@ -162,7 +183,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
     public void updateVMParams(boolean addopens, String jdkversion) {
         this.vmOptionsConstructionService.setAddopens(addopens);
         if (this.runComponent != null) {
-            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.getRunType()));
             this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
             this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
@@ -271,8 +292,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
                 modules, "Unlogged will generate unit tests for this module");
         info.setType(DROP_TYPES.MODULE);
         info.setShowRefresh(true);
-        if (this.status.currentModule != null) {
-            info.setDefaultSelected(modules.indexOf(this.status.currentModule));
+        if (this.status.getCurrentModule() != null) {
+            info.setDefaultSelected(modules.indexOf(this.status.getCurrentModule()));
         } else if (modules.size() > 0) {
             info.setDefaultSelected(modules.indexOf(modules.get(0)));
         } else {
@@ -293,7 +314,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         loadDocumentation(DOCUMENTATION_TYPE.MODULE);
 
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("default_module", this.status.currentModule);
+        eventProperties.put("default_module", this.status.getCurrentModule());
         UsageInsightTracker.getInstance()
                 .RecordEvent("ModuleSelection_Load", eventProperties);
     }
@@ -407,6 +428,15 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     public void loadRunSection(boolean logsPresent) {
 
+        project.getService(InsidiousConfigurationState.class).getOnboardingStatus().setCompleted(true);
+        onboardingService.setSelectedModule(this.status.getCurrentModule());
+        updateVMParams(this.status.getCurrentModule());
+        if(!project.getService(InsidiousService.class).areModulesRegistered())
+        {
+            project.getService(InsidiousService.class).setCurrentModule(this.status.getCurrentModule());
+            //registering modules
+            project.getService(InsidiousService.class).fetchModules();
+        }
         this.leftContainer.removeAll();
         Obv3_Run_Mode_Selector cardparent;
         cardparent = new Obv3_Run_Mode_Selector(this.status.getRunType(), this);
@@ -426,8 +456,8 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         }
         Run_Component_Obv3 runSection = new Run_Component_Obv3(defaultType, logsPresent, this);
         this.runComponent = runSection;
-        if (this.status.currentModule != null) {
-            runSection.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+        if (this.status.getCurrentModule() != null) {
+            runSection.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.getRunType()));
             runSection.setBasePackageText(vmOptionsConstructionService.getBasePackage());
             runSection.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
@@ -579,7 +609,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public String getCurrentBasePackage() {
-        return onboardingService.fetchBasePackageForModule(this.status.currentModule);
+        return onboardingService.fetchBasePackageForModule(this.status.getCurrentModule());
     }
 
     public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
@@ -588,45 +618,12 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     public enum ONBOARDING_ACTION {UPDATE_SELECTION, DOWNLOAD_AGENT, ADD_DEPENDENCIES, NEXT_STATE}
 
-    class OnBoardingStatus {
-        String currentModule;
-        Boolean addOpens;
-        ProjectTypeInfo.RUN_TYPES runType = ProjectTypeInfo.RUN_TYPES.INTELLIJ_APPLICATION;
-        String jdkVersion;
-
-        public String getCurrentModule() {
-            return currentModule;
-        }
-
-        public void setCurrentModule(String currentModule) {
-            this.currentModule = currentModule;
-            System.out.println("SET CURRENT MODULE to " + currentModule);
-        }
-
-        public ProjectTypeInfo.RUN_TYPES getRunType() {
-            return runType;
-        }
-
-        public void setRunType(ProjectTypeInfo.RUN_TYPES runType) {
-            System.out.println("SET RUN TYPE to " + runType.toString());
-            this.runType = runType;
-        }
-
-        public String getJdkVersion() {
-            return jdkVersion;
-        }
-
-        public void setJdkVersion(String jdkVersion) {
-            this.jdkVersion = jdkVersion;
-        }
-    }
-
     public void updateBasePackage(String text)
     {
         this.vmOptionsConstructionService.setBasePackage(text);
         if (this.runComponent!=null)
         {
-            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.runType));
+            this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.getRunType()));
             this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
             this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }

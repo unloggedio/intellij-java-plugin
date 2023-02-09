@@ -1,6 +1,8 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.pojo.InsidiousOnboardingStatus;
 import com.insidious.plugin.pojo.SearchRecord;
+import com.insidious.plugin.ui.Components.OnboardingScaffoldV3;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ServiceManager;
@@ -30,10 +32,10 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
     private final String CLOUD_SERVER_URL = "https://cloud.bug.video";
     public String serverUrl = CLOUD_SERVER_URL;
     public Map<String, Boolean> exceptionClassMap;
-
     public String getDefaultCloudServerUrl() {
         return CLOUD_SERVER_URL;
     }
+    private InsidiousOnboardingStatus onboardingStatus;
 
     public InsidiousConfigurationState() {
         exceptionClassMap = new HashMap<>();
@@ -102,5 +104,14 @@ public class InsidiousConfigurationState implements PersistentStateComponent<Ins
                             searchRecords.size() - 10).collect(Collectors.toList());
             searchRecords.removeAll(recordsToRemove);
         }
+    }
+
+    public InsidiousOnboardingStatus getOnboardingStatus()
+    {
+        return this.onboardingStatus;
+    }
+
+    public void setOnboardingStatus(InsidiousOnboardingStatus onboardingStatus) {
+        this.onboardingStatus = onboardingStatus;
     }
 }
