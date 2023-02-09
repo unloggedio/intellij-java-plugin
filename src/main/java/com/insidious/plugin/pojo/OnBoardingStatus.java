@@ -18,7 +18,7 @@ public class OnBoardingStatus {
     }
 
     public void setRunType(ProjectTypeInfo.RUN_TYPES runType) {
-        System.out.println("SET RUN TYPE to " + runType.toString());
+//        System.out.println("SET RUN TYPE to " + runType.toString());
         this.runType = runType;
     }
 
