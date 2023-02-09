@@ -704,7 +704,7 @@ public class DaoService {
                         && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(argumentTypeFromProbe);
                 }
-                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null)) {
+                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
 
