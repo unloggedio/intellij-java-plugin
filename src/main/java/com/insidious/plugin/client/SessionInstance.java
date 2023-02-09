@@ -3781,14 +3781,23 @@ public class SessionInstance {
                             templateChar++;
                             Parameter value = new Parameter();
                             String canonicalText = typeTemplateParameter.getCanonicalText();
+                            // <? super ClassName>
                             if (canonicalText.contains(" super ")) {
                                 canonicalText = canonicalText.substring(
                                         canonicalText.indexOf(" super ") + " super ".length());
+                            }
+
+                            // <? extends ClassName>
+                            if (canonicalText.contains(" extends ")) {
+                                canonicalText = canonicalText.substring(
+                                        canonicalText.indexOf(" extends ") + " extends ".length());
                             }
                             if (canonicalText.length() == 1) {
                                 hasGenericTemplate = true;
                                 break;
                             }
+                            logger.warn("Setting template type for parameter[" + templateChar + "]: "
+                                    + canonicalText + " for parameter: [" + classReferenceType);
                             value.setType(canonicalText);
                             String templateKey = String.valueOf(templateChar);
                             value.setName(templateKey);
