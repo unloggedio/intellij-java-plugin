@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>org.videobug.videobug</id>
+    <id>io.unlogged</id>
     <name>Unlogged</name>
     <vendor email="support@bug.video" url="https://unlogged.io">Unlogged</vendor>
 
