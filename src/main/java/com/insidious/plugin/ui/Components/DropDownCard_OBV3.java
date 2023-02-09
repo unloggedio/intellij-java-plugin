@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ItemEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -43,6 +44,7 @@ public class DropDownCard_OBV3 {
                 triggerRefresh();
             }
         });
+        refreshButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     public JPanel getComponent() {

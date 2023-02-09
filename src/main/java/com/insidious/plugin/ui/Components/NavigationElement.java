@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -19,6 +20,8 @@ public class NavigationElement {
                 triggerNavigate();
             }
         });
+        navigationStageText.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        rightIcon.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     void triggerNavigate() {

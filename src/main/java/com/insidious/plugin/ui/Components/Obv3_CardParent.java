@@ -53,6 +53,8 @@ public class Obv3_CardParent implements CardSelectionActionListener {
                 proceedToAction();
             }
         });
+        actionButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        skipButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     public Obv3_CardParent(List<DependencyCardInformation> cards, boolean changeButton, CardActionListener actionListener) {

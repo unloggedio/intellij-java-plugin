@@ -77,6 +77,7 @@ public class Run_Component_Obv3 {
                 }
             }
         });
+        waitingForLogs.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     void handleTransition() {

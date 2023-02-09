@@ -43,6 +43,7 @@ public class ListCard_OBV3 {
                 refreshDependencies();
             }
         });
+        refreshButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loadDependencies(dependencyCardInformation.getDependencies());
     }
 
