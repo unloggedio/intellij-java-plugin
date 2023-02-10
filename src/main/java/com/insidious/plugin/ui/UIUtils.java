@@ -44,6 +44,8 @@ public class UIUtils {
     public static final Icon DISCORD_ICON = IconLoader.getIcon("/icons/png/discordIcon.png", UIUtils.class);
     public static final Icon NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/new_logs_to_process_icon.png", UIUtils.class);
     public static final Icon NO_NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/assert-not-equals.png", UIUtils.class);
+    public static final Icon CHECK_MARK_SVG = IconLoader.getIcon("/icons/svg/check_mark.svg", UIUtils.class);
+    public static final Icon SUPPORT_ICON_TEAL_SVG = IconLoader.getIcon("/icons/svg/customer_service_pink.svg", UIUtils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {

@@ -621,11 +621,19 @@ final public class InsidiousService implements Disposable {
         onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         onboardingConfigurationWindowContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
         contentManager.addContent(onboardingConfigurationWindowContent);
+
+        SupportForm supportForm = new SupportForm(project);
+        Content supportFormContent = contentFactory.createContent(
+                supportForm.getComponent(), "Support", false);
+        supportFormContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        supportFormContent.setIcon(UIUtils.SUPPORT_ICON_TEAL_SVG);
+
         if (areLogsPresent()) {
             contentManager.addContent(liveWindowContent);
             contentManager.setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
         }
+        contentManager.addContent(supportFormContent);
     }
 
     public String getJavaAgentString() {

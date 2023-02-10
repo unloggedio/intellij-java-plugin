@@ -95,6 +95,62 @@ public class ReportIssue {
         return zippingTask;
     }
 
+    public Task.Backgroundable sendSupportMessage(Project project, String userEmail, String issueName, String customMessage) {
+        prepareForUpload(userEmail, issueName, customMessage);
+        String objectKey = this.sessionKeyObject;
+
+        Task.Backgroundable zippingTask = new Task.Backgroundable(project, "Unlogged", false) {
+            String seLogDirPath;
+            String zipFileName;
+            String pathPrefix;
+
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                ZipFiles zipFiles = new ZipFiles();
+                seLogDirPath = getLatestSeLogFolderPath();
+                if (!seLogDirPath.equals("")) {
+                    int lastIndexOf = seLogDirPath.lastIndexOf(File.separator);
+                    pathPrefix = seLogDirPath.substring(0, lastIndexOf);
+                    zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
+                } else {
+                    pathPrefix = System.getProperty("user.home") + File.separator + ".videobug" + File.separator + "sessions";
+                    zipFileName = "empty-selogger-folder.zip";
+                }
+
+                checkProgressIndicator("Zipping session logs to upload", null);
+
+                try {
+                    zipFiles.zipDirectory(seLogDirPath, pathPrefix + File.separator + zipFileName);
+                    System.out.println("created zip file to upload at " + pathPrefix + File.separator + zipFileName);
+                } catch (Exception e) {
+                    InsidiousNotification.notifyMessage("Failed to zip bug report. Please try again!\n" +
+                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.", NotificationType.ERROR);
+                    logger.warn(e.getMessage(), e);
+                    return;
+                }
+
+                // create the email text and S3 bucket URI
+                checkProgressIndicator("Uploading bug logs and idea.log", null);
+                FileUploader fileUploader = new FileUploader();
+                try {
+                    fileUploader.uploadFile(objectKey, pathPrefix + File.separator + zipFileName);
+                    logger.warn("uploaded zip file at" + pathPrefix + File.separator + zipFileName);
+                } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
+                    InsidiousNotification.notifyMessage("Failed to upload bug report.\n Check your internet connection! \n " +
+                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>", NotificationType.ERROR);
+                    logger.warn(ex.getMessage(), ex);
+                    ex.printStackTrace();
+                    return;
+                }
+
+                checkProgressIndicator("Issue Upload completed!", null);
+                createMailAndRedirectUser();
+            }
+        };
+
+        return zippingTask;
+    }
+
     public void prepareForUpload(String userEmail, String issueTitle, String description, String checkBoxLabels) {
 
         File selogDir = new File(getLatestSeLogFolderPath());
@@ -117,6 +173,28 @@ public class ReportIssue {
 
         this.formattedDescription = issueDescription;
         this.issueTitle = issueTitle;
+    }
+
+    public void prepareForUpload(String userEmail, String issueTitle, String customMessage) {
+        File selogDir = new File(getLatestSeLogFolderPath());
+        String dirName = !selogDir.getName().equals("") ? selogDir.getName() : NO_SELOG_FOLDER_NAME;
+        String s3BucketParentPath = userEmail + "/" + dirName + "-" + Time.uniqueId();
+        this.sessionKeyObject = s3BucketParentPath + "/" + dirName + ".zip";
+        System.out.println(this.sessionKeyObject);
+        String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + this.sessionKeyObject;
+        String issueDescription = "Issue Raised by: `" + userEmail + "`\n\n"
+                + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "The session folder was empty. \n\n" : "")
+                + "\n"
+                + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")"
+                + "\n\n"
+                + "Issue description : \n\n"
+                + customMessage;
+        this.formattedDescription = issueDescription;
+        if(issueTitle.equals("Other"))
+        {
+            issueTitle = "Issue";
+        }
+        this.issueTitle = issueTitle + " faced by "+userEmail;
     }
 
 
