@@ -41,9 +41,11 @@
                 </constraints>
                 <properties>
                   <model>
-                    <item value="I don't see testcases"/>
+                    <item value="Test case failed to generate"/>
                     <item value="I am unable run application with java agent"/>
                     <item value="I don't see test candidates"/>
+                    <item value="Failed to add extra dependencies"/>
+                    <item value="There are issues in generated test case"/>
                     <item value="Other"/>
                   </model>
                 </properties>
