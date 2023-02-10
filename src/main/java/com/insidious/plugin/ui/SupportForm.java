@@ -44,6 +44,8 @@ public class SupportForm {
                 routeToDiscord();
             }
         });
+        submitButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        discordButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
     public JComponent getComponent()
     {
@@ -99,8 +101,7 @@ public class SupportForm {
             try {
                 java.awt.Desktop.getDesktop()
                         .browse(java.net.URI.create(link));
-            } catch (Exception e) {
-            }
+            } catch (Exception e) {}
         }
     }
 }
