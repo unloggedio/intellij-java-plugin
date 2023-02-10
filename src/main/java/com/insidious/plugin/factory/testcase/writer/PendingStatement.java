@@ -148,7 +148,7 @@ public class PendingStatement {
                 else
                     statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 3
 
-                Parameter deepCopyParam = ParameterUtils.deepCloneType(objectToDeserialize);
+                Parameter deepCopyParam = Parameter.cloneParameter(objectToDeserialize);
                 ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
                 // suspect that this was added for jackson mapper with optional value container,
@@ -407,7 +407,7 @@ public class PendingStatement {
 
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
-                    Parameter deepCopyParam = ParameterUtils.deepCloneType(lhsExpression);
+                    Parameter deepCopyParam = Parameter.cloneParameter(lhsExpression);
                     ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder,
                             statementParameters);
 

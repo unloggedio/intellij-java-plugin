@@ -2,11 +2,12 @@ package com.insidious.plugin.util;
 
 import com.insidious.plugin.constants.PrimitiveDataType;
 import com.insidious.plugin.pojo.Parameter;
-import com.squareup.javapoet.ClassName;
 import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromNameString;
 
 public class ParameterUtils {
     public static String makeParameterValueForPrimitiveType(Parameter parameter) {
@@ -55,7 +56,8 @@ public class ParameterUtils {
     }
 
     public static void normaliseParameterType(Parameter parameter) {
-        if (!(parameter.getType().contains("<") && parameter.getType().contains(">")) && parameter.getTemplateMap().size() == 0) {
+        if (!(parameter.getType().contains("<") && parameter.getType().contains(">")) && parameter.getTemplateMap()
+                .size() == 0) {
             return;
         }
 
@@ -113,7 +115,9 @@ public class ParameterUtils {
         normaliseParameterType(parameter);
 
         statementBuilder.append("$T");
-        statementParameters.add(ClassName.bestGuess(parameter.getType()));
+
+        String parameterType = parameter.getType();
+        statementParameters.add(createTypeFromNameString(parameterType));
 
         if (parameter.getTemplateMap().size() == 0) {
             return;
@@ -130,27 +134,5 @@ public class ParameterUtils {
             createStatementStringForParameter(paramInTemplate, statementBuilder, statementParameters);
         }
         statementBuilder.append(">");
-    }
-
-    public static Parameter deepCloneType(Parameter parameter) {
-        Parameter deepCloneParam = null;
-        deepCloneParam = new Parameter();
-
-        deepCloneParam.setValue(parameter.getValue());
-        deepCloneParam.setType(parameter.getType());
-
-        List<Parameter> deepCopyTemplateMap = new ArrayList<>();
-        for (Parameter p : parameter.getTemplateMap()) {
-            deepCopyTemplateMap.add(ParameterUtils.deepCloneType(p));
-        }
-        deepCloneParam.setTemplateMap(deepCopyTemplateMap);
-
-        List<String> deepCopyNames = new ArrayList<>();
-        for (String name : parameter.getNamesList()) {
-            deepCopyNames.add(name);
-        }
-        deepCloneParam.setNamesList(deepCopyNames);
-
-        return deepCloneParam;
     }
 }

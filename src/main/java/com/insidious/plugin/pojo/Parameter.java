@@ -58,7 +58,15 @@ public class Parameter implements Serializable, BytesMarshallable {
         }
         Parameter clonedParameter = new Parameter();
         clonedParameter.setNamesList(new ArrayList<>(parameter.getNamesList()));
-        clonedParameter.setTemplateMap(parameter.getTemplateMap());
+
+
+        List<Parameter> deepCopyTemplateMap = new ArrayList<>();
+        for (Parameter p : parameter.getTemplateMap()) {
+            deepCopyTemplateMap.add(Parameter.cloneParameter(p));
+        }
+        clonedParameter.setTemplateMap(deepCopyTemplateMap);
+
+
         clonedParameter.setType(parameter.getType());
         clonedParameter.setContainer(parameter.isContainer());
         clonedParameter.setProbeInfo(parameter.getProbeInfo());
@@ -277,7 +285,7 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public void setProb(DataEventWithSessionId prob) {
         this.prob = prob;
-        if (value == 0) {
+        if (value == 0 && prob != null) {
             value = prob.getValue();
         }
     }
@@ -302,6 +310,9 @@ public class Parameter implements Serializable, BytesMarshallable {
                 .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
         ) {
             this.dataInfo = probeInfo;
+        }
+        if (probeInfo == null) {
+            return;
         }
         if (probeInfo.getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT) {
             this.exception = true;

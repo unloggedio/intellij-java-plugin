@@ -3856,6 +3856,21 @@ public class SessionInstance {
                         templateChar++;
                         Parameter value = new Parameter();
                         String canonicalText = typeTemplateParameter.getCanonicalText();
+                        // <? super ClassName>
+                        if (canonicalText.contains(" super ")) {
+                            canonicalText = canonicalText.substring(
+                                    canonicalText.indexOf(" super ") + " super ".length());
+                        }
+
+                        // <? extends ClassName>
+                        if (canonicalText.contains(" extends ")) {
+                            canonicalText = "?";
+                            // todo: for ? extends ClassName, identify what typename can we use in the generated test
+                            //  case (its not ClassName)
+//                            canonicalText = canonicalText.substring(
+//                                    canonicalText.indexOf(" extends ") + " extends ".length());
+                        }
+
                         if (canonicalText.length() == 1) {
                             hasGenericTemplate = true;
                             break;

@@ -154,34 +154,6 @@ public class ClassTypeUtils {
     }
 
 
-    public static String getVariableNameFromProbe(DataInfo historyEventProbe, String defaultValue) {
-        return historyEventProbe.getAttribute("Name", historyEventProbe.getAttribute("FieldName", defaultValue));
-    }
-
-    /**
-     * This Method does not cover case of Simple Primitive ArrayTypeName.
-     *
-     * @param returnParameterType
-     * @return TypeName
-     * @deprecated <p> Use {@link ClassTypeUtils#createTypeFromNameString}
-     */
-    @Deprecated
-    @Nullable
-    public static TypeName createTypeFromName(String returnParameterType) {
-        TypeName returnValueSquareClass;
-        if (returnParameterType.startsWith("L") || returnParameterType.startsWith("[")) {
-            return constructClassName(returnParameterType);
-        } else if (returnParameterType.contains(".")) {
-            if (returnParameterType.contains("$")) {
-                returnParameterType = returnParameterType.substring(0, returnParameterType.indexOf("$"));
-            }
-            returnValueSquareClass = ClassName.bestGuess(returnParameterType);
-        } else {
-            returnValueSquareClass = getClassFromDescriptor(returnParameterType);
-        }
-        return returnValueSquareClass;
-    }
-
     /**
      * Find the ClassName or TypeName or ArrayType Name From provided string
      * Checks for primitive array type also
@@ -190,7 +162,7 @@ public class ClassTypeUtils {
      * @return String
      */
     public static TypeName createTypeFromNameString(String typeName) {
-        ClassName returnValueSquareClass = null;
+        TypeName returnValueSquareClass = null;
         if (typeName.startsWith("L") || typeName.startsWith("[")) {
             returnValueSquareClass = constructClassName(typeName);
             return returnValueSquareClass;
@@ -205,8 +177,7 @@ public class ClassTypeUtils {
             // behaviour of the class imported is different
             // hence below if is required
             if (typeName.endsWith("[]")) {
-                typeName = typeName.replace("[]", "");
-                return ArrayTypeName.of(ClassName.bestGuess(typeName));
+                return ArrayTypeName.of(createTypeFromNameString(typeName.substring(0, typeName.length() - 2)));
             }
             returnValueSquareClass = ClassName.bestGuess(typeName);
             return returnValueSquareClass;
@@ -220,7 +191,7 @@ public class ClassTypeUtils {
         return returnParamType;
     }
 
-    private static ClassName constructClassName(String methodReturnValueType) {
+    private static TypeName constructClassName(String methodReturnValueType) {
         char firstChar = methodReturnValueType.charAt(0);
         switch (firstChar) {
             case 'V':
@@ -246,13 +217,14 @@ public class ClassTypeUtils {
                         .split(";")[0];
                 return ClassName.bestGuess(returnValueClass.replace("/", "."));
             case '[':
-                String returnValueClass1 = methodReturnValueType.substring(1);
-                return ClassName.bestGuess(returnValueClass1.replace("/", ".") + "[]");
+//                String returnValueClass1 = methodReturnValueType.substring(1);
+                return ArrayTypeName.of(constructClassName(methodReturnValueType.substring(1)));
 
             default:
                 assert false;
 
         }
+//        assert false;
         return null;
     }
 

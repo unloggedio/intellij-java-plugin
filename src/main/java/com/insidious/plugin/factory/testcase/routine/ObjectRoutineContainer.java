@@ -50,9 +50,8 @@ public class ObjectRoutineContainer {
 
         this.testSubject = parameter;
         assert parameter.getType() != null;
-        ClassName className = ClassName.bestGuess(parameter.getType());
-        this.packageName = className.packageName();
-        this.name = className.simpleName();
+        this.packageName = targetClassName.packageName();
+        this.name = targetClassName.simpleName();
         newRoutine("test" + targetClassName.simpleName());
 
         boolean hasTargetInstanceClassConstructor = false;

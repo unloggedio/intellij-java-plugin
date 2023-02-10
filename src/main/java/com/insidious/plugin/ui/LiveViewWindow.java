@@ -447,7 +447,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void setState_NewLogs(Date lastScannedTimeStamp) {
         processLogsSwitch.setBackground(UIUtils.green);
-        processLogsSwitch.setText("New logs available");
+        processLogsSwitch.setText("New logs available (click to process)");
         processLogsSwitch.setIcon(UIUtils.NEW_LOGS_TO_PROCESS_ICON);
         statusTextHeading.setText("Last Scan completed at : "+
                 getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
@@ -456,7 +456,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     @Override
     public void setState_NoNewLogs(Date lastScannedTimeStamp) {
         processLogsSwitch.setBackground(UIUtils.NeutralGrey);
-        processLogsSwitch.setText("No New logs available");
+        processLogsSwitch.setText("No New logs available (use application to create logs)");
         processLogsSwitch.setIcon(UIUtils.NO_NEW_LOGS_TO_PROCESS_ICON);
         statusTextHeading.setText("Last Scan completed at : "+
                 getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
