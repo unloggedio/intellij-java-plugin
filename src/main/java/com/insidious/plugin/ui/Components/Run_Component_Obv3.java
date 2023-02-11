@@ -1,12 +1,19 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.ui.UIUtils;
+import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ex.ClipboardUtil;
+import com.intellij.openapi.ide.CopyPasteManager;
+import com.intellij.util.ui.TextTransferable;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -53,30 +60,40 @@ public class Run_Component_Obv3 {
             public void changedUpdate(DocumentEvent e) {
                 UpdateBasePackage();
             }
+
             public void removeUpdate(DocumentEvent e) {
                 UpdateBasePackage();
             }
+
             public void insertUpdate(DocumentEvent e) {
                 UpdateBasePackage();
             }
 
             private void UpdateBasePackage() {
-                try
-                {
-                    if(baseLabelTextField.getText()!=null && !baseLabelTextField.getText().equals("Label")) {
-                            updateVmOptionsBasePackage(baseLabelTextField.getText());
+                try {
+                    if (baseLabelTextField.getText() != null && !baseLabelTextField.getText().equals("Label")) {
+                        updateVmOptionsBasePackage(baseLabelTextField.getText());
                     }
-                }
-                catch (IllegalStateException e)
-                {
+                } catch (IllegalStateException e) {
                     //nothing to do
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     setBasePackageText(fallbackPackage);
                 }
             }
         });
+
+        VMoptionsArea.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+//                super.focusGained(e);
+                VMoptionsArea.selectAll();
+                CopyPasteManager.getInstance().setContents(
+                        new TextTransferable(VMoptionsArea.getText())
+                );
+                InsidiousNotification.notifyMessage("Copied to clipboard", NotificationType.INFORMATION);
+            }
+        });
+
         waitingForLogs.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
@@ -94,8 +111,7 @@ public class Run_Component_Obv3 {
         this.VMoptionsArea.setText(text);
     }
 
-    public void updateVmOptionsBasePackage(String packageString)
-    {
+    public void updateVmOptionsBasePackage(String packageString) {
         listener.updateBasePackage(packageString);
     }
 
@@ -149,11 +165,11 @@ public class Run_Component_Obv3 {
         this.baseLabelTextField.setText(basePackage);
     }
 
-    public void setFallbackPackage(String fallbackPackage) {
-        this.fallbackPackage = fallbackPackage;
-    }
-
     public String getFallbackPackage() {
         return fallbackPackage;
+    }
+
+    public void setFallbackPackage(String fallbackPackage) {
+        this.fallbackPackage = fallbackPackage;
     }
 }
