@@ -56,8 +56,7 @@ public class ObjectRoutine {
                         && !classIndex.get(e.getType()).isPojo()
                         && !classIndex.get(e.getType()).isEnum())
                         || (!e.isPrimitiveType() && e.getProb().getSerializedValue().length == 0)
-                )
-                .collect(Collectors.toList());
+                ).collect(Collectors.toList());
     }
 
     public List<TestCandidateMetadata> getTestCandidateList() {
@@ -94,7 +93,7 @@ public class ObjectRoutine {
 
         MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
-                "testMethod" + StringUtil.toTitleCase(lastCandidateMainMethod.getMethodName()),
+                generationConfiguration.getTestMethodName(),
                 generationConfiguration, testGenerationState
         );
 

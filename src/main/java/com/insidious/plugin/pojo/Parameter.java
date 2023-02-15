@@ -374,8 +374,11 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
-        return type != null &&
-                (type.length() == 1 || isBoxedPrimitiveType());
+        String typeCopy = type;
+        while (typeCopy.startsWith("[") && typeCopy.length() > 1) {
+            typeCopy = typeCopy.substring(1);
+        }
+        return type != null && (typeCopy.length() == 1 || isBoxedPrimitiveType());
 
     }
 

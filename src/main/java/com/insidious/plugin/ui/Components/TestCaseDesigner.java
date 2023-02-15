@@ -6,16 +6,21 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.*;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.psi.*;
 import com.intellij.ui.components.JBScrollPane;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -24,6 +29,7 @@ import java.util.List;
 import java.util.Random;
 
 public class TestCaseDesigner {
+    private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
     private JPanel namePanel;
@@ -39,9 +45,9 @@ public class TestCaseDesigner {
     private JTabbedPane tabbedConfigurationPanel;
     private PsiMethod currentMethod;
     private PsiClass currentClass;
-
     private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private TestCandidateMetadata testCandidateMetadata;
+
     public TestCaseDesigner() {
     }
 
@@ -49,26 +55,28 @@ public class TestCaseDesigner {
         return mainContainer;
     }
 
-    public void renderTestCreator(PsiClass psiClass, PsiMethod method) {
+    public void renderTestDesignerInterface(PsiClass psiClass, PsiMethod method) {
 
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
+        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(method.getName());
+
         testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
                 TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
 
-        testCandidateMetadata = createTestCandidate();
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
-
-
+        testCaseGenerationConfiguration.setTestName(testMethodName);
 
         this.currentMethod = method;
         this.currentClass = psiClass;
 
+        testCandidateMetadata = createTestCandidate();
+        MethodCallExpression testMainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
+
         selectedMethodNameLabel.setText(psiClass.getQualifiedName() + "." + method.getName() + "()");
-        testMethodNameField.setText("testMethod" + ClassTypeUtils.upperInstanceName(method.getName()));
-        testMethodNameField.addActionListener(e -> testCaseGenerationConfiguration.setTestName(testMethodNameField.getText()));
+        testMethodNameField.setText(testCaseGenerationConfiguration.getTestMethodName());
 
         PsiParameterList methodParameterList = method.getParameterList();
 
@@ -86,14 +94,16 @@ public class TestCaseDesigner {
             argumentContainerPanel.setAlignmentY(0);
             JBScrollPane parameterScrollPane = new JBScrollPane(argumentContainerPanel);
 
-            for (PsiParameter parameter : methodParameterList.getParameters()) {
-
-                ParameterEditorForm parameterEditor = new ParameterEditorForm(parameter);
+            PsiParameter @NotNull [] parameters = methodParameterList.getParameters();
+            for (int i = 0; i < parameters.length; i++) {
+                Parameter parameter = testMainMethod.getArguments().get(i);
+                ParameterEditorForm parameterEditor = new ParameterEditorForm(parameter, parameters[i]);
                 JPanel contentPanel = parameterEditor.getContent();
                 contentPanel.setAlignmentX(0);
                 contentPanel.setAlignmentY(0);
                 contentPanel.setPreferredSize(new Dimension(-1, 80));
                 contentPanel.setMaximumSize(new Dimension(800, 80));
+                parameterEditor.addChangeListener(parameter1 -> updatePreviewTestCase());
                 argumentContainerPanel.add(contentPanel);
             }
             argumentsPanel.add(parameterScrollPane, BorderLayout.CENTER);
@@ -102,14 +112,33 @@ public class TestCaseDesigner {
             argumentsPanel.add(argumentContainerPanel);
         }
 
-        tabbedConfigurationPanel.addTab("Method arguments", argumentsPanel);
+        tabbedConfigurationPanel.addTab("Method arguments (" + methodParameterList.getParametersCount() + ")",
+                argumentsPanel);
 
 
         @Nullable PsiType returnValueType = method.getReturnType();
-        returnValueTypeLabel.setText(returnValueType.getPresentableText());
+        if (returnValueType != null) {
+            returnValueTypeLabel.setText(returnValueType.getPresentableText());
+        }
 
+        addChangeListeners();
         updatePreviewTestCase();
 
+    }
+
+    public void addChangeListeners() {
+        testMethodNameField.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                testCaseGenerationConfiguration.setTestName(testMethodNameField.getText());
+                updatePreviewTestCase();
+            }
+        });
     }
 
     public void updatePreviewTestCase() {
@@ -159,11 +188,14 @@ public class TestCaseDesigner {
         DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
         testSubjectParameter.setProb(testSubjectParameterProbe);
 
-        Parameter returnValue = new Parameter();
-        returnValue.setValue(random.nextLong());
-        returnValue.setType(psiTypeToJvmType(currentMethod.getReturnType().getCanonicalText()));
-        DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
-        returnValue.setProb(returnValueProbe);
+        Parameter returnValue = null;
+        if (currentMethod.getReturnType() != null) {
+            returnValue = new Parameter();
+            returnValue.setValue(random.nextLong());
+            returnValue.setType(psiTypeToJvmType(currentMethod.getReturnType().getCanonicalText()));
+            DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
+            returnValue.setProb(returnValueProbe);
+        }
 
         PsiParameterList parameterList = currentMethod.getParameterList();
         List<Parameter> arguments = new ArrayList<>(parameterList.getParametersCount());
@@ -182,7 +214,33 @@ public class TestCaseDesigner {
                 currentMethod.getName(), testSubjectParameter, arguments, returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
-        mainMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
+
+        int methodAccess = 0;
+        for (PsiElement child : currentMethod.getModifierList().getChildren()) {
+            switch (child.getText()) {
+                case "private":
+                    methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
+                    break;
+                case "public":
+                    methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+                    break;
+                case "protected":
+                    methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
+                    break;
+                case "static":
+                    methodAccess = methodAccess | Opcodes.ACC_STATIC;
+                    break;
+                case "final":
+                    methodAccess = methodAccess | Opcodes.ACC_FINAL;
+                    break;
+                default:
+                    logger.warn("unhandled modifier: " + child);
+            }
+        }
+
+
+        mainMethod.setMethodAccess(methodAccess);
+
         testCandidateMetadata.setMainMethod(mainMethod);
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
@@ -191,27 +249,40 @@ public class TestCaseDesigner {
     }
 
     private String psiTypeToJvmType(String canonicalText) {
+        if (canonicalText.endsWith("[]")) {
+            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2));
+            return "[" + canonicalText;
+        }
         switch (canonicalText) {
             case "void":
-                return "V";
+                canonicalText = "V";
+                break;
             case "boolean":
-                return "Z";
+                canonicalText = "Z";
+                break;
             case "byte":
-                return "B";
+                canonicalText = "B";
+                break;
             case "char":
-                return "C";
+                canonicalText = "C";
+                break;
             case "short":
-                return "S";
+                canonicalText = "S";
+                break;
             case "int":
-                return "I";
+                canonicalText = "I";
+                break;
             case "long":
-                return "J";
+                canonicalText = "J";
+                break;
             case "float":
-                return "F";
+                canonicalText = "F";
+                break;
             case "double":
-                return "D";
+                canonicalText = "D";
+                break;
             default:
-                return canonicalText;
         }
+        return canonicalText;
     }
 }

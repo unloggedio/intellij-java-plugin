@@ -274,8 +274,8 @@ public class ObjectRoutineContainer {
             }
 
             ObjectRoutineScript objectScript =
-                    objectRoutine.toObjectRoutineScript(
-                            generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
+                    objectRoutine.toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
+                            fieldsContainer.clone());
             container.getObjectRoutines()
                     .add(objectScript);
 

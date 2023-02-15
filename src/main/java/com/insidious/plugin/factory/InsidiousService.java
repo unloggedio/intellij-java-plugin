@@ -634,7 +634,8 @@ final public class InsidiousService implements Disposable {
 //        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
         testCaseDesignerWindow = new TestCaseDesigner();
-        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(testCaseDesignerWindow.getContent(),
+        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(
+                testCaseDesignerWindow.getContent(),
                 "Test designer", false);
         contentManager.addContent(testCaseCreatorWindowContent);
 
@@ -834,7 +835,7 @@ final public class InsidiousService implements Disposable {
         if (method == null) {
             return;
         }
-        testCaseDesignerWindow.renderTestCreator(psiClass, method);
+        testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
     public boolean areModulesRegistered() {
@@ -850,38 +851,36 @@ final public class InsidiousService implements Disposable {
                 new Task.Backgroundable(project, "Unlogged, Inc.", true) {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
-                        final InsidiousService insidiousService = project.getService(InsidiousService.class);
-                        client
-                                .getProjectSessions(new GetProjectSessionsCallback() {
-                                    @Override
-                                    public void error(String message) {
-                                        InsidiousNotification.notifyMessage("Failed to list sessions - " + message,
-                                                NotificationType.ERROR);
+                        client.getProjectSessions(new GetProjectSessionsCallback() {
+                            @Override
+                            public void error(String message) {
+                                InsidiousNotification.notifyMessage("Failed to list sessions - " + message,
+                                        NotificationType.ERROR);
+                            }
+
+                            @Override
+                            public void success(List<ExecutionSession> executionSessionList) {
+                                try {
+                                    SessionInstance sessionInstance;
+                                    if (executionSessionList.size() == 0) {
+                                        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+                                        ExecutionSession executionSession = new ExecutionSession();
+                                        executionSession.setPath(pathToSessions);
+                                        executionSession.setSessionId("na");
+                                        sessionInstance = new SessionInstance(executionSession, project);
+                                    } else {
+                                        ExecutionSession executionSession = executionSessionList.get(0);
+                                        sessionInstance = new SessionInstance(executionSession, project);
                                     }
+                                    client.setSessionInstance(sessionInstance);
+                                    testCaseService = new TestCaseService(sessionInstance);
 
-                                    @Override
-                                    public void success(List<ExecutionSession> executionSessionList) {
-                                        try {
-                                            SessionInstance sessionInstance;
-                                            if (executionSessionList.size() == 0) {
-                                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-                                                ExecutionSession executionSession = new ExecutionSession();
-                                                executionSession.setPath(pathToSessions);
-                                                executionSession.setSessionId("na");
-                                                sessionInstance = new SessionInstance(executionSession, project);
-                                            } else {
-                                                ExecutionSession executionSession = executionSessionList.get(0);
-                                                sessionInstance = new SessionInstance(executionSession, project);
-                                            }
-                                            client.setSessionInstance(sessionInstance);
-                                            testCaseService = new TestCaseService(sessionInstance);
+                                } catch (SQLException | IOException e) {
+                                    throw new RuntimeException(e);
+                                }
 
-                                        } catch (SQLException | IOException e) {
-                                            throw new RuntimeException(e);
-                                        }
-
-                                    }
-                                });
+                            }
+                        });
                     }
                 };
 

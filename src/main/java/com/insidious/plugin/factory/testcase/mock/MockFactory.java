@@ -81,7 +81,7 @@ public class MockFactory {
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
 
-        ClassName targetClassname = ClassName.bestGuess(parameterTypeName);
+        TypeName targetClassname = ClassTypeUtils.createTypeFromNameString(parameterTypeName);
         testCandidateMetadata.setTestSubject(parameter);
 
 //        testCandidateMetadata.setFullyQualifiedClassname(targetClassname.canonicalName());
