@@ -463,6 +463,13 @@ public class LiveViewWindow implements TreeSelectionListener,
     }
 
     @Override
+    public void setState_NewSession() {
+        processLogsSwitch.setBackground(UIUtils.green);
+        processLogsSwitch.setText("New Session available (click to process)");
+        processLogsSwitch.setIcon(UIUtils.NEW_LOGS_TO_PROCESS_ICON);
+    }
+
+    @Override
     public void setState_Processing() {
         UIUtils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
         processLogsSwitch.setBackground(UIUtils.teal);

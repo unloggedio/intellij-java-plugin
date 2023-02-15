@@ -1,9 +1,12 @@
 package com.insidious.plugin.factory.testcase;
 
 import com.insidious.common.weaver.TypeInfo;
+import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.SessionInstance;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.mock.MockFactory;
@@ -52,8 +55,7 @@ public class TestCaseService implements Runnable {
 //        this.sessionInstance.submitTask(this);
     }
 
-    public void startRun()
-    {
+    public void startRun() {
         this.sessionInstance.submitTask(this);
     }
 
@@ -322,7 +324,7 @@ public class TestCaseService implements Runnable {
         return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
     }
 
-//    @Override
+    //    @Override
     public void run_old() {
         while (true) {
             try {
@@ -350,28 +352,73 @@ public class TestCaseService implements Runnable {
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         while (true) {
             try {
                 Thread.sleep(2000);
                 if (this.refreshButtonStateManager.isProcessing()) {
                     continue;
                 }
-                if(sessionInstance.hasNewZips())
+                if(hasNewSession())
                 {
-                    //set state to new logs
-                    this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
+                    this.refreshButtonStateManager.setState_NewSession();
                 }
                 else
                 {
-                    //set state to no new logs
-                    this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
+                    if (sessionInstance.hasNewZips()) {
+                        //set state to new logs
+                        this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
+                    } else {
+                        //set state to no new logs
+                        this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
+                    }
                 }
+            } catch (InterruptedException ex) {
+                logger.warn("Thread interrupted scanning a new session.", ex);
+                throw new RuntimeException(ex);
             } catch (Exception e) {
-                logger.error("exception in testcase service scanner shutting down", e);
+                logger.error("Exception in testcase service, scanner shutting down", e);
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    private boolean hasNewSession() {
+        final boolean[] hasNew = {false};
+        project.getService(InsidiousService.class).getClient()
+                .getProjectSessions(new GetProjectSessionsCallback() {
+                    @Override
+                    public void error(String message) {
+                        hasNew[0] =false;
+                    }
+
+                    @Override
+                    public void success(List<ExecutionSession> executionSessionList) {
+                        if(executionSessionList.size()==0)
+                        {
+                            hasNew[0] = false;
+                        }
+                        else
+                        {
+//                            System.out.println("Exec Current ID "+executionSessionList.get(0).getSessionId() +
+//                                    " Created : "+executionSessionList.get(0).getCreatedAt());
+//                            System.out.println("Current Session ID : "+sessionInstance.getExecutionSession().getSessionId() +
+//                                    " Created session : "+sessionInstance.getExecutionSession().getCreatedAt());
+                            if(!executionSessionList.get(0).getSessionId().equals(sessionInstance.getExecutionSession().getSessionId()))
+                            {
+                                if(executionSessionList.get(0).getCreatedAt().compareTo(sessionInstance.getExecutionSession().getCreatedAt())>0)
+                                {
+                                    hasNew[0]=true;
+                                }
+                                else if(executionSessionList.size()==1)
+                                {
+                                    hasNew[0]=true;
+                                }
+                            }
+                        }
+                    }
+                });
+        System.out.println("Has new sessions check : "+hasNew[0]);
+        return hasNew[0];
     }
 }
