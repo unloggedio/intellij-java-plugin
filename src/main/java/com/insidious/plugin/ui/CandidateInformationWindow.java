@@ -247,9 +247,17 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
             if (valueTemp.startsWith("{")) {
                 //obj in obj
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
-                JSONObject subObj = new JSONObject(valueTemp);
-                handleObject(subObj, thisKey);
-                root.add(thisKey);
+                try {
+                    JSONObject subObj = new JSONObject(valueTemp);
+                    handleObject(subObj, thisKey);
+                    root.add(thisKey);
+                }
+                catch (Exception e)
+                {
+                    System.out.println("Not a real json object, string contains {}");
+                    DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
+                    root.add(thisKVpair);
+                }
             } else if (valueTemp.startsWith("[")) {
                 //list
                 DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
