@@ -19,9 +19,10 @@ public class ParameterEditorForm {
 
     public ParameterEditorForm(PsiParameter parameter) {
         parameterTypeLabel.setText(parameter.getName());
-        parameterTypeLabel.setSize(new Dimension(100, -1));
-        parameterTypeLabel.setPreferredSize(new Dimension(100, -1));
-        parameterTypeLabel.setMaximumSize(new Dimension(100, -1));
+//        Dimension labelSize = new Dimension(100, -1);
+//        parameterTypeLabel.setSize(labelSize);
+//        parameterTypeLabel.setPreferredSize(labelSize);
+//        parameterTypeLabel.setMaximumSize(labelSize);
         TitledBorder titledBorder = (TitledBorder) parameterPanel.getBorder();
         titledBorder.setTitle(parameter.getType().getPresentableText());
 

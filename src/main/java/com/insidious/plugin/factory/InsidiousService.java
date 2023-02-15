@@ -10,9 +10,11 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
@@ -36,6 +38,9 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -65,6 +70,7 @@ import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -106,6 +112,7 @@ final public class InsidiousService implements Disposable {
 
     private List<ProgramRunner> programRunners = new ArrayList<>();
     private TestCaseCreator testCaseCreatorWindow;
+    private TestCaseService testCaseService;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -125,18 +132,15 @@ final public class InsidiousService implements Disposable {
                     .getModules().length == 0) {
                 logger.warn("no module found in the project");
             } else {
-                currentModule = ModuleManager.getInstance(project)
-                        .getModules()[0];
+                currentModule = ModuleManager.getInstance(project).getModules()[0];
                 logger.info("current module - " + currentModule.getName());
             }
 
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
-            FileSystems.getDefault()
-                    .getPath(pathToSessions)
-                    .toFile()
-                    .mkdirs();
+            FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
 
+            this.loadSession();
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {
@@ -839,9 +843,44 @@ final public class InsidiousService implements Disposable {
     }
 
     public TestCaseService getTestCaseService() {
-        SessionInstance sessionInstance = getClient().getSessionInstance();
-        return new TestCaseService(sessionInstance);
+        return testCaseService;
+    }
+
+    public void loadSession() {
+        Task.Backgroundable task =
+                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+                    @Override
+                    public void run(@NotNull ProgressIndicator indicator) {
+                        final InsidiousService insidiousService = project.getService(InsidiousService.class);
+                        insidiousService.getClient()
+                                .getProjectSessions(new GetProjectSessionsCallback() {
+                                    @Override
+                                    public void error(String message) {
+                                        InsidiousNotification.notifyMessage("Failed to list sessions - " + message,
+                                                NotificationType.ERROR);
+                                    }
+
+                                    @Override
+                                    public void success(List<ExecutionSession> executionSessionList) {
+                                        ExecutionSession executionSession = executionSessionList.get(0);
+                                        SessionInstance sessionInstance = null;
+                                        try {
+                                            sessionInstance = new SessionInstance(executionSession, project);
+                                        } catch (SQLException | IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                        client.setSessionInstance(sessionInstance);
+                                        testCaseService = new TestCaseService(sessionInstance);
+
+                                    }
+                                });
+                    }
+                };
+
+        ProgressManager.getInstance().run(task);
+
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
 }

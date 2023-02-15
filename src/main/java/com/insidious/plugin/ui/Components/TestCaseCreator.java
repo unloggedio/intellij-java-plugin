@@ -31,14 +31,13 @@ public class TestCaseCreator {
     private JTextField testMethodNameField;
     private JPanel selectedClassDetailsPanel;
     private JLabel selectedMethodNameLabel;
-    private JPanel argumentsPanel;
     private JPanel returnValuePanel;
-    private JPanel callMockPanel;
     private JPanel actionPanel;
     private JButton previewTestCaseButton;
     private JLabel returnValueTypeLabel;
     private JTextField returnValueTextField;
     private JPanel testCasePreviewPanel;
+    private JTabbedPane tabbedConfigurationPanel;
     private PsiMethod currentMethod;
     private PsiClass currentClass;
 
@@ -64,31 +63,47 @@ public class TestCaseCreator {
 
         PsiParameterList methodParameterList = method.getParameterList();
 
-        argumentsPanel.removeAll();
+        tabbedConfigurationPanel.removeAll();
+        Dimension argumentsContainerPanelDimension = new Dimension(600, 800);
+//        tabbedConfigurationPanel.setMaximumSize(argumentsContainerPanelDimension);
+//        tabbedConfigurationPanel.setMinimumSize(argumentsContainerPanelDimension);
+//        tabbedConfigurationPanel.setPreferredSize(argumentsContainerPanelDimension);
+
+        JPanel argumentsPanel = new JPanel(new BorderLayout());
         argumentsPanel.setAlignmentX(0);
 
         JPanel argumentContainerPanel = new JPanel();
 //        argumentContainerPanel.setSize(Integer.MAX_VALUE, Integer.MAX_VALUE);
         if (methodParameterList.getParametersCount() > 0) {
-            argumentContainerPanel.setLayout(new GridLayout(methodParameterList.getParametersCount(), 0));
+            BoxLayout boxLayout = new BoxLayout(argumentContainerPanel, BoxLayout.PAGE_AXIS);
+            argumentContainerPanel.setLayout(boxLayout);
+
             argumentContainerPanel.setAlignmentX(0);
+            argumentContainerPanel.setAlignmentY(0);
             JBScrollPane parameterScrollPane = new JBScrollPane(argumentContainerPanel);
+//            parameterScrollPane.setMaximumSize(argumentsContainerPanelDimension);
+//            parameterScrollPane.setPreferredSize(argumentsContainerPanelDimension);
+//            parameterScrollPane.setMinimumSize(new Dimension(400, 100));
 
             for (PsiParameter parameter : methodParameterList.getParameters()) {
 
                 ParameterEditorForm parameterEditor = new ParameterEditorForm(parameter);
                 JPanel contentPanel = parameterEditor.getContent();
-                contentPanel.setSize(-1, 100);
-                contentPanel.setMaximumSize(new Dimension(-1, 100));
-                contentPanel.setPreferredSize(new Dimension(-1, 100));
                 contentPanel.setAlignmentX(0);
-                parameterScrollPane.add(contentPanel);
+                contentPanel.setAlignmentY(0);
+                Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 80);
+                contentPanel.setPreferredSize(new Dimension(-1, 80));
+                contentPanel.setMaximumSize(new Dimension(800, 80));
+//                contentPanel.setMinimumSize(contentPanel.getPreferredSize());
+                argumentContainerPanel.add(contentPanel);
             }
             argumentsPanel.add(parameterScrollPane, BorderLayout.CENTER);
         } else {
             argumentContainerPanel.add(new JLabel("Method " + method.getName() + " has no arguments"));
             argumentsPanel.add(argumentContainerPanel);
         }
+
+        tabbedConfigurationPanel.addTab("Method arguments", argumentsPanel);
 
 
         @Nullable PsiType returnValueType = method.getReturnType();

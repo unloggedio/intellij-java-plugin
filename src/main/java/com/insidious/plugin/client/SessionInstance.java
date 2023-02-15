@@ -121,9 +121,7 @@ public class SessionInstance {
 
     public SessionInstance(ExecutionSession executionSession, Project project) throws SQLException, IOException {
         this.project = project;
-        this.sessionDirectory = FileSystems.getDefault()
-                .getPath(executionSession.getPath())
-                .toFile();
+        this.sessionDirectory = FileSystems.getDefault().getPath(executionSession.getPath()).toFile();
         File cacheDir = new File(this.sessionDirectory + "/cache/");
         cacheDir.mkdirs();
         this.executionSession = executionSession;
