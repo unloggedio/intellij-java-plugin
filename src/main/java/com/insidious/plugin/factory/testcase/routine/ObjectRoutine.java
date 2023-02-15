@@ -53,12 +53,9 @@ public class ObjectRoutine {
                 .map(MethodCallExpression::getArguments)
                 .flatMap(Collection::stream)
                 .filter(e -> (classIndex.get(e.getType()) != null
-                        && !classIndex.get(e.getType())
-                        .isPojo()
-                        && !classIndex.get(e.getType())
-                        .isEnum())
-                        || (!e.isPrimitiveType() && e.getProb()
-                        .getSerializedValue().length == 0)
+                        && !classIndex.get(e.getType()).isPojo()
+                        && !classIndex.get(e.getType()).isEnum())
+                        || (!e.isPrimitiveType() && e.getProb().getSerializedValue().length == 0)
                 )
                 .collect(Collectors.toList());
     }
@@ -132,12 +129,12 @@ public class ObjectRoutine {
         // nonPojo parameters will calls on them mocked as well
         List<Parameter> nonPojoParameters = getNonPojoParameters(this.testCandidateList, sessionInstance);
 
-        if (getRoutineName().equals("<init>")) {
-            for (Parameter nonPojoParameter : nonPojoParameters) {
-                testGenerationState.getVariableContainer()
-                        .add(nonPojoParameter);
-            }
-        }
+//        if (getRoutineName().equals("<init>")) {
+//            for (Parameter nonPojoParameter : nonPojoParameters) {
+//                testGenerationState.getVariableContainer()
+//                        .add(nonPojoParameter);
+//            }
+//        }
 
         for (Parameter nonPojoParameter : nonPojoParameters) {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
@@ -155,6 +152,7 @@ public class ObjectRoutine {
                     .addAll(script1.getStaticMocks());
             scriptContainer.getCreatedVariables()
                     .add(nonPojoParameter);
+            testGenerationState.getVariableContainer().add(nonPojoParameter);
         }
 
 

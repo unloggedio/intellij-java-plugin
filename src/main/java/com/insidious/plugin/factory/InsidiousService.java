@@ -17,6 +17,7 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.Components.TestCaseCreator;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.runners.ProgramRunner;
@@ -28,6 +29,8 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
@@ -41,13 +44,10 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiManager;
+import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -93,6 +93,7 @@ final public class InsidiousService implements Disposable {
     private TracePoint pendingSelectTrace;
     private LiveViewWindow liveViewWindow;
     private int TOOL_WINDOW_HEIGHT = 430;
+    private int TOOL_WINDOW_WIDTH = 600;
     private Content singleWindowContent;
     private boolean rawViewAdded = false;
     private OnboardingConfigurationWindow onboardingConfigurationWindow;
@@ -104,10 +105,15 @@ final public class InsidiousService implements Disposable {
     private String selectedModule = null;
 
     private List<ProgramRunner> programRunners = new ArrayList<>();
+    private TestCaseCreator testCaseCreatorWindow;
 
     public InsidiousService(Project project) {
         this.project = project;
         logger.info("starting insidious service");
+
+        EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
+        InsidiousCaretListener listener = new InsidiousCaretListener(project);
+        multicaster.addEditorMouseListener(listener, this);
 
     }
 
@@ -309,6 +315,14 @@ final public class InsidiousService implements Disposable {
         String basePath = path.substring(0, last_index);
         return basePath;
     }
+
+    public String getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+        TestCaseService testCaseService = getTestCaseService();
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(
+                generationConfiguration);
+        return testCaseUnit.getCode();
+    }
+
 
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
@@ -595,37 +609,41 @@ final public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
-        ContentFactory contentFactory = ApplicationManager.getApplication()
-                .getService(ContentFactory.class);
+        ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         ToolWindowEx ex = (ToolWindowEx) toolWindow;
-        ex.stretchHeight(TOOL_WINDOW_HEIGHT - ex.getDecorator()
-                .getHeight());
+        ex.stretchHeight(TOOL_WINDOW_WIDTH - ex.getDecorator().getWidth());
         ContentManager contentManager = this.toolWindow.getContentManager();
 
-        liveViewWindow = new LiveViewWindow(project, this);
-        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+//        liveViewWindow = new LiveViewWindow(project, this);
+//        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
+//        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+//        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+//
+//        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
+//        onboardingConfigurationWindowContent = contentFactory.createContent(
+//                onboardingConfigurationWindow.getContent(), "Get Started", false);
+//
+//        singleWindowView = new SingleWindowView(project, this);
+//        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
-        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
-        onboardingConfigurationWindowContent = contentFactory.createContent(
-                onboardingConfigurationWindow.getContent(), "Get Started", false);
+        testCaseCreatorWindow = new TestCaseCreator();
+        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(testCaseCreatorWindow.getContent(),
+                "Test designer", false);
+        contentManager.addContent(testCaseCreatorWindowContent);
 
-        singleWindowView = new SingleWindowView(project, this);
-        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
+        testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
 
-        onboardingConfigurationWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        onboardingConfigurationWindowContent.setIcon(UIUtils.ONBOARDING_ICON_PINK);
-        contentManager.addContent(onboardingConfigurationWindowContent);
-        if (areLogsPresent()) {
-            contentManager.addContent(liveWindowContent);
-            contentManager.setSelectedContent(liveWindowContent, true);
-            liveViewAdded = true;
-        }
+//        contentManager.addContent(onboardingConfigurationWindowContent);
+//        if (areLogsPresent()) {
+//            contentManager.addContent(liveWindowContent);
+//            contentManager.setSelectedContent(liveWindowContent, true);
+//            liveViewAdded = true;
+//        }
     }
 
     public String getJavaAgentString() {
@@ -633,8 +651,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public String getVideoBugAgentPath() {
-        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath()
-                .toString();
+        return Constants.VIDEOBUG_AGENT_PATH.toAbsolutePath().toString();
     }
 
     public VideobugClientInterface getClient() {
@@ -810,10 +827,21 @@ final public class InsidiousService implements Disposable {
         return programRunners.size() > 0;
     }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
-    public boolean areModulesRegistered()
-    {
-        return this.moduleMap.size()>0 ? true : false;
+    public void showTestCreatorInterface(PsiClass psiClass, PsiMethod method) {
+        if (method == null) {
+            return;
+        }
+        testCaseCreatorWindow.renderTestCreator(psiClass, method);
     }
+
+    public boolean areModulesRegistered() {
+        return this.moduleMap.size() > 0 ? true : false;
+    }
+
+    public TestCaseService getTestCaseService() {
+        SessionInstance sessionInstance = getClient().getSessionInstance();
+        return new TestCaseService(sessionInstance);
+    }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 }

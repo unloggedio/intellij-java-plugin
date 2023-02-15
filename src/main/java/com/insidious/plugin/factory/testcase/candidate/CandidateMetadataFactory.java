@@ -81,7 +81,7 @@ public class CandidateMetadataFactory {
 
 
             if (returnValue.getType() == null || returnValue.getType().equals("V")
-                            || returnValue.getProb() == null
+                    || returnValue.getProb() == null
             ) {
                 // either the function has no return value (need not be mocked) or
                 // we failed to identify the return value in the scan, in that case this is a bug
@@ -129,12 +129,14 @@ public class CandidateMetadataFactory {
                         continue;
                     }
                     previousReturnValue = newReturnValue;
-                    nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
+                    String nameForUse = nameFactory.getNameForUse(newReturnValue, methodCallExpression.getMethodName());
 
-                    testGenerationState.generateParameterName(
-                            methodCallExpression.getReturnValue(),
-                            methodCallExpression.getMethodName()
-                    );
+                    if (nameForUse == null) {
+                        testGenerationState.generateParameterName(
+                                methodCallExpression.getReturnValue(),
+                                methodCallExpression.getMethodName()
+                        );
+                    }
 
                     methodCallExpression.writeReturnValue(objectRoutineScript, testConfiguration, testGenerationState);
                     if (firstCall) {

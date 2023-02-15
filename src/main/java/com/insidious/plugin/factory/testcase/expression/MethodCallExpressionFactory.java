@@ -17,6 +17,8 @@ import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class MethodCallExpressionFactory {
@@ -92,7 +94,7 @@ public class MethodCallExpressionFactory {
             callSubject = mainSubject;
         }
         MethodCallExpression callExpression = MethodCallExpression("when", callSubject,
-                VariableContainer.from(List.of(whenExpression)), null
+                VariableContainer.from(Collections.singletonList(whenExpression)), null
         );
 //        callExpression.setStaticCall(true);
         return callExpression;
@@ -111,7 +113,7 @@ public class MethodCallExpressionFactory {
 
         MethodCallExpression mock = new MethodCallExpression("mock",
                 configuration.getMockFramework()
-                        .getMockClassParameter(), List.of(whenExpression), null, 0);
+                        .getMockClassParameter(), Collections.singletonList(whenExpression), null, 0);
         mock.setStaticCall(true);
         mock.setMethodAccess(Opcodes.ACC_PUBLIC);
         return mock;
@@ -130,15 +132,10 @@ public class MethodCallExpressionFactory {
 
         MethodCallExpression mockStatic = new MethodCallExpression("mockStatic",
                 configuration.getMockFramework()
-                        .getMockClassParameter(), List.of(whenExpression), null, 0);
+                        .getMockClassParameter(), Collections.singletonList(whenExpression), null, 0);
         mockStatic.setMethodAccess(Opcodes.ACC_PUBLIC);
         mockStatic.setStaticCall(true);
         return mockStatic;
-
-    }
-
-    public static MethodCallExpression InitNoArgsConstructor(Parameter targetClassname) {
-        return new MethodCallExpression("<init>", null, List.of(), targetClassname, 0);
 
     }
 
@@ -146,9 +143,9 @@ public class MethodCallExpressionFactory {
         List<Parameter> valueToReturn;
         if (returnValue.isPrimitiveType()) {
             returnValue.clearNames();
-            valueToReturn = List.of(returnValue);
+            valueToReturn = Collections.singletonList(returnValue);
         } else {
-            valueToReturn = List.of(returnValue);
+            valueToReturn = Collections.singletonList(returnValue);
         }
         MethodCallExpression thenReturn = MethodCallExpression(
                 "thenReturn", null, VariableContainer.from(valueToReturn), null);
@@ -162,7 +159,7 @@ public class MethodCallExpressionFactory {
     public static Expression MockitoThenThrow(Parameter exceptionValue) {
 
         MethodCallExpression thenThrow = MethodCallExpression("thenThrow", null,
-                VariableContainer.from(List.of(exceptionValue)),
+                VariableContainer.from(Collections.singletonList(exceptionValue)),
                 null);
         thenThrow.setMethodAccess(Opcodes.ACC_PUBLIC);
         return thenThrow;
@@ -173,7 +170,7 @@ public class MethodCallExpressionFactory {
 
     public static Expression ToJson(Parameter object) {
         MethodCallExpression toJson = MethodCallExpression("toJson", GsonClass,
-                VariableContainer.from(List.of(object)),
+                VariableContainer.from(Collections.singletonList(object)),
                 null);
         toJson.setMethodAccess(Opcodes.ACC_PUBLIC);
 
@@ -189,7 +186,7 @@ public class MethodCallExpressionFactory {
                         .AssertEqualMethod(),
                 testConfiguration.getTestFramework()
                         .AssertClassParameter(),
-                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
+                VariableContainer.from(Arrays.asList(returnValue, returnSubjectInstanceName)), null
         );
         assertEquals.setStaticCall(true);
         assertEquals.setMethodAccess(Opcodes.ACC_PUBLIC);
@@ -205,7 +202,7 @@ public class MethodCallExpressionFactory {
                         .AssertArrayEqualsMethod(),
                 testConfiguration.getTestFramework()
                         .AssertClassParameter(),
-                VariableContainer.from(List.of(returnValue, returnSubjectInstanceName)), null
+                VariableContainer.from(Arrays.asList(returnValue, returnSubjectInstanceName)), null
         );
 
         assertArrayEquals.setStaticCall(true);
@@ -221,7 +218,7 @@ public class MethodCallExpressionFactory {
                         .AssertFalseMethod(),
                 testConfiguration.getTestFramework()
                         .AssertClassParameter(),
-                VariableContainer.from(List.of(paramInstanceName)), null
+                VariableContainer.from(Collections.singletonList(paramInstanceName)), null
         );
 
         assertFalse.setStaticCall(true);
@@ -231,14 +228,14 @@ public class MethodCallExpressionFactory {
 
     public static MethodCallExpression FromJson(Parameter object) {
         MethodCallExpression fromJson = MethodCallExpression("fromJson", GsonClass,
-                VariableContainer.from(List.of(object)), null);
+                VariableContainer.from(Collections.singletonList(object)), null);
         fromJson.setMethodAccess(Opcodes.ACC_PUBLIC);
         return fromJson;
     }
 
     public static MethodCallExpression FromJsonFetchedFromFile(Parameter object) {
         MethodCallExpression valueOf = MethodCallExpression("ValueOf", null,
-                VariableContainer.from(List.of(object)),
+                VariableContainer.from(Collections.singletonList(object)),
                 null);
         valueOf.setStaticCall(true);
         valueOf.setMethodAccess(Opcodes.ACC_PUBLIC);
@@ -263,9 +260,7 @@ public class MethodCallExpressionFactory {
                 .append(".")
                 .append(value);
 
-        PlainValueExpression enumExp = new PlainValueExpression(rhsExpressionBuilder.toString());
-
-        return enumExp;
+        return new PlainValueExpression(rhsExpressionBuilder.toString());
     }
 
     public static MethodCallExpression CloseStaticMock(Parameter object) {
@@ -274,7 +269,7 @@ public class MethodCallExpressionFactory {
 
         // TODO : need to add params ? do we need param inside close method of @AfterEach
         MethodCallExpression close = MethodCallExpression("close", object,
-                VariableContainer.from(List.of(closeExpression)),
+                VariableContainer.from(Collections.singletonList(closeExpression)),
                 null);
 
         close.setMethodAccess(Opcodes.ACC_PUBLIC);

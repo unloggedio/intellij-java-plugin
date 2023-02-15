@@ -49,7 +49,6 @@ public class TestCaseService implements Runnable {
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
         this.project = sessionInstance.getProject();
-//        this.sessionInstance.submitTask(this);
     }
 
     public void startRun()

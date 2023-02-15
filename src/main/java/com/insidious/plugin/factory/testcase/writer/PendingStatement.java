@@ -22,10 +22,7 @@ import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -248,7 +245,7 @@ public class PendingStatement {
             while (matcher.find()) {
                 String matchedString = matcher.group();
                 String className = matcher.group(1);
-                ClassName classNameType = ClassName.bestGuess(className.split("\\.class")[0]);
+                TypeName classNameType = ClassTypeUtils.createTypeFromNameString(className.split("\\.class")[0]);
                 int matchedStartIndex = parameterString.indexOf(matchedString) + 1;
                 parameterString = parameterString.substring(0, matchedStartIndex) + "any($T.class)" +
                         parameterString.substring(matchedStartIndex + matchedString.length() - 1);
@@ -629,7 +626,7 @@ public class PendingStatement {
                         .getSerializedValue()));
                 parameterWithValue.setType("java.lang.String");
                 MethodCallExpression mce = new MethodCallExpression("<init>", parameter,
-                        List.of(parameterWithValue), parameter, 0);
+                        Collections.singletonList(parameterWithValue), parameter, 0);
                 this.expressionList.add(mce);
 
             } else if (!serializedValue.isEmpty()) {

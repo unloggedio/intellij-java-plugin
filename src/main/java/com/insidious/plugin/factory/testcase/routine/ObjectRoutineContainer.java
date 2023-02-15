@@ -71,12 +71,12 @@ public class ObjectRoutineContainer {
         }
         if (!hasTargetInstanceClassConstructor) {
             TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
-            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, List.of(),
+            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, Collections.emptyList(),
                     testSubject, 0);
             constructorMethod.setMethodAccess(1);
             newTestCaseMetadata.setMainMethod(constructorMethod);
             newTestCaseMetadata.setTestSubject(testSubject);
-            newTestCaseMetadata.setFields(VariableContainer.from(List.of()));
+            newTestCaseMetadata.setFields(VariableContainer.from(Collections.emptyList()));
             constructor.setTestCandidateList(newTestCaseMetadata);
         }
 
@@ -254,7 +254,7 @@ public class ObjectRoutineContainer {
             classVariableContainer.add(parameter);
             MethodCallExpression injectMethodCall = new MethodCallExpression(
                     "injectField", testUtilClassSubject,
-                    List.of(mainSubject, parameter), null, 0);
+                    Arrays.asList(mainSubject, parameter), null, 0);
             injectMethodCall.setStaticCall(true);
             PendingStatement.in(builderMethodScript, testGenerationState)
                     .writeExpression(injectMethodCall)
@@ -372,7 +372,7 @@ public class ObjectRoutineContainer {
                     .filter(e -> e.getSubject()
                             .getValue() == fieldParameter.getValue())
                     .findAny();
-            if (foundUsage.isEmpty()) {
+            if (!foundUsage.isPresent()) {
                 // field is not actually used anywhere, so we dont want to create it
                 continue;
             }

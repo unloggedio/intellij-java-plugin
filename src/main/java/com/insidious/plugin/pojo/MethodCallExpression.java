@@ -251,7 +251,8 @@ public class MethodCallExpression implements Expression, Serializable {
         //////////////////////// FUNCTION CALL ////////////////////////
 
         // return type == V ==> void return type => no return value
-        boolean isException = mainMethodReturnValue.getProbeInfo()
+        DataInfo probeInfo = mainMethodReturnValue.getProbeInfo();
+        boolean isException = probeInfo != null && probeInfo
                 .getEventType() == EventType.METHOD_EXCEPTIONAL_EXIT;
         if (isException) {
             PendingStatement.in(objectRoutineScript, testGenerationState)

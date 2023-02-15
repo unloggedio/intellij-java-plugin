@@ -61,13 +61,14 @@
     <extensions defaultExtensionNs="com.intellij">
         <!--        <notificationGroup id="com.insidious" displayType="BALLOON"/>-->
         <!--        <postStartupActivity implementation="com.insidious.plugin.factory.InsidiousService"/>-->
-        <toolWindow id="Unlogged" secondary="false" icon="/icons/png/logo_unlogged.png" anchor="bottom"
+        <toolWindow id="Unlogged" secondary="false" icon="/icons/png/logo_unlogged.png" anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>
         <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>
         <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>
+        <!--        <editorFactoryMouseListener-->
+        <!--                implementation="com.insidious.plugin.ui.InsidiousCaretListener"/>-->
     </extensions>
-
 </idea-plugin>
