@@ -179,6 +179,55 @@ public class SessionInstance {
         return dataEvent;
     }
 
+    public static void
+    extractTemplateMap(PsiClassReferenceType classReferenceType, List<Parameter> templateMap) {
+        char templateChar = 'D';
+        boolean hasGenericTemplate = false;
+        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
+        for (PsiType typeTemplateParameter : typeTemplateParameters) {
+            templateChar++;
+            Parameter value = new Parameter();
+            String canonicalText = typeTemplateParameter.getCanonicalText();
+            // <? super ClassName>
+            if (canonicalText.contains(" super ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" super ") + " super ".length());
+            }
+
+            // <? extends ClassName>
+            if (canonicalText.contains(" extends ")) {
+                canonicalText = canonicalText.substring(
+                        canonicalText.indexOf(" extends ") + " extends ".length());
+            }
+            if (canonicalText.length() == 1) {
+                hasGenericTemplate = true;
+                break;
+            }
+            logger.warn("Setting template type for parameter[" + templateChar + "]: "
+                    + canonicalText + " for parameter: [" + classReferenceType);
+            value.setType(canonicalText);
+            String templateKey = String.valueOf(templateChar);
+            value.setName(templateKey);
+            Optional<Parameter> existingTemplateOptional = templateMap.stream()
+                    .filter(e -> e.getName()
+                            .equals(templateKey))
+                    .findFirst();
+            if (existingTemplateOptional.isPresent()) {
+                Parameter existingValue = existingTemplateOptional.get();
+                if (existingValue.getType()
+                        .length() < 2) {
+                    templateMap.remove(existingTemplateOptional.get());
+                    templateMap.add(value);
+                }
+            } else {
+                templateMap.add(value);
+            }
+        }
+        if (hasGenericTemplate) {
+            templateMap.clear();
+        }
+    }
+
     @NotNull
     private Map<String, LogFile> getLogFileMap() {
         Map<String, LogFile> logFileMap = new HashMap<>();
@@ -565,7 +614,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Long, DataEventWithSessionId> createEventIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading event info index");
@@ -583,7 +631,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Integer, TypeInfoDocument> createTypeInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading type info index");
@@ -600,7 +647,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Long, ObjectInfoDocument> createObjectInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading object info index");
@@ -616,7 +662,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(objectIndexFile);
 
     }
-
 
     private ChronicleMap<Long, Parameter> createParameterIndex() throws IOException {
 
@@ -664,7 +709,6 @@ public class SessionInstance {
 
     }
 
-
     private ChronicleMap<Integer, MethodInfo> createMethodInfoIndex() throws IOException {
 
         checkProgressIndicator(null, "Loading method info index");
@@ -681,7 +725,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
 
     }
-
 
     private ChronicleMap<String, MethodInfo> createMethodInfoByNameIndex() throws IOException {
 
@@ -700,7 +743,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(methodIndexFile);
 
     }
-
 
     private ChronicleMap<Integer, ClassInfo> createClassInfoIndex() throws IOException {
 
@@ -738,7 +780,6 @@ public class SessionInstance {
         return probeInfoMapBuilder.createPersistedTo(classIndexFile);
 
     }
-
 
     public Collection<TracePoint> queryTracePointsByValue(SearchQuery searchQuery) {
         List<TracePoint> tracePointList = new LinkedList<>();
@@ -1788,7 +1829,6 @@ public class SessionInstance {
         return eventFile;
     }
 
-
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFileV2(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
         logger.warn("Read events from file: " + archiveFile);
@@ -1807,7 +1847,6 @@ public class SessionInstance {
         logger.warn("Read events took: " + ((end - start) / 1000));
         return events;
     }
-
 
     public ReplayData fetchObjectHistoryByObjectId(FilteredDataEventsRequest filteredDataEventsRequest) {
 
@@ -2289,7 +2328,6 @@ public class SessionInstance {
 //            e.printStackTrace();
         }
     }
-
 
     private boolean processPendingThreadFiles(
             ThreadProcessingState threadState,
@@ -3528,10 +3566,6 @@ public class SessionInstance {
         return typeInfoDocument;
     }
 
-    private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
-        return objectInfoIndex.get(parameterValue);
-    }
-
 //    private ObjectInfoDocument getObjectInfoDocumentRaw(long parameterValue) {
 //        ResultSet<ObjectInfoDocument> result = objectIndexCollection.retrieve(
 //                equal(ObjectInfoDocument.OBJECT_ID, parameterValue));
@@ -3542,6 +3576,10 @@ public class SessionInstance {
 //        result.close();
 //        return objectInfo;
 //    }
+
+    private ObjectInfoDocument getObjectInfoDocument(long parameterValue) {
+        return objectInfoIndex.get(parameterValue);
+    }
 
     private long getFolderSize(File folder) {
         long length = 0;
@@ -3650,7 +3688,6 @@ public class SessionInstance {
         // check for the return value type if its enum
         checkAndSetParameterEnumIfYesMakeNameCamelCase(methodCallExpression.getReturnValue());
     }
-
 
     private void checkAndSetParameterEnumIfYesMakeNameCamelCase(Parameter param) {
         if (param == null || param.getType() == null)
@@ -3770,53 +3807,9 @@ public class SessionInstance {
                     }
 
                     if (classReferenceType.hasParameters()) {
-                        PsiType[] typeTemplateParameters = classReferenceType.getParameters();
                         parameterFromProbe.setContainer(true);
                         List<Parameter> templateMap = parameterFromProbe.getTemplateMap();
-                        char templateChar = 'D';
-                        boolean hasGenericTemplate = false;
-                        for (PsiType typeTemplateParameter : typeTemplateParameters) {
-                            templateChar++;
-                            Parameter value = new Parameter();
-                            String canonicalText = typeTemplateParameter.getCanonicalText();
-                            // <? super ClassName>
-                            if (canonicalText.contains(" super ")) {
-                                canonicalText = canonicalText.substring(
-                                        canonicalText.indexOf(" super ") + " super ".length());
-                            }
-
-                            // <? extends ClassName>
-                            if (canonicalText.contains(" extends ")) {
-                                canonicalText = canonicalText.substring(
-                                        canonicalText.indexOf(" extends ") + " extends ".length());
-                            }
-                            if (canonicalText.length() == 1) {
-                                hasGenericTemplate = true;
-                                break;
-                            }
-                            logger.warn("Setting template type for parameter[" + templateChar + "]: "
-                                    + canonicalText + " for parameter: [" + classReferenceType);
-                            value.setType(canonicalText);
-                            String templateKey = String.valueOf(templateChar);
-                            value.setName(templateKey);
-                            Optional<Parameter> existingTemplateOptional = templateMap.stream()
-                                    .filter(e -> e.getName()
-                                            .equals(templateKey))
-                                    .findFirst();
-                            if (existingTemplateOptional.isPresent()) {
-                                Parameter existingValue = existingTemplateOptional.get();
-                                if (existingValue.getType()
-                                        .length() < 2) {
-                                    templateMap.remove(existingTemplateOptional.get());
-                                    templateMap.add(value);
-                                }
-                            } else {
-                                templateMap.add(value);
-                            }
-                        }
-                        if (hasGenericTemplate) {
-                            templateMap.clear();
-                        }
+                        extractTemplateMap(classReferenceType, templateMap);
                     }
                 }
             }

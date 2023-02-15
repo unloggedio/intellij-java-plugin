@@ -21,7 +21,7 @@ public class TestCaseGenerationConfiguration {
 
 
     private final TestFramework testFramework;
-    private String testName;
+    private String testMethodName;
 
     public MockFramework getMockFramework() {
         return mockFramework;
@@ -92,11 +92,11 @@ public class TestCaseGenerationConfiguration {
         this.testCandidateMetadataList = testCandidateMetadataList;
     }
 
-    public void setTestName(String text) {
-        this.testName = text;
+    public void setTestMethodName(String text) {
+        this.testMethodName = text;
     }
 
     public String getTestMethodName() {
-        return testName;
+        return testMethodName;
     }
 }

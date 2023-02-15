@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -12,6 +13,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.*;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,7 +68,7 @@ public class TestCaseDesigner {
                 TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
 
-        testCaseGenerationConfiguration.setTestName(testMethodName);
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
         this.currentMethod = method;
         this.currentClass = psiClass;
@@ -135,7 +137,7 @@ public class TestCaseDesigner {
 
             @Override
             public void focusLost(FocusEvent e) {
-                testCaseGenerationConfiguration.setTestName(testMethodNameField.getText());
+                testCaseGenerationConfiguration.setTestMethodName(testMethodNameField.getText());
                 updatePreviewTestCase();
             }
         });
@@ -147,18 +149,20 @@ public class TestCaseDesigner {
         Editor editor;
         EditorFactory editorFactory = EditorFactory.getInstance();
         int scrollIndex = 0;
+        int offset = 0;
         try {
             String testCaseUnit = currentMethod.getProject()
                     .getService(InsidiousService.class).getTestCandidateCode(testCaseGenerationConfiguration);
             String[] codeLines = testCaseUnit.split("\n");
             int classStartIndex = 0;
+            offset = testCaseUnit.indexOf(testCaseGenerationConfiguration.getTestMethodName());
             for (String codeLine : codeLines) {
-                if (codeLine.contains("public final")) {
+                if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
                     break;
                 }
                 classStartIndex++;
             }
-            scrollIndex = classStartIndex;
+            scrollIndex = Math.max(classStartIndex + 10, codeLines.length);
 
             Document document = editorFactory.createDocument(testCaseUnit);
             editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, true);
@@ -174,12 +178,14 @@ public class TestCaseDesigner {
 
         testCasePreviewPanel.removeAll();
         testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
-        editor.getScrollingModel().scrollTo(new LogicalPosition(scrollIndex + 1, 0, true), ScrollType.CENTER_UP);
+        editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
+        editor.getScrollingModel().scrollTo(new LogicalPosition(scrollIndex + 1, 0, true), ScrollType.CENTER_DOWN);
 
     }
 
 
     private TestCandidateMetadata createTestCandidate() {
+        InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
         Parameter testSubjectParameter = new Parameter();
@@ -192,7 +198,18 @@ public class TestCaseDesigner {
         if (currentMethod.getReturnType() != null) {
             returnValue = new Parameter();
             returnValue.setValue(random.nextLong());
-            returnValue.setType(psiTypeToJvmType(currentMethod.getReturnType().getCanonicalText()));
+
+            PsiType returnType = currentMethod.getReturnType();
+            if (returnType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType returnClassType = (PsiClassReferenceType) returnType;
+                returnValue.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
+                if (returnClassType.hasParameters()) {
+                    SessionInstance.extractTemplateMap(returnClassType, returnValue.getTemplateMap());
+                    returnValue.setContainer(true);
+                }
+            } else {
+                returnValue.setType(psiTypeToJvmType(returnType.getCanonicalText()));
+            }
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
             returnValue.setProb(returnValueProbe);
         }
@@ -202,7 +219,15 @@ public class TestCaseDesigner {
         for (PsiParameter parameter : parameterList.getParameters()) {
             Parameter argumentParameter = new Parameter();
             argumentParameter.setValue(random.nextLong());
-            argumentParameter.setType(psiTypeToJvmType(parameter.getType().getCanonicalText()));
+            PsiType parameterPsiType = parameter.getType();
+            argumentParameter.setType(psiTypeToJvmType(parameterPsiType.getCanonicalText()));
+            if (parameterPsiType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterPsiType;
+                if (classReferenceType.hasParameters()) {
+                    SessionInstance.extractTemplateMap(classReferenceType, argumentParameter.getTemplateMap());
+                    argumentParameter.setContainer(true);
+                }
+            }
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProb(parameterProbe);
             argumentParameter.setName(parameter.getName());
