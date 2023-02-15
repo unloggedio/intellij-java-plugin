@@ -852,7 +852,7 @@ final public class InsidiousService implements Disposable {
                     @Override
                     public void run(@NotNull ProgressIndicator indicator) {
                         final InsidiousService insidiousService = project.getService(InsidiousService.class);
-                        insidiousService.getClient()
+                        client
                                 .getProjectSessions(new GetProjectSessionsCallback() {
                                     @Override
                                     public void error(String message) {
@@ -862,15 +862,24 @@ final public class InsidiousService implements Disposable {
 
                                     @Override
                                     public void success(List<ExecutionSession> executionSessionList) {
-                                        ExecutionSession executionSession = executionSessionList.get(0);
-                                        SessionInstance sessionInstance = null;
                                         try {
-                                            sessionInstance = new SessionInstance(executionSession, project);
+                                            SessionInstance sessionInstance;
+                                            if (executionSessionList.size() == 0) {
+                                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+                                                ExecutionSession executionSession = new ExecutionSession();
+                                                executionSession.setPath(pathToSessions);
+                                                executionSession.setSessionId("na");
+                                                sessionInstance = new SessionInstance(executionSession, project);
+                                            } else {
+                                                ExecutionSession executionSession = executionSessionList.get(0);
+                                                sessionInstance = new SessionInstance(executionSession, project);
+                                            }
+                                            client.setSessionInstance(sessionInstance);
+                                            testCaseService = new TestCaseService(sessionInstance);
+
                                         } catch (SQLException | IOException e) {
                                             throw new RuntimeException(e);
                                         }
-                                        client.setSessionInstance(sessionInstance);
-                                        testCaseService = new TestCaseService(sessionInstance);
 
                                     }
                                 });

@@ -14,6 +14,7 @@ import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.psi.*;
 import com.intellij.ui.components.JBScrollPane;
 import org.jetbrains.annotations.Nullable;
+import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
@@ -41,6 +42,8 @@ public class TestCaseCreator {
     private PsiMethod currentMethod;
     private PsiClass currentClass;
 
+    private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
+
     public TestCaseCreator() {
     }
 
@@ -53,6 +56,9 @@ public class TestCaseCreator {
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
+        testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+        );
 
 
         this.currentMethod = method;
@@ -64,10 +70,6 @@ public class TestCaseCreator {
         PsiParameterList methodParameterList = method.getParameterList();
 
         tabbedConfigurationPanel.removeAll();
-        Dimension argumentsContainerPanelDimension = new Dimension(600, 800);
-//        tabbedConfigurationPanel.setMaximumSize(argumentsContainerPanelDimension);
-//        tabbedConfigurationPanel.setMinimumSize(argumentsContainerPanelDimension);
-//        tabbedConfigurationPanel.setPreferredSize(argumentsContainerPanelDimension);
 
         JPanel argumentsPanel = new JPanel(new BorderLayout());
         argumentsPanel.setAlignmentX(0);
@@ -128,8 +130,19 @@ public class TestCaseCreator {
         try {
             String testCaseUnit = currentMethod.getProject().getService(InsidiousService.class)
                     .getTestCandidateCode(generationConfiguration);
+            String[] codeLines = testCaseUnit.split("\n");
+            int classStartIndex = 0;
+            for (String codeLine : codeLines) {
+                if (codeLine.contains("public final")) {
+                    break;
+                }
+                classStartIndex++;
+            }
+            int scrollIndex = Math.max(classStartIndex + 10, codeLines.length);
+
             Document document = editorFactory.createDocument(testCaseUnit);
             editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, true);
+            editor.getScrollingModel().scrollVertically(scrollIndex);
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -151,12 +164,14 @@ public class TestCaseCreator {
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());
-        testSubjectParameter.setProb(new DataEventWithSessionId());
+        DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
+        testSubjectParameter.setProb(testSubjectParameterProbe);
 
         Parameter returnValue = new Parameter();
         returnValue.setValue(random.nextLong());
         returnValue.setType(psiTypeToJvmType(currentMethod.getReturnType().getCanonicalText()));
-        returnValue.setProb(new DataEventWithSessionId());
+        DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
+        returnValue.setProb(returnValueProbe);
 
         PsiParameterList parameterList = currentMethod.getParameterList();
         List<Parameter> arguments = new ArrayList<>(parameterList.getParametersCount());
@@ -164,7 +179,9 @@ public class TestCaseCreator {
             Parameter argumentParameter = new Parameter();
             argumentParameter.setValue(random.nextLong());
             argumentParameter.setType(psiTypeToJvmType(parameter.getType().getCanonicalText()));
-            argumentParameter.setProb(new DataEventWithSessionId());
+            DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
+            argumentParameter.setProb(parameterProbe);
+            argumentParameter.setName(parameter.getName());
             arguments.add(argumentParameter);
         }
 
@@ -173,6 +190,7 @@ public class TestCaseCreator {
                 currentMethod.getName(), testSubjectParameter, arguments, returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
+        mainMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
         testCandidateMetadata.setMainMethod(mainMethod);
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);

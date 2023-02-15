@@ -13,7 +13,7 @@ public enum ConstructorStrategy {
             case JSON_DESERIALIZE:
                 return "JSON value deserialization";
             case MANUAL_CODE:
-                return "Create manually";
+                return "Edit in code manually";
         }
         return "Unknown";
     }

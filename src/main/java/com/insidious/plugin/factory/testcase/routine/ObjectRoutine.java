@@ -89,10 +89,8 @@ public class ObjectRoutine {
             SessionInstance sessionInstance,
             VariableContainer fieldsContainer
     ) {
-        TestCandidateMetadata lastCandidate = generationConfiguration
-                .getTestCandidateMetadataList()
-                .get(generationConfiguration.getTestCandidateMetadataList()
-                        .size() - 1);
+        TestCandidateMetadata lastCandidate = generationConfiguration.getTestCandidateMetadataList()
+                .get(generationConfiguration.getTestCandidateMetadataList().size() - 1);
 
         MethodCallExpression lastCandidateMainMethod = (MethodCallExpression) lastCandidate.getMainMethod();
         ObjectRoutineScript scriptContainer = new ObjectRoutineScript(
