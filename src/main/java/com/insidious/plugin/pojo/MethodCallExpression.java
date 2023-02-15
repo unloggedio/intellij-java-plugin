@@ -234,7 +234,7 @@ public class MethodCallExpression implements Expression, Serializable {
         List<Parameter> arguments = getArguments();
         if (arguments != null) {
             for (Parameter parameter : arguments) {
-                if (parameter.isPrimitiveType() || parameter.getValue() < 1) {
+                if (parameter.isPrimitiveType() || parameter.getValue()  == 0) {
                     // we don't need boolean values in a variable, always use boolean values directly
                     continue;
                 }

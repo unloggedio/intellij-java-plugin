@@ -51,32 +51,14 @@ public class TestCaseService implements Runnable {
         this.project = sessionInstance.getProject();
     }
 
-    public void startRun()
-    {
-        this.sessionInstance.submitTask(this);
-    }
-
-    public RefreshButtonStateManager getRefreshButtonStateManager() {
-        return refreshButtonStateManager;
-    }
-
-    public void setRefreshButtonStateManager(RefreshButtonStateManager refreshButtonStateManager) {
-        this.refreshButtonStateManager = refreshButtonStateManager;
-    }
-
     @NotNull
-    private static TestCaseUnit buildTestUnitFromScript(
-            ObjectRoutineContainer objectRoutineContainer,
-            ObjectRoutineScriptContainer testCaseScript
-    ) {
+    private static TestCaseUnit
+    buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
         TypeSpec.Builder typeSpecBuilder = TypeSpec
                 .classBuilder(generatedTestClassName)
-                .addModifiers(
-                        Modifier.PUBLIC,
-                        Modifier.FINAL
-                );
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
 
 
         typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
@@ -93,8 +75,7 @@ public class TestCaseService implements Runnable {
         }
 
 
-        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines()
-                .size());
+        logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
         logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
             if (objectRoutine.getName()
@@ -131,28 +112,34 @@ public class TestCaseService implements Runnable {
 
             eventProperties.put("test_case_lines", number_of_lines);
             if (number_of_lines <= 1) {
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("EmptyTestCaseGenerated", eventProperties);
+                UsageInsightTracker.getInstance().RecordEvent("EmptyTestCaseGenerated", eventProperties);
             } else {
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("TestCaseGenerated", null);
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("TestCaseSize", eventProperties);
+                UsageInsightTracker.getInstance().RecordEvent("TestCaseSize", eventProperties);
             }
         } catch (Exception e) {
             System.out.println("Failed to record number of lines. Statements length : " +
                     testCaseScript.getObjectRoutines()
-                            .get(testCaseScript.getObjectRoutines()
-                                    .size() - 1)
+                            .get(testCaseScript.getObjectRoutines().size() - 1)
                             .getStatements()
                             .size());
         }
 
-        TestCaseUnit testCaseUnit = new TestCaseUnit(javaFile.toString(),
+        return new TestCaseUnit(javaFile.toString(),
                 objectRoutineContainer.getPackageName(),
                 generatedTestClassName, testCaseScript.getTestMethodName(), testCaseScript.getTestGenerationState(),
                 testClassSpec);
-        return testCaseUnit;
+    }
+
+    public void startRun() {
+        this.sessionInstance.submitTask(this);
+    }
+
+    public RefreshButtonStateManager getRefreshButtonStateManager() {
+        return refreshButtonStateManager;
+    }
+
+    public void setRefreshButtonStateManager(RefreshButtonStateManager refreshButtonStateManager) {
+        this.refreshButtonStateManager = refreshButtonStateManager;
     }
 
     @NotNull
@@ -168,8 +155,7 @@ public class TestCaseService implements Runnable {
         TestCandidateMetadata constructorCandidate = sessionInstance.getConstructorCandidate(targetTestSubject);
         // this can be null for static classes
         if (constructorCandidate != null) {
-            generationConfiguration.getTestCandidateMetadataList()
-                    .add(0, constructorCandidate);
+            generationConfiguration.getTestCandidateMetadataList().add(0, constructorCandidate);
         }
 
         ObjectRoutineContainer objectRoutineContainer = new ObjectRoutineContainer(generationConfiguration);
@@ -321,7 +307,7 @@ public class TestCaseService implements Runnable {
         return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
     }
 
-//    @Override
+    //    @Override
     public void run_old() {
         while (true) {
             try {
@@ -349,21 +335,17 @@ public class TestCaseService implements Runnable {
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
         while (true) {
             try {
                 Thread.sleep(2000);
                 if (this.refreshButtonStateManager.isProcessing()) {
                     continue;
                 }
-                if(sessionInstance.hasNewZips())
-                {
+                if (sessionInstance.hasNewZips()) {
                     //set state to new logs
                     this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
-                }
-                else
-                {
+                } else {
                     //set state to no new logs
                     this.refreshButtonStateManager.setState_NoNewLogs(sessionInstance.getLastScannedTimeStamp());
                 }

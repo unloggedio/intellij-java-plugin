@@ -19,7 +19,7 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.Components.TestCaseCreator;
+import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.execution.runners.ProgramRunner;
@@ -111,7 +111,7 @@ final public class InsidiousService implements Disposable {
     private String selectedModule = null;
 
     private List<ProgramRunner> programRunners = new ArrayList<>();
-    private TestCaseCreator testCaseCreatorWindow;
+    private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
 
     public InsidiousService(Project project) {
@@ -322,8 +322,7 @@ final public class InsidiousService implements Disposable {
 
     public String getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
         TestCaseService testCaseService = getTestCaseService();
-        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(
-                generationConfiguration);
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
         return testCaseUnit.getCode();
     }
 
@@ -634,8 +633,8 @@ final public class InsidiousService implements Disposable {
 //        singleWindowView = new SingleWindowView(project, this);
 //        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
-        testCaseCreatorWindow = new TestCaseCreator();
-        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(testCaseCreatorWindow.getContent(),
+        testCaseDesignerWindow = new TestCaseDesigner();
+        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(testCaseDesignerWindow.getContent(),
                 "Test designer", false);
         contentManager.addContent(testCaseCreatorWindowContent);
 
@@ -835,7 +834,7 @@ final public class InsidiousService implements Disposable {
         if (method == null) {
             return;
         }
-        testCaseCreatorWindow.renderTestCreator(psiClass, method);
+        testCaseDesignerWindow.renderTestCreator(psiClass, method);
     }
 
     public boolean areModulesRegistered() {

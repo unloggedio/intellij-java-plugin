@@ -32,6 +32,7 @@ public class ObjectRoutineContainer {
     private final List<ObjectRoutine> objectRoutines = new ArrayList<>();
     private final Parameter testSubject;
     private final TestCaseGenerationConfiguration generationConfiguration;
+    private final String testMethodName;
     private String packageName;
     private ObjectRoutine currentRoutine;
     private VariableContainer fieldsContainer = new VariableContainer();
@@ -52,6 +53,7 @@ public class ObjectRoutineContainer {
         assert parameter.getType() != null;
         this.packageName = targetClassName.packageName();
         this.name = targetClassName.simpleName();
+        this.testMethodName = generationConfiguration.getTestMethodName();
         newRoutine("test" + targetClassName.simpleName());
 
         boolean hasTargetInstanceClassConstructor = false;
@@ -71,7 +73,8 @@ public class ObjectRoutineContainer {
         }
         if (!hasTargetInstanceClassConstructor) {
             TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
-            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, Collections.emptyList(),
+            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject,
+                    Collections.emptyList(),
                     testSubject, 0);
             constructorMethod.setMethodAccess(1);
             newTestCaseMetadata.setMainMethod(constructorMethod);
@@ -210,7 +213,8 @@ public class ObjectRoutineContainer {
 
         ObjectRoutine constructorRoutine = getConstructor();
         ObjectRoutineScript builderMethodScript = constructorRoutine
-                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance, fieldsContainer.clone());
+                .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
+                        fieldsContainer.clone());
 
         @NotNull List<Parameter> constructorNonPojoParams =
                 ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
@@ -284,12 +288,14 @@ public class ObjectRoutineContainer {
             }
 
 
-            String testMethodName = ((MethodCallExpression) objectRoutine.getTestCandidateList()
-                    .get(objectRoutine.getTestCandidateList()
-                            .size() - 1)
-                    .getMainMethod()).getMethodName();
-
-            container.setTestMethodName(testMethodName);
+            if (testMethodName != null) {
+                container.setTestMethodName(testMethodName);
+            } else {
+                String testMethodNameFromMethod = ((MethodCallExpression) objectRoutine.getTestCandidateList()
+                        .get(objectRoutine.getTestCandidateList().size() - 1)
+                        .getMainMethod()).getMethodName();
+                container.setTestMethodName(testMethodNameFromMethod);
+            }
         }
 
         for (Parameter staticMock : staticMocks.values()) {

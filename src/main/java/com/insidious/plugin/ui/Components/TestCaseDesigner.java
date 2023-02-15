@@ -7,9 +7,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.intellij.ide.highlighter.JavaFileType;
-import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.*;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
 import com.intellij.psi.*;
 import com.intellij.ui.components.JBScrollPane;
@@ -25,7 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-public class TestCaseCreator {
+public class TestCaseDesigner {
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
     private JPanel namePanel;
@@ -43,8 +41,8 @@ public class TestCaseCreator {
     private PsiClass currentClass;
 
     private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
-
-    public TestCaseCreator() {
+    private TestCandidateMetadata testCandidateMetadata;
+    public TestCaseDesigner() {
     }
 
     public JComponent getContent() {
@@ -60,12 +58,17 @@ public class TestCaseCreator {
                 TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
 
+        testCandidateMetadata = createTestCandidate();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
+
+
 
         this.currentMethod = method;
         this.currentClass = psiClass;
 
         selectedMethodNameLabel.setText(psiClass.getQualifiedName() + "." + method.getName() + "()");
         testMethodNameField.setText("testMethod" + ClassTypeUtils.upperInstanceName(method.getName()));
+        testMethodNameField.addActionListener(e -> testCaseGenerationConfiguration.setTestName(testMethodNameField.getText()));
 
         PsiParameterList methodParameterList = method.getParameterList();
 
@@ -75,7 +78,6 @@ public class TestCaseCreator {
         argumentsPanel.setAlignmentX(0);
 
         JPanel argumentContainerPanel = new JPanel();
-//        argumentContainerPanel.setSize(Integer.MAX_VALUE, Integer.MAX_VALUE);
         if (methodParameterList.getParametersCount() > 0) {
             BoxLayout boxLayout = new BoxLayout(argumentContainerPanel, BoxLayout.PAGE_AXIS);
             argumentContainerPanel.setLayout(boxLayout);
@@ -83,9 +85,6 @@ public class TestCaseCreator {
             argumentContainerPanel.setAlignmentX(0);
             argumentContainerPanel.setAlignmentY(0);
             JBScrollPane parameterScrollPane = new JBScrollPane(argumentContainerPanel);
-//            parameterScrollPane.setMaximumSize(argumentsContainerPanelDimension);
-//            parameterScrollPane.setPreferredSize(argumentsContainerPanelDimension);
-//            parameterScrollPane.setMinimumSize(new Dimension(400, 100));
 
             for (PsiParameter parameter : methodParameterList.getParameters()) {
 
@@ -93,10 +92,8 @@ public class TestCaseCreator {
                 JPanel contentPanel = parameterEditor.getContent();
                 contentPanel.setAlignmentX(0);
                 contentPanel.setAlignmentY(0);
-                Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 80);
                 contentPanel.setPreferredSize(new Dimension(-1, 80));
                 contentPanel.setMaximumSize(new Dimension(800, 80));
-//                contentPanel.setMinimumSize(contentPanel.getPreferredSize());
                 argumentContainerPanel.add(contentPanel);
             }
             argumentsPanel.add(parameterScrollPane, BorderLayout.CENTER);
@@ -117,19 +114,13 @@ public class TestCaseCreator {
 
     public void updatePreviewTestCase() {
 
-        TestCandidateMetadata testCandidate = createTestCandidate();
-
-
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
-        );
-        generationConfiguration.getTestCandidateMetadataList().add(testCandidate);
 
         Editor editor;
         EditorFactory editorFactory = EditorFactory.getInstance();
+        int scrollIndex = 0;
         try {
-            String testCaseUnit = currentMethod.getProject().getService(InsidiousService.class)
-                    .getTestCandidateCode(generationConfiguration);
+            String testCaseUnit = currentMethod.getProject()
+                    .getService(InsidiousService.class).getTestCandidateCode(testCaseGenerationConfiguration);
             String[] codeLines = testCaseUnit.split("\n");
             int classStartIndex = 0;
             for (String codeLine : codeLines) {
@@ -138,11 +129,10 @@ public class TestCaseCreator {
                 }
                 classStartIndex++;
             }
-            int scrollIndex = Math.max(classStartIndex + 10, codeLines.length);
+            scrollIndex = classStartIndex;
 
             Document document = editorFactory.createDocument(testCaseUnit);
             editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, true);
-            editor.getScrollingModel().scrollVertically(scrollIndex);
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -155,6 +145,8 @@ public class TestCaseCreator {
 
         testCasePreviewPanel.removeAll();
         testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
+        editor.getScrollingModel().scrollTo(new LogicalPosition(scrollIndex + 1, 0, true), ScrollType.CENTER_UP);
+
     }
 
 
