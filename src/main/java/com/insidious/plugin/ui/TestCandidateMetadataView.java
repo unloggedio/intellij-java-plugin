@@ -24,7 +24,7 @@ public class TestCandidateMetadataView {
     private JLabel candidateNumber;
     private JPanel cardPanel;
     private JPanel borderParent;
-    private Dimension contentPanelDimensions = new Dimension(-1, 30);
+    private Dimension contentPanelDimensions = new Dimension(-1, 60);
 
     public TestCandidateMetadataView(
             TestCandidateMetadata testCandidateMetadata,
@@ -35,7 +35,8 @@ public class TestCandidateMetadataView {
         this.testCaseService = testCaseService;
         this.candidateSelectionListener = candidateSelectionListener;
         this.contentPanel.setMaximumSize(contentPanelDimensions);
-        this.contentPanel.setMaximumSize(contentPanelDimensions);
+        this.contentPanel.setMinimumSize(contentPanelDimensions);
+        this.contentPanel.setPreferredSize(contentPanelDimensions);
 
         this.generateTestCaseButton.setContentAreaFilled(false);
         this.generateTestCaseButton.setOpaque(false);
