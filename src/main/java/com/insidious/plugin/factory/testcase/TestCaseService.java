@@ -375,7 +375,6 @@ public class TestCaseService implements Runnable {
                 }
             } catch (InterruptedException ex) {
                 logger.warn("Thread interrupted scanning a new session.", ex);
-                throw new RuntimeException(ex);
             } catch (Exception e) {
                 logger.error("Exception in testcase service, scanner shutting down", e);
                 throw new RuntimeException(e);
