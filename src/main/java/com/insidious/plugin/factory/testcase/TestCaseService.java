@@ -49,6 +49,8 @@ public class TestCaseService implements Runnable {
     private boolean isProcessing;
     private RefreshButtonStateManager refreshButtonStateManager;
 
+    private boolean runThread = true;
+
     public TestCaseService(SessionInstance sessionInstance) {
         this.sessionInstance = sessionInstance;
         this.project = sessionInstance.getProject();
@@ -353,9 +355,13 @@ public class TestCaseService implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
+        while (runThread) {
             try {
                 Thread.sleep(2000);
+                if(!runThread)
+                {
+                    return;
+                }
                 if (this.refreshButtonStateManager.isProcessing()) {
                     continue;
                 }
@@ -380,6 +386,11 @@ public class TestCaseService implements Runnable {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    public void stopThread()
+    {
+        this.runThread=false;
     }
 
     private boolean hasNewSession() {
@@ -417,7 +428,7 @@ public class TestCaseService implements Runnable {
                         }
                     }
                 });
-        System.out.println("Has new sessions check : "+hasNew[0]);
+//        System.out.println("Has new sessions check : "+hasNew[0]);
         return hasNew[0];
     }
 }
