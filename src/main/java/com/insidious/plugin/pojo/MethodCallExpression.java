@@ -144,15 +144,12 @@ public class MethodCallExpression implements Expression, Serializable {
         then Generates a New Name,
      */
     private Parameter generateParameterName(Parameter parameter, ObjectRoutineScript ors) {
-        ParameterNameFactory nameFactory = ors.getTestGenerationState()
-                .getParameterNameFactory();
+        ParameterNameFactory nameFactory = ors.getTestGenerationState().getParameterNameFactory();
         String lhsExprName = nameFactory.getNameForUse(parameter, this.methodName);
-        Parameter variableExistingParameter = ors
-                .getCreatedVariables()
+        Parameter variableExistingParameter = ors.getCreatedVariables()
                 .getParameterByNameAndType(lhsExprName, parameter);
 
-        Parameter sameNameParamExisting = ors
-                .getCreatedVariables()
+        Parameter sameNameParamExisting = ors.getCreatedVariables()
                 .getParameterByName(lhsExprName);
         // If the type and the template map does not match
         // then We should have a new name for the variable,
@@ -163,10 +160,8 @@ public class MethodCallExpression implements Expression, Serializable {
             //eg: name =>  name0 =>  name1
             String oldName = nameFactory.getNameForUse(sameNameParamExisting, null);
             String newName = generateNextName(ors, oldName);
-            parameter.getNamesList()
-                    .remove(newName);
-            parameter.getNamesList()
-                    .remove(oldName);
+            parameter.getNamesList().remove(newName);
+            parameter.getNamesList().remove(oldName);
             parameter.setName(newName);
         }
         return parameter;
@@ -212,9 +207,6 @@ public class MethodCallExpression implements Expression, Serializable {
                     .endStatement();
             return;
         }
-
-
-//        objectRoutineScript.addComment("");
 
 
         DataEventWithSessionId mainMethodReturnValueProbe = mainMethodReturnValue.getProb();
@@ -268,110 +260,93 @@ public class MethodCallExpression implements Expression, Serializable {
         }
 
 
-        if (getMethodName().equals("<init>")) {
-            // there is no verification required (?) after calling constructors or methods which
-            // throw an exception
-            return;
-        }
+//        if (getMethodName().equals("<init>")) {
+//            // there is no verification required (?) after calling constructors or methods which
+//            // throw an exception
+//            return;
+//        }
 
 
-        if (mainMethodReturnValue.getType() == null || mainMethodReturnValue.getType()
-                .equals("V")) {
-            return;
-        }
-        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
-        String returnSubjectInstanceName = nameFactory.getNameForUse(mainMethodReturnValue, this.methodName);
+//        if (mainMethodReturnValue.getType() == null || mainMethodReturnValue.getType()
+//                .equals("V")) {
+//            return;
+//        }
+//        ParameterNameFactory nameFactory = testGenerationState.getParameterNameFactory();
+//        String returnSubjectInstanceName = nameFactory.getNameForUse(mainMethodReturnValue, this.methodName);
 
 
         //////////////////////////////////////////////// VERIFICATION ////////////////////////////////////////////////
 
-
         // deserialize and compare objects
-        byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
-
-
-        Parameter returnSubjectExpectedObject;
-        // not sure why there was a if condition since both the blocks are same ?
-//        if (serializedBytes.length > 0) {
-        String expectedParameterName = returnSubjectInstanceName + "Expected";
-        returnSubjectExpectedObject = Parameter.cloneParameter(mainMethodReturnValue);
-        Instant now = Instant.now();
-        // we will set a new name for this parameter
-        testGenerationState.getParameterNameFactory()
-                .setNameForParameter(returnSubjectExpectedObject, expectedParameterName);
-        returnSubjectExpectedObject.clearNames();
-        returnSubjectExpectedObject.setName(expectedParameterName);
-
-        if (testConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_CODE) || returnSubjectExpectedObject.isPrimitiveType()) {
-            if (returnSubjectExpectedObject.isPrimitiveType()) {
-                PendingStatement.in(objectRoutineScript, testGenerationState)
-                        .assignVariable(returnSubjectExpectedObject)
-                        .fromRecordedValue(testConfiguration)
-                        .endStatement();
-
-            } else {
-                PendingStatement.in(objectRoutineScript, testGenerationState)
-                        .assignVariable(returnSubjectExpectedObject)
-                        .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
-                        .endStatement();
-            }
-
-        } else if (testConfiguration.getResourceEmbedMode()
-                .equals(ResourceEmbedMode.IN_FILE)) {
-
-            String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
-            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
-            DataEventWithSessionId prob = new DataEventWithSessionId();
-            prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
-            jsonParameter.setProb(prob);
-            MethodCallExpression jsonFromFileCall = null;
-            jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
-
-            if (returnSubjectExpectedObject.getIsEnum()) {
-                PendingStatement.in(objectRoutineScript, testGenerationState)
-                        .assignVariable(returnSubjectExpectedObject)
-                        .writeExpression(MethodCallExpressionFactory.createEnumExpression(returnSubjectExpectedObject))
-                        .endStatement();
-            } else {
-                PendingStatement.in(objectRoutineScript, testGenerationState)
-                        .assignVariable(returnSubjectExpectedObject)
-                        .writeExpression(jsonFromFileCall)
-                        .endStatement();
-            }
-        }
-
-        // reconstruct object from the serialized form to an object instance in the
-        // test method to compare it with the new object, or do it the other way
-        // round ? Maybe serializing the object and then comparing the serialized
-        // string forms would be more readable ? string comparison would fail if the
-        // serialization has fields serialized in random order
-
-        // CHANGE -> we will compare the objects directly, and not their JSON values
-//        Parameter returnSubjectJsonString = ParameterFactory.createStringByName(returnSubjectInstanceName + "Json");
-//        in(objectRoutineScript)
-//                .assignVariable(returnSubjectJsonString)
-//                .writeExpression(MethodCallExpressionFactory.ToJson(mainMethodReturnValue))
-//                .endStatement();
-
-        returnSubjectExpectedObject.setValue(-1L);
-
-
-        // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
-        // then use assertArrayEquals
-        if (returnSubjectExpectedObject.getType()
-                .endsWith("[]")) {
-            PendingStatement.in(objectRoutineScript, testGenerationState)
-                    .writeExpression(MethodCallExpressionFactory
-                            .MockitoAssertArrayEquals(returnSubjectExpectedObject, mainMethodReturnValue,
-                                    testConfiguration))
-                    .endStatement();
-        } else {
-            PendingStatement.in(objectRoutineScript, testGenerationState)
-                    .writeExpression(MethodCallExpressionFactory
-                            .MockitoAssertEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
-                    .endStatement();
-        }
+//        byte[] serializedBytes = mainMethodReturnValueProbe.getSerializedValue();
+//
+//
+//        Parameter returnSubjectExpectedObject;
+//        // not sure why there was a if condition since both the blocks are same ?
+//        String expectedParameterName = returnSubjectInstanceName + "Expected";
+//        returnSubjectExpectedObject = Parameter.cloneParameter(mainMethodReturnValue);
+//        // we will set a new name for this parameter
+//        testGenerationState.getParameterNameFactory().setNameForParameter(returnSubjectExpectedObject, expectedParameterName);
+//        returnSubjectExpectedObject.clearNames();
+//        returnSubjectExpectedObject.setName(expectedParameterName);
+//
+//        if (testConfiguration.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)
+//                || returnSubjectExpectedObject.isPrimitiveType()) {
+//            if (returnSubjectExpectedObject.isPrimitiveType()) {
+//                PendingStatement.in(objectRoutineScript, testGenerationState)
+//                        .assignVariable(returnSubjectExpectedObject)
+//                        .fromRecordedValue(testConfiguration)
+//                        .endStatement();
+//
+//            } else {
+//                PendingStatement.in(objectRoutineScript, testGenerationState)
+//                        .assignVariable(returnSubjectExpectedObject)
+//                        .writeExpression(MethodCallExpressionFactory.StringExpression(new String(serializedBytes)))
+//                        .endStatement();
+//            }
+//
+//        } else if (testConfiguration.getResourceEmbedMode()
+//                .equals(ResourceEmbedMode.IN_FILE)) {
+//
+//            String nameForObject = testGenerationState.addObjectToResource(mainMethodReturnValue);
+//            @NotNull Parameter jsonParameter = Parameter.cloneParameter(mainMethodReturnValue);
+//            DataEventWithSessionId prob = new DataEventWithSessionId();
+//            prob.setSerializedValue(nameForObject.getBytes(StandardCharsets.UTF_8));
+//            jsonParameter.setProb(prob);
+//            MethodCallExpression jsonFromFileCall = null;
+//            jsonFromFileCall = MethodCallExpressionFactory.FromJsonFetchedFromFile(jsonParameter);
+//
+//            if (returnSubjectExpectedObject.getIsEnum()) {
+//                PendingStatement.in(objectRoutineScript, testGenerationState)
+//                        .assignVariable(returnSubjectExpectedObject)
+//                        .writeExpression(MethodCallExpressionFactory.createEnumExpression(returnSubjectExpectedObject))
+//                        .endStatement();
+//            } else {
+//                PendingStatement.in(objectRoutineScript, testGenerationState)
+//                        .assignVariable(returnSubjectExpectedObject)
+//                        .writeExpression(jsonFromFileCall)
+//                        .endStatement();
+//            }
+//        }
+//
+//        returnSubjectExpectedObject.setValue(-1L);
+//
+//
+//        // If the type of the returnSubjectExpectedObject is a array (int[], long[], byte[])
+//        // then use assertArrayEquals
+//        if (returnSubjectExpectedObject.getType().endsWith("[]")) {
+//            PendingStatement
+//                    .in(objectRoutineScript, testGenerationState)
+//                    .writeExpression(
+//                            MethodCallExpressionFactory.MockitoAssertArrayEquals
+//                                    (returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
+//                    .endStatement();
+//        } else {
+//            PendingStatement.in(objectRoutineScript, testGenerationState)
+//                    .writeExpression(MethodCallExpressionFactory
+//                            .MockitoAssertEquals(returnSubjectExpectedObject, mainMethodReturnValue, testConfiguration))
+//                    .endStatement();
+//        }
     }
 
     public void writeCommentTo(ObjectRoutineScript objectRoutine) {

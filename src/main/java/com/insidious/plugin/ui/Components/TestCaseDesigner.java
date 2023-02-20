@@ -1,54 +1,67 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
+import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.*;
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.ui.components.JBScrollPane;
+import com.intellij.psi.impl.source.PsiJavaFileImpl;
+import com.intellij.util.FileContentUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Date;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.nio.file.FileSystems;
+import java.util.*;
 import java.util.List;
-import java.util.Random;
 
 public class TestCaseDesigner {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
+    private final List<AssertionEditorForm> assertionForms = new ArrayList<>();
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
-    private JPanel namePanel;
-    private JTextField testMethodNameField;
     private JPanel selectedClassDetailsPanel;
     private JLabel selectedMethodNameLabel;
-    private JPanel returnValuePanel;
-    private JPanel actionPanel;
-    private JButton previewTestCaseButton;
     private JLabel returnValueTypeLabel;
-    private JTextField returnValueTextField;
     private JPanel testCasePreviewPanel;
-    private JTabbedPane tabbedConfigurationPanel;
+    private JTextField saveLocationTextField;
+    private JButton saveTestCaseButton;
+    private JPanel bottomControlPanel;
+    private JPanel configurationControlPanel;
+    private JTable assertionTable;
+    //    private JButton addNewAssertionButton;
     private PsiMethod currentMethod;
     private PsiClass currentClass;
     private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
-    private TestCandidateMetadata testCandidateMetadata;
+    private String basePath;
+    private Editor editor;
 
     public TestCaseDesigner() {
     }
@@ -62,10 +75,19 @@ public class TestCaseDesigner {
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
+        InsidiousService insidiousService = method.getProject().getService(InsidiousService.class);
+
+        if (method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
+            return;
+        }
+        basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());
+
+
+        saveLocationTextField.setText("");
         String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(method.getName());
 
         testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_CODE
         );
 
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
@@ -73,127 +95,161 @@ public class TestCaseDesigner {
         this.currentMethod = method;
         this.currentClass = psiClass;
 
-        testCandidateMetadata = createTestCandidate();
-        MethodCallExpression testMainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().add(testCandidateMetadata);
 
-        selectedMethodNameLabel.setText(psiClass.getQualifiedName() + "." + method.getName() + "()");
-        testMethodNameField.setText(testCaseGenerationConfiguration.getTestMethodName());
+        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
 
-        PsiParameterList methodParameterList = method.getParameterList();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
 
-        tabbedConfigurationPanel.removeAll();
+        selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
 
-        JPanel argumentsPanel = new JPanel(new BorderLayout());
-        argumentsPanel.setAlignmentX(0);
 
-        JPanel argumentContainerPanel = new JPanel();
-        if (methodParameterList.getParametersCount() > 0) {
-            BoxLayout boxLayout = new BoxLayout(argumentContainerPanel, BoxLayout.PAGE_AXIS);
-            argumentContainerPanel.setLayout(boxLayout);
+        saveTestCaseButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String saveLocation = saveLocationTextField.getText();
+                InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+                try {
+                    insidiousService.ensureTestUtilClass(basePath);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
 
-            argumentContainerPanel.setAlignmentX(0);
-            argumentContainerPanel.setAlignmentY(0);
-            JBScrollPane parameterScrollPane = new JBScrollPane(argumentContainerPanel);
 
-            PsiParameter @NotNull [] parameters = methodParameterList.getParameters();
-            for (int i = 0; i < parameters.length; i++) {
-                Parameter parameter = testMainMethod.getArguments().get(i);
-                ParameterEditorForm parameterEditor = new ParameterEditorForm(parameter, parameters[i]);
-                JPanel contentPanel = parameterEditor.getContent();
-                contentPanel.setAlignmentX(0);
-                contentPanel.setAlignmentY(0);
-                contentPanel.setPreferredSize(new Dimension(-1, 80));
-                contentPanel.setMaximumSize(new Dimension(800, 80));
-                parameterEditor.addChangeListener(parameter1 -> updatePreviewTestCase());
-                argumentContainerPanel.add(contentPanel);
+                File testcaseFile = new File(saveLocation);
+                testcaseFile.getParentFile().mkdirs();
+
+                logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
+                UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
+
+                if (!testcaseFile.exists()) {
+                    try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                        out.write(editor.getDocument().getText().getBytes());
+                    } catch (Exception e1) {
+                        InsidiousNotification.notifyMessage(
+                                "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
+                        );
+                    }
+                } else {
+                    InsidiousNotification.notifyMessage("File already exists: " + testcaseFile.getAbsolutePath(),
+                            NotificationType.ERROR);
+                    return;
+                }
+
+                @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                                .getPath(testcaseFile.getAbsolutePath())
+                                .toUri()
+                                .toString());
+                if (newFile == null) {
+                    return;
+                }
+                newFile.refresh(true, false);
+
+
+                List<VirtualFile> newFile1 = new ArrayList<>();
+                newFile1.add(newFile);
+                FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
+                @Nullable Document newDocument = FileDocumentManager.getInstance()
+                        .getDocument(newFile);
+
+                FileEditorManager.getInstance(currentClass.getProject())
+                        .openFile(newFile, true, true);
+                InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
+                        NotificationType.WARNING);
+
             }
-            argumentsPanel.add(parameterScrollPane, BorderLayout.CENTER);
-        } else {
-            argumentContainerPanel.add(new JLabel("Method " + method.getName() + " has no arguments"));
-            argumentsPanel.add(argumentContainerPanel);
-        }
-
-        tabbedConfigurationPanel.addTab("Method arguments (" + methodParameterList.getParametersCount() + ")",
-                argumentsPanel);
-
-
-        @Nullable PsiType returnValueType = method.getReturnType();
-        if (returnValueType != null) {
-            returnValueTypeLabel.setText(returnValueType.getPresentableText());
-        }
-
-        addChangeListeners();
+        });
         updatePreviewTestCase();
 
     }
 
     public void addChangeListeners() {
-        testMethodNameField.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                testCaseGenerationConfiguration.setTestMethodName(testMethodNameField.getText());
-                updatePreviewTestCase();
-            }
-        });
+//        testMethodNameField.addFocusListener(new FocusListener() {
+//            @Override
+//            public void focusGained(FocusEvent e) {
+//
+//            }
+//
+//            @Override
+//            public void focusLost(FocusEvent e) {
+//                testCaseGenerationConfiguration.setTestMethodName(testMethodNameField.getText());
+//                updatePreviewTestCase();
+//            }
+//        });
     }
 
     public void updatePreviewTestCase() {
 
+        InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
 
-        Editor editor;
         EditorFactory editorFactory = EditorFactory.getInstance();
         int scrollIndex = 0;
         int offset = 0;
         try {
             String testCaseUnit = currentMethod.getProject()
-                    .getService(InsidiousService.class).getTestCandidateCode(testCaseGenerationConfiguration);
-            String[] codeLines = testCaseUnit.split("\n");
+                    .getService(InsidiousService.class)
+                    .getTestCandidateCode(testCaseGenerationConfiguration);
+
+
+            if (saveLocationTextField.getText().isEmpty()) {
+
+                String packageName = ((PsiJavaFileImpl) currentClass.getContainingFile()).getPackageName();
+                String testOutputDirPath = insidiousService.getTestDirectory(packageName, basePath);
+
+                saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
+            }
+
+
+            String testCaseScript = testCaseUnit;
+
+            String[] codeLines = testCaseScript.split("\n");
             int classStartIndex = 0;
-            offset = testCaseUnit.indexOf(testCaseGenerationConfiguration.getTestMethodName());
+            offset = testCaseScript.indexOf(testCaseGenerationConfiguration.getTestMethodName());
             for (String codeLine : codeLines) {
                 if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
                     break;
                 }
                 classStartIndex++;
             }
-            scrollIndex = Math.max(classStartIndex + 10, codeLines.length);
+            scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
 
-            Document document = editorFactory.createDocument(testCaseUnit);
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, true);
+            Document document = editorFactory.createDocument(testCaseScript);
+            editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PrintStream stringWriter = new PrintStream(out);
             e.printStackTrace(stringWriter);
             Document document = editorFactory.createDocument(out.toString());
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
+            editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE,
+                    false);
         }
 
 
         testCasePreviewPanel.removeAll();
         testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
         editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
-        editor.getScrollingModel().scrollTo(new LogicalPosition(scrollIndex + 1, 0, true), ScrollType.CENTER_DOWN);
+        logger.warn("scroll to line: " + scrollIndex);
+        editor.getScrollingModel().scrollVertically(scrollIndex);
 
     }
 
 
-    private TestCandidateMetadata createTestCandidate() {
-        InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+    private List<TestCandidateMetadata> createTestCandidate() {
+
+        List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
+
+
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
+        // test subject
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());
         DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
         testSubjectParameter.setProb(testSubjectParameterProbe);
 
+        // method return value
         Parameter returnValue = null;
         if (currentMethod.getReturnType() != null) {
             returnValue = new Parameter();
@@ -214,23 +270,37 @@ public class TestCaseDesigner {
             returnValue.setProb(returnValueProbe);
         }
 
+        // method parameters
         PsiParameterList parameterList = currentMethod.getParameterList();
         List<Parameter> arguments = new ArrayList<>(parameterList.getParametersCount());
         for (PsiParameter parameter : parameterList.getParameters()) {
             Parameter argumentParameter = new Parameter();
+
             argumentParameter.setValue(random.nextLong());
+
             PsiType parameterPsiType = parameter.getType();
-            argumentParameter.setType(psiTypeToJvmType(parameterPsiType.getCanonicalText()));
             if (parameterPsiType instanceof PsiClassReferenceType) {
+                argumentParameter.setType(psiTypeToJvmType(((PsiClassReferenceType) parameterPsiType).rawType().getCanonicalText()));
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterPsiType;
                 if (classReferenceType.hasParameters()) {
                     SessionInstance.extractTemplateMap(classReferenceType, argumentParameter.getTemplateMap());
                     argumentParameter.setContainer(true);
                 }
+            } else {
+                argumentParameter.setType(psiTypeToJvmType(parameterPsiType.getCanonicalText()));
             }
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProb(parameterProbe);
             argumentParameter.setName(parameter.getName());
+
+            if (argumentParameter.getType().equals("java.lang.String")) {
+                argumentParameter.getProb().setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
+            } else if (argumentParameter.isPrimitiveType()) {
+
+            } else {
+                argumentParameter.getProb().setSerializedValue(("{" + "}").getBytes());
+            }
+
             arguments.add(argumentParameter);
         }
 
@@ -270,7 +340,71 @@ public class TestCaseDesigner {
 
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
-        return testCandidateMetadata;
+
+        if (currentMethod.getReturnType() != null) {
+            Parameter assertionExpectedValue = new Parameter();
+            assertionExpectedValue.setName(returnValue.getName() + "Expected");
+            assertionExpectedValue.setProb(new DataEventWithSessionId());
+            assertionExpectedValue.setProbeInfo(new DataInfo());
+
+
+            PsiType returnType = currentMethod.getReturnType();
+            if (returnType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType returnClassType = (PsiClassReferenceType) returnType;
+                assertionExpectedValue.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
+                if (returnClassType.hasParameters()) {
+                    SessionInstance.extractTemplateMap(returnClassType, assertionExpectedValue.getTemplateMap());
+                    assertionExpectedValue.setContainer(true);
+                }
+            } else {
+                assertionExpectedValue.setType(psiTypeToJvmType(returnType.getCanonicalText()));
+            }
+
+            TestAssertion testAssertion = new TestAssertion(
+                    AssertionType.EQUAL, assertionExpectedValue, returnValue);
+
+            testCandidateMetadata.getAssertionList().add(testAssertion);
+        }
+
+
+        // fields
+
+        Map<String, PsiField> fieldMap = new HashMap<>();
+        PsiField[] fields = currentClass.getFields();
+        for (PsiField field : fields) {
+            fieldMap.put(field.getName(), field);
+        }
+
+
+        List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(currentMethod.getBody());
+        for (PsiMethodCallExpression psiMethodCallExpression : mceList) {
+            PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
+            for (PsiElement callExpressionChild : callExpressionChildren) {
+
+            }
+        }
+
+
+        testCandidateMetadataList.add(testCandidateMetadata);
+
+        return testCandidateMetadataList;
+    }
+
+    public List<PsiMethodCallExpression> collectMethodCallExpressions(PsiElement element) {
+        ArrayList<PsiMethodCallExpression> returnList = new ArrayList<>();
+
+        if (element instanceof PsiMethodCallExpression) {
+            returnList.add((PsiMethodCallExpression) element);
+        }
+
+        PsiElement[] children = element.getChildren();
+
+        for (PsiElement child : children) {
+            returnList.addAll(collectMethodCallExpressions(child));
+        }
+
+
+        return returnList;
     }
 
     private String psiTypeToJvmType(String canonicalText) {

@@ -472,7 +472,7 @@ public class TestCaseServiceTest {
         testCandidateMetadata = sessionInstance.getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), false);
 
         List<TestCandidateMetadata> list =
-                sessionInstance.getTestCandidatesForMethod(
+                testCaseService.getTestCandidatesForMethod(
                         testCandidateMetadata.getTestSubject()
                                 .getType(), "<init>", true);
 

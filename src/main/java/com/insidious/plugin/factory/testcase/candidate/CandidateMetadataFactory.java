@@ -270,10 +270,8 @@ public class CandidateMetadataFactory {
 
             MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
 
-            if (mainMethod.getMethodName()
-                    .equals("<init>")) {
-                objectRoutineScript.getCreatedVariables()
-                        .add(mainMethod.getSubject());
+            if (mainMethod.getMethodName().equals("<init>")) {
+                objectRoutineScript.getCreatedVariables().add(mainMethod.getSubject());
                 mainMethod.setReturnValue(mainMethod.getSubject());
             }
 
@@ -281,10 +279,13 @@ public class CandidateMetadataFactory {
                 mainMethod.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
             }
 
+            for (TestAssertion testAssertion : testCandidateMetadata.getAssertionList()) {
+                testAssertion.writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            }
+
 
         } else {
-            testCandidateMetadata.getMainMethod()
-                    .writeTo(objectRoutineScript, testConfiguration, testGenerationState);
+            testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
         return objectRoutineScript;
 

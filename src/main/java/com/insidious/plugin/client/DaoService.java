@@ -8,11 +8,13 @@ import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.ThreadProcessingState;
 import com.insidious.plugin.pojo.dao.*;
+import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.Strings;
 import com.intellij.notification.NotificationType;
@@ -173,7 +175,6 @@ public class DaoService {
 
         converted.setTestSubject(getParameterByValue(testCandidateMetadata.getTestSubject()));
 
-        Set<Long> calls = new HashSet<>(testCandidateMetadata.getCallsList());
         List<com.insidious.plugin.pojo.MethodCallExpression> callsList = new ArrayList<>(0);
         if (loadCalls) {
             List<com.insidious.plugin.pojo.MethodCallExpression> methodCallsFromDb =
@@ -203,9 +204,8 @@ public class DaoService {
 //            logger.warn("Add call [" + methodCallExpressionById.getMethodName() + "] - " + methodCallExpressionById);
                 if (methodCallExpressionById.isMethodPublic()
                         || methodCallExpressionById.isMethodProtected()
-                        || "INVOKEVIRTUAL".equals(
-                        methodCallExpressionById.getEntryProbeInfo()
-                                .getAttribute("Instruction", ""))
+                        || "INVOKEVIRTUAL".equals(methodCallExpressionById.getEntryProbeInfo()
+                        .getAttribute("Instruction", ""))
                 ) {
                     callsList.add(methodCallExpressionById);
                 } else {
@@ -223,37 +223,52 @@ public class DaoService {
 
 
         } else {
-            for (Long call : calls) {
-                com.insidious.plugin.pojo.MethodCallExpression mce = new com.insidious.plugin.pojo.MethodCallExpression();
-                mce.setId(call);
-                callsList.add(mce);
-            }
             List<MethodCallExpressionInterface> mces = new ArrayList<>();
             mces.add(getMethodCallExpressionById(testCandidateMetadata.getMainMethod()));
             converted.setMainMethod(buildFromDbMce(mces).get(0));
         }
 
         List<Long> fieldParameters = testCandidateMetadata.getFields();
-//        logger.warn("\tloading " + fieldParameters.size() + " fields");
+
         for (Long fieldParameterValue : fieldParameters) {
             if (fieldParameterValue == 0L) {
                 continue;
             }
             if (loadCalls) {
                 Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList.stream()
-                        .filter(e -> e.getSubject()
-                                .getValue() == fieldParameterValue)
+                        .filter(e -> e.getSubject().getValue() == fieldParameterValue)
                         .findFirst();
                 if (callOnField.isPresent()) {
-                    converted.getFields()
-                            .add(callOnField.get()
-                                    .getSubject());
+                    converted.getFields().add(callOnField.get().getSubject());
                     continue;
                 }
             }
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
             converted.getFields()
                     .add(fieldParameter);
+        }
+
+        if (converted.getMainMethod() != null && converted.getMainMethod() instanceof com.insidious.plugin.pojo.MethodCallExpression) {
+            com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
+            com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
+            if (mainMethodReturnValue != null && !mainMethodReturnValue.getType().equals("V")) {
+
+                // deserialize and compare objects
+                byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
+                com.insidious.plugin.pojo.Parameter expectedValue;
+                String expectedParameterName = mainMethodReturnValue.getName() + "Expected";
+                expectedValue = com.insidious.plugin.pojo.Parameter.cloneParameter(mainMethodReturnValue);
+                expectedValue.clearNames();
+                expectedValue.setName(expectedParameterName);
+                DataEventWithSessionId expectedValueProbe = new DataEventWithSessionId();
+                expectedValueProbe.setSerializedValue(serializedBytes);
+                expectedValue.setProb(expectedValueProbe);
+
+
+                TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, expectedValue,
+                        mainMethodReturnValue);
+                converted.getAssertionList().add(testAssertion);
+            }
         }
 
 
@@ -704,7 +719,8 @@ public class DaoService {
                         && !paramArgTypeFromProbe.equals("Ljava/lang/Object;"))) {
                     paramArgument.setTypeForced(argumentTypeFromProbe);
                 }
-                if (argumentTypeFromProbe.equals(argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
+                if (argumentTypeFromProbe.equals(
+                        argumentTypeFromMethodDefinition) && (existingType == null || existingType.contains("$"))) {
                     paramArgument.setTypeForced(argumentTypeFromMethodDefinition);
                 }
 

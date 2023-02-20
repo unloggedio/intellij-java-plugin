@@ -34,7 +34,8 @@ public class TestCandidateTreeModel implements TreeModel {
         MethodCallExpression mainMethod = (MethodCallExpression) selectedCandidate.getMainMethod();
         this.rootNode = createRootNode(testSubjectType, mainMethod);
 
-        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(selectedCandidate.getTestSubject().getValue(),
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(
+                selectedCandidate.getTestSubject().getValue(),
                 selectedCandidate.getEntryProbeIndex(), mainMethod.getId(), false);
 
         for (TestCandidateMetadata candidate : candidates) {
@@ -138,7 +139,8 @@ public class TestCandidateTreeModel implements TreeModel {
         }
 
         text.append("• Using the checkboxes on the left, select the methods to assert.\n");
-        text.append("• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");
+        text.append(
+                "• Using the checkboxes in the dropdown, select the calls to mock so that the parent method can be tested.\n\n");
 
         return text.toString();
     }

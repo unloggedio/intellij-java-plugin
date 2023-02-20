@@ -41,6 +41,7 @@ import com.intellij.openapi.progress.ProcessCanceledException;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.progress.Task;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
@@ -122,6 +123,14 @@ final public class InsidiousService implements Disposable {
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
 
+    }
+
+    @NotNull
+    public String getTestDirectory(String packageName, String basePath) {
+        if (!basePath.endsWith("/")) {
+            basePath = basePath + "/";
+        }
+        return basePath + "src/test/java/" + packageName.replaceAll("\\.", "/");
     }
 
     private void start() {
@@ -326,7 +335,6 @@ final public class InsidiousService implements Disposable {
         return testCaseUnit.getCode();
     }
 
-
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
         for (TestCaseUnit testCaseScript : testSuite.getTestCaseScripts()) {
             String basePath = fetchPathToSaveTestCase(testCaseScript);
@@ -336,8 +344,7 @@ final public class InsidiousService implements Disposable {
             logger.info("[TEST CASE SAVE] basepath : " + basePath);
             Map<String, Object> valueResourceMap = testCaseScript.getTestGenerationState()
                     .getValueResourceMap();
-            if (valueResourceMap.values()
-                    .size() > 0) {
+            if (valueResourceMap.values().size() > 0) {
                 String testResourcesDirPath =
                         basePath + "/src/test/resources/unlogged-fixtures/" + testCaseScript.getClassName();
                 File resourcesDirFile = new File(testResourcesDirPath);
@@ -348,8 +355,7 @@ final public class InsidiousService implements Disposable {
                 try (FileOutputStream resourceFile = new FileOutputStream(testResourcesFilePath)) {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
-                VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(FileSystems.getDefault()
+                VirtualFileManager.getInstance().refreshAndFindFileByUrl(FileSystems.getDefault()
                                 .getPath(testResourcesFilePath)
                                 .toUri()
                                 .toString());
@@ -370,10 +376,8 @@ final public class InsidiousService implements Disposable {
             }
 
 
-            String testOutputDirPath =
-                    basePath + "/src/test/java/"
-                            + testCaseScript.getPackageName()
-                            .replaceAll("\\.", "/");
+            String testOutputDirPath = getTestDirectory(testCaseScript.getPackageName(), basePath);
+
             File outputDir = new File(testOutputDirPath);
             outputDir.mkdirs();
             File testcaseFile = new File(testOutputDirPath + "/" + testCaseScript.getClassName() + ".java");
@@ -621,10 +625,7 @@ final public class InsidiousService implements Disposable {
         ex.stretchHeight(TOOL_WINDOW_WIDTH - ex.getDecorator().getWidth());
         ContentManager contentManager = this.toolWindow.getContentManager();
 
-//        liveViewWindow = new LiveViewWindow(project, this);
-//        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
-//        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-//        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+
 //
 //        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
 //        onboardingConfigurationWindowContent = contentFactory.createContent(
@@ -633,18 +634,23 @@ final public class InsidiousService implements Disposable {
 //        singleWindowView = new SingleWindowView(project, this);
 //        singleWindowContent = contentFactory.createContent(singleWindowView.getContent(), "Raw View", false);
 
+        // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();
-        @NotNull Content testCaseCreatorWindowContent = contentFactory.createContent(
-                testCaseDesignerWindow.getContent(),
-                "Test designer", false);
-        contentManager.addContent(testCaseCreatorWindowContent);
-
+        @NotNull Content testCaseCreatorWindowContent =
+                contentFactory.createContent(testCaseDesignerWindow.getContent(), "Test designer", false);
         testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        contentManager.addContent(testCaseCreatorWindowContent);
+
+        // test candidate list by packages
+        liveViewWindow = new LiveViewWindow(project);
+        liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
+        liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
+        contentManager.addContent(liveWindowContent);
 
 //        contentManager.addContent(onboardingConfigurationWindowContent);
 //        if (areLogsPresent()) {
-//            contentManager.addContent(liveWindowContent);
 //            contentManager.setSelectedContent(liveWindowContent, true);
 //            liveViewAdded = true;
 //        }
@@ -835,6 +841,12 @@ final public class InsidiousService implements Disposable {
         if (method == null) {
             return;
         }
+        if (project.getService(DumbService.class).isDumb()) {
+            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
+                    NotificationType.WARNING);
+            return;
+        }
+
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 

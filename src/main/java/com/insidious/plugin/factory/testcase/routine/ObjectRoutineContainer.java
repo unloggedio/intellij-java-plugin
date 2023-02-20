@@ -359,8 +359,7 @@ public class ObjectRoutineContainer {
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(e -> e.getFields()
-                        .all())
+                .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
 
@@ -375,26 +374,13 @@ public class ObjectRoutineContainer {
                     .flatMap(Collection::stream)
                     .map(TestCandidateMetadata::getCallsList)
                     .flatMap(Collection::stream)
-                    .filter(e -> e.getSubject()
-                            .getValue() == fieldParameter.getValue())
+                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
                     .findAny();
             if (!foundUsage.isPresent()) {
                 // field is not actually used anywhere, so we dont want to create it
                 continue;
             }
 
-
-//            for (Parameter tempP : fields) {
-//                if (tempP.getValue() == fieldParameter.getValue() && tempP.getType()
-//                        .equals(fieldParameter.getType())
-//                        && tempP.getTemplateMap()
-//                        .toString()
-//                        .equals(fieldParameter.getTemplateMap()
-//                                .toString())) {
-//                    isPresent = true;
-//                    break;
-//                }
-//            }
             if (!isPresent) {
                 fields.add(fieldParameter);
             }

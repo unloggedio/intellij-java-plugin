@@ -304,10 +304,8 @@ public class Parameter implements Serializable, BytesMarshallable {
 
     public void setProbeInfo(DataInfo probeInfo) {
         if (this.dataInfo == null
-                || !this.dataInfo.getEventType()
-                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
-                || probeInfo.getEventType()
-                .equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || !this.dataInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
+                || probeInfo.getEventType().equals(EventType.METHOD_EXCEPTIONAL_EXIT)
         ) {
             this.dataInfo = probeInfo;
         }
@@ -329,11 +327,6 @@ public class Parameter implements Serializable, BytesMarshallable {
         this.creatorExpression = createrExpression;
     }
 
-
-    public void setTemplateParameter(Parameter nextValueParam) {
-        isContainer = true;
-        this.templateMap.add(nextValueParam);
-    }
 
     public void addName(String nameForParameter) {
         if (nameForParameter == null || this.names.contains(nameForParameter) || nameForParameter.startsWith(
@@ -375,7 +368,7 @@ public class Parameter implements Serializable, BytesMarshallable {
     public boolean isPrimitiveType() {
         // types which are java can build just using their values
         String typeCopy = type;
-        while (typeCopy.startsWith("[") && typeCopy.length() > 1) {
+        while (typeCopy != null && typeCopy.startsWith("[") && typeCopy.length() > 1) {
             typeCopy = typeCopy.substring(1);
         }
         return type != null && (typeCopy.length() == 1 || isBoxedPrimitiveType());

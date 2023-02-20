@@ -59,6 +59,10 @@ public class MethodCallExpressionFactory {
         return new StringExpression(s);
     }
 
+    public static Expression NullExpression() {
+        return new NullExpression();
+    }
+
     public static MethodCallExpression MockitoWhen(
             MethodCallExpression methodCallExpression,
             TestCaseGenerationConfiguration configuration,

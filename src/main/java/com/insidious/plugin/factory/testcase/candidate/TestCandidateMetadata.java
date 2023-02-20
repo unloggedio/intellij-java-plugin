@@ -5,6 +5,7 @@ import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class TestCandidateMetadata {
     private long callTimeNanoSecond;
     private long entryProbeIndex;
     private long exitProbeIndex;
+    private final List<TestAssertion> assertionList = new ArrayList<>();
 
     private boolean isUIselected = false;
 
@@ -115,5 +117,9 @@ public class TestCandidateMetadata {
     @Deprecated
     public void addAllMethodCall(Collection<MethodCallExpression> topCall) {
         methodCallExpressions.addAll(topCall);
+    }
+
+    public List<TestAssertion> getAssertionList() {
+        return assertionList;
     }
 }

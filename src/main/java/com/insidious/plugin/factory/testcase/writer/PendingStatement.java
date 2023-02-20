@@ -4,10 +4,7 @@ import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
-import com.insidious.plugin.factory.testcase.expression.ClassValueExpression;
-import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
-import com.insidious.plugin.factory.testcase.expression.StringExpression;
+import com.insidious.plugin.factory.testcase.expression.*;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.MethodCallExpression;
@@ -459,6 +456,9 @@ public class PendingStatement {
             } else if (expression instanceof StringExpression) {
                 statementBuilder.append("$S");
                 statementParameters.add(expression.toString());
+            }  else if (expression instanceof NullExpression) {
+                statementBuilder.append("null");
+//                statementParameters.add(expression.toString());
             } else if (expression instanceof ClassValueExpression) {
                 statementBuilder.append("$T.class");
                 statementParameters.add(ClassName.bestGuess(expression.toString()));

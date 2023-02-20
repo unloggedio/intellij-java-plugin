@@ -71,7 +71,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     private JFrame reportIssueForm;
 
-    public LiveViewWindow(Project project, InsidiousService insidiousService) {
+    public LiveViewWindow(Project project) {
 
         this.project = project;
 
@@ -80,8 +80,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         resumeActionListener = resumeCheckingForNewLogs();
         topControlPanel.remove(pauseProcessingButton);
         topControlPanel.remove(progressBar1);
-        mainTree.setModel(new DefaultTreeModel(
-                new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
+        mainTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
         reportIssueForm = new ReportIssueForm(project);
         reportIssueForm.setVisible(false);
 
@@ -333,7 +332,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
     private void loadTestCandidateConfigView(TestCandidateMethodAggregate methodNode) {
         List<TestCandidateMetadata> testCandidateMetadataList =
-                sessionInstance.getTestCandidatesForMethod(
+                testCaseService.getTestCandidatesForMethod(
                         methodNode.getClassName(), methodNode.getMethodName(), false);
 
         this.candidateListPanel.removeAll();
