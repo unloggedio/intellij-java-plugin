@@ -114,6 +114,7 @@ final public class InsidiousService implements Disposable {
     private List<ProgramRunner> programRunners = new ArrayList<>();
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
+    private SessionInstance sessionInstance;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -331,6 +332,9 @@ final public class InsidiousService implements Disposable {
 
     public String getTestCandidateCode(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
         TestCaseService testCaseService = getTestCaseService();
+        if (testCaseService == null) {
+            return null;
+        }
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
         return testCaseUnit.getCode();
     }
@@ -356,9 +360,9 @@ final public class InsidiousService implements Disposable {
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
                 VirtualFileManager.getInstance().refreshAndFindFileByUrl(FileSystems.getDefault()
-                                .getPath(testResourcesFilePath)
-                                .toUri()
-                                .toString());
+                        .getPath(testResourcesFilePath)
+                        .toUri()
+                        .toString());
 
                 if (testCaseScript.getTestGenerationState()
                         .isSetupNeedsJsonResources()) {
@@ -577,10 +581,13 @@ final public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(FileSystems.getDefault()
-                        .getPath(utilFile.getAbsolutePath())
-                        .toUri()
-                        .toString());
+                .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
+
+        if (newFile == null) {
+            InsidiousNotification.notifyMessage("UnloggedTestUtil file was not created: "
+                    +  utilFile.getAbsolutePath(), NotificationType.WARNING);
+            return;
+        }
 
         newFile.refresh(true, false);
 
@@ -855,6 +862,11 @@ final public class InsidiousService implements Disposable {
     }
 
     public TestCaseService getTestCaseService() {
+        if (testCaseService == null) {
+            loadSession();
+            InsidiousNotification.notifyMessage("Session isnt loaded yet, loading session", NotificationType.WARNING);
+            return null;
+        }
         return testCaseService;
     }
 
@@ -873,7 +885,6 @@ final public class InsidiousService implements Disposable {
                             @Override
                             public void success(List<ExecutionSession> executionSessionList) {
                                 try {
-                                    SessionInstance sessionInstance;
                                     if (executionSessionList.size() == 0) {
                                         String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
                                         ExecutionSession executionSession = new ExecutionSession();

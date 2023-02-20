@@ -189,6 +189,10 @@ public class TestCaseDesigner {
             String testCaseUnit = currentMethod.getProject()
                     .getService(InsidiousService.class)
                     .getTestCandidateCode(testCaseGenerationConfiguration);
+            if (testCaseUnit == null) {
+                InsidiousNotification.notifyMessage("Session not found, please try again", NotificationType.WARNING);
+                return;
+            }
 
 
             if (saveLocationTextField.getText().isEmpty()) {
