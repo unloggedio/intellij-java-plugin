@@ -7,15 +7,8 @@
 
     <description>
         <![CDATA[
-            Unlogged records code execution and auto generates unit tests for your JAVA code.
-            Developers spend ~2 hours every day writing unit tests, and we aim to help developers save this time.
-              <br/>
-            Install this plugin, and run your APIs. Unlogged will record the code execution as it happens.
-              <br/>
-            Click “Process Logs”, Unlogged will present test candidates to you.
-              <br/>
-            These test candidates show the input and return value of each method.
-            Click  "Assert Equal" to generate positive test cases or "Assert Not Equal" to generate negative test cases instantly.
+            Instantly create a test case boilerplate for any method in JAVA using JUNIT and Mockito.
+            Open Unlogged window and navigate to the method in your editor
         ]]>
     </description>
 
