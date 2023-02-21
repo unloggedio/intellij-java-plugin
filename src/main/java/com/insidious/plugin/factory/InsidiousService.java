@@ -855,9 +855,9 @@ final public class InsidiousService implements Disposable {
             return;
         }
         if (psiClass.getName() == null) {
-            InsidiousNotification.notifyMessage(
-                    "Generating test case for methods inside anonymous classes is not supported", NotificationType.ERROR
-            );
+//            InsidiousNotification.notifyMessage(
+//                    "Generating test case for methods inside anonymous classes is not supported", NotificationType.ERROR
+//            );
             return;
         }
         DumbService dumbService = project.getService(DumbService.class);
