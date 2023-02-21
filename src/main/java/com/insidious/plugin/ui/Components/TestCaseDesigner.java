@@ -161,6 +161,7 @@ public class TestCaseDesigner {
         selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
         updatePreviewTestCase();
         saveTestCaseButton.setEnabled(true);
+        bottomControlPanel.setEnabled(true);
 
     }
 
