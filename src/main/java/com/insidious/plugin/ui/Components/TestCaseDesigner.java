@@ -54,6 +54,7 @@ public class TestCaseDesigner {
     private JButton saveTestCaseButton;
     private JPanel bottomControlPanel;
     private JPanel configurationControlPanel;
+    private JCheckBox addFieldMocksCheckBox;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;
     private PsiMethod currentMethod;
@@ -66,60 +67,64 @@ public class TestCaseDesigner {
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
 
-        saveTestCaseButton.addActionListener(new ActionListener() {
+        saveTestCaseButton.addActionListener(e -> {
+            String saveLocation = saveLocationTextField.getText();
+            InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
+            try {
+                insidiousService.ensureTestUtilClass(basePath);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+
+
+            File testcaseFile = new File(saveLocation);
+            testcaseFile.getParentFile().mkdirs();
+
+            logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
+            UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
+
+            if (!testcaseFile.exists()) {
+                try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                    out.write(editor.getDocument().getText().getBytes());
+                } catch (Exception e1) {
+                    InsidiousNotification.notifyMessage(
+                            "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
+                    );
+                }
+            } else {
+                InsidiousNotification.notifyMessage("File already exists: " + testcaseFile.getAbsolutePath(),
+                        NotificationType.ERROR);
+                return;
+            }
+
+            @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+                    .refreshAndFindFileByUrl(FileSystems.getDefault()
+                            .getPath(testcaseFile.getAbsolutePath())
+                            .toUri()
+                            .toString());
+            if (newFile == null) {
+                return;
+            }
+            newFile.refresh(true, false);
+
+
+            List<VirtualFile> newFile1 = new ArrayList<>();
+            newFile1.add(newFile);
+            FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
+            @Nullable Document newDocument = FileDocumentManager.getInstance()
+                    .getDocument(newFile);
+
+            FileEditorManager.getInstance(currentClass.getProject())
+                    .openFile(newFile, true, true);
+            InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
+                    NotificationType.WARNING);
+
+        });
+
+        addFieldMocksCheckBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String saveLocation = saveLocationTextField.getText();
-                InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
-                try {
-                    insidiousService.ensureTestUtilClass(basePath);
-                } catch (IOException ex) {
-                    throw new RuntimeException(ex);
-                }
-
-
-                File testcaseFile = new File(saveLocation);
-                testcaseFile.getParentFile().mkdirs();
-
-                logger.info("[TEST CASE SAVE] testcaseFile : " + testcaseFile.getAbsolutePath());
-                UsageInsightTracker.getInstance().RecordEvent("TestCaseSaved", new JSONObject());
-
-                if (!testcaseFile.exists()) {
-                    try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
-                        out.write(editor.getDocument().getText().getBytes());
-                    } catch (Exception e1) {
-                        InsidiousNotification.notifyMessage(
-                                "Failed to write test case: " + e1.getMessage(), NotificationType.ERROR
-                        );
-                    }
-                } else {
-                    InsidiousNotification.notifyMessage("File already exists: " + testcaseFile.getAbsolutePath(),
-                            NotificationType.ERROR);
-                    return;
-                }
-
-                @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                        .refreshAndFindFileByUrl(FileSystems.getDefault()
-                                .getPath(testcaseFile.getAbsolutePath())
-                                .toUri()
-                                .toString());
-                if (newFile == null) {
-                    return;
-                }
-                newFile.refresh(true, false);
-
-
-                List<VirtualFile> newFile1 = new ArrayList<>();
-                newFile1.add(newFile);
-                FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
-                @Nullable Document newDocument = FileDocumentManager.getInstance()
-                        .getDocument(newFile);
-
-                FileEditorManager.getInstance(currentClass.getProject())
-                        .openFile(newFile, true, true);
-                InsidiousNotification.notifyMessage("Created test case: " + testcaseFile.getName(),
-                        NotificationType.WARNING);
-
+                updatePreviewTestCase();
             }
         });
 
@@ -155,10 +160,6 @@ public class TestCaseDesigner {
         this.currentClass = psiClass;
 
 
-        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
-
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
-
         selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
         updatePreviewTestCase();
         saveTestCaseButton.setEnabled(true);
@@ -183,6 +184,10 @@ public class TestCaseDesigner {
 
     public void updatePreviewTestCase() {
 
+        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
+
         InsidiousService insidiousService = currentMethod.getProject().getService(InsidiousService.class);
 
         EditorFactory editorFactory = EditorFactory.getInstance();
@@ -190,7 +195,7 @@ public class TestCaseDesigner {
         int offset = 0;
         try {
 
-            if (!mainMethod.isMethodPublic()) {
+            if (mainMethod.isMethodPublic()) {
 
 
                 String testCaseUnit = currentMethod.getProject()
@@ -228,7 +233,8 @@ public class TestCaseDesigner {
                 Document document = editorFactory.createDocument(testCaseScript);
                 editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
             } else {
-                editor = editorFactory.createEditor(editorFactory.createDocument("Test case can be generated only for public methods."),
+                editor = editorFactory.createEditor(
+                        editorFactory.createDocument("Test case can be generated only for public methods."),
                         currentMethod.getProject(), JavaFileType.INSTANCE, true);
 
             }
@@ -358,21 +364,25 @@ public class TestCaseDesigner {
 
         // fields
 
-        Map<String, PsiField> fieldMap = new HashMap<>();
-        PsiField[] fields = currentClass.getFields();
-        for (PsiField field : fields) {
-            fieldMap.put(field.getName(), field);
-            Parameter fieldParameter = new Parameter();
-            fieldParameter.setName(field.getName());
-            if (!(field.getType() instanceof PsiClassReferenceType)
-                    || field.getType().getCanonicalText().equals("java.lang.String")) {
-                continue;
+        if (addFieldMocksCheckBox.isSelected()) {
+
+
+            Map<String, PsiField> fieldMap = new HashMap<>();
+            PsiField[] fields = currentClass.getFields();
+            for (PsiField field : fields) {
+                fieldMap.put(field.getName(), field);
+                Parameter fieldParameter = new Parameter();
+                fieldParameter.setName(field.getName());
+                if (!(field.getType() instanceof PsiClassReferenceType)
+                        || field.getType().getCanonicalText().equals("java.lang.String")) {
+                    continue;
+                }
+                setParameterTypeFromPsiType(fieldParameter, field.getType());
+                fieldParameter.setValue(random.nextLong());
+                fieldParameter.setProb(new DataEventWithSessionId());
+                fieldParameter.setProbeInfo(new DataInfo());
+                testCandidateMetadata.getFields().add(fieldParameter);
             }
-            setParameterTypeFromPsiType(fieldParameter, field.getType());
-            fieldParameter.setValue(random.nextLong());
-            fieldParameter.setProb(new DataEventWithSessionId());
-            fieldParameter.setProbeInfo(new DataInfo());
-            testCandidateMetadata.getFields().add(fieldParameter);
         }
 
 
