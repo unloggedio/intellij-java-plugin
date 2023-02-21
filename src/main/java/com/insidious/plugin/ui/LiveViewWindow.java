@@ -30,11 +30,11 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.text.SimpleDateFormat;
 
 public class LiveViewWindow implements TreeSelectionListener,
         TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener,
@@ -126,9 +126,7 @@ public class LiveViewWindow implements TreeSelectionListener,
     private void updateRefreshButtonState() {
         if (isLoading) {
             setState_Processing();
-        }
-        else
-        {
+        } else {
             processLogsSwitch.setText("Updating");
         }
         mainPanel.validate();
@@ -217,93 +215,7 @@ public class LiveViewWindow implements TreeSelectionListener,
 
                                     @Override
                                     public void success(List<ExecutionSession> executionSessionList) {
-                                        try {
-                                            if (executionSessionList.size() == 0) {
-                                                //copyVMParameterButton.setVisible(true);
-                                                String javaAgentVMString = insidiousService.getJavaAgentString();
-                                                String[] parts = splitByLength(javaAgentVMString, 160);
-                                                assert parts != null;
-                                                StringBuilder text = new StringBuilder(
-                                                        "<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
-                                                                "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
-                                                                "Use the following VM parameter to start your application with unlogged java agent:<br />");
-                                                for (String part : parts) {
-                                                    text.append(part)
-                                                            .append("<br />");
-                                                }
-                                                text.append("</html>");
-
-                                                headingText.setText(text.toString());
-                                                mainTree.setModel(new DefaultTreeModel(
-                                                        new DefaultMutableTreeNode("No session")));
-                                                isLoading = false;
-                                                updateRefreshButtonState();
-                                                return;
-                                            } else {
-//                                                headingText.setText(
-//                                                        "Select a class and method to start generating test case for it.");
-                                                copyVMParameterButton.setVisible(false);
-                                            }
-                                            ExecutionSession executionSession = executionSessionList.get(0);
-
-                                            //has session instance, check if it's the same as the last one
-                                            //if yes, refresh
-
-                                            //else
-                                            //process logs
-                                            boolean startScan_Full=true;
-                                            if (sessionInstance != null) {
-                                                if(!Objects.equals(
-                                                        sessionInstance.getExecutionSession()
-                                                                .getSessionId(), executionSession.getSessionId()))
-                                                {
-                                                    startScan_Full=true;
-                                                    sessionInstance.close();
-                                                }
-                                                else
-                                                {
-                                                    //resume scan
-                                                    startScan_Full = false;
-                                                    testCaseService.processLogFiles();
-                                                    treeModel = new LiveViewTestCandidateListTree(
-                                                            project, insidiousService.getClient()
-                                                            .getSessionInstance());
-                                                    mainTree.setModel(treeModel);
-                                                }
-                                            }
-                                            if(startScan_Full) {
-                                                sessionInstance = new SessionInstance(executionSession, project);
-                                                insidiousService.getClient().setSessionInstance(sessionInstance);
-                                                testCaseService = new TestCaseService(sessionInstance);
-                                                sessionInstance.setTestCandidateListener(LiveViewWindow.this);
-                                                testCaseService.processLogFiles();
-                                                testCaseService.setRefreshButtonStateManager(getLiveViewReference());
-                                                testCaseService.startRun();
-                                                treeModel = new LiveViewTestCandidateListTree(
-                                                        project, insidiousService.getClient()
-                                                        .getSessionInstance());
-                                                mainTree.setModel(treeModel);
-                                            }
-                                        } catch (Exception ex) {
-                                            ex.printStackTrace();
-                                            setPauseScanningState();
-                                            InsidiousNotification.notifyMessage(
-                                                    "Failed to set sessions - " + ex.getMessage()
-                                                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                                                    NotificationType.ERROR);
-                                            updateTreeStateOnScanFailure();
-                                            try {
-                                                JSONObject eventProperties = new JSONObject();
-                                                eventProperties.put("exception", ex.getMessage());
-                                                UsageInsightTracker.getInstance()
-                                                        .RecordEvent("ScanFailed", eventProperties);
-                                            } catch (Exception e) {
-                                                logger.error("Failed to send ScanFailed event to amplitude");
-                                            }
-                                        } finally {
-                                            isLoading = false;
-                                            updateRefreshButtonState();
-                                        }
+                                        selectSessionAndStart(executionSessionList, insidiousService);
                                     }
                                 });
                     }
@@ -312,6 +224,89 @@ public class LiveViewWindow implements TreeSelectionListener,
         ProgressManager.getInstance()
                 .run(task);
 
+    }
+
+    private void selectSessionAndStart(List<ExecutionSession> executionSessionList, InsidiousService insidiousService) {
+        try {
+            if (executionSessionList.size() == 0) {
+                //copyVMParameterButton.setVisible(true);
+                String javaAgentVMString = insidiousService.getJavaAgentString();
+                String[] parts = splitByLength(javaAgentVMString, 160);
+                assert parts != null;
+                StringBuilder text = new StringBuilder(
+                        "<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
+                                "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
+                                "Use the following VM parameter to start your application with unlogged java agent:<br />");
+                for (String part : parts) {
+                    text.append(part)
+                            .append("<br />");
+                }
+                text.append("</html>");
+
+                headingText.setText(text.toString());
+                mainTree.setModel(new DefaultTreeModel(
+                        new DefaultMutableTreeNode("No session")));
+                isLoading = false;
+                updateRefreshButtonState();
+                return;
+            } else {
+                copyVMParameterButton.setVisible(false);
+            }
+            ExecutionSession executionSession = executionSessionList.get(0);
+
+            //has session instance, check if it's the same as the last one
+            //if yes, refresh
+
+            //else
+            //process logs
+            boolean startScan_Full = true;
+            if (sessionInstance != null) {
+                if (!Objects.equals(
+                        sessionInstance.getExecutionSession()
+                                .getSessionId(), executionSession.getSessionId())) {
+                    startScan_Full = true;
+                    sessionInstance.close();
+                } else {
+                    //resume scan
+                    startScan_Full = false;
+                    testCaseService.processLogFiles();
+                    treeModel = new LiveViewTestCandidateListTree(
+                            project, insidiousService.getClient().getSessionInstance());
+                    mainTree.setModel(treeModel);
+                }
+            }
+            if (startScan_Full) {
+                sessionInstance = new SessionInstance(executionSession, project);
+                insidiousService.getClient().setSessionInstance(sessionInstance);
+                testCaseService = new TestCaseService(sessionInstance);
+                sessionInstance.setTestCandidateListener(LiveViewWindow.this);
+                testCaseService.processLogFiles();
+                testCaseService.setRefreshButtonStateManager(getLiveViewReference());
+                testCaseService.startRun();
+                treeModel = new LiveViewTestCandidateListTree(
+                        project, insidiousService.getClient().getSessionInstance());
+                mainTree.setModel(treeModel);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            setPauseScanningState();
+            InsidiousNotification.notifyMessage(
+                    "Failed to set sessions - " + ex.getMessage()
+                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                    NotificationType.ERROR);
+            updateTreeStateOnScanFailure();
+            try {
+                JSONObject eventProperties = new JSONObject();
+                eventProperties.put("exception", ex.getMessage());
+                UsageInsightTracker.getInstance()
+                        .RecordEvent("ScanFailed", eventProperties);
+            } catch (Exception e) {
+                logger.error("Failed to send ScanFailed event to amplitude");
+            }
+        } finally {
+            isLoading = false;
+            updateRefreshButtonState();
+        }
     }
 
     public JComponent getContent() {
@@ -430,8 +425,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         }
     }
 
-    public void loadInfoBanner()
-    {
+    public void loadInfoBanner() {
         this.headingText.setText("");
         LiveViewInfoBanner banner = new LiveViewInfoBanner();
         this.candidateListPanel.removeAll();
@@ -447,7 +441,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         processLogsSwitch.setBackground(UIUtils.green);
         processLogsSwitch.setText("New logs available (click to process)");
         processLogsSwitch.setIcon(UIUtils.NEW_LOGS_TO_PROCESS_ICON);
-        statusTextHeading.setText("Last Scan completed at : "+
+        statusTextHeading.setText("Last Scan completed at : " +
                 getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
     }
 
@@ -456,7 +450,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         processLogsSwitch.setBackground(UIUtils.NeutralGrey);
         processLogsSwitch.setText("No New logs available (use application to create logs)");
         processLogsSwitch.setIcon(UIUtils.NO_NEW_LOGS_TO_PROCESS_ICON);
-        statusTextHeading.setText("Last Scan completed at : "+
+        statusTextHeading.setText("Last Scan completed at : " +
                 getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
     }
 
@@ -473,15 +467,12 @@ public class LiveViewWindow implements TreeSelectionListener,
         return isLoading;
     }
 
-    private LiveViewWindow getLiveViewReference()
-    {
+    private LiveViewWindow getLiveViewReference() {
         return this;
     }
 
-    private String getFormattedDate(Date date)
-    {
-        if(date==null)
-        {
+    private String getFormattedDate(Date date) {
+        if (date == null) {
             return "";
         }
         SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss | dd MMM, yyyy");

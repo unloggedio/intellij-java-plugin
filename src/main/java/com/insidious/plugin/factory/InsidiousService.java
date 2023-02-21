@@ -853,6 +853,10 @@ final public class InsidiousService implements Disposable {
                     NotificationType.WARNING);
             return;
         }
+        if (testCaseDesignerWindow == null) {
+            logger.warn("test case designer window is not ready to create test case for " + method.getName());
+            return;
+        }
 
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }

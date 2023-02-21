@@ -466,8 +466,7 @@ public class SessionInstance {
         List<ClassDefinition> classDefinitionList = new ArrayList<>();
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                 new RandomAccessFileKaitaiStream(fileName));
-        long totalClassCount = classWeaveInfo.classInfo()
-                .size();
+        long totalClassCount = classWeaveInfo.classInfo().size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
             int current = counter.addAndGet(1);
