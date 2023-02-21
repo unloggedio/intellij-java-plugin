@@ -117,10 +117,8 @@ public class PendingStatement {
                 statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));
                 statementParameters.add(methodName);
 
-                statementParameters.add(new String(objectToDeserialize.getProb()
-                        .getSerializedValue()));
-                statementParameters.add(
-                        ClassName.bestGuess(ClassTypeUtils.getJavaClassName(objectToDeserialize.getType())));
+                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue()));
+                statementParameters.add(ClassTypeUtils.createTypeFromNameString(objectToDeserialize.getType()));
 
             }
 

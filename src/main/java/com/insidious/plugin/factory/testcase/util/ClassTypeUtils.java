@@ -221,11 +221,11 @@ public class ClassTypeUtils {
                 return ArrayTypeName.of(constructClassName(methodReturnValueType.substring(1)));
 
             default:
-                assert false;
+                return ClassName.bestGuess(methodReturnValueType);
 
         }
 //        assert false;
-        return null;
+//        return null;
     }
 
     private static TypeName getClassFromDescriptor(String descriptor) {
