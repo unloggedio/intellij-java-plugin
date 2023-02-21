@@ -28,7 +28,8 @@
             <properties>
               <font name="JetBrains Mono" size="16"/>
               <horizontalAlignment value="2"/>
-              <text value="Navigate to a method to start creating test"/>
+              <text value="Navigate to a method in your editor"/>
+              <toolTipText value="Click on a method from your editor to select it for test case generation."/>
             </properties>
           </component>
         </children>
