@@ -581,11 +581,12 @@ final public class InsidiousService implements Disposable {
             IOUtils.copy(testUtilClassCode, writer);
         }
         @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
-                .refreshAndFindFileByUrl(FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
+                .refreshAndFindFileByUrl(
+                        FileSystems.getDefault().getPath(utilFile.getAbsolutePath()).toUri().toString());
 
         if (newFile == null) {
             InsidiousNotification.notifyMessage("UnloggedTestUtil file was not created: "
-                    +  utilFile.getAbsolutePath(), NotificationType.WARNING);
+                    + utilFile.getAbsolutePath(), NotificationType.WARNING);
             return;
         }
 
@@ -845,18 +846,37 @@ final public class InsidiousService implements Disposable {
     }
 
     public void showTestCreatorInterface(PsiClass psiClass, PsiMethod method) {
-        if (method == null) {
-            return;
-        }
-        if (project.getService(DumbService.class).isDumb()) {
-            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
-                    NotificationType.WARNING);
-            return;
-        }
         if (testCaseDesignerWindow == null) {
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
         }
+
+        if (method == null) {
+            return;
+        }
+        if (psiClass.getName() == null) {
+            InsidiousNotification.notifyMessage(
+                    "Generating test case for methods inside anonymous classes is not supported", NotificationType.ERROR
+            );
+            return;
+        }
+        DumbService dumbService = project.getService(DumbService.class);
+        if (dumbService.isDumb()) {
+            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
+                    NotificationType.WARNING);
+            dumbService.runWhenSmart(new Runnable() {
+                @Override
+                public void run() {
+                    if (testCaseDesignerWindow == null) {
+                        logger.warn("test case designer window is not ready to create test case for " + method.getName());
+                        return;
+                    }
+                    testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
+                }
+            });
+            return;
+        }
+
 
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
