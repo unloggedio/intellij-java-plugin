@@ -55,6 +55,7 @@ public class TestCaseDesigner {
     private JPanel bottomControlPanel;
     private JPanel configurationControlPanel;
     private JCheckBox addFieldMocksCheckBox;
+    private JTextArea instructionsArea;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;
     private PsiMethod currentMethod;

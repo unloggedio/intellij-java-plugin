@@ -28,7 +28,7 @@
             <properties>
               <font name="JetBrains Mono" size="16"/>
               <horizontalAlignment value="2"/>
-              <text value="Navigate to a method in your editor"/>
+              <text value="-"/>
               <toolTipText value="Click on a method from your editor to select it for test case generation."/>
             </properties>
           </component>
@@ -40,7 +40,18 @@
         </constraints>
         <properties/>
         <border type="etched" title="Test case preview"/>
-        <children/>
+        <children>
+          <component id="3468d" class="javax.swing.JTextArea" binding="instructionsArea">
+            <constraints border-constraint="North"/>
+            <properties>
+              <background color="-14671840"/>
+              <editable value="false"/>
+              <foreground color="-16659211"/>
+              <margin top="8" left="8" bottom="8" right="8"/>
+              <text value="Navigate to a method in your editor."/>
+            </properties>
+          </component>
+        </children>
       </grid>
       <grid id="a4e2" binding="bottomControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
