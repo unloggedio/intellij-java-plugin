@@ -655,7 +655,7 @@ final public class InsidiousService implements Disposable {
         liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
         liveWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         liveWindowContent.setIcon(UIUtils.TEST_CASES_ICON_PINK);
-        contentManager.addContent(liveWindowContent);
+        //contentManager.addContent(liveWindowContent);
 
 //        contentManager.addContent(onboardingConfigurationWindowContent);
 //        if (areLogsPresent()) {
