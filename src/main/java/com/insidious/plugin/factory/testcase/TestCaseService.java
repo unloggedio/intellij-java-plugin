@@ -78,8 +78,7 @@ public class TestCaseService implements Runnable {
         logger.info("Convert test case script to methods with: " + testCaseScript.getObjectRoutines().size());
         logger.info("Test case script: " + testCaseScript);
         for (ObjectRoutineScript objectRoutine : testCaseScript.getObjectRoutines()) {
-            if (objectRoutine.getName()
-                    .equalsIgnoreCase("<init>")) {
+            if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;
             }
             MethodSpec methodSpec = objectRoutine.toMethodSpec()
@@ -308,23 +307,23 @@ public class TestCaseService implements Runnable {
     }
 
     //    @Override
-    public void run_old() {
-        while (true) {
-            try {
-                Thread.sleep(2000);
-                if (this.pauseCheckingForNewLogs) {
-                    continue;
-                }
-                processLogFiles();
-            } catch (InterruptedException e) {
-                logger.warn("test case service scanner shutting down", e);
-                throw new RuntimeException(e);
-            } catch (Exception e) {
-                logger.error("exception in testcase service scanner shutting down", e);
-                throw new RuntimeException(e);
-            }
-        }
-    }
+//    public void run_old() {
+//        while (true) {
+//            try {
+//                Thread.sleep(2000);
+//                if (this.pauseCheckingForNewLogs) {
+//                    continue;
+//                }
+//                processLogFiles();
+//            } catch (InterruptedException e) {
+//                logger.warn("test case service scanner shutting down", e);
+//                throw new RuntimeException(e);
+//            } catch (Exception e) {
+//                logger.error("exception in testcase service scanner shutting down", e);
+//                throw new RuntimeException(e);
+//            }
+//        }
+//    }
 
     public boolean isPauseCheckingForNewLogs() {
         return pauseCheckingForNewLogs;
@@ -343,6 +342,7 @@ public class TestCaseService implements Runnable {
                     continue;
                 }
                 if (sessionInstance.hasNewZips()) {
+//                    processLogFiles();
                     //set state to new logs
                     this.refreshButtonStateManager.setState_NewLogs(sessionInstance.getLastScannedTimeStamp());
                 } else {

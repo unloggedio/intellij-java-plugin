@@ -4,6 +4,7 @@ import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.intellij.notification.NotificationType;
 import org.json.JSONObject;
@@ -181,6 +182,11 @@ public class TestCandidateCustomizeView {
         List<TestCandidateMetadata> fallback = this.testGenerationConfiguration.getTestCandidateMetadataList();
         refCandidates_order.removeIf(p -> !fallback.contains(p));
         this.testGenerationConfiguration.setTestCandidateMetadataList(refCandidates_order);
+        this.testGenerationConfiguration.setTestMethodName(
+                "testMethod" + ClassTypeUtils.upperInstanceName(
+                        ((MethodCallExpression) refCandidates_order.get(refCandidates_order.size() - 1)
+                                .getMainMethod()).getMethodName())
+        );
     }
 
     private void generateWithSelectedOptions() {

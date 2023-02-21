@@ -2280,7 +2280,7 @@ public class SessionInstance {
         Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
                 .collect(Collectors.groupingBy(LogFile::getThreadId));
         if (logFilesByThreadMap.size() == 0) {
-            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
+//            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
             return;
         }
 
@@ -3960,9 +3960,9 @@ public class SessionInstance {
 
     public boolean hasNewZips() {
         try {
-            return daoService.getPendingLogFilesToProcessCount() > 0 ? true : false;
+            return daoService.getPendingLogFilesToProcessCount() > 0;
         } catch (Exception e) {
-            System.out.println("Error checking for new zips. " + e);
+            System.out.println("Error checking for new zips: " + e);
             e.printStackTrace();
         }
         return false;

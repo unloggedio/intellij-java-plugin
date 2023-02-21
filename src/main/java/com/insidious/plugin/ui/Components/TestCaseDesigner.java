@@ -28,7 +28,6 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
 import com.intellij.util.FileContentUtil;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
@@ -39,8 +38,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.file.FileSystems;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 public class TestCaseDesigner {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
@@ -64,44 +63,7 @@ public class TestCaseDesigner {
     private Editor editor;
 
     public TestCaseDesigner() {
-    }
-
-    public JComponent getContent() {
-        return mainContainer;
-    }
-
-    public void renderTestDesignerInterface(PsiClass psiClass, PsiMethod method) {
-
-        if (this.currentMethod != null && this.currentMethod.equals(method)) {
-            return;
-        }
-        InsidiousService insidiousService = method.getProject().getService(InsidiousService.class);
-
-        if (method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
-            return;
-        }
-        basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());
-
-
-        saveLocationTextField.setText("");
-        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(method.getName());
-
-        testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_CODE
-        );
-
-        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-
-        this.currentMethod = method;
-        this.currentClass = psiClass;
-
-
-        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
-
-        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
-
-        selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
-
+        saveTestCaseButton.setEnabled(false);
 
         saveTestCaseButton.addActionListener(new ActionListener() {
             @Override
@@ -159,7 +121,46 @@ public class TestCaseDesigner {
 
             }
         });
+
+    }
+
+    public JComponent getContent() {
+        return mainContainer;
+    }
+
+    public void renderTestDesignerInterface(PsiClass psiClass, PsiMethod method) {
+
+        if (this.currentMethod != null && this.currentMethod.equals(method)) {
+            return;
+        }
+        InsidiousService insidiousService = method.getProject().getService(InsidiousService.class);
+
+        if (method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
+            return;
+        }
+        basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());
+
+
+        saveLocationTextField.setText("");
+        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(method.getName());
+
+        testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_CODE
+        );
+
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+
+        this.currentMethod = method;
+        this.currentClass = psiClass;
+
+
+        List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
+
+        testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
+
+        selectedMethodNameLabel.setText(psiClass.getName() + "." + method.getName() + "()");
         updatePreviewTestCase();
+        saveTestCaseButton.setEnabled(true);
 
     }
 
@@ -284,7 +285,8 @@ public class TestCaseDesigner {
 
             PsiType parameterPsiType = parameter.getType();
             if (parameterPsiType instanceof PsiClassReferenceType) {
-                argumentParameter.setType(psiTypeToJvmType(((PsiClassReferenceType) parameterPsiType).rawType().getCanonicalText()));
+                argumentParameter.setType(
+                        psiTypeToJvmType(((PsiClassReferenceType) parameterPsiType).rawType().getCanonicalText()));
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterPsiType;
                 if (classReferenceType.hasParameters()) {
                     SessionInstance.extractTemplateMap(classReferenceType, argumentParameter.getTemplateMap());
@@ -300,7 +302,7 @@ public class TestCaseDesigner {
             if (argumentParameter.getType().equals("java.lang.String")) {
                 argumentParameter.getProb().setSerializedValue(("\"" + parameter.getName() + "\"").getBytes());
             } else if (argumentParameter.isPrimitiveType()) {
-
+                argumentParameter.getProb().setSerializedValue(("0").getBytes());
             } else {
                 argumentParameter.getProb().setSerializedValue(("{" + "}").getBytes());
             }
@@ -345,7 +347,8 @@ public class TestCaseDesigner {
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
 
-        if (currentMethod.getReturnType() != null) {
+        if (currentMethod.getReturnType() != null &&
+                !currentMethod.getReturnType().getCanonicalText().equals("void")) {
             Parameter assertionExpectedValue = new Parameter();
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
             assertionExpectedValue.setProb(new DataEventWithSessionId());

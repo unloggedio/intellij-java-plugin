@@ -18,4 +18,9 @@ public class StatementCodeLine implements CodeLine {
     public void writeTo(MethodSpec.Builder methodBuilder, Object[] arguments) {
         methodBuilder.addStatement(statement, arguments);
     }
+
+    @Override
+    public String toString() {
+        return statement;
+    }
 }
