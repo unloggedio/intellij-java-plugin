@@ -262,16 +262,8 @@ public class TestCaseDesigner {
             returnValue.setValue(random.nextLong());
 
             PsiType returnType = currentMethod.getReturnType();
-            if (returnType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType returnClassType = (PsiClassReferenceType) returnType;
-                returnValue.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
-                if (returnClassType.hasParameters()) {
-                    SessionInstance.extractTemplateMap(returnClassType, returnValue.getTemplateMap());
-                    returnValue.setContainer(true);
-                }
-            } else {
-                returnValue.setType(psiTypeToJvmType(returnType.getCanonicalText()));
-            }
+            setParameterTypeFromPsiType(returnValue, returnType);
+
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
             returnValue.setProb(returnValueProbe);
         }
@@ -285,17 +277,8 @@ public class TestCaseDesigner {
             argumentParameter.setValue(random.nextLong());
 
             PsiType parameterPsiType = parameter.getType();
-            if (parameterPsiType instanceof PsiClassReferenceType) {
-                argumentParameter.setType(
-                        psiTypeToJvmType(((PsiClassReferenceType) parameterPsiType).rawType().getCanonicalText()));
-                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterPsiType;
-                if (classReferenceType.hasParameters()) {
-                    SessionInstance.extractTemplateMap(classReferenceType, argumentParameter.getTemplateMap());
-                    argumentParameter.setContainer(true);
-                }
-            } else {
-                argumentParameter.setType(psiTypeToJvmType(parameterPsiType.getCanonicalText()));
-            }
+            setParameterTypeFromPsiType(argumentParameter, parameterPsiType);
+
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProb(parameterProbe);
             argumentParameter.setName(parameter.getName());
@@ -348,28 +331,16 @@ public class TestCaseDesigner {
         testCandidateMetadata.setTestSubject(testSubjectParameter);
 
 
-        if (currentMethod.getReturnType() != null &&
-                !currentMethod.getReturnType().getCanonicalText().equals("void")) {
+        if (currentMethod.getReturnType() != null && !currentMethod.getReturnType().getCanonicalText().equals("void")) {
             Parameter assertionExpectedValue = new Parameter();
             assertionExpectedValue.setName(returnValue.getName() + "Expected");
             assertionExpectedValue.setProb(new DataEventWithSessionId());
             assertionExpectedValue.setProbeInfo(new DataInfo());
 
 
-            PsiType returnType = currentMethod.getReturnType();
-            if (returnType instanceof PsiClassReferenceType) {
-                PsiClassReferenceType returnClassType = (PsiClassReferenceType) returnType;
-                assertionExpectedValue.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
-                if (returnClassType.hasParameters()) {
-                    SessionInstance.extractTemplateMap(returnClassType, assertionExpectedValue.getTemplateMap());
-                    assertionExpectedValue.setContainer(true);
-                }
-            } else {
-                assertionExpectedValue.setType(psiTypeToJvmType(returnType.getCanonicalText()));
-            }
+            setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType());
 
-            TestAssertion testAssertion = new TestAssertion(
-                    AssertionType.EQUAL, assertionExpectedValue, returnValue);
+            TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
 
             testCandidateMetadata.getAssertionList().add(testAssertion);
         }
@@ -381,6 +352,13 @@ public class TestCaseDesigner {
         PsiField[] fields = currentClass.getFields();
         for (PsiField field : fields) {
             fieldMap.put(field.getName(), field);
+            Parameter fieldParameter = new Parameter();
+            fieldParameter.setName(field.getName());
+            setParameterTypeFromPsiType(fieldParameter, field.getType());
+            fieldParameter.setValue(random.nextLong());
+            fieldParameter.setProb(new DataEventWithSessionId());
+            fieldParameter.setProbeInfo(new DataInfo());
+            testCandidateMetadata.getFields().add(fieldParameter);
         }
 
 
@@ -396,6 +374,19 @@ public class TestCaseDesigner {
         testCandidateMetadataList.add(testCandidateMetadata);
 
         return testCandidateMetadataList;
+    }
+
+    private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType) {
+        if (psiType instanceof PsiClassReferenceType) {
+            PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
+            parameter.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
+            if (returnClassType.hasParameters()) {
+                SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());
+                parameter.setContainer(true);
+            }
+        } else {
+            parameter.setType(psiTypeToJvmType(psiType.getCanonicalText()));
+        }
     }
 
     public List<PsiMethodCallExpression> collectMethodCallExpressions(PsiElement element) {

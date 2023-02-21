@@ -1096,9 +1096,11 @@ public class SessionInstance {
 
     public TypeInfo getTypeInfo(String name) {
 
-        TypeInfo result = archiveIndex.getTypesByName(name);
-        if (result != null) {
-            return result;
+        if (archiveIndex != null) {
+            TypeInfo result = archiveIndex.getTypesByName(name);
+            if (result != null) {
+                return result;
+            }
         }
 
         return new TypeInfo(-1, name, "", 0, 0, "", new int[0]);

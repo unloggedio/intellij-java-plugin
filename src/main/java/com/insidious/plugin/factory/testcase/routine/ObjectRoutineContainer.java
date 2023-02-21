@@ -366,24 +366,24 @@ public class ObjectRoutineContainer {
         Set<Parameter> fields = new HashSet<>();
 
         for (Parameter fieldParameter : fieldParametersFromAllCandidates) {
-            boolean isPresent = false;
+//            boolean isPresent = false;
+//
+//            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
+//                    .stream()
+//                    .map(ObjectRoutine::getTestCandidateList)
+//                    .flatMap(Collection::stream)
+//                    .map(TestCandidateMetadata::getCallsList)
+//                    .flatMap(Collection::stream)
+//                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
+//                    .findAny();
+//            if (!foundUsage.isPresent()) {
+//                // field is not actually used anywhere, so we dont want to create it
+//                continue;
+//            }
 
-            Optional<MethodCallExpression> foundUsage = getObjectRoutines()
-                    .stream()
-                    .map(ObjectRoutine::getTestCandidateList)
-                    .flatMap(Collection::stream)
-                    .map(TestCandidateMetadata::getCallsList)
-                    .flatMap(Collection::stream)
-                    .filter(e -> e.getSubject().getValue() == fieldParameter.getValue())
-                    .findAny();
-            if (!foundUsage.isPresent()) {
-                // field is not actually used anywhere, so we dont want to create it
-                continue;
-            }
-
-            if (!isPresent) {
-                fields.add(fieldParameter);
-            }
+//            if (!isPresent) {
+            fields.add(fieldParameter);
+//            }
         }
 
         return fields;

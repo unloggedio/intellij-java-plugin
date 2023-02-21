@@ -211,12 +211,10 @@ public class TestCaseService implements Runnable {
         // gotta mock'em all
         for (Parameter fieldParameter : fields) {
 
-            if (fieldParameter.getType()
-                    .startsWith("org.slf4j.Logger")) {
+            if (fieldParameter.getType().startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (fieldParameter.getType()
-                    .startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
+            if (fieldParameter.getType().startsWith("org.springframework.cglib.proxy.MethodInterceptor")) {
                 continue;
             }
 
@@ -232,8 +230,7 @@ public class TestCaseService implements Runnable {
 
             if (classPsiInstance != null) {
                 List<PsiField> fieldMatchingParameterType = Arrays.stream(classPsiInstance.getFields())
-                        .filter(e -> typeNames.contains(e.getType()
-                                .getCanonicalText()))
+                        .filter(e -> typeNames.contains(e.getType().getCanonicalText()))
                         .collect(Collectors.toList());
                 if (fieldMatchingParameterType.size() > 0) {
 
@@ -279,7 +276,7 @@ public class TestCaseService implements Runnable {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
             if (metadata == null) {
-                logger.warn("unable to create a initializer for field: " + fieldParameter);
+                logger.warn("unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
                 continue;
             }
             mockCreatorCandidates.add(metadata);
