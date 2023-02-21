@@ -354,6 +354,10 @@ public class TestCaseDesigner {
             fieldMap.put(field.getName(), field);
             Parameter fieldParameter = new Parameter();
             fieldParameter.setName(field.getName());
+            if (!(field.getType() instanceof PsiClassReferenceType)
+                    || field.getType().getCanonicalText().equals("java.lang.String")) {
+                continue;
+            }
             setParameterTypeFromPsiType(fieldParameter, field.getType());
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProb(new DataEventWithSessionId());

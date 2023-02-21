@@ -259,10 +259,8 @@ public class TestCaseService implements Runnable {
                     if (!nameChosen && fieldMatchingParameterType.size() == 1) {
                         // if we didn't find a field with matching name
                         // but we have only 1 field with matching type, then we will use the name of that field
-                        fieldParameter.getNames()
-                                .clear();
-                        fieldParameter.setName(fieldMatchingParameterType.get(0)
-                                .getName());
+                        fieldParameter.getNames().clear();
+                        fieldParameter.setName(fieldMatchingParameterType.get(0).getName());
                     }
 
                 } else {
