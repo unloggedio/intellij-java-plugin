@@ -61,6 +61,7 @@ public class TestCaseDesigner {
     private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private String basePath;
     private Editor editor;
+    private MethodCallExpression mainMethod;
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
@@ -188,47 +189,56 @@ public class TestCaseDesigner {
         int scrollIndex = 0;
         int offset = 0;
         try {
-            String testCaseUnit = currentMethod.getProject()
-                    .getService(InsidiousService.class)
-                    .getTestCandidateCode(testCaseGenerationConfiguration);
-            if (testCaseUnit == null) {
-                InsidiousNotification.notifyMessage("Session not found, please try again", NotificationType.WARNING);
-                return;
-            }
+
+            if (!mainMethod.isMethodPublic()) {
 
 
-            if (saveLocationTextField.getText().isEmpty()) {
-
-                String packageName = ((PsiJavaFileImpl) currentClass.getContainingFile()).getPackageName();
-                String testOutputDirPath = insidiousService.getTestDirectory(packageName, basePath);
-
-                saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
-            }
-
-
-            String testCaseScript = testCaseUnit;
-
-            String[] codeLines = testCaseScript.split("\n");
-            int classStartIndex = 0;
-            offset = testCaseScript.indexOf(testCaseGenerationConfiguration.getTestMethodName());
-            for (String codeLine : codeLines) {
-                if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
-                    break;
+                String testCaseUnit = currentMethod.getProject()
+                        .getService(InsidiousService.class)
+                        .getTestCandidateCode(testCaseGenerationConfiguration);
+                if (testCaseUnit == null) {
+                    InsidiousNotification.notifyMessage("Session not found, please try again",
+                            NotificationType.WARNING);
+                    return;
                 }
-                classStartIndex++;
-            }
-            scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
 
-            Document document = editorFactory.createDocument(testCaseScript);
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
+
+                if (saveLocationTextField.getText().isEmpty()) {
+
+                    String packageName = ((PsiJavaFileImpl) currentClass.getContainingFile()).getPackageName();
+                    String testOutputDirPath = insidiousService.getTestDirectory(packageName, basePath);
+
+                    saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
+                }
+
+
+                String testCaseScript = testCaseUnit;
+
+                String[] codeLines = testCaseScript.split("\n");
+                int classStartIndex = 0;
+                offset = testCaseScript.indexOf(testCaseGenerationConfiguration.getTestMethodName());
+                for (String codeLine : codeLines) {
+                    if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
+                        break;
+                    }
+                    classStartIndex++;
+                }
+                scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
+
+                Document document = editorFactory.createDocument(testCaseScript);
+                editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
+            } else {
+                editor = editorFactory.createEditor(editorFactory.createDocument("Test case can be generated only for public methods."),
+                        currentMethod.getProject(), JavaFileType.INSTANCE, true);
+
+            }
         } catch (Exception e) {
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PrintStream stringWriter = new PrintStream(out);
             e.printStackTrace(stringWriter);
             Document document = editorFactory.createDocument(out.toString());
-            editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE,
-                    false);
+            editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
         }
 
 
@@ -295,7 +305,7 @@ public class TestCaseDesigner {
         }
 
 
-        MethodCallExpression mainMethod = new MethodCallExpression(
+        mainMethod = new MethodCallExpression(
                 currentMethod.getName(), testSubjectParameter, arguments, returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
