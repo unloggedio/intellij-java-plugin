@@ -203,6 +203,7 @@ public class TestCaseDesigner {
                         .getService(InsidiousService.class)
                         .getTestCandidateCode(testCaseGenerationConfiguration);
                 if (testCaseUnit == null) {
+                    UsageInsightTracker.getInstance().RecordEvent("SESSION_NOT_FOUND", new JSONObject());
                     InsidiousNotification.notifyMessage("Session not found, please try again",
                             NotificationType.WARNING);
                     return;

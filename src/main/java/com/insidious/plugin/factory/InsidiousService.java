@@ -57,6 +57,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
+import com.intellij.usages.UsageTarget;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import com.intellij.xdebugger.XDebugSession;
@@ -64,6 +65,7 @@ import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONObject;
 
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
@@ -888,7 +890,7 @@ final public class InsidiousService implements Disposable {
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
             loadSession();
-            InsidiousNotification.notifyMessage("Session isnt loaded yet, loading session", NotificationType.WARNING);
+            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
             return null;
         }
         return testCaseService;
@@ -902,8 +904,20 @@ final public class InsidiousService implements Disposable {
                         client.getProjectSessions(new GetProjectSessionsCallback() {
                             @Override
                             public void error(String message) {
-                                InsidiousNotification.notifyMessage("Failed to list sessions - " + message,
-                                        NotificationType.ERROR);
+                                JSONObject eventProperties = new JSONObject();
+                                eventProperties.put("message", message);
+                                UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+                                ExecutionSession executionSession = new ExecutionSession();
+                                executionSession.setPath(pathToSessions);
+                                executionSession.setSessionId("na");
+                                try {
+                                    sessionInstance = new SessionInstance(executionSession, project);
+                                } catch (SQLException | IOException e) {
+                                    eventProperties.put("stack", e.toString());
+                                    UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+                                    throw new RuntimeException(e);
+                                }
                             }
 
                             @Override
@@ -923,6 +937,9 @@ final public class InsidiousService implements Disposable {
                                     testCaseService = new TestCaseService(sessionInstance);
 
                                 } catch (SQLException | IOException e) {
+                                    JSONObject eventProperties = new JSONObject();
+                                    eventProperties.put("stack", e.toString());
+                                    UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
                                     throw new RuntimeException(e);
                                 }
 
