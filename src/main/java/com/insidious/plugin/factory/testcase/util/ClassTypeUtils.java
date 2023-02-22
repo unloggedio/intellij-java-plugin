@@ -195,23 +195,23 @@ public class ClassTypeUtils {
         char firstChar = methodReturnValueType.charAt(0);
         switch (firstChar) {
             case 'V':
-                return ClassName.get(void.class);
+                return TypeName.get(void.class);
             case 'Z':
-                return ClassName.get(boolean.class);
+                return TypeName.get(boolean.class);
             case 'B':
-                return ClassName.get(byte.class);
+                return TypeName.get(byte.class);
             case 'C':
-                return ClassName.get(char.class);
+                return TypeName.get(char.class);
             case 'S':
-                return ClassName.get(short.class);
+                return TypeName.get(short.class);
             case 'I':
-                return ClassName.get(int.class);
+                return TypeName.get(int.class);
             case 'J':
-                return ClassName.get(long.class);
+                return TypeName.get(long.class);
             case 'F':
-                return ClassName.get(float.class);
+                return TypeName.get(float.class);
             case 'D':
-                return ClassName.get(double.class);
+                return TypeName.get(double.class);
             case 'L':
                 String returnValueClass = methodReturnValueType.substring(1)
                         .split(";")[0];
@@ -219,7 +219,6 @@ public class ClassTypeUtils {
             case '[':
 //                String returnValueClass1 = methodReturnValueType.substring(1);
                 return ArrayTypeName.of(constructClassName(methodReturnValueType.substring(1)));
-
             default:
                 return ClassName.bestGuess(methodReturnValueType);
 
