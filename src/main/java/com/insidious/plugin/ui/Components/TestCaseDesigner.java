@@ -501,9 +501,20 @@ public class TestCaseDesigner {
                     argumentProbe.setSerializedValue("\"\"".getBytes());
                 } else {
 
+                    String parameterClassName = parameter.getType().getCanonicalText();
+                    if (parameter.getType() instanceof PsiClassReferenceType) {
+                        parameterClassName = ((PsiClassReferenceType) parameter.getType()).rawType().getCanonicalText();
+                    }
                     @Nullable PsiClass parameterClassReference = JavaPsiFacade.getInstance(currentClass.getProject())
-                            .findClass(ClassTypeUtils.getJavaClassName(parameter.getType().getCanonicalText()),
+                            .findClass(ClassTypeUtils.getJavaClassName(parameterClassName),
                                     GlobalSearchScope.allScope(currentClass.getProject()));
+
+                    if (parameterClassReference == null) {
+                        logger.error("did not find class reference: " + parameterClassName +
+                                " for parameter: " + parameter.getName() +
+                                " in class " + currentClass.getQualifiedName());
+                        continue;
+                    }
 
                     candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter,
                             fieldContainer));
