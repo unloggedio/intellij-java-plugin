@@ -302,8 +302,7 @@ public class TestCaseDesigner {
 
         // constructor
 
-        List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass,
-                testSubjectParameter, fieldContainer);
+        List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass, testSubjectParameter, fieldContainer);
         testCandidateMetadataList.addAll(constructorCandidate);
 
         // test subject
@@ -516,8 +515,7 @@ public class TestCaseDesigner {
                         continue;
                     }
 
-                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter,
-                            fieldContainer));
+                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter, fieldContainer));
                 }
 
                 methodArgumentParameter.setProb(argumentProbe);
