@@ -258,6 +258,8 @@ public class TestCaseDesigner {
         editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
         logger.warn("scroll to line: " + scrollIndex);
         editor.getScrollingModel().scrollVertically(scrollIndex);
+        testCasePreviewPanel.revalidate();
+        testCasePreviewPanel.repaint();
 
     }
 
