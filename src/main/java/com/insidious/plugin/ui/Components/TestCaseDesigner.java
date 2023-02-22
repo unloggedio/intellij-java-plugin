@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.AssertionType;
@@ -27,7 +28,9 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
@@ -195,8 +198,7 @@ public class TestCaseDesigner {
         int scrollIndex = 0;
         int offset = 0;
         try {
-
-            if (mainMethod.isMethodPublic()) {
+            if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
 
 
                 String testCaseUnit = currentMethod.getProject()
@@ -263,15 +265,40 @@ public class TestCaseDesigner {
 
         List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
 
+        Map<String, PsiField> fieldMapByType = new HashMap<>();
+        VariableContainer fieldContainer = new VariableContainer();
+
+        PsiField[] fields = currentClass.getFields();
+        for (PsiField field : fields) {
+            Parameter fieldParameter = new Parameter();
+            fieldParameter.setName(field.getName());
+            if (!(field.getType() instanceof PsiClassReferenceType)
+                    || field.getType().getCanonicalText().equals("java.lang.String")) {
+                continue;
+            }
+            setParameterTypeFromPsiType(fieldParameter, field.getType());
+            fieldParameter.setValue(random.nextLong());
+            fieldParameter.setProb(new DataEventWithSessionId());
+            fieldParameter.setProbeInfo(new DataInfo());
+            fieldContainer.add(fieldParameter);
+        }
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
 
-        // test subject
         Parameter testSubjectParameter = new Parameter();
         testSubjectParameter.setType(currentClass.getQualifiedName());
         testSubjectParameter.setValue(random.nextLong());
         DataEventWithSessionId testSubjectParameterProbe = new DataEventWithSessionId();
         testSubjectParameter.setProb(testSubjectParameterProbe);
+
+        // constructor
+
+        List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass,
+                testSubjectParameter, fieldContainer);
+        testCandidateMetadataList.addAll(constructorCandidate);
+
+        // test subject
+
 
         // method return value
         Parameter returnValue = null;
@@ -367,24 +394,8 @@ public class TestCaseDesigner {
         // fields
 
         if (addFieldMocksCheckBox.isSelected()) {
-
-
-            Map<String, PsiField> fieldMap = new HashMap<>();
-            PsiField[] fields = currentClass.getFields();
-            for (PsiField field : fields) {
-                fieldMap.put(field.getName(), field);
-                Parameter fieldParameter = new Parameter();
-                fieldParameter.setName(field.getName());
-                if (!(field.getType() instanceof PsiClassReferenceType)
-                        || field.getType().getCanonicalText().equals("java.lang.String")) {
-                    continue;
-                }
-                setParameterTypeFromPsiType(fieldParameter, field.getType());
-                fieldParameter.setValue(random.nextLong());
-                fieldParameter.setProb(new DataEventWithSessionId());
-                fieldParameter.setProbeInfo(new DataInfo());
-                testCandidateMetadata.getFields().add(fieldParameter);
-            }
+            // field parameters are going to be mocked and then injected
+            fieldContainer.all().forEach(e -> testCandidateMetadata.getFields().add(e));
         }
 
 
@@ -400,6 +411,106 @@ public class TestCaseDesigner {
         testCandidateMetadataList.add(testCandidateMetadata);
 
         return testCandidateMetadataList;
+    }
+
+    private List<TestCandidateMetadata> buildConstructorCandidate(
+            PsiClass currentClass, Parameter testSubject, VariableContainer fieldContainer) {
+        List<TestCandidateMetadata> candidateList = new ArrayList<>();
+
+        PsiMethod[] constructors = currentClass.getConstructors();
+        if (constructors.length == 0) {
+            TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
+            MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject,
+                    Collections.emptyList(), testSubject, 0);
+            constructorMethod.setMethodAccess(1);
+            newTestCaseMetadata.setMainMethod(constructorMethod);
+            newTestCaseMetadata.setTestSubject(testSubject);
+            newTestCaseMetadata.setFields(VariableContainer.from(Collections.emptyList()));
+            candidateList.add(newTestCaseMetadata);
+
+            return candidateList;
+        }
+        PsiMethod selectedConstructor = null;
+        for (PsiMethod constructor : constructors) {
+            if (selectedConstructor == null) {
+                selectedConstructor = constructor;
+                continue;
+            }
+            if (constructor.getParameterList().getParametersCount() > selectedConstructor.getParameterList()
+                    .getParametersCount()) {
+                selectedConstructor = constructor;
+            }
+        }
+
+        if (selectedConstructor == null) {
+            logger.error("selectedConstructor should not have been null: " + currentClass.getQualifiedName());
+            return candidateList;
+        }
+
+        logger.warn("selected constructor for [" + currentClass.getQualifiedName()
+                + "] -> " + selectedConstructor.getName());
+
+
+        TestCandidateMetadata candidate = new TestCandidateMetadata();
+        List<Parameter> methodArguments = new ArrayList<>(selectedConstructor.getParameterList().getParametersCount());
+
+        for (PsiParameter parameter : selectedConstructor.getParameterList().getParameters()) {
+
+            List<Parameter> fieldParameterByType = fieldContainer.getParametersByType(
+                    parameter.getType().getCanonicalText());
+
+            if (fieldParameterByType.size() > 0) {
+
+                Parameter closestNameMatch = fieldParameterByType.get(0);
+                int currentDistance = Integer.MAX_VALUE;
+
+                for (Parameter fieldParameter : fieldParameterByType) {
+                    int distance = StringUtils.getLevenshteinDistance(fieldParameter.getName(), parameter.getName());
+                    if (distance < currentDistance) {
+                        closestNameMatch = fieldParameter;
+                        currentDistance = distance;
+                    }
+                }
+                methodArguments.add(closestNameMatch);
+
+            } else {
+                Parameter methodArgumentParameter = new Parameter();
+                methodArgumentParameter.setName(parameter.getName());
+                setParameterTypeFromPsiType(methodArgumentParameter, parameter.getType());
+                methodArgumentParameter.setValue(random.nextLong());
+                methodArgumentParameter.setProbeInfo(new DataInfo());
+                DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
+
+                if (methodArgumentParameter.isPrimitiveType()) {
+                    argumentProbe.setSerializedValue("0".getBytes());
+                } else if (methodArgumentParameter.isStringType()) {
+                    argumentProbe.setSerializedValue("\"\"".getBytes());
+                } else {
+
+                    @Nullable PsiClass parameterClassReference = JavaPsiFacade.getInstance(currentClass.getProject())
+                            .findClass(ClassTypeUtils.getJavaClassName(parameter.getType().getCanonicalText()),
+                                    GlobalSearchScope.allScope(currentClass.getProject()));
+
+                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter,
+                            fieldContainer));
+                }
+
+                methodArgumentParameter.setProb(argumentProbe);
+
+                methodArguments.add(methodArgumentParameter);
+            }
+
+
+        }
+
+
+        MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, methodArguments, testSubject, 0);
+        constructorMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
+
+        candidate.setMainMethod(constructorMethod);
+        candidate.setTestSubject(testSubject);
+        candidateList.add(candidate);
+        return candidateList;
     }
 
     private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType) {

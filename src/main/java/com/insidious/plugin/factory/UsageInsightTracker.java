@@ -2,9 +2,10 @@ package com.insidious.plugin.factory;
 
 import com.amplitude.Amplitude;
 import com.amplitude.Event;
-import com.intellij.openapi.application.ApplicationManager;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
@@ -19,6 +20,7 @@ public class UsageInsightTracker {
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
+    private final List<String> UsersToSkip = Arrays.asList("artpar", "testerfresher", "rachnakulkarni");
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
@@ -41,6 +43,9 @@ public class UsageInsightTracker {
     }
 
     public void RecordEvent(String eventName, JSONObject eventProperties) {
+        if (UsersToSkip.contains(HOSTNAME)) {
+            return;
+        }
         Event event = new Event(eventName, HOSTNAME);
         event.osName = OS_TAG;
         event.language = LANGUAGE;

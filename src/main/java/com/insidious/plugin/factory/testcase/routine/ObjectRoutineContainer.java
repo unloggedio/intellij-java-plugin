@@ -60,16 +60,12 @@ public class ObjectRoutineContainer {
         for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
 
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
-//            if (methodInfo.getReturnValue() == null || methodInfo.getReturnValue().getProb() == null) {
-//                continue;
-//            }
-            if (methodInfo.getMethodName()
-                    .equals("<init>")) {
-                constructor.setTestCandidateList(testCandidateMetadata);
+            if (methodInfo.getMethodName().equals("<init>")
+                    && methodInfo.getReturnValue().getType().equals(testCandidateMetadata.getTestSubject().getType())
+            ) {
                 hasTargetInstanceClassConstructor = true;
-            } else {
-                addMetadata(testCandidateMetadata);
             }
+            addMetadata(testCandidateMetadata);
         }
         if (!hasTargetInstanceClassConstructor) {
             TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
@@ -125,8 +121,7 @@ public class ObjectRoutineContainer {
     }
 
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName()
-                .equals("<init>")) {
+        if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName().equals("<init>")) {
             constructor.addMetadata(newTestCaseMetadata);
         } else {
             currentRoutine.addMetadata(newTestCaseMetadata);
@@ -250,8 +245,7 @@ public class ObjectRoutineContainer {
 
         for (Parameter parameter : fieldsContainer.all()) {
 
-            if (constructorNonPojoParams.stream()
-                    .anyMatch(e -> e.getValue() == parameter.getValue())) {
+            if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
                 continue;
             }
 
@@ -268,8 +262,7 @@ public class ObjectRoutineContainer {
 
         Map<String, Parameter> staticMocks = new HashMap<>();
         for (ObjectRoutine objectRoutine : this.objectRoutines) {
-            if (objectRoutine.getRoutineName()
-                    .equals("<init>")) {
+            if (objectRoutine.getRoutineName().equals("<init>")) {
                 continue;
             }
 

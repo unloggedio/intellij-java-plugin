@@ -189,10 +189,11 @@ public class Parameter implements Serializable, BytesMarshallable {
     @Override
     public String toString() {
         return
-                names.stream()
+                (names != null ? names.stream()
                         .findFirst()
-                        .orElse("<n/a>") +
-                        (type == null ? "</na>" : " = new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
+                        .orElse("<n/a>") : "<n/a>") +
+                        (type == null ? "</na>" : " = new " + (type != null ?
+                                type.substring(type.lastIndexOf('.') + 1) : "naType") + "(); // ") +
                         "{" + "value=" + value +
                         ", index=" + index +
                         ", probeInfo=" + dataInfo +
