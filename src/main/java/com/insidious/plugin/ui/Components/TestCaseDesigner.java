@@ -15,6 +15,7 @@ import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -270,10 +271,16 @@ public class TestCaseDesigner {
 
         PsiField[] fields = currentClass.getFields();
         for (PsiField field : fields) {
+            if (field.hasModifier(JvmModifier.STATIC)) {
+                continue;
+            }
             Parameter fieldParameter = new Parameter();
             fieldParameter.setName(field.getName());
             if (!(field.getType() instanceof PsiClassReferenceType)
-                    || field.getType().getCanonicalText().equals("java.lang.String")) {
+                    || field.getType().getCanonicalText().equals("java.lang.String")
+                    || field.getType().getCanonicalText().startsWith("org.apache.commons.logging")
+                    || field.getType().getCanonicalText().startsWith("org.slf4j")
+            ) {
                 continue;
             }
             setParameterTypeFromPsiType(fieldParameter, field.getType());
