@@ -44,9 +44,8 @@ public class ObjectRoutineContainer {
 
     public ObjectRoutineContainer(TestCaseGenerationConfiguration generationConfiguration) {
         this.generationConfiguration = generationConfiguration;
-        Parameter parameter = generationConfiguration.getTestCandidateMetadataList()
-                .get(0)
-                .getTestSubject();
+        List<TestCandidateMetadata> testCandidateMetadataList = generationConfiguration.getTestCandidateMetadataList();
+        Parameter parameter = testCandidateMetadataList.get(testCandidateMetadataList.size() - 1).getTestSubject();
         ClassName targetClassName = ClassName.bestGuess(parameter.getType());
 
         this.testSubject = parameter;
@@ -57,7 +56,7 @@ public class ObjectRoutineContainer {
         newRoutine("test" + targetClassName.simpleName());
 
         boolean hasTargetInstanceClassConstructor = false;
-        for (TestCandidateMetadata testCandidateMetadata : generationConfiguration.getTestCandidateMetadataList()) {
+        for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
 
             MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
             if (methodInfo.getMethodName().equals("<init>")
@@ -348,10 +347,12 @@ public class ObjectRoutineContainer {
 
     @NotNull
     public Set<? extends Parameter> collectFieldsFromRoutines() {
+
         Set<Parameter> fieldParametersFromAllCandidates = getObjectRoutines().stream()
                 .map(ObjectRoutine::getTestCandidateList)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
+                .filter(e -> e.getTestSubject().getValue() == testSubject.getValue())
                 .map(e -> e.getFields().all())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());

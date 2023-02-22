@@ -16,7 +16,6 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.text.StringUtil;
 import com.squareup.javapoet.ClassName;
 import lombok.AllArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -130,10 +129,17 @@ public class ObjectRoutine {
 //            }
 //        }
 
+        List<Long> testCandidateSubjectValues = testCandidateList.stream().map(e -> e.getTestSubject().getValue())
+                .collect(Collectors.toList());
+
         for (Parameter nonPojoParameter : nonPojoParameters) {
             if (fieldsContainer.getParameterByValue(nonPojoParameter.getValue()) != null) {
                 continue;
             }
+            if (testCandidateSubjectValues.contains(nonPojoParameter.getValue())) {
+                continue;
+            }
+
             TestCandidateMetadata metadata = MockFactory.createParameterMock(nonPojoParameter, generationConfiguration);
             if (metadata == null) {
                 logger.warn("unable to create a initializer for non pojo parameter: " + nonPojoParameter);

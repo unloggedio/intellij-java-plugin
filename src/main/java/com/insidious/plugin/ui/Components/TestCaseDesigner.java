@@ -279,7 +279,7 @@ public class TestCaseDesigner {
             setParameterTypeFromPsiType(fieldParameter, field.getType());
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProb(new DataEventWithSessionId());
-            fieldParameter.setProbeInfo(new DataInfo());
+//            fieldParameter.setProbeInfo(new DataInfo());
             fieldContainer.add(fieldParameter);
         }
 
@@ -346,25 +346,27 @@ public class TestCaseDesigner {
         mainMethod.setSubject(testSubjectParameter);
 
         int methodAccess = 0;
-        for (PsiElement child : currentMethod.getModifierList().getChildren()) {
-            switch (child.getText()) {
-                case "private":
-                    methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
-                    break;
-                case "public":
-                    methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
-                    break;
-                case "protected":
-                    methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
-                    break;
-                case "static":
-                    methodAccess = methodAccess | Opcodes.ACC_STATIC;
-                    break;
-                case "final":
-                    methodAccess = methodAccess | Opcodes.ACC_FINAL;
-                    break;
-                default:
-                    logger.warn("unhandled modifier: " + child);
+        if (currentMethod.getModifierList() != null) {
+            for (PsiElement child : currentMethod.getModifierList().getChildren()) {
+                switch (child.getText()) {
+                    case "private":
+                        methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
+                        break;
+                    case "public":
+                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+                        break;
+                    case "protected":
+                        methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
+                        break;
+                    case "static":
+                        methodAccess = methodAccess | Opcodes.ACC_STATIC;
+                        break;
+                    case "final":
+                        methodAccess = methodAccess | Opcodes.ACC_FINAL;
+                        break;
+                    default:
+                        logger.warn("unhandled modifier: " + child);
+                }
             }
         }
 
@@ -401,6 +403,9 @@ public class TestCaseDesigner {
 
         List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(currentMethod.getBody());
         for (PsiMethodCallExpression psiMethodCallExpression : mceList) {
+            if (psiMethodCallExpression == null) {
+                continue;
+            }
             PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
             for (PsiElement callExpressionChild : callExpressionChildren) {
 
@@ -478,7 +483,7 @@ public class TestCaseDesigner {
                 methodArgumentParameter.setName(parameter.getName());
                 setParameterTypeFromPsiType(methodArgumentParameter, parameter.getType());
                 methodArgumentParameter.setValue(random.nextLong());
-                methodArgumentParameter.setProbeInfo(new DataInfo());
+//                methodArgumentParameter.setProbeInfo(new DataInfo());
                 DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
 
                 if (methodArgumentParameter.isPrimitiveType()) {
@@ -504,7 +509,8 @@ public class TestCaseDesigner {
         }
 
 
-        MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, methodArguments, testSubject, 0);
+        MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject, methodArguments,
+                testSubject, 0);
         constructorMethod.setMethodAccess(Opcodes.ACC_PUBLIC);
 
         candidate.setMainMethod(constructorMethod);
@@ -528,6 +534,9 @@ public class TestCaseDesigner {
 
     public List<PsiMethodCallExpression> collectMethodCallExpressions(PsiElement element) {
         ArrayList<PsiMethodCallExpression> returnList = new ArrayList<>();
+        if (element == null) {
+            return returnList;
+        }
 
         if (element instanceof PsiMethodCallExpression) {
             returnList.add((PsiMethodCallExpression) element);

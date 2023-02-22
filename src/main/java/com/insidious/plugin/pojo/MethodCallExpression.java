@@ -231,6 +231,14 @@ public class MethodCallExpression implements Expression, Serializable {
                     continue;
                 }
 
+                if (methodName.equals("<init>")
+                        && objectRoutineScript.getCreatedVariables().getParameterByValue(parameter.getValue()) != null
+                        && parameter.getProb().getSerializedValue().length == 0
+                ) {
+                    // this is already been initialized
+                    continue;
+                }
+
                 parameter = generateParameterName(parameter, objectRoutineScript);
 
                 PendingStatement.in(objectRoutineScript, testGenerationState)
