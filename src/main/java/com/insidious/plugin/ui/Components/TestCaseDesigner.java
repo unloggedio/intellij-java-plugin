@@ -590,8 +590,8 @@ public class TestCaseDesigner {
         for (PsiClass psiClass : classesToCheck) {
             List<PsiMethod> matchedMethods = Arrays.stream(psiClass.getMethods())
                     .filter(e -> e.getName().equals(methodName))
-                    .filter(e -> e.getParameterList()
-                            .getParametersCount() == callParameterExpression.getExpressionCount())
+                    .filter(e -> e.getParameterList().getParametersCount()
+                            == callParameterExpression.getExpressionCount())
                     .collect(Collectors.toList());
             if (matchedMethods.size() == 0) {
                 continue;
@@ -602,7 +602,7 @@ public class TestCaseDesigner {
                 PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
                 for (int i = 0; i < parameters.length; i++) {
                     PsiParameter parameter = parameters[i];
-                    if (parameter.getType().equals(expectedExpressionType[i])) {
+                    if (!parameter.getType().equals(expectedExpressionType[i])) {
                         isMismatch = true;
                         break;
                     }
