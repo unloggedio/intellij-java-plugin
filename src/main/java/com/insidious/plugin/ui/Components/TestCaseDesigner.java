@@ -352,37 +352,12 @@ public class TestCaseDesigner {
         }
 
 
+        PsiModifierList modifierList = currentMethod.getModifierList();
+        int methodAccess = buildMethodAccessModifier(modifierList);
         mainMethod = new MethodCallExpression(
                 currentMethod.getName(), testSubjectParameter, arguments, returnValue, 0
         );
         mainMethod.setSubject(testSubjectParameter);
-
-        int methodAccess = 0;
-        if (currentMethod.getModifierList() != null) {
-            for (PsiElement child : currentMethod.getModifierList().getChildren()) {
-                switch (child.getText()) {
-                    case "private":
-                        methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
-                        break;
-                    case "public":
-                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
-                        break;
-                    case "protected":
-                        methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
-                        break;
-                    case "static":
-                        methodAccess = methodAccess | Opcodes.ACC_STATIC;
-                        break;
-                    case "final":
-                        methodAccess = methodAccess | Opcodes.ACC_FINAL;
-                        break;
-                    default:
-                        logger.warn("unhandled modifier: " + child);
-                }
-            }
-        }
-
-
         mainMethod.setMethodAccess(methodAccess);
 
         testCandidateMetadata.setMainMethod(mainMethod);
@@ -428,6 +403,34 @@ public class TestCaseDesigner {
         testCandidateMetadataList.add(testCandidateMetadata);
 
         return testCandidateMetadataList;
+    }
+
+    private static int buildMethodAccessModifier(PsiModifierList modifierList) {
+        int methodAccess = 0;
+        if (modifierList != null) {
+            for (PsiElement child : modifierList.getChildren()) {
+                switch (child.getText()) {
+                    case "private":
+                        methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
+                        break;
+                    case "public":
+                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+                        break;
+                    case "protected":
+                        methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
+                        break;
+                    case "static":
+                        methodAccess = methodAccess | Opcodes.ACC_STATIC;
+                        break;
+                    case "final":
+                        methodAccess = methodAccess | Opcodes.ACC_FINAL;
+                        break;
+                    default:
+                        logger.warn("unhandled modifier: " + child);
+                }
+            }
+        }
+        return methodAccess;
     }
 
     private List<TestCandidateMetadata> buildConstructorCandidate(

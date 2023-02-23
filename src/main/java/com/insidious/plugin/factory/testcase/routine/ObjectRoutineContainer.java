@@ -229,7 +229,7 @@ public class ObjectRoutineContainer {
             container.addField(parameter);
         }
 
-        if (generationConfiguration.useMockitoAnnotations()) {
+        if (!generationConfiguration.useMockitoAnnotations()) {
             for (Parameter parameter : constructorNonPojoParams) {
                 container.addField(parameter);
             }
@@ -279,8 +279,7 @@ public class ObjectRoutineContainer {
             ObjectRoutineScript objectScript =
                     objectRoutine.toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
                             fieldsContainer.clone());
-            container.getObjectRoutines()
-                    .add(objectScript);
+            container.getObjectRoutines().add(objectScript);
 
             List<Parameter> staticMockList = objectScript.getStaticMocks();
             for (Parameter staticMock : staticMockList) {
@@ -316,16 +315,13 @@ public class ObjectRoutineContainer {
 
             PendingStatement.in(builderMethodScript, testGenerationState)
                     .assignVariable(staticMock)
-                    .writeExpression(
-                            MethodCallExpressionFactory.MockStaticClass(
-                                    ClassName.bestGuess(staticMock.getTemplateMap()
-                                            .get(0)
-                                            .getType()),
+                    .writeExpression(MethodCallExpressionFactory.MockStaticClass(
+                                    ClassName.bestGuess(staticMock.getTemplateMap().get(0).getType()),
                                     generationConfiguration))
                     .endStatement();
         }
 
-        if (staticMocks.size() > 0) {
+        if (staticMocks.size() > 0 && !generationConfiguration.useMockitoAnnotations()) {
             // For setting the method with @After / @AfterEach Annotation
             VariableContainer finishedVariableContainer = new VariableContainer();
             ObjectRoutineScript afterEachMethodScript = new ObjectRoutineScript(finishedVariableContainer,
@@ -340,16 +336,13 @@ public class ObjectRoutineContainer {
             // Close Static Mock functions
             for (Parameter staticMock : staticMocks.values()) {
                 PendingStatement.in(afterEachMethodScript, testGenerationState)
-                        .writeExpression(
-                                MethodCallExpressionFactory.CloseStaticMock(staticMock))
+                        .writeExpression(MethodCallExpressionFactory.CloseStaticMock(staticMock))
                         .endStatement();
             }
 
             // Only add to test file only if the @AfterEach is not empty statements
-            if (afterEachMethodScript.getStatements()
-                    .size() > 0) {
-                container.getObjectRoutines()
-                        .add(afterEachMethodScript);
+            if (afterEachMethodScript.getStatements().size() > 0) {
+                container.getObjectRoutines().add(afterEachMethodScript);
             }
         }
 

@@ -60,8 +60,7 @@ public class PendingStatement {
             statementParameters.add(ClassName.bestGuess(methodCallExpression.getSubject()
                     .getType()));
         } else if (methodName.equals("fromJson")
-                && methodCallExpression.getSubject()
-                .equals(MethodCallExpressionFactory.GsonClass)) {
+                && methodCallExpression.getSubject().equals(MethodCallExpressionFactory.GsonClass)) {
 
 
             List<? extends Parameter> variables = methodCallExpression.getArguments();

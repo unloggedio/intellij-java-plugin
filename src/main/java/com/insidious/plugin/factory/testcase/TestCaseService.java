@@ -13,10 +13,7 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
-import com.insidious.plugin.pojo.MockFramework;
-import com.insidious.plugin.pojo.Parameter;
-import com.insidious.plugin.pojo.TestCaseUnit;
-import com.insidious.plugin.pojo.TestFramework;
+import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.RefreshButtonStateManager;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
@@ -56,8 +53,7 @@ public class TestCaseService implements Runnable {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
         TestCaseGenerationConfiguration testGenerationConfig = objectRoutineContainer.getGenerationConfiguration();
-        TypeSpec.Builder testClassSpecBuilder = TypeSpec
-                .classBuilder(generatedTestClassName)
+        TypeSpec.Builder testClassSpecBuilder = TypeSpec.classBuilder(generatedTestClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
         if (testGenerationConfig.useMockitoAnnotations()
                 && testGenerationConfig.getMockFramework().equals(MockFramework.Mockito)
@@ -99,6 +95,14 @@ public class TestCaseService implements Runnable {
             }
 
             testClassSpecBuilder.addField(fieldBuilder.build());
+        }
+        if (testGenerationConfig.getResourceEmbedMode().equals(ResourceEmbedMode.IN_CODE)) {
+
+            ClassName gsonClassName = ClassName.bestGuess("com.google.gson.Gson");
+            FieldSpec.Builder gsonField = FieldSpec.builder(gsonClassName, "gson", Modifier.PRIVATE);
+            gsonField.initializer("new $T()", gsonClassName);
+            testClassSpecBuilder.addField(gsonField.build());
+
         }
 
 

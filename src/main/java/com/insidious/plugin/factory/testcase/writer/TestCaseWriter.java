@@ -36,15 +36,17 @@ public class TestCaseWriter {
     }
 
     // handling order: [ array(name), null, boolean, primitive,]  name,    all ,
-    public static void makeParameterValueString(StringBuilder parameterStringBuilder, Parameter parameter,
-                                                TestGenerationState testGenerationState) {
+    public static void makeParameterValueString(
+            StringBuilder parameterStringBuilder,
+            Parameter parameter,
+            TestGenerationState testGenerationState
+    ) {
 
         if (handleValueBlockString(parameterStringBuilder, parameter, testGenerationState)) {
             return;
         }
 
-        String nameUsed = testGenerationState.getParameterNameFactory()
-                .getNameForUse(parameter, null);
+        String nameUsed = testGenerationState.getParameterNameFactory().getNameForUse(parameter, null);
         if (nameUsed != null) {
             parameterStringBuilder.append(nameUsed);
             return;
@@ -59,7 +61,11 @@ public class TestCaseWriter {
             serializedValue = ParameterUtils.addParameterTypeSuffix(serializedValue, parameter.getType());
             valueBuilder.append(serializedValue);
         } else {
-            valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
+            if (serializedValue.isEmpty()) {
+                valueBuilder.append(ParameterUtils.makeParameterValueForPrimitiveType(parameter));
+            } else {
+                valueBuilder.append(serializedValue);
+            }
         }
 
         return valueBuilder.toString();
