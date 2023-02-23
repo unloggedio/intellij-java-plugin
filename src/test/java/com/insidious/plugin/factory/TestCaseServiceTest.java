@@ -1,7 +1,6 @@
 package com.insidious.plugin.factory;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
@@ -21,7 +20,6 @@ import com.intellij.openapi.project.Project;
 import com.j256.ormlite.jdbc.JdbcConnectionSource;
 import com.j256.ormlite.support.ConnectionSource;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.deft.Obj;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -478,7 +476,7 @@ public class TestCaseServiceTest {
 
         list.add(testCandidateMetadata);
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
         generationConfiguration.getTestCandidateMetadataList()
                 .addAll(list);

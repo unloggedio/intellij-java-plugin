@@ -4,7 +4,7 @@ import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFact
 import com.squareup.javapoet.ClassName;
 
 public enum TestFramework {
-    JUNIT4(
+    JUnit4(
             MethodCallExpressionFactory.makeParameter("Assert", "org.junit.Assert"),
             "assertEquals",
             "assertArrayEquals",
@@ -13,7 +13,7 @@ public enum TestFramework {
             ClassName.bestGuess("org.junit.After"),
             ClassName.bestGuess("org.junit.Test")
     ),
-    JUNIT5(
+    JUnit5(
             MethodCallExpressionFactory.makeParameter("Assertions", "org.junit.jupiter.api.Assertions"),
             "assertEquals",
             "assertArrayEquals",

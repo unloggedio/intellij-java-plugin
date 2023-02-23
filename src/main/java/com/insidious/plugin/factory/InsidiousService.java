@@ -57,7 +57,6 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
-import com.intellij.usages.UsageTarget;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
 import com.intellij.xdebugger.XDebugSession;
@@ -328,6 +327,9 @@ final public class InsidiousService implements Disposable {
     public String getBasePathForVirtualFile(VirtualFile classFound) {
         String path = classFound.getPath();
         int last_index = path.lastIndexOf("src");
+        if (last_index == -1) {
+            return null;
+        }
         String basePath = path.substring(0, last_index);
         return basePath;
     }
@@ -713,7 +715,7 @@ final public class InsidiousService implements Disposable {
         TestCaseService testCaseService = new TestCaseService(sessionInstance);
 
         TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
         );
 
         sessionInstance.getAllTestCandidates(testCandidateMetadata -> {

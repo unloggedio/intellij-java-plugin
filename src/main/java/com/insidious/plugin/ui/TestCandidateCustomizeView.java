@@ -46,7 +46,7 @@ public class TestCandidateCustomizeView {
         this.sessionInstance = sessionInstance;
         this.testActionListener = testActionListener;
         this.testGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_FILE);
+                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.GSON, ResourceEmbedMode.IN_FILE);
 
         UsageInsightTracker.getInstance().
                 RecordEvent("CustomizeViewLoaded", null);

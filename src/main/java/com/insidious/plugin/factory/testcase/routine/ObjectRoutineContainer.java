@@ -210,21 +210,29 @@ public class ObjectRoutineContainer {
                 .toObjectRoutineScript(generationConfiguration, testGenerationState, sessionInstance,
                         fieldsContainer.clone());
 
-        @NotNull List<Parameter> constructorNonPojoParams =
-                ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
-
-        container.getObjectRoutines().add(builderMethodScript);
-
         builderMethodScript.setRoutineName("setup");
         builderMethodScript.addAnnotation(generationConfiguration.getTestBeforeAnnotationType());
         builderMethodScript.addException(Exception.class);
         builderMethodScript.addModifiers(Modifier.PUBLIC);
 
+
+        if (!generationConfiguration.useMockitoAnnotations()) {
+            container.getObjectRoutines().add(builderMethodScript);
+        }
+
+
+        @NotNull List<Parameter> constructorNonPojoParams =
+                ObjectRoutine.getNonPojoParameters(constructorRoutine.getTestCandidateList(), sessionInstance);
+
+
         for (Parameter parameter : fieldsContainer.all()) {
             container.addField(parameter);
         }
-        for (Parameter parameter : constructorNonPojoParams) {
-            container.addField(parameter);
+
+        if (generationConfiguration.useMockitoAnnotations()) {
+            for (Parameter parameter : constructorNonPojoParams) {
+                container.addField(parameter);
+            }
         }
 
 
@@ -242,20 +250,23 @@ public class ObjectRoutineContainer {
         testUtilClassSubject.setType("io.unlogged.UnloggedTestUtils");
         testUtilClassSubject.setName("UnloggedTestUtils");
 
-        for (Parameter parameter : fieldsContainer.all()) {
+        if (!generationConfiguration.useMockitoAnnotations()) {
+            for (Parameter parameter : fieldsContainer.all()) {
 
-            if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
-                continue;
+                if (constructorNonPojoParams.stream().anyMatch(e -> e.getValue() == parameter.getValue())) {
+                    continue;
+                }
+
+                classVariableContainer.add(parameter);
+                MethodCallExpression injectMethodCall = new MethodCallExpression(
+                        "injectField", testUtilClassSubject, Arrays.asList(mainSubject, parameter),
+                        null, 0);
+                injectMethodCall.setStaticCall(true);
+                PendingStatement.in(builderMethodScript, testGenerationState)
+                        .writeExpression(injectMethodCall)
+                        .endStatement();
+
             }
-
-            classVariableContainer.add(parameter);
-            MethodCallExpression injectMethodCall = new MethodCallExpression(
-                    "injectField", testUtilClassSubject,
-                    Arrays.asList(mainSubject, parameter), null, 0);
-            injectMethodCall.setStaticCall(true);
-            PendingStatement.in(builderMethodScript, testGenerationState)
-                    .writeExpression(injectMethodCall)
-                    .endStatement();
 
         }
 

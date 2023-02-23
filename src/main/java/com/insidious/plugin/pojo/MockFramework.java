@@ -5,7 +5,7 @@ import com.squareup.javapoet.ClassName;
 import static com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory.makeParameter;
 
 public enum MockFramework {
-    MOCKITO(ClassName.bestGuess("org.mockito.Mockito"), makeParameter("Mockito", "org.mockito.Mockito"));
+    Mockito(ClassName.bestGuess("org.mockito.Mockito"), makeParameter("Mockito", "org.mockito.Mockito"));
 
     private Parameter mockClassParameter;
 

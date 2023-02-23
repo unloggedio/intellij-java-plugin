@@ -38,8 +38,6 @@ import org.objectweb.asm.Opcodes;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.nio.file.FileSystems;
 import java.util.List;
@@ -60,17 +58,34 @@ public class TestCaseDesigner {
     private JPanel configurationControlPanel;
     private JCheckBox addFieldMocksCheckBox;
     private JTextArea instructionsArea;
+    private JCheckBox useMockitoAnnotationsMockCheckBox;
+    private JPanel testFrameWorkPanel;
+    private JComboBox<TestFramework> testFrameworkComboBox;
+    private JComboBox<MockFramework> mockFrameworkComboBox;
+    private JLabel mockFrameworkLabel;
+    private JLabel testFrameworkLabel;
+    private JPanel mockFrameworkPanel;
+    private JPanel useMocktoConfigPanel;
+    private JPanel addFieldMocksConfigPanel;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;
     private PsiMethod currentMethod;
     private PsiClass currentClass;
-    private TestCaseGenerationConfiguration testCaseGenerationConfiguration;
     private String basePath;
     private Editor editor;
     private MethodCallExpression mainMethod;
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
+
+        testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
+        mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
+
+        addFieldMocksCheckBox.addActionListener(e -> updatePreviewTestCase());
+        testFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
+        mockFrameworkComboBox.addActionListener(e -> updatePreviewTestCase());
+        useMockitoAnnotationsMockCheckBox.addActionListener((e) -> updatePreviewTestCase());
+
 
         saveTestCaseButton.addActionListener(e -> {
             String saveLocation = saveLocationTextField.getText();
@@ -126,12 +141,6 @@ public class TestCaseDesigner {
 
         });
 
-        addFieldMocksCheckBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updatePreviewTestCase();
-            }
-        });
 
     }
 
@@ -150,16 +159,12 @@ public class TestCaseDesigner {
             return;
         }
         basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());
+        if (basePath == null) {
+            basePath = currentMethod.getProject().getBasePath();
+        }
 
 
         saveLocationTextField.setText("");
-        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(method.getName());
-
-        testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUNIT5, MockFramework.MOCKITO, JsonFramework.GSON, ResourceEmbedMode.IN_CODE
-        );
-
-        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
         this.currentMethod = method;
         this.currentClass = psiClass;
@@ -172,24 +177,25 @@ public class TestCaseDesigner {
 
     }
 
-    public void addChangeListeners() {
-//        testMethodNameField.addFocusListener(new FocusListener() {
-//            @Override
-//            public void focusGained(FocusEvent e) {
-//
-//            }
-//
-//            @Override
-//            public void focusLost(FocusEvent e) {
-//                testCaseGenerationConfiguration.setTestMethodName(testMethodNameField.getText());
-//                updatePreviewTestCase();
-//            }
-//        });
-    }
-
     public void updatePreviewTestCase() {
 
         List<TestCandidateMetadata> testCandidateMetadataList = createTestCandidate();
+
+        String testMethodName = "testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName());
+        TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                (TestFramework) testFrameworkComboBox.getSelectedItem(),
+                (MockFramework) mockFrameworkComboBox.getSelectedItem(),
+                JsonFramework.GSON,
+                ResourceEmbedMode.IN_CODE
+        );
+
+        if (useMockitoAnnotationsMockCheckBox.isSelected()) {
+            testCaseGenerationConfiguration.setUseMockitoAnnotations(true);
+        }
+
+        testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+
+
         testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
         testCaseGenerationConfiguration.getTestCandidateMetadataList().addAll(testCandidateMetadataList);
 
@@ -202,10 +208,9 @@ public class TestCaseDesigner {
             if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
 
 
-                String testCaseUnit = currentMethod.getProject()
-                        .getService(InsidiousService.class)
+                String testCaseScriptCode = currentMethod.getProject().getService(InsidiousService.class)
                         .getTestCandidateCode(testCaseGenerationConfiguration);
-                if (testCaseUnit == null) {
+                if (testCaseScriptCode == null) {
                     UsageInsightTracker.getInstance().RecordEvent("SESSION_NOT_FOUND", new JSONObject());
                     InsidiousNotification.notifyMessage("Session not found, please try again",
                             NotificationType.WARNING);
@@ -222,11 +227,9 @@ public class TestCaseDesigner {
                 }
 
 
-                String testCaseScript = testCaseUnit;
-
-                String[] codeLines = testCaseScript.split("\n");
+                String[] codeLines = testCaseScriptCode.split("\n");
                 int classStartIndex = 0;
-                offset = testCaseScript.indexOf(testCaseGenerationConfiguration.getTestMethodName());
+                offset = testCaseScriptCode.indexOf(testCaseGenerationConfiguration.getTestMethodName());
                 for (String codeLine : codeLines) {
                     if (codeLine.contains(testCaseGenerationConfiguration.getTestMethodName())) {
                         break;
@@ -235,7 +238,7 @@ public class TestCaseDesigner {
                 }
                 scrollIndex = Math.min(classStartIndex + 10, codeLines.length);
 
-                Document document = editorFactory.createDocument(testCaseScript);
+                Document document = editorFactory.createDocument(testCaseScriptCode);
                 editor = editorFactory.createEditor(document, currentMethod.getProject(), JavaFileType.INSTANCE, false);
             } else {
                 editor = editorFactory.createEditor(
@@ -302,7 +305,8 @@ public class TestCaseDesigner {
 
         // constructor
 
-        List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass, testSubjectParameter, fieldContainer);
+        List<TestCandidateMetadata> constructorCandidate = buildConstructorCandidate(currentClass, testSubjectParameter,
+                fieldContainer);
         testCandidateMetadataList.addAll(constructorCandidate);
 
         // test subject
@@ -515,7 +519,8 @@ public class TestCaseDesigner {
                         continue;
                     }
 
-                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter, fieldContainer));
+                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter,
+                            fieldContainer));
                 }
 
                 methodArgumentParameter.setProb(argumentProbe);

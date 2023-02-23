@@ -13,8 +13,10 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.factory.testcase.util.MethodSpecUtil;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScriptContainer;
+import com.insidious.plugin.pojo.MockFramework;
 import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.pojo.TestCaseUnit;
+import com.insidious.plugin.pojo.TestFramework;
 import com.insidious.plugin.ui.RefreshButtonStateManager;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
@@ -26,10 +28,7 @@ import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
@@ -56,22 +55,50 @@ public class TestCaseService implements Runnable {
     buildTestUnitFromScript(ObjectRoutineContainer objectRoutineContainer, ObjectRoutineScriptContainer testCaseScript) {
         String generatedTestClassName = "Test" + testCaseScript.getName() + "V";
 
-        TypeSpec.Builder typeSpecBuilder = TypeSpec
+        TestCaseGenerationConfiguration testGenerationConfig = objectRoutineContainer.getGenerationConfiguration();
+        TypeSpec.Builder testClassSpecBuilder = TypeSpec
                 .classBuilder(generatedTestClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL);
+        if (testGenerationConfig.useMockitoAnnotations()
+                && testGenerationConfig.getMockFramework().equals(MockFramework.Mockito)
+        ) {
+            if (testGenerationConfig.getTestFramework().equals(TestFramework.JUnit4)) {
+                AnnotationSpec.Builder annotationSpec = AnnotationSpec.builder(
+                        ClassName.bestGuess("org.junit.runner.RunWith"));
+                annotationSpec.addMember("value", "$T.class",
+                        ClassName.bestGuess("org.mockito.junit.MockitoJUnitRunner"));
+                testClassSpecBuilder.addAnnotation(annotationSpec.build());
+            } else if (testGenerationConfig.getTestFramework().equals(TestFramework.JUnit5)) {
+                AnnotationSpec.Builder annotationSpec = AnnotationSpec.builder(
+                        ClassName.bestGuess("org.junit.jupiter.api.extension.ExtendWith"));
+                annotationSpec.addMember("value", "$T.class",
+                        ClassName.bestGuess("org.mockito.junit.jupiter.MockitoExtension"));
+                testClassSpecBuilder.addAnnotation(annotationSpec.build());
+            }
+        }
 
 
-        typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
-                .toFieldSpec(objectRoutineContainer.getTestSubject())
-                .build());
+        FieldSpec.Builder testTargetSubjectField = testCaseScript
+                .getTestGenerationState()
+                .toFieldSpec(objectRoutineContainer.getTestSubject());
+        if (testGenerationConfig.useMockitoAnnotations()) {
+            testTargetSubjectField.addAnnotation(ClassName.bestGuess("org.mockito.InjectMocks"));
+        }
+
+        testClassSpecBuilder.addField(testTargetSubjectField.build());
+
         for (Parameter field : testCaseScript.getFields()) {
             if (field == null) {
                 continue;
             }
 
-            typeSpecBuilder.addField(testCaseScript.getTestGenerationState()
-                    .toFieldSpec(field)
-                    .build());
+            FieldSpec.Builder fieldBuilder = testCaseScript.getTestGenerationState().toFieldSpec(field);
+
+            if (testGenerationConfig.useMockitoAnnotations()) {
+                fieldBuilder.addAnnotation(ClassName.bestGuess("org.mockito.Mock"));
+            }
+
+            testClassSpecBuilder.addField(fieldBuilder.build());
         }
 
 
@@ -81,20 +108,17 @@ public class TestCaseService implements Runnable {
             if (objectRoutine.getName().equalsIgnoreCase("<init>")) {
                 continue;
             }
-            MethodSpec methodSpec = objectRoutine.toMethodSpec()
-                    .build();
-            typeSpecBuilder.addMethod(methodSpec);
-        }
-
-//        typeSpecBuilder.addMethod(MethodSpecUtil.createInjectFieldMethod());
-
-        if (objectRoutineContainer.getVariablesOfType("okhttp3.")
-                .size() > 0) {
-            typeSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
+            MethodSpec methodSpec = objectRoutine.toMethodSpec().build();
+            testClassSpecBuilder.addMethod(methodSpec);
         }
 
 
-        TypeSpec testClassSpec = typeSpecBuilder.build();
+        if (objectRoutineContainer.getVariablesOfType("okhttp3.").size() > 0) {
+            testClassSpecBuilder.addMethod(MethodSpecUtil.createOkHttpMockCreator());
+        }
+
+
+        TypeSpec testClassSpec = testClassSpecBuilder.build();
 
         JavaFile javaFile = JavaFile.builder(objectRoutineContainer.getPackageName(), testClassSpec)
                 .addStaticImport(ClassName.bestGuess("org.mockito.ArgumentMatchers"), "*")
@@ -274,7 +298,8 @@ public class TestCaseService implements Runnable {
             TestCandidateMetadata metadata = MockFactory.createParameterMock(fieldParameter,
                     objectRoutineContainer.getGenerationConfiguration());
             if (metadata == null) {
-                logger.warn("unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
+                logger.warn(
+                        "unable to create a initializer for field: " + fieldParameter.getType() + " - " + fieldParameter.getName());
                 continue;
             }
             mockCreatorCandidates.add(metadata);
