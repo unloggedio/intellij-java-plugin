@@ -1,10 +1,18 @@
 package com.insidious.plugin.ui.Components;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.Problem;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.JavaParserUtils;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestAssertion;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -35,6 +43,7 @@ import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
+import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +53,7 @@ import org.objectweb.asm.Opcodes;
 import javax.swing.*;
 import java.awt.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
@@ -119,9 +129,7 @@ public class TestCaseDesigner {
                     );
                 }
             } else {
-                InsidiousNotification.notifyMessage("File already exists: " + testcaseFile.getAbsolutePath(),
-                        NotificationType.ERROR);
-                return;
+                saveMethodToExistingFile(testcaseFile);
             }
 
             @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
@@ -147,10 +155,68 @@ public class TestCaseDesigner {
                     NotificationType.WARNING);
 
         });
-
-
     }
 
+    private void saveMethodToExistingFile(File testcaseFile)
+    {
+        try {
+            JavaParser javaParser = new JavaParser(new ParserConfiguration());
+            ParseResult<CompilationUnit> parsedFile = javaParser.parse(
+                    testcaseFile);
+            if (!parsedFile.getResult()
+                    .isPresent() || !parsedFile.isSuccessful()) {
+                InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
+                        " to" +
+                        " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
+                return;
+            }
+            CompilationUnit existingCompilationUnit = parsedFile.getResult()
+                    .get();
+
+            ParseResult<CompilationUnit> parseResult = javaParser.parse(
+                    new ByteArrayInputStream(editor.getDocument().getText().getBytes()));
+            if (!parseResult.isSuccessful()) {
+                logger.error("Failed to parse test case to be written: \n"+
+                        "\nProblems");
+                List<Problem> problems = parseResult.getProblems();
+                for (int i = 0; i < problems.size(); i++) {
+                    Problem problem = problems.get(i);
+                    logger.error("Problem [" + i + "] => " + problem);
+                }
+
+                InsidiousNotification.notifyMessage("Failed to parse test case to write " +
+                        parseResult.getProblems(), NotificationType.ERROR
+                );
+                return;
+            }
+            CompilationUnit newCompilationUnit = parseResult
+                    .getResult()
+                    .get();
+
+            MethodDeclaration newMethodDeclaration =
+                    newCompilationUnit.getClassByName("Test"+currentClass.getName()+"V")
+                            .get()
+                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
+                            .get(0);
+
+            JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
+
+            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                out.write(existingCompilationUnit.toString()
+                        .getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e1) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test case for class " + currentClass.getName() + " -> "
+                                + e1.getMessage(), NotificationType.ERROR
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            System.out.println("Exception "+ex);
+            ex.printStackTrace();
+        }
+    }
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
         int methodAccess = 0;
         if (modifierList != null) {
