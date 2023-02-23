@@ -88,7 +88,7 @@ public class CandidateMetadataFactory {
                 continue;
             }
 
-            if (fields.getParametersById(callSubject.getProb().getValue()) == null) {
+            if (fields.getParametersById(callSubject.getValue()) == null) {
                 // the subject should ideally be one of the already identified fields.
                 continue;
             }
@@ -107,12 +107,8 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe()
-                                .getNanoTime() - e2.getEntryProbe()
-                                .getNanoTime()));
-                Parameter subject = callsOnSubject
-                        .get(0)
-                        .getSubject();
+                        Math.toIntExact(e1.getEntryProbe().getNanoTime() - e2.getEntryProbe().getNanoTime()));
+                Parameter subject = callsOnSubject.get(0).getSubject();
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;
                 Parameter previousReturnValue = null;
@@ -180,9 +176,7 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe()
-                                .getNanoTime() - e2.getEntryProbe()
-                                .getNanoTime()));
+                        Math.toIntExact(e1.getEntryProbe().getNanoTime() - e2.getEntryProbe().getNanoTime()));
 
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;

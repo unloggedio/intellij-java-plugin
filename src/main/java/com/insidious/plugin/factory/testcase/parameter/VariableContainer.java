@@ -127,8 +127,7 @@ public class VariableContainer {
 
     public List<Parameter> getParametersByType(String typename) {
         return this.parameterList.stream()
-                .filter(e -> e.getType()
-                        .equals(typename))
+                .filter(e -> e.getType().equals(typename))
                 .collect(Collectors.toList());
     }
 

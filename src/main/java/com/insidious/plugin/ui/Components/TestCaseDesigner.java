@@ -29,9 +29,14 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.PsiJavaFileImpl;
+import com.intellij.psi.impl.source.tree.java.PsiExpressionListImpl;
+import com.intellij.psi.impl.source.tree.java.PsiJavaTokenImpl;
+import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
+import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
@@ -42,10 +47,10 @@ import java.io.*;
 import java.nio.file.FileSystems;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class TestCaseDesigner {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
-    private final List<AssertionEditorForm> assertionForms = new ArrayList<>();
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
     private JPanel selectedClassDetailsPanel;
@@ -74,6 +79,8 @@ public class TestCaseDesigner {
     private String basePath;
     private Editor editor;
     private MethodCallExpression mainMethod;
+    private List<String> methodChecked;
+    private Map<String, Parameter> fieldMapByName;
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
@@ -144,6 +151,34 @@ public class TestCaseDesigner {
 
     }
 
+    private static int buildMethodAccessModifier(PsiModifierList modifierList) {
+        int methodAccess = 0;
+        if (modifierList != null) {
+            for (PsiElement child : modifierList.getChildren()) {
+                switch (child.getText()) {
+                    case "private":
+                        methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
+                        break;
+                    case "public":
+                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+                        break;
+                    case "protected":
+                        methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
+                        break;
+                    case "static":
+                        methodAccess = methodAccess | Opcodes.ACC_STATIC;
+                        break;
+                    case "final":
+                        methodAccess = methodAccess | Opcodes.ACC_FINAL;
+                        break;
+                    default:
+                        logger.warn("unhandled modifier: " + child);
+                }
+            }
+        }
+        return methodAccess;
+    }
+
     public JComponent getContent() {
         return mainContainer;
     }
@@ -192,6 +227,12 @@ public class TestCaseDesigner {
         if (useMockitoAnnotationsMockCheckBox.isSelected()) {
             testCaseGenerationConfiguration.setUseMockitoAnnotations(true);
         }
+
+        for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
+            // mock all calls by default
+            testCaseGenerationConfiguration.getCallExpressionList().addAll(testCandidateMetadata.getCallsList());
+        }
+
 
         testCaseGenerationConfiguration.setTestMethodName(testMethodName);
 
@@ -266,12 +307,11 @@ public class TestCaseDesigner {
 
     }
 
-
     private List<TestCandidateMetadata> createTestCandidate() {
 
         List<TestCandidateMetadata> testCandidateMetadataList = new ArrayList<>();
 
-        Map<String, PsiField> fieldMapByType = new HashMap<>();
+        fieldMapByName = new HashMap<>();
         VariableContainer fieldContainer = new VariableContainer();
 
         PsiField[] fields = currentClass.getFields();
@@ -291,8 +331,8 @@ public class TestCaseDesigner {
             setParameterTypeFromPsiType(fieldParameter, field.getType());
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProb(new DataEventWithSessionId());
-//            fieldParameter.setProbeInfo(new DataInfo());
             fieldContainer.add(fieldParameter);
+            fieldMapByName.put(field.getName(), fieldParameter);
         }
 
         TestCandidateMetadata testCandidateMetadata = new TestCandidateMetadata();
@@ -387,17 +427,16 @@ public class TestCaseDesigner {
             fieldContainer.all().forEach(e -> testCandidateMetadata.getFields().add(e));
         }
 
-
-        List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(currentMethod.getBody());
-        for (PsiMethodCallExpression psiMethodCallExpression : mceList) {
-            if (psiMethodCallExpression == null) {
-                continue;
-            }
-            PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
-            for (PsiElement callExpressionChild : callExpressionChildren) {
-
-            }
+        methodChecked = new ArrayList<>();
+        List<MethodCallExpression> collectedMceList = extractMethodCalls(currentMethod);
+        for (int i = 0; i < collectedMceList.size(); i++) {
+            MethodCallExpression methodCallExpression = collectedMceList.get(i);
+            DataEventWithSessionId entryProbe = new DataEventWithSessionId();
+            entryProbe.setNanoTime(i);
+            methodCallExpression.setEntryProbe(entryProbe);
         }
+
+        testCandidateMetadata.getCallsList().addAll(collectedMceList);
 
 
         testCandidateMetadataList.add(testCandidateMetadata);
@@ -405,32 +444,194 @@ public class TestCaseDesigner {
         return testCandidateMetadataList;
     }
 
-    private static int buildMethodAccessModifier(PsiModifierList modifierList) {
-        int methodAccess = 0;
-        if (modifierList != null) {
-            for (PsiElement child : modifierList.getChildren()) {
-                switch (child.getText()) {
-                    case "private":
-                        methodAccess = methodAccess | Opcodes.ACC_PRIVATE;
+    private List<MethodCallExpression> extractMethodCalls(PsiMethod method) {
+        List<MethodCallExpression> collectedMceList = new ArrayList<>();
+
+        List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(method.getBody());
+        for (PsiMethodCallExpression psiMethodCallExpression : mceList) {
+            if (psiMethodCallExpression == null) {
+                continue;
+            }
+            PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
+            logger.warn("call expression child: " + psiMethodCallExpression);
+            if (callExpressionChildren[0] instanceof PsiReferenceExpressionImpl) {
+                PsiReferenceExpressionImpl callReferenceExpression = (PsiReferenceExpressionImpl) callExpressionChildren[0];
+                PsiExpressionListImpl callParameterExpression = (PsiExpressionListImpl) callExpressionChildren[1];
+
+                PsiElement[] referenceChildren = callReferenceExpression.getChildren();
+                if (referenceChildren.length == 4) {
+
+                    // <fieldName><dot><methodTemplateParams(implicit, mostly empty)><methodName>
+
+                    PsiElement subjectReferenceChild = referenceChildren[0];
+                    PsiElement dotChild = referenceChildren[1];
+                    PsiElement paramChild = referenceChildren[2];
+                    PsiElement methodNameNode = referenceChildren[3];
+                    if (!(dotChild instanceof PsiJavaTokenImpl) || !dotChild.getText().equals(".")) {
+                        // second child was supposed to be a dot
+                        continue;
+                    }
+
+                    if (subjectReferenceChild instanceof PsiThisExpressionImpl) {
+                        String invokedMethodName = methodNameNode.getText();
+                        if (methodChecked.contains(invokedMethodName)) {
+                            continue;
+                        }
+                        methodChecked.add(invokedMethodName);
+                        List<MethodCallExpression> callExpressions = getCallsFromMethod(callParameterExpression,
+                                invokedMethodName);
+                        collectedMceList.addAll(callExpressions);
+                    } else {
+
+                        String callSubjectName = subjectReferenceChild.getText();
+                        Parameter fieldByName = fieldMapByName.get(callSubjectName);
+                        if (fieldByName == null) {
+                            // no such field
+                            continue;
+                        }
+
+                        List<Parameter> methodArguments = new ArrayList<>();
+                        Parameter methodReturnValue = new Parameter();
+
+                        PsiClass calledMethodClassReference = getClassByName(fieldByName.getType());
+                        if (calledMethodClassReference == null) {
+                            logger.error(
+                                    "called class reference for method not found [" + psiMethodCallExpression + "]");
+                            continue;
+                        }
+
+
+                        String methodName = methodNameNode.getText();
+                        PsiMethod matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
+                                callParameterExpression);
+                        if (matchedMethod == null) {
+                            logger.error(
+                                    "could not resolve reference to method: [" + methodName + "] in class: " + fieldByName.getType());
+                            continue;
+                        }
+
+                        PsiExpression[] actualParameterExpressions = callParameterExpression.getExpressions();
+                        PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
+                        for (int i = 0; i < parameters.length; i++) {
+                            PsiParameter parameter = parameters[i];
+                            PsiExpression parameterExpression = actualParameterExpressions[i];
+
+                            Parameter callParameter = new Parameter();
+                            callParameter.setValue(random.nextLong());
+                            setParameterTypeFromPsiType(callParameter, parameterExpression.getType());
+                            callParameter.setProb(new DataEventWithSessionId());
+                            callParameter.setName(parameter.getName());
+                            callParameter.setProbeInfo(new DataInfo());
+                            methodArguments.add(callParameter);
+                        }
+
+                        @Nullable PsiType methodReturnPsiReference = matchedMethod.getReturnType();
+
+                        methodReturnValue.setValue(random.nextLong());
+                        setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference);
+                        methodReturnValue.setProbeInfo(new DataInfo());
+                        methodReturnValue.setProb(new DataEventWithSessionId());
+
+
+                        MethodCallExpression mce = new MethodCallExpression(
+                                methodName, fieldByName, methodArguments, methodReturnValue, 0
+                        );
+                        int methodAccess = buildMethodAccessModifier(matchedMethod.getModifierList());
+                        if (calledMethodClassReference.isInterface()) {
+                            methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+                        }
+                        mce.setMethodAccess(methodAccess);
+
+                        collectedMceList.add(mce);
+                    }
+
+
+                } else if (referenceChildren.length == 2) {
+                    // call to a method in same class
+                    PsiElement methodNameNode = referenceChildren[1];
+                    String invokedMethodName = methodNameNode.getText();
+                    if (methodChecked.contains(invokedMethodName)) {
+                        continue;
+                    }
+                    methodChecked.add(invokedMethodName);
+                    List<MethodCallExpression> callExpressions = getCallsFromMethod(callParameterExpression,
+                            invokedMethodName);
+                    collectedMceList.addAll(callExpressions);
+                }
+
+
+            } else {
+                logger.error("unknown type of child: " + callExpressionChildren[0]);
+            }
+        }
+        return collectedMceList;
+    }
+
+    private List<MethodCallExpression> getCallsFromMethod(PsiExpressionListImpl callParameterExpression, String invokedMethodName) {
+        PsiMethod matchedMethod = getMatchingMethod(currentClass, invokedMethodName, callParameterExpression);
+        if (matchedMethod == null) {
+            return Collections.emptyList();
+        }
+
+        return extractMethodCalls(matchedMethod);
+    }
+
+    private PsiMethod getMatchingMethod(
+            PsiClass classReference,
+            String methodName,
+            PsiExpressionListImpl callParameterExpression
+    ) {
+
+        Set<PsiClass> classesToCheck = new HashSet<>();
+        classesToCheck.add(classReference);
+        Set<PsiClass> interfaces = getInterfaces(classReference);
+        classesToCheck.addAll(interfaces);
+
+        for (PsiClass psiClass : classesToCheck) {
+            List<PsiMethod> matchedMethods = Arrays.stream(psiClass.getMethods())
+                    .filter(e -> e.getName().equals(methodName))
+                    .filter(e -> e.getParameterList()
+                            .getParametersCount() == callParameterExpression.getExpressionCount())
+                    .collect(Collectors.toList());
+            if (matchedMethods.size() == 0) {
+                continue;
+            }
+            for (PsiMethod matchedMethod : matchedMethods) {
+                boolean isMismatch = false;
+                PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
+                PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
+                for (int i = 0; i < parameters.length; i++) {
+                    PsiParameter parameter = parameters[i];
+                    if (parameter.getType().equals(expectedExpressionType[i])) {
+                        isMismatch = true;
                         break;
-                    case "public":
-                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
-                        break;
-                    case "protected":
-                        methodAccess = methodAccess | Opcodes.ACC_PROTECTED;
-                        break;
-                    case "static":
-                        methodAccess = methodAccess | Opcodes.ACC_STATIC;
-                        break;
-                    case "final":
-                        methodAccess = methodAccess | Opcodes.ACC_FINAL;
-                        break;
-                    default:
-                        logger.warn("unhandled modifier: " + child);
+                    }
+                }
+                if (!isMismatch) {
+                    return matchedMethod;
                 }
             }
         }
-        return methodAccess;
+
+
+        return null;
+    }
+
+    private Set<PsiClass> getInterfaces(PsiClass psiClass) {
+        Set<PsiClass> interfacesList = new HashSet<>();
+        PsiClass[] interfaces = psiClass.getInterfaces();
+        for (PsiClass anInterface : interfaces) {
+            interfacesList.add(anInterface);
+            interfacesList.addAll(getInterfaces(anInterface));
+        }
+        PsiClass[] supers = psiClass.getSupers();
+        for (PsiClass aSuper : supers) {
+            interfacesList.add(aSuper);
+            interfacesList.addAll(getInterfaces(aSuper));
+        }
+
+
+        return interfacesList;
     }
 
     private List<TestCandidateMetadata> buildConstructorCandidate(
@@ -511,9 +712,7 @@ public class TestCaseDesigner {
                     if (parameter.getType() instanceof PsiClassReferenceType) {
                         parameterClassName = ((PsiClassReferenceType) parameter.getType()).rawType().getCanonicalText();
                     }
-                    @Nullable PsiClass parameterClassReference = JavaPsiFacade.getInstance(currentClass.getProject())
-                            .findClass(ClassTypeUtils.getJavaClassName(parameterClassName),
-                                    GlobalSearchScope.allScope(currentClass.getProject()));
+                    @Nullable PsiClass parameterClassReference = getClassByName(parameterClassName);
 
                     if (parameterClassReference == null) {
                         logger.error("did not find class reference: " + parameterClassName +
@@ -543,6 +742,13 @@ public class TestCaseDesigner {
         candidate.setTestSubject(testSubject);
         candidateList.add(candidate);
         return candidateList;
+    }
+
+    @Nullable
+    private PsiClass getClassByName(String className) {
+        return JavaPsiFacade.getInstance(currentClass.getProject())
+                .findClass(ClassTypeUtils.getJavaClassName(className),
+                        GlobalSearchScope.allScope(currentClass.getProject()));
     }
 
     private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType) {
