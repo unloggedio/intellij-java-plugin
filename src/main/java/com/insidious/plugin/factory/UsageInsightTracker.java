@@ -20,11 +20,15 @@ public class UsageInsightTracker {
     private static UsageInsightTracker instance;
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
-    private final List<String> UsersToSkip = Arrays.asList("artpar", "testerfresher", "rachnakulkarni");
+    private final List<String> UsersToSkip = Arrays.asList(
+            "artpar",
+            "testerfresher",
+            "shardul",
+            "rachnakulkarni"
+    );
 
     private UsageInsightTracker() {
         amplitudeClient = Amplitude.getInstance("PLUGIN");
-//        amplitudeClient.init("45a070ba1c5953b71f0585b0fdb19027");
         amplitudeClient.init("993c17091c853700ea386f71df5fb72c");
         versionManager = new VersionManager();
     }

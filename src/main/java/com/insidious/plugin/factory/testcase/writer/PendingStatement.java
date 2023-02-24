@@ -239,6 +239,9 @@ public class PendingStatement {
             while (matcher.find()) {
                 String matchedString = matcher.group();
                 String className = matcher.group(1);
+                if (className.contains("<")) {
+                    className = className.substring(0, className.indexOf("<")) + className.substring(className.lastIndexOf(">") + 1);
+                }
                 TypeName classNameType = ClassTypeUtils.createTypeFromNameString(className.split("\\.class")[0]);
                 int matchedStartIndex = parameterString.indexOf(matchedString) + 1;
                 parameterString = parameterString.substring(0, matchedStartIndex) + "any($T.class)" +

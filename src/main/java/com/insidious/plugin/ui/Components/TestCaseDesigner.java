@@ -573,6 +573,8 @@ public class TestCaseDesigner {
                         if (matchedMethod == null) {
                             logger.error(
                                     "could not resolve reference to method: [" + methodName + "] in class: " + fieldByName.getType());
+//                            matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
+//                                    callParameterExpression);
                             continue;
                         }
 
@@ -584,8 +586,18 @@ public class TestCaseDesigner {
 
                             Parameter callParameter = new Parameter();
                             callParameter.setValue(random.nextLong());
-                            setParameterTypeFromPsiType(callParameter, parameterExpression.getType());
-                            callParameter.setProb(new DataEventWithSessionId());
+                            PsiType typeToAssignFrom = parameterExpression.getType();
+                            if (typeToAssignFrom.getCanonicalText().equals("null")) {
+                                typeToAssignFrom = parameter.getType();
+                            }
+                            setParameterTypeFromPsiType(callParameter, typeToAssignFrom);
+                            DataEventWithSessionId prob = new DataEventWithSessionId();
+                            if (callParameter.isPrimitiveType()) {
+                                prob.setSerializedValue("0".getBytes());
+                            } else if (callParameter.isStringType()) {
+                                prob.setSerializedValue("\"\"".getBytes());
+                            }
+                            callParameter.setProb(prob);
                             callParameter.setName(parameter.getName());
                             callParameter.setProbeInfo(new DataInfo());
                             methodArguments.add(callParameter);
@@ -668,7 +680,12 @@ public class TestCaseDesigner {
                 PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
                 for (int i = 0; i < parameters.length; i++) {
                     PsiParameter parameter = parameters[i];
-                    if (!parameter.getType().equals(expectedExpressionType[i])) {
+                    PsiType type = parameter.getType();
+                    if (type instanceof PsiClassReferenceType && type.getCanonicalText().length() == 1) {
+                        // this is a generic type, wont match with the actual expression type
+                        continue;
+                    }
+                    if (!type.isAssignableFrom(expectedExpressionType[i])) {
                         isMismatch = true;
                         break;
                     }
