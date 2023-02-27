@@ -660,6 +660,8 @@ public class TestCaseDesigner {
             PsiExpressionListImpl callParameterExpression
     ) {
 
+        logger.warn("Find matching method for [" + methodName + "] - " + classReference.getName());
+
         Set<PsiClass> classesToCheck = new HashSet<>();
         classesToCheck.add(classReference);
         Set<PsiClass> interfaces = getInterfaces(classReference);
@@ -676,6 +678,7 @@ public class TestCaseDesigner {
             }
             for (PsiMethod matchedMethod : matchedMethods) {
                 boolean isMismatch = false;
+                logger.warn("Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
                 PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
                 PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
                 for (int i = 0; i < parameters.length; i++) {
@@ -686,6 +689,7 @@ public class TestCaseDesigner {
                         continue;
                     }
                     if (!type.isAssignableFrom(expectedExpressionType[i])) {
+                        logger.warn("parameter [" + i + "] mismatch [" + type + " vs " + expectedExpressionType[i]);
                         isMismatch = true;
                         break;
                     }
