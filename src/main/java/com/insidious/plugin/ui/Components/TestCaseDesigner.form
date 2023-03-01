@@ -77,10 +77,11 @@
             </constraints>
             <properties>
               <background color="-12010632"/>
-              <borderPainted value="false"/>
-              <contentAreaFilled value="false"/>
-              <foreground color="-1"/>
-              <opaque value="true"/>
+              <borderPainted value="true"/>
+              <contentAreaFilled value="true"/>
+              <foreground color="-12010632"/>
+              <icon value="icons/png/save_icon_green.png"/>
+              <opaque value="false"/>
               <text value="Save"/>
             </properties>
           </component>
