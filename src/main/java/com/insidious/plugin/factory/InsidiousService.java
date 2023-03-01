@@ -46,9 +46,11 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
+import com.intellij.openapi.ui.playback.commands.ActionCommand;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
+import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.openapi.wm.ex.ToolWindowEx;
 import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
@@ -69,6 +71,7 @@ import org.json.JSONObject;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.InputEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -116,6 +119,8 @@ final public class InsidiousService implements Disposable {
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
+    private boolean initiated = false;
+    private Content testDesignerContent;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -283,6 +288,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        this.initiated=true;
         this.project = project;
         this.toolWindow = toolWindow;
         start();
@@ -628,15 +634,15 @@ final public class InsidiousService implements Disposable {
 
     private void initiateUI() {
         logger.info("initiate ui");
+        initiated = true;
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             return;
         }
-        toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK);
+        toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
         ToolWindowEx ex = (ToolWindowEx) toolWindow;
         ex.stretchHeight(TOOL_WINDOW_WIDTH - ex.getDecorator().getWidth());
         ContentManager contentManager = this.toolWindow.getContentManager();
-
 
 //
 //        onboardingConfigurationWindow = new OnboardingConfigurationWindow(project, this);
@@ -650,6 +656,7 @@ final public class InsidiousService implements Disposable {
         testCaseDesignerWindow = new TestCaseDesigner();
         @NotNull Content testCaseCreatorWindowContent =
                 contentFactory.createContent(testCaseDesignerWindow.getContent(), "Test designer", false);
+        this.testDesignerContent=testCaseCreatorWindowContent;
         testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(testCaseCreatorWindowContent);
@@ -955,5 +962,29 @@ final public class InsidiousService implements Disposable {
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public void openTestCaseDesigner(Project project)
+    {
+        if(!this.initiated)
+        {
+            InsidiousNotification.notifyMessage("Please click on Unlogged to get started.",
+                    NotificationType.INFORMATION);
+//            if(this.project==null)
+//            {
+//                this.project = project;
+//            }
+//            this.init(this.project,ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+        }
+        else
+        {
+            System.out.println("[Init UI call]");
+            toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
+            toolWindow.show(new Runnable() {
+                @Override
+                public void run() {
+                }
+            });
+        }
+    }
 
 }
