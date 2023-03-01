@@ -94,7 +94,7 @@ public class TestCaseDesigner {
 
     public TestCaseDesigner() {
         saveTestCaseButton.setEnabled(false);
-
+        saveTestCaseButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         testFrameworkComboBox.setModel(new DefaultComboBoxModel<>(TestFramework.values()));
         mockFrameworkComboBox.setModel(new DefaultComboBoxModel<>(MockFramework.values()));
 
