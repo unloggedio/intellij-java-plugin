@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromNameString;
+import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class ParameterUtils {
     public static String makeParameterValueForPrimitiveType(Parameter parameter) {
@@ -55,37 +56,37 @@ public class ParameterUtils {
         return valueString;
     }
 
-    public static void normaliseParameterType(Parameter parameter) {
-        if (!(parameter.getType().contains("<") && parameter.getType().contains(">")) && parameter.getTemplateMap()
-                .size() == 0) {
-            return;
-        }
-
-        if (parameter.getType().contains("<") && parameter.getType().contains(">")) {
-            // Map<Integer,List<List<String>>>
-            int startOfTemplate = StringUtils.indexOf(parameter.getType(), "<");
-            int endOfTemplate = StringUtils.lastIndexOf(parameter.getType(), ">");
-
-            String paramType = parameter.getType().substring(0, startOfTemplate);
-
-            String templateString = parameter.getType().substring(startOfTemplate + 1, endOfTemplate);
-            String[] x = templateString.split(",");
-
-            for (int i = 0; i < x.length; i++) {
-                Parameter newParam = new Parameter();
-                newParam.setType(x[i]);
-                normaliseParameterType(newParam);
-                parameter.getTemplateMap().add(newParam);
-            }
-            parameter.setTypeForced(paramType);
-        } else {
-            List<Parameter> templateList = parameter.getTemplateMap();
-            for (int i = 0; i < templateList.size(); i++) {
-                normaliseParameterType(templateList.get(i));
-            }
-        }
-
-    }
+//    public static void normaliseParameterType(Parameter parameter) {
+//        if (!(parameter.getType().contains("<") && parameter.getType().contains(">")) && parameter.getTemplateMap()
+//                .size() == 0) {
+//            return;
+//        }
+//
+//        if (parameter.getType().contains("<") && parameter.getType().contains(">")) {
+//            // Map<Integer,List<List<String>>>
+//            int startOfTemplate = StringUtils.indexOf(parameter.getType(), "<");
+//            int endOfTemplate = StringUtils.lastIndexOf(parameter.getType(), ">");
+//
+//            String paramType = parameter.getType().substring(0, startOfTemplate);
+//
+//            String templateString = parameter.getType().substring(startOfTemplate + 1, endOfTemplate);
+//            String[] x = templateString.split(",");
+//
+//            for (int i = 0; i < x.length; i++) {
+//                Parameter newParam = new Parameter();
+//                newParam.setType(x[i]);
+//                normaliseParameterType(newParam);
+//                parameter.getTemplateMap().add(newParam);
+//            }
+//            parameter.setTypeForced(paramType);
+//        } else {
+//            List<Parameter> templateList = parameter.getTemplateMap();
+//            for (int i = 0; i < templateList.size(); i++) {
+//                normaliseParameterType(templateList.get(i));
+//            }
+//        }
+//
+//    }
 
     public static void denormalizeParameterType(Parameter parameter) {
         if (parameter.getTemplateMap().size() == 0) {
@@ -112,12 +113,12 @@ public class ParameterUtils {
     }
 
     public static void createStatementStringForParameter(Parameter parameter, StringBuilder statementBuilder, List<Object> statementParameters) {
-        normaliseParameterType(parameter);
+//        normaliseParameterType(parameter);
 
         statementBuilder.append("$T");
 
         String parameterType = parameter.getType();
-        statementParameters.add(createTypeFromNameString(parameterType));
+        statementParameters.add(createTypeFromTypeDeclaration(parameterType));
 
         if (parameter.getTemplateMap().size() == 0) {
             return;

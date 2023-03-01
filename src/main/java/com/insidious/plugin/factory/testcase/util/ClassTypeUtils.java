@@ -1,8 +1,15 @@
 package com.insidious.plugin.factory.testcase.util;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 import com.insidious.common.weaver.DataInfo;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +20,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ClassTypeUtils {
+
+    private static final JavaParser javaParser = new JavaParser(new ParserConfiguration());
 
     public static String upperInstanceName(String methodName) {
         return methodName.substring(0, 1)
@@ -190,6 +199,32 @@ public class ClassTypeUtils {
 
         return returnParamType;
     }
+
+    public static TypeName createTypeFromTypeDeclaration(String templateParameterType) {
+        TypeName parameterClassName;
+        if (templateParameterType.contains("<")) {
+            ParseResult<ClassOrInterfaceType> parsedJavaTypeDeclaration =
+                    javaParser.parseClassOrInterfaceType(
+                            templateParameterType);
+
+            ClassOrInterfaceType parseResult = parsedJavaTypeDeclaration.getResult().get();
+            String rawClassName = parseResult.getNameWithScope();
+            NodeList<Type> typeArguments = parseResult.getTypeArguments().get();
+            TypeName[] typeArgumentsArray = new TypeName[typeArguments.size()];
+            for (int j = 0; j < typeArguments.size(); j++) {
+                Type typeArgument = typeArguments.get(j);
+                typeArgumentsArray[j] = createTypeFromTypeDeclaration(typeArgument.asClassOrInterfaceType().getNameWithScope());
+            }
+
+
+            parameterClassName =
+                    ParameterizedTypeName.get(ClassName.bestGuess(rawClassName), typeArgumentsArray);
+        } else {
+            parameterClassName = ClassName.bestGuess(templateParameterType);
+        }
+        return parameterClassName;
+    }
+
 
     private static TypeName constructClassName(String methodReturnValueType) {
         char firstChar = methodReturnValueType.charAt(0);

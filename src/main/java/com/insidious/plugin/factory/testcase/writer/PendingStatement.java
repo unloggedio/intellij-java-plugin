@@ -1,5 +1,12 @@
 package com.insidious.plugin.factory.testcase.writer;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.expr.SimpleName;
+import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.ast.type.Type;
 import com.insidious.common.weaver.EventType;
 import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
@@ -15,6 +22,7 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.ParameterUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,6 +31,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.insidious.plugin.factory.testcase.util.ClassTypeUtils.createTypeFromTypeDeclaration;
 
 public class PendingStatement {
     public static final ClassName GSON_TYPE_TOKEN_CLASS = ClassName.bestGuess("com.google.gson.reflect.TypeToken");
@@ -43,6 +53,7 @@ public class PendingStatement {
     public static PendingStatement in(ObjectRoutineScript objectRoutine, TestGenerationState testGenerationState) {
         return new PendingStatement(objectRoutine, testGenerationState);
     }
+
 
     private void writeCallStatement(
             MethodCallExpression methodCallExpression, StringBuilder statementBuilder,
@@ -69,7 +80,8 @@ public class PendingStatement {
 
             List<Parameter> templateMap = objectToDeserialize.getTemplateMap();
             if (objectToDeserialize.isContainer() && templateMap.size() > 0) {
-                List<String> templateKeys = templateMap.stream()
+                List<String> templateKeys = templateMap
+                        .stream()
                         .map(Parameter::getName)
                         .sorted()
                         .collect(Collectors.toList());
@@ -83,7 +95,7 @@ public class PendingStatement {
                     }
                     templateString.append("$T");
                 }
-                //                        1, 2, 3,      4, 5, 6
+                //                1, 2, 3,      4, 5, 6
                 statementBuilder
                         .append("$L.$L($S, new $T<$T<")
                         .append(templateString)
@@ -91,22 +103,19 @@ public class PendingStatement {
                 statementParameters.add(nameFactory.getNameForUse(methodCallExpression.getSubject(), null));  // 1
                 statementParameters.add(methodName); // 2
 
-                statementParameters.add(new String(objectToDeserialize.getProb()
-                        .getSerializedValue())); // 3
+                statementParameters.add(new String(objectToDeserialize.getProb().getSerializedValue())); // 3
 
                 statementParameters.add(GSON_TYPE_TOKEN_CLASS); // 4
                 statementParameters.add(ClassName.bestGuess(objectToDeserialize.getType())); // 5
 
                 for (String templateKey : templateKeys) {
-                    Optional<Parameter> templateParameter =
-                            templateMap.stream()
-                                    .filter(e -> e.getName()
-                                            .equals(templateKey))
-                                    .findFirst();
+                    Optional<Parameter> templateParameter = templateMap
+                            .stream()
+                            .filter(e -> e.getName().equals(templateKey))
+                            .findFirst();
                     assert templateParameter.isPresent();
-                    String templateParameterType = templateParameter.get()
-                            .getType();
-                    ClassName parameterClassName = ClassName.bestGuess(templateParameterType);
+                    String templateParameterType = templateParameter.get().getType();
+                    TypeName parameterClassName = createTypeFromTypeDeclaration(templateParameterType);
                     statementParameters.add(parameterClassName); // 6
                 }
 
@@ -240,7 +249,8 @@ public class PendingStatement {
                 String matchedString = matcher.group();
                 String className = matcher.group(1);
                 if (className.contains("<")) {
-                    className = className.substring(0, className.indexOf("<")) + className.substring(className.lastIndexOf(">") + 1);
+                    className = className.substring(0, className.indexOf("<")) + className.substring(
+                            className.lastIndexOf(">") + 1);
                 }
                 TypeName classNameType = ClassTypeUtils.createTypeFromNameString(className.split("\\.class")[0]);
                 int matchedStartIndex = parameterString.indexOf(matchedString) + 1;
@@ -402,15 +412,13 @@ public class PendingStatement {
                     // creating a deep copy of the lhsExpression type and templateMap only
                     // for handling generic type
                     Parameter deepCopyParam = Parameter.cloneParameter(lhsExpression);
-                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder,
-                            statementParameters);
+                    ParameterUtils.createStatementStringForParameter(deepCopyParam, statementBuilder, statementParameters);
 
                     statementBuilder.append(" ");
                 } else {
                     // Add expr for Type and its statement Param ;
                     // eg: statementBuilder:[ $T ] var , statementParameter: [ String ]  => String var
-                    statementBuilder.append("$T")
-                            .append(" ");
+                    statementBuilder.append("$T").append(" ");
 
                     statementParameters.add(lhsTypeName);
                 }
@@ -456,7 +464,7 @@ public class PendingStatement {
             } else if (expression instanceof StringExpression) {
                 statementBuilder.append("$S");
                 statementParameters.add(expression.toString());
-            }  else if (expression instanceof NullExpression) {
+            } else if (expression instanceof NullExpression) {
                 statementBuilder.append("null");
 //                statementParameters.add(expression.toString());
             } else if (expression instanceof ClassValueExpression) {

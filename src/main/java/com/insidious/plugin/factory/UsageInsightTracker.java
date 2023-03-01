@@ -24,7 +24,7 @@ public class UsageInsightTracker {
             "artpar",
             "testerfresher",
             "shardul",
-            "rachnakulkarni"
+            "rachana"
     );
 
     private UsageInsightTracker() {
