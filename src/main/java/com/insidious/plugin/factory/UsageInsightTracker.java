@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import static com.insidious.plugin.factory.InsidiousService.HOSTNAME;
 
@@ -21,7 +22,7 @@ public class UsageInsightTracker {
     private final Amplitude amplitudeClient;
     private final VersionManager versionManager;
     private final List<String> UsersToSkip = Arrays.asList(
-            "artpar",
+//            "artpar",
             "testerfresher",
             "shardul",
             "rachana"
@@ -51,6 +52,8 @@ public class UsageInsightTracker {
             return;
         }
         Event event = new Event(eventName, HOSTNAME);
+        event.platform = OS_TAG;
+        event.country = TimeZone.getDefault().getID();
         event.osName = OS_TAG;
         event.language = LANGUAGE;
         event.appVersion = versionManager.getVersion();

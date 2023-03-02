@@ -5,7 +5,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
 import com.insidious.plugin.client.SessionInstance;
@@ -43,7 +42,6 @@ import com.intellij.psi.impl.source.tree.java.PsiReferenceExpressionImpl;
 import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
-import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -157,66 +155,6 @@ public class TestCaseDesigner {
         });
     }
 
-    private void saveMethodToExistingFile(File testcaseFile)
-    {
-        try {
-            JavaParser javaParser = new JavaParser(new ParserConfiguration());
-            ParseResult<CompilationUnit> parsedFile = javaParser.parse(
-                    testcaseFile);
-            if (!parsedFile.getResult()
-                    .isPresent() || !parsedFile.isSuccessful()) {
-                InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
-                        " to" +
-                        " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
-                return;
-            }
-            CompilationUnit existingCompilationUnit = parsedFile.getResult()
-                    .get();
-
-            ParseResult<CompilationUnit> parseResult = javaParser.parse(
-                    new ByteArrayInputStream(editor.getDocument().getText().getBytes()));
-            if (!parseResult.isSuccessful()) {
-                logger.error("Failed to parse test case to be written: \n"+
-                        "\nProblems");
-                List<Problem> problems = parseResult.getProblems();
-                for (int i = 0; i < problems.size(); i++) {
-                    Problem problem = problems.get(i);
-                    logger.error("Problem [" + i + "] => " + problem);
-                }
-
-                InsidiousNotification.notifyMessage("Failed to parse test case to write " +
-                        parseResult.getProblems(), NotificationType.ERROR
-                );
-                return;
-            }
-            CompilationUnit newCompilationUnit = parseResult
-                    .getResult()
-                    .get();
-
-            MethodDeclaration newMethodDeclaration =
-                    newCompilationUnit.getClassByName("Test"+currentClass.getName()+"V")
-                            .get()
-                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
-                            .get(0);
-
-            JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
-
-            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
-                out.write(existingCompilationUnit.toString()
-                        .getBytes(StandardCharsets.UTF_8));
-            } catch (Exception e1) {
-                InsidiousNotification.notifyMessage(
-                        "Failed to write test case for class " + currentClass.getName() + " -> "
-                                + e1.getMessage(), NotificationType.ERROR
-                );
-            }
-        }
-        catch (Exception ex)
-        {
-            System.out.println("Exception "+ex);
-            ex.printStackTrace();
-        }
-    }
     private static int buildMethodAccessModifier(PsiModifierList modifierList) {
         int methodAccess = 0;
         if (modifierList != null) {
@@ -243,6 +181,64 @@ public class TestCaseDesigner {
             }
         }
         return methodAccess;
+    }
+
+    private void saveMethodToExistingFile(File testcaseFile) {
+        try {
+            JavaParser javaParser = new JavaParser(new ParserConfiguration());
+            ParseResult<CompilationUnit> parsedFile = javaParser.parse(
+                    testcaseFile);
+            if (!parsedFile.getResult()
+                    .isPresent() || !parsedFile.isSuccessful()) {
+                InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
+                        " to" +
+                        " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
+                return;
+            }
+            CompilationUnit existingCompilationUnit = parsedFile.getResult()
+                    .get();
+
+            ParseResult<CompilationUnit> parseResult = javaParser.parse(
+                    new ByteArrayInputStream(editor.getDocument().getText().getBytes()));
+            if (!parseResult.isSuccessful()) {
+                logger.error("Failed to parse test case to be written: \n" +
+                        "\nProblems");
+                List<Problem> problems = parseResult.getProblems();
+                for (int i = 0; i < problems.size(); i++) {
+                    Problem problem = problems.get(i);
+                    logger.error("Problem [" + i + "] => " + problem);
+                }
+
+                InsidiousNotification.notifyMessage("Failed to parse test case to write " +
+                        parseResult.getProblems(), NotificationType.ERROR
+                );
+                return;
+            }
+            CompilationUnit newCompilationUnit = parseResult
+                    .getResult()
+                    .get();
+
+            MethodDeclaration newMethodDeclaration =
+                    newCompilationUnit.getClassByName("Test" + currentClass.getName() + "V")
+                            .get()
+                            .getMethodsByName("testMethod" + ClassTypeUtils.upperInstanceName(currentMethod.getName()))
+                            .get(0);
+
+            JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
+
+            try (FileOutputStream out = new FileOutputStream(testcaseFile)) {
+                out.write(existingCompilationUnit.toString()
+                        .getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e1) {
+                InsidiousNotification.notifyMessage(
+                        "Failed to write test case for class " + currentClass.getName() + " -> "
+                                + e1.getMessage(), NotificationType.ERROR
+                );
+            }
+        } catch (Exception ex) {
+            System.out.println("Exception " + ex);
+            ex.printStackTrace();
+        }
     }
 
     public JComponent getContent() {
@@ -560,8 +556,8 @@ public class TestCaseDesigner {
 
                         PsiClass calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
-                            logger.error(
-                                    "called class reference for method not found [" + psiMethodCallExpression + "]");
+                            logger.error("called class reference for method not found ["
+                                    + psiMethodCallExpression + "]");
                             continue;
                         }
 
@@ -570,10 +566,8 @@ public class TestCaseDesigner {
                         PsiMethod matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
                                 callParameterExpression);
                         if (matchedMethod == null) {
-                            logger.error(
-                                    "could not resolve reference to method: [" + methodName + "] in class: " + fieldByName.getType());
-//                            matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
-//                                    callParameterExpression);
+                            logger.warn("could not resolve reference to method: [" +
+                                    methodName + "] in class: " + fieldByName.getType());
                             continue;
                         }
 
@@ -677,7 +671,8 @@ public class TestCaseDesigner {
             }
             for (PsiMethod matchedMethod : matchedMethods) {
                 boolean isMismatch = false;
-                logger.warn("Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
+                logger.warn(
+                        "Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
                 PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
                 PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
                 for (int i = 0; i < parameters.length; i++) {

@@ -636,7 +636,7 @@ final public class InsidiousService implements Disposable {
         initiated = true;
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
-            UsageInsightTracker.getInstance().RecordEvent("TOOL_WINDOW_NULL", new JSONObject());
+            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", new JSONObject());
             logger.warn("tool window is null");
             return;
         }
@@ -873,7 +873,7 @@ final public class InsidiousService implements Disposable {
         }
         eventProperties.put("method_name", method);
         eventProperties.put("class_name", psiClass.getName());
-        UsageInsightTracker.getInstance().RecordEvent("GENERATE_TEST_CASE_REQUEST", eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent("GenerateTestCaseRequest", eventProperties);
 
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {

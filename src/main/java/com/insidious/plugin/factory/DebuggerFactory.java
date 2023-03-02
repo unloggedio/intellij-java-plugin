@@ -29,7 +29,7 @@ public class DebuggerFactory implements ToolWindowFactory, DumbAware {
         } catch (Exception e) {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("error", e.getMessage());
-            UsageInsightTracker.getInstance().RecordEvent("TOOL_WINDOW_INIT_FAIL", eventProperties);
+            UsageInsightTracker.getInstance().RecordEvent("ToolWindowInitFail", eventProperties);
             logger.info("exception in create tool window", e);
         }
     }
