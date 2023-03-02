@@ -25,14 +25,14 @@ public class InsidiousCaretListener implements EditorMouseListener {
     @Override
     public void mouseReleased(@NotNull EditorMouseEvent event) {
         EditorMouseListener.super.mousePressed(event);
-        if (!event.getArea().equals(EditorMouseEventArea.EDITING_AREA)) {
+        if (event.getArea() == null || !event.getArea().equals(EditorMouseEventArea.EDITING_AREA)) {
             return;
         }
         InsidiousService insidiousService = project.getService(InsidiousService.class);
 
         Editor editor = event.getEditor();
         int offset = editor.getCaretModel().getOffset();
-        Document document = event.getEditor().getDocument();
+        Document document = editor.getDocument();
         PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(document);
         if (file == null) {
             return;

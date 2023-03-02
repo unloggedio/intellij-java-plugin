@@ -7,8 +7,18 @@
 
     <description>
         <![CDATA[
-            Instantly create a test case boilerplate for any method in JAVA using JUNIT and Mockito.
-            Open Unlogged window and navigate to the method in your editor
+            Introducing the Unlogged IDEA plugin - the ultimate tool for Java developers who want to speed up their testing workflow.  <br />
+            With TestBoiler, you can instantly generate JUnit and Mockito test case boilerplate for any method in your codebase.
+
+            Simply open the Unlogged plugin and navigate to the method you want to test in your editor.   <br />
+            Then, with just a few clicks, TestBoiler will create a complete test case for you,   <br />
+            including all necessary imports, annotations, and method stubs.
+
+            But that's not all. Save the test case with one click and easily navigate to the generated test case  <br />
+             and start writing your test code right away.   <br />
+             No more wasting time setting up your testing environment - TestBoiler does it all for you.  <br />
+
+            Download Unlogged today and start writing better tests in less time.  <br />
         ]]>
     </description>
 

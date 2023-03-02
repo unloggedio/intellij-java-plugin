@@ -349,6 +349,8 @@ public class TestCaseDesigner {
 
             }
         } catch (Exception e) {
+            currentClass = null;
+            currentMethod = null;
             e.printStackTrace();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             PrintStream stringWriter = new PrintStream(out);

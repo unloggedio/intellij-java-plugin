@@ -10,7 +10,6 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -38,15 +37,11 @@ import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.progress.ProcessCanceledException;
-import com.intellij.openapi.progress.ProgressIndicator;
-import com.intellij.openapi.progress.ProgressManager;
-import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
-import com.intellij.openapi.ui.playback.commands.ActionCommand;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -71,7 +66,6 @@ import org.json.JSONObject;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.InputEvent;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -287,7 +281,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        this.initiated=true;
+        this.initiated = true;
         this.project = project;
         this.toolWindow = toolWindow;
         start();
@@ -641,8 +635,12 @@ final public class InsidiousService implements Disposable {
             return;
         }
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK_SVG);
-        ToolWindowEx ex = (ToolWindowEx) toolWindow;
-        ex.stretchHeight(TOOL_WINDOW_WIDTH - ex.getDecorator().getWidth());
+        try {
+            ToolWindowEx ex = (ToolWindowEx) toolWindow;
+            ex.stretchWidth(TOOL_WINDOW_WIDTH - ex.getDecorator().getWidth());
+        } catch (NullPointerException npe) {
+            // ignored
+        }
         ContentManager contentManager = this.toolWindow.getContentManager();
 
 //
@@ -657,7 +655,7 @@ final public class InsidiousService implements Disposable {
         testCaseDesignerWindow = new TestCaseDesigner();
         @NotNull Content testCaseCreatorWindowContent =
                 contentFactory.createContent(testCaseDesignerWindow.getContent(), "Test designer", false);
-        this.testDesignerContent=testCaseCreatorWindowContent;
+        this.testDesignerContent = testCaseCreatorWindowContent;
         testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(testCaseCreatorWindowContent);
@@ -883,7 +881,8 @@ final public class InsidiousService implements Disposable {
                 @Override
                 public void run() {
                     if (testCaseDesignerWindow == null) {
-                        logger.warn("test case designer window is not ready to create test case for " + method.getName());
+                        logger.warn(
+                                "test case designer window is not ready to create test case for " + method.getName());
                         return;
                     }
                     testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
@@ -903,92 +902,107 @@ final public class InsidiousService implements Disposable {
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
             loadSession();
-            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
-            return null;
+//            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
+//            return null;
         }
         return testCaseService;
     }
 
     public void loadSession() {
-        Task.Backgroundable task =
-                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        client.getProjectSessions(new GetProjectSessionsCallback() {
-                            @Override
-                            public void error(String message) {
-                                JSONObject eventProperties = new JSONObject();
-                                eventProperties.put("message", message);
-                                UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-                                ExecutionSession executionSession = new ExecutionSession();
-                                executionSession.setPath(pathToSessions);
-                                executionSession.setSessionId("na");
-                                try {
-                                    sessionInstance = new SessionInstance(executionSession, project);
-                                } catch (SQLException | IOException e) {
-                                    eventProperties.put("stack", e.toString());
-                                    UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-                                    throw new RuntimeException(e);
-                                }
-                            }
+        try {
+            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+            ExecutionSession executionSession = new ExecutionSession();
+            executionSession.setPath(pathToSessions);
+            executionSession.setSessionId("na");
+            sessionInstance = new SessionInstance(executionSession, project);
+            client.setSessionInstance(sessionInstance);
+            testCaseService = new TestCaseService(sessionInstance);
 
-                            @Override
-                            public void success(List<ExecutionSession> executionSessionList) {
-                                try {
-                                    if (executionSessionList.size() == 0) {
-                                        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-                                        ExecutionSession executionSession = new ExecutionSession();
-                                        executionSession.setPath(pathToSessions);
-                                        executionSession.setSessionId("na");
-                                        sessionInstance = new SessionInstance(executionSession, project);
-                                    } else {
-                                        ExecutionSession executionSession = executionSessionList.get(0);
-                                        sessionInstance = new SessionInstance(executionSession, project);
-                                    }
-                                    client.setSessionInstance(sessionInstance);
-                                    testCaseService = new TestCaseService(sessionInstance);
+        } catch (SQLException | IOException e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("stack", e.toString());
+            UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+            throw new RuntimeException(e);
+        }
 
-                                } catch (SQLException | IOException e) {
-                                    JSONObject eventProperties = new JSONObject();
-                                    eventProperties.put("stack", e.toString());
-                                    UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-                                    throw new RuntimeException(e);
-                                }
 
-                            }
-                        });
-                    }
-                };
+//        Task.Backgroundable task =
+//                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
+//                    @Override
+//                    public void run(@NotNull ProgressIndicator indicator) {
+//                        client.getProjectSessions(new GetProjectSessionsCallback() {
+//                            @Override
+//                            public void error(String message) {
+//                                JSONObject eventProperties = new JSONObject();
+//                                eventProperties.put("message", message);
+//                                UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+//                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+//                                ExecutionSession executionSession = new ExecutionSession();
+//                                executionSession.setPath(pathToSessions);
+//                                executionSession.setSessionId("na");
+//                                try {
+//                                    sessionInstance = new SessionInstance(executionSession, project);
+//                                } catch (SQLException | IOException e) {
+//                                    eventProperties.put("stack", e.toString());
+//                                    UsageInsightTracker.getInstance()
+//                                            .RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+//                                    throw new RuntimeException(e);
+//                                }
+//                            }
+//
+//                            @Override
+//                            public void success(List<ExecutionSession> executionSessionList) {
+//                                try {
+//                                    if (executionSessionList.size() == 0) {
+//                                        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+//                                        ExecutionSession executionSession = new ExecutionSession();
+//                                        executionSession.setPath(pathToSessions);
+//                                        executionSession.setSessionId("na");
+//                                        sessionInstance = new SessionInstance(executionSession, project);
+//                                    } else {
+//                                        ExecutionSession executionSession = executionSessionList.get(0);
+//                                        sessionInstance = new SessionInstance(executionSession, project);
+//                                    }
+//                                    client.setSessionInstance(sessionInstance);
+//                                    testCaseService = new TestCaseService(sessionInstance);
+//
+//                                } catch (SQLException | IOException e) {
+//                                    JSONObject eventProperties = new JSONObject();
+//                                    eventProperties.put("stack", e.toString());
+//                                    UsageInsightTracker.getInstance()
+//                                            .RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+//                                    throw new RuntimeException(e);
+//                                }
+//
+//                            }
+//                        });
+//                    }
+//                };
+//
+//        ProgressManager.getInstance().run(task);
 
-        ProgressManager.getInstance().run(task);
+    }
+
+    public void openTestCaseDesigner(Project project) {
+        if (!this.initiated) {
+//            InsidiousNotification.notifyMessage("Please click on Unlogged to get started.",
+//                    NotificationType.INFORMATION);
+            if (this.project == null) {
+                this.project = project;
+            }
+            this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
+        }
+
+        System.out.println("[Init UI call]");
+        toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
+        toolWindow.show(new Runnable() {
+            @Override
+            public void run() {
+            }
+        });
 
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
-    public void openTestCaseDesigner(Project project)
-    {
-        if(!this.initiated)
-        {
-            InsidiousNotification.notifyMessage("Please click on Unlogged to get started.",
-                    NotificationType.INFORMATION);
-//            if(this.project==null)
-//            {
-//                this.project = project;
-//            }
-//            this.init(this.project,ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
-        }
-        else
-        {
-            System.out.println("[Init UI call]");
-            toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
-            toolWindow.show(new Runnable() {
-                @Override
-                public void run() {
-                }
-            });
-        }
-    }
 
 }
