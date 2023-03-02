@@ -743,7 +743,15 @@ public class TestCaseDesigner {
             }
             if (constructor.getParameterList().getParametersCount() > selectedConstructor.getParameterList()
                     .getParametersCount()) {
-                selectedConstructor = constructor;
+                boolean isRecursiveConstructor = false;
+                for (PsiParameter parameter : constructor.getParameterList().getParameters()) {
+                    if (currentClass.getQualifiedName().equals(parameter.getType().getCanonicalText())) {
+                        isRecursiveConstructor = true;
+                    }
+                }
+                if (!isRecursiveConstructor) {
+                    selectedConstructor = constructor;
+                }
             }
         }
 
@@ -805,8 +813,9 @@ public class TestCaseDesigner {
                         continue;
                     }
 
-                    candidateList.addAll(buildConstructorCandidate(parameterClassReference, methodArgumentParameter,
-                            fieldContainer));
+                    List<TestCandidateMetadata> constructorMetadata =
+                            buildConstructorCandidate(parameterClassReference, methodArgumentParameter, fieldContainer);
+                    candidateList.addAll(constructorMetadata);
                 }
 
                 methodArgumentParameter.setProb(argumentProbe);
