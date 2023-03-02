@@ -64,4 +64,10 @@
         <!--        <editorFactoryMouseListener-->
         <!--                implementation="com.insidious.plugin.ui.InsidiousCaretListener"/>-->
     </extensions>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <codeInsight.lineMarkerProvider
+                language="JAVA"
+                implementationClass="com.insidious.plugin.ui.Highlighter.LineHighlighter"/>
+    </extensions>
 </idea-plugin>
