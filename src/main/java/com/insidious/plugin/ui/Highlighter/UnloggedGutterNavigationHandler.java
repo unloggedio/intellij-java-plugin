@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.Highlighter;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -21,6 +22,8 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
             InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
             insidiousService.openTestCaseDesigner(psiClass.getProject());
             insidiousService.showTestCreatorInterface(psiClass, method);
+            UsageInsightTracker.getInstance().RecordEvent(
+                    "TestIconClick",null);
         }
     }
 }
