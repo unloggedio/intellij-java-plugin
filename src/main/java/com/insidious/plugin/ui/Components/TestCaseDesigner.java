@@ -838,6 +838,13 @@ public class TestCaseDesigner {
     private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType) {
         if (psiType instanceof PsiClassReferenceType) {
             PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
+            if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
+                logger.warn("return class type canonical text[" + returnClassType.getCanonicalText()
+                        + "] is same as its name [" + returnClassType.getName() + "]");
+                // this is a generic template type <T>, and not a real class
+                parameter.setType("java.lang.Object");
+                return;
+            }
             parameter.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
             if (returnClassType.hasParameters()) {
                 SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());

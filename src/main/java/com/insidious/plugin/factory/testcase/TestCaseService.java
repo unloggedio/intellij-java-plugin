@@ -192,6 +192,10 @@ public class TestCaseService implements Runnable {
         ObjectRoutine constructorRoutine = objectRoutineContainer.getConstructor();
         for (TestCandidateMetadata mockCreatorCandidate : mockCreatorCandidates) {
             Parameter subjectParameter = mockCreatorCandidate.getTestSubject();
+            if (subjectParameter == null) {
+                logger.warn("subject parameter is null for mock creator candidate: " + mockCreatorCandidate);
+                continue;
+            }
             String subjectParameterType = subjectParameter.getType();
             if (subjectParameterType.startsWith("org.springframework.cglib.proxy.")) {
                 continue;

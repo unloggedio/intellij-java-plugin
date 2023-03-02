@@ -603,30 +603,24 @@ public class DaoService {
                 );
             }
             com.insidious.plugin.pojo.Parameter subjectParameter = methodCallExpression.getSubject();
-            if (subjectParameter.getType() == null) {
-                logger.warn(
-                        "type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
+            String subjectParameterType = subjectParameter.getType();
+            if (subjectParameterType == null) {
+                logger.warn("type for subject of method call [" + dbMce + "] is null [" + subjectParameter + "]");
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("java.util.")) {
+            if (subjectParameterType.startsWith("java.util.")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.slf4j.Logger")) {
+            if (subjectParameterType.startsWith("org.slf4j.Logger")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.apache.commons.")) {
+            if (subjectParameterType.startsWith("org.apache.commons.")) {
                 continue;
             }
-            if (subjectParameter.getType()
-                    .startsWith("org.springframework.cglib")) {
+            if (subjectParameterType.startsWith("org.springframework.cglib")) {
                 continue;
             }
-
-            if (subjectParameter.getType()
-                    .startsWith("org.springframework.aop")) {
+            if (subjectParameterType.startsWith("org.springframework.aop")) {
                 continue;
             }
 
@@ -640,10 +634,9 @@ public class DaoService {
             methodCallExpression.setEntryProbe(probesMap.get(dbMce.getEntryProbe_id()));
             methodCallExpression.setEntryProbeInfo(probeInfoMap.get(dbMce.getEntryProbeInfo_id()));
 
-            if (subjectParameter.getType()
-                    .contains(".$")) {
+            if (subjectParameterType.contains(".$")) {
                 logger.warn(
-                        "call subject type contains '.$', replacing with type from somewhere else: " + subjectParameter.getType());
+                        "call subject type contains '.$', replacing with type from somewhere else: " + subjectParameterType);
                 // this comes up when a proxy for an object is created
                 // eg jdk.proxy2.$Proxy127
                 String subjectTypeFromMethodDefinition = null;

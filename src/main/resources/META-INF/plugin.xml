@@ -7,16 +7,23 @@
 
     <description>
         <![CDATA[
-            The ultimate tool for Java developers who want to speed up their testing workflow.
-            With TestBoiler, you can instantly generate JUnit and Mockito test case boilerplate for any method in your codebase. <br /><br />
+            The ultimate tool for Java developers who want to speed up their testing workflow. <br />
+            With Unlogged automated test case generator, you can instantly generate JUnit and Mockito test case boilerplate for any method in your codebase. <br />
+
+            <ul>
+            <li>Generate test case boilerplate instantly as you navigate to a method</li>
+            <li>Mock method calls in test cases <pre>when(some.Method()).then(answer))</pre></li>
+            <li>Support @Mock/@MockExtension for Mockito</li>
+            <li>JUnit4 and JUnit 5 flavours</li>
+            </ul>
 
             Simply open the Unlogged plugin and navigate to the method you want to test in your editor.
-            Then, with just a few clicks, TestBoiler will create a complete test case for you,
+            Then, with just a few clicks, Unlogged test generator will create a complete test case for you,
             including all necessary imports, annotations, and method stubs. <br /> <br />
 
             But that's not all. Save the test case with one click and easily navigate to the generated test case
              and start writing your test code right away.
-             No more wasting time setting up your testing environment - TestBoiler does it all for you.  <br /> <br />
+            No more wasting time setting up your testing environment - Unlogged test generator does it all for you.  <br /> <br />
 
             Download Unlogged today and start writing better tests in less time.  <br />
         ]]>
