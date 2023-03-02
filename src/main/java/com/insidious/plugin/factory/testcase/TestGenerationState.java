@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * This container will hold the intermediate state of the script being generated, to keep track of
@@ -109,10 +110,10 @@ public class TestGenerationState {
         }
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (parameter.isContainer()) {
-            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName,
-                    ClassName.bestGuess(parameter.getTemplateMap()
-                            .get(0)
-                            .getType()));
+            TypeName[] typeArguments =
+                    parameter.getTemplateMap().stream().map(e -> ClassName.bestGuess(e.getType()))
+                            .collect(Collectors.toList()).toArray(new TypeName[0]);
+            fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName, typeArguments);
         }
 
         FieldSpec.Builder builder = FieldSpec.builder(

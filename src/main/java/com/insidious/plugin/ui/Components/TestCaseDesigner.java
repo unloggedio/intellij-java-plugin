@@ -917,6 +917,12 @@ public class TestCaseDesigner {
             case "double":
                 canonicalText = "D";
                 break;
+            case "java.util.Map":
+                canonicalText = "java.util.HashMap";
+                break;
+            case "java.util.List":
+                canonicalText = "java.util.ArrayList";
+                break;
             default:
         }
         return canonicalText;
