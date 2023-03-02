@@ -17,6 +17,7 @@ import com.squareup.javapoet.TypeName;
 import javax.lang.model.element.Modifier;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * ObjectRoutine is representing a block of code, a method, containing all the

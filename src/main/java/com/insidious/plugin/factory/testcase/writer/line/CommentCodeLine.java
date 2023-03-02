@@ -18,4 +18,9 @@ public class CommentCodeLine implements CodeLine {
     public void writeTo(MethodSpec.Builder methodBuilder, Object[] arguments) {
         methodBuilder.addComment(statement, arguments);
     }
+
+    @Override
+    public String toString() {
+        return "//" + statement + "\n";
+    }
 }

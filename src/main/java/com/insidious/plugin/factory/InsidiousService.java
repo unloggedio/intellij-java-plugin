@@ -134,7 +134,7 @@ final public class InsidiousService implements Disposable {
         return basePath + "src/test/java/" + packageName.replaceAll("\\.", "/");
     }
 
-    private void start() {
+    private synchronized void start() {
         try {
 
             logger.info("started insidious service - project name - " + project.getName());
@@ -280,7 +280,10 @@ final public class InsidiousService implements Disposable {
         return modules;
     }
 
-    public void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+    public synchronized void init(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        if (this.initiated) {
+            return;
+        }
         this.initiated = true;
         this.project = project;
         this.toolWindow = toolWindow;
@@ -625,9 +628,12 @@ final public class InsidiousService implements Disposable {
         return false;
     }
 
-    private void initiateUI() {
+    private synchronized void initiateUI() {
         logger.info("initiate ui");
-        initiated = true;
+        if (testCaseDesignerWindow != null) {
+            return;
+        }
+
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
             UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", new JSONObject());
@@ -865,7 +871,7 @@ final public class InsidiousService implements Disposable {
         }
         JSONObject eventProperties = new JSONObject();
         if (testCaseDesignerWindow == null) {
-            UsageInsightTracker.getInstance().RecordEvent("TOOL_WINDOW_NULL", eventProperties);
+//            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", eventProperties);
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
         }
@@ -908,7 +914,7 @@ final public class InsidiousService implements Disposable {
         return testCaseService;
     }
 
-    public void loadSession() {
+    public synchronized void loadSession() {
         try {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
             ExecutionSession executionSession = new ExecutionSession();
@@ -985,21 +991,14 @@ final public class InsidiousService implements Disposable {
 
     public void openTestCaseDesigner(Project project) {
         if (!this.initiated) {
-//            InsidiousNotification.notifyMessage("Please click on Unlogged to get started.",
-//                    NotificationType.INFORMATION);
             if (this.project == null) {
                 this.project = project;
             }
             this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
         }
-
         System.out.println("[Init UI call]");
         toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
-        toolWindow.show(new Runnable() {
-            @Override
-            public void run() {
-            }
-        });
+        toolWindow.show(null);
 
     }
 
