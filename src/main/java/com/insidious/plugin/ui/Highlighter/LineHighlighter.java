@@ -28,7 +28,7 @@ public class LineHighlighter implements LineMarkerProvider {
             {
                 LineMarkerInfo info = new LineMarkerInfo(element,
                         element.getTextRange(),
-                        UIUtils.TEST_TUBE_ICON_SVG,
+                        UIUtils.TEST_TUBE_FILL,
                         null,
                         new UnloggedGutterNavigationHandler(),
                         GutterIconRenderer.Alignment.LEFT);
