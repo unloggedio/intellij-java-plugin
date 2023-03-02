@@ -629,6 +629,7 @@ final public class InsidiousService implements Disposable {
         logger.info("initiate ui");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
+            UsageInsightTracker.getInstance().RecordEvent("TOOL_WINDOW_NULL", new JSONObject());
             logger.warn("tool window is null");
             return;
         }
@@ -855,15 +856,17 @@ final public class InsidiousService implements Disposable {
             return;
         }
         if (psiClass.getName() == null) {
-//            InsidiousNotification.notifyMessage(
-//                    "Generating test case for methods inside anonymous classes is not supported", NotificationType.ERROR
-//            );
             return;
         }
+        JSONObject eventProperties = new JSONObject();
         if (testCaseDesignerWindow == null) {
+            UsageInsightTracker.getInstance().RecordEvent("TOOL_WINDOW_NULL", eventProperties);
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
         }
+        eventProperties.put("method_name", method);
+        eventProperties.put("class_name", psiClass.getName());
+        UsageInsightTracker.getInstance().RecordEvent("GENERATE_TEST_CASE_REQUEST", eventProperties);
 
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {

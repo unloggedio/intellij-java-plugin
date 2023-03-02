@@ -250,7 +250,6 @@ public class TestCaseDesigner {
     }
 
     public void renderTestDesignerInterface(PsiClass psiClass, PsiMethod method) {
-
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
