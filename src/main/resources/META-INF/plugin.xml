@@ -54,7 +54,7 @@
     <extensions defaultExtensionNs="com.intellij">
         <!--        <notificationGroup id="com.insidious" displayType="BALLOON"/>-->
         <!--        <postStartupActivity implementation="com.insidious.plugin.factory.InsidiousService"/>-->
-        <toolWindow id="Unlogged" secondary="false" icon="/icons/png/logo_unlogged.png" anchor="right"
+        <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png" anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>

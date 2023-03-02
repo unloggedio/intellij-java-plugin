@@ -139,8 +139,7 @@ final public class InsidiousService implements Disposable {
         try {
 
             logger.info("started insidious service - project name - " + project.getName());
-            if (ModuleManager.getInstance(project)
-                    .getModules().length == 0) {
+            if (ModuleManager.getInstance(project).getModules().length == 0) {
                 logger.warn("no module found in the project");
             } else {
                 currentModule = ModuleManager.getInstance(project).getModules()[0];
@@ -630,6 +629,7 @@ final public class InsidiousService implements Disposable {
         logger.info("initiate ui");
         ContentFactory contentFactory = ApplicationManager.getApplication().getService(ContentFactory.class);
         if (this.toolWindow == null) {
+            logger.warn("tool window is null");
             return;
         }
         toolWindow.setIcon(UIUtils.UNLOGGED_ICON_DARK);
@@ -850,10 +850,6 @@ final public class InsidiousService implements Disposable {
     }
 
     public void showTestCreatorInterface(PsiClass psiClass, PsiMethod method) {
-        if (testCaseDesignerWindow == null) {
-            logger.warn("test case designer window is not ready to create test case for " + method.getName());
-            return;
-        }
 
         if (method == null) {
             return;
@@ -864,6 +860,11 @@ final public class InsidiousService implements Disposable {
 //            );
             return;
         }
+        if (testCaseDesignerWindow == null) {
+            logger.warn("test case designer window is not ready to create test case for " + method.getName());
+            return;
+        }
+
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {
             InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
