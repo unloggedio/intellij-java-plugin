@@ -24,6 +24,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.squareup.javapoet.*;
 import org.jetbrains.annotations.NotNull;
@@ -262,7 +263,14 @@ public class TestCaseService implements Runnable {
 
             if (classPsiInstance != null) {
                 List<PsiField> fieldMatchingParameterType = Arrays.stream(classPsiInstance.getFields())
-                        .filter(e -> typeNames.contains(e.getType().getCanonicalText()))
+                        .filter(e -> {
+                            if (e.getType() instanceof PsiClassReferenceType) {
+                                PsiClassReferenceType classType = (PsiClassReferenceType) e.getType();
+                                return typeNames.contains(classType.rawType().getCanonicalText());
+                            } else {
+                                return typeNames.contains(e.getType().getCanonicalText());
+                            }
+                        })
                         .collect(Collectors.toList());
                 if (fieldMatchingParameterType.size() > 0) {
 

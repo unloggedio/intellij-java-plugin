@@ -611,9 +611,9 @@ public class TestCaseDesigner {
                                 methodName, fieldByName, methodArguments, methodReturnValue, 0
                         );
                         int methodAccess = buildMethodAccessModifier(matchedMethod.getModifierList());
-                        if (calledMethodClassReference.isInterface()) {
-                            methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
-                        }
+//                        if (calledMethodClassReference.isInterface()) {
+                        methodAccess = methodAccess | Opcodes.ACC_PUBLIC;
+//                        }
                         mce.setMethodAccess(methodAccess);
 
                         collectedMceList.add(mce);
