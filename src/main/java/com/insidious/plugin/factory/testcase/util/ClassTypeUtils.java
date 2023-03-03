@@ -193,8 +193,9 @@ public class ClassTypeUtils {
         }
 
         TypeName returnParamType = getClassFromDescriptor(typeName);
-        if (returnParamType != null && typeName.endsWith("[]")) {
-            return ArrayTypeName.of(returnParamType);
+        while (returnParamType != null && typeName.contains("[]")) {
+            typeName = typeName.substring(typeName.indexOf("[]") + 2);
+            returnParamType = ArrayTypeName.of(returnParamType);
         }
 
         return returnParamType;
@@ -283,6 +284,33 @@ public class ClassTypeUtils {
                 return TypeName.FLOAT;
             case 'D':
                 return TypeName.DOUBLE;
+        }
+        if (descriptor.startsWith("byte")) {
+            return TypeName.BYTE;
+        }
+        if (descriptor.startsWith("boolean")) {
+            return TypeName.BOOLEAN;
+        }
+        if (descriptor.startsWith("long")) {
+            return TypeName.LONG;
+        }
+        if (descriptor.startsWith("float")) {
+            return TypeName.FLOAT;
+        }
+        if (descriptor.startsWith("short")) {
+            return TypeName.SHORT;
+        }
+        if (descriptor.startsWith("int")) {
+            return TypeName.INT;
+        }
+        if (descriptor.startsWith("double")) {
+            return TypeName.DOUBLE;
+        }
+        if (descriptor.startsWith("void")) {
+            return TypeName.VOID;
+        }
+        if (descriptor.startsWith("char")) {
+            return TypeName.CHAR;
         }
         return null;
 

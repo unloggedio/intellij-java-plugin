@@ -15,8 +15,6 @@ import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.bouncycastle.crypto.digests.MD5Digest;
-import org.bouncycastle.jcajce.provider.digest.MD5;
 
 import javax.lang.model.element.Modifier;
 import java.util.HashMap;
@@ -24,7 +22,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * This container will hold the intermediate state of the script being generated, to keep track of
@@ -111,15 +108,16 @@ public class TestGenerationState {
         TypeName fieldTypeName = ClassName.bestGuess(fieldType);
         if (parameter.isContainer()) {
             TypeName[] typeArguments =
-                    parameter.getTemplateMap().stream().map(e -> ClassName.bestGuess(e.getType()))
-                            .collect(Collectors.toList()).toArray(new TypeName[0]);
+                    parameter.getTemplateMap()
+                            .stream()
+                            .map(e -> ClassTypeUtils.createTypeFromNameString(e.getType()))
+                            .toArray(TypeName[]::new);
             fieldTypeName = ParameterizedTypeName.get((ClassName) fieldTypeName, typeArguments);
         }
 
-        FieldSpec.Builder builder = FieldSpec.builder(
+        return FieldSpec.builder(
                 fieldTypeName, parameterNameFactory.getNameForUse(parameter, null), Modifier.PRIVATE
         );
-        return builder;
     }
 
     public void generateParameterName(Parameter returnValue, String methodName) {
@@ -142,11 +140,11 @@ public class TestGenerationState {
 
     }
 
-    public void setSetupNeedsJsonResources(boolean setupNeedsJsonResources) {
-        this.setupNeedsJsonResources = setupNeedsJsonResources;
-    }
-
     public boolean isSetupNeedsJsonResources() {
         return setupNeedsJsonResources;
+    }
+
+    public void setSetupNeedsJsonResources(boolean setupNeedsJsonResources) {
+        this.setupNeedsJsonResources = setupNeedsJsonResources;
     }
 }
