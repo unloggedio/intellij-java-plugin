@@ -22,6 +22,7 @@ public class UIUtils {
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon UNLOGGED_ICON_DARK_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo.svg", UIUtils.class);
     public static Icon UNLOGGED_ICON_LIGHT_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo_light.svg", UIUtils.class);
+    public static Icon UNLOGGED_GPT_PINK = IconLoader.getIcon("/icons/svg/unloggedGPTIcon_pink.svgg", UIUtils.class);
     public static Icon TEST_BEAKER_TEAL = IconLoader.getIcon("/icons/svg/test_beaker_icon_teal.svg", UIUtils.class);
     public static Icon TEST_TUBE_ICON_SVG = IconLoader.getIcon("/icons/svg/test_tube_icon_green.svg", UIUtils.class);
     public static Icon TEST_TUBE_FILL = IconLoader.getIcon("/icons/svg/test_tube_unlogged.svg", UIUtils.class);

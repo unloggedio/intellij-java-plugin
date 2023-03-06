@@ -115,6 +115,8 @@ final public class InsidiousService implements Disposable {
     private SessionInstance sessionInstance;
     private boolean initiated = false;
     private Content testDesignerContent;
+    private UnloggedGPT gptWindow;
+    private Content gptContent;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -666,6 +668,13 @@ final public class InsidiousService implements Disposable {
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(testCaseCreatorWindowContent);
 
+        gptWindow = new UnloggedGPT();
+        gptContent = contentFactory.
+                createContent(gptWindow.getComponent(),"UnloggedGPT",false);
+        gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        gptContent.setIcon(UIUtils.UNLOGGED_GPT_PINK);
+        contentManager.addContent(gptContent);
+
         // test candidate list by packages
         liveViewWindow = new LiveViewWindow(project);
         liveWindowContent = contentFactory.createContent(liveViewWindow.getContent(), "Test Cases", false);
@@ -869,6 +878,10 @@ final public class InsidiousService implements Disposable {
         if (psiClass.getName() == null) {
             return;
         }
+        if(this.gptWindow!=null)
+        {
+            this.gptWindow.updateUI(psiClass,method);
+        }
         JSONObject eventProperties = new JSONObject();
         if (testCaseDesignerWindow == null) {
 //            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", eventProperties);
@@ -996,7 +1009,6 @@ final public class InsidiousService implements Disposable {
             }
             this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
         }
-        System.out.println("[Init UI call]");
         toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
         toolWindow.show(null);
 
