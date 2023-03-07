@@ -27,10 +27,9 @@ public class UnloggedGPT implements UnloggedGptListener {
     private JButton discordButton;
     public JBCefBrowser jbCefBrowser;
     private UnloggedGPTNavigationBar navigationBar;
-
     private PsiClass currentClass;
-
     private PsiMethod currentMethod;
+    private String chatURL = "https://chat.openai.com/chat";
 
     public JComponent getComponent()
     {
@@ -71,7 +70,8 @@ public class UnloggedGPT implements UnloggedGptListener {
         jbCefBrowser = new JBCefBrowser();
         this.borderParent.add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
         JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
-        jbCefBrowser.loadURL("https://chat.openai.com/chat");
+        //jbCefBrowser.setProperty("userAgent","Chrome");
+        jbCefBrowser.loadURL(chatURL);
     }
 
     public void triggerClick(String type)
@@ -80,6 +80,10 @@ public class UnloggedGPT implements UnloggedGptListener {
         String queryPrefix = "";
         String methodCode = "";
 
+        if(jbCefBrowser==null)
+        {
+            return;
+        }
         if(this.currentMethod==null)
         {
             InsidiousNotification.notifyMessage("Please select a method from the editor.",
@@ -122,6 +126,26 @@ public class UnloggedGPT implements UnloggedGptListener {
     @Override
     public void triggerCallOfType(String type) {
         triggerClick(type);
+    }
+
+    @Override
+    public void refreshPage() {
+        if(jbCefBrowser!=null)
+        {
+            jbCefBrowser.loadURL(chatURL);
+        }
+        else {
+            loadChatGPTBrowserView();
+        }
+    }
+
+    @Override
+    public void goBack()
+    {
+        String code = ("history.back();").trim();
+        code = code.replaceAll("[\r\n]+", " ");
+        jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
+
     }
 
     public void updateUI(PsiClass psiClass, PsiMethod method) {

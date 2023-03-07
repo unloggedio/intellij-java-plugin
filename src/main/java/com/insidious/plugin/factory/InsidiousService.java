@@ -672,7 +672,7 @@ final public class InsidiousService implements Disposable {
         gptContent = contentFactory.
                 createContent(gptWindow.getComponent(),"UnloggedGPT",false);
         gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        gptContent.setIcon(UIUtils.UNLOGGED_GPT_PINK);
+        gptContent.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
         contentManager.addContent(gptContent);
 
         // test candidate list by packages

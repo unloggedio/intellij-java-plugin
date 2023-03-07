@@ -18,6 +18,9 @@ public class UnloggedGPTNavigationBar {
     private JPanel elementsParent;
     private JPanel selectedClassDetailsPanel;
     private JLabel selectedMethodNameLabel;
+    private JButton refreshButton;
+    private JPanel controlPanel;
+    private JButton backButton;
 
     private UnloggedGptListener listener;
 
@@ -51,6 +54,20 @@ public class UnloggedGPTNavigationBar {
             }
         });
         explainButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        refreshButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                refreshPage();
+            }
+        });
+        refactorButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        backButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        backButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                goBack();
+            }
+        });
     }
 
     public JPanel getComponent()
@@ -69,5 +86,15 @@ public class UnloggedGPTNavigationBar {
         UsageInsightTracker.getInstance().RecordEvent(
                 "GPTOptionClicked",eventProperties);
         this.selectedMethodNameLabel.setText(s);
+    }
+
+    public void refreshPage()
+    {
+        listener.refreshPage();
+    }
+
+    public void goBack()
+    {
+        listener.goBack();
     }
 }

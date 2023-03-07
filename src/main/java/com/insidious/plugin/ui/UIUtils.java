@@ -20,6 +20,7 @@ public class UIUtils {
     public static Color DefaultForegoround = new Color(187,187,187);
     public static Color NeutralGrey = new Color(81,85,87);
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
+    public static Icon UNLOGGED_GPT_ICON_PINK = IconLoader.getIcon("/icons/png/unloggedGPT_pink.png", UIUtils.class);
     public static Icon UNLOGGED_ICON_DARK_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo.svg", UIUtils.class);
     public static Icon UNLOGGED_ICON_LIGHT_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo_light.svg", UIUtils.class);
     public static Icon UNLOGGED_GPT_PINK = IconLoader.getIcon("/icons/svg/unloggedGPTIcon_pink.svgg", UIUtils.class);
