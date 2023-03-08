@@ -20,7 +20,8 @@ public class LineHighlighter implements LineMarkerProvider {
             PsiMethod psiMethod = (PsiMethod) element.getParent();
             PsiModifierList modifierList = psiMethod.getModifierList();
             if (modifierList.hasModifierProperty(PsiModifier.PRIVATE) ||
-                    modifierList.hasModifierProperty(PsiModifier.PROTECTED)) {
+                    modifierList.hasModifierProperty(PsiModifier.PROTECTED) ||
+                    psiMethod.isConstructor()) {
                 return null;
             }
             Matcher methodMatcher = method.matcher(element.getText());
