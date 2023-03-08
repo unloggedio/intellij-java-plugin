@@ -7,4 +7,10 @@ public interface UnloggedGptListener {
     void refreshPage();
 
     void goBack();
+
+    void testApiCall();
+
+    String makeApiCallForPrompt(String currentPrompt);
+
+    void triggerCallTypeForCurrentMethod(String type);
 }

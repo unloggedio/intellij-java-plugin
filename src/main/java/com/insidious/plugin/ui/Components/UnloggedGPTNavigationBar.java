@@ -77,14 +77,14 @@ public class UnloggedGPTNavigationBar {
 
     public void sendUpdateRequest(String type)
     {
-        listener.triggerCallOfType(type);
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("option_type", type);
+        UsageInsightTracker.getInstance().RecordEvent(
+                "GPTOptionClicked",eventProperties);
+        listener.triggerCallTypeForCurrentMethod(type);
     }
 
     public void updateSelection(String s) {
-        JSONObject eventProperties = new JSONObject();
-        eventProperties.put("option_type", s);
-        UsageInsightTracker.getInstance().RecordEvent(
-                "GPTOptionClicked",eventProperties);
         this.selectedMethodNameLabel.setText(s);
     }
 
@@ -96,5 +96,10 @@ public class UnloggedGPTNavigationBar {
     public void goBack()
     {
         listener.goBack();
+    }
+
+    public void setControlPanelVisibility(boolean status)
+    {
+        this.controlPanel.setVisible(status);
     }
 }

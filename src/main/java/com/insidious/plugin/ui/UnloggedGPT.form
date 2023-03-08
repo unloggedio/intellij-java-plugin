@@ -38,19 +38,12 @@
               </component>
             </children>
           </grid>
-          <scrollpane id="4b174" binding="parentScroll">
+          <grid id="4b61c" binding="mainContentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
             <constraints border-constraint="Center"/>
             <properties/>
             <border type="none"/>
-            <children>
-              <grid id="b043c" binding="mainContentPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
-                <constraints/>
-                <properties/>
-                <border type="none"/>
-                <children/>
-              </grid>
-            </children>
-          </scrollpane>
+            <children/>
+          </grid>
         </children>
       </grid>
     </children>
