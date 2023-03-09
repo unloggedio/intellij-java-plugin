@@ -29,28 +29,36 @@ public class UnloggedGPTNavigationBar {
         findBugsButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                sendUpdateRequest(findBugsButton.getText());
+                if(findBugsButton.isEnabled()) {
+                    sendUpdateRequest(findBugsButton.getText());
+                }
             }
         });
         findBugsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         optimizeButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                sendUpdateRequest(optimizeButton.getText());
+                if(optimizeButton.isEnabled()) {
+                    sendUpdateRequest(optimizeButton.getText());
+                }
             }
         });
         optimizeButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         refactorButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                sendUpdateRequest(refactorButton.getText());
+                if(refactorButton.isEnabled()) {
+                    sendUpdateRequest(refactorButton.getText());
+                }
             }
         });
         refactorButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         explainButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                sendUpdateRequest(explainButton.getText());
+                if(explainButton.isEnabled()) {
+                    sendUpdateRequest(explainButton.getText());
+                }
             }
         });
         explainButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));

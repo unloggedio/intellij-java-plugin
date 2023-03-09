@@ -1,11 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.ui.UIUtils;
-import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
-import com.intellij.openapi.ui.playback.commands.ActionCommand;
-import com.intellij.openapi.util.ActionCallback;
-import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.concurrency.EdtExecutorService;
@@ -14,7 +10,6 @@ import com.intellij.util.ui.JBUI;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.concurrent.TimeUnit;
 
 public class GPTChatScaffold {
     private JPanel mainPanel;
@@ -57,31 +52,15 @@ public class GPTChatScaffold {
         sendButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                sendPrompt();
+
+                if(sendButton.isEnabled())
+                {
+                    sendPrompt();
+                }
             }
         });
     }
 
-    public void staticmockadd()
-    {
-        this.borderParent.removeAll();
-        int GridRows = 15;
-        GridLayout gridLayout = new GridLayout(GridRows, 1);
-        gridLayout.setVgap(8);
-        JPanel gridPanel = new JPanel(gridLayout);
-        gridPanel.setBorder(JBUI.Borders.empty());
-        for (int i = 0; i < GridRows; i++) {
-            GPTChatElement element = new GPTChatElement("Test message","User");
-            GridConstraints constraints = new GridConstraints();
-            constraints.setRow(i);
-            gridPanel.add(element.getMainPanel(), constraints);
-        }
-        JScrollPane scrollPane = new JBScrollPane(gridPanel);
-        scrollPane.setBorder(JBUI.Borders.empty());
-        borderParent.setPreferredSize(scrollPane.getSize());
-        borderParent.add(scrollPane, BorderLayout.CENTER);
-        this.borderParent.revalidate();
-    }
     public void sendPrompt()
     {
         String currentPrompt = this.promptTextArea.getText();
