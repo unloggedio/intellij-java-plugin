@@ -10,12 +10,17 @@ import com.insidious.plugin.ui.Components.GPTChatScaffold;
 import com.insidious.plugin.ui.Components.UnloggedGPTNavigationBar;
 import com.insidious.plugin.ui.Components.UnloggedGptListener;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.jcef.*;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -91,6 +96,25 @@ public class UnloggedGPT implements UnloggedGptListener {
         JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
         JBCefClient client = jbCefBrowser.getJBCefClient();
         jbCefBrowser.loadURL(chatURL);
+    }
+
+    public void triggerClickBackground(String type)
+    {
+        Task.Backgroundable task = new Task.Backgroundable(
+                insidiousService.getProject(), "Unlogged, Inc.", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                //run read here
+                ApplicationManager.getApplication()
+                        .runReadAction(new Runnable() {
+                            public void run() {
+                                triggerClick(type);
+                            }
+                        });
+            }
+        };
+        ProgressManager.getInstance()
+                .run(task);
     }
 
     public void triggerClick(String type)
@@ -204,7 +228,7 @@ public class UnloggedGPT implements UnloggedGptListener {
     @Override
     public void triggerCallTypeForCurrentMethod(String type) {
         //get response and trigger ui update in scaffold.
-        triggerClick(type);
+        triggerClickBackground(type);
     }
 
     @Override
