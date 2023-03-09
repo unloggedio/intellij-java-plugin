@@ -47,7 +47,7 @@
                     <properties>
                       <borderPainted value="false"/>
                       <contentAreaFilled value="false"/>
-                      <icon value="icons/png/copy_button_icon.png"/>
+                      <icon value="icons/png/copy_icon_teal.png"/>
                       <opaque value="false"/>
                       <text value=""/>
                     </properties>

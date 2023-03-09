@@ -176,9 +176,12 @@ public class UnloggedGPT implements UnloggedGptListener {
             String response = makeOkHTTPRequestForPrompt(queryPrefix);
             if(gptChatScaffold!=null)
             {
-                gptChatScaffold.addNewMessage(response,"ChatGPT");
-                gptChatScaffold.setReadyButtonState();
-                navigationBar.setActionButtonReadyState(type);
+                if(!response.isEmpty())
+                {
+                    gptChatScaffold.addNewMessage(response,"ChatGPT");
+                    gptChatScaffold.setReadyButtonState();
+                    navigationBar.setActionButtonReadyState(type);
+                }
             }
             gptChatScaffold.scrollToBottomV2();
 
@@ -224,14 +227,49 @@ public class UnloggedGPT implements UnloggedGptListener {
     }
 
     @Override
-    public String makeApiCallForPrompt(String currentPrompt) {
-        return makeOkHTTPRequestForPrompt(currentPrompt);
+    public void makeApiCallForPrompt(String currentPrompt) {
+//        makeOkHTTPRequestForPrompt(currentPrompt);
+        processCustomPromptBackground(currentPrompt);
     }
 
     @Override
     public void triggerCallTypeForCurrentMethod(String type) {
         //get response and trigger ui update in scaffold.
         triggerClickBackground(type);
+    }
+
+    public void processCustomPromptBackground(String prompt)
+    {
+        Task.Backgroundable task = new Task.Backgroundable(
+                insidiousService.getProject(), "Unlogged, Inc.", true) {
+            @Override
+            public void run(@NotNull ProgressIndicator indicator) {
+                //run read here
+                ApplicationManager.getApplication()
+                        .runReadAction(new Runnable() {
+                            public void run() {
+                                processCustomPrompt(prompt);
+                            }
+                        });
+            }
+        };
+        ProgressManager.getInstance()
+                .run(task);
+    }
+
+    public void processCustomPrompt(String prompt)
+    {
+        gptChatScaffold.addNewMessage(prompt,"You");
+        gptChatScaffold.setLoadingButtonState();
+
+        String response = makeOkHTTPRequestForPrompt(prompt);
+
+        if(!response.isEmpty())
+        {
+            gptChatScaffold.addNewMessage(response,"ChatGPT");
+            gptChatScaffold.setReadyButtonState();
+            gptChatScaffold.resetPrompt();
+        }
     }
 
     @Override
@@ -299,7 +337,6 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public Request buildHttpRequest(String prompt) {
 
-        //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
         String token = this.gptChatScaffold.getAPIkey();
         if(token.isEmpty())
         {

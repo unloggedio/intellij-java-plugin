@@ -3,9 +3,7 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.concurrency.EdtExecutorService;
-import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -32,6 +30,7 @@ public class GPTChatScaffold {
     private ScrollablePanel scrollablePanel;
     private UnloggedGptListener listener;
     private JScrollPane scrollPane;
+    private boolean firstCall=true;
     public GPTChatScaffold(UnloggedGptListener listener)
     {
         this.listener = listener;
@@ -64,22 +63,12 @@ public class GPTChatScaffold {
     public void sendPrompt()
     {
         String currentPrompt = this.promptTextArea.getText();
-        if(currentPrompt.trim().isEmpty())
+        if(!currentPrompt.trim().isEmpty())
         {
-            System.out.println("Empty prompt");
-        }
-        else
-        {
-            //send upwards
-            System.out.println("Adding new message");
-            addNewMessage(currentPrompt,"You");
-            String responseMessage = listener.makeApiCallForPrompt(currentPrompt);
-            addNewMessage(responseMessage,"ChatGPT");
+            listener.makeApiCallForPrompt(currentPrompt);
         }
     }
 
-    //run this on edt thread to get it to display instantly.
-    //edt thread updation doesn't work
     public void addNewMessage(String message, String user)
     {
         GPTChatElement element = new GPTChatElement(message,user);
@@ -88,11 +77,9 @@ public class GPTChatScaffold {
         this.mainPanel.revalidate();
         this.mainPanel.repaint();
         listener.triggerUpdate();
-        //calling this to prevent showing half formed text areas.
         this.mainPanel.revalidate();
         this.mainPanel.repaint();
 
-//        scrollToBottom();
     }
 
     public void runUpdateOnEDTthread(String prompt, String user)
@@ -136,5 +123,9 @@ public class GPTChatScaffold {
     public void setReadyButtonState() {
         this.sendButton.setEnabled(true);
         this.sendButton.setIcon(UIUtils.SEND_TEAL_ICON);
+    }
+
+    public void resetPrompt() {
+        this.promptTextArea.setText("");
     }
 }

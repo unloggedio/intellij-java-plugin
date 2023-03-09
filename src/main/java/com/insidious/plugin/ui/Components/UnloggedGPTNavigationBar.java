@@ -140,13 +140,13 @@ public class UnloggedGPTNavigationBar {
         switch (type)
         {
             case "Find Bugs":
-                return UIUtils.FIND_BUGS_GREY;
+                return UIUtils.FIND_BUGS_TEAL;
             case "Optimize":
-                return UIUtils.OPTIMIZE_GREY;
+                return UIUtils.OPTIMIZE_TEAL;
             case "Refactor":
-                return UIUtils.REFACTOR_GREY;
+                return UIUtils.REFACTOR_TEAL;
             case "Explain":
-                return UIUtils.EXPLAIN_GREY;
+                return UIUtils.EXPLAIN_TEAL;
         }
         return null;
     }
