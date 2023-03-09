@@ -13,4 +13,6 @@ public interface UnloggedGptListener {
     String makeApiCallForPrompt(String currentPrompt);
 
     void triggerCallTypeForCurrentMethod(String type);
+
+    void triggerUpdate();
 }

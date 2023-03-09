@@ -108,6 +108,7 @@ public class GPTChatScaffold {
         this.scrollablePanel.add(contentPanel);
         this.mainPanel.revalidate();
         this.mainPanel.repaint();
+        listener.triggerUpdate();
 //        JScrollBar vertical = parentScroller.getVerticalScrollBar();
 //        vertical.setValue(vertical.getMaximum());
     }

@@ -668,7 +668,7 @@ final public class InsidiousService implements Disposable {
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
         contentManager.addContent(testCaseCreatorWindowContent);
 
-        gptWindow = new UnloggedGPT();
+        gptWindow = new UnloggedGPT(this);
         gptContent = contentFactory.
                 createContent(gptWindow.getComponent(),"UnloggedGPT",false);
         gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
@@ -1012,6 +1012,11 @@ final public class InsidiousService implements Disposable {
         toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
         toolWindow.show(null);
 
+    }
+
+    public void refreshGPTWindow() {
+
+        this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

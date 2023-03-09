@@ -3,6 +3,7 @@ package com.insidious.plugin.ui;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.extension.InsidiousNotification;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.Components.GPTResponse.ChatGPTResponse;
 import com.insidious.plugin.ui.Components.GPTChatScaffold;
@@ -44,8 +45,10 @@ public class UnloggedGPT implements UnloggedGptListener {
         return mainPanel;
     }
     public GPTChatScaffold gptChatScaffold;
-    public UnloggedGPT()
+    private InsidiousService insidiousService;
+    public UnloggedGPT(InsidiousService service)
     {
+        this.insidiousService = service;
         loadNav();
         if(currentMode.equals(ChatGptMode.BROWSER)) {
             loadChatGPTBrowserView();
@@ -200,6 +203,11 @@ public class UnloggedGPT implements UnloggedGptListener {
     public void triggerCallTypeForCurrentMethod(String type) {
         //get response and trigger ui update in scaffold.
         triggerClick(type);
+    }
+
+    @Override
+    public void triggerUpdate() {
+        insidiousService.refreshGPTWindow();
     }
 
     public void updateUI(PsiClass psiClass, PsiMethod method) {
