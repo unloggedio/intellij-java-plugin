@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.factory.UsageInsightTracker;
+import com.insidious.plugin.ui.UIUtils;
 import org.json.JSONObject;
 
 import javax.swing.*;
@@ -21,7 +22,6 @@ public class UnloggedGPTNavigationBar {
     private JButton refreshButton;
     private JPanel controlPanel;
     private JButton backButton;
-
     private UnloggedGptListener listener;
 
     public UnloggedGPTNavigationBar(UnloggedGptListener listener) {
@@ -101,5 +101,52 @@ public class UnloggedGPTNavigationBar {
     public void setControlPanelVisibility(boolean status)
     {
         this.controlPanel.setVisible(status);
+    }
+
+    public void setActionButtonLoadingState(String type) {
+        JButton button = getButtonForType(type);
+        if(button!=null)
+        {
+            UIUtils.setGifIconForButton(button, "loading-def.gif", button.getIcon());
+        }
+    }
+
+    private JButton getButtonForType(String type)
+    {
+        switch (type)
+        {
+            case "Find Bugs":
+                return findBugsButton;
+            case "Optimize":
+                return optimizeButton;
+            case "Refactor":
+                return refactorButton;
+            case "Explain":
+                return explainButton;
+        }
+        return null;
+    }
+
+    private Icon findIconForType(String type)
+    {
+        switch (type)
+        {
+            case "Find Bugs":
+                return UIUtils.FIND_BUGS_GREY;
+            case "Optimize":
+                return UIUtils.OPTIMIZE_GREY;
+            case "Refactor":
+                return UIUtils.REFACTOR_GREY;
+            case "Explain":
+                return UIUtils.EXPLAIN_GREY;
+        }
+        return null;
+    }
+    public void setActionButtonReadyState(String type) {
+        JButton button = getButtonForType(type);
+        if(button!=null)
+        {
+            button.setIcon(findIconForType(type));
+        }
     }
 }

@@ -28,7 +28,8 @@ public class GPTChatElement {
         if(!user.equals("You"))
         {
             this.userInfoLabel.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
-            this.messageText.setBackground(UIUtils.NeutralGrey);
+            this.messageText.setBackground(UIUtils.black_custom);
+            this.messageText.setForeground(UIUtils.teal);
         }
         copyButton.addMouseListener(new MouseAdapter() {
             @Override

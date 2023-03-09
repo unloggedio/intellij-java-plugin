@@ -19,6 +19,7 @@ public class UIUtils {
     public static Color yellow_alert = new Color(225,163,54);
     public static Color DefaultForegoround = new Color(187,187,187);
     public static Color NeutralGrey = new Color(81,85,87);
+    public static Color black_custom = new Color(32,32,32);
     public static Icon UNLOGGED_ICON_DARK = IconLoader.getIcon("/icons/png/logo_unlogged.png", UIUtils.class);
     public static Icon UNLOGGED_GPT_ICON_PINK = IconLoader.getIcon("/icons/png/unloggedGPT_pink.png", UIUtils.class);
     public static Icon UNLOGGED_ICON_DARK_SVG = IconLoader.getIcon("/icons/svg/unlogged_logo.svg", UIUtils.class);
@@ -52,6 +53,10 @@ public class UIUtils {
     public static final Icon DISCORD_ICON = IconLoader.getIcon("/icons/png/discordIcon.png", UIUtils.class);
     public static final Icon NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/new_logs_to_process_icon.png", UIUtils.class);
     public static final Icon NO_NEW_LOGS_TO_PROCESS_ICON = IconLoader.getIcon("/icons/png/assert-not-equals.png", UIUtils.class);
+    public static final Icon FIND_BUGS_GREY = IconLoader.getIcon("/icons/png/findbug_grey.png", UIUtils.class);
+    public static final Icon OPTIMIZE_GREY = IconLoader.getIcon("/icons/png/optimize_grey.png", UIUtils.class);
+    public static final Icon REFACTOR_GREY = IconLoader.getIcon("/icons/png/refactor_grey.png", UIUtils.class);
+    public static final Icon EXPLAIN_GREY = IconLoader.getIcon("/icons/png/explain_grey.png", UIUtils.class);
 
     public static void setDividerColorForSplitPane(JSplitPane splitPane, Color color)
     {

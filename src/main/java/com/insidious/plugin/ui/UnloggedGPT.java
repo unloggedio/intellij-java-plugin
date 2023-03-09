@@ -140,16 +140,16 @@ public class UnloggedGPT implements UnloggedGptListener {
         switch (mode.trim())
         {
             case "Optimize":
-                queryPrefix = "Optimize the following code "+methodCode;
+                queryPrefix = "Optimize the following code -\n"+methodCode;
                 break;
             case "Find Bugs":
-                queryPrefix = "Find possible bugs in the following code "+methodCode;
+                queryPrefix = "Find possible bugs in the following code -\n"+methodCode;
                 break;
             case "Refactor":
-                queryPrefix = "Refactor the following code "+methodCode;
+                queryPrefix = "Refactor the following code -\n"+methodCode;
                 break;
             default:
-                queryPrefix = "Explain the following code  "+methodCode;
+                queryPrefix = "Explain the following code  -\n"+methodCode;
         }
         System.out.println("Query prefix -> "+queryPrefix);
         if(currentMode.equals(ChatGptMode.BROWSER))
@@ -171,13 +171,16 @@ public class UnloggedGPT implements UnloggedGptListener {
             {
                 gptChatScaffold.addNewMessage(queryPrefix,"You");
                 gptChatScaffold.setLoadingButtonState();
+                navigationBar.setActionButtonLoadingState(type);
             }
             String response = makeOkHTTPRequestForPrompt(queryPrefix);
             if(gptChatScaffold!=null)
             {
                 gptChatScaffold.addNewMessage(response,"ChatGPT");
                 gptChatScaffold.setReadyButtonState();
+                navigationBar.setActionButtonReadyState(type);
             }
+            gptChatScaffold.scrollToBottomV2();
 
         }
     }

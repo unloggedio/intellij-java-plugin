@@ -132,7 +132,7 @@ public class GPTChatScaffold {
         return this.apiKeyTextField.getText().trim();
     }
 
-    private void scrollToBottom() {
+    public void scrollToBottom() {
         JScrollBar verticalBar = this.scrollPane.getVerticalScrollBar();
         verticalBar.addAdjustmentListener(new AdjustmentListener() {
             public void adjustmentValueChanged(AdjustmentEvent e) {
@@ -143,13 +143,19 @@ public class GPTChatScaffold {
         });
     }
 
+    public void scrollToBottomV2()
+    {
+        JScrollBar vertical = scrollPane.getVerticalScrollBar();
+        vertical.setValue( vertical.getMaximum());
+    }
+
     public void setLoadingButtonState() {
         this.sendButton.setEnabled(false);
-        //UIUtils.setGifIconForButton(this.sendButton, "loading-def.gif", UIUtils.SEND_TEAL_ICON);
+        UIUtils.setGifIconForButton(this.sendButton, "loading-def.gif", UIUtils.SEND_TEAL_ICON);
     }
 
     public void setReadyButtonState() {
         this.sendButton.setEnabled(true);
-        //this.sendButton.setIcon(UIUtils.SEND_TEAL_ICON);
+        this.sendButton.setIcon(UIUtils.SEND_TEAL_ICON);
     }
 }
