@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.ui.UIUtils;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.openapi.ui.playback.commands.ActionCommand;
@@ -12,9 +13,7 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.util.concurrent.TimeUnit;
 
 public class GPTChatScaffold {
@@ -37,13 +36,14 @@ public class GPTChatScaffold {
     }
     private ScrollablePanel scrollablePanel;
     private UnloggedGptListener listener;
+    private JScrollPane scrollPane;
     public GPTChatScaffold(UnloggedGptListener listener)
     {
         this.listener = listener;
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
 
-        JScrollPane scrollPane = new JBScrollPane();
+        scrollPane = new JBScrollPane();
         scrollPane = new JBScrollPane();
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setViewportView(scrollablePanel);
@@ -109,8 +109,11 @@ public class GPTChatScaffold {
         this.mainPanel.revalidate();
         this.mainPanel.repaint();
         listener.triggerUpdate();
-//        JScrollBar vertical = parentScroller.getVerticalScrollBar();
-//        vertical.setValue(vertical.getMaximum());
+        //calling this to prevent showing half formed text areas.
+        this.mainPanel.revalidate();
+        this.mainPanel.repaint();
+
+//        scrollToBottom();
     }
 
     public void runUpdateOnEDTthread(String prompt, String user)
@@ -127,5 +130,26 @@ public class GPTChatScaffold {
     public String getAPIkey()
     {
         return this.apiKeyTextField.getText().trim();
+    }
+
+    private void scrollToBottom() {
+        JScrollBar verticalBar = this.scrollPane.getVerticalScrollBar();
+        verticalBar.addAdjustmentListener(new AdjustmentListener() {
+            public void adjustmentValueChanged(AdjustmentEvent e) {
+                Adjustable adjustable = e.getAdjustable();
+                adjustable.setValue(adjustable.getMaximum());
+                verticalBar.removeAdjustmentListener(this);
+            }
+        });
+    }
+
+    public void setLoadingButtonState() {
+        this.sendButton.setEnabled(false);
+        //UIUtils.setGifIconForButton(this.sendButton, "loading-def.gif", UIUtils.SEND_TEAL_ICON);
+    }
+
+    public void setReadyButtonState() {
+        this.sendButton.setEnabled(true);
+        //this.sendButton.setIcon(UIUtils.SEND_TEAL_ICON);
     }
 }

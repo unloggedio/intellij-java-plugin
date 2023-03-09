@@ -45,6 +45,7 @@ public class UIUtils {
     public static Icon ICON_3_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_3_teal.png", UIUtils.class);
     public static Icon ICON_4_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_4_teal.png", UIUtils.class);
     public static Icon ICON_5_TEAL = IconLoader.getIcon("/icons/png/numbered_icon_5_teal.png", UIUtils.class);
+    public static Icon SEND_TEAL_ICON = IconLoader.getIcon("/icons/png/sendButton.png", UIUtils.class);
     public static Icon MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/alert_icon_yellow.png", UIUtils.class);
     public static Icon NO_MISSING_DEPENDENCIES_ICON = IconLoader.getIcon("/icons/png/no_missing_dependencies_icon_20.png", UIUtils.class);
     public static Icon GENERATE_ICON = IconLoader.getIcon("/icons/png/generate_icon.png", UIUtils.class);

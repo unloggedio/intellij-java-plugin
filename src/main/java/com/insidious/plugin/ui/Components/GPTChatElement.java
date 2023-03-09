@@ -1,8 +1,15 @@
 package com.insidious.plugin.ui.Components;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.ui.UIUtils;
+import com.intellij.notification.NotificationType;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class GPTChatElement {
     private JPanel mainPanel;
@@ -23,6 +30,12 @@ public class GPTChatElement {
             this.userInfoLabel.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
             this.messageText.setBackground(UIUtils.NeutralGrey);
         }
+        copyButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                copyContents();
+            }
+        });
     }
 
     public JPanel getMainPanel()
@@ -38,5 +51,21 @@ public class GPTChatElement {
     public void setUser(String text)
     {
         this.userInfoLabel.setText(text);
+    }
+
+    public JTextArea getTextArea()
+    {
+        return this.messageText;
+    }
+
+    public void copyContents()
+    {
+        String message = this.messageText.getText();
+        StringSelection selection = new StringSelection(message);
+        Clipboard clipboard = Toolkit.getDefaultToolkit()
+                .getSystemClipboard();
+        clipboard.setContents(selection, selection);
+        InsidiousNotification.notifyMessage("Copied contents.",
+                NotificationType.INFORMATION);
     }
 }

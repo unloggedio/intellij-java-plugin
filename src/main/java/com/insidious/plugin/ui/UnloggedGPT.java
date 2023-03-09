@@ -146,11 +146,13 @@ public class UnloggedGPT implements UnloggedGptListener {
             if(gptChatScaffold!=null)
             {
                 gptChatScaffold.addNewMessage(queryPrefix,"You");
+                gptChatScaffold.setLoadingButtonState();
             }
             String response = makeOkHTTPRequestForPrompt(queryPrefix);
             if(gptChatScaffold!=null)
             {
                 gptChatScaffold.addNewMessage(response,"ChatGPT");
+                gptChatScaffold.setReadyButtonState();
             }
 
         }
