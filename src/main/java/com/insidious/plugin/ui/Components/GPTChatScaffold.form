@@ -52,9 +52,12 @@
                       <background color="-14671840"/>
                       <caretColor color="-16659211"/>
                       <foreground color="-16659211"/>
+                      <lineWrap value="true"/>
                       <margin top="8" left="8" bottom="8" right="8"/>
                       <opaque value="true"/>
+                      <toolTipText value="Type your question here."/>
                       <visible value="true"/>
+                      <wrapStyleWord value="true"/>
                     </properties>
                   </component>
                 </children>
