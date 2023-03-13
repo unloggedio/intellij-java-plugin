@@ -169,7 +169,7 @@ public class UnloggedGPT implements UnloggedGptListener {
             //add entry to chatlist.
             if(gptChatScaffold!=null)
             {
-                gptChatScaffold.addNewMessage(queryPrefix,"You");
+                gptChatScaffold.addNewMessage(queryPrefix,"You",true);
                 gptChatScaffold.setLoadingButtonState();
                 navigationBar.setActionButtonLoadingState(type);
             }
@@ -178,7 +178,7 @@ public class UnloggedGPT implements UnloggedGptListener {
             {
                 if(!response.isEmpty())
                 {
-                    gptChatScaffold.addNewMessage(response,"ChatGPT");
+                    gptChatScaffold.addNewMessage(response,"ChatGPT",true);
                     gptChatScaffold.setReadyButtonState();
                     navigationBar.setActionButtonReadyState(type);
                 }
@@ -259,14 +259,14 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public void processCustomPrompt(String prompt)
     {
-        gptChatScaffold.addNewMessage(prompt,"You");
+        gptChatScaffold.addNewMessage(prompt,"You",true);
         gptChatScaffold.setLoadingButtonState();
 
         String response = makeOkHTTPRequestForPrompt(prompt);
 
         if(!response.isEmpty())
         {
-            gptChatScaffold.addNewMessage(response,"ChatGPT");
+            gptChatScaffold.addNewMessage(response,"ChatGPT",true);
             gptChatScaffold.setReadyButtonState();
             gptChatScaffold.resetPrompt();
         }

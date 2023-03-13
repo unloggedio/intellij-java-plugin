@@ -69,4 +69,9 @@ public class GPTChatElement {
         InsidiousNotification.notifyMessage("Copied contents.",
                 NotificationType.INFORMATION);
     }
+
+    public void enableCopyButton(boolean status)
+    {
+        this.copyButton.setVisible(status);
+    }
 }

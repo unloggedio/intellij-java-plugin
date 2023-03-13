@@ -18,7 +18,7 @@ public class GPTChatScaffold {
     private JPanel borderParent;
     private JPanel centerPanel;
     private JPanel topPanel;
-    private JTextField apiKeyTextField;
+    private JPasswordField apiKeyTextField;
     private JLabel apiKeyLabel;
     private JScrollPane parentScroller;
     private JScrollPane TextScrollPanel;
@@ -36,7 +36,6 @@ public class GPTChatScaffold {
         this.listener = listener;
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
-
         scrollPane = new JBScrollPane();
         scrollPane = new JBScrollPane();
         //scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -65,7 +64,7 @@ public class GPTChatScaffold {
     {
         addNewMessage(
                 "Please add your openAPI API key to get started. If you don't have an account please sign up.",
-                "ChatGPT");
+                "ChatGPT",false);
         this.firstCall=true;
     }
 
@@ -83,7 +82,7 @@ public class GPTChatScaffold {
         }
     }
 
-    public void addNewMessage(String message, String user)
+    public void addNewMessage(String message, String user, boolean enableCopyButton)
     {
         if(this.firstCall)
         {
@@ -91,6 +90,7 @@ public class GPTChatScaffold {
             this.firstCall=false;
         }
         GPTChatElement element = new GPTChatElement(message,user);
+        element.enableCopyButton(enableCopyButton);
         JPanel contentPanel = element.getMainPanel();
         this.scrollablePanel.add(contentPanel);
         this.mainPanel.revalidate();
@@ -98,18 +98,6 @@ public class GPTChatScaffold {
         listener.triggerUpdate();
         this.mainPanel.revalidate();
         this.mainPanel.repaint();
-
-    }
-
-    public void runUpdateOnEDTthread(String prompt, String user)
-    {
-        EdtExecutorService.getInstance().execute(new Runnable() {
-
-            @Override
-            public void run() {
-                addNewMessage(prompt,user);
-            }
-        });
     }
 
     public String getAPIkey()
