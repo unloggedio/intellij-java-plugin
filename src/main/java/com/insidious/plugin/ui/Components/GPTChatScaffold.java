@@ -30,7 +30,7 @@ public class GPTChatScaffold {
     private ScrollablePanel scrollablePanel;
     private UnloggedGptListener listener;
     private JScrollPane scrollPane;
-    private boolean firstCall=true;
+    private boolean firstCall=false;
     public GPTChatScaffold(UnloggedGptListener listener)
     {
         this.listener = listener;
@@ -39,7 +39,7 @@ public class GPTChatScaffold {
 
         scrollPane = new JBScrollPane();
         scrollPane = new JBScrollPane();
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        //scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setViewportView(scrollablePanel);
         scrollPane.setBorder(null);
         scrollPane.setViewportBorder(null);
@@ -58,6 +58,20 @@ public class GPTChatScaffold {
                 }
             }
         });
+        sendDefaultMessage();
+    }
+
+    public void sendDefaultMessage()
+    {
+        addNewMessage(
+                "Please add your openAPI API key to get started. If you don't have an account please sign up.",
+                "ChatGPT");
+        this.firstCall=true;
+    }
+
+    public void clearChatWindow()
+    {
+        scrollablePanel.removeAll();
     }
 
     public void sendPrompt()
@@ -71,6 +85,11 @@ public class GPTChatScaffold {
 
     public void addNewMessage(String message, String user)
     {
+        if(this.firstCall)
+        {
+            clearChatWindow();
+            this.firstCall=false;
+        }
         GPTChatElement element = new GPTChatElement(message,user);
         JPanel contentPanel = element.getMainPanel();
         this.scrollablePanel.add(contentPanel);

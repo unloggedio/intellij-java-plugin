@@ -1015,8 +1015,11 @@ final public class InsidiousService implements Disposable {
     }
 
     public void refreshGPTWindow() {
+        if(this.gptContent!=null)
+        {
+            this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
 
-        this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
+        }
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
