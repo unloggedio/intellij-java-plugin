@@ -40,7 +40,7 @@ public class UnloggedGPT implements UnloggedGptListener {
     private JPanel mainContentPanel;
     private JPanel footerPanel;
     private JButton discordButton;
-    public JBCefBrowser jbCefBrowser;
+    //public JBCefBrowser jbCefBrowser;
     private UnloggedGPTNavigationBar navigationBar;
     private PsiClass currentClass;
     private PsiMethod currentMethod;
@@ -90,14 +90,14 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public void loadChatGPTBrowserView()
     {
-        if (!JBCefApp.isSupported()) {
-            return;
-        }
-        jbCefBrowser = new JBCefBrowser();
-        this.borderParent.add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
-        JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
-        JBCefClient client = jbCefBrowser.getJBCefClient();
-        jbCefBrowser.loadURL(chatURL);
+//        if (!JBCefApp.isSupported()) {
+//            return;
+//        }
+//        jbCefBrowser = new JBCefBrowser();
+//        this.borderParent.add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
+//        JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
+//        JBCefClient client = jbCefBrowser.getJBCefClient();
+//        jbCefBrowser.loadURL(chatURL);
     }
 
     public void triggerClickBackground(String type)
@@ -125,11 +125,11 @@ public class UnloggedGPT implements UnloggedGptListener {
         String queryPrefix = "";
         String methodCode = "";
 
-        if(currentMode.equals(ChatGptMode.BROWSER) &&
-                jbCefBrowser==null)
-        {
-            return;
-        }
+//        if(currentMode.equals(ChatGptMode.BROWSER) &&
+//                jbCefBrowser==null)
+//        {
+//            return;
+//        }
         if(this.currentMethod==null)
         {
             InsidiousNotification.notifyMessage("Please select a method from the editor.",
@@ -163,7 +163,7 @@ public class UnloggedGPT implements UnloggedGptListener {
                     "btn.click();"
             ).trim();
             code = code.replaceAll("[\r\n]+", " ");
-            jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
+            //jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
         }
         else
         {
@@ -171,7 +171,7 @@ public class UnloggedGPT implements UnloggedGptListener {
             //add entry to chatlist.
             if(gptChatScaffold!=null)
             {
-                gptChatScaffold.addNewMessage(queryPrefix,"You",true);
+                //gptChatScaffold.addNewMessage(queryPrefix,"You",true);
                 gptChatScaffold.setLoadingButtonState();
                 navigationBar.setActionButtonLoadingState(type);
             }
@@ -206,13 +206,13 @@ public class UnloggedGPT implements UnloggedGptListener {
         {
             return;
         }
-        if(jbCefBrowser!=null)
-        {
-            jbCefBrowser.loadURL(chatURL);
-        }
-        else {
+//        if(jbCefBrowser!=null)
+//        {
+//            jbCefBrowser.loadURL(chatURL);
+//        }
+//        else {
             loadChatGPTBrowserView();
-        }
+//        }
     }
 
     @Override
@@ -220,7 +220,7 @@ public class UnloggedGPT implements UnloggedGptListener {
     {
         String code = ("history.back();").trim();
         code = code.replaceAll("[\r\n]+", " ");
-        jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
+        //jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
     }
 
     @Override
@@ -261,7 +261,9 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public void processCustomPrompt(String prompt)
     {
-        gptChatScaffold.addNewMessage(prompt,"You",true);
+        //gptChatScaffold.addNewMessage(prompt,"You",true);
+        UsageInsightTracker.getInstance().RecordEvent(
+                "CustomQuery",null);
         gptChatScaffold.setLoadingButtonState();
 
         String response = makeOkHTTPRequestForPrompt(prompt);
@@ -363,7 +365,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         TreeMap<Object,Object> body = new TreeMap<>();
         body.put("stop", Arrays.asList(" Human:"," AI:"));
         body.put("prompt", prompt);
-        body.put("max_tokens", 256);
+        body.put("max_tokens", 1000);
         body.put("temperature", 0.9);
         body.put("best_of", 1);
         body.put("frequency_penalty", 0);
@@ -377,7 +379,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         headers.put("Authorization", "Bearer " + token);
         try {
             return new Request.Builder()
-                    .url("https://api.openai.com/v1/engines/text-davinci-002/completions")
+                    .url("https://api.openai.com/v1/engines/text-davinci-003/completions")
                     .headers(Headers.of(headers))
                     .post(RequestBody.create(
                             mapper
