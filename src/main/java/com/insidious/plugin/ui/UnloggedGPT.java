@@ -181,12 +181,11 @@ public class UnloggedGPT implements UnloggedGptListener {
                 if(!response.isEmpty())
                 {
                     gptChatScaffold.addNewMessage(response,"ChatGPT",true);
-                    gptChatScaffold.setReadyButtonState();
-                    navigationBar.setActionButtonReadyState(type);
                 }
+                gptChatScaffold.setReadyButtonState();
+                navigationBar.setActionButtonReadyState(type);
             }
             gptChatScaffold.scrollToBottomV2();
-
         }
     }
 
@@ -267,13 +266,12 @@ public class UnloggedGPT implements UnloggedGptListener {
         gptChatScaffold.setLoadingButtonState();
 
         String response = makeOkHTTPRequestForPrompt(prompt);
-
         if(!response.isEmpty())
         {
-            gptChatScaffold.addNewMessage(response,"ChatGPT",true);
-            gptChatScaffold.setReadyButtonState();
             gptChatScaffold.resetPrompt();
         }
+        gptChatScaffold.addNewMessage(response,"ChatGPT",true);
+        gptChatScaffold.setReadyButtonState();
     }
 
     @Override
