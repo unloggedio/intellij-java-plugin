@@ -2,11 +2,13 @@ package com.insidious.plugin.ui;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.Components.GPTResponse.ChatGPTResponse;
 import com.insidious.plugin.ui.Components.GPTChatScaffold;
+import com.insidious.plugin.ui.Components.GPTResponse.ErrorResponse;
 import com.insidious.plugin.ui.Components.UnloggedGPTNavigationBar;
 import com.insidious.plugin.ui.Components.UnloggedGptListener;
 import com.intellij.notification.NotificationType;
@@ -38,7 +40,7 @@ public class UnloggedGPT implements UnloggedGptListener {
     private JPanel mainContentPanel;
     private JPanel footerPanel;
     private JButton discordButton;
-    public JBCefBrowser jbCefBrowser;
+    //public JBCefBrowser jbCefBrowser;
     private UnloggedGPTNavigationBar navigationBar;
     private PsiClass currentClass;
     private PsiMethod currentMethod;
@@ -88,14 +90,14 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public void loadChatGPTBrowserView()
     {
-        if (!JBCefApp.isSupported()) {
-            return;
-        }
-        jbCefBrowser = new JBCefBrowser();
-        this.borderParent.add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
-        JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
-        JBCefClient client = jbCefBrowser.getJBCefClient();
-        jbCefBrowser.loadURL(chatURL);
+//        if (!JBCefApp.isSupported()) {
+//            return;
+//        }
+//        jbCefBrowser = new JBCefBrowser();
+//        this.borderParent.add(jbCefBrowser.getComponent(), BorderLayout.CENTER);
+//        JBCefCookieManager jbCefCookieManager = new JBCefCookieManager();
+//        JBCefClient client = jbCefBrowser.getJBCefClient();
+//        jbCefBrowser.loadURL(chatURL);
     }
 
     public void triggerClickBackground(String type)
@@ -123,11 +125,11 @@ public class UnloggedGPT implements UnloggedGptListener {
         String queryPrefix = "";
         String methodCode = "";
 
-        if(currentMode.equals(ChatGptMode.BROWSER) &&
-                jbCefBrowser==null)
-        {
-            return;
-        }
+//        if(currentMode.equals(ChatGptMode.BROWSER) &&
+//                jbCefBrowser==null)
+//        {
+//            return;
+//        }
         if(this.currentMethod==null)
         {
             InsidiousNotification.notifyMessage("Please select a method from the editor.",
@@ -161,7 +163,7 @@ public class UnloggedGPT implements UnloggedGptListener {
                     "btn.click();"
             ).trim();
             code = code.replaceAll("[\r\n]+", " ");
-            jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
+            //jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
         }
         else
         {
@@ -169,7 +171,7 @@ public class UnloggedGPT implements UnloggedGptListener {
             //add entry to chatlist.
             if(gptChatScaffold!=null)
             {
-                gptChatScaffold.addNewMessage(queryPrefix,"You",true);
+                //gptChatScaffold.addNewMessage(queryPrefix,"You",true);
                 gptChatScaffold.setLoadingButtonState();
                 navigationBar.setActionButtonLoadingState(type);
             }
@@ -204,13 +206,13 @@ public class UnloggedGPT implements UnloggedGptListener {
         {
             return;
         }
-        if(jbCefBrowser!=null)
-        {
-            jbCefBrowser.loadURL(chatURL);
-        }
-        else {
+//        if(jbCefBrowser!=null)
+//        {
+//            jbCefBrowser.loadURL(chatURL);
+//        }
+//        else {
             loadChatGPTBrowserView();
-        }
+//        }
     }
 
     @Override
@@ -218,7 +220,7 @@ public class UnloggedGPT implements UnloggedGptListener {
     {
         String code = ("history.back();").trim();
         code = code.replaceAll("[\r\n]+", " ");
-        jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
+        //jbCefBrowser.getCefBrowser().executeJavaScript(code,jbCefBrowser.getCefBrowser().getURL(),0);
     }
 
     @Override
@@ -259,7 +261,9 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public void processCustomPrompt(String prompt)
     {
-        gptChatScaffold.addNewMessage(prompt,"You",true);
+        //gptChatScaffold.addNewMessage(prompt,"You",true);
+        UsageInsightTracker.getInstance().RecordEvent(
+                "CustomQuery",null);
         gptChatScaffold.setLoadingButtonState();
 
         String response = makeOkHTTPRequestForPrompt(prompt);
@@ -311,6 +315,7 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public String makeOkHTTPRequestForPrompt(String prompt)
     {
+        String responseBodyString=null;
         System.out.println("Making API call to chatGPT");
         try {
             OkHttpClient client = new OkHttpClient();
@@ -320,19 +325,31 @@ public class UnloggedGPT implements UnloggedGptListener {
                 return "";
             }
             Response response = client.newCall(request).execute();
-            String responseBodyString = response.body().string();
+            responseBodyString = response.body().string();
+            System.out.println("RAW RESPONSE -> "+responseBodyString);
             ChatGPTResponse response1 = getResponsePojo(responseBodyString);
             if(response1!=null) {
                 System.out.println("Text from result : " + response1.choices.get(0).text);
+                return response1.choices.get(0).text;
             }
-            return response1.choices.get(0).text;
+            else
+            {
+                //process for api error
+                ErrorResponse errorResponse = getErrorPojo(responseBodyString);
+                return errorResponse.error.message;
+            }
         }
         catch (Exception e)
         {
-            System.out.println("Exception sending api : "+ e);
             e.printStackTrace();
-            return "Exception getting response for your prompt -> "+e.getMessage();
         }
+        return "";
+    }
+
+    public String getErrorMessageFromResponse(String response)
+    {
+        System.out.println("ResponseBody : "+response);
+        return "E";
     }
 
     public Request buildHttpRequest(String prompt) {
@@ -348,7 +365,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         TreeMap<Object,Object> body = new TreeMap<>();
         body.put("stop", Arrays.asList(" Human:"," AI:"));
         body.put("prompt", prompt);
-        body.put("max_tokens", 256);
+        body.put("max_tokens", 1024);
         body.put("temperature", 0.9);
         body.put("best_of", 1);
         body.put("frequency_penalty", 0);
@@ -362,7 +379,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         headers.put("Authorization", "Bearer " + token);
         try {
             return new Request.Builder()
-                    .url("https://api.openai.com/v1/engines/text-davinci-002/completions")
+                    .url("https://api.openai.com/v1/engines/text-davinci-003/completions")
                     .headers(Headers.of(headers))
                     .post(RequestBody.create(
                             mapper
@@ -388,6 +405,22 @@ public class UnloggedGPT implements UnloggedGptListener {
         catch (Exception e)
         {
             System.out.println("Exception when deserializing response "+e);
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public ErrorResponse getErrorPojo(String response)
+    {
+        try
+        {
+            ObjectMapper mapper = new ObjectMapper();
+            ErrorResponse gptResponse = mapper.readValue(response,ErrorResponse.class);
+            return gptResponse;
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception when deserializing error response "+e);
             e.printStackTrace();
             return null;
         }
