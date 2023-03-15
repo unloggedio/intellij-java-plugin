@@ -392,7 +392,7 @@ public class TestCaseDesigner {
             ) {
                 continue;
             }
-            setParameterTypeFromPsiType(fieldParameter, field.getType());
+            setParameterTypeFromPsiType(fieldParameter, field.getType(), false);
             fieldParameter.setValue(random.nextLong());
             fieldParameter.setProb(new DataEventWithSessionId());
             fieldContainer.add(fieldParameter);
@@ -423,7 +423,7 @@ public class TestCaseDesigner {
             returnValue.setValue(random.nextLong());
 
             PsiType returnType = currentMethod.getReturnType();
-            setParameterTypeFromPsiType(returnValue, returnType);
+            setParameterTypeFromPsiType(returnValue, returnType, true);
 
             DataEventWithSessionId returnValueProbe = new DataEventWithSessionId();
             returnValue.setProb(returnValueProbe);
@@ -438,7 +438,7 @@ public class TestCaseDesigner {
             argumentParameter.setValue(random.nextLong());
 
             PsiType parameterPsiType = parameter.getType();
-            setParameterTypeFromPsiType(argumentParameter, parameterPsiType);
+            setParameterTypeFromPsiType(argumentParameter, parameterPsiType, false);
 
             DataEventWithSessionId parameterProbe = new DataEventWithSessionId();
             argumentParameter.setProb(parameterProbe);
@@ -476,7 +476,7 @@ public class TestCaseDesigner {
             assertionExpectedValue.setProbeInfo(new DataInfo());
 
 
-            setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType());
+            setParameterTypeFromPsiType(assertionExpectedValue, currentMethod.getReturnType(), true);
 
             TestAssertion testAssertion = new TestAssertion(AssertionType.EQUAL, assertionExpectedValue, returnValue);
 
@@ -586,7 +586,7 @@ public class TestCaseDesigner {
                             if (typeToAssignFrom.getCanonicalText().equals("null")) {
                                 typeToAssignFrom = parameter.getType();
                             }
-                            setParameterTypeFromPsiType(callParameter, typeToAssignFrom);
+                            setParameterTypeFromPsiType(callParameter, typeToAssignFrom, false);
                             DataEventWithSessionId prob = new DataEventWithSessionId();
                             if (callParameter.isPrimitiveType()) {
                                 prob.setSerializedValue("0".getBytes());
@@ -602,7 +602,7 @@ public class TestCaseDesigner {
                         @Nullable PsiType methodReturnPsiReference = matchedMethod.getReturnType();
 
                         methodReturnValue.setValue(random.nextLong());
-                        setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference);
+                        setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
                         methodReturnValue.setProbeInfo(new DataInfo());
                         methodReturnValue.setProb(new DataEventWithSessionId());
 
@@ -789,7 +789,7 @@ public class TestCaseDesigner {
             } else {
                 Parameter methodArgumentParameter = new Parameter();
                 methodArgumentParameter.setName(parameter.getName());
-                setParameterTypeFromPsiType(methodArgumentParameter, parameter.getType());
+                setParameterTypeFromPsiType(methodArgumentParameter, parameter.getType(), false);
                 methodArgumentParameter.setValue(random.nextLong());
 //                methodArgumentParameter.setProbeInfo(new DataInfo());
                 DataEventWithSessionId argumentProbe = new DataEventWithSessionId();
@@ -844,7 +844,7 @@ public class TestCaseDesigner {
                         GlobalSearchScope.allScope(currentClass.getProject()));
     }
 
-    private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType) {
+    private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {
         if (psiType instanceof PsiClassReferenceType) {
             PsiClassReferenceType returnClassType = (PsiClassReferenceType) psiType;
             if (returnClassType.getCanonicalText().equals(returnClassType.getName())) {
@@ -854,13 +854,13 @@ public class TestCaseDesigner {
                 parameter.setType("java.lang.Object");
                 return;
             }
-            parameter.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText()));
+            parameter.setType(psiTypeToJvmType(returnClassType.rawType().getCanonicalText(), isReturnParameter));
             if (returnClassType.hasParameters()) {
                 SessionInstance.extractTemplateMap(returnClassType, parameter.getTemplateMap());
                 parameter.setContainer(true);
             }
         } else {
-            parameter.setType(psiTypeToJvmType(psiType.getCanonicalText()));
+            parameter.setType(psiTypeToJvmType(psiType.getCanonicalText(), isReturnParameter));
         }
     }
 
@@ -884,9 +884,9 @@ public class TestCaseDesigner {
         return returnList;
     }
 
-    private String psiTypeToJvmType(String canonicalText) {
+    private String psiTypeToJvmType(String canonicalText, boolean isReturnParameter) {
         if (canonicalText.endsWith("[]")) {
-            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2));
+            canonicalText = psiTypeToJvmType(canonicalText.substring(0, canonicalText.length() - 2), isReturnParameter);
             return "[" + canonicalText;
         }
         switch (canonicalText) {
@@ -918,10 +918,24 @@ public class TestCaseDesigner {
                 canonicalText = "D";
                 break;
             case "java.util.Map":
-                canonicalText = "java.util.HashMap";
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashMap";
+                }
                 break;
             case "java.util.List":
-                canonicalText = "java.util.ArrayList";
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
+                break;
+            case "java.util.Set":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.HashSet";
+                }
+                break;
+            case "java.util.Collection":
+                if (!isReturnParameter) {
+                    canonicalText = "java.util.ArrayList";
+                }
                 break;
             default:
         }

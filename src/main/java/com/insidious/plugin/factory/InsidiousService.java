@@ -883,7 +883,7 @@ final public class InsidiousService implements Disposable {
             this.gptWindow.updateUI(psiClass,method);
         }
         JSONObject eventProperties = new JSONObject();
-        if (testCaseDesignerWindow == null) {
+        if (testCaseDesignerWindow == null || !testCaseDesignerWindow.getContent().isShowing()) {
 //            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", eventProperties);
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
