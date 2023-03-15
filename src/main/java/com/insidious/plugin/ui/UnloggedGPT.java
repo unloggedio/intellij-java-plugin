@@ -2,11 +2,13 @@ package com.insidious.plugin.ui;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.ui.Components.GPTResponse.ChatGPTResponse;
 import com.insidious.plugin.ui.Components.GPTChatScaffold;
+import com.insidious.plugin.ui.Components.GPTResponse.ErrorResponse;
 import com.insidious.plugin.ui.Components.UnloggedGPTNavigationBar;
 import com.insidious.plugin.ui.Components.UnloggedGptListener;
 import com.intellij.notification.NotificationType;
@@ -311,6 +313,7 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     public String makeOkHTTPRequestForPrompt(String prompt)
     {
+        String responseBodyString=null;
         System.out.println("Making API call to chatGPT");
         try {
             OkHttpClient client = new OkHttpClient();
@@ -320,19 +323,31 @@ public class UnloggedGPT implements UnloggedGptListener {
                 return "";
             }
             Response response = client.newCall(request).execute();
-            String responseBodyString = response.body().string();
+            responseBodyString = response.body().string();
+            System.out.println("RAW RESPONSE -> "+responseBodyString);
             ChatGPTResponse response1 = getResponsePojo(responseBodyString);
             if(response1!=null) {
                 System.out.println("Text from result : " + response1.choices.get(0).text);
+                return response1.choices.get(0).text;
             }
-            return response1.choices.get(0).text;
+            else
+            {
+                //process for api error
+                ErrorResponse errorResponse = getErrorPojo(responseBodyString);
+                return errorResponse.error.message;
+            }
         }
         catch (Exception e)
         {
-            System.out.println("Exception sending api : "+ e);
             e.printStackTrace();
-            return "Exception getting response for your prompt -> "+e.getMessage();
         }
+        return "";
+    }
+
+    public String getErrorMessageFromResponse(String response)
+    {
+        System.out.println("ResponseBody : "+response);
+        return "E";
     }
 
     public Request buildHttpRequest(String prompt) {
@@ -388,6 +403,22 @@ public class UnloggedGPT implements UnloggedGptListener {
         catch (Exception e)
         {
             System.out.println("Exception when deserializing response "+e);
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public ErrorResponse getErrorPojo(String response)
+    {
+        try
+        {
+            ObjectMapper mapper = new ObjectMapper();
+            ErrorResponse gptResponse = mapper.readValue(response,ErrorResponse.class);
+            return gptResponse;
+        }
+        catch (Exception e)
+        {
+            System.out.println("Exception when deserializing error response "+e);
             e.printStackTrace();
             return null;
         }
