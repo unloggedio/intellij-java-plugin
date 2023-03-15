@@ -888,9 +888,6 @@ final public class InsidiousService implements Disposable {
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
         }
-        eventProperties.put("method_name", method);
-        eventProperties.put("class_name", psiClass.getName());
-        UsageInsightTracker.getInstance().RecordEvent("GenerateTestCaseRequest", eventProperties);
 
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {
