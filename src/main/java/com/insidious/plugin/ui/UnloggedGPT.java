@@ -365,7 +365,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         TreeMap<Object,Object> body = new TreeMap<>();
         body.put("stop", Arrays.asList(" Human:"," AI:"));
         body.put("prompt", prompt);
-        body.put("max_tokens", 1000);
+        body.put("max_tokens", 1024);
         body.put("temperature", 0.9);
         body.put("best_of", 1);
         body.put("frequency_penalty", 0);
