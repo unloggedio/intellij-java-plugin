@@ -151,11 +151,11 @@ public class SessionInstance {
         databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
 
         checkProgressIndicator("Opening Zip Files", null);
-        zipConsumer = new ZipConsumer(daoService, sessionDirectory);
+        zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
         executorPool = Executors.newFixedThreadPool(4);
 
         this.sessionArchives = refreshSessionArchivesList();
-        zipConsumer.checkNewFiles();
+//        zipConsumer.checkNewFiles();
         executorPool.submit(databasePipe);
         executorPool.submit(zipConsumer);
 
@@ -248,11 +248,8 @@ public class SessionInstance {
         }
         logger.info("refresh session archives list");
         List<File> sessionFiles = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
-                .sorted((a, b) -> -1 * a.getName()
-                        .compareTo(b.getName()))
-                .filter(e -> e.getName()
-                        .endsWith(".zip") && e.getName()
-                        .startsWith("index-"))
+                .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
+                .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
                 .collect(Collectors.toList());
         logger.info("found [" + sessionFiles.size() + "] session archives");
 
@@ -271,10 +268,8 @@ public class SessionInstance {
         methodInfoByNameIndex = createMethodInfoByNameIndex();
         classInfoIndex = createClassInfoIndex();
         try {
-            classInfoIndex.values()
-                    .forEach(classInfo1 -> classInfoIndexByName.put(
-                            ClassTypeUtils.getDottedClassName(classInfo1.getClassName()),
-                            classInfo1));
+            classInfoIndex.values().forEach(classInfo1 ->
+                    classInfoIndexByName.put(ClassTypeUtils.getDottedClassName(classInfo1.getClassName()), classInfo1));
 
         } catch (Throwable e) {
 //            e.printStackTrace();
@@ -313,8 +308,9 @@ public class SessionInstance {
             try {
                 readClassWeaveInfoStream(sessionFiles.get(i));
                 break;
-            } catch (FailedToReadClassWeaveException e) {
+            } catch (FailedToReadClassWeaveException | EOFException e) {
 //                e.printStackTrace();
+                logger.warn("failed to read class weave info from: " + sessionFiles.get(i) + " => " + e.getMessage());
                 filesToRemove.add(sessionFiles.get(i));
             }
         }
@@ -1008,7 +1004,7 @@ public class SessionInstance {
     private KaitaiInsidiousClassWeaveParser readClassWeaveInfo(@NotNull File sessionFile) throws IOException {
 
         KaitaiInsidiousClassWeaveParser classWeaveInfo1;
-        logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
+        logger.warn("creating class weave info from scratch from file [1012]: " + sessionFile.getName());
         NameWithBytes fileBytes = createFileOnDiskFromSessionArchiveFile(sessionFile, WEAVE_DAT_FILE.getFileName());
         if (fileBytes == null) {
             logger.debug("failed to read class weave info from " + "sessionFile [" + sessionFile.getName() + "]");
@@ -1022,7 +1018,7 @@ public class SessionInstance {
 
     private void readClassWeaveInfoStream(@NotNull File sessionFile) throws IOException, FailedToReadClassWeaveException {
 
-        logger.warn("creating class weave info from scratch from file: " + sessionFile.getName());
+        logger.warn("creating class weave info from scratch from file [1026]: " + sessionFile.getName());
         String classWeaveFileStream = getFileStreamFromArchive(sessionFile, WEAVE_DAT_FILE.getFileName());
         refreshWeaveInformationStream(classWeaveFileStream);
 
@@ -1170,23 +1166,23 @@ public class SessionInstance {
         }
 
 
-        ConcurrentIndexedCollection<StringInfoDocument> stringInfoIndex = null;
+        ConcurrentIndexedCollection<StringInfoDocument> sII = null;
         if (indexFilterType.equals(INDEX_STRING_DAT_FILE)) {
             DiskPersistence<StringInfoDocument, Long> stringInfoDocumentStringDiskPersistence = DiskPersistence.onPrimaryKeyInFile(
                     StringInfoDocument.STRING_ID, path.toFile());
-            stringInfoIndex = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
+            sII = new ConcurrentIndexedCollection<>(stringInfoDocumentStringDiskPersistence);
 
-            stringInfoIndex.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
+            sII.addIndex(InvertedRadixTreeIndex.onAttribute(StringInfoDocument.STRING_VALUE));
         }
 
-        ConcurrentIndexedCollection<ObjectInfoDocument> objectInfoIndex = null;
+        ConcurrentIndexedCollection<ObjectInfoDocument> oII = null;
         if (indexFilterType.equals(INDEX_OBJECT_DAT_FILE)) {
             DiskPersistence<ObjectInfoDocument, Long> objectInfoDocumentIntegerDiskPersistence = DiskPersistence.onPrimaryKeyInFile(
                     ObjectInfoDocument.OBJECT_ID, path.toFile());
 
-            objectInfoIndex = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
-            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
-            objectInfoIndex.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
+            oII = new ConcurrentIndexedCollection<>(objectInfoDocumentIntegerDiskPersistence);
+            oII.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_TYPE_ID));
+            oII.addIndex(HashIndex.onAttribute(ObjectInfoDocument.OBJECT_ID));
         }
 
         if (indexFilterType.equals(WEAVE_DAT_FILE)) {
@@ -1198,7 +1194,7 @@ public class SessionInstance {
 //            }
         }
 
-        return new ArchiveIndex(typeInfoIndex, stringInfoIndex, objectInfoIndex, null);
+        return new ArchiveIndex(typeInfoIndex, sII, oII, null);
     }
 
     @NotNull
@@ -1795,7 +1791,7 @@ public class SessionInstance {
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFile(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1799]: " + archiveFile);
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         RandomAccessFileKaitaiStream io = new RandomAccessFileKaitaiStream(eventFile);
         KaitaiInsidiousEventParser eventsContainer = new KaitaiInsidiousEventParser(io);
@@ -1809,7 +1805,7 @@ public class SessionInstance {
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFileOld(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1813]: " + archiveFile);
         NameWithBytes nameWithBytes = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
         assert nameWithBytes != null;
         KaitaiInsidiousEventParser eventsContainer =
@@ -1822,7 +1818,7 @@ public class SessionInstance {
     }
 
     private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1826]: " + archiveFile);
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         if (eventFile == null) {
             throw new FailedToReadClassWeaveException(archiveFile + " not found in " + sessionArchive.getName());
@@ -1832,7 +1828,7 @@ public class SessionInstance {
 
     private List<KaitaiInsidiousEventParser.Block> getEventsFromFileV2(File sessionArchive, String archiveFile) throws IOException {
         long start = new Date().getTime();
-        logger.warn("Read events from file: " + archiveFile);
+        logger.warn("Read events from file [1836]: " + archiveFile);
 //        ZipInputStream stream = readEventFile(sessionArchive, archiveFile);
         NameWithBytes bytesWithName = createFileOnDiskFromSessionArchiveFile(sessionArchive, archiveFile);
         assert bytesWithName != null;
@@ -2269,52 +2265,49 @@ public class SessionInstance {
 
     }
 
-    public void scanDataAndBuildReplay() throws Exception {
+    public void scanDataAndBuildReplay() {
+        try {
 
-//        this.sessionArchives = refreshSessionArchivesList();
-        long scanStart = System.currentTimeMillis();
-//        executorPool.submit(databasePipe);
-//        executorPool.submit(zipConsumer);
+            long scanStart = System.currentTimeMillis();
 
-        List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
+            List<LogFile> logFilesToProcess = daoService.getPendingLogFilesToProcess();
 
-        Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
-                .collect(Collectors.groupingBy(LogFile::getThreadId));
-        if (logFilesByThreadMap.size() == 0) {
-//            InsidiousNotification.notifyMessage("No new logs to process", NotificationType.INFORMATION);
-            return;
-        }
-
-        try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
-            parameterContainer = new ChronicleVariableContainer(parameterIndex);
-
-            Set<Integer> allThreads = logFilesByThreadMap.keySet();
-            int i = 0;
-            int processedCount = 0;
-            for (Integer threadId : allThreads) {
-                i++;
-                checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
-                List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
-                ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                boolean newCandidateIdentified = processPendingThreadFiles(threadState, logFiles, parameterContainer);
-                processedCount += logFiles.size();
-                if (newCandidateIdentified) {
-                    testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
-                }
+            Map<Integer, List<LogFile>> logFilesByThreadMap = logFilesToProcess.stream()
+                    .collect(Collectors.groupingBy(LogFile::getThreadId));
+            if (logFilesByThreadMap.size() == 0) {
+                return;
             }
 
+            try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
+                parameterContainer = new ChronicleVariableContainer(parameterIndex);
 
-            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
-            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
-            daoService.createOrUpdateParameter(allParameters);
+                Set<Integer> allThreads = logFilesByThreadMap.keySet();
+                int i = 0;
+                int processedCount = 0;
+                for (Integer threadId : allThreads) {
+                    i++;
+                    checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
+                    List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
+                    ThreadProcessingState threadState = daoService.getThreadState(threadId);
+                    boolean newCandidateIdentified = processPendingThreadFiles(threadState, logFiles,
+                            parameterContainer);
+                    processedCount += logFiles.size();
+                    if (newCandidateIdentified && testCandidateListener != null) {
+                        testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+                    }
+                }
 
-        } catch (FailedToReadClassWeaveException e) {
-            InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
-            throw new RuntimeException(e);
-        }
 
-        this.lastScannedTimeStamp = new Date();
-        try {
+                Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
+                checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
+                daoService.createOrUpdateParameter(allParameters);
+
+            } catch (FailedToReadClassWeaveException e) {
+                InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
+                throw new RuntimeException(e);
+            }
+
+            this.lastScannedTimeStamp = new Date();
             long scanEndTime = System.currentTimeMillis();
             float scanTime = ((float) scanEndTime - (float) scanStart) / (float) 1000;
             File sessionDir = new File(this.sessionDirectory.getParent());
@@ -2325,8 +2318,8 @@ public class SessionInstance {
             UsageInsightTracker.getInstance()
                     .RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
-            logger.error("Exception recording folder size and scan time : " + e);
-//            e.printStackTrace();
+            e.printStackTrace();
+            logger.error("Exception in scan and build session : " + e);
         }
     }
 
@@ -2421,8 +2414,12 @@ public class SessionInstance {
 
 //            List<KaitaiInsidiousEventParser.Block> eventsFromFileOld =
 //                    getEventsFromFileOld(sessionArchive, logFile.getName());
-            newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
-                    eventsList);
+            try {
+                newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
+                        eventsList);
+            } catch (NeedMoreLogsException e) {
+                return newTestCaseIdentified;
+            }
         }
 
         return newTestCaseIdentified;
@@ -2435,7 +2432,7 @@ public class SessionInstance {
             ChronicleVariableContainer parameterContainer,
             Set<Integer> existingProbes,
             List<KaitaiInsidiousEventParser.Block> eventsSublist
-    ) throws IOException, SQLException, FailedToReadClassWeaveException {
+    ) throws IOException, SQLException, FailedToReadClassWeaveException, NeedMoreLogsException {
         boolean newTestCaseIdentified = false;
         int threadId = threadState.getThreadId();
         long currentCallId = daoService.getMaxCallId();
@@ -2444,7 +2441,7 @@ public class SessionInstance {
         if (eventsSublist.size() == 0) {
             logFileList.forEach(logFile -> {
                 logFile.setStatus(Constants.COMPLETED);
-                daoService.updateLogFile(logFile);
+                daoService.updateLogFileEntry(logFile);
             });
             return newTestCaseIdentified;
         }
@@ -3172,8 +3169,7 @@ public class SessionInstance {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue,
                                 existingParameter);
                         if (existingParameter.getType() == null) {
-                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
-                                    existingParameter.getValue());
+                            ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                             if (objectInfoDocument != null) {
                                 TypeInfoDocument typeInfoDocument = getTypeFromTypeIndex(
                                         objectInfoDocument.getTypeId());
@@ -3205,12 +3201,20 @@ public class SessionInstance {
 
                     existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                     if (existingParameter.getType() == null) {
-                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(
-                                existingParameter.getValue());
+                        ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfoDocument == null) {
-                            logger.error("object info document is null for [" + existingParameter.getValue() + "] in " +
-                                    "log file: [" + "] in archive [" +
-                                    "]");
+                            refreshSessionArchivesList();
+                            objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
+                            if (objectInfoDocument == null) {
+                                logger.error(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                                throw new NeedMoreLogsException(
+                                        "object info document is null for [" + existingParameter.getValue() + "] in " +
+                                                "log file: [" + "] in archive [" +
+                                                "]");
+                            }
                         }
                         TypeInfoDocument typeFromTypeIndex = getTypeFromTypeIndex(objectInfoDocument.getTypeId());
                         String typeName = ClassTypeUtils.getDottedClassName(typeFromTypeIndex.getTypeName());
@@ -3515,7 +3519,7 @@ public class SessionInstance {
 
         logFileList.forEach(logFile -> {
             logFile.setStatus(Constants.COMPLETED);
-            daoService.updateLogFile(logFile);
+            daoService.updateLogFileEntry(logFile);
         });
 
         daoService.createOrUpdateThreadState(threadState);
@@ -3895,6 +3899,7 @@ public class SessionInstance {
 
     public void close() throws Exception {
         try {
+            zipConsumer.close();
             databasePipe.close();
         } catch (Exception e) {
 //            e.printStackTrace();

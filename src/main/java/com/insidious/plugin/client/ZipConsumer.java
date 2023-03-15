@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -23,13 +24,25 @@ class ZipConsumer implements Runnable {
     private final DaoService daoService;
     private final Map<String, ArchiveFile> archiveFileMap;
     private final File sessionDirectory;
+    private final SessionInstance sessionInstance;
+    private final Map<String, LogFile> existingLogFilesMap;
+    private final HashSet<String> checkedArchivesList;
     private Map<String, Long> checkedTimeMap = new HashMap<>();
+    private AtomicBoolean isChecking = new AtomicBoolean(false);
+    private boolean stop;
 
-    ZipConsumer(DaoService daoService, File sessionDirectory) throws IOException {
+    ZipConsumer(DaoService daoService, File sessionDirectory, SessionInstance sessionInstance) throws IOException {
         this.daoService = daoService;
+        this.sessionInstance = sessionInstance;
         this.sessionDirectory = sessionDirectory;
         this.archiveFileMap = daoService.getArchiveFileMap();
-//        checkNewFiles();
+        existingLogFilesMap = daoService.getLogFiles().stream()
+                .collect(Collectors.toMap(LogFile::getName, e -> e));
+        checkedArchivesList = new HashSet<String>();
+        for (LogFile value : existingLogFilesMap.values()) {
+            checkedArchivesList.add(value.getArchiveName());
+        }
+
     }
 
     private static int getThreadIdFromFileName(String archiveFile) {
@@ -38,8 +51,11 @@ class ZipConsumer implements Runnable {
 
     @Override
     public void run() {
-        logger.info("zip consumer started for path: " + sessionDirectory.getPath());
+        logger.warn("zip consumer started for path: " + sessionDirectory.getPath());
         while (true) {
+            if (stop) {
+                break;
+            }
             try {
                 Thread.sleep(1000);
                 checkNewFiles();
@@ -49,57 +65,80 @@ class ZipConsumer implements Runnable {
         }
     }
 
+    public void close() {
+        stop = true;
+    }
+
     public void checkNewFiles() throws IOException {
-        List<File> sessionArchiveList = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
-                .sorted(Comparator.comparing(File::getName))
-                .filter(e -> e.getName()
-                        .endsWith(".zip") && e.getName()
-                        .startsWith("index-"))
-                .collect(Collectors.toList());
-        int total = sessionArchiveList.size();
-        checkProgressIndicator("Loading thread data from logs", null);
-        for (int i = 0; i < sessionArchiveList.size(); i++) {
-            File sessionArchive = sessionArchiveList.get(i);
-            ArchiveFile dbEntry = archiveFileMap.get(sessionArchive.getName());
-            if (dbEntry == null) {
-
-                List<String> logFilesNameList;
-                try {
-                    logFilesNameList = listArchiveFiles(sessionArchive);
-                } catch (Exception e) {
-                    // probably an incomplete zip file
-                    // we will read it later when it is complete
+        if (!isChecking.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            List<File> sessionArchiveList = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
+                    .sorted(Comparator.comparing(File::getName))
+                    .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
+                    .collect(Collectors.toList());
+            int total = sessionArchiveList.size();
+            checkProgressIndicator("Loading thread data from logs", null);
+            boolean hasNewFiles = false;
+            for (int i = 0; i < sessionArchiveList.size(); i++) {
+                File sessionArchive = sessionArchiveList.get(i);
+                if (checkedArchivesList.contains(sessionArchive.getName())) {
                     continue;
                 }
-                if (logFilesNameList.size() == 0) {
-                    // probably an incomplete zip file
-                    // we will read it later when it is complete
-                    continue;
+                ArchiveFile dbEntry = archiveFileMap.get(sessionArchive.getName());
+                if (dbEntry == null) {
+
+                    List<String> logFilesNameList;
+                    try {
+                        logFilesNameList = listArchiveFiles(sessionArchive);
+                    } catch (Exception e) {
+                        // probably an incomplete zip file
+                        // we will read it later when it is complete
+                        continue;
+                    }
+                    if (logFilesNameList.size() == 0) {
+                        // probably an incomplete zip file
+                        // we will read it later when it is complete
+                        continue;
+                    }
+
+
+//                checkProgressIndicator(null,
+//                        "Reading archive: " + sessionArchive.getName() + " [" + i + " / " + total + "]");
+                    logger.warn("Reading archive: " + sessionArchive.getName());
+
+                    dbEntry = new ArchiveFile();
+                    dbEntry.setName(sessionArchive.getName());
+                    dbEntry.setStatus(PENDING);
+                    archiveFileMap.put(sessionArchive.getName(), dbEntry);
+                    daoService.createArchiveFileEntry(dbEntry);
+
+
+                    for (String logFileName : logFilesNameList) {
+                        LogFile logFile = new LogFile();
+                        logFile.setName(logFileName);
+                        logFile.setArchiveName(sessionArchive.getName());
+                        logFile.setStatus(PENDING);
+                        int threadId = getThreadIdFromFileName(logFileName);
+                        logFile.setThreadId(threadId);
+                        daoService.createLogFileEntry(logFile);
+                        existingLogFilesMap.put(logFile.getName(), logFile);
+                        hasNewFiles = true;
+                    }
                 }
-
-
-                checkProgressIndicator(null,
-                        "Reading archive: " + sessionArchive.getName() + " [" + i + " / " + total + "]");
-                logger.warn("Reading archive: " + sessionArchive.getName());
-
-                dbEntry = new ArchiveFile();
-                dbEntry.setName(sessionArchive.getName());
-                dbEntry.setStatus(PENDING);
-                archiveFileMap.put(sessionArchive.getName(), dbEntry);
-                daoService.updateArchiveFile(dbEntry);
-
-
-                for (String logFileName : logFilesNameList) {
-                    LogFile logFile = new LogFile();
-                    logFile.setName(logFileName);
-                    logFile.setArchiveName(sessionArchive.getName());
-                    logFile.setStatus(PENDING);
-                    int threadId = getThreadIdFromFileName(logFileName);
-                    logFile.setThreadId(threadId);
-                    daoService.updateLogFile(logFile);
-                }
+                checkedArchivesList.add(sessionArchive.getName());
+            }
+            if (hasNewFiles) {
+                sessionInstance.scanDataAndBuildReplay();
+            }
+        } finally {
+            boolean wasSetToFalse = isChecking.compareAndSet(true, false);
+            if (!wasSetToFalse) {
+                logger.warn("existing value eas not [true] for is checking");
             }
         }
+
     }
 
     private void checkProgressIndicator(String text1, String text2) {
@@ -125,7 +164,7 @@ class ZipConsumer implements Runnable {
         long lastModified = sessionFile.lastModified();
         Long lastCheckedTime = checkedTimeMap.getOrDefault(sessionFile.getAbsolutePath(), 0L);
         if (lastCheckedTime >= lastModified) {
-            return List.of();
+            return Collections.emptyList();
         }
         logger.info(
                 "open archive [" + sessionFile + "] last modified=[" + lastModified + "], lastChecked = [" + lastCheckedTime + "]");

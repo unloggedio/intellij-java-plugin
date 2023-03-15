@@ -41,7 +41,7 @@ public class InsidiousCaretListener implements EditorMouseListener {
         PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
 
 
-        insidiousService.showTestCreatorInterface(psiClass, method);
+        insidiousService.methodFocussedHandler(psiClass, method);
     }
 
 }

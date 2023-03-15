@@ -11,6 +11,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LineHighlighter implements LineMarkerProvider {
+
+    private final UnloggedGutterNavigationHandler navHandler = new UnloggedGutterNavigationHandler();
+
     public LineMarkerInfo getLineMarkerInfo(@NotNull PsiElement element) {
         if (element instanceof PsiIdentifier &&
                 element.getParent() instanceof PsiMethod) {
@@ -25,14 +28,9 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
             Matcher methodMatcher = method.matcher(element.getText());
-            if(!(fileMatcher.matches() && methodMatcher.matches()))
-            {
+            if (!(fileMatcher.matches() && methodMatcher.matches())) {
                 LineMarkerInfo info = new LineMarkerInfo(element,
-                        element.getTextRange(),
-                        UIUtils.TEST_TUBE_FILL,
-                        null,
-                        new UnloggedGutterNavigationHandler(),
-                        GutterIconRenderer.Alignment.LEFT);
+                        element.getTextRange(), UIUtils.TEST_TUBE_FILL, null, navHandler, GutterIconRenderer.Alignment.LEFT);
                 return info;
             }
         }

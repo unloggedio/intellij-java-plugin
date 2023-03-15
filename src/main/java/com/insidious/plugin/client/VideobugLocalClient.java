@@ -10,7 +10,6 @@ import com.insidious.plugin.client.pojo.SigninRequest;
 import com.insidious.plugin.extension.connector.model.ProjectItem;
 import com.insidious.plugin.extension.model.ReplayData;
 import com.insidious.plugin.pojo.ClassWeaveInfo;
-import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.insidious.plugin.pojo.SearchQuery;
 import com.insidious.plugin.pojo.TracePoint;
 import com.intellij.openapi.diagnostic.Logger;
@@ -20,7 +19,7 @@ import com.intellij.openapi.project.Project;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.nio.file.FileSystems;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -98,15 +97,14 @@ public class VideobugLocalClient implements VideobugClientInterface {
         File currentDir = new File(pathToSessions);
         if (!currentDir.exists()) {
             currentDir.mkdirs();
-            return List.of();
+            return Collections.emptyList();
         }
         File[] sessionDirectories = currentDir.listFiles();
         if (sessionDirectories == null) {
-            return List.of();
+            return Collections.emptyList();
         }
         for (File file : sessionDirectories) {
-            if (file.isDirectory() && file.getName()
-                    .contains("selogger")) {
+            if (file.isDirectory() && file.getName().contains("selogger")) {
                 ExecutionSession executionSession = new ExecutionSession();
                 executionSession.setSessionId(file.getName());
                 executionSession.setCreatedAt(new Date(file.lastModified()));
@@ -117,20 +115,22 @@ public class VideobugLocalClient implements VideobugClientInterface {
             }
         }
 
-        list.sort(Comparator.comparing(ExecutionSession::getSessionId));
-        Collections.reverse(list);
-        int i = -1;
-        if (list.size() > 0) {
+        if (list.size() > 1) {
+            list.sort(Comparator.comparing(ExecutionSession::getSessionId));
+            Collections.reverse(list);
+            int i = -1;
+            if (list.size() > 0) {
 
-            for (ExecutionSession executionSession : list) {
-                i++;
-                if (i == 0) {
-                    continue;
+                for (ExecutionSession executionSession : list) {
+                    i++;
+                    if (i == 0) {
+                        continue;
+                    }
+                    deleteDirectory(FileSystems.getDefault().getPath(this.pathToSessions, executionSession.getSessionId()).toFile());
                 }
-                deleteDirectory(Path.of(this.pathToSessions, executionSession.getSessionId())
-                        .toFile());
             }
         }
+
 
         return list;
 

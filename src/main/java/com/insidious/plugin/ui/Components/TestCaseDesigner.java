@@ -176,7 +176,7 @@ public class TestCaseDesigner {
                         methodAccess = methodAccess | Opcodes.ACC_FINAL;
                         break;
                     default:
-                        logger.warn("unhandled modifier: " + child);
+                        logger.warn("unhandled modifier: " + child.getText());
                 }
             }
         }
@@ -186,10 +186,8 @@ public class TestCaseDesigner {
     private void saveMethodToExistingFile(File testcaseFile) {
         try {
             JavaParser javaParser = new JavaParser(new ParserConfiguration());
-            ParseResult<CompilationUnit> parsedFile = javaParser.parse(
-                    testcaseFile);
-            if (!parsedFile.getResult()
-                    .isPresent() || !parsedFile.isSuccessful()) {
+            ParseResult<CompilationUnit> parsedFile = javaParser.parse(testcaseFile);
+            if (!parsedFile.getResult().isPresent() || !parsedFile.isSuccessful()) {
                 InsidiousNotification.notifyMessage("<html>Failed to parse existing test case in the file, unable" +
                         " to" +
                         " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);

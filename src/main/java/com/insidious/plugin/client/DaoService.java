@@ -1175,17 +1175,33 @@ public class DaoService {
         }
     }
 
-    public void updateArchiveFile(ArchiveFile archiveFile) {
+    public void createArchiveFileEntry(ArchiveFile archiveFile) {
         try {
-            archiveFileDao.createOrUpdate(archiveFile);
+            archiveFileDao.create(archiveFile);
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public void updateLogFile(LogFile logFile) {
+    public void updateArchiveFileEntry(ArchiveFile archiveFile) {
         try {
-            logFilesDao.createOrUpdate(logFile);
+            archiveFileDao.update(archiveFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void createLogFileEntry(LogFile logFile) {
+        try {
+            logFilesDao.create(logFile);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateLogFileEntry(LogFile logFile) {
+        try {
+            logFilesDao.update(logFile);
         } catch (SQLException e) {
             e.printStackTrace();
         }

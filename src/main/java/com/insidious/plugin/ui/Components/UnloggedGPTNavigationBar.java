@@ -25,11 +25,11 @@ public class UnloggedGPTNavigationBar {
     private UnloggedGptListener listener;
 
     public UnloggedGPTNavigationBar(UnloggedGptListener listener) {
-        this.listener=listener;
+        this.listener = listener;
         findBugsButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(findBugsButton.isEnabled()) {
+                if (findBugsButton.isEnabled()) {
                     sendUpdateRequest(findBugsButton.getText());
                 }
             }
@@ -38,7 +38,7 @@ public class UnloggedGPTNavigationBar {
         optimizeButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(optimizeButton.isEnabled()) {
+                if (optimizeButton.isEnabled()) {
                     sendUpdateRequest(optimizeButton.getText());
                 }
             }
@@ -47,7 +47,7 @@ public class UnloggedGPTNavigationBar {
         refactorButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(refactorButton.isEnabled()) {
+                if (refactorButton.isEnabled()) {
                     sendUpdateRequest(refactorButton.getText());
                 }
             }
@@ -56,7 +56,7 @@ public class UnloggedGPTNavigationBar {
         explainButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if(explainButton.isEnabled()) {
+                if (explainButton.isEnabled()) {
                     sendUpdateRequest(explainButton.getText());
                 }
             }
@@ -78,17 +78,14 @@ public class UnloggedGPTNavigationBar {
         });
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return mainPanel;
     }
 
-    public void sendUpdateRequest(String type)
-    {
+    public void sendUpdateRequest(String type) {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("option_type", type);
-        UsageInsightTracker.getInstance().RecordEvent(
-                "GPTOptionClicked",eventProperties);
+        UsageInsightTracker.getInstance().RecordEvent(type, eventProperties);
         listener.triggerCallTypeForCurrentMethod(type);
     }
 
@@ -96,33 +93,27 @@ public class UnloggedGPTNavigationBar {
         this.selectedMethodNameLabel.setText(s);
     }
 
-    public void refreshPage()
-    {
+    public void refreshPage() {
         listener.refreshPage();
     }
 
-    public void goBack()
-    {
+    public void goBack() {
         listener.goBack();
     }
 
-    public void setControlPanelVisibility(boolean status)
-    {
+    public void setControlPanelVisibility(boolean status) {
         this.controlPanel.setVisible(status);
     }
 
     public void setActionButtonLoadingState(String type) {
         JButton button = getButtonForType(type);
-        if(button!=null)
-        {
+        if (button != null) {
             UIUtils.setGifIconForButton(button, "loading-def.gif", button.getIcon());
         }
     }
 
-    private JButton getButtonForType(String type)
-    {
-        switch (type)
-        {
+    private JButton getButtonForType(String type) {
+        switch (type) {
             case "Find Bugs":
                 return findBugsButton;
             case "Optimize":
@@ -135,10 +126,8 @@ public class UnloggedGPTNavigationBar {
         return null;
     }
 
-    private Icon findIconForType(String type)
-    {
-        switch (type)
-        {
+    private Icon findIconForType(String type) {
+        switch (type) {
             case "Find Bugs":
                 return UIUtils.FIND_BUGS_TEAL;
             case "Optimize":
@@ -150,10 +139,10 @@ public class UnloggedGPTNavigationBar {
         }
         return null;
     }
+
     public void setActionButtonReadyState(String type) {
         JButton button = getButtonForType(type);
-        if(button!=null)
-        {
+        if (button != null) {
             button.setIcon(findIconForType(type));
         }
     }

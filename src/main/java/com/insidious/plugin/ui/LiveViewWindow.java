@@ -1,9 +1,7 @@
 package com.insidious.plugin.ui;
 
-import com.insidious.plugin.callbacks.GetProjectSessionsCallback;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.TestCandidateMethodAggregate;
-import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
@@ -16,12 +14,12 @@ import com.insidious.plugin.upload.minio.ReportIssueForm;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.progress.*;
+import com.intellij.openapi.progress.ProcessCanceledException;
+import com.intellij.openapi.progress.ProgressIndicatorProvider;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
@@ -34,20 +32,14 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 public class LiveViewWindow implements TreeSelectionListener,
-        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener,
-        RefreshButtonStateManager {
+        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener {
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     static boolean isLoading = false;
     private final Project project;
     private final VideobugTreeCellRenderer cellRenderer;
-    private final ActionListener pauseActionListener;
-    private final ActionListener resumeActionListener;
-    Icon refreshDefaultIcon;
     private LiveViewTestCandidateListTree treeModel;
-    private JButton processLogsSwitch;
     private JPanel bottomPanel;
     private JTree mainTree;
     private JPanel mainPanel;
@@ -63,7 +55,6 @@ public class LiveViewWindow implements TreeSelectionListener,
     private JProgressBar progressBar1;
     private JButton pauseProcessingButton;
     private JButton reportIssueButton;
-    private JPanel sessionControls;
     private JLabel statusTextHeading;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
@@ -75,9 +66,6 @@ public class LiveViewWindow implements TreeSelectionListener,
 
         this.project = project;
 
-        this.processLogsSwitch.addActionListener(selectSessionActionListener());
-        pauseActionListener = pauseCheckingForNewLogs();
-        resumeActionListener = resumeCheckingForNewLogs();
         topControlPanel.remove(pauseProcessingButton);
         topControlPanel.remove(progressBar1);
         mainTree.setModel(new DefaultTreeModel(new DefaultMutableTreeNode(new StringBuilder("Loading Packages"))));
@@ -91,15 +79,9 @@ public class LiveViewWindow implements TreeSelectionListener,
         TreeUtil.installActions(mainTree);
         mainTree.addTreeSelectionListener(this);
         copyVMParameterButton.addActionListener(e -> copyVMParameter());
-        refreshDefaultIcon = this.processLogsSwitch.getIcon();
         loadInfoBanner();
-        try {
-            loadSession();
-        } catch (Exception ex) {
-            InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(), NotificationType.ERROR);
-        }
+
         UIUtils.setDividerColorForSplitPane(splitPanel, UIUtils.teal);
-        this.processLogsSwitch.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     public static String[] splitByLength(String str, int size) {
@@ -123,62 +105,6 @@ public class LiveViewWindow implements TreeSelectionListener,
                 NotificationType.INFORMATION);
     }
 
-    private void updateRefreshButtonState() {
-        if (isLoading) {
-            setState_Processing();
-        } else {
-            processLogsSwitch.setText("Updating");
-        }
-        mainPanel.validate();
-        mainPanel.repaint();
-    }
-
-    @NotNull
-    private ActionListener selectSessionActionListener() {
-        return e -> {
-            try {
-                if (!isLoading) {
-                    loadSession();
-                }
-            } catch (Exception ex) {
-                InsidiousNotification.notifyMessage("Failed to load session - " + ex.getMessage(),
-                        NotificationType.ERROR);
-            } finally {
-                loadInfoBanner();
-            }
-        };
-    }
-
-    @NotNull
-    private ActionListener pauseCheckingForNewLogs() {
-        return e -> setPauseScanningState();
-    }
-
-    private void setPauseScanningState() {
-        if (testCaseService != null) {
-            testCaseService.setPauseCheckingForNewLogs(true);
-        }
-        pauseProcessingButton.setText("Resume processing logs");
-        isLoading = false;
-        updateRefreshButtonState();
-        pauseProcessingButton.removeActionListener(pauseActionListener);
-        pauseProcessingButton.addActionListener(resumeActionListener);
-    }
-
-    @NotNull
-    private ActionListener resumeCheckingForNewLogs() {
-        return e -> setResumedScanningState();
-    }
-
-    private void setResumedScanningState() {
-        testCaseService.setPauseCheckingForNewLogs(false);
-        pauseProcessingButton.setText("Pause processing logs");
-        isLoading = true;
-        updateRefreshButtonState();
-        pauseProcessingButton.removeActionListener(resumeActionListener);
-        pauseProcessingButton.addActionListener(pauseActionListener);
-    }
-
     public void setTreeStateToLoading() {
         if (!(this.mainTree.getModel() instanceof LiveViewTestCandidateListTree)) {
             mainTree.setModel(new DefaultTreeModel(
@@ -193,121 +119,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         }
     }
 
-    public void loadSession() {
-        isLoading = true;
-        updateRefreshButtonState();
-        Task.Backgroundable task =
-                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-                    @Override
-                    public void run(@NotNull ProgressIndicator indicator) {
-                        checkProgressIndicator("Loading session", null);
-                        final InsidiousService insidiousService = project.getService(InsidiousService.class);
-                        insidiousService.getClient()
-                                .getProjectSessions(new GetProjectSessionsCallback() {
-                                    @Override
-                                    public void error(String message) {
-                                        isLoading = false;
-                                        updateRefreshButtonState();
-                                        updateTreeStateOnScanFailure();
-                                        InsidiousNotification.notifyMessage(
-                                                "Failed to list sessions - " + message, NotificationType.ERROR);
-                                    }
-
-                                    @Override
-                                    public void success(List<ExecutionSession> executionSessionList) {
-                                        selectSessionAndStart(executionSessionList, insidiousService);
-                                    }
-                                });
-                    }
-                };
-
-        ProgressManager.getInstance()
-                .run(task);
-
-    }
-
-    private void selectSessionAndStart(List<ExecutionSession> executionSessionList, InsidiousService insidiousService) {
-        try {
-            if (executionSessionList.size() == 0) {
-                //copyVMParameterButton.setVisible(true);
-                String javaAgentVMString = insidiousService.getJavaAgentString();
-                String[] parts = splitByLength(javaAgentVMString, 160);
-                assert parts != null;
-                StringBuilder text = new StringBuilder(
-                        "<html>No session found. Run your application with unlogged agent to record a new session.<br /><br />" +
-                                "Unlogged java agent jar is downloaded at: <br />" + insidiousService.getVideoBugAgentPath() + "<br /><br />" +
-                                "Use the following VM parameter to start your application with unlogged java agent:<br />");
-                for (String part : parts) {
-                    text.append(part)
-                            .append("<br />");
-                }
-                text.append("</html>");
-
-                headingText.setText(text.toString());
-                mainTree.setModel(new DefaultTreeModel(
-                        new DefaultMutableTreeNode("No session")));
-                isLoading = false;
-                updateRefreshButtonState();
-                return;
-            } else {
-                copyVMParameterButton.setVisible(false);
-            }
-            ExecutionSession executionSession = executionSessionList.get(0);
-
-            //has session instance, check if it's the same as the last one
-            //if yes, refresh
-
-            //else
-            //process logs
-            boolean startScan_Full = true;
-            if (sessionInstance != null) {
-                if (!Objects.equals(
-                        sessionInstance.getExecutionSession()
-                                .getSessionId(), executionSession.getSessionId())) {
-                    startScan_Full = true;
-                    sessionInstance.close();
-                } else {
-                    //resume scan
-                    startScan_Full = false;
-                    testCaseService.processLogFiles();
-                    treeModel = new LiveViewTestCandidateListTree(
-                            project, insidiousService.getClient().getSessionInstance());
-                    mainTree.setModel(treeModel);
-                }
-            }
-            if (startScan_Full) {
-                sessionInstance = new SessionInstance(executionSession, project);
-                insidiousService.getClient().setSessionInstance(sessionInstance);
-                testCaseService = new TestCaseService(sessionInstance);
-                sessionInstance.setTestCandidateListener(LiveViewWindow.this);
-                testCaseService.processLogFiles();
-                testCaseService.setRefreshButtonStateManager(getLiveViewReference());
-                testCaseService.startRun();
-                treeModel = new LiveViewTestCandidateListTree(
-                        project, insidiousService.getClient().getSessionInstance());
-                mainTree.setModel(treeModel);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            setPauseScanningState();
-            InsidiousNotification.notifyMessage(
-                    "Failed to set sessions - " + ex.getMessage()
-                            + "\n Need help ? \n<a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
-                    NotificationType.ERROR);
-            updateTreeStateOnScanFailure();
-            try {
-                JSONObject eventProperties = new JSONObject();
-                eventProperties.put("exception", ex.getMessage());
-                UsageInsightTracker.getInstance()
-                        .RecordEvent("ScanFailed", eventProperties);
-            } catch (Exception e) {
-                logger.error("Failed to send ScanFailed event to amplitude");
-            }
-        } finally {
-            isLoading = false;
-            updateRefreshButtonState();
-        }
-    }
 
     public JComponent getContent() {
         return mainPanel;
@@ -434,37 +245,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         constraints.setRow(1);
         candidateListPanel.add(banner.getComponent(), constraints);
         this.candidateListPanel.revalidate();
-    }
-
-    @Override
-    public void setState_NewLogs(Date lastScannedTimeStamp) {
-        processLogsSwitch.setBackground(UIUtils.green);
-        processLogsSwitch.setText("New logs available (click to process)");
-        processLogsSwitch.setIcon(UIUtils.NEW_LOGS_TO_PROCESS_ICON);
-        statusTextHeading.setText("Last Scan completed at : " +
-                getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
-    }
-
-    @Override
-    public void setState_NoNewLogs(Date lastScannedTimeStamp) {
-        processLogsSwitch.setBackground(UIUtils.NeutralGrey);
-        processLogsSwitch.setText("No New logs available (use application to create logs)");
-        processLogsSwitch.setIcon(UIUtils.NO_NEW_LOGS_TO_PROCESS_ICON);
-        statusTextHeading.setText("Last Scan completed at : " +
-                getFormattedDate(sessionInstance.getLastScannedTimeStamp()));
-    }
-
-    @Override
-    public void setState_Processing() {
-        UIUtils.setGifIconForButton(this.processLogsSwitch, "loading-def.gif", refreshDefaultIcon);
-        processLogsSwitch.setBackground(UIUtils.teal);
-        processLogsSwitch.setText("Processing Logs");
-        statusTextHeading.setText("");
-    }
-
-    @Override
-    public boolean isProcessing() {
-        return isLoading;
     }
 
     private LiveViewWindow getLiveViewReference() {

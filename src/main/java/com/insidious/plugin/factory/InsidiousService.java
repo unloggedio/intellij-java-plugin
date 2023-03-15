@@ -72,6 +72,8 @@ import java.nio.file.FileSystems;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -80,10 +82,10 @@ import java.util.stream.Collectors;
 final public class InsidiousService implements Disposable {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
-    private static final Gson gson = new GsonBuilder().setPrettyPrinting()
-            .create();
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
+    private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -108,7 +110,6 @@ final public class InsidiousService implements Disposable {
     private Content onboardingContent;
     private Map<String, ModuleInformation> moduleMap = new TreeMap<>();
     private String selectedModule = null;
-
     private List<ProgramRunner> programRunners = new ArrayList<>();
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
@@ -117,6 +118,7 @@ final public class InsidiousService implements Disposable {
     private Content testDesignerContent;
     private UnloggedGPT gptWindow;
     private Content gptContent;
+    private SessionLoader sessionLoader;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -150,8 +152,10 @@ final public class InsidiousService implements Disposable {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
             FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
             this.client = new VideobugLocalClient(pathToSessions, project);
+            this.sessionLoader = new SessionLoader(client, this);
+            threadPoolExecutor.submit(this.sessionLoader);
 
-            this.loadSession();
+//            this.loadSession();
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {
@@ -670,7 +674,7 @@ final public class InsidiousService implements Disposable {
 
         gptWindow = new UnloggedGPT(this);
         gptContent = contentFactory.
-                createContent(gptWindow.getComponent(),"UnloggedGPT",false);
+                createContent(gptWindow.getComponent(), "UnloggedGPT", false);
         gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         gptContent.setIcon(UIUtils.UNLOGGED_GPT_ICON_PINK);
         contentManager.addContent(gptContent);
@@ -772,8 +776,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void addLiveView() {
-        UsageInsightTracker.getInstance()
-                .RecordEvent("ProceedingToLiveView", null);
+        UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
         if (!liveViewAdded) {
             toolWindow.getContentManager()
                     .addContent(liveWindowContent);
@@ -783,7 +786,6 @@ final public class InsidiousService implements Disposable {
             try {
                 liveViewWindow.setTreeStateToLoading();
                 liveViewWindow.loadInfoBanner();
-                liveViewWindow.loadSession();
             } catch (Exception e) {
                 //exception setting state
                 logger.error("Failed to start scan after proceed.");
@@ -870,7 +872,7 @@ final public class InsidiousService implements Disposable {
         return programRunners.size() > 0;
     }
 
-    public void showTestCreatorInterface(PsiClass psiClass, PsiMethod method) {
+    public void methodFocussedHandler(PsiClass psiClass, PsiMethod method) {
 
         if (method == null) {
             return;
@@ -878,9 +880,8 @@ final public class InsidiousService implements Disposable {
         if (psiClass.getName() == null) {
             return;
         }
-        if(this.gptWindow!=null)
-        {
-            this.gptWindow.updateUI(psiClass,method);
+        if (this.gptWindow != null) {
+            this.gptWindow.updateUI(psiClass, method);
         }
         JSONObject eventProperties = new JSONObject();
         if (testCaseDesignerWindow == null || !testCaseDesignerWindow.getContent().isShowing()) {
@@ -917,86 +918,48 @@ final public class InsidiousService implements Disposable {
 
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
-            loadSession();
-//            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
-//            return null;
+//            loadSession();
+            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
+            return null;
         }
         return testCaseService;
     }
 
-    public synchronized void loadSession() {
-        try {
-            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-            ExecutionSession executionSession = new ExecutionSession();
-            executionSession.setPath(pathToSessions);
-            executionSession.setSessionId("na");
-            sessionInstance = new SessionInstance(executionSession, project);
-            client.setSessionInstance(sessionInstance);
-            testCaseService = new TestCaseService(sessionInstance);
+//    public synchronized void loadSession() {
+//        try {
+//            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+//            ExecutionSession executionSession = new ExecutionSession();
+//            executionSession.setPath(pathToSessions);
+//            executionSession.setSessionId("na");
+//            executionSession.setCreatedAt(new Date());
+//            executionSession.setLastUpdateAt(new Date().getTime());
+//            setSession(executionSession);
+//            if (1 < 2) {
+//                return;
+//            }
+//        } catch (SQLException | IOException e) {
+//            JSONObject eventProperties = new JSONObject();
+//            eventProperties.put("stack", e.toString());
+//            UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
+//            throw new RuntimeException(e);
+//        }
+//
+//
+//    }
 
-        } catch (SQLException | IOException e) {
-            JSONObject eventProperties = new JSONObject();
-            eventProperties.put("stack", e.toString());
-            UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-            throw new RuntimeException(e);
+    public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
+        if (sessionInstance != null) {
+            try {
+                sessionInstance.close();
+            } catch (Exception e) {
+                logger.error("Failed to close existing session before opening new session: " + e.getMessage());
+                throw new RuntimeException(e);
+            }
         }
-
-
-//        Task.Backgroundable task =
-//                new Task.Backgroundable(project, "Unlogged, Inc.", true) {
-//                    @Override
-//                    public void run(@NotNull ProgressIndicator indicator) {
-//                        client.getProjectSessions(new GetProjectSessionsCallback() {
-//                            @Override
-//                            public void error(String message) {
-//                                JSONObject eventProperties = new JSONObject();
-//                                eventProperties.put("message", message);
-//                                UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-//                                String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-//                                ExecutionSession executionSession = new ExecutionSession();
-//                                executionSession.setPath(pathToSessions);
-//                                executionSession.setSessionId("na");
-//                                try {
-//                                    sessionInstance = new SessionInstance(executionSession, project);
-//                                } catch (SQLException | IOException e) {
-//                                    eventProperties.put("stack", e.toString());
-//                                    UsageInsightTracker.getInstance()
-//                                            .RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-//                                    throw new RuntimeException(e);
-//                                }
-//                            }
-//
-//                            @Override
-//                            public void success(List<ExecutionSession> executionSessionList) {
-//                                try {
-//                                    if (executionSessionList.size() == 0) {
-//                                        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-//                                        ExecutionSession executionSession = new ExecutionSession();
-//                                        executionSession.setPath(pathToSessions);
-//                                        executionSession.setSessionId("na");
-//                                        sessionInstance = new SessionInstance(executionSession, project);
-//                                    } else {
-//                                        ExecutionSession executionSession = executionSessionList.get(0);
-//                                        sessionInstance = new SessionInstance(executionSession, project);
-//                                    }
-//                                    client.setSessionInstance(sessionInstance);
-//                                    testCaseService = new TestCaseService(sessionInstance);
-//
-//                                } catch (SQLException | IOException e) {
-//                                    JSONObject eventProperties = new JSONObject();
-//                                    eventProperties.put("stack", e.toString());
-//                                    UsageInsightTracker.getInstance()
-//                                            .RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-//                                    throw new RuntimeException(e);
-//                                }
-//
-//                            }
-//                        });
-//                    }
-//                };
-//
-//        ProgressManager.getInstance().run(task);
-
+        logger.warn("Loading session: " + executionSession.getSessionId());
+        sessionInstance = new SessionInstance(executionSession, project);
+        client.setSessionInstance(sessionInstance);
+        testCaseService = new TestCaseService(sessionInstance);
     }
 
     public void openTestCaseDesigner(Project project) {
@@ -1012,8 +975,7 @@ final public class InsidiousService implements Disposable {
     }
 
     public void refreshGPTWindow() {
-        if(this.gptContent!=null)
-        {
+        if (this.gptContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
 
         }

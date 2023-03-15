@@ -21,7 +21,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
                     element.getTextOffset(), PsiClass.class, false);
             InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
             insidiousService.openTestCaseDesigner(psiClass.getProject());
-            insidiousService.showTestCreatorInterface(psiClass, method);
+            insidiousService.methodFocussedHandler(psiClass, method);
             UsageInsightTracker.getInstance().RecordEvent(
                     "TestIconClick",null);
         }
