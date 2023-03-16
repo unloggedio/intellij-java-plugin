@@ -3,11 +3,13 @@ package com.insidious.plugin.ui.Components;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.util.concurrency.EdtExecutorService;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class GPTChatScaffold {
     private JPanel mainPanel;
@@ -22,17 +24,11 @@ public class GPTChatScaffold {
     private JLabel apiKeyLabel;
     private JScrollPane parentScroller;
     private JScrollPane TextScrollPanel;
-
-    public JPanel getComponent()
-    {
-        return this.mainPanel;
-    }
     private ScrollablePanel scrollablePanel;
     private UnloggedGptListener listener;
     private JScrollPane scrollPane;
-    private boolean firstCall=false;
-    public GPTChatScaffold(UnloggedGptListener listener)
-    {
+    private boolean firstCall = false;
+    public GPTChatScaffold(UnloggedGptListener listener) {
         this.listener = listener;
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
@@ -51,8 +47,7 @@ public class GPTChatScaffold {
             @Override
             public void mouseClicked(MouseEvent e) {
 
-                if(sendButton.isEnabled())
-                {
+                if (sendButton.isEnabled()) {
                     sendPrompt();
                 }
             }
@@ -60,36 +55,34 @@ public class GPTChatScaffold {
         sendDefaultMessage();
     }
 
-    public void sendDefaultMessage()
-    {
-        addNewMessage(
-                "Please add your openAPI API key to get started. If you don't have an account please sign up.",
-                "ChatGPT",false);
-        this.firstCall=true;
+    public JPanel getComponent() {
+        return this.mainPanel;
     }
 
-    public void clearChatWindow()
-    {
+    public void sendDefaultMessage() {
+        addNewMessage(
+                "Please add your openAPI API key to get started. If you don't have an account please sign up.",
+                "ChatGPT", false);
+        this.firstCall = true;
+    }
+
+    public void clearChatWindow() {
         scrollablePanel.removeAll();
     }
 
-    public void sendPrompt()
-    {
+    public void sendPrompt() {
         String currentPrompt = this.promptTextArea.getText();
-        if(!currentPrompt.trim().isEmpty())
-        {
+        if (!currentPrompt.trim().isEmpty()) {
             listener.makeApiCallForPrompt(currentPrompt);
         }
     }
 
-    public void addNewMessage(String message, String user, boolean enableCopyButton)
-    {
-        if(this.firstCall)
-        {
+    public void addNewMessage(String message, String user, boolean enableCopyButton) {
+        if (this.firstCall) {
             clearChatWindow();
-            this.firstCall=false;
+            this.firstCall = false;
         }
-        GPTChatElement element = new GPTChatElement(message,user);
+        GPTChatElement element = new GPTChatElement(message, user);
         element.enableCopyButton(enableCopyButton);
         JPanel contentPanel = element.getMainPanel();
         this.scrollablePanel.add(contentPanel);
@@ -100,8 +93,7 @@ public class GPTChatScaffold {
         this.mainPanel.repaint();
     }
 
-    public String getAPIkey()
-    {
+    public String getAPIkey() {
         return this.apiKeyTextField.getText().trim();
     }
 
@@ -116,10 +108,9 @@ public class GPTChatScaffold {
         });
     }
 
-    public void scrollToBottomV2()
-    {
+    public void scrollToBottomV2() {
         JScrollBar vertical = scrollPane.getVerticalScrollBar();
-        vertical.setValue( vertical.getMaximum());
+        vertical.setValue(vertical.getMaximum());
     }
 
     public void setLoadingButtonState() {
