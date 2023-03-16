@@ -160,7 +160,7 @@ public class Parameter {
     }
 
     public void setProb_id(DataEventWithSessionId prob_id) {
-        this.prob_id = prob_id.getNanoTime();
+        this.prob_id = prob_id.getEventId();
     }
 
     public int getProbeInfo_id() {

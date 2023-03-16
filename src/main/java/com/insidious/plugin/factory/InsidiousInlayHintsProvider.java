@@ -1,11 +1,13 @@
 package com.insidious.plugin.factory;
 
+import com.insidious.plugin.factory.inlays.InsidiousInlayCollector;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.hints.*;
-import com.intellij.codeInsight.hints.presentation.MouseButton;
-import com.intellij.codeInsight.hints.presentation.PresentationFactory;
+import com.intellij.codeInsight.hints.presentation.*;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.ex.util.EditorUtil;
 import com.intellij.openapi.editor.impl.EditorImpl;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -20,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
+import java.util.Arrays;
 
 public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSettings> {
 
@@ -69,41 +72,9 @@ public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSetting
             @NotNull InlayHintsSink inlayHintsSink) {
         inlayPresentationFactory = new PresentationFactory((EditorImpl) editor);
         final InsidiousService insidiousService = editor.getProject().getService(InsidiousService.class);
-        return new InlayHintsCollector() {
-            @Override
-            public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
-//                if (psiElement instanceof PsiReferenceParameterList
-//                        || psiElement instanceof PsiWhiteSpace
-//                        || psiElement instanceof PsiJavaToken
-//                ) {
-//                    return false;
-//                }
-                if (psiElement instanceof PsiClass) {
-                    logger.warn("Found class: " + ((PsiClass) psiElement).getQualifiedName());
-                }
-                if (psiElement instanceof PsiMethod) {
-                    int elementOffset = psiElement.getTextOffset();
-                    int elementLineNumber = editor.getDocument().getLineNumber(elementOffset);
-                    String elementTypeClass = psiElement.getClass().getSimpleName();
-                    inlayHintsSink.addBlockElement(elementOffset, true, true, 0,
-                            inlayPresentationFactory.onClick(
-                                    inlayPresentationFactory.withCursorOnHover(
-                                            inlayPresentationFactory.text(elementTypeClass),
-                                            Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-                                    ),
-                                    MouseButton.Left, new Function2<MouseEvent, Point, Unit>() {
-                                        @Override
-                                        public Unit invoke(MouseEvent mouseEvent, Point point) {
-                                            logger.warn("clicked hint: " + elementTypeClass);
-                                            return null;
-                                        }
-                                    }
-                            ));
-                }
-                return true;
-            }
-        };
+        return new InsidiousInlayCollector(inlayPresentationFactory, insidiousService);
     }
+
 
     @NotNull
     @Override

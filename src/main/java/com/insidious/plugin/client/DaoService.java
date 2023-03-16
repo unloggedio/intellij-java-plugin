@@ -58,7 +58,7 @@ public class DaoService {
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT = "select mc.*\n" +
             "from method_call mc\n" +
             "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "         left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
             "where (subject.type is null or subject.type not like 'java.lang%')\n" +
             "    and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "    and (mc.id = ? or mc.parentId = ?)";
@@ -66,13 +66,13 @@ public class DaoService {
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS = "select mc.*\n" +
             "from method_call mc\n" +
             "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "         left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
             "where (subject.type is null or subject.type not like 'java.lang%')\n" +
             "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
             "  and mc.parentId in (select mc.id\n" +
             "                      from method_call mc\n" +
             "                               left join parameter subject on subject.value == mc.subject_id\n" +
-            "                               left join probe_info pi on subject.probeInfo_id = pi.dataId\n" +
+            "                               left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
             "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
             "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
@@ -377,7 +377,7 @@ public class DaoService {
             for (int i = 0; i < argumentParameters.size(); i++) {
                 Long argumentParameter = argumentParameters.get(i);
                 DataEventWithSessionId dataEvent = this.getDataEventById(argumentProbes.get(i));
-                DataInfo eventProbe = this.getProbeInfoById(dataEvent.getDataId());
+                DataInfo eventProbe = this.getProbeInfoById(dataEvent.getProbeId());
                 com.insidious.plugin.pojo.Parameter argument = this.getParameterByValue(argumentParameter);
                 if (argument == null) {
                     argument = new com.insidious.plugin.pojo.Parameter(0L);
@@ -408,7 +408,7 @@ public class DaoService {
 
                 DataEventWithSessionId returnDataEvent = this.getDataEventById(dbMce.getReturnDataEvent());
                 returnParam.setProb(returnDataEvent);
-                DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getDataId());
+                DataInfo eventProbe = this.getProbeInfoById(returnDataEvent.getProbeId());
 
                 String returnParamType = returnParam.getType();
                 if ((returnParamType == null || returnParamType == "" || returnParam.isPrimitiveType()) && eventProbe.getValueDesc() != Descriptor.Object && eventProbe.getValueDesc() != Descriptor.Void) {
@@ -551,14 +551,14 @@ public class DaoService {
 
         List<DataEventWithSessionId> allProbes = getProbes(probesToLoad);
         for (DataEventWithSessionId allProbe : allProbes) {
-            probeInfoToLoad.add((int) allProbe.getDataId());
+            probeInfoToLoad.add((int) allProbe.getProbeId());
         }
 
 
         List<DataInfo> allProbesInfo = getProbesInfo(probeInfoToLoad);
 
         Map<Long, DataEventWithSessionId> probesMap = allProbes.stream()
-                .collect(Collectors.toMap(DataEventWithSessionId::getNanoTime, e -> e));
+                .collect(Collectors.toMap(DataEventWithSessionId::getEventId, e -> e));
 
         Map<Integer, DataInfo> probeInfoMap = allProbesInfo.stream()
                 .collect(Collectors.toMap(DataInfo::getDataId, e -> e));
@@ -693,7 +693,7 @@ public class DaoService {
                 Long argument = dbMceArguments.get(i);
                 DataEventWithSessionId dataEvent = probesMap.get(dbMce.getArgumentProbes()
                         .get(i));
-                DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getDataId());
+                DataInfo probeInfo = probeInfoMap.get((int) dataEvent.getProbeId());
                 com.insidious.plugin.pojo.Parameter paramArgument = parameterMap.get(argument);
                 if (paramArgument == null) {
                     paramArgument = new com.insidious.plugin.pojo.Parameter(0L);
@@ -742,7 +742,7 @@ public class DaoService {
 
             DataEventWithSessionId returnDataEvent = probesMap.get(dbMce.getReturnDataEvent());
             returnParam.setProb(returnDataEvent);
-            DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getDataId());
+            DataInfo eventProbe = probeInfoMap.get((int) returnDataEvent.getProbeId());
 
             String returnParamType = returnParam.getType();
             if ((returnParamType == null || returnParamType.equals("") || returnParam.isPrimitiveType())
@@ -854,7 +854,7 @@ public class DaoService {
             return Collections.emptyList();
         }
 
-        String query = "select * from data_event where nanotime in (" + StringUtils.join(values, ",") + ")";
+        String query = "select * from data_event where eventId in (" + StringUtils.join(values, ",") + ")";
 
         GenericRawResults<DataEventWithSessionId> queryResult = dataEventDao.queryRaw(query,
                 dataEventDao.getRawRowMapper());
@@ -873,7 +873,7 @@ public class DaoService {
             return Collections.emptyList();
         }
 
-        String query = "select * from probe_info where dataid in (" + StringUtils.join(values, ",") + ")";
+        String query = "select * from probe_info where probeId in (" + StringUtils.join(values, ",") + ")";
 
         GenericRawResults<ProbeInfo> queryResult = probeInfoDao.queryRaw(query, probeInfoDao.getRawRowMapper());
         List<DataInfo> resultList = queryResult.getResults()
@@ -946,8 +946,8 @@ public class DaoService {
         return convertedParameter;
     }
 
-    private DataInfo getProbeInfoById(long dataId) throws SQLException {
-        ProbeInfo dataInfo = probeInfoDao.queryForId(dataId);
+    private DataInfo getProbeInfoById(long probeId) throws SQLException {
+        ProbeInfo dataInfo = probeInfoDao.queryForId(probeId);
         return ProbeInfo.ToProbeInfo(dataInfo);
     }
 
@@ -966,10 +966,10 @@ public class DaoService {
 
     public List<Integer> getProbes() throws SQLException {
         return probeInfoDao.queryBuilder()
-                .selectColumns("dataId")
+                .selectColumns("probeId")
                 .query()
                 .stream()
-                .map(ProbeInfo::getDataId)
+                .map(ProbeInfo::getProbeId)
                 .collect(Collectors.toList());
     }
 
@@ -1060,7 +1060,7 @@ public class DaoService {
             try {
                 parameterDao.executeRaw("DELETE FROM parameter");
             } catch (Exception e) {
-                logger.warn("Failed to truncate parameter table: " + e.getMessage(), e);
+                logger.warn("Failed to truncate parameter table: " + e.getMessage() + " [" + "]", e);
                 return;
             }
             int createdCount = parameterDao.create(daoParamList);

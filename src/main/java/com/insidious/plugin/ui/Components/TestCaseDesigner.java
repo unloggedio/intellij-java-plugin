@@ -494,7 +494,7 @@ public class TestCaseDesigner {
         for (int i = 0; i < collectedMceList.size(); i++) {
             MethodCallExpression methodCallExpression = collectedMceList.get(i);
             DataEventWithSessionId entryProbe = new DataEventWithSessionId();
-            entryProbe.setNanoTime(i);
+            entryProbe.setEventId(i);
             methodCallExpression.setEntryProbe(entryProbe);
         }
 

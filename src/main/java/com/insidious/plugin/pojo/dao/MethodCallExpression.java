@@ -1,6 +1,7 @@
 package com.insidious.plugin.pojo.dao;
 
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
+import com.insidious.plugin.pojo.Parameter;
 import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
@@ -36,6 +37,8 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     private long entryProbe_id;
     @DatabaseField
     private int callStack;
+    @DatabaseField
+    private long callTimeNano;
     @DatabaseField(index = true)
     private int methodAccess;
     @DatabaseField
@@ -48,6 +51,27 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
     private int methodDefinitionId;
     @DatabaseField(index = true)
     private int threadId;
+    @DatabaseField
+    private long returnNanoTime;
+
+    public long getCallTimeNano() {
+        return callTimeNano;
+    }
+
+    public void setCallTimeNano(long callTimeNano) {
+        this.callTimeNano = callTimeNano;
+    }
+
+    public long getEnterNanoTime() {
+        return enterNanoTime;
+    }
+
+    public void setEnterNanoTime(long enterNanoTime) {
+        this.enterNanoTime = enterNanoTime;
+    }
+
+    @DatabaseField
+    private long enterNanoTime;
 
 
     public MethodCallExpression() {
@@ -72,23 +96,23 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
             return null;
         }
 
-        com.insidious.plugin.pojo.Parameter returnValue1 = methodCallExpression.getReturnValue();
+        Parameter returnValue1 = methodCallExpression.getReturnValue();
         long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
-        com.insidious.plugin.pojo.Parameter subject1 = methodCallExpression.getSubject();
+        Parameter subject1 = methodCallExpression.getSubject();
         long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
         MethodCallExpression methodCallExpression1 = new MethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
                 methodCallExpression.getArguments()
                         .stream()
-                        .map(com.insidious.plugin.pojo.Parameter::getValue)
+                        .map(Parameter::getValue)
                         .collect(Collectors.toList()),
                 returnParameterValue,
                 methodCallExpression.getCallStack()
         );
         methodCallExpression1.setMethodDefinitionId(methodCallExpression.getMethodDefinitionId());
         methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
-                .getNanoTime());
+                .getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
@@ -100,11 +124,11 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
                 .stream()
-                .map(DataEventWithSessionId::getNanoTime)
+                .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+                    .getEventId());
         }
         return methodCallExpression1;
     }
@@ -171,21 +195,21 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
             return null;
         }
 
-        com.insidious.plugin.pojo.Parameter returnValue1 = methodCallExpression.getReturnValue();
+        Parameter returnValue1 = methodCallExpression.getReturnValue();
         long returnParameterValue = returnValue1 != null ? returnValue1.getValue() : 0L;
-        com.insidious.plugin.pojo.Parameter subject1 = methodCallExpression.getSubject();
+        Parameter subject1 = methodCallExpression.getSubject();
         long subjectParameterValue = subject1 != null ? subject1.getValue() : 0L;
         IncompleteMethodCallExpression methodCallExpression1 = new IncompleteMethodCallExpression(
                 methodCallExpression.getMethodName(),
                 subjectParameterValue,
                 Strings.join(methodCallExpression.getArguments()
                         .stream()
-                        .map(com.insidious.plugin.pojo.Parameter::getValue)
+                        .map(Parameter::getValue)
                         .collect(Collectors.toList()), ","),
                 returnParameterValue
         );
         methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe()
-                .getNanoTime());
+                .getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo()
@@ -197,11 +221,11 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
                 .stream()
-                .map(DataEventWithSessionId::getNanoTime)
+                .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+                    .getEventId());
         }
         return methodCallExpression1;
     }
@@ -403,5 +427,14 @@ public class MethodCallExpression implements MethodCallExpressionInterface {
                 ", subject_id=" + subject_id +
                 ", entryProbe_id=" + entryProbe_id +
                 '}';
+    }
+
+    public void setReturnNanoTime(long returnNanoTime) {
+        this.returnNanoTime = returnNanoTime;
+        this.callTimeNano = returnNanoTime - enterNanoTime;
+    }
+
+    public long getReturnNanoTime() {
+        return returnNanoTime;
     }
 }

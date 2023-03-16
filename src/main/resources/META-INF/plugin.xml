@@ -87,7 +87,7 @@
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.Highlighter.LineHighlighter"/>
-<!--        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.factory.InsidiousInlayHintsProvider"-->
-<!--                                   language="JAVA"/>-->
+        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.factory.InsidiousInlayHintsProvider"
+                                   language="JAVA"/>
     </extensions>
 </idea-plugin>

@@ -34,7 +34,7 @@ import java.util.Date;
 import java.util.List;
 
 public class LiveViewWindow implements TreeSelectionListener,
-        TestSelectionListener, TestGenerateActionListener, NewTestCandidateIdentifiedListener {
+        TestSelectionListener, TestGenerateActionListener {
     private static final Logger logger = LoggerUtil.getInstance(LiveViewWindow.class);
     static boolean isLoading = false;
     private final Project project;
@@ -213,28 +213,6 @@ public class LiveViewWindow implements TreeSelectionListener,
         loadTestCandidateConfigView(selectedTestCandidateAggregate);
     }
 
-    @Override
-    public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
-        try {
-            treeModel = new LiveViewTestCandidateListTree(
-                    project, project.getService(InsidiousService.class).getClient().getSessionInstance());
-            mainTree.setModel(treeModel);
-            mainTree.validate();
-            mainTree.repaint();
-            if (completedCount == 0) {
-                progressBar1.setMaximum(1);
-                progressBar1.setValue(1);
-            } else {
-                progressBar1.setMaximum(totalCount);
-                progressBar1.setValue(completedCount);
-            }
-            mainPanel.validate();
-            mainPanel.repaint();
-        } catch (Exception e) {
-            logger.error("failed to query new candidates", e);
-            throw new RuntimeException(e);
-        }
-    }
 
     public void loadInfoBanner() {
         this.headingText.setText("");

@@ -23,12 +23,12 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
     @DatabaseField
     private long threadId;
     @DatabaseField(id = true)
-    private long nanoTime;
+    private long eventId;
     @DatabaseField
     private long recordedAt;
 
     @DatabaseField
-    private long dataId;
+    private long probeId;
 
     @DatabaseField
     private long value;
@@ -39,9 +39,9 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
     @Override
     public void readMarshallable(BytesIn bytes) throws IORuntimeException, BufferUnderflowException, IllegalStateException {
         threadId = bytes.readLong();
-        nanoTime = bytes.readLong();
+        eventId = bytes.readLong();
         recordedAt = bytes.readLong();
-        dataId = bytes.readLong();
+        probeId = bytes.readLong();
         value = bytes.readLong();
         int length = bytes.readInt();
         serializedValue = new byte[length];
@@ -52,9 +52,9 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
     @Override
     public void writeMarshallable(BytesOut bytes) throws IllegalStateException, BufferOverflowException, BufferUnderflowException, ArithmeticException {
         bytes.writeLong(threadId);
-        bytes.writeLong(nanoTime);
+        bytes.writeLong(eventId);
         bytes.writeLong(recordedAt);
-        bytes.writeLong(dataId);
+        bytes.writeLong(probeId);
         bytes.writeLong(value);
         bytes.writeInt(serializedValue.length);
         bytes.write(serializedValue);
@@ -69,12 +69,12 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
         this.threadId = threadId;
     }
 
-    public long getNanoTime() {
-        return nanoTime;
+    public long getEventId() {
+        return eventId;
     }
 
-    public void setNanoTime(long nanoTime) {
-        this.nanoTime = nanoTime;
+    public void setEventId(long eventId) {
+        this.eventId = eventId;
     }
 
     public long getRecordedAt() {
@@ -85,12 +85,12 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
         this.recordedAt = recordedAt;
     }
 
-    public long getDataId() {
-        return dataId;
+    public long getProbeId() {
+        return probeId;
     }
 
-    public void setDataId(long dataId) {
-        this.dataId = dataId;
+    public void setProbeId(long probeId) {
+        this.probeId = probeId;
     }
 
     public long getValue() {
@@ -120,9 +120,9 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
     public String toString() {
         return "DataEventWithSessionId{" +
                 "threadId=" + threadId +
-                ", nanoTime=" + nanoTime +
+                ", nanoTime=" + eventId +
                 ", recordedAt=" + recordedAt +
-                ", dataId=" + dataId +
+                ", dataId=" + probeId +
                 ", value=" + value +
                 ", sessionId='" + sessionId + '\'' +
                 '}';

@@ -7,7 +7,6 @@ import com.insidious.plugin.client.ParameterNameFactory;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.factory.testcase.TestGenerationState;
 import com.insidious.plugin.factory.testcase.expression.Expression;
-import com.insidious.plugin.factory.testcase.expression.MethodCallExpressionFactory;
 import com.insidious.plugin.factory.testcase.parameter.VariableContainer;
 import com.insidious.plugin.factory.testcase.writer.ObjectRoutineScript;
 import com.insidious.plugin.factory.testcase.writer.PendingStatement;
@@ -15,11 +14,8 @@ import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.openapi.diagnostic.Logger;
 import com.squareup.javapoet.ClassName;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -217,7 +213,7 @@ public class MethodCallExpression implements Expression, Serializable {
             DataEventWithSessionId returnProbe = getReturnValue().getProb();
             if (!getMethodName().equals("<init>")) {
                 objectRoutineScript.addComment("Test candidate method [" + getMethodName() + "] " +
-                        "[" + entryProbe.getNanoTime() + "," + entryProbe.getThreadId() + "] - took " +
+                        "[" + entryProbe.getEventId() + "," + entryProbe.getThreadId() + "] - took " +
                         Long.valueOf((returnProbe.getRecordedAt() - entryProbe.getRecordedAt()) / (1000000))
                                 .intValue() + "ms");
             }

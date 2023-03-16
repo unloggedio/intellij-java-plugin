@@ -154,7 +154,7 @@ public class SessionInstance {
         zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
         executorPool = Executors.newFixedThreadPool(4);
 
-        this.sessionArchives = refreshSessionArchivesList();
+        this.sessionArchives = refreshSessionArchivesList(false);
 //        zipConsumer.checkNewFiles();
         executorPool.submit(databasePipe);
         executorPool.submit(zipConsumer);
@@ -168,8 +168,8 @@ public class SessionInstance {
     @NotNull
     private static DataEventWithSessionId createDataEventFromBlock(int fileThreadId, KaitaiInsidiousEventParser.DetailedEventBlock eventBlock) {
         DataEventWithSessionId dataEvent = new DataEventWithSessionId(fileThreadId);
-        dataEvent.setDataId(eventBlock.probeId());
-        dataEvent.setNanoTime(eventBlock.eventId());
+        dataEvent.setProbeId(eventBlock.probeId());
+        dataEvent.setEventId(eventBlock.eventId());
         dataEvent.setRecordedAt(eventBlock.timestamp());
         dataEvent.setValue(eventBlock.valueId());
         dataEvent.setSerializedValue(eventBlock.serializedData());
@@ -242,7 +242,7 @@ public class SessionInstance {
         return executionSession;
     }
 
-    private List<File> refreshSessionArchivesList() throws IOException {
+    private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
         if (sessionDirectory.listFiles() == null) {
             return Collections.emptyList();
         }
@@ -256,7 +256,7 @@ public class SessionInstance {
         List<File> filesToRemove = new LinkedList<>();
         int i;
         KaitaiInsidiousClassWeaveParser classWeaveInfo = null;
-        if (typeInfoIndex != null && typeInfoIndex.size() > 0) {
+        if (typeInfoIndex != null && typeInfoIndex.size() > 0 && !forceRefresh) {
             return sessionFiles;
         }
 
@@ -669,10 +669,10 @@ public class SessionInstance {
         averageValue.setProbeInfo(new DataInfo(1, 2, 3, 4, 5,
                 EventType.CALL, Descriptor.Boolean, "some=attributes,here=fornothing,here=fornothing,here=fornothing"));
         DataEventWithSessionId prob = new DataEventWithSessionId(1L);
-        prob.setNanoTime(1L);
-        prob.setSerializedValue(new byte[3000]);
+        prob.setEventId(1L);
+        prob.setSerializedValue(new byte[2000]);
         prob.setRecordedAt(1L);
-        prob.setDataId(1);
+        prob.setProbeId(1);
         prob.setThreadId(1L);
         averageValue.setProb(prob);
 
@@ -699,7 +699,7 @@ public class SessionInstance {
                         Parameter.class)
                 .name("parameter-info-map")
                 .averageValue(averageValue)
-                .entries(500_000);
+                .entries(1_500_000);
         return parameterInfoMapBuilder.createPersistedTo(parameterIndexFile);
 
     }
@@ -926,9 +926,9 @@ public class SessionInstance {
 
                             try {
                                 List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getDataId())));
+                                        Collections.singletonList(e1.getProbeId())));
                                 logger.debug(
-                                        "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
 
                                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
                                     if (ProgressIndicatorProvider.getGlobalProgressIndicator()
@@ -950,7 +950,7 @@ public class SessionInstance {
                                         threadId, e1.getValue(), classInfo.fileName()
                                         .value(), classInfo.className()
                                         .value(),
-                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getNanoTime());
+                                        typeInfo.getTypeNameFromClass(), timestamp, e1.getEventId());
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
                             } catch (ClassInfoNotFoundException | Exception ex) {
@@ -1071,9 +1071,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 })
@@ -1482,9 +1482,9 @@ public class SessionInstance {
 
                             try {
                                 List<DataInfo> dataInfoList = getProbeInfo(new HashSet<>(
-                                        Collections.singletonList(e1.getDataId())));
+                                        Collections.singletonList(e1.getProbeId())));
                                 logger.debug(
-                                        "data info list by data id [" + e1.getDataId() + "] => [" + dataInfoList + "]");
+                                        "data info list by data id [" + e1.getProbeId() + "] => [" + dataInfoList + "]");
 
                                 if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
                                     if (ProgressIndicatorProvider.getGlobalProgressIndicator()
@@ -1510,7 +1510,7 @@ public class SessionInstance {
                                         threadId, e1.getValue(), classInfo.fileName()
                                         .value(), classInfo.className()
                                         .value(),
-                                        typeName, timestamp, e1.getNanoTime());
+                                        typeName, timestamp, e1.getEventId());
 
                                 tracePoint.setExecutionSession(executionSession);
                                 return tracePoint;
@@ -1561,9 +1561,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
 
@@ -1618,9 +1618,9 @@ public class SessionInstance {
                             .timestamp();
 
                     DataEventWithSessionId dataEvent = new DataEventWithSessionId();
-                    dataEvent.setDataId(probeId);
+                    dataEvent.setProbeId(probeId);
                     dataEvent.setValue(valueId);
-                    dataEvent.setNanoTime(eventId);
+                    dataEvent.setEventId(eventId);
                     dataEvent.setRecordedAt(timestamp);
                     return dataEvent;
                 })
@@ -2333,10 +2333,50 @@ public class SessionInstance {
 
         Set<Integer> existingProbes = new HashSet<>(daoService.getProbes());
 
-//        List<String> archiveList = archiveLogFiles.stream()
-//                .map(LogFile::getArchiveName)
-//                .sorted()
-//                .collect(Collectors.toList());
+        updateObjectInfoIndex();
+
+        int eventBufferSize = 10000;
+        SessionEventReader eventsReader = new SessionEventReader(executionSession, archiveLogFiles, cacheEntries,
+                eventBufferSize);
+        executorPool.submit(eventsReader);
+
+        int totalFile = archiveLogFiles.size();
+        int currentFileIndex = 0;
+        List<KaitaiInsidiousEventParser.Block> eventsList = new ArrayList<>();
+        while (currentFileIndex < totalFile) {
+            eventsList.clear();
+            checkProgressIndicator(null, "Processing file " + currentFileIndex + " / " + archiveLogFiles.size());
+
+            LogFile currentLogFile = null;
+            List<LogFile> logFiles = new ArrayList<>();
+            while (eventsList.size() < eventBufferSize && currentFileIndex < totalFile) {
+                EventSet eventSet = eventsReader.getNextEventSet();
+                currentLogFile = eventSet.getLogFile();
+                logFiles.add(currentLogFile);
+                List<KaitaiInsidiousEventParser.Block> events = eventSet.getEvents();
+                eventsList.addAll(events);
+                currentFileIndex++;
+            }
+
+            this.currentSessionArchiveBeingProcessed = FileSystems.getDefault()
+                    .getPath(executionSession.getPath(), currentLogFile.getArchiveName())
+                    .toFile();
+
+//            List<KaitaiInsidiousEventParser.Block> eventsFromFileOld =
+//                    getEventsFromFileOld(sessionArchive, logFile.getName());
+            try {
+                newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
+                        eventsList);
+            } catch (NeedMoreLogsException e) {
+                return newTestCaseIdentified;
+            }
+        }
+
+        return newTestCaseIdentified;
+
+    }
+
+    private void updateObjectInfoIndex() throws IOException {
         List<String> archiveList = this.sessionArchives.stream()
                 .map(File::getName)
                 .collect(Collectors.toList());
@@ -2384,46 +2424,6 @@ public class SessionInstance {
                 break;
             }
         }
-
-        int eventBufferSize = 10000;
-        SessionEventReader eventsReader = new SessionEventReader(executionSession, archiveLogFiles, cacheEntries,
-                eventBufferSize);
-        executorPool.submit(eventsReader);
-
-        int totalFile = archiveLogFiles.size();
-        int currentFileIndex = 0;
-        List<KaitaiInsidiousEventParser.Block> eventsList = new ArrayList<>();
-        while (currentFileIndex < totalFile) {
-            eventsList.clear();
-            checkProgressIndicator(null, "Processing file " + currentFileIndex + " / " + archiveLogFiles.size());
-
-            LogFile currentLogFile = null;
-            List<LogFile> logFiles = new ArrayList<>();
-            while (eventsList.size() < eventBufferSize && currentFileIndex < totalFile) {
-                EventSet eventSet = eventsReader.getNextEventSet();
-                currentLogFile = eventSet.getLogFile();
-                logFiles.add(currentLogFile);
-                List<KaitaiInsidiousEventParser.Block> events = eventSet.getEvents();
-                eventsList.addAll(events);
-                currentFileIndex++;
-            }
-
-            this.currentSessionArchiveBeingProcessed = FileSystems.getDefault()
-                    .getPath(executionSession.getPath(), currentLogFile.getArchiveName())
-                    .toFile();
-
-//            List<KaitaiInsidiousEventParser.Block> eventsFromFileOld =
-//                    getEventsFromFileOld(sessionArchive, logFile.getName());
-            try {
-                newTestCaseIdentified = processLogFile(logFiles, threadState, parameterContainer, existingProbes,
-                        eventsList);
-            } catch (NeedMoreLogsException e) {
-                return newTestCaseIdentified;
-            }
-        }
-
-        return newTestCaseIdentified;
-
     }
 
     private boolean processLogFile(
@@ -2885,7 +2885,8 @@ public class SessionInstance {
                     methodCallSubjectTypeMap.put(currentCallId, ClassTypeUtils.getJavaClassName(
                             probeInfo.getAttribute("Owner", null)));
                     methodCall.setEntryProbeInfoId(probeInfo.getDataId());
-                    methodCall.setEntryProbeId(dataEvent.getNanoTime());
+                    methodCall.setEntryProbeId(dataEvent.getEventId());
+                    methodCall.setEnterNanoTime(dataEvent.getRecordedAt());
 
                     MethodInfo methodDescription = methodInfoByNameIndex.get(
                             probeInfo.getAttribute("Owner", null) + probeInfo.getAttribute("Name",
@@ -2971,7 +2972,7 @@ public class SessionInstance {
                     }
                     saveProbe = true;
                     topCall.addArgument(existingParameter.getValue());
-                    topCall.addArgumentProbe(dataEvent.getNanoTime());
+                    topCall.addArgumentProbe(dataEvent.getEventId());
                     if (!isModified) {
                         existingParameter = null;
                     }
@@ -3064,7 +3065,7 @@ public class SessionInstance {
                         saveProbe = true;
                         methodCall.setThreadId(threadId);
                         methodCall.setEntryProbeInfoId(probeInfo.getDataId());
-                        methodCall.setEntryProbeId(dataEvent.getNanoTime());
+                        methodCall.setEntryProbeId(dataEvent.getEventId());
                         methodCall.setMethodDefinitionId(probeInfo.getMethodId());
                         methodCall.setStaticCall((methodInfo.getAccess() & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC);
 
@@ -3143,7 +3144,7 @@ public class SessionInstance {
                         // not adding these since we will record method_params only for cases in which we dont have a method_entry probe
                     } else if (entryProbeEventType == EventType.METHOD_ENTRY) {
                         topCall.addArgument(existingParameter.getValue());
-                        topCall.addArgumentProbe(dataEvent.getNanoTime());
+                        topCall.addArgumentProbe(dataEvent.getEventId());
                     } else {
                         throw new RuntimeException("unexpected entry probe event type");
                     }
@@ -3182,7 +3183,7 @@ public class SessionInstance {
                         existingParameter.setProb(dataEvent);
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());
@@ -3203,7 +3204,8 @@ public class SessionInstance {
                     if (existingParameter.getType() == null) {
                         ObjectInfoDocument objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                         if (objectInfoDocument == null) {
-                            refreshSessionArchivesList();
+                            this.sessionArchives = refreshSessionArchivesList(true);
+                            updateObjectInfoIndex();
                             objectInfoDocument = objectInfoIndex.get(existingParameter.getValue());
                             if (objectInfoDocument == null) {
                                 logger.error(
@@ -3230,7 +3232,7 @@ public class SessionInstance {
 //                    if (entryProbeEventType == EventType.METHOD_ENTRY) {
                     topCall = threadState.popCall();
                     topCall.setReturnValue_id(existingParameter.getValue());
-                    topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                    topCall.setReturnDataEvent(dataEvent.getEventId());
                     callsToSave.add(topCall);
                     threadState.setMostRecentReturnedCall(topCall);
 //                    }
@@ -3238,7 +3240,7 @@ public class SessionInstance {
 
                     completedExceptional = threadState.popTopCandidate();
 
-                    completedExceptional.setExitProbeIndex(dataEvent.getNanoTime());
+                    completedExceptional.setExitProbeIndex(dataEvent.getEventId());
                     com.insidious.plugin.pojo.dao.MethodCallExpression completedMainMethod =
                             methodCallMap.get(completedExceptional.getMainMethod());
 
@@ -3307,7 +3309,7 @@ public class SessionInstance {
                         } else {
                             topCall.setReturnValue_id(existingParameter.getValue());
                         }
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
                         callsToSave.add(topCall);
 
                         threadState.setMostRecentReturnedCall(topCall);
@@ -3385,7 +3387,8 @@ public class SessionInstance {
 
                         topCall = threadState.popCall();
                         topCall.setReturnValue_id(existingParameter.getValue());
-                        topCall.setReturnDataEvent(dataEvent.getNanoTime());
+                        topCall.setReturnDataEvent(dataEvent.getEventId());
+                        topCall.setReturnNanoTime(dataEvent.getRecordedAt());
                         callsToSave.add(topCall);
                         methodCallMap.remove(topCall.getId());
                         methodCallSubjectTypeMap.remove(topCall.getId());

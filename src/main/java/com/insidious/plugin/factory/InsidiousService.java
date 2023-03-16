@@ -21,6 +21,7 @@ import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
@@ -30,6 +31,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -79,7 +81,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
-final public class InsidiousService implements Disposable {
+final public class InsidiousService implements Disposable, NewTestCandidateIdentifiedListener {
     public static final String HOSTNAME = System.getProperty("user.name");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -925,27 +927,6 @@ final public class InsidiousService implements Disposable {
         return testCaseService;
     }
 
-//    public synchronized void loadSession() {
-//        try {
-//            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
-//            ExecutionSession executionSession = new ExecutionSession();
-//            executionSession.setPath(pathToSessions);
-//            executionSession.setSessionId("na");
-//            executionSession.setCreatedAt(new Date());
-//            executionSession.setLastUpdateAt(new Date().getTime());
-//            setSession(executionSession);
-//            if (1 < 2) {
-//                return;
-//            }
-//        } catch (SQLException | IOException e) {
-//            JSONObject eventProperties = new JSONObject();
-//            eventProperties.put("stack", e.toString());
-//            UsageInsightTracker.getInstance().RecordEvent("SESSION_LOAD_ERROR", eventProperties);
-//            throw new RuntimeException(e);
-//        }
-//
-//
-//    }
 
     public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
         if (sessionInstance != null) {
@@ -958,6 +939,7 @@ final public class InsidiousService implements Disposable {
         }
         logger.warn("Loading session: " + executionSession.getSessionId());
         sessionInstance = new SessionInstance(executionSession, project);
+        sessionInstance.setTestCandidateListener(this);
         client.setSessionInstance(sessionInstance);
         testCaseService = new TestCaseService(sessionInstance);
     }
@@ -979,6 +961,18 @@ final public class InsidiousService implements Disposable {
             this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
 
         }
+    }
+
+    @Override
+    public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
+        logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
+        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
+        DaemonCodeAnalyzer.getInstance(project).restart();
+//        for (Editor editor : currentOpenEditorsList) {
+//            if (editor.getComponent().isVisible()) {
+//            }
+//        }
+
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

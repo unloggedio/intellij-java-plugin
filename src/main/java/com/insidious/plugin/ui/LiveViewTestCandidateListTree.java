@@ -52,7 +52,6 @@ public class LiveViewTestCandidateListTree implements TreeModel {
                     }
                 });
 
-//        videobugTreeClassAggregateNodes = sessionInstance.getTestCandidateAggregates();
 
         packageAggregates = new LinkedList<>();
 

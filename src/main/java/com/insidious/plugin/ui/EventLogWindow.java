@@ -155,7 +155,7 @@ public class EventLogWindow {
                 Object clickedValue = tableModel.getValueAt(selectedRowIndex, selectedColumn);
 
                 DataEventWithSessionId selectedEvent = replayData.getDataEvents().get(selectedRowIndex);
-                DataInfo probeInfo = replayData.getProbeInfo(selectedEvent.getDataId());
+                DataInfo probeInfo = replayData.getProbeInfo(selectedEvent.getProbeId());
 
                 InsidiousUtils.focusProbeLocationInEditor(probeInfo,
                         replayData.getClassInfo(probeInfo.getClassId()).getClassName(), insidiousService);
@@ -287,7 +287,7 @@ public class EventLogWindow {
         for (DataEventWithSessionId dataEvent : replayData.getDataEvents()) {
             Vector<Object> rowVector = new Vector<>(6);
 
-            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getProbeId());
             ObjectInfo objectInfo = replayData.getObjectInfoMap().get(dataEvent.getValue());
             String eventType = probeInfo.getEventType().toString();
 
@@ -296,7 +296,7 @@ public class EventLogWindow {
             rowVector.add(eventType);
             rowVector.add(dataEvent.getRecordedAt() + " (" + (dataEvent.getRecordedAt() - previousRecordedAt) + ")");
             previousRecordedAt = dataEvent.getRecordedAt();
-            rowVector.add(dataEvent.getNanoTime());
+            rowVector.add(dataEvent.getEventId());
             rowVector.add(probeInfo.getLine());
             rowVector.add(Long.valueOf(dataEvent.getValue()).toString());
             rowVector.add(probeInfo.getAttributes());

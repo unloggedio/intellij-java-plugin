@@ -72,8 +72,8 @@ public class VariableContainer {
                 if (existingSerializedValue == null || existingSerializedValue.length == 0) {
                     byValue.setProb(parameter.getProb());
                 } else if (byValue.getProb()
-                        .getNanoTime() < parameter.getProb()
-                        .getNanoTime()) {
+                        .getEventId() < parameter.getProb()
+                        .getEventId()) {
                     byValue.setProb(parameter.getProb());
                 }
             } else {

@@ -184,10 +184,10 @@ public class TestCaseServiceTest {
         for (int i = 0; i < dataEvents.size(); i++) {
             DataEventWithSessionId dataEvent = dataEvents.get(i);
 
-            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getDataId());
+            DataInfo probeInfo = replayData.getProbeInfo(dataEvent.getProbeId());
 
             ClassInfo classInfo = replayData.getClassInfo(probeInfo.getClassId());
-            String logLine = "#" + i + ": [" + dataEvent.getNanoTime() + "]["
+            String logLine = "#" + i + ": [" + dataEvent.getEventId() + "]["
                     + probeInfo.getEventType() + "] ["
                     + classInfo.getClassName()
                     .replaceAll("/", ".") + ":" + probeInfo.getLine() + "]" +

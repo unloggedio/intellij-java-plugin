@@ -107,7 +107,7 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe().getNanoTime() - e2.getEntryProbe().getNanoTime()));
+                        Math.toIntExact(e1.getEntryProbe().getEventId() - e2.getEntryProbe().getEventId()));
                 Parameter subject = callsOnSubject.get(0).getSubject();
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;
@@ -176,7 +176,7 @@ public class CandidateMetadataFactory {
             for (Map.Entry<String, List<MethodCallExpression>> stringListEntry : grouped.entrySet()) {
                 List<MethodCallExpression> callsOnSubject = stringListEntry.getValue();
                 callsOnSubject.sort((e1, e2) ->
-                        Math.toIntExact(e1.getEntryProbe().getNanoTime() - e2.getEntryProbe().getNanoTime()));
+                        Math.toIntExact(e1.getEntryProbe().getEventId() - e2.getEntryProbe().getEventId()));
 
                 boolean firstCall = true;
                 PendingStatement pendingStatement = null;

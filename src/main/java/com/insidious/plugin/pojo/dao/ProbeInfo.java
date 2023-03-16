@@ -18,7 +18,7 @@ public class ProbeInfo {
     @DatabaseField
     private int methodId;
     @DatabaseField(id = true)
-    private int dataId;
+    private int probeId;
     @DatabaseField
     private int line;
     @DatabaseField
@@ -32,7 +32,7 @@ public class ProbeInfo {
 
     public static DataInfo ToProbeInfo(ProbeInfo dataInfo) {
         return new DataInfo(
-                dataInfo.getClassId(), dataInfo.getMethodId(), dataInfo.getDataId(),
+                dataInfo.getClassId(), dataInfo.getMethodId(), dataInfo.getProbeId(),
                 dataInfo.getLine(), dataInfo.getInstructionIndex(), dataInfo.getEventType(),
                 dataInfo.getValueDesc(), dataInfo.getAttributes()
         );
@@ -51,8 +51,8 @@ public class ProbeInfo {
         this.methodId = methodId;
     }
 
-    public void setDataId(int dataId) {
-        this.dataId = dataId;
+    public void setProbeId(int probeId) {
+        this.probeId = probeId;
     }
 
     public void setLine(int line) {
@@ -79,8 +79,8 @@ public class ProbeInfo {
         return methodId;
     }
 
-    public int getDataId() {
-        return dataId;
+    public int getProbeId() {
+        return probeId;
     }
 
     public int getLine() {
@@ -106,12 +106,12 @@ public class ProbeInfo {
     public ProbeInfo() {
     }
 
-    public ProbeInfo(int classId, int methodId, int dataId, int line,
+    public ProbeInfo(int classId, int methodId, int probeId, int line,
                      int instructionIndex, EventType eventType,
                      Descriptor valueDesc, String attributes) {
         this.classId = classId;
         this.methodId = methodId;
-        this.dataId = dataId;
+        this.probeId = probeId;
         this.line = line;
         this.instructionIndex = instructionIndex;
         this.eventType = eventType;

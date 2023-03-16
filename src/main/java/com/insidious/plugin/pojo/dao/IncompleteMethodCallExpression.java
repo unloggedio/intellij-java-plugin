@@ -80,7 +80,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
                 Strings.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getNanoTime());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
@@ -90,7 +90,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes(), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+                    .getEventId());
         }
         return methodCallExpression1;
     }
@@ -110,7 +110,7 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
                 Strings.join(methodCallExpression.getArguments(), ","),
                 returnParameterValue
         );
-        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getNanoTime());
+        methodCallExpression1.setEntryProbeId(methodCallExpression.getEntryProbe().getEventId());
         methodCallExpression1.setMethodAccess(methodCallExpression.getMethodAccess());
         methodCallExpression1.setStaticCall(methodCallExpression.isStaticCall());
         methodCallExpression1.setEntryProbeInfoId(methodCallExpression.getEntryProbeInfo().getDataId());
@@ -120,11 +120,11 @@ public class IncompleteMethodCallExpression implements MethodCallExpressionInter
         methodCallExpression1.setUsesFields(methodCallExpression.getUsesFields());
         methodCallExpression1.setArgumentProbes(Strings.join(methodCallExpression.getArgumentProbes()
                 .stream()
-                .map(DataEventWithSessionId::getNanoTime)
+                .map(DataEventWithSessionId::getEventId)
                 .collect(Collectors.toList()), ","));
         if (methodCallExpression.getReturnDataEvent() != null) {
             methodCallExpression1.setReturnDataEvent(methodCallExpression.getReturnDataEvent()
-                    .getNanoTime());
+                    .getEventId());
         }
         return methodCallExpression1;
     }
