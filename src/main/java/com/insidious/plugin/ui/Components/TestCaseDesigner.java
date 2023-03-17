@@ -249,7 +249,8 @@ public class TestCaseDesigner {
         }
         InsidiousService insidiousService = method.getProject().getService(InsidiousService.class);
 
-        if (method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
+        if (method.getContainingFile().getVirtualFile() == null ||
+                method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
             return;
         }
         basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());

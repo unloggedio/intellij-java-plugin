@@ -495,6 +495,45 @@ public class DaoService {
         return convertedCallExpression;
     }
 
+    public ClassMethodAggregates getClassMethodCallAggregates(String className, String methodName) {
+
+        ClassMethodAggregates methodClassAggregates = new ClassMethodAggregates();
+
+        try {
+            GenericRawResults<String[]> queryResult = methodCallExpressionDao.queryRaw(
+                    "select mc.methodName,\n" +
+                            "       count(*) as count,\n" +
+                            "       min(mc.callTimeNano / 1000) as minimum,\n" +
+                            "       max(mc.callTimeNano / 1000) as maximum,\n" +
+                            "       median(mc.callTimeNano / 1000) as median,\n" +
+                            "       mode(mc.callTimeNano / 1000) as mode,\n" +
+                            "       stdev(mc.callTimeNano / 1000) as stddev,\n" +
+                            "       avg(mc.callTimeNano / 1000) as avg\n" +
+                            "from method_call mc\n" +
+                            "         join parameter subject on mc.subject_id = subject.value\n" +
+                            "where subject.type = ?\n" +
+                            "group by mc.methodName\n" +
+                            "order by mc.methodName;", className
+            );
+            for (String[] result : queryResult.getResults()) {
+                methodName = result[0];
+                Integer count = Integer.valueOf(result[1]);
+                Float minimum = Float.valueOf(result[2]);
+                Float maximum = Float.valueOf(result[3]);
+                Float median = Float.valueOf(result[4]);
+                Float mode = Float.valueOf(result[5]);
+                Float stddev = Float.valueOf(result[6]);
+                Float avg = Float.valueOf(result[7]);
+
+                MethodCallAggregate callAggregate = new MethodCallAggregate();
+            }
+
+        } catch (SQLException e) {
+        }
+
+        return methodClassAggregates;
+    }
+
 
     @NotNull
     private List<com.insidious.plugin.pojo.MethodCallExpression> buildFromDbMce(

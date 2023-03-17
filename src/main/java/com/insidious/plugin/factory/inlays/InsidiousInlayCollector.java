@@ -37,56 +37,58 @@ public class InsidiousInlayCollector implements InlayHintsCollector {
 
     @Override
     public boolean collect(@NotNull PsiElement psiElement, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
-        int offset = psiElement.getTextOffset();
-
-        if (psiElement instanceof PsiClass) {
-            currentClass = (PsiClass) psiElement;
-        }
-
-        if (psiElement instanceof PsiMethod) {
-
-            Document document = editor.getDocument();
-            int elementLineNumber = document.getLineNumber(offset);
-            int lineStartOffset;
-            lineStartOffset = document.getLineStartOffset(elementLineNumber);
-            int line = document.getLineNumber(offset);
-            int startOffset = document.getLineStartOffset(line);
-            int column = offset - startOffset;
-
-
-            String elementTypeClass = ((PsiMethod) psiElement).getName();
-            InlayPresentation inlayWithOnClick = createInlayPresentation(psiElement.getClass().getSimpleName());
-            InlayPresentation inlayWithOnClick1 = createInlayPresentation(elementTypeClass);
-            SequencePresentation sequenceOfInlays = new SequencePresentation(
-                    Arrays.asList(inlayWithOnClick, inlayWithOnClick1));
-            InsetPresentation shiftedSequenceOfInlays = presentationFactory.inset(sequenceOfInlays, column, 0, 0,
-                    0);
-            logger.warn("PSIElement " +
-                    "[" + psiElement.getClass().getSimpleName() + "]" +
-                    "[" + elementLineNumber + "," + column + "]: "
-                    + currentClass.getQualifiedName() + "."
-                    + ((PsiMethod) psiElement).getName() + "()");
-            inlayHintsSink.addBlockElement(lineStartOffset, false, true, 0, shiftedSequenceOfInlays);
-        }
-        return true;
+        return false;
+//        int offset = psiElement.getTextOffset();
+//
+//        if (psiElement instanceof PsiClass) {
+//            currentClass = (PsiClass) psiElement;
+//        }
+//
+//        if (psiElement instanceof PsiMethod) {
+//
+//            Document document = editor.getDocument();
+//            int elementLineNumber = document.getLineNumber(offset);
+//            int lineStartOffset;
+//            lineStartOffset = document.getLineStartOffset(elementLineNumber);
+//            int line = document.getLineNumber(offset);
+//            int startOffset = document.getLineStartOffset(line);
+//            int column = offset - startOffset;
+//
+//
+//            String elementTypeClass = ((PsiMethod) psiElement).getName();
+//            InlayPresentation inlayWithOnClick = createInlayPresentation(psiElement.getClass().getSimpleName());
+//            InlayPresentation inlayWithOnClick1 = createInlayPresentation(elementTypeClass);
+//            SequencePresentation sequenceOfInlays = new SequencePresentation(
+//                    Arrays.asList(inlayWithOnClick, inlayWithOnClick1));
+//            InsetPresentation shiftedSequenceOfInlays = presentationFactory.inset(sequenceOfInlays, column, 0, 0,
+//                    0);
+//            logger.warn("PSIElement " +
+//                    "[" + psiElement.getClass().getSimpleName() + "]" +
+//                    "[" + elementLineNumber + "," + column + "]: "
+//                    + currentClass.getQualifiedName() + "."
+//                    + ((PsiMethod) psiElement).getName() + "()");
+//            inlayHintsSink.addBlockElement(lineStartOffset, false, true, 0, shiftedSequenceOfInlays);
+//        }
+//        return true;
     }
 
     @NotNull
     private InlayPresentation createInlayPresentation(String elementTypeClass) {
-        InlayPresentation textInlay = presentationFactory.text(elementTypeClass);
-        InlayPresentation inlayContainer = presentationFactory.container(textInlay,
-                INLAY_PADDING, ROUNDED_CORNERS, INLAY_BACKGROUND_COLOR, BACKGROUND_ALPHA);
-        InlayPresentation textWithCursorOnHover = presentationFactory.withCursorOnHover(
-                inlayContainer, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        );
-        InlayPresentation inlayWithOnClick = presentationFactory.onClick(
-                textWithCursorOnHover,
-                MouseButton.Left, (mouseEvent, point) -> {
-                    logger.warn("clicked hint: " + elementTypeClass);
-                    return null;
-                }
-        );
-        return inlayWithOnClick;
+//        InlayPresentation textInlay = presentationFactory.text(elementTypeClass);
+//        InlayPresentation inlayContainer = presentationFactory.container(textInlay,
+//                INLAY_PADDING, ROUNDED_CORNERS, INLAY_BACKGROUND_COLOR, BACKGROUND_ALPHA);
+//        InlayPresentation textWithCursorOnHover = presentationFactory.withCursorOnHover(
+//                inlayContainer, Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+//        );
+//        InlayPresentation inlayWithOnClick = presentationFactory.onClick(
+//                textWithCursorOnHover,
+//                MouseButton.Left, (mouseEvent, point) -> {
+//                    logger.warn("clicked hint: " + elementTypeClass);
+//                    return null;
+//                }
+//        );
+//        return inlayWithOnClick;
+        return null;
     }
 
 
