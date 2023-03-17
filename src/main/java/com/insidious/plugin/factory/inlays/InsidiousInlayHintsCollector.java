@@ -65,11 +65,11 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
 
             String elementTypeClass = methodElement.getName();
-            InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " records");
+            InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
             InlayPresentation inlayShowingAverage =
-                    createInlayPresentation(", avg: " + methodAggregate.getAverage() + " µs");
+                    createInlayPresentation(String.format(", avg: %.2f µs", methodAggregate.getAverage()));
             InlayPresentation inlayShowingStdDev =
-                    createInlayPresentation(", stdDev: " + methodAggregate.getStdDev() + " µs");
+                    createInlayPresentation(String.format(", stdDev: %.2f µs", methodAggregate.getStdDev()));
             SequencePresentation sequenceOfInlays = new SequencePresentation(
                     Arrays.asList(inlayShowingCount, inlayShowingAverage, inlayShowingStdDev));
 
