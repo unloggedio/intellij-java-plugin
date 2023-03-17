@@ -24,61 +24,61 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
 
-public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSettings> {
+public class InsidiousInlayHintsProvider {
 
-    private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsProvider.class);
-    private final SettingsKey<NoSettings> noSettingsSettingsKey = new SettingsKey<>("com.indisious.java");
-    private final NoSettings noSettings = new NoSettings();
-    private PresentationFactory inlayPresentationFactory;
-
-    @NotNull
-    @Override
-    public SettingsKey<NoSettings> getKey() {
-        return noSettingsSettingsKey;
-    }
-
-    @Nls(capitalization = Nls.Capitalization.Sentence)
-    @NotNull
-    @Override
-    public String getName() {
-        return "Unlogged recorded metrics";
-    }
-
-    @Nullable
-    @Override
-    public String getPreviewText() {
-        return "Unlogged recorded metrics";
-    }
-
-    @NotNull
-    @Override
-    public ImmediateConfigurable createConfigurable(@NotNull NoSettings noSettings) {
-        return new ImmediateConfigurable() {
-            @NotNull
-            @Override
-            public JComponent createComponent(@NotNull ChangeListener changeListener) {
-                logger.warn("create component: " + noSettings + " => " + changeListener);
-                return null;
-            }
-        };
-    }
-
-    @Nullable
-    @Override
-    public InlayHintsCollector getCollectorFor(
-            @NotNull PsiFile psiFile,
-            @NotNull Editor editor,
-            @NotNull NoSettings noSettings,
-            @NotNull InlayHintsSink inlayHintsSink) {
-        inlayPresentationFactory = new PresentationFactory((EditorImpl) editor);
-        final InsidiousService insidiousService = editor.getProject().getService(InsidiousService.class);
-        return new InsidiousInlayCollector(inlayPresentationFactory, insidiousService);
-    }
-
-
-    @NotNull
-    @Override
-    public NoSettings createSettings() {
-        return noSettings;
-    }
+//    private static final Logger logger = LoggerUtil.getInstance(InsidiousInlayHintsProvider.class);
+//    private final SettingsKey<NoSettings> noSettingsSettingsKey = new SettingsKey<>("com.indisious.java");
+//    private final NoSettings noSettings = new NoSettings();
+//    private PresentationFactory inlayPresentationFactory;
+//
+//    @NotNull
+//    @Override
+//    public SettingsKey<NoSettings> getKey() {
+//        return noSettingsSettingsKey;
+//    }
+//
+//    @Nls(capitalization = Nls.Capitalization.Sentence)
+//    @NotNull
+//    @Override
+//    public String getName() {
+//        return "Unlogged recorded metrics";
+//    }
+//
+//    @Nullable
+//    @Override
+//    public String getPreviewText() {
+//        return "Unlogged recorded metrics";
+//    }
+//
+//    @NotNull
+//    @Override
+//    public ImmediateConfigurable createConfigurable(@NotNull NoSettings noSettings) {
+//        return new ImmediateConfigurable() {
+//            @NotNull
+//            @Override
+//            public JComponent createComponent(@NotNull ChangeListener changeListener) {
+//                logger.warn("create component: " + noSettings + " => " + changeListener);
+//                return null;
+//            }
+//        };
+//    }
+//
+//    @Nullable
+//    @Override
+//    public InlayHintsCollector getCollectorFor(
+//            @NotNull PsiFile psiFile,
+//            @NotNull Editor editor,
+//            @NotNull NoSettings noSettings,
+//            @NotNull InlayHintsSink inlayHintsSink) {
+//        inlayPresentationFactory = new PresentationFactory((EditorImpl) editor);
+//        final InsidiousService insidiousService = editor.getProject().getService(InsidiousService.class);
+//        return new InsidiousInlayCollector(inlayPresentationFactory, insidiousService);
+//    }
+//
+//
+//    @NotNull
+//    @Override
+//    public NoSettings createSettings() {
+//        return noSettings;
+//    }
 }
