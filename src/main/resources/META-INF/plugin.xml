@@ -3,7 +3,7 @@
     <name>Unlogged</name>
     <vendor email="support@bug.video" url="https://unlogged.io">Unlogged</vendor>
 
-    <idea-version since-build="193.5233.182"/>
+    <idea-version since-build="221.5080.210"/>
 
     <description>
         <![CDATA[
@@ -87,7 +87,7 @@
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.Highlighter.LineHighlighter"/>
-<!--        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.factory.InsidiousInlayHintsProvider"-->
-<!--                                   language="JAVA"/>-->
+        <codeInsight.inlayProvider implementationClass="com.insidious.plugin.factory.InsidiousInlayHintsProvider"
+                                   language="JAVA"/>
     </extensions>
 </idea-plugin>

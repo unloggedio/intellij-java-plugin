@@ -10,6 +10,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -973,6 +974,10 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 //            }
 //        }
 
+    }
+
+    public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

@@ -3980,4 +3980,8 @@ public class SessionInstance {
     public Date getLastScannedTimeStamp() {
         return lastScannedTimeStamp;
     }
+
+    public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        return daoService.getClassMethodCallAggregates(qualifiedName);
+    }
 }

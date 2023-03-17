@@ -495,7 +495,7 @@ public class DaoService {
         return convertedCallExpression;
     }
 
-    public ClassMethodAggregates getClassMethodCallAggregates(String className, String methodName) {
+    public ClassMethodAggregates getClassMethodCallAggregates(String className) {
 
         ClassMethodAggregates methodClassAggregates = new ClassMethodAggregates();
 
@@ -506,7 +506,6 @@ public class DaoService {
                             "       min(mc.callTimeNano / 1000) as minimum,\n" +
                             "       max(mc.callTimeNano / 1000) as maximum,\n" +
                             "       median(mc.callTimeNano / 1000) as median,\n" +
-                            "       mode(mc.callTimeNano / 1000) as mode,\n" +
                             "       stdev(mc.callTimeNano / 1000) as stddev,\n" +
                             "       avg(mc.callTimeNano / 1000) as avg\n" +
                             "from method_call mc\n" +
@@ -516,16 +515,15 @@ public class DaoService {
                             "order by mc.methodName;", className
             );
             for (String[] result : queryResult.getResults()) {
-                methodName = result[0];
-                Integer count = Integer.valueOf(result[1]);
-                Float minimum = Float.valueOf(result[2]);
-                Float maximum = Float.valueOf(result[3]);
-                Float median = Float.valueOf(result[4]);
-                Float mode = Float.valueOf(result[5]);
-                Float stddev = Float.valueOf(result[6]);
-                Float avg = Float.valueOf(result[7]);
-
                 MethodCallAggregate callAggregate = new MethodCallAggregate();
+                callAggregate.setMethodName(result[0]);
+                callAggregate.setCount(Integer.valueOf(result[1]));
+                callAggregate.setMinimum(Float.valueOf(result[2]));
+                callAggregate.setMaximum(Float.valueOf(result[3]));
+                callAggregate.setMedian(Float.valueOf(result[4]));
+                callAggregate.setStdDev(Float.valueOf(result[5]));
+                callAggregate.setAverage(Float.valueOf(result[6]));
+                methodClassAggregates.addMethodAggregate(callAggregate);
             }
 
         } catch (SQLException e) {

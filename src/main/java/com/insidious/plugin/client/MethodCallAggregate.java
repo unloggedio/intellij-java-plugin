@@ -8,6 +8,7 @@ public class MethodCallAggregate {
     Float average;
     Float median;
     Float stdDev;
+    private Float mode;
 
     public Integer getCount() {
         return count;
@@ -55,5 +56,21 @@ public class MethodCallAggregate {
 
     public void setStdDev(Float stdDev) {
         this.stdDev = stdDev;
+    }
+
+    public String getMethodName() {
+        return methodName;
+    }
+
+    public void setMethodName(String methodName) {
+        this.methodName = methodName;
+    }
+
+    public void setMode(Float mode) {
+        this.mode = mode;
+    }
+
+    public Float getMode() {
+        return mode;
     }
 }
