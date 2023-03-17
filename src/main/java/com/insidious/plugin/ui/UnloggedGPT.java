@@ -21,6 +21,7 @@ import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -307,6 +308,9 @@ public class UnloggedGPT implements UnloggedGptListener {
                 return errorResponse.error.message;
             }
         } catch (Exception e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("GPT_CALL_REQUEST_EXCEPTION", eventProperties);
             e.printStackTrace();
         }
         return "";
@@ -352,6 +356,9 @@ public class UnloggedGPT implements UnloggedGptListener {
                             MediaType.parse("application/json")))
                     .build();
         } catch (JsonProcessingException e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("GPT_CALL_EXCEPTION", eventProperties);
             throw new RuntimeException("Unable to serialize request payload", e);
         }
     }
@@ -364,6 +371,9 @@ public class UnloggedGPT implements UnloggedGptListener {
                     gptResponse.getChoices().get(0).text.replaceAll("\n\n+", " "));
             return gptResponse;
         } catch (Exception e) {
+            JSONObject eventProperties = new JSONObject();
+            eventProperties.put("message", e.getMessage());
+            UsageInsightTracker.getInstance().RecordEvent("GPT_CALL_EXCEPTION_JSON_FAIL", eventProperties);
             System.out.println("Exception when deserializing response " + e);
             e.printStackTrace();
             return null;
