@@ -50,7 +50,7 @@ public class SessionLoader implements Runnable, GetProjectSessionsCallback {
                 executionSession.setLastUpdateAt(new Date().getTime());
                 currentSession = executionSession;
                 insidiousService.setSession(executionSession);
-
+                return;
 
             }
             ExecutionSession mostRecentSession = executionSessionList.get(executionSessionList.size() - 1);
