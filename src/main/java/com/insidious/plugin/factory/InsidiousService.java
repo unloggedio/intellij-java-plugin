@@ -10,6 +10,10 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.agent.AgentClient;
+import com.insidious.plugin.agent.AgentCommand;
+import com.insidious.plugin.agent.AgentCommandRequest;
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -22,9 +26,11 @@ import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
+import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
@@ -88,6 +94,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
+    private final AgentClient agentClient = new AgentClient("http://localhost:12100");
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -882,6 +889,34 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         if (psiClass.getName() == null) {
             return;
         }
+
+        String methodJniSignature = JVMNameUtil.getJVMSignature(method).toString();
+
+        AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
+        agentCommandRequest.setCommand(AgentCommand.EXECUTE);
+        agentCommandRequest.setClassName(psiClass.getQualifiedName());
+        agentCommandRequest.setMethodName(method.getName());
+        agentCommandRequest.setMethodSignature(methodJniSignature);
+        List<String> methodParameters = new ArrayList<>();
+
+
+        JvmParameter[] methodParametersSource = method.getParameters();
+        for (JvmParameter jvmParameter : methodParametersSource) {
+            logger.warn("Add value for jvm parameter [" + jvmParameter.getType() + "]");
+            methodParameters.add("1236");
+        }
+
+
+        agentCommandRequest.setMethodParameters(methodParameters);
+
+
+        try {
+            AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+            logger.warn("agent command response - " + agentCommandResponse);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         if (this.gptWindow != null) {
             this.gptWindow.updateUI(psiClass, method);
         }
@@ -891,6 +926,41 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
             logger.warn("test case designer window is not ready to create test case for " + method.getName());
             return;
         }
+
+
+//        ModuleManager moduleManager = ModuleManager.getInstance(project);
+//        CompilerManager.getInstance(project).compile(
+//                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+//                new CompileStatusNotification() {
+//                    @Override
+//                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
+//                        logger.warn("compiled class: " + compileContext);
+//                        Module moduleByFile = compileContext.getModuleByFile(
+//                                psiClass.getContainingFile().getVirtualFile());
+//                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
+//                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
+//
+//                        try {
+//                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
+//                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
+//                            File compiledTargetFile = new File(compiledClassTargetFile);
+//                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
+//                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
+//                            targetStream.close();
+//
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+//
+//                    }
+//                }
+//        );
+//
+////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
+////                psiClass.getContainingFile().getText()).create().get();
+////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
+////            Object classInstance = firstConstructor.newInstance();
+//
 
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {
