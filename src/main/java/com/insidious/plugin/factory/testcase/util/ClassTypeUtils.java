@@ -6,13 +6,11 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
-import com.insidious.common.weaver.DataInfo;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -192,7 +190,7 @@ public class ClassTypeUtils {
             return returnValueSquareClass;
         }
 
-        TypeName returnParamType = getClassFromDescriptor(typeName);
+        TypeName returnParamType = getTypeNameFromDescriptor(typeName);
         while (returnParamType != null && typeName.contains("[]")) {
             typeName = typeName.substring(typeName.indexOf("[]") + 2);
             returnParamType = ArrayTypeName.of(returnParamType);
@@ -227,8 +225,8 @@ public class ClassTypeUtils {
     }
 
 
-    private static TypeName constructClassName(String methodReturnValueType) {
-        char firstChar = methodReturnValueType.charAt(0);
+    private static TypeName constructClassName(String typeName) {
+        char firstChar = typeName.charAt(0);
         switch (firstChar) {
             case 'V':
                 return TypeName.get(void.class);
@@ -249,21 +247,21 @@ public class ClassTypeUtils {
             case 'D':
                 return TypeName.get(double.class);
             case 'L':
-                String returnValueClass = methodReturnValueType.substring(1)
+                String returnValueClass = typeName.substring(1)
                         .split(";")[0];
                 return ClassName.bestGuess(returnValueClass.replace("/", "."));
             case '[':
 //                String returnValueClass1 = methodReturnValueType.substring(1);
-                return ArrayTypeName.of(constructClassName(methodReturnValueType.substring(1)));
+                return ArrayTypeName.of(constructClassName(typeName.substring(1)));
             default:
-                return ClassName.bestGuess(methodReturnValueType);
+                return ClassName.bestGuess(typeName);
 
         }
 //        assert false;
 //        return null;
     }
 
-    private static TypeName getClassFromDescriptor(String descriptor) {
+    private static TypeName getTypeNameFromDescriptor(String descriptor) {
         char firstChar = descriptor.charAt(0);
         switch (firstChar) {
             case 'V':
