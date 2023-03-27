@@ -14,6 +14,7 @@ import com.insidious.plugin.agent.AgentClient;
 import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
@@ -1043,6 +1044,10 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 //            }
 //        }
 
+    }
+
+    public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

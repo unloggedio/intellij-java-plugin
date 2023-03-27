@@ -37,58 +37,58 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
     @Override
     public boolean collect(@NotNull PsiElement element, @NotNull Editor editor, @NotNull InlayHintsSink inlayHintsSink) {
-
-        if (element instanceof PsiClass) {
-            currentClass = (PsiClass) element;
-
-            classMethodAggregates = insidiousService.getClassMethodAggregates(
-                    currentClass.getQualifiedName());
-        }
-
-        if (element instanceof PsiMethod) {
-            if (classMethodAggregates == null) {
-                logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
-                return false;
-            }
-            PsiMethod methodElement = (PsiMethod) element;
-            MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodElement.getName());
-            if (methodAggregate == null) {
-                logger.warn(
-                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
-                return true;
-            }
-
-            Document document = editor.getDocument();
-            int elementLineNumber = document.getLineNumber(element.getTextOffset());
-
-            TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(element);
-
-
-            String elementTypeClass = methodElement.getName();
-            InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
-            InlayPresentation inlayShowingAverage =
-                    createInlayPresentation(String.format(", avg: %.2f µs", methodAggregate.getAverage()));
-            InlayPresentation inlayShowingStdDev =
-                    createInlayPresentation(String.format(", stdDev: %.2f µs", methodAggregate.getStdDev()));
-            SequencePresentation sequenceOfInlays = new SequencePresentation(
-                    Arrays.asList(inlayShowingCount, inlayShowingAverage, inlayShowingStdDev));
-
-            int line = editor.getDocument().getLineNumber(range.getStartOffset());
-            int column = range.getStartOffset() - editor.getDocument().getLineStartOffset(line);
-
-            RecursivelyUpdatingRootPresentation root = new RecursivelyUpdatingRootPresentation(sequenceOfInlays);
-
-            BlockConstraints constraints = new BlockConstraints(false, 0, 0, column);
-
-            logger.warn("PSIElement " +
-                    "[" + element.getClass().getSimpleName() + "]" +
-                    "[" + elementLineNumber + "," + column + "]: "
-                    + currentClass.getQualifiedName() + "."
-                    + methodElement.getName() + "()");
-
-            inlayHintsSink.addBlockElement(line, true, root, constraints);
-        }
-        return true;
+        return false;
+//        if (element instanceof PsiClass) {
+//            currentClass = (PsiClass) element;
+//
+//            classMethodAggregates = insidiousService.getClassMethodAggregates(
+//                    currentClass.getQualifiedName());
+//        }
+//
+//        if (element instanceof PsiMethod) {
+//            if (classMethodAggregates == null) {
+//                logger.warn("we dont have any class method aggregates for class: " + currentClass.getQualifiedName());
+//                return false;
+//            }
+//            PsiMethod methodElement = (PsiMethod) element;
+//            MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodElement.getName());
+//            if (methodAggregate == null) {
+//                logger.warn(
+//                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
+//                return true;
+//            }
+//
+//            Document document = editor.getDocument();
+//            int elementLineNumber = document.getLineNumber(element.getTextOffset());
+//
+//            TextRange range = getTextRangeWithoutLeadingCommentsAndWhitespaces(element);
+//
+//
+//            String elementTypeClass = methodElement.getName();
+//            InlayPresentation inlayShowingCount = createInlayPresentation(methodAggregate.getCount() + " calls");
+//            InlayPresentation inlayShowingAverage =
+//                    createInlayPresentation(String.format(", avg: %.2f µs", methodAggregate.getAverage()));
+//            InlayPresentation inlayShowingStdDev =
+//                    createInlayPresentation(String.format(", stdDev: %.2f µs", methodAggregate.getStdDev()));
+//            SequencePresentation sequenceOfInlays = new SequencePresentation(
+//                    Arrays.asList(inlayShowingCount, inlayShowingAverage, inlayShowingStdDev));
+//
+//            int line = editor.getDocument().getLineNumber(range.getStartOffset());
+//            int column = range.getStartOffset() - editor.getDocument().getLineStartOffset(line);
+//
+//            RecursivelyUpdatingRootPresentation root = new RecursivelyUpdatingRootPresentation(sequenceOfInlays);
+//
+//            BlockConstraints constraints = new BlockConstraints(false, 0, 0, column);
+//
+//            logger.warn("PSIElement " +
+//                    "[" + element.getClass().getSimpleName() + "]" +
+//                    "[" + elementLineNumber + "," + column + "]: "
+//                    + currentClass.getQualifiedName() + "."
+//                    + methodElement.getName() + "()");
+//
+//            inlayHintsSink.addBlockElement(line, true, root, constraints);
+//        }
+//        return true;
     }
 
     private TextRange getTextRangeWithoutLeadingCommentsAndWhitespaces(PsiElement element) {
