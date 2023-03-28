@@ -516,7 +516,7 @@ public class TestCaseDesigner {
                 continue;
             }
             PsiElement[] callExpressionChildren = psiMethodCallExpression.getChildren();
-            logger.warn("call expression child: " + psiMethodCallExpression);
+//            logger.warn("call expression child: " + psiMethodCallExpression);
             if (callExpressionChildren[0] instanceof PsiReferenceExpressionImpl) {
                 PsiReferenceExpressionImpl callReferenceExpression = (PsiReferenceExpressionImpl) callExpressionChildren[0];
                 PsiExpressionListImpl callParameterExpression = (PsiExpressionListImpl) callExpressionChildren[1];

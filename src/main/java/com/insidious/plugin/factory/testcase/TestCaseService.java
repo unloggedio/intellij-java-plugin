@@ -339,7 +339,7 @@ public class TestCaseService implements Runnable {
     }
 
     public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
-        return sessionInstance.getTestCandidatesForMethod(className, methodName, loadCalls);
+        return sessionInstance.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
     }
 
     //    @Override

@@ -3658,8 +3658,13 @@ public class SessionInstance {
         return daoService.getTestCandidateAggregatesForType(className);
     }
 
-    public List<TestCandidateMetadata> getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
-        return daoService.getTestCandidatesForMethod(className, methodName, loadCalls);
+    public List<TestCandidateMetadata> getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
+        return daoService.getTestCandidatesForPublicMethod(className, methodName, loadCalls);
+    }
+
+    public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
+                                                                   boolean loadCalls) {
+        return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
     }
 
     public TestCandidateMetadata getConstructorCandidate(Parameter parameter) throws Exception {

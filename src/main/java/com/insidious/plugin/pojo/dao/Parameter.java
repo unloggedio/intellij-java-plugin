@@ -27,7 +27,7 @@ public class Parameter {
     @DatabaseField
     boolean exception;
     @DatabaseField
-    long prob_id;
+    long eventId;
     /**
      * name should be a valid java variable name. this will be used inside the generated test cases
      */
@@ -45,7 +45,7 @@ public class Parameter {
         Parameter newParam = new Parameter();
         newParam.setContainer(e.isContainer());
         newParam.setException(e.isException());
-        newParam.setProb_id(e.getProb());
+        newParam.setEventId(e.getProb());
         newParam.setType(e.getType());
         List<com.insidious.plugin.pojo.Parameter> templateMap1 = e.getTemplateMap();
         List<Parameter> transformedTemplateMap = new ArrayList<>();
@@ -117,7 +117,7 @@ public class Parameter {
                         (type == null ? "" : "new " + type.substring(type.lastIndexOf('.') + 1) + "(); // ") +
                         "{" + "value=" + value +
                         ", probeInfo=" + probeInfo_id +
-                        ", prob=" + prob_id +
+                        ", prob=" + eventId +
                         '}';
     }
 
@@ -155,12 +155,12 @@ public class Parameter {
         this.value = value;
     }
 
-    public long getProb_id() {
-        return prob_id;
+    public long getEventId() {
+        return eventId;
     }
 
-    public void setProb_id(DataEventWithSessionId prob_id) {
-        this.prob_id = prob_id.getEventId();
+    public void setEventId(DataEventWithSessionId eventId) {
+        this.eventId = eventId.getEventId();
     }
 
     public int getProbeInfo_id() {

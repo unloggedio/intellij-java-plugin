@@ -18,10 +18,12 @@ import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
+import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
@@ -898,18 +900,38 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         agentCommandRequest.setClassName(psiClass.getQualifiedName());
         agentCommandRequest.setMethodName(method.getName());
         agentCommandRequest.setMethodSignature(methodJniSignature);
+
+
+        List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(
+                psiClass.getQualifiedName(), method.getName(), false);
+
+        if (methodTestCandidates.size() == 0) {
+            return;
+        }
+
+        TestCandidateMetadata selectedTestCandidate = methodTestCandidates.get(0);
+        MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
+        List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
+
         List<String> methodParameters = new ArrayList<>();
-
-
         JvmParameter[] methodParametersSource = method.getParameters();
-        for (JvmParameter jvmParameter : methodParametersSource) {
-            logger.warn("Add value for jvm parameter [" + jvmParameter.getType() + "]");
-            methodParameters.add("1236");
+        for (int i = 0; i < methodParametersSource.length; i++) {
+            JvmParameter jvmParameter = methodParametersSource[i];
+            DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
+            String argumentValue = null;
+            if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
+                argumentValue = new String(argumentProbe.getSerializedValue());
+            } else {
+                argumentValue = String.valueOf(argumentProbe.getValue());
+            }
+            logger.warn("Add value for parameter " +
+                            "[" + jvmParameter.getType() + "]" +
+                            "[" + jvmParameter.getName() + "] => " + argumentValue);
+            methodParameters.add(argumentValue);
         }
 
 
         agentCommandRequest.setMethodParameters(methodParameters);
-
 
         try {
             AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);

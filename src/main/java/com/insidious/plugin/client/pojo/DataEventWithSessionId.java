@@ -120,7 +120,7 @@ public class DataEventWithSessionId implements Serializable, BytesMarshallable {
     public String toString() {
         return "DataEventWithSessionId{" +
                 "threadId=" + threadId +
-                ", nanoTime=" + eventId +
+                ", eventId=" + eventId +
                 ", recordedAt=" + recordedAt +
                 ", dataId=" + probeId +
                 ", value=" + value +

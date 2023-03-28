@@ -78,13 +78,20 @@ public class DaoService {
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
-    public static final String TEST_CANDIDATE_BY_METHOD_SELECT = "select tc.*\n" +
+    public static final String TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
             "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "where p.type = ?\n" +
             "  and mc.methodName = ?" +
             "  and mc.methodAccess & 1 == 1\n" +
+            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+    public static final String TEST_CANDIDATE_BY_ALL_METHOD_SELECT = "select tc.*\n" +
+            "from test_candidate tc\n" +
+            "         join parameter p on p.value = testSubject_id\n" +
+            "         join method_call mc on mc.id = mainMethod_id\n" +
+            "where p.type = ?\n" +
+            "  and mc.methodName = ?" +
             "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
@@ -582,7 +589,7 @@ public class DaoService {
         List<Parameter> dbParameters = getParameterByValue(parametersToLoad);
 
         for (Parameter parameter : dbParameters) {
-            probesToLoad.add(parameter.getProb_id());
+            probesToLoad.add(parameter.getEventId());
             probeInfoToLoad.add(parameter.getProbeInfo_id());
         }
 
@@ -609,7 +616,7 @@ public class DaoService {
 
         for (com.insidious.plugin.pojo.Parameter parameter : parameters) {
             Parameter dbParameter = dbParameterMap.get(parameter.getValue());
-            parameter.setProb(probesMap.get(dbParameter.getProb_id()));
+            parameter.setProb(probesMap.get(dbParameter.getEventId()));
             if (probeInfoMap.get(dbParameter.getProbeInfo_id()) != null) {
                 parameter.setProbeInfo(probeInfoMap.get(dbParameter.getProbeInfo_id()));
             }
@@ -973,7 +980,7 @@ public class DaoService {
         Parameter parameter = parameterList.get(0);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
 
-        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getProb_id());
+        DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
         if (dataEvent != null) {
             DataInfo probeInfo = getProbeInfoById(parameter.getProbeInfo_id());
             convertedParameter.setProbeInfo(probeInfo);
@@ -1229,6 +1236,7 @@ public class DaoService {
     }
 
     public void createLogFileEntry(LogFile logFile) {
+        logger.warn("Create log file entry: " + logFile);
         try {
             logFilesDao.create(logFile);
         } catch (SQLException e) {
@@ -1302,12 +1310,38 @@ public class DaoService {
     }
 
     public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForMethod(String className, String methodName, boolean loadCalls) {
+    getTestCandidatesForPublicMethod(String className, String methodName, boolean loadCalls) {
 
         try {
 
             GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
-                    .queryRaw(TEST_CANDIDATE_BY_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
+                    .queryRaw(TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
+                            methodName);
+
+            List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
+
+            List<TestCandidateMetadata> testCandidates = parameterIds.getResults();
+            for (TestCandidateMetadata testCandidate : testCandidates) {
+                com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
+                        convertTestCandidateMetadata(testCandidate, loadCalls);
+                resultList.add(converted);
+            }
+
+            parameterIds.close();
+            return resultList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+    getTestCandidatesForAllMethod(String className, String methodName, boolean loadCalls) {
+
+        try {
+
+            GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
+                    .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
                             methodName);
 
             List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata> resultList = new LinkedList<>();
