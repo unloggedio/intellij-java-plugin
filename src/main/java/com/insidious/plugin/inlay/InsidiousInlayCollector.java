@@ -1,4 +1,4 @@
-package com.insidious.plugin.factory.inlays;
+package com.insidious.plugin.inlay;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;

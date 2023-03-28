@@ -1,6 +1,5 @@
-package com.insidious.plugin.factory;
+package com.insidious.plugin.inlay;
 
-import com.insidious.plugin.factory.inlays.InsidiousInlayHintsCollector;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.hints.*;
 import com.intellij.openapi.diagnostic.Logger;
