@@ -19,4 +19,12 @@ public class AgentCommandResponse {
     public Object getMethodReturnValue() {
         return methodReturnValue;
     }
+
+    @Override
+    public String toString() {
+        return "AgentCommandResponse{" +
+                "methodReturnValue=" + methodReturnValue +
+                ", message='" + message + '\'' +
+                '}';
+    }
 }

@@ -1308,18 +1308,17 @@ public class SessionInstance {
 
     private void checkProgressIndicator(String text1, String text2) {
         if (ProgressIndicatorProvider.getGlobalProgressIndicator() != null) {
-            if (ProgressIndicatorProvider.getGlobalProgressIndicator()
-                    .isCanceled()) {
-                try {
-                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
-                    // able ot read it on next refresh/load
-                    close();
-                } catch (Exception e) {
-                    // now this is just very weird
-                    throw new RuntimeException(e);
-                }
-                throw new ProcessCanceledException();
-            }
+//            if (ProgressIndicatorProvider.getGlobalProgressIndicator().isCanceled()) {
+//                try {
+//                    // we want a close call here, otherwise the chronicle map might remain locked, and we will not be
+//                    // able ot read it on next refresh/load
+//                    close();
+//                } catch (Exception e) {
+//                    // now this is just very weird
+//                    throw new RuntimeException(e);
+//                }
+//                throw new ProcessCanceledException();
+//            }
             if (text2 != null) {
                 ProgressIndicatorProvider.getGlobalProgressIndicator()
                         .setText2(text2);
@@ -2280,6 +2279,7 @@ public class SessionInstance {
 
             try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
                 parameterContainer = new ChronicleVariableContainer(parameterIndex);
+                boolean newCandidateIdentified = false;
 
                 Set<Integer> allThreads = logFilesByThreadMap.keySet();
                 int i = 0;
@@ -2289,18 +2289,19 @@ public class SessionInstance {
                     checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
                     List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
                     ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                    boolean newCandidateIdentified = processPendingThreadFiles(threadState, logFiles,
+                    boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
                             parameterContainer);
+                    newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
                     processedCount += logFiles.size();
-                    if (newCandidateIdentified && testCandidateListener != null) {
-                        testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
-                    }
                 }
 
 
                 Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
                 checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
                 daoService.createOrUpdateParameter(allParameters);
+                if (newCandidateIdentified && testCandidateListener != null) {
+                    testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+                }
 
             } catch (FailedToReadClassWeaveException e) {
                 InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
@@ -3663,7 +3664,7 @@ public class SessionInstance {
     }
 
     public List<TestCandidateMetadata> getTestCandidatesForAllMethod(String className, String methodName,
-                                                                   boolean loadCalls) {
+                                                                     boolean loadCalls) {
         return daoService.getTestCandidatesForAllMethod(className, methodName, loadCalls);
     }
 
@@ -3907,8 +3908,12 @@ public class SessionInstance {
 
     public void close() throws Exception {
         try {
-            zipConsumer.close();
-            databasePipe.close();
+            if (zipConsumer != null) {
+                zipConsumer.close();
+            }
+            if (databasePipe != null) {
+                databasePipe.close();
+            }
         } catch (Exception e) {
 //            e.printStackTrace();
             logger.error("Failed to close database pipe", e);
@@ -3916,7 +3921,9 @@ public class SessionInstance {
                     NotificationType.ERROR);
         }
         try {
-            executorPool.shutdownNow();
+            if (executorPool != null && !executorPool.isShutdown()) {
+                executorPool.shutdownNow();
+            }
         } catch (Exception e) {
 //            e.printStackTrace();
             logger.error("Failed to close executor pool", e);
@@ -3931,11 +3938,21 @@ public class SessionInstance {
             InsidiousNotification.notifyMessage("Failed to close database: " + e.getMessage(),
                     NotificationType.ERROR);
         }
-        classInfoIndex.close();
-        probeInfoIndex.close();
-        methodInfoIndex.close();
-        typeInfoIndex.close();
-        objectInfoIndex.close();
+        if (classInfoIndex != null) {
+            classInfoIndex.close();
+        }
+        if (probeInfoIndex != null) {
+            probeInfoIndex.close();
+        }
+        if (methodInfoIndex != null) {
+            methodInfoIndex.close();
+        }
+        if (typeInfoIndex != null) {
+            typeInfoIndex.close();
+        }
+        if (objectInfoIndex != null) {
+            objectInfoIndex.close();
+        }
 
         archiveIndex = null;
     }

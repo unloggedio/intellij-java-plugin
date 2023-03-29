@@ -24,6 +24,7 @@ import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
@@ -53,6 +54,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
+import com.intellij.openapi.util.Key;
+import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -92,9 +95,11 @@ import java.util.stream.Collectors;
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable, NewTestCandidateIdentifiedListener {
     public static final String HOSTNAME = System.getProperty("user.name");
+    private static final Key<Long> PSI_MODIFICATION_STAMP = Key.create("psi.modification.stamp");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final String DEFAULT_PACKAGE_NAME = "YOUR.PACKAGE.NAME";
+    private final Map<String, Pair<AgentCommandRequest, AgentCommandResponse>> executionPairs = new HashMap<>();
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient = new AgentClient("http://localhost:12100");
@@ -131,6 +136,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     private UnloggedGPT gptWindow;
     private Content gptContent;
     private SessionLoader sessionLoader;
+    private InsidiousInlayHintsCollector inlayHintsCollector;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -310,8 +316,8 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 
     public boolean isValidEmailAddress(String email) {
         String ePattern = "^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@((\\[[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\])|(([a-zA-Z\\-0-9]+\\.)+[a-zA-Z]{2,}))$";
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile(ePattern);
-        java.util.regex.Matcher m = p.matcher(email);
+        Pattern p = Pattern.compile(ePattern);
+        Matcher m = p.matcher(email);
         return m.matches();
     }
 
@@ -884,7 +890,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return programRunners.size() > 0;
     }
 
-    public void methodFocussedHandler(PsiClass psiClass, PsiMethod method) {
+    public void methodFocussedHandler(PsiClass psiClass, PsiMethod method, Editor editor) {
 
         if (method == null) {
             return;
@@ -906,39 +912,62 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 psiClass.getQualifiedName(), method.getName(), false);
 
         if (methodTestCandidates.size() == 0) {
+            logger.warn("no test candidate found");
             return;
+        } else {
+            final TestCandidateMetadata selectedTestCandidate = methodTestCandidates.get(0);
+
+            ApplicationManager.getApplication().runReadAction(new Runnable() {
+                @Override
+                public void run() {
+                    MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
+                    List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
+
+                    List<String> methodParameters = new ArrayList<>();
+                    JvmParameter[] methodParametersSource = method.getParameters();
+                    for (int i = 0; i < methodParametersSource.length; i++) {
+                        JvmParameter jvmParameter = methodParametersSource[i];
+                        DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
+                        String argumentValue = null;
+                        if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
+                            argumentValue = new String(argumentProbe.getSerializedValue());
+                        } else {
+                            argumentValue = String.valueOf(argumentProbe.getValue());
+                        }
+                        logger.warn("Add value for parameter " +
+                                "[" + jvmParameter.getType() + "]" +
+                                "[" + jvmParameter.getName() + "] => " + argumentValue);
+                        methodParameters.add(argumentValue);
+                    }
+
+
+                    agentCommandRequest.setMethodParameters(methodParameters);
+
+                    try {
+                        AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
+                        logger.warn("agent command response - " + agentCommandResponse);
+                        if (agentCommandResponse.getMethodReturnValue() != null) {
+                            Pair<AgentCommandRequest, AgentCommandResponse> executionPair = new Pair<>(
+                                    agentCommandRequest,
+                                    agentCommandResponse);
+                            InsidiousService.this.executionPairs.put(
+                                    agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName(),
+                                    executionPair);
+
+                            if (editor != null) {
+                                editor.putUserData(PSI_MODIFICATION_STAMP, null);
+                                DaemonCodeAnalyzer.getInstance(project).restart(psiClass.getContainingFile());
+                            }
+                        }
+                    } catch (IOException e) {
+                        logger.warn("failed to execute command - " + e.getMessage());
+                    }
+
+                }
+            });
+
         }
 
-        TestCandidateMetadata selectedTestCandidate = methodTestCandidates.get(0);
-        MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
-        List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
-
-        List<String> methodParameters = new ArrayList<>();
-        JvmParameter[] methodParametersSource = method.getParameters();
-        for (int i = 0; i < methodParametersSource.length; i++) {
-            JvmParameter jvmParameter = methodParametersSource[i];
-            DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
-            String argumentValue = null;
-            if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
-                argumentValue = new String(argumentProbe.getSerializedValue());
-            } else {
-                argumentValue = String.valueOf(argumentProbe.getValue());
-            }
-            logger.warn("Add value for parameter " +
-                            "[" + jvmParameter.getType() + "]" +
-                            "[" + jvmParameter.getName() + "] => " + argumentValue);
-            methodParameters.add(argumentValue);
-        }
-
-
-        agentCommandRequest.setMethodParameters(methodParameters);
-
-        try {
-            AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
-            logger.warn("agent command response - " + agentCommandResponse);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
         if (this.gptWindow != null) {
             this.gptWindow.updateUI(psiClass, method);
@@ -985,6 +1014,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 ////            Object classInstance = firstConstructor.newInstance();
 //
 
+
         DumbService dumbService = project.getService(DumbService.class);
         if (dumbService.isDumb()) {
             InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
@@ -1022,6 +1052,12 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 
 
     public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
+        if (client == null) {
+            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
+            FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
+            this.client = new VideobugLocalClient(pathToSessions, project);
+        }
+
         if (sessionInstance != null) {
             try {
                 sessionInstance.close();
@@ -1069,7 +1105,36 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     }
 
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
+        if (sessionInstance == null) {
+            loadDefaultSession();
+        }
         return sessionInstance.getClassMethodAggregates(qualifiedName);
+    }
+
+    public InsidiousInlayHintsCollector getInlayHintsCollector() {
+        return inlayHintsCollector;
+    }
+
+    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
+        return executionPairs.get(executionPairKey);
+    }
+
+    public void loadDefaultSession() {
+        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
+        ExecutionSession executionSession = new ExecutionSession();
+        executionSession.setPath(pathToSessions);
+        executionSession.setSessionId("na");
+        executionSession.setCreatedAt(new Date());
+        executionSession.setLastUpdateAt(new Date().getTime());
+        try {
+            setSession(executionSession);
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ExecutionSession getCurrentExecutionSession() {
+        return sessionInstance.getExecutionSession();
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
