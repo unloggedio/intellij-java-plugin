@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui.gutter;
 
+import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
@@ -44,7 +46,7 @@ public class MethodExecutorComponent {
             TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
             List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
                     mostRecentTestCandidate);
-            execute(methodArgumentValues);
+            execute(mostRecentTestCandidate, methodArgumentValues);
         });
 
         executeButton.addActionListener(e -> {
@@ -52,7 +54,7 @@ public class MethodExecutorComponent {
             for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
                 methodArgumentValues.add(parameterInputComponent.getParameterValue());
             }
-            execute(methodArgumentValues);
+            execute(null, methodArgumentValues);
         });
     }
 
@@ -104,11 +106,20 @@ public class MethodExecutorComponent {
 
     }
 
-    public void execute(List<String> methodArgumentValues) {
+    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues) {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
+                    renderResponse(mostRecentTestCandidate, agentCommandResponse);
                 });
+    }
+
+    private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse) {
+        // render differences table
+        // append to output panel
+        String returnvalue = new String(
+                ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
+                        .getSerializedValue());
     }
 
     public JComponent getContent() {
