@@ -38,10 +38,10 @@ public class InsidiousCaretListener implements EditorMouseListener {
             return;
         }
         PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
-        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
+//        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
 
 
-        insidiousService.methodFocussedHandler(psiClass, method, editor);
+        insidiousService.methodFocussedHandler(method);
     }
 
 }

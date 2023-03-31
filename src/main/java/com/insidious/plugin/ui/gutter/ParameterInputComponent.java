@@ -9,9 +9,11 @@ public class ParameterInputComponent {
     private JPanel rootContent;
     private JTextField parameterValue;
 
-    public ParameterInputComponent(JvmParameter parameter) {
+    public ParameterInputComponent(JvmParameter parameter, String defaultParameterValue) {
         super();
         ((TitledBorder) rootContent.getBorder()).setTitle(parameter.getName());
+        parameterValue.setText(defaultParameterValue);
+
     }
 
     public String getParameterValue() {

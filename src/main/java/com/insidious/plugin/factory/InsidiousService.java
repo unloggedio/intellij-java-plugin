@@ -10,10 +10,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
-import com.insidious.plugin.agent.AgentClient;
-import com.insidious.plugin.agent.AgentCommand;
-import com.insidious.plugin.agent.AgentCommandRequest;
-import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
@@ -149,6 +146,19 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
 
+    }
+
+    public List<String> buildArgumentValuesFromTestCandidate(TestCandidateMetadata testCandidateMetadata) {
+        List<String> methodArgumentValues = new ArrayList<>();
+        MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+        for (DataEventWithSessionId argumentProbe : mce.getArgumentProbes()) {
+            if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
+                methodArgumentValues.add(new String(argumentProbe.getSerializedValue()));
+            } else {
+                methodArgumentValues.add(String.valueOf(argumentProbe.getValue()));
+            }
+        }
+        return methodArgumentValues;
     }
 
     @NotNull
@@ -825,7 +835,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         }
     }
 
-
     public void setCurrentModule(String module) {
         this.selectedModule = module;
     }
@@ -838,7 +847,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return moduleMap.get(selectedModule);
     }
 
-
     public boolean moduleHasFileOfType(String module, String key) {
         Collection<VirtualFile> searchResult = FilenameIndex.getVirtualFilesByName(project, key,
                 GlobalSearchScope.projectScope(project));
@@ -850,7 +858,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         }
         return false;
     }
-
 
     public String fetchVersionFromLibName(String name, String lib) {
         String[] parts = name
@@ -866,7 +873,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         }
         return version;
     }
-
 
     public String suggestAgentVersion() {
         String version = null;
@@ -901,11 +907,12 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return programRunners.size() > 0;
     }
 
-    public void methodFocussedHandler(final PsiClass psiClass, final PsiMethod method, final Editor editor) {
+    public void methodFocussedHandler(final PsiMethod method) {
 
         if (method == null) {
             return;
         }
+        final PsiClass psiClass = method.getContainingClass();
         if (psiClass.getName() == null) {
             return;
         }
@@ -921,34 +928,26 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                     logger.warn("test case designer window is not ready to create test case for " + methodName);
                     return;
                 }
-                methodFocussedHandler(psiClass, method, editor);
+                methodFocussedHandler(method);
             });
             return;
         }
 
 
-        String classQualifiedName = psiClass.getQualifiedName();
-        List<TestCandidateMetadata> methodTestCandidates = sessionInstance.getTestCandidatesForAllMethod(
-                classQualifiedName, methodName, false);
-
-
-        methodExecutorToolWindow.renderForMethod(method);
-        if (methodTestCandidates.size() == 0) {
-            logger.warn("no test candidate found");
-        } else {
-            reExecuteMethodInRunningProcess(psiClass, method, methodTestCandidates.get(0));
-        }
+        String classQualifiedName = method.getContainingClass().getQualifiedName();
 
 
         if (this.gptWindow != null) {
             this.gptWindow.updateUI(psiClass, method);
         }
-        JSONObject eventProperties = new JSONObject();
-        if (testCaseDesignerWindow == null || !testCaseDesignerWindow.getContent().isShowing()) {
+
+        if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
 //            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", eventProperties);
             logger.warn("test case designer window is not ready to create test case for " + methodName);
             return;
         }
+
+        methodExecutorToolWindow.renderForMethod(method);
 
 
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
@@ -989,32 +988,35 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
-    private void reExecuteMethodInRunningProcess(PsiClass psiClass, PsiMethod method,
-                                                 TestCandidateMetadata selectedTestCandidate) {
+    public void reExecuteMethodInRunningProcess(
+            PsiMethod method,
+            List<String> parameterValues,
+            ExecutionResponseListener executionResponseListener
+    ) {
 
         String methodJniSignature = JVMNameUtil.getJVMSignature(method).toString();
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
-        agentCommandRequest.setClassName(psiClass.getQualifiedName());
+        agentCommandRequest.setClassName(method.getContainingClass().getQualifiedName());
         agentCommandRequest.setMethodName(method.getName());
         agentCommandRequest.setMethodSignature(methodJniSignature);
 
         ApplicationManager.getApplication().runReadAction(() -> {
-            MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
-            List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
+//            MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
+//            List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
 
             List<String> methodParameters = new ArrayList<>();
             JvmParameter[] methodParametersSource = method.getParameters();
             for (int i = 0; i < methodParametersSource.length; i++) {
                 JvmParameter jvmParameter = methodParametersSource[i];
-                DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
-                String argumentValue = null;
-                if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
-                    argumentValue = new String(argumentProbe.getSerializedValue());
-                } else {
-                    argumentValue = String.valueOf(argumentProbe.getValue());
-                }
+//                DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
+                String argumentValue = parameterValues.get(i);
+//                if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
+//                    argumentValue = new String(argumentProbe.getSerializedValue());
+//                } else {
+//                    argumentValue = String.valueOf(argumentProbe.getValue());
+//                }
                 logger.warn("Add value for parameter " +
                         "[" + jvmParameter.getType() + "]" +
                         "[" + jvmParameter.getName() + "] => " + argumentValue);
@@ -1027,19 +1029,19 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
             try {
                 AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);
                 logger.warn("agent command response - " + agentCommandResponse);
-                if (agentCommandResponse.getMethodReturnValue() != null) {
-                    Pair<AgentCommandRequest, AgentCommandResponse> executionPair = new Pair<>(
-                            agentCommandRequest,
-                            agentCommandResponse);
-                    InsidiousService.this.executionPairs.put(
-                            agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName(),
-                            executionPair);
-
-//                    if (editor != null) {
-//                        editor.putUserData(PSI_MODIFICATION_STAMP, null);
-//                        DaemonCodeAnalyzer.getInstance(project).restart(psiClass.getContainingFile());
-//                    }
+                if (executionResponseListener != null) {
+                    executionResponseListener.onExecutionComplete(agentCommandRequest, agentCommandResponse);
+                } else {
+                    logger.warn("no body listening for the response");
                 }
+//                if (agentCommandResponse.getMethodReturnValue() != null) {
+//                    Pair<AgentCommandRequest, AgentCommandResponse> executionPair = new Pair<>(
+//                            agentCommandRequest,
+//                            agentCommandResponse);
+//                    InsidiousService.this.executionPairs.put(
+//                            agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName(),
+//                            executionPair);
+//                }
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage());
             }
@@ -1107,10 +1109,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         DaemonCodeAnalyzer.getInstance(project).restart();
-//        for (Editor editor : currentOpenEditorsList) {
-//            if (editor.getComponent().isVisible()) {
-//            }
-//        }
+        methodExecutorToolWindow.refresh();
 
     }
 
@@ -1125,9 +1124,9 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return inlayHintsCollector;
     }
 
-    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
-        return executionPairs.get(executionPairKey);
-    }
+//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
+//        return executionPairs.get(executionPairKey);
+//    }
 
     public void loadDefaultSession() {
         String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";

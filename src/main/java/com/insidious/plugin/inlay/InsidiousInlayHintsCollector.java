@@ -89,6 +89,7 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             InlayPresentation inlayShowingAverage = createInlayPresentation(avgStringText);
             String stdDevStringText = String.format(", stdDev: " + formatTimeDuration(methodAggregate.getStdDev()));
             InlayPresentation inlayShowingStdDev = createInlayPresentation(stdDevStringText);
+
             SequencePresentation sequenceOfInlays = new SequencePresentation(
                     Arrays.asList(inlayShowingCount, inlayShowingAverage, inlayShowingStdDev));
 
@@ -107,43 +108,43 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
 
             inlayHintsSink.addBlockElement(line, true, root, constraints);
 
-            String executionPairKey = currentClass.getQualifiedName() + "#" + ((PsiMethod) element).getName();
-            Pair<AgentCommandRequest, AgentCommandResponse> executionPairList = insidiousService.getExecutionPairs(
-                    executionPairKey);
-            if (executionPairList != null) {
-                AgentCommandRequest agentRequest = executionPairList.getFirst();
-                AgentCommandResponse agentResponse = executionPairList.getSecond();
-
-                BlockConstraints requestInlayConstraints = new BlockConstraints(false, 101, UNLOGGED_REQUEST_GROUP,
-                        column);
-                BlockConstraints responseInlayConstraints = new BlockConstraints(false, 102, UNLOGGED_RESPONSE_GROUP,
-                        column);
-                StringBuilder methodParameterText = new StringBuilder();
-                List<String> methodParameters = agentRequest.getMethodParameters();
-                for (int i = 0; i < methodParameters.size(); i++) {
-                    JvmParameter parameter = methodElement.getParameters()[i];
-                    String methodParameter = methodParameters.get(i);
-                    if (i > 0) {
-                        methodParameterText.append(", ");
-                    }
-                    methodParameterText.append(parameter.getName()).append(": ").append(methodParameter);
-                }
-
-                String inputInlayText = String.format("Input: " + methodParameterText);
-                InlayPresentation executionRequestInlay = createInlayPresentation(inputInlayText);
-
-                InlayPresentation executionResponseInlay = createInlayPresentation(
-                        (Map) agentResponse.getMethodReturnValue());
-
-                RecursivelyUpdatingRootPresentation requestInlayRoot =
-                        new RecursivelyUpdatingRootPresentation(executionRequestInlay);
-                inlayHintsSink.addBlockElement(line, true, requestInlayRoot, requestInlayConstraints);
-
-                RecursivelyUpdatingRootPresentation responseInlayRoot =
-                        new RecursivelyUpdatingRootPresentation(executionResponseInlay);
-                inlayHintsSink.addBlockElement(line, true, responseInlayRoot, responseInlayConstraints);
-
-            }
+//            String executionPairKey = currentClass.getQualifiedName() + "#" + ((PsiMethod) element).getName();
+//            Pair<AgentCommandRequest, AgentCommandResponse> executionPairList = insidiousService.getExecutionPairs(
+//                    executionPairKey);
+//            if (executionPairList != null) {
+//                AgentCommandRequest agentRequest = executionPairList.getFirst();
+//                AgentCommandResponse agentResponse = executionPairList.getSecond();
+//
+//                BlockConstraints requestInlayConstraints = new BlockConstraints(false, 101, UNLOGGED_REQUEST_GROUP,
+//                        column);
+//                BlockConstraints responseInlayConstraints = new BlockConstraints(false, 102, UNLOGGED_RESPONSE_GROUP,
+//                        column);
+//                StringBuilder methodParameterText = new StringBuilder();
+//                List<String> methodParameters = agentRequest.getMethodParameters();
+//                for (int i = 0; i < methodParameters.size(); i++) {
+//                    JvmParameter parameter = methodElement.getParameters()[i];
+//                    String methodParameter = methodParameters.get(i);
+//                    if (i > 0) {
+//                        methodParameterText.append(", ");
+//                    }
+//                    methodParameterText.append(parameter.getName()).append(": ").append(methodParameter);
+//                }
+//
+//                String inputInlayText = String.format("Input: " + methodParameterText);
+//                InlayPresentation executionRequestInlay = createInlayPresentation(inputInlayText);
+//
+//                InlayPresentation executionResponseInlay = createInlayPresentation(
+//                        (Map) agentResponse.getMethodReturnValue());
+//
+//                RecursivelyUpdatingRootPresentation requestInlayRoot =
+//                        new RecursivelyUpdatingRootPresentation(executionRequestInlay);
+//                inlayHintsSink.addBlockElement(line, true, requestInlayRoot, requestInlayConstraints);
+//
+//                RecursivelyUpdatingRootPresentation responseInlayRoot =
+//                        new RecursivelyUpdatingRootPresentation(executionResponseInlay);
+//                inlayHintsSink.addBlockElement(line, true, responseInlayRoot, responseInlayConstraints);
+//
+//            }
         }
         return true;
     }
