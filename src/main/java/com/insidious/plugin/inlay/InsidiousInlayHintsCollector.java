@@ -72,8 +72,8 @@ public class InsidiousInlayHintsCollector extends FactoryInlayHintsCollector {
             PsiMethod methodElement = (PsiMethod) element;
             MethodCallAggregate methodAggregate = classMethodAggregates.getMethodAggregate(methodElement.getName());
             if (methodAggregate == null) {
-                logger.warn(
-                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
+//                logger.warn(
+//                        "no aggregate found for method [" + currentClass.getQualifiedName() + "." + methodElement.getName() + "()]");
                 return true;
             }
 

@@ -2,6 +2,7 @@ package com.insidious.plugin.inlay;
 
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.hints.*;
+import com.intellij.lang.Language;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiFile;
@@ -59,6 +60,15 @@ public class InsidiousInlayHintsProvider implements InlayHintsProvider<NoSetting
         return new InsidiousInlayHintsCollector(editor);
     }
 
+    @Override
+    public boolean isVisibleInSettings() {
+        return false;
+    }
+
+    @Override
+    public boolean isLanguageSupported(@NotNull Language language) {
+        return true;
+    }
 
     @NotNull
     @Override
