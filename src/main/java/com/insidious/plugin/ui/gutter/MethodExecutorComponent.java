@@ -133,10 +133,16 @@ public class MethodExecutorComponent {
     private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse) {
         // render differences table
         // append to output panel
-        String returnvalue = new String(
-                ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
-                        .getSerializedValue());
-        addResponse(mostRecentTestCandidate,returnvalue);
+        if(mostRecentTestCandidate!=null) {
+            String returnvalue = new String(
+                    ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
+                            .getSerializedValue());
+            addResponse(mostRecentTestCandidate,agentCommandResponse.toString());
+        }
+        else
+        {
+            addResponse(null,String.valueOf(agentCommandResponse.getMethodReturnValue()));
+        }
     }
 
     public JComponent getContent() {

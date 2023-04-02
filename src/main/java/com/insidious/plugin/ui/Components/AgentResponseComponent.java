@@ -41,9 +41,12 @@ public class AgentResponseComponent {
     //constructor to take string difference and parameter/mce from candidate
     public void computeDifferences()
     {
-        MethodCallExpression mce = (MethodCallExpression) this.metadata.getMainMethod();
-        Parameter retval = mce.getReturnValue();
-        String stringValue = retval.getStringValue();
+        String stringValue = null;
+        if(this.metadata!=null) {
+            MethodCallExpression mce = (MethodCallExpression) this.metadata.getMainMethod();
+            Parameter retval = mce.getReturnValue();
+            stringValue = retval.getStringValue();
+        }
         caluclateDifferences(stringValue,this.agentResponse);
     }
 
