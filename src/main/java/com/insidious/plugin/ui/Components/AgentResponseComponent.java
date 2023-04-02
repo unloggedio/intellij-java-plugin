@@ -23,11 +23,11 @@ public class AgentResponseComponent {
     private JTable mainTable;
     private JScrollPane scrollParent;
     TreeMap<String,String> differences = new TreeMap<>();
-    private TestCandidateMetadata metadata;
+    private String oldResponse;
     private String agentResponse;
 
-    public AgentResponseComponent(TestCandidateMetadata mostRecentTestCandidate, String returnvalue) {
-        this.metadata = mostRecentTestCandidate;
+    public AgentResponseComponent(String oldResponse, String returnvalue) {
+        this.oldResponse = oldResponse;
         this.agentResponse = returnvalue;
         //tryTestDiff();
         computeDifferences();
@@ -41,13 +41,7 @@ public class AgentResponseComponent {
     //constructor to take string difference and parameter/mce from candidate
     public void computeDifferences()
     {
-        String stringValue = null;
-        if(this.metadata!=null) {
-            MethodCallExpression mce = (MethodCallExpression) this.metadata.getMainMethod();
-            Parameter retval = mce.getReturnValue();
-            stringValue = retval.getStringValue();
-        }
-        caluclateDifferences(stringValue,this.agentResponse);
+        caluclateDifferences(this.oldResponse,this.agentResponse);
     }
 
     public void tryTestDiff()
@@ -96,6 +90,8 @@ public class AgentResponseComponent {
             if(m1.equals(m2))
             {
                 //no differences
+                Map<String,Object> same = new HashMap<>();
+                same.put("No Differences","Both responses are the same");
             }
             else if(s1==null || s1.isEmpty())
             {

@@ -137,7 +137,7 @@ public class MethodExecutorComponent {
             String returnvalue = new String(
                     ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
                             .getSerializedValue());
-            addResponse(mostRecentTestCandidate,String.valueOf(agentCommandResponse.getMethodReturnValue()));
+            addResponse(returnvalue,String.valueOf(agentCommandResponse.getMethodReturnValue()));
         }
         else
         {
@@ -149,9 +149,9 @@ public class MethodExecutorComponent {
         return rootContent;
     }
 
-    public void addResponse(TestCandidateMetadata mostRecentTestCandidate, String returnvalue) {
+    public void addResponse(String candidateValue, String returnvalue) {
         this.borderParent.removeAll();
-        AgentResponseComponent response = new AgentResponseComponent(mostRecentTestCandidate, returnvalue);
+        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue);
         this.borderParent.add(response.getComponenet(), BorderLayout.CENTER);
         this.borderParent.revalidate();
     }
