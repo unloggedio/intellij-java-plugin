@@ -1,10 +1,16 @@
 package com.insidious.plugin.ui.gutter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
+import com.insidious.plugin.ui.Components.AgentResponseComponent;
+import com.insidious.plugin.ui.Components.NavigationElement;
+import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
@@ -12,11 +18,15 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class MethodExecutorComponent {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -30,6 +40,8 @@ public class MethodExecutorComponent {
     private JPanel executeUsingNewParameterPanel;
     private JButton executeButton;
     private JLabel candidateCountLabel;
+    private JPanel ResponseRendererPanel;
+    private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
@@ -56,6 +68,10 @@ public class MethodExecutorComponent {
             }
             execute(null, methodArgumentValues);
         });
+
+//        executeButton.addActionListener(e -> {
+//            tryTestDiff();
+//        });
     }
 
     public void refresh() {
@@ -120,9 +136,29 @@ public class MethodExecutorComponent {
         String returnvalue = new String(
                 ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
                         .getSerializedValue());
+        addResponse(mostRecentTestCandidate,returnvalue);
     }
 
     public JComponent getContent() {
         return rootContent;
+    }
+
+    public void addResponse(TestCandidateMetadata mostRecentTestCandidate, String returnvalue) {
+        this.borderParent.removeAll();
+        AgentResponseComponent response = new AgentResponseComponent(mostRecentTestCandidate, returnvalue);
+        this.borderParent.add(response.getComponenet(), BorderLayout.CENTER);
+        this.borderParent.revalidate();
+    }
+
+    //temporary function to test mock differneces between responses (json)
+    public void tryTestDiff()
+    {
+        ObjectMapper om = new ObjectMapper();
+        try {
+            addResponse(null,null);
+        } catch (Exception e) {
+            System.out.println("TestDiff Exception: "+e);
+            e.printStackTrace();
+        }
     }
 }
