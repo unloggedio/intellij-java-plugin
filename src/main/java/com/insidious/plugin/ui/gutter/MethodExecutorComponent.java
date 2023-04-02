@@ -137,7 +137,7 @@ public class MethodExecutorComponent {
             String returnvalue = new String(
                     ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
                             .getSerializedValue());
-            addResponse(mostRecentTestCandidate,agentCommandResponse.toString());
+            addResponse(mostRecentTestCandidate,String.valueOf(agentCommandResponse.getMethodReturnValue()));
         }
         else
         {
