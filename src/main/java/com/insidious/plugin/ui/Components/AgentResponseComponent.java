@@ -3,11 +3,22 @@ package com.insidious.plugin.ui.Components;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.pojo.Parameter;
+import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.contents.DocumentContent;
+import com.intellij.diff.requests.SimpleDiffRequest;
 
 import javax.swing.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -26,11 +37,20 @@ public class AgentResponseComponent {
     private String oldResponse;
     private String agentResponse;
 
-    public AgentResponseComponent(String oldResponse, String returnvalue) {
+    private InsidiousService insidiousService;
+
+    public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService) {
         this.oldResponse = oldResponse;
         this.agentResponse = returnvalue;
+        this.insidiousService = insidiousService;
         //tryTestDiff();
         computeDifferences();
+        viewFullButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                GenerateCompareWindows(oldResponse,agentResponse);
+            }
+        });
     }
 
     public JPanel getComponenet()
@@ -145,5 +165,22 @@ public class AgentResponseComponent {
         }
 
         return Stream.of(entry);
+    }
+
+    public void GenerateCompareWindows(String before, String after)
+    {
+        DocumentContent content1 = DiffContentFactory.getInstance().create(getprettyJsonString(before));
+        DocumentContent content2 = DiffContentFactory.getInstance().create(getprettyJsonString(after));
+        SimpleDiffRequest request = new SimpleDiffRequest("Comparing Before and After", content1, content2, "Before", "After");
+        DiffManager.getInstance().showDiff(this.insidiousService.getProject(), request);
+    }
+
+    private String getprettyJsonString(String input)
+    {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        JsonParser jp = new JsonParser();
+        JsonElement je = jp.parse(input);
+        String prettyJsonString = gson.toJson(je);
+        return prettyJsonString;
     }
 }

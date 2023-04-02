@@ -3,6 +3,10 @@ package com.insidious.plugin.ui.gutter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
@@ -12,6 +16,10 @@ import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.ui.Components.NavigationElement;
 import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.diff.DiffContentFactory;
+import com.intellij.diff.DiffManager;
+import com.intellij.diff.contents.DocumentContent;
+import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
@@ -151,7 +159,7 @@ public class MethodExecutorComponent {
 
     public void addResponse(String candidateValue, String returnvalue) {
         this.borderParent.removeAll();
-        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue);
+        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService);
         this.borderParent.add(response.getComponenet(), BorderLayout.CENTER);
         this.borderParent.revalidate();
     }
