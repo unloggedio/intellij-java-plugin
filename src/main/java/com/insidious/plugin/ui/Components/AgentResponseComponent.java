@@ -44,7 +44,7 @@ public class AgentResponseComponent {
     private String agentResponse;
     private InsidiousService insidiousService;
     private boolean mockmode = false;
-    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\"},\"put\":\"ay\",\"fut\":\"ay\"";
+    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
 //    String s1 = "";
     String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
 //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
@@ -62,7 +62,6 @@ public class AgentResponseComponent {
         if(parameters!=null && parameters.size()>0)
         {
             StringBuilder inputs= new StringBuilder();
-            inputs.append("inputs :\n");
             for(String keyParam : parameters.keySet())
             {
                 inputs.append(""+keyParam+" = "+parameters.get(keyParam)+"\n");

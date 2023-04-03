@@ -76,7 +76,7 @@ public class MethodExecutorComponent {
                     for (int i = 0; i < parameters.length; i++) {
                         JvmParameter methodParameter = parameters[i];
                         String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                        parameterInputMap.put(methodParameter.getType()+" "+methodParameter.getName(),parameterValue);
+                        parameterInputMap.put(methodParameter.getName(),parameterValue);
                     }
 
                 }

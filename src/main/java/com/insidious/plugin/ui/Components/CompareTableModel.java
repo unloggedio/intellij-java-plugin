@@ -1,11 +1,8 @@
 package com.insidious.plugin.ui.Components;
 
-import com.google.common.collect.MapDifference;
 
 import javax.swing.table.AbstractTableModel;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class CompareTableModel extends AbstractTableModel {
 
@@ -36,7 +33,7 @@ public class CompareTableModel extends AbstractTableModel {
         {
             String key = instance.getKey();
             key = key.replaceAll("/",".");
-            key = "root"+key;
+            key = key.replaceFirst("\\.","");
             return key;
         }
         if(columnIndex==1)
