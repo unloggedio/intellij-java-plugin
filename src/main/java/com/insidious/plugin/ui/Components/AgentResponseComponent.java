@@ -8,9 +8,6 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.MethodCallExpression;
-import com.insidious.plugin.pojo.Parameter;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
@@ -32,23 +29,42 @@ public class AgentResponseComponent {
     private JPanel bottomControlPanel;
     private JButton viewFullButton;
     private JTable mainTable;
+    private JLabel statusLabel;
     private JScrollPane scrollParent;
+    private JPanel topP;
+    private JButton closeButton;
     TreeMap<String,String> differences = new TreeMap<>();
     private String oldResponse;
     private String agentResponse;
-
     private InsidiousService insidiousService;
+    private boolean mockmode = false;
+//    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\"}";
+    String s1 = "";
+    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+//    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
 
     public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService) {
         this.oldResponse = oldResponse;
         this.agentResponse = returnvalue;
         this.insidiousService = insidiousService;
-        //tryTestDiff();
-        computeDifferences();
+        if(mockmode) {
+            tryTestDiff();
+        }
+        else
+        {
+            computeDifferences();
+        }
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                GenerateCompareWindows(oldResponse,agentResponse);
+                if(mockmode)
+                {
+                    GenerateCompareWindows(s1,s2);
+                }
+                else
+                {
+                    GenerateCompareWindows(oldResponse,agentResponse);
+                }
             }
         });
     }
@@ -66,9 +82,7 @@ public class AgentResponseComponent {
 
     public void tryTestDiff()
     {
-        //String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\"}";
-        String s1 = "";
-        String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+
         caluclateDifferences(s1,s2);
     }
 
@@ -107,19 +121,20 @@ public class AgentResponseComponent {
             res.entriesDiffering()
                     .forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
-            if(m1.equals(m2))
+            if(differences.size()==0)
             {
                 //no differences
-                Map<String,Object> same = new HashMap<>();
-                same.put("No Differences","Both responses are the same");
+                this.statusLabel.setText("Both Responses are Equal");
             }
             else if(s1==null || s1.isEmpty())
             {
+                this.statusLabel.setText("No previous Candidate found, current response -");
                 renderTableForResponse(rightOnly);
             }
             else {
                 //merge left and right differneces
                 //or iterate and create a new pojo that works with 1 table model
+                this.statusLabel.setText("Differences Found - ");
                 renderTableWithDifferences(differences);
             }
         } catch (Exception e) {
@@ -177,6 +192,10 @@ public class AgentResponseComponent {
 
     private String getprettyJsonString(String input)
     {
+        if(input==null || input.isEmpty())
+        {
+            return "";
+        }
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         JsonParser jp = new JsonParser();
         JsonElement je = jp.parse(input);

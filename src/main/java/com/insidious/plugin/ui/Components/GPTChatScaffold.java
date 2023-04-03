@@ -33,7 +33,6 @@ public class GPTChatScaffold {
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
         scrollPane = new JBScrollPane();
-        scrollPane = new JBScrollPane();
         //scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setViewportView(scrollablePanel);
         scrollPane.setBorder(null);

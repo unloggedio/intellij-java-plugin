@@ -1,40 +1,26 @@
 package com.insidious.plugin.ui.gutter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.MapDifference;
-import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
-import com.insidious.plugin.ui.Components.NavigationElement;
-import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
-import com.intellij.diff.DiffContentFactory;
-import com.intellij.diff.DiffManager;
-import com.intellij.diff.contents.DocumentContent;
-import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.uiDesigner.core.GridConstraints;
-import com.intellij.util.ui.JBUI;
+import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class MethodExecutorComponent {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -48,9 +34,12 @@ public class MethodExecutorComponent {
     private JPanel executeUsingNewParameterPanel;
     private JButton executeButton;
     private JLabel candidateCountLabel;
-    private JPanel ResponseRendererPanel;
     private JPanel borderParent;
+    private JPanel topParent;
+    private JPanel responseRenderSection;
+    private JPanel ResponseRendererPanel;
     private List<TestCandidateMetadata> methodTestCandidates;
+    private ScrollablePanel scrollablePanel;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -63,10 +52,17 @@ public class MethodExecutorComponent {
                 );
                 return;
             }
-            TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
-            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                    mostRecentTestCandidate);
-            execute(mostRecentTestCandidate, methodArgumentValues);
+//            TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
+//            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+//                    mostRecentTestCandidate);
+//            execute(mostRecentTestCandidate, methodArgumentValues);
+
+            for(TestCandidateMetadata candidateMetadata : methodTestCandidates)
+            {
+                List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+                    candidateMetadata);
+                execute(candidateMetadata, methodArgumentValues);
+            }
         });
 
         executeButton.addActionListener(e -> {
@@ -80,6 +76,8 @@ public class MethodExecutorComponent {
 //        executeButton.addActionListener(e -> {
 //            tryTestDiff();
 //        });
+
+        setupScrollablePanel();
     }
 
     public void refresh() {
@@ -158,10 +156,9 @@ public class MethodExecutorComponent {
     }
 
     public void addResponse(String candidateValue, String returnvalue) {
-        this.borderParent.removeAll();
         AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService);
-        this.borderParent.add(response.getComponenet(), BorderLayout.CENTER);
-        this.borderParent.revalidate();
+        scrollablePanel.add(response.getComponenet(),0);
+        scrollablePanel.revalidate();
     }
 
     //temporary function to test mock differneces between responses (json)
@@ -174,5 +171,19 @@ public class MethodExecutorComponent {
             System.out.println("TestDiff Exception: "+e);
             e.printStackTrace();
         }
+    }
+
+    public void setupScrollablePanel()
+    {
+        scrollablePanel = new ScrollablePanel();
+        scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
+        JBScrollPane scrollPane = new JBScrollPane();
+        scrollPane.setViewportView(scrollablePanel);
+        scrollPane.setBorder(null);
+        scrollPane.setViewportBorder(null);
+
+        this.borderParent.removeAll();
+        borderParent.add(scrollPane, BorderLayout.CENTER);
+        this.borderParent.revalidate();
     }
 }
