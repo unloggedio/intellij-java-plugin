@@ -2316,8 +2316,7 @@ public class SessionInstance {
             JSONObject eventProperties = new JSONObject();
             eventProperties.put("session_scan_time", scanTime);
             eventProperties.put("session_folder_size", (size_folder / 1000000));
-            UsageInsightTracker.getInstance()
-                    .RecordEvent("ScanMetrics", eventProperties);
+            UsageInsightTracker.getInstance().RecordEvent("ScanMetrics", eventProperties);
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Exception in scan and build session : " + e);

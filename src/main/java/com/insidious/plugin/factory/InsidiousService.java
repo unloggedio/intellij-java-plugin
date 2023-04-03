@@ -1034,14 +1034,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 } else {
                     logger.warn("no body listening for the response");
                 }
-//                if (agentCommandResponse.getMethodReturnValue() != null) {
-//                    Pair<AgentCommandRequest, AgentCommandResponse> executionPair = new Pair<>(
-//                            agentCommandRequest,
-//                            agentCommandResponse);
-//                    InsidiousService.this.executionPairs.put(
-//                            agentCommandRequest.getClassName() + "#" + agentCommandRequest.getMethodName(),
-//                            executionPair);
-//                }
             } catch (IOException e) {
                 logger.warn("failed to execute command - " + e.getMessage());
             }
@@ -1050,7 +1042,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     }
 
     public boolean areModulesRegistered() {
-        return this.moduleMap.size() > 0 ? true : false;
+        return this.moduleMap.size() > 0;
     }
 
     public TestCaseService getTestCaseService() {

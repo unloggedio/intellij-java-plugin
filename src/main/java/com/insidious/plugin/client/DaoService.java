@@ -92,7 +92,7 @@ public class DaoService {
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "where p.type = ?\n" +
             "  and mc.methodName = ?" +
-            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+            " order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
