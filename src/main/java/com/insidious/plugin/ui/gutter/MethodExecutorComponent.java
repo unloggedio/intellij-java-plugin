@@ -39,6 +39,7 @@ public class MethodExecutorComponent {
     private JPanel topParent;
     private JPanel responseRenderSection;
     private JPanel ResponseRendererPanel;
+    private JPanel topAligner;
     private List<TestCandidateMetadata> methodTestCandidates;
     private ScrollablePanel scrollablePanel;
 
