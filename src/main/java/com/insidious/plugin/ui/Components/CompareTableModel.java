@@ -4,29 +4,23 @@ import com.google.common.collect.MapDifference;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class CompareTableModel extends AbstractTableModel {
 
-    private Map<String, MapDifference.ValueDifference<Object>> differences;
-
-    private ArrayList<String> keys = new ArrayList<>();
-
+    private List<DifferenceInstance> differences;
     private final String[] columnNames = {
             "Key", "Old Value", "New Value"
     };
 
-    public CompareTableModel(Map<String, MapDifference.ValueDifference<Object>> differences) {
+    public CompareTableModel(List<DifferenceInstance> differences) {
         this.differences = differences;
-        for(String key : differences.keySet())
-        {
-            keys.add(key);
-        }
     }
 
     @Override
     public int getRowCount() {
-        return keys.size();
+        return differences.size();
     }
 
     @Override
@@ -37,21 +31,21 @@ public class CompareTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
 
+        DifferenceInstance instance = differences.get(rowIndex);
         if(columnIndex==0)
         {
-            String key = keys.get(rowIndex);
+            String key = instance.getKey();
             key = key.replaceAll("/",".");
             key = "root"+key;
             return key;
         }
-        MapDifference.ValueDifference difference = differences.get(keys.get(rowIndex));
         if(columnIndex==1)
         {
-            return difference.leftValue();
+            return instance.getLeftValue();
         }
         else if(columnIndex==2)
         {
-            return difference.rightValue();
+            return instance.getRightValue();
         }
         return null;
     }

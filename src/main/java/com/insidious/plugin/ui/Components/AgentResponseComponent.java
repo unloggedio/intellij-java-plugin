@@ -13,6 +13,7 @@ import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
@@ -35,22 +36,40 @@ public class AgentResponseComponent {
     private JScrollPane scrollParent;
     private JPanel topP;
     private JButton closeButton;
+    private JPanel tableParent;
+    private JPanel inputsParent;
+    private JTextArea inputArea;
     TreeMap<String,String> differences = new TreeMap<>();
     private String oldResponse;
     private String agentResponse;
     private InsidiousService insidiousService;
     private boolean mockmode = false;
-    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\"}";
+    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\"}";
 //    String s1 = "";
-    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
 //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
 
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
 
-    public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService) {
+    private Map<String,String> parameters;
+
+    public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService, Map<String,String> parameters) {
         this.oldResponse = oldResponse;
         this.agentResponse = returnvalue;
         this.insidiousService = insidiousService;
+        this.parameters = parameters;
+
+        if(parameters!=null && parameters.size()>0)
+        {
+            StringBuilder inputs= new StringBuilder();
+            inputs.append("inputs :\n");
+            for(String keyParam : parameters.keySet())
+            {
+                inputs.append(""+keyParam+" = "+parameters.get(keyParam)+"\n");
+            }
+            this.inputArea.setText(inputs.toString());
+        }
+
         if(mockmode) {
             tryTestDiff();
         }
@@ -105,7 +124,6 @@ public class AgentResponseComponent {
 
             }
             Map<String, Object> m2 = (Map<String, Object>)(om.readValue(s2, Map.class));
-            System.out.println("TestDiff : ");
 
             System.out.println("Differences : ");
             MapDifference<String,Object> res = Maps.difference(flatten(m1),flatten(m2));
@@ -127,21 +145,23 @@ public class AgentResponseComponent {
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
             logger.info("[COMP DIFF] " +differences.toString());
             logger.info("[COMP DIFF LEN] " +differences.size());
-            if(differences.size()==0)
+            List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
+                    rightOnly,differences);
+            if(differenceInstances.size()==0)
             {
                 //no differences
-                this.statusLabel.setText("Both Responses are Equal");
+                this.statusLabel.setText("Both Responses are Equal.");
             }
             else if(s1==null || s1.isEmpty())
             {
-                this.statusLabel.setText("No previous Candidate found, current response -");
+                this.statusLabel.setText("No previous Candidate found, current response.");
                 renderTableForResponse(rightOnly);
             }
             else {
                 //merge left and right differneces
                 //or iterate and create a new pojo that works with 1 table model
-                this.statusLabel.setText("Differences Found - ");
-                renderTableWithDifferences(differences);
+                this.statusLabel.setText("Differences Found.");
+                renderTableWithDifferences(differenceInstances);
             }
         } catch (Exception e) {
             System.out.println("TestDiff Exception: "+e);
@@ -149,8 +169,8 @@ public class AgentResponseComponent {
         }
     }
 
-    private void renderTableWithDifferences(Map<String, MapDifference.ValueDifference<Object>> differences) {
-        CompareTableModel newModel = new CompareTableModel(differences);
+    private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
+        CompareTableModel newModel = new CompareTableModel(differenceInstances);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
     }
@@ -207,5 +227,30 @@ public class AgentResponseComponent {
         JsonElement je = jp.parse(input);
         String prettyJsonString = gson.toJson(je);
         return prettyJsonString;
+    }
+
+    private List<DifferenceInstance> getDifferenceModel(Map<String,Object> left, Map<String,Object> right,
+                                                        Map<String, MapDifference.ValueDifference<Object>> differences)
+    {
+        ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
+        for(String key : differences.keySet())
+        {
+            DifferenceInstance instance = new DifferenceInstance(key, differences.get(key).leftValue(),
+                    differences.get(key).rightValue(), DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
+            differenceInstances.add(instance);
+        }
+        for(String key : left.keySet())
+        {
+            DifferenceInstance instance = new DifferenceInstance(key, left.get(key),
+                    "", DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY);
+            differenceInstances.add(instance);
+        }
+        for(String key : right.keySet())
+        {
+            DifferenceInstance instance = new DifferenceInstance(key, "",
+                    right.get(key), DifferenceInstance.DIFFERENCE_TYPE.RIGHT_ONLY);
+            differenceInstances.add(instance);
+        }
+        return differenceInstances;
     }
 }

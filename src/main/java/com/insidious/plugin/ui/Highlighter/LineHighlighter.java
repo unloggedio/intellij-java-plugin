@@ -44,7 +44,7 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
             return new LineMarkerInfo<>((PsiIdentifier) element,
-                    element.getTextRange(), UIUtils.ICON_EXECUTE_METHOD_SMALLER, null, navHandler,
+                    element.getTextRange(), UIUtils.TEST_BEAKER_TEAL, null, navHandler,
                     GutterIconRenderer.Alignment.LEFT, accessibleNameProvider);
         }
         return null;

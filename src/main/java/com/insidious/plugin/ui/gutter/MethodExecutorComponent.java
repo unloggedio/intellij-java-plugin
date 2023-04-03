@@ -16,6 +16,7 @@ import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import jdk.jfr.internal.JVM;
 
 import javax.swing.*;
 import java.awt.*;
@@ -56,31 +57,53 @@ public class MethodExecutorComponent {
 //            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
 //                    mostRecentTestCandidate);
 //            execute(mostRecentTestCandidate, methodArgumentValues);
-
+            clearResponsePanel();
+            JvmParameter[] parameters=null;
+            if(methodElement!=null)
+            {
+                parameters= methodElement.getParameters();
+            }
             for(TestCandidateMetadata candidateMetadata : methodTestCandidates)
             {
                 List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
                     candidateMetadata);
-                logger.info("[EXCV SENDING REQUEST FOR IP] "+methodArgumentValues.toString());
-                execute(candidateMetadata, methodArgumentValues);
-            }
-        });
+                logger.info("[EXEC SENDING REQUEST FOR IP] "+methodArgumentValues.toString());
 
-        executeButton.addActionListener(e -> {
-            List<String> methodArgumentValues = new ArrayList<>();
-            for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
-                methodArgumentValues.add(parameterInputComponent.getParameterValue());
+                Map<String,String> parameterInputMap = new TreeMap<>();
+                if(parameters!=null)
+                {
+                    for (int i = 0; i < parameters.length; i++) {
+                        JvmParameter methodParameter = parameters[i];
+                        String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
+                        parameterInputMap.put(methodParameter.getType()+" "+methodParameter.getName(),parameterValue);
+                    }
+
+                }
+                execute(candidateMetadata, methodArgumentValues, parameterInputMap);
             }
-            execute(null, methodArgumentValues);
         });
 
 //        executeButton.addActionListener(e -> {
+//            List<String> methodArgumentValues = new ArrayList<>();
+//            for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
+//                methodArgumentValues.add(parameterInputComponent.getParameterValue());
+//            }
+//            execute(null, methodArgumentValues);
+//        });
+
+//        executeAndShowDifferencesButton.addActionListener(e -> {
+//            clearResponsePanel();
 //            tryTestDiff();
 //        });
 
         setupScrollablePanel();
     }
 
+    public void clearResponsePanel()
+    {
+        this.scrollablePanel.removeAll();
+        this.scrollablePanel.revalidate();
+    }
     public void refresh() {
         if (methodElement == null) {
             return;
@@ -129,26 +152,27 @@ public class MethodExecutorComponent {
 
     }
 
-    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues) {
+    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues, Map<String,String> parameters) {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    renderResponse(mostRecentTestCandidate, agentCommandResponse);
+                    renderResponse(mostRecentTestCandidate, agentCommandResponse, parameters);
                 });
     }
 
-    private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse) {
+    private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse,
+                                Map<String,String> parameters) {
         // render differences table
         // append to output panel
         if(mostRecentTestCandidate!=null) {
             String returnvalue = new String(
                     ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
                             .getSerializedValue());
-            addResponse(returnvalue,String.valueOf(agentCommandResponse.getMethodReturnValue()));
+            addResponse(returnvalue,String.valueOf(agentCommandResponse.getMethodReturnValue()),parameters);
         }
         else
         {
-            addResponse(null,String.valueOf(agentCommandResponse.getMethodReturnValue()));
+            addResponse(null,String.valueOf(agentCommandResponse.getMethodReturnValue()),parameters);
         }
     }
 
@@ -156,8 +180,8 @@ public class MethodExecutorComponent {
         return rootContent;
     }
 
-    public void addResponse(String candidateValue, String returnvalue) {
-        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService);
+    public void addResponse(String candidateValue, String returnvalue, Map<String,String> parameters) {
+        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService, parameters);
         scrollablePanel.add(response.getComponenet(),0);
         scrollablePanel.revalidate();
     }
@@ -165,9 +189,8 @@ public class MethodExecutorComponent {
     //temporary function to test mock differneces between responses (json)
     public void tryTestDiff()
     {
-        ObjectMapper om = new ObjectMapper();
         try {
-            addResponse(null,null);
+            addResponse(null,null,null);
         } catch (Exception e) {
             System.out.println("TestDiff Exception: "+e);
             e.printStackTrace();
