@@ -5,7 +5,11 @@
     <constraints>
       <xy x="3" y="8" width="373" height="249"/>
     </constraints>
-    <properties/>
+    <properties>
+      <maximumSize width="2147483647" height="240"/>
+      <minimumSize width="167" height="240"/>
+      <preferredSize width="484" height="240"/>
+    </properties>
     <border type="empty"/>
     <children>
       <grid id="45797" binding="borderParent" layout-manager="BorderLayout" hgap="0" vgap="0">

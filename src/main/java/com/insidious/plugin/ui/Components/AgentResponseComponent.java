@@ -8,10 +8,12 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.openapi.diagnostic.Logger;
 
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
@@ -38,10 +40,12 @@ public class AgentResponseComponent {
     private String agentResponse;
     private InsidiousService insidiousService;
     private boolean mockmode = false;
-//    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\"}";
-    String s1 = "";
+    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\"}";
+//    String s1 = "";
     String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
 //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+
+    private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
 
     public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService) {
         this.oldResponse = oldResponse;
@@ -121,6 +125,8 @@ public class AgentResponseComponent {
             res.entriesDiffering()
                     .forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
+            logger.info("[COMP DIFF] " +differences.toString());
+            logger.info("[COMP DIFF LEN] " +differences.size());
             if(differences.size()==0)
             {
                 //no differences
