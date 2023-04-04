@@ -123,8 +123,8 @@ public class AgentResponseComponent {
                     TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
                             TestFramework.JUnit5,
                             MockFramework.Mockito,
-                            JsonFramework.GSON,
-                            ResourceEmbedMode.IN_CODE
+                            JsonFramework.JACKSON,
+                            ResourceEmbedMode.IN_FILE
                     );
 
 

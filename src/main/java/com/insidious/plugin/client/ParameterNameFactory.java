@@ -60,7 +60,7 @@ public class ParameterNameFactory {
 
         names.sort(Comparator.comparingInt(e -> -1 * e.length()));
         if (names.size() == 1 || methodName == null || methodName.equals("") || methodName.equals("<init>")) {
-            nameUsed = names.get(names.size() - 1);
+            nameUsed = getNameClosestToMethodName(names, parameter.getType());
         } else {
             nameUsed = getNameClosestToMethodName(names, methodName);
         }

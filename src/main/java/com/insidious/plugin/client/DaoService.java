@@ -255,7 +255,7 @@ public class DaoService {
                     .add(fieldParameter);
         }
 
-        if (converted.getMainMethod() != null) {
+        if (converted.getMainMethod() != null && !converted.getMainMethod().getMethodName().equals("<init>")) {
             com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = converted.getMainMethod();
             com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
             if (mainMethodReturnValue != null && mainMethodReturnValue.getType()!=null && !mainMethodReturnValue.getType().equals("V")) {
