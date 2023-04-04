@@ -258,7 +258,7 @@ public class DaoService {
         if (converted.getMainMethod() != null && converted.getMainMethod() instanceof com.insidious.plugin.pojo.MethodCallExpression) {
             com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
             com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
-            if (mainMethodReturnValue != null && !mainMethodReturnValue.getType().equals("V")) {
+            if (mainMethodReturnValue != null && mainMethodReturnValue.getType()!=null && !mainMethodReturnValue.getType().equals("V")) {
 
                 // deserialize and compare objects
                 byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
