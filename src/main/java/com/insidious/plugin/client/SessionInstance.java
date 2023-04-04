@@ -3677,9 +3677,9 @@ public class SessionInstance {
 
     public TestCandidateMetadata getTestCandidateById(Long testCandidateId, boolean loadCalls) {
         TestCandidateMetadata testCandidateMetadata = daoService.getTestCandidateById(testCandidateId, loadCalls);
-        resolveTemplatesInCall((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        resolveTemplatesInCall(testCandidateMetadata.getMainMethod());
         // check if the param are ENUM
-        createParamEnumPropertyTrueIfTheyAre((MethodCallExpression) testCandidateMetadata.getMainMethod());
+        createParamEnumPropertyTrueIfTheyAre(testCandidateMetadata.getMainMethod());
 
         if (loadCalls) {
             for (MethodCallExpression methodCallExpression : testCandidateMetadata.getCallsList()) {

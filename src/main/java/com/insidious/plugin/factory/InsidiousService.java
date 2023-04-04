@@ -32,13 +32,14 @@ import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
-import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
@@ -147,15 +148,15 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         threadPoolExecutor.submit(this.sessionLoader);
 
 
-//        EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
-//        InsidiousCaretListener listener = new InsidiousCaretListener(project);
-//        multicaster.addEditorMouseListener(listener, this);
+        EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
+        InsidiousCaretListener listener = new InsidiousCaretListener(project);
+        multicaster.addEditorMouseListener(listener, this);
 
     }
 
     public List<String> buildArgumentValuesFromTestCandidate(TestCandidateMetadata testCandidateMetadata) {
         List<String> methodArgumentValues = new ArrayList<>();
-        MethodCallExpression mce = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+        MethodCallExpression mce = testCandidateMetadata.getMainMethod();
         for (DataEventWithSessionId argumentProbe : mce.getArgumentProbes()) {
             if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
                 methodArgumentValues.add(new String(argumentProbe.getSerializedValue()));
@@ -378,6 +379,18 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         }
         @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
         return testCaseUnit.getCode();
+    }
+
+    public void generateAndSaveTestCase(TestCaseGenerationConfiguration generationConfiguration) throws Exception {
+        TestCaseService testCaseService = getTestCaseService();
+        if (testCaseService == null) {
+            return;
+        }
+        @NotNull TestCaseUnit testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
+        ArrayList<TestCaseUnit> testCaseScripts = new ArrayList<>();
+        testCaseScripts.add(testCaseUnit);
+        TestSuite testSuite = new TestSuite(testCaseScripts);
+        saveTestSuite(testSuite);
     }
 
     public VirtualFile saveTestSuite(TestSuite testSuite) throws IOException {
@@ -787,7 +800,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 if (testSubject.isException()) {
                     return;
                 }
-                MethodCallExpression callExpression = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+                MethodCallExpression callExpression = testCandidateMetadata.getMainMethod();
                 logger.warn(
                         "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
                 generationConfiguration.getTestCandidateMetadataList()
@@ -932,7 +945,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         }
 
 
-        String classQualifiedName = method.getContainingClass().getQualifiedName();
+//        String classQualifiedName = method.getContainingClass().getQualifiedName();
 
 
         if (this.gptWindow != null) {
@@ -999,22 +1012,16 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         agentCommandRequest.setClassName(method.getContainingClass().getQualifiedName());
         agentCommandRequest.setMethodName(method.getName());
         agentCommandRequest.setMethodSignature(methodJniSignature);
+        agentCommandRequest.setMethodParameters(parameterValues);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
-            List<String> methodParameters = new ArrayList<>();
-            JvmParameter[] methodParametersSource = method.getParameters();
-            for (int i = 0; i < methodParametersSource.length; i++) {
-                JvmParameter jvmParameter = methodParametersSource[i];
-                String argumentValue = parameterValues.get(i);
-                logger.warn("Add value for parameter " +
-                        "[" + jvmParameter.getType() + "]" +
-                        "[" + jvmParameter.getName() + "] => " + argumentValue);
-                methodParameters.add(argumentValue);
-            }
-
-
-            agentCommandRequest.setMethodParameters(methodParameters);
+//            List<String> methodParameters = new ArrayList<>();
+//            JvmParameter[] methodParametersSource = method.getParameters();
+            //                JvmParameter jvmParameter = methodParametersSource[i];
+            //                logger.warn("Add value for parameter " +
+            //                        "[" + jvmParameter.getType() + "]" +
+            //                        "[" + jvmParameter.getName() + "] => " + argumentValue);
 
             try {
                 AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);

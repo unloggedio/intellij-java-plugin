@@ -129,7 +129,7 @@ public class CandidateInformationWindow implements TreeSelectionListener, TestSe
     @Override
     public void loadInputOutputInformation(TestCandidateMetadata testCandidateMetadata) {
         lastSelectedCandidate = testCandidateMetadata;
-        MethodCallExpression exp = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+        MethodCallExpression exp = testCandidateMetadata.getMainMethod();
         List<Parameter> args = exp.getArguments();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
         for (Parameter arg : args) {

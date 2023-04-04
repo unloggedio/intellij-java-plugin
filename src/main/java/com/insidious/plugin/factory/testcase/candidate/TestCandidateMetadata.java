@@ -39,7 +39,7 @@ public class TestCandidateMetadata {
         this.exitProbeIndex = exitProbeIndex;
     }
 
-    public Expression getMainMethod() {
+    public MethodCallExpression getMainMethod() {
         return mainMethod;
     }
 
@@ -68,8 +68,7 @@ public class TestCandidateMetadata {
         if (testSubject != null && testSubject.getType() != null) {
             return testSubject.getType();
         }
-        return ((MethodCallExpression) getMainMethod()).getSubject()
-                .getType();
+        return mainMethod.getSubject().getType();
     }
 
     public Parameter getTestSubject() {

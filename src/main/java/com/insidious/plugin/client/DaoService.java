@@ -154,7 +154,7 @@ public class DaoService {
         for (TestCandidateMetadata testCandidateMetadata : candidateList) {
             com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata converted =
                     convertTestCandidateMetadata(testCandidateMetadata, true);
-            com.insidious.plugin.pojo.MethodCallExpression mainMethod = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
+            com.insidious.plugin.pojo.MethodCallExpression mainMethod = converted.getMainMethod();
             if (!mainMethod.getMethodName()
                     .equals("<init>")) {
                 if (!mainMethod.isMethodPublic()) {
@@ -255,8 +255,8 @@ public class DaoService {
                     .add(fieldParameter);
         }
 
-        if (converted.getMainMethod() != null && converted.getMainMethod() instanceof com.insidious.plugin.pojo.MethodCallExpression) {
-            com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = (com.insidious.plugin.pojo.MethodCallExpression) converted.getMainMethod();
+        if (converted.getMainMethod() != null) {
+            com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = converted.getMainMethod();
             com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
             if (mainMethodReturnValue != null && mainMethodReturnValue.getType()!=null && !mainMethodReturnValue.getType().equals("V")) {
 
@@ -1407,10 +1407,8 @@ public class DaoService {
                         com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
                                 = convertTestCandidateMetadata(testCandidate, true);
                         constructorCandidate.setTestSubject(parameter);
-                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setSubject(
-                                parameter);
-                        ((com.insidious.plugin.pojo.MethodCallExpression) constructorCandidate.getMainMethod()).setReturnValue(
-                                parameter);
+                        constructorCandidate.getMainMethod().setSubject(parameter);
+                        constructorCandidate.getMainMethod().setReturnValue(parameter);
                         return constructorCandidate;
                     }
                 }

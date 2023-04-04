@@ -31,7 +31,7 @@ public class TestCandidateTreeModel implements TreeModel {
         this.sessionInstance = sessionInstance;
         this.testGenerationConfiguration = testGenerationConfiguration;
         String testSubjectType = selectedCandidate.getTestSubject().getType();
-        MethodCallExpression mainMethod = (MethodCallExpression) selectedCandidate.getMainMethod();
+        MethodCallExpression mainMethod = selectedCandidate.getMainMethod();
         this.rootNode = createRootNode(testSubjectType, mainMethod);
 
         List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesUntil(

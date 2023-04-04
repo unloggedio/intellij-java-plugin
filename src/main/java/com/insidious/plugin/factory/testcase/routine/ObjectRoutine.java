@@ -46,7 +46,7 @@ public class ObjectRoutine {
         Map<String, ClassInfo> classIndex = sessionInstance.getClassIndex();
 
         return testCandidateList1.stream()
-                .map(e -> (MethodCallExpression) e.getMainMethod())
+                .map(TestCandidateMetadata::getMainMethod)
                 .filter(e -> !e.getMethodName().equals("mock"))
                 .map(MethodCallExpression::getArguments)
                 .flatMap(Collection::stream)
@@ -110,7 +110,7 @@ public class ObjectRoutine {
         List<MethodCallExpression> callsList = new ArrayList<>();
 
         List<TestCandidateMetadata> mockCreatorCalls = this.testCandidateList.stream()
-                .filter(e -> ((MethodCallExpression) e.getMainMethod()).getMethodName().equals("mock"))
+                .filter(e -> e.getMainMethod().getMethodName().equals("mock"))
                 .collect(Collectors.toList());
 
 
@@ -203,9 +203,9 @@ public class ObjectRoutine {
                 .equals(ResourceEmbedMode.IN_FILE)) {
             if (testGenerationState.getValueResourceMap()
                     .size() > 0) {
-                String resourceFileName = ((MethodCallExpression) this.testCandidateList.get(
-                                this.testCandidateList.size() - 1)
-                        .getMainMethod()).getMethodName();
+                String resourceFileName = this.testCandidateList
+                        .get(this.testCandidateList.size() - 1)
+                        .getMainMethod().getMethodName();
                 if (resourceFileName.equals("<init>")) {
                     resourceFileName = "setup";
                     testGenerationState.setSetupNeedsJsonResources(true);

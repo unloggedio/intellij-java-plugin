@@ -150,40 +150,38 @@ public class MethodExecutorComponent {
 
     }
 
-    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues, Map<String, String> parameters) {
+    public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues, Map<String, String> parameters) {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    renderResponse(mostRecentTestCandidate, agentCommandResponse, parameters);
+                    renderResponse(testCandidate, agentCommandResponse, parameters);
                 });
     }
 
-    private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse,
+    private void renderResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
                                 Map<String, String> parameters) {
         // render differences table
         // append to output panel
-        if (mostRecentTestCandidate != null) {
-            String returnvalue = new String(
-                    ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
-                            .getSerializedValue());
-            addResponse(returnvalue, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
-        } else {
-            addResponse(null, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
-        }
+//        if (testCandidateMetadata != null) {
+            addResponse(testCandidateMetadata, agentCommandResponse, parameters);
+//        } else {
+//            addResponse(null, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
+//        }
     }
 
     public JComponent getContent() {
         return rootContent;
     }
 
-    public void addResponse(String candidateValue, String returnvalue, Map<String, String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService,
+    public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
+                            Map<String, String> parameters) {
+        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
                 parameters);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
     }
 
-    //temporary function to test mock differneces between responses (json)
+    //temporary function to test mock differences between responses (json)
     public void tryTestDiff() {
         try {
             addResponse(null, null, null);

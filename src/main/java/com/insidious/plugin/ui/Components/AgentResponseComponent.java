@@ -6,16 +6,28 @@ import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
+import com.insidious.plugin.pojo.JsonFramework;
+import com.insidious.plugin.pojo.MockFramework;
+import com.insidious.plugin.pojo.ResourceEmbedMode;
+import com.insidious.plugin.pojo.TestFramework;
+import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.uiDesigner.core.GridConstraints;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
@@ -24,7 +36,16 @@ import java.util.stream.Stream;
 
 public class AgentResponseComponent {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
-    TreeMap<String, String> differences = new TreeMap<>();
+    private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
+    private final String oldResponse;
+    private final String agentResponse;
+    private final InsidiousService insidiousService;
+    private final Map<String, String> parameters;
+    private final TestCandidateMetadata testCandidateMetadata;
+    private final AgentCommandResponse agentCommandResponse;
+    private final boolean MOCK_MODE = false;
+    //    TreeMap<String, String> differences = new TreeMap<>();
     //    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
 //    String s1 = "";
     String s1 = "1";
@@ -46,15 +67,17 @@ public class AgentResponseComponent {
     private JPanel tableParent;
     private JPanel inputsParent;
     private JTextArea inputArea;
-    private String oldResponse;
-    private String agentResponse;
-    private InsidiousService insidiousService;
-    private boolean mockmode = false;
-    private Map<String, String> parameters;
 
-    public AgentResponseComponent(String oldResponse, String returnvalue, InsidiousService insidiousService, Map<String, String> parameters) {
-        this.oldResponse = oldResponse;
-        this.agentResponse = returnvalue;
+    public AgentResponseComponent(
+            TestCandidateMetadata testCandidateMetadata,
+            AgentCommandResponse agentCommandResponse,
+            InsidiousService insidiousService,
+            Map<String, String> parameters
+    ) {
+        this.testCandidateMetadata = testCandidateMetadata;
+        this.agentCommandResponse = agentCommandResponse;
+        this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+        this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
         this.insidiousService = insidiousService;
         this.parameters = parameters;
 
@@ -66,7 +89,7 @@ public class AgentResponseComponent {
             this.inputArea.setText(inputs.toString());
         }
 
-        if (mockmode) {
+        if (MOCK_MODE) {
             tryTestDiff();
         } else {
             computeDifferences();
@@ -74,13 +97,58 @@ public class AgentResponseComponent {
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (mockmode) {
+                if (MOCK_MODE) {
                     GenerateCompareWindows(s1, s2);
                 } else {
                     GenerateCompareWindows(oldResponse, agentResponse);
                 }
             }
         });
+
+        if (SHOW_TEST_CASE_CREATE_BUTTON) {
+            JButton createTestCaseButton = new JButton("Create test case");
+            bottomControlPanel.add(createTestCaseButton, new GridConstraints());
+            createTestCaseButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    logger.warn("Create test case: " + testCandidateMetadata);
+
+                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+                            .getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), true);
+
+
+                    String testMethodName =
+                            "testMethod" + ClassTypeUtils.upperInstanceName(
+                                    loadedTestCandidate.getMainMethod().getMethodName());
+                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+                            TestFramework.JUnit5,
+                            MockFramework.Mockito,
+                            JsonFramework.GSON,
+                            ResourceEmbedMode.IN_CODE
+                    );
+
+
+                    // mock all calls by default
+                    testCaseGenerationConfiguration.getCallExpressionList()
+                            .addAll(loadedTestCandidate.getCallsList());
+
+
+                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+
+
+                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+
+
+                    try {
+                        insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
+                    } catch (Exception ex) {
+                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+                                NotificationType.ERROR);
+                    }
+                }
+            });
+        }
     }
 
     public JPanel getComponent() {
@@ -123,7 +191,7 @@ public class AgentResponseComponent {
             System.out.println("Differing entries");
             res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
-            logger.info("[COMP DIFF] " + differences.toString());
+            logger.info("[COMP DIFF] " + differences);
             logger.info("[COMP DIFF LEN] " + differences.size());
             List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
                     rightOnly, differences);
@@ -195,22 +263,19 @@ public class AgentResponseComponent {
     }
 
     public void GenerateCompareWindows(String before, String after) {
-        DocumentContent content1 = DiffContentFactory.getInstance().create(getprettyJsonString(before));
-        DocumentContent content2 = DiffContentFactory.getInstance().create(getprettyJsonString(after));
+        DocumentContent content1 = DiffContentFactory.getInstance().create(getPrettyJsonString(before));
+        DocumentContent content2 = DiffContentFactory.getInstance().create(getPrettyJsonString(after));
         SimpleDiffRequest request = new SimpleDiffRequest("Comparing Before and After", content1, content2, "Before",
                 "After");
         DiffManager.getInstance().showDiff(this.insidiousService.getProject(), request);
     }
 
-    private String getprettyJsonString(String input) {
+    private String getPrettyJsonString(String input) {
         if (input == null || input.isEmpty()) {
             return "";
         }
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        JsonParser jp = new JsonParser();
-        JsonElement je = jp.parse(input);
-        String prettyJsonString = gson.toJson(je);
-        return prettyJsonString;
+        JsonElement je = gson.fromJson(input, JsonElement.class);
+        return gson.toJson(je);
     }
 
     private List<DifferenceInstance> getDifferenceModel(Map<String, Object> left, Map<String, Object> right,

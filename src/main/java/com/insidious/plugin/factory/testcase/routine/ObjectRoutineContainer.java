@@ -58,7 +58,7 @@ public class ObjectRoutineContainer {
         boolean hasTargetInstanceClassConstructor = false;
         for (TestCandidateMetadata testCandidateMetadata : testCandidateMetadataList) {
 
-            MethodCallExpression methodInfo = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            MethodCallExpression methodInfo = testCandidateMetadata.getMainMethod();
             if (methodInfo.getMethodName().equals("<init>")
                     && methodInfo.getReturnValue().getType().equals(testCandidateMetadata.getTestSubject().getType())
             ) {
@@ -120,7 +120,7 @@ public class ObjectRoutineContainer {
     }
 
     public void addMetadata(TestCandidateMetadata newTestCaseMetadata) {
-        if (((MethodCallExpression) (newTestCaseMetadata.getMainMethod())).getMethodName().equals("<init>")) {
+        if (newTestCaseMetadata.getMainMethod().getMethodName().equals("<init>")) {
             constructor.addMetadata(newTestCaseMetadata);
         } else {
             currentRoutine.addMetadata(newTestCaseMetadata);
@@ -141,17 +141,13 @@ public class ObjectRoutineContainer {
 //                    .collect(Collectors.toList());
 
             for (TestCandidateMetadata metadata : objectRoutine.getTestCandidateList()) {
-                Expression mainMethod = metadata.getMainMethod();
-                if (mainMethod instanceof MethodCallExpression) {
-                    List<Parameter> variables = extractVariableOfType(className, (MethodCallExpression) mainMethod);
-                    dependentImports.addAll(variables);
-                }
+                MethodCallExpression mainMethod = metadata.getMainMethod();
+                List<Parameter> mainMethodVariables = extractVariableOfType(className, mainMethod);
+                dependentImports.addAll(mainMethodVariables);
 
                 for (MethodCallExpression methodCallExpression : metadata.getCallsList()) {
-                    if (mainMethod instanceof MethodCallExpression) {
-                        List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
-                        dependentImports.addAll(variables);
-                    }
+                    List<Parameter> variables = extractVariableOfType(className, methodCallExpression);
+                    dependentImports.addAll(variables);
                 }
             }
         }
@@ -293,9 +289,9 @@ public class ObjectRoutineContainer {
             if (testMethodName != null) {
                 container.setTestMethodName(testMethodName);
             } else {
-                String testMethodNameFromMethod = ((MethodCallExpression) objectRoutine.getTestCandidateList()
+                String testMethodNameFromMethod = objectRoutine.getTestCandidateList()
                         .get(objectRoutine.getTestCandidateList().size() - 1)
-                        .getMainMethod()).getMethodName();
+                        .getMainMethod().getMethodName();
                 container.setTestMethodName(testMethodNameFromMethod);
             }
         }
@@ -316,8 +312,8 @@ public class ObjectRoutineContainer {
             PendingStatement.in(builderMethodScript, testGenerationState)
                     .assignVariable(staticMock)
                     .writeExpression(MethodCallExpressionFactory.MockStaticClass(
-                                    ClassName.bestGuess(staticMock.getTemplateMap().get(0).getType()),
-                                    generationConfiguration))
+                            ClassName.bestGuess(staticMock.getTemplateMap().get(0).getType()),
+                            generationConfiguration))
                     .endStatement();
         }
 

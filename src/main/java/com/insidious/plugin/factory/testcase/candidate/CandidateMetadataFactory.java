@@ -260,9 +260,9 @@ public class CandidateMetadataFactory {
         ObjectRoutineScript objectRoutineScript = new ObjectRoutineScript(testGenerationState.getVariableContainer(),
                 testConfiguration, testGenerationState);
 
-        if (testCandidateMetadata.getMainMethod() instanceof MethodCallExpression) {
+        if (testCandidateMetadata.getMainMethod() != null) {
 
-            MethodCallExpression mainMethod = (MethodCallExpression) testCandidateMetadata.getMainMethod();
+            MethodCallExpression mainMethod = testCandidateMetadata.getMainMethod();
 
             if (mainMethod.getMethodName().equals("<init>")) {
                 objectRoutineScript.getCreatedVariables().add(mainMethod.getSubject());
@@ -279,6 +279,7 @@ public class CandidateMetadataFactory {
 
 
         } else {
+            logger.error("MCE cannot be null: " + testCandidateMetadata);
             testCandidateMetadata.getMainMethod().writeTo(objectRoutineScript, testConfiguration, testGenerationState);
         }
         return objectRoutineScript;

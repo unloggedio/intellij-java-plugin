@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 public class OnboardingScaffoldV3 implements CardActionListener {
     private static final Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
-    private OnboardingService onboardingService;
+    private final OnboardingService onboardingService;
     private OnBoardingStatus status = new OnBoardingStatus();
     private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private final Project project;

@@ -142,8 +142,7 @@ public class TestCandidateCustomizeView {
             TestCandidateMetadata lastCandidate = (TestCandidateMetadata) this.testCandidateTree.getPathForRow(
                             level1_rowcount - 1)
                     .getLastPathComponent();
-            if (((MethodCallExpression) firstCandidate.getMainMethod()).getMethodName()
-                    .equals("<init>")) {
+            if (firstCandidate.getMainMethod().getMethodName().equals("<init>")) {
                 firstCandidate.setUIselected(true);
                 this.testGenerationConfiguration.getTestCandidateMetadataList()
                         .add(firstCandidate);
@@ -184,8 +183,7 @@ public class TestCandidateCustomizeView {
         this.testGenerationConfiguration.setTestCandidateMetadataList(refCandidates_order);
         this.testGenerationConfiguration.setTestMethodName(
                 "testMethod" + ClassTypeUtils.upperInstanceName(
-                        ((MethodCallExpression) refCandidates_order.get(refCandidates_order.size() - 1)
-                                .getMainMethod()).getMethodName())
+                        refCandidates_order.get(refCandidates_order.size() - 1).getMainMethod().getMethodName())
         );
     }
 
