@@ -44,11 +44,12 @@ public class AgentResponseComponent {
     private String agentResponse;
     private InsidiousService insidiousService;
     private boolean mockmode = false;
-    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
+//    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
 //    String s1 = "";
-    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
+    String s1 = "1";
+//    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
 //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
-
+    String s2 = "2";
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
 
     private Map<String,String> parameters;
@@ -165,6 +166,12 @@ public class AgentResponseComponent {
         } catch (Exception e) {
             System.out.println("TestDiff Exception: "+e);
             e.printStackTrace();
+            //happens for malformed jsons or primitives.
+            DifferenceInstance instance = new DifferenceInstance("Return Value",s1,s2,
+                    DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
+            ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
+            differenceInstances.add(instance);
+            renderTableWithDifferences(differenceInstances);
         }
     }
 
