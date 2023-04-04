@@ -39,9 +39,6 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
-import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.module.Module;
@@ -142,9 +139,17 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         this.project = project;
         logger.info("starting insidious service");
 
-        EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
-        InsidiousCaretListener listener = new InsidiousCaretListener(project);
-        multicaster.addEditorMouseListener(listener, this);
+
+        String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
+        FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
+        this.client = new VideobugLocalClient(pathToSessions, project);
+        this.sessionLoader = new SessionLoader(client, this);
+        threadPoolExecutor.submit(this.sessionLoader);
+
+
+//        EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
+//        InsidiousCaretListener listener = new InsidiousCaretListener(project);
+//        multicaster.addEditorMouseListener(listener, this);
 
     }
 
@@ -180,13 +185,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 logger.info("current module - " + currentModule.getName());
             }
 
-            String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
-            FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
-            this.client = new VideobugLocalClient(pathToSessions, project);
-            this.sessionLoader = new SessionLoader(client, this);
-            threadPoolExecutor.submit(this.sessionLoader);
-
-//            this.loadSession();
             this.initiateUI();
 
         } catch (ServiceNotReadyException snre) {
@@ -1002,21 +1000,13 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         agentCommandRequest.setMethodName(method.getName());
         agentCommandRequest.setMethodSignature(methodJniSignature);
 
-        ApplicationManager.getApplication().runReadAction(() -> {
-//            MethodCallExpression targetMethod = (MethodCallExpression) selectedTestCandidate.getMainMethod();
-//            List<DataEventWithSessionId> methodArgumentProbesList = targetMethod.getArgumentProbes();
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
             List<String> methodParameters = new ArrayList<>();
             JvmParameter[] methodParametersSource = method.getParameters();
             for (int i = 0; i < methodParametersSource.length; i++) {
                 JvmParameter jvmParameter = methodParametersSource[i];
-//                DataEventWithSessionId argumentProbe = methodArgumentProbesList.get(i);
                 String argumentValue = parameterValues.get(i);
-//                if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
-//                    argumentValue = new String(argumentProbe.getSerializedValue());
-//                } else {
-//                    argumentValue = String.valueOf(argumentProbe.getValue());
-//                }
                 logger.warn("Add value for parameter " +
                         "[" + jvmParameter.getType() + "]" +
                         "[" + jvmParameter.getName() + "] => " + argumentValue);
@@ -1099,9 +1089,11 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
+//        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
         DaemonCodeAnalyzer.getInstance(project).restart();
-        methodExecutorToolWindow.refresh();
+        if (methodExecutorToolWindow != null) {
+            methodExecutorToolWindow.refresh();
+        }
 
     }
 

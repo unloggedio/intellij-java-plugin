@@ -94,7 +94,7 @@ public class SessionInstance {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-    private final DatabasePipe databasePipe;
+//    private final DatabasePipe databasePipe;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
@@ -148,7 +148,7 @@ public class SessionInstance {
             }
         }
 
-        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
+//        databasePipe = new DatabasePipe(new LinkedTransferQueue<>(), daoService);
 
         checkProgressIndicator("Opening Zip Files", null);
         zipConsumer = new ZipConsumer(daoService, sessionDirectory, this);
@@ -156,7 +156,7 @@ public class SessionInstance {
 
         this.sessionArchives = refreshSessionArchivesList(false);
 //        zipConsumer.checkNewFiles();
-        executorPool.submit(databasePipe);
+//        executorPool.submit(databasePipe);
         executorPool.submit(zipConsumer);
 
     }
@@ -3910,9 +3910,9 @@ public class SessionInstance {
             if (zipConsumer != null) {
                 zipConsumer.close();
             }
-            if (databasePipe != null) {
-                databasePipe.close();
-            }
+//            if (databasePipe != null) {
+//                databasePipe.close();
+//            }
         } catch (Exception e) {
 //            e.printStackTrace();
             logger.error("Failed to close database pipe", e);

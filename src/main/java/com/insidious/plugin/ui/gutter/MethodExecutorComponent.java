@@ -1,6 +1,5 @@
 package com.insidious.plugin.ui.gutter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
@@ -16,12 +15,13 @@ import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
-import jdk.jfr.internal.JVM;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class MethodExecutorComponent {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
@@ -59,24 +59,21 @@ public class MethodExecutorComponent {
 //                    mostRecentTestCandidate);
 //            execute(mostRecentTestCandidate, methodArgumentValues);
             clearResponsePanel();
-            JvmParameter[] parameters=null;
-            if(methodElement!=null)
-            {
-                parameters= methodElement.getParameters();
+            JvmParameter[] parameters = null;
+            if (methodElement != null) {
+                parameters = methodElement.getParameters();
             }
-            for(TestCandidateMetadata candidateMetadata : methodTestCandidates)
-            {
+            for (TestCandidateMetadata candidateMetadata : methodTestCandidates) {
                 List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                    candidateMetadata);
-                logger.info("[EXEC SENDING REQUEST FOR IP] "+methodArgumentValues.toString());
+                        candidateMetadata);
+                logger.info("[EXEC SENDING REQUEST FOR IP] " + methodArgumentValues.toString());
 
-                Map<String,String> parameterInputMap = new TreeMap<>();
-                if(parameters!=null)
-                {
+                Map<String, String> parameterInputMap = new TreeMap<>();
+                if (parameters != null) {
                     for (int i = 0; i < parameters.length; i++) {
                         JvmParameter methodParameter = parameters[i];
                         String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                        parameterInputMap.put(methodParameter.getName(),parameterValue);
+                        parameterInputMap.put(methodParameter.getName(), parameterValue);
                     }
 
                 }
@@ -100,11 +97,11 @@ public class MethodExecutorComponent {
         setupScrollablePanel();
     }
 
-    public void clearResponsePanel()
-    {
+    public void clearResponsePanel() {
         this.scrollablePanel.removeAll();
         this.scrollablePanel.revalidate();
     }
+
     public void refresh() {
         if (methodElement == null) {
             return;
@@ -153,7 +150,7 @@ public class MethodExecutorComponent {
 
     }
 
-    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues, Map<String,String> parameters) {
+    public void execute(TestCandidateMetadata mostRecentTestCandidate, List<String> methodArgumentValues, Map<String, String> parameters) {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
@@ -162,18 +159,16 @@ public class MethodExecutorComponent {
     }
 
     private void renderResponse(TestCandidateMetadata mostRecentTestCandidate, AgentCommandResponse agentCommandResponse,
-                                Map<String,String> parameters) {
+                                Map<String, String> parameters) {
         // render differences table
         // append to output panel
-        if(mostRecentTestCandidate!=null) {
+        if (mostRecentTestCandidate != null) {
             String returnvalue = new String(
                     ((MethodCallExpression) mostRecentTestCandidate.getMainMethod()).getReturnDataEvent()
                             .getSerializedValue());
-            addResponse(returnvalue,String.valueOf(agentCommandResponse.getMethodReturnValue()),parameters);
-        }
-        else
-        {
-            addResponse(null,String.valueOf(agentCommandResponse.getMethodReturnValue()),parameters);
+            addResponse(returnvalue, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
+        } else {
+            addResponse(null, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
         }
     }
 
@@ -181,25 +176,24 @@ public class MethodExecutorComponent {
         return rootContent;
     }
 
-    public void addResponse(String candidateValue, String returnvalue, Map<String,String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService, parameters);
-        scrollablePanel.add(response.getComponenet(),0);
+    public void addResponse(String candidateValue, String returnvalue, Map<String, String> parameters) {
+        AgentResponseComponent response = new AgentResponseComponent(candidateValue, returnvalue, this.insidiousService,
+                parameters);
+        scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
     }
 
     //temporary function to test mock differneces between responses (json)
-    public void tryTestDiff()
-    {
+    public void tryTestDiff() {
         try {
-            addResponse(null,null,null);
+            addResponse(null, null, null);
         } catch (Exception e) {
-            System.out.println("TestDiff Exception: "+e);
+            System.out.println("TestDiff Exception: " + e);
             e.printStackTrace();
         }
     }
 
-    public void setupScrollablePanel()
-    {
+    public void setupScrollablePanel() {
         scrollablePanel = new ScrollablePanel();
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
         JBScrollPane scrollPane = new JBScrollPane();

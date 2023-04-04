@@ -87,7 +87,7 @@ public class SessionEventReader implements Runnable {
                 .entries();
         long end = new Date().getTime();
         long timeInMs = end - start;
-        if (timeInMs > 5) {
+        if (timeInMs > 100) {
             logger.warn("Read events took: " + timeInMs + " ms" + " from [" + archiveFile + "]");
         }
         return events;

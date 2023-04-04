@@ -44,19 +44,19 @@
             <keyboard-shortcut keymap="$default" first-keystroke="alt F6" second-keystroke="F9"/>
         </action>
 
-        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"
-                class="com.insidious.plugin.actions.JumpBack">
-            <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>
-        </action>
+<!--        <action icon="AllIcons.Actions.Back" text="Step Back" id="Debugger.ReverseResume"-->
+<!--                class="com.insidious.plugin.actions.JumpBack">-->
+<!--            <add-to-group relative-to-action="StepOver" group-id="XDebugger.ToolWindow.TopToolbar" anchor="before"/>-->
+<!--            <keyboard-shortcut keymap="$default" first-keystroke="alt R" second-keystroke="F9"/>-->
+<!--        </action>-->
 
 
-        <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">
-            <add-to-group group-id="MainToolBar" anchor="last"/>
-            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"
-                    text="Jump Back"
-                    icon="AllIcons.Actions.Back"/>
-        </group>
+<!--        <group id="Demo.BackStatement" text="Go back in time using this" description="Jump backwards using this button">-->
+<!--            <add-to-group group-id="MainToolBar" anchor="last"/>-->
+<!--            <action class="com.insidious.plugin.actions.JumpBack" description="Test Description" id="jumpBack"-->
+<!--                    text="Jump Back"-->
+<!--                    icon="AllIcons.Actions.Back"/>-->
+<!--        </group>-->
 
         <!--        <group id="Demo.NextStatement" text="Go Forward in time using this"-->
         <!--               description="Jump forward using this button">-->
@@ -74,7 +74,7 @@
         <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
                     anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
-        <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
+        <projectService preload="true" serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>
         <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>

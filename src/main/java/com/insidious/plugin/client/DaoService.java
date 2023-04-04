@@ -92,7 +92,7 @@ public class DaoService {
             "         join method_call mc on mc.id = mainMethod_id\n" +
             "where p.type = ?\n" +
             "  and mc.methodName = ?" +
-            " order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -1092,9 +1092,9 @@ public class DaoService {
 
     public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
         try {
-            int i = 0;
-            int total = parameterList.size();
-            Parameter newParam = new Parameter();
+//            int i = 0;
+//            int total = parameterList.size();
+//            Parameter newParam = new Parameter();
             long start = new Date().getTime();
 
 
@@ -1142,17 +1142,17 @@ public class DaoService {
         }
     }
 
-    public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
-        try {
-            return parameterDao.queryForEq("type", typeName)
-                    .stream()
-                    .map(Parameter::toParameter)
-                    .collect(Collectors.toList());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
+//    public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
+//        try {
+//            return parameterDao.queryForEq("type", typeName)
+//                    .stream()
+//                    .map(Parameter::toParameter)
+//                    .collect(Collectors.toList());
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            return Collections.emptyList();
+//        }
+//    }
 
     public long getMaxCallId() {
         try {
@@ -1168,26 +1168,26 @@ public class DaoService {
         connectionSource.close();
     }
 
-    public List<String> getPackageNames() {
-        List<String> packageList = new LinkedList<>();
-
-        try {
-            GenericRawResults<Object[]> parameterIdList = parameterDao
-                    .queryRaw("select distinct(type) from parameter order by type;", new DataType[]{DataType.STRING});
-
-            for (Object[] objects : parameterIdList) {
-                String className = (String) objects[0];
-                packageList.add(className);
-            }
-            parameterIdList.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-
-        return packageList;
-    }
+//    public List<String> getPackageNames() {
+//        List<String> packageList = new LinkedList<>();
+//
+//        try {
+//            GenericRawResults<Object[]> parameterIdList = parameterDao
+//                    .queryRaw("select distinct(type) from parameter order by type;", new DataType[]{DataType.STRING});
+//
+//            for (Object[] objects : parameterIdList) {
+//                String className = (String) objects[0];
+//                packageList.add(className);
+//            }
+//            parameterIdList.close();
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return Collections.emptyList();
+//        }
+//
+//        return packageList;
+//    }
 
     public List<LogFile> getLogFiles() {
         try {
@@ -1207,17 +1207,17 @@ public class DaoService {
         }
     }
 
-    public List<ThreadProcessingState> getThreadList() {
-        try {
-            return threadStateDao.queryForAll()
-                    .stream()
-                    .map(e -> new ThreadProcessingState(1))
-                    .collect(Collectors.toList());
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
+//    public List<ThreadProcessingState> getThreadList() {
+//        try {
+//            return threadStateDao.queryForAll()
+//                    .stream()
+//                    .map(e -> new ThreadProcessingState(1))
+//                    .collect(Collectors.toList());
+//        } catch (SQLException e) {
+//            e.printStackTrace();
+//            return Collections.emptyList();
+//        }
+//    }
 
     public void createArchiveFileEntry(ArchiveFile archiveFile) {
         try {
@@ -1252,18 +1252,18 @@ public class DaoService {
         }
     }
 
-    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
-    getTestCandidatesForClass(String className) {
-        try {
-            long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
-
-            return getTestCandidateForSubjectId(result);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
+//    public List<com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata>
+//    getTestCandidatesForClass(String className) {
+//        try {
+//            long result = parameterDao.queryRawValue("select value from parameter where type = '" + className + "'");
+//
+//            return getTestCandidateForSubjectId(result);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw new RuntimeException(e);
+//        }
+//    }
 
     public List<VideobugTreeClassAggregateNode> getTestCandidateAggregates() {
         try {
