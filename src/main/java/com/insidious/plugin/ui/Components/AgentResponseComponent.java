@@ -166,6 +166,11 @@ public class AgentResponseComponent {
         } catch (Exception e) {
             System.out.println("TestDiff Exception: "+e);
             e.printStackTrace();
+            if(s1.equals(s2))
+            {
+                this.statusLabel.setText("Both Responses are Equal.");
+                return;
+            }
             //happens for malformed jsons or primitives.
             DifferenceInstance instance = new DifferenceInstance("Return Value",s1,s2,
                     DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
