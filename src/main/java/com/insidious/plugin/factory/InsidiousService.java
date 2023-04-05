@@ -720,7 +720,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 contentFactory.createContent(methodExecutorToolWindow.getContent(), "Execute method", false);
         this.methodExecutorWindow = methodExecutorWindow;
         methodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        methodExecutorWindow.setIcon(UIUtils.ICON_EXECUTE_METHOD_SMALLER);
+        methodExecutorWindow.setIcon(UIUtils.COMPARE_TAB);
         contentManager.addContent(methodExecutorWindow);
 
         gptWindow = new UnloggedGPT(this);

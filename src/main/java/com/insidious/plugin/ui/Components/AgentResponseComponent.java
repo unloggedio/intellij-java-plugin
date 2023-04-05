@@ -15,7 +15,9 @@ import com.insidious.plugin.pojo.JsonFramework;
 import com.insidious.plugin.pojo.MockFramework;
 import com.insidious.plugin.pojo.ResourceEmbedMode;
 import com.insidious.plugin.pojo.TestFramework;
+import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
@@ -23,14 +25,23 @@ import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.ui.components.JBScrollPane;
+import com.intellij.ui.treeStructure.Tree;
 import com.intellij.uiDesigner.core.GridConstraints;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import javax.swing.*;
+import javax.swing.border.EtchedBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.tree.DefaultMutableTreeNode;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.*;
+import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -41,17 +52,16 @@ public class AgentResponseComponent {
     private final String oldResponse;
     private final String agentResponse;
     private final InsidiousService insidiousService;
-    private final Map<String, String> parameters;
+    private Map<String, String> parameters;
     private final TestCandidateMetadata testCandidateMetadata;
     private final AgentCommandResponse agentCommandResponse;
     private final boolean MOCK_MODE = false;
-    //    TreeMap<String, String> differences = new TreeMap<>();
-    //    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
+    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
 //    String s1 = "";
-    String s1 = "1";
-    //    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
+    String d1 = "1";
+    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
 //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
-    String s2 = "2";
+    String d2 = "1";
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel topPanel;
@@ -66,34 +76,41 @@ public class AgentResponseComponent {
     private JButton closeButton;
     private JPanel tableParent;
     private JPanel inputsParent;
-    private JTextArea inputArea;
+    private JPanel InputBorderParent;
+    private JPanel identifierPanel;
+    private JPanel statusPanel;
+    private JButton acceptButton;
+    private JPanel centerTop;
 
     public AgentResponseComponent(
             TestCandidateMetadata testCandidateMetadata,
             AgentCommandResponse agentCommandResponse,
             InsidiousService insidiousService,
-            Map<String, String> parameters
+            Map<String, String> parameters,
+            boolean alt
     ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.agentCommandResponse = agentCommandResponse;
-        this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-        this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
         this.insidiousService = insidiousService;
         this.parameters = parameters;
 
-        if (parameters != null && parameters.size() > 0) {
-            StringBuilder inputs = new StringBuilder();
-            for (String keyParam : parameters.keySet()) {
-                inputs.append("" + keyParam + " = " + parameters.get(keyParam) + "\n");
-            }
-            this.inputArea.setText(inputs.toString());
-        }
-
         if (MOCK_MODE) {
-            tryTestDiff();
+            if(alt) {
+                this.oldResponse = s1;
+                this.agentResponse = s2;
+            }
+            else
+            {
+                this.oldResponse = d1;
+                this.agentResponse = d2;
+            }
+            tryTestDiff(this.oldResponse,this.agentResponse);
         } else {
+            this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
             computeDifferences();
         }
+        loadInputTree();
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -160,7 +177,7 @@ public class AgentResponseComponent {
         calculateDifferences(this.oldResponse, this.agentResponse);
     }
 
-    public void tryTestDiff() {
+    public void tryTestDiff(String s1, String s2) {
 
         calculateDifferences(s1, s2);
     }
@@ -198,6 +215,10 @@ public class AgentResponseComponent {
             if (differenceInstances.size() == 0) {
                 //no differences
                 this.statusLabel.setText("Both Responses are Equal.");
+                this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
+                this.statusLabel.setForeground(UIUtils.green);
+                this.tableParent.setVisible(false);
+                return;
             } else if (s1 == null || s1.isEmpty()) {
                 this.statusLabel.setText("No previous Candidate found, current response.");
                 renderTableForResponse(rightOnly);
@@ -212,8 +233,12 @@ public class AgentResponseComponent {
             e.printStackTrace();
             if (s1.equals(s2)) {
                 this.statusLabel.setText("Both Responses are Equal.");
+                this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
+                this.statusLabel.setForeground(UIUtils.green);
+                this.tableParent.setVisible(false);
                 return;
             }
+            this.statusLabel.setText("Differences Found.");
             //happens for malformed jsons or primitives.
             DifferenceInstance instance = new DifferenceInstance("Return Value", s1, s2,
                     DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
@@ -224,7 +249,7 @@ public class AgentResponseComponent {
     }
 
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
-        CompareTableModel newModel = new CompareTableModel(differenceInstances);
+        CompareTableModel newModel = new CompareTableModel(differenceInstances,this.mainTable);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
     }
@@ -297,5 +322,94 @@ public class AgentResponseComponent {
             differenceInstances.add(instance);
         }
         return differenceInstances;
+    }
+
+    private void loadInputTree()
+    {
+        this.InputBorderParent.removeAll();
+        if(MOCK_MODE)
+        {
+            this.parameters = new TreeMap<>();
+            this.parameters.put("ival1","1");
+            this.parameters.put("eval",s1);
+        }
+        DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
+        for(String key : this.parameters.keySet())
+        {
+            DefaultMutableTreeNode node = buildJsonTree(this.parameters.get(key),key);
+            inputRoot.add(node);
+        }
+
+        this.InputBorderParent.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(1);
+        JTree inputTree = new Tree(inputRoot);
+        JScrollPane scrollPane = new JBScrollPane(inputTree);
+        scrollPane.setBorder(new EtchedBorder());
+        this.InputBorderParent.setPreferredSize(scrollPane.getSize());
+        this.InputBorderParent.add(scrollPane, BorderLayout.CENTER);
+        inputTree.setCellRenderer(new IOTreeCellRenderer());
+        inputTree.setRootVisible(false);
+        inputTree.setShowsRootHandles(true);
+        this.InputBorderParent.revalidate();
+    }
+
+    private DefaultMutableTreeNode buildJsonTree(String source, String name) {
+        if (source.startsWith("{")) {
+            return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
+        } else if (source.startsWith("[")) {
+            return handleArray(new JSONArray(source), new DefaultMutableTreeNode(name));
+        } else {
+            return new DefaultMutableTreeNode(name+" = "+source);
+        }
+    }
+
+    private DefaultMutableTreeNode handleObject(JSONObject json, DefaultMutableTreeNode root) {
+        Set<String> keys = json.keySet();
+        for (String key : keys) {
+            String valueTemp = json.get(key)
+                    .toString();
+            if (valueTemp.startsWith("{")) {
+                //obj in obj
+                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
+                JSONObject subObj = new JSONObject(valueTemp);
+                handleObject(subObj, thisKey);
+                root.add(thisKey);
+            } else if (valueTemp.startsWith("[")) {
+                //list
+                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(key);
+                JSONArray subObjArray = new JSONArray(valueTemp);
+                handleArray(subObjArray, thisKey);
+                root.add(thisKey);
+            } else {
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(key + " : " + valueTemp);
+                root.add(thisKVpair);
+            }
+        }
+        return root;
+    }
+
+    private DefaultMutableTreeNode handleArray(JSONArray json, DefaultMutableTreeNode root) {
+        for (int i = 0; i < json.length(); i++) {
+            String valueTemp = json.get(i)
+                    .toString();
+            if (valueTemp.startsWith("{")) {
+                //obj in obj
+                DefaultMutableTreeNode thisKey = new DefaultMutableTreeNode(i + " : ");
+                JSONObject subObj = new JSONObject(valueTemp);
+                handleObject(subObj, thisKey);
+                root.add(thisKey);
+            } else {
+                DefaultMutableTreeNode thisKVpair = new DefaultMutableTreeNode(i + " : " + valueTemp);
+                root.add(thisKVpair);
+            }
+        }
+        return root;
+    }
+
+    public void setBorderTitle(int x)
+    {
+        TitledBorder b  = new TitledBorder("Input Set "+x);
+        this.borderParent.setBorder(b);
     }
 }

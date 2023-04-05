@@ -42,6 +42,10 @@ public class MethodExecutorComponent {
     private JPanel topAligner;
     private List<TestCandidateMetadata> methodTestCandidates;
     private ScrollablePanel scrollablePanel;
+    private int componentCounter = 0;
+    private int mockCallCount = 2;
+
+    private boolean alt = true;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -91,13 +95,17 @@ public class MethodExecutorComponent {
 
 //        executeAndShowDifferencesButton.addActionListener(e -> {
 //            clearResponsePanel();
-//            tryTestDiff();
+//            for(int i=0;i<mockCallCount;i++)
+//            {
+//                tryTestDiff();
+//            }
 //        });
 
         setupScrollablePanel();
     }
 
     public void clearResponsePanel() {
+        this.componentCounter=0;
         this.scrollablePanel.removeAll();
         this.scrollablePanel.revalidate();
     }
@@ -121,8 +129,7 @@ public class MethodExecutorComponent {
                         false);
 
 
-        candidateCountLabel.setText(methodTestCandidates.size() + " test candidates for " + methodElement.getName());
-        TestCandidateMetadata mostRecentTestCandidate = null;
+        candidateCountLabel.setText(methodTestCandidates.size() + " set of inputs for " + methodElement.getName());        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         if (methodTestCandidates.size() > 0) {
             mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
@@ -163,7 +170,7 @@ public class MethodExecutorComponent {
         // render differences table
         // append to output panel
 //        if (testCandidateMetadata != null) {
-            addResponse(testCandidateMetadata, agentCommandResponse, parameters);
+        addResponse(testCandidateMetadata, agentCommandResponse, parameters);
 //        } else {
 //            addResponse(null, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
 //        }
@@ -176,7 +183,9 @@ public class MethodExecutorComponent {
     public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
                             Map<String, String> parameters) {
         AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
-                parameters);
+                parameters,alt);
+        alt=!alt;
+        response.setBorderTitle(++this.componentCounter);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
     }
@@ -196,6 +205,7 @@ public class MethodExecutorComponent {
         scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
         JBScrollPane scrollPane = new JBScrollPane();
         scrollPane.setViewportView(scrollablePanel);
+        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setBorder(null);
         scrollPane.setViewportBorder(null);
 

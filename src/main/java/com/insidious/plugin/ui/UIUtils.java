@@ -58,6 +58,11 @@ public class UIUtils {
     public static Icon WAITING_COMPONENT_SUCCESS = IconLoader.getIcon("/icons/png/success_icon_green_64.png",
             UIUtils.class);
     public static Icon ARROW_YELLOW_RIGHT = IconLoader.getIcon("/icons/png/arrow_yellow_right.png", UIUtils.class);
+    public static Icon COMPARE_TAB = IconLoader.getIcon("/icons/png/compare_tab_icon.png", UIUtils.class);
+    public static Icon JSON_KEY = IconLoader.getIcon("/icons/png/json_key.png", UIUtils.class);
+    public static Icon OLD_KEY = IconLoader.getIcon("/icons/png/old_key.png", UIUtils.class);
+    public static Icon NEW_KEY = IconLoader.getIcon("/icons/png/new_key_icon.png", UIUtils.class);
+    public static Icon CHECK_GREEN_SMALL = IconLoader.getIcon("/icons/png/green_check_mark_16.png", UIUtils.class);
     public static Icon MAVEN_ICON = IconLoader.getIcon("/icons/png/maven_Icon_20.png", UIUtils.class);
     public static Icon GRADLE_ICON = IconLoader.getIcon("/icons/png/gradle_icon_20.png", UIUtils.class);
     public static Icon INTELLIJ_ICON = IconLoader.getIcon("/icons/png/intelliJ_icon_20.png", UIUtils.class);

@@ -1,7 +1,12 @@
 package com.insidious.plugin.ui.Components;
 
 
-import javax.swing.table.AbstractTableModel;
+import com.insidious.plugin.ui.UIUtils;
+
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.table.*;
+import java.awt.*;
 import java.util.List;
 
 public class CompareTableModel extends AbstractTableModel {
@@ -11,8 +16,53 @@ public class CompareTableModel extends AbstractTableModel {
             "Key", "Old Value", "New Value"
     };
 
-    public CompareTableModel(List<DifferenceInstance> differences) {
+    private JTable table;
+
+    private boolean headerSetup = false;
+
+    private Color defaultColor = null;
+    private Color defaultForeground = null;
+
+    public CompareTableModel(List<DifferenceInstance> differences, JTable table) {
         this.differences = differences;
+        this.table = table;
+        Color color = (Color) UIManager.get("Table.background");
+        this.defaultForeground = (Color) UIManager.get("Table.foreground");
+        this.defaultColor = color;
+        this.table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer()
+        {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column)
+            {
+                final Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if(differences!=null && differences.size()>0)
+                {
+                    DifferenceInstance i = differences.get(row);
+                    if(i.getDifferenceType().equals(DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY))
+                    {
+                        if(column==1)
+                        {
+                            c.setBackground(UIUtils.green);
+                            c.setForeground(Color.WHITE);
+                            return c;
+                        }
+                    }
+                    else if(i.getDifferenceType().equals(DifferenceInstance.DIFFERENCE_TYPE.LEFT_ONLY))
+                    {
+                        if(column==2)
+                        {
+                            c.setBackground(UIUtils.green);
+                            c.setForeground(Color.WHITE);
+                            return c;
+                        }
+                    }
+                }
+                c.setBackground(defaultColor);
+                c.setForeground(defaultForeground);
+                return c;
+            }
+        });
+
     }
 
     @Override
@@ -28,6 +78,17 @@ public class CompareTableModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
 
+        if(!headerSetup)
+        {
+            try
+            {
+                setupHeader();
+            }
+            catch (Exception e)
+            {
+                System.out.println("Failed to set header");
+            }
+        }
         DifferenceInstance instance = differences.get(rowIndex);
         if(columnIndex==0)
         {
@@ -47,8 +108,47 @@ public class CompareTableModel extends AbstractTableModel {
         return null;
     }
 
-    @Override
-    public String getColumnName(int column) {
-        return columnNames[column];
+//    @Override
+//    public String getColumnName(int column) {
+//        return columnNames[column];
+//    }
+
+    class JComponentTableCellRenderer implements TableCellRenderer {
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            Component c = (JComponent) value;
+            return c;
+        }
+    }
+
+    public void setupHeader()
+    {
+        Border headerBorder = UIManager.getBorder("TableHeader.cellBorder");
+
+        JLabel keyHeader = new JLabel(columnNames[0], UIUtils.JSON_KEY, JLabel.CENTER);
+        keyHeader.setBorder(headerBorder);
+
+        JLabel oldHeader = new JLabel(columnNames[1], UIUtils.OLD_KEY, JLabel.CENTER);
+        oldHeader.setBorder(headerBorder);
+
+        JLabel newHeader = new JLabel(columnNames[2], UIUtils.NEW_KEY, JLabel.CENTER);
+        newHeader.setBorder(headerBorder);
+
+        TableCellRenderer renderer = new JComponentTableCellRenderer();
+        TableColumnModel columnModel = this.table.getColumnModel();
+
+        TableColumn column0 = columnModel.getColumn(0);
+        TableColumn column1 = columnModel.getColumn(1);
+        TableColumn column2 = columnModel.getColumn(2);
+
+        column0.setHeaderRenderer(renderer);
+        column0.setHeaderValue(keyHeader);
+
+        column1.setHeaderRenderer(renderer);
+        column1.setHeaderValue(oldHeader);
+
+        column2.setHeaderRenderer(renderer);
+        column2.setHeaderValue(newHeader);
+        headerSetup = true;
     }
 }
