@@ -6,15 +6,15 @@
       <xy x="3" y="8" width="373" height="320"/>
     </constraints>
     <properties>
-      <maximumSize width="2147483647" height="320"/>
-      <minimumSize width="167" height="320"/>
-      <preferredSize width="484" height="320"/>
+      <maximumSize width="2147483647" height="280"/>
+      <minimumSize width="167" height="280"/>
+      <preferredSize width="484" height="280"/>
     </properties>
     <border type="empty"/>
     <children>
       <grid id="45797" binding="borderParent" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties/>
         <border type="line" title="Input Set">

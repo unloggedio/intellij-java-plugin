@@ -44,7 +44,6 @@ public class MethodExecutorComponent {
     private ScrollablePanel scrollablePanel;
     private int componentCounter = 0;
     private int mockCallCount = 2;
-
     private boolean alt = true;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
@@ -58,10 +57,6 @@ public class MethodExecutorComponent {
                 );
                 return;
             }
-//            TestCandidateMetadata mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
-//            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-//                    mostRecentTestCandidate);
-//            execute(mostRecentTestCandidate, methodArgumentValues);
             clearResponsePanel();
             JvmParameter[] parameters = null;
             if (methodElement != null) {
@@ -210,7 +205,7 @@ public class MethodExecutorComponent {
         scrollPane.setViewportBorder(null);
 
         this.borderParent.removeAll();
-        borderParent.add(scrollPane, BorderLayout.CENTER);
+        borderParent.add(scrollPane, BorderLayout.PAGE_START);
         this.borderParent.revalidate();
     }
 }
