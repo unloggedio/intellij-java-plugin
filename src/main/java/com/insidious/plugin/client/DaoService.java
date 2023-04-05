@@ -242,7 +242,8 @@ public class DaoService {
                 continue;
             }
             if (loadCalls) {
-                Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList.stream()
+                Optional<com.insidious.plugin.pojo.MethodCallExpression> callOnField = callsList
+                        .stream()
                         .filter(e -> e.getSubject().getValue() == fieldParameterValue)
                         .findFirst();
                 if (callOnField.isPresent()) {
@@ -251,8 +252,7 @@ public class DaoService {
                 }
             }
             com.insidious.plugin.pojo.Parameter fieldParameter = getParameterByValue(fieldParameterValue);
-            converted.getFields()
-                    .add(fieldParameter);
+            converted.getFields().add(fieldParameter);
         }
 
         if (converted.getMainMethod() != null && !converted.getMainMethod().getMethodName().equals("<init>")) {
