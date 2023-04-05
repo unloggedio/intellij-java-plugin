@@ -25,7 +25,6 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
 
     @Override
     public void navigate(MouseEvent e, PsiIdentifier identifier) {
-//        if (identifier.getParent() instanceof PsiMethod) {
         PsiMethod method = (PsiMethod) identifier.getParent();
             PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
                     method.getTextOffset(), PsiClass.class, false);
@@ -33,10 +32,12 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
             insidiousService.openTestCaseDesigner(psiClass.getProject());
             insidiousService.methodFocussedHandler(method);
             UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
-//        }
+
 
         @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
+
+        insidiousService.executeWithAgentForMethod(method);
 
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());

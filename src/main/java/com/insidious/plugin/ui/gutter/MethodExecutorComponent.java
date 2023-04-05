@@ -45,39 +45,13 @@ public class MethodExecutorComponent {
     private int componentCounter = 0;
     private int mockCallCount = 2;
     private boolean alt = true;
+    private final boolean MOCK_MODE=false;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
 
         executeAndShowDifferencesButton.addActionListener(e -> {
-            if (methodTestCandidates.size() == 0) {
-                InsidiousNotification.notifyMessage(
-                        "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
-                        NotificationType.WARNING
-                );
-                return;
-            }
-            clearResponsePanel();
-            JvmParameter[] parameters = null;
-            if (methodElement != null) {
-                parameters = methodElement.getParameters();
-            }
-            for (TestCandidateMetadata candidateMetadata : methodTestCandidates) {
-                List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                        candidateMetadata);
-                logger.info("[EXEC SENDING REQUEST FOR IP] " + methodArgumentValues.toString());
-
-                Map<String, String> parameterInputMap = new TreeMap<>();
-                if (parameters != null) {
-                    for (int i = 0; i < parameters.length; i++) {
-                        JvmParameter methodParameter = parameters[i];
-                        String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                        parameterInputMap.put(methodParameter.getName(), parameterValue);
-                    }
-
-                }
-                execute(candidateMetadata, methodArgumentValues, parameterInputMap);
-            }
+            executeAll(methodElement);
         });
 
 //        executeButton.addActionListener(e -> {
@@ -97,6 +71,47 @@ public class MethodExecutorComponent {
 //        });
 
         setupScrollablePanel();
+    }
+
+    public void executeAll(PsiMethod method)
+    {
+        clearResponsePanel();
+        if(MOCK_MODE)
+        {
+            for(int i=0;i<mockCallCount;i++)
+            {
+                tryTestDiff();
+            }
+            return;
+        }
+        if (methodTestCandidates.size() == 0) {
+            InsidiousNotification.notifyMessage(
+                    "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
+                    NotificationType.WARNING
+            );
+            return;
+        }
+        clearResponsePanel();
+        JvmParameter[] parameters = null;
+        if (method != null) {
+            parameters = method.getParameters();
+        }
+        for (TestCandidateMetadata candidateMetadata : methodTestCandidates) {
+            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+                    candidateMetadata);
+            logger.info("[EXEC SENDING REQUEST FOR IP] " + methodArgumentValues.toString());
+
+            Map<String, String> parameterInputMap = new TreeMap<>();
+            if (parameters != null) {
+                for (int i = 0; i < parameters.length; i++) {
+                    JvmParameter methodParameter = parameters[i];
+                    String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
+                    parameterInputMap.put(methodParameter.getName(), parameterValue);
+                }
+
+            }
+            execute(candidateMetadata, methodArgumentValues, parameterInputMap);
+        }
     }
 
     public void clearResponsePanel() {

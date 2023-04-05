@@ -1143,4 +1143,13 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
+    public void executeWithAgentForMethod(PsiMethod method)
+    {
+        if(this.methodExecutorToolWindow!=null)
+        {
+            this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
+            this.methodExecutorToolWindow.executeAll(method);
+        }
+    }
+
 }

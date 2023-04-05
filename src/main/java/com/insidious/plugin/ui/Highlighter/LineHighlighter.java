@@ -33,10 +33,10 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
             PsiMethod psiMethod = (PsiMethod) element.getParent();
-            Matcher methodMatcher = testMethodNamePattern.matcher(element.getText());
-            if (methodMatcher.matches()) {
-                return null;
-            }
+//            Matcher methodMatcher = testMethodNamePattern.matcher(element.getText());
+//            if (methodMatcher.matches()) {
+//                return null;
+//            }
             PsiModifierList modifierList = psiMethod.getModifierList();
             if (modifierList.hasModifierProperty(PsiModifier.PRIVATE) ||
                     modifierList.hasModifierProperty(PsiModifier.PROTECTED) ||
@@ -44,7 +44,7 @@ public class LineHighlighter implements LineMarkerProvider {
                 return null;
             }
             return new LineMarkerInfo<>((PsiIdentifier) element,
-                    element.getTextRange(), UIUtils.TEST_BEAKER_TEAL, null, navHandler,
+                    element.getTextRange(), UIUtils.RE_EXECUTE, null, navHandler,
                     GutterIconRenderer.Alignment.LEFT, accessibleNameProvider);
         }
         return null;
