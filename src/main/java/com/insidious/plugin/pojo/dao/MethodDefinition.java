@@ -29,7 +29,7 @@ public class MethodDefinition {
     @DatabaseField
     private boolean usesFields;
 
-    @DatabaseField
+    @DatabaseField(index = true)
     private String ownerType;
 
     @DatabaseField

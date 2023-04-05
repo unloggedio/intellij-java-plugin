@@ -268,7 +268,7 @@ public class Parameter implements Serializable, BytesMarshallable {
         return value;
     }
 
-    public void setValue(Long value) {
+    public void setValue(long value) {
         this.value = value;
     }
 

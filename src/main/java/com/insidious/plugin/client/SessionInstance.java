@@ -78,7 +78,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -94,7 +93,7 @@ public class SessionInstance {
     private final File sessionDirectory;
     private final ExecutionSession executionSession;
     private final Map<String, String> cacheEntries = new HashMap<>();
-//    private final DatabasePipe databasePipe;
+    //    private final DatabasePipe databasePipe;
     private final DaoService daoService;
     private final Map<String, List<String>> zipFileListMap = new HashMap<>();
     private final ExecutorService executorPool;
@@ -131,7 +130,12 @@ public class SessionInstance {
                 .toFile()
                 .exists();
         ConnectionSource connectionSource = new JdbcConnectionSource(executionSession.getDatabaseConnectionString());
-        daoService = new DaoService(connectionSource);
+        ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
+        parameterContainer = new ChronicleVariableContainer(parameterIndex);
+
+        ParameterProvider parameterProvider = value -> com.insidious.plugin.pojo.dao.
+                Parameter.fromParameter(parameterContainer.getParameterByValue(value));
+        daoService = new DaoService(connectionSource, parameterProvider);
 
         if (!dbFileExists) {
             try {
@@ -341,8 +345,7 @@ public class SessionInstance {
             ClassInfo classInfo1 = KaitaiUtils.toClassInfo(classInfo);
 
 
-            final String className = classInfo.className()
-                    .value();
+            final String className = classInfo.className().value();
 
             List<DataInfo> dataInfoList = classInfo.probeList()
                     .stream()
@@ -458,8 +461,7 @@ public class SessionInstance {
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
-        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
-        List<ClassDefinition> classDefinitionList = new ArrayList<>();
+//        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
                 new RandomAccessFileKaitaiStream(fileName));
         long totalClassCount = classWeaveInfo.classInfo().size();
@@ -573,7 +575,7 @@ public class SessionInstance {
                     }
                 }
 
-                methodDefinitionList.add(methodDefinition);
+//                methodDefinitionList.add(methodDefinition);
             }
 //            classDefinitionList.add(ClassDefinition.fromClassInfo(classInfo1));
 
@@ -590,8 +592,7 @@ public class SessionInstance {
                 .stream()
                 .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
                 .collect(Collectors.toList()));
-        classWeaveInfo._io()
-                .close();
+        classWeaveInfo._io().close();
     }
 
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {
@@ -1031,8 +1032,7 @@ public class SessionInstance {
         try {
             archiveIndex = readArchiveIndex(typeIndexBytes.getBytes(), INDEX_TYPE_DAT_FILE);
             ConcurrentIndexedCollection<TypeInfoDocument> typeIndex = archiveIndex.getTypeInfoIndex();
-            typeIndex.parallelStream()
-                    .forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
+            typeIndex.parallelStream().forEach(e -> typeInfoIndex.put(e.getTypeId(), e));
         } catch (IOException e) {
 //            e.printStackTrace();
             logger.warn("failed to read archive for types index: " + e.getMessage());
@@ -2277,36 +2277,35 @@ public class SessionInstance {
                 return;
             }
 
-            try (ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex()) {
+            if (parameterContainer == null) {
+                ChronicleMap<Long, Parameter> parameterIndex = createParameterIndex();
                 parameterContainer = new ChronicleVariableContainer(parameterIndex);
-                boolean newCandidateIdentified = false;
-
-                Set<Integer> allThreads = logFilesByThreadMap.keySet();
-                int i = 0;
-                int processedCount = 0;
-                for (Integer threadId : allThreads) {
-                    i++;
-                    checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
-                    List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
-                    ThreadProcessingState threadState = daoService.getThreadState(threadId);
-                    boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
-                            parameterContainer);
-                    newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
-                    processedCount += logFiles.size();
-                }
-
-
-                Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
-                checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
-                daoService.createOrUpdateParameter(allParameters);
-                if (newCandidateIdentified && testCandidateListener != null) {
-                    testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
-                }
-
-            } catch (FailedToReadClassWeaveException e) {
-                InsidiousNotification.notifyMessage("Failed to scan logs: " + e.getMessage(), NotificationType.ERROR);
-                throw new RuntimeException(e);
             }
+
+            boolean newCandidateIdentified = false;
+
+            Set<Integer> allThreads = logFilesByThreadMap.keySet();
+            int i = 0;
+            int processedCount = 0;
+            for (Integer threadId : allThreads) {
+                i++;
+                checkProgressIndicator("Processing files for thread " + i + " / " + allThreads.size(), null);
+                List<LogFile> logFiles = logFilesByThreadMap.get(threadId);
+                ThreadProcessingState threadState = daoService.getThreadState(threadId);
+                boolean newCandidateIdentifiedNew = processPendingThreadFiles(threadState, logFiles,
+                        parameterContainer);
+                newCandidateIdentified = newCandidateIdentified | newCandidateIdentifiedNew;
+                processedCount += logFiles.size();
+            }
+
+
+//            Collection<Parameter> allParameters = new ArrayList<>(parameterIndex.values());
+//            checkProgressIndicator("Saving " + allParameters.size() + " parameters", "");
+//            daoService.createOrUpdateParameter(allParameters);
+            if (newCandidateIdentified && testCandidateListener != null) {
+                testCandidateListener.onNewTestCandidateIdentified(processedCount, logFilesToProcess.size());
+            }
+
 
             this.lastScannedTimeStamp = new Date();
             long scanEndTime = System.currentTimeMillis();

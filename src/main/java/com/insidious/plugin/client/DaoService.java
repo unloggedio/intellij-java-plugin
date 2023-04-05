@@ -22,7 +22,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.DaoManager;
 import com.j256.ormlite.dao.GenericRawResults;
-import com.j256.ormlite.field.DataType;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
 import org.apache.commons.lang.StringUtils;
@@ -37,61 +36,62 @@ import java.util.stream.Collectors;
 public class DaoService {
 
 
-    public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select p.type, p.value, count(*)\n" +
+    public static final String TEST_CANDIDATE_AGGREGATE_QUERY = "select md.ownerType, count(*)\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id and p.type != 'java.lang.Object' and length(p.type) > 1\n" +
             "         join method_call mce on mce.id = tc.mainMethod_id\n" +
-            "where (mce.methodAccess & 1 == 1) and mce.methodName != '<init>'\n" +
-            "group by p.type, p.value\n" +
+            "         join method_definition md on md.id = mce.methodDefinitionId\n" +
+            "where (mce.methodAccess & 1 == 1)\n" +
+            "  and mce.methodName != '<init>'\n" +
+            "  and md.ownerType != 'java.lang.Object'\n" +
+            "group by md.ownerType, md.ownerType\n" +
             "having count(*) > 0\n" +
-            "order by p.type";
+            "order by md.ownerType";
     public static final String TEST_CANDIDATE_METHOD_AGGREGATE_QUERY = "select mc.methodName, count(*)\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ? and (mc.methodAccess & 1 == 1)\n" +
-            "and mc.methodName != '<init>'\n" +
+            "         join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ? \n" +
+            "  and (mc.methodAccess & 1 == 1)\n" +
+            "  and mc.methodName != '<init>'\n" +
             "group by mc.methodName\n" +
             "order by mc.methodName;";
 
 
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT = "select mc.*\n" +
             "from method_call mc\n" +
-            "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
-            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "    and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
-            "    and (mc.id = ? or mc.parentId = ?)";
+            "         left join method_definition md on md.id == mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "  and (mc.methodAccess & 1 == 1 or mc.methodAccess & 4 == 4)\n" +
+            "  and (mc.id = ? or mc.parentId = ?)";
 
     public static final String CALLS_TO_MOCK_SELECT_QUERY_BY_PARENT_CHILD_CALLS = "select mc.*\n" +
             "from method_call mc\n" +
-            "         left join parameter subject on subject.value == mc.subject_id\n" +
-            "         left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
-            "where (subject.type is null or subject.type not like 'java.lang%')\n" +
-            "  and (methodAccess & 1 == 1 or methodAccess & 4 == 4)\n" +
+            "         left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
+            "  and (mc.methodAccess & 1 == 1 or mc.methodAccess & 4 == 4)\n" +
             "  and mc.parentId in (select mc.id\n" +
             "                      from method_call mc\n" +
-            "                               left join parameter subject on subject.value == mc.subject_id\n" +
-            "                               left join probe_info pi on subject.probeInfo_id = pi.probeId\n" +
-            "                      where (subject.type is null or subject.type not like 'java.lang%')\n" +
+            "                               left join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "                      where (md.ownerType is null or md.ownerType not like 'java.lang%')\n" +
             "                        and ((mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
             "                              mc.subject_id = ? and mc.threadId = ?)\n" +
             "                          or (mc.parentId >= ? and mc.returnDataEvent < ? and entryProbe_id > ? and\n" +
-            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and mc.threadId = ?)))";
+            "                              mc.isStaticCall = true and mc.usesFields = true and mc.subject_id != 0 and\n" +
+            "                              mc.threadId = ?)))";
     public static final String TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ?\n" +
-            "  and mc.methodName = ?" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "  and mc.methodName = ?\n" +
             "  and mc.methodAccess & 1 == 1\n" +
-            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50";
     public static final String TEST_CANDIDATE_BY_ALL_METHOD_SELECT = "select tc.*\n" +
             "from test_candidate tc\n" +
-            "         join parameter p on p.value = testSubject_id\n" +
             "         join method_call mc on mc.id = mainMethod_id\n" +
-            "where p.type = ?\n" +
-            "  and mc.methodName = ?" +
+            "join method_definition md on md.id = mc.methodDefinitionId\n" +
+            "where md.ownerType = ?\n" +
+            "  and mc.methodName = ?\n" +
             "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
@@ -108,21 +108,22 @@ public class DaoService {
     private final Dao<MethodDefinition, Long> methodDefinitionsDao;
     private final Dao<ClassDefinition, Long> classDefinitionsDao;
     private final Dao<IncompleteMethodCallExpression, Long> incompleteMethodCallExpressionDao;
-    private final Dao<Parameter, Long> parameterDao;
+    //    private final Dao<Parameter, Long> parameterDao;
     private final Dao<LogFile, Long> logFilesDao;
     private final Dao<ArchiveFile, String> archiveFileDao;
     private final Dao<ThreadState, Integer> threadStateDao;
     private final Dao<ProbeInfo, Long> probeInfoDao;
     private final Dao<TestCandidateMetadata, Long> testCandidateDao;
-    private String fieldA;
+    private final ParameterProvider parameterProvider;
 
-    public DaoService(ConnectionSource connectionSource) throws SQLException {
+    public DaoService(ConnectionSource connectionSource, ParameterProvider parameterProvider) throws SQLException {
         this.connectionSource = connectionSource;
+        this.parameterProvider = parameterProvider;
 
         // instantiate the DAO to handle Account with String id
         testCandidateDao = DaoManager.createDao(connectionSource, TestCandidateMetadata.class);
         probeInfoDao = DaoManager.createDao(connectionSource, ProbeInfo.class);
-        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
+//        parameterDao = DaoManager.createDao(connectionSource, Parameter.class);
         logFilesDao = DaoManager.createDao(connectionSource, LogFile.class);
         archiveFileDao = DaoManager.createDao(connectionSource, ArchiveFile.class);
         methodCallExpressionDao = DaoManager.createDao(connectionSource, MethodCallExpression.class);
@@ -258,7 +259,8 @@ public class DaoService {
         if (converted.getMainMethod() != null && !converted.getMainMethod().getMethodName().equals("<init>")) {
             com.insidious.plugin.pojo.MethodCallExpression mainMethodCall = converted.getMainMethod();
             com.insidious.plugin.pojo.Parameter mainMethodReturnValue = mainMethodCall.getReturnValue();
-            if (mainMethodReturnValue != null && mainMethodReturnValue.getType()!=null && !mainMethodReturnValue.getType().equals("V")) {
+            if (mainMethodReturnValue != null && mainMethodReturnValue.getType() != null && !mainMethodReturnValue.getType()
+                    .equals("V")) {
 
                 // deserialize and compare objects
                 byte[] serializedBytes = mainMethodReturnValue.getProb().getSerializedValue();
@@ -516,8 +518,8 @@ public class DaoService {
                             "       stdev(mc.callTimeNano / 1000) as stddev,\n" +
                             "       avg(mc.callTimeNano / 1000) as avg\n" +
                             "from method_call mc\n" +
-                            "         join parameter subject on mc.subject_id = subject.value\n" +
-                            "where subject.type = ?\n" +
+                            " join method_definition md on md.id = mc.methodDefinitionId\n" +
+                            "where md.ownerType = ?\n" +
                             "group by mc.methodName\n" +
                             "order by mc.methodName;", className
             );
@@ -875,21 +877,26 @@ public class DaoService {
     }
 
     public List<Parameter>
-    getParameterByValue(Collection<Long> values) throws Exception {
+    getParameterByValue(Collection<Long> values) {
         if (values.size() == 0) {
             return Collections.emptyList();
         }
 
-        String query = "select * from parameter where value in (" + StringUtils.join(values, ",") + ")";
+//        String query = "select * from parameter where value in (" + StringUtils.join(values, ",") + ")";
 
-        GenericRawResults<Parameter> queryResult = parameterDao.queryRaw(query, parameterDao.getRawRowMapper());
-        List<Parameter> resultList = queryResult.getResults();
-        queryResult.close();
-        if (resultList.size() == 0) {
-            return Collections.emptyList();
-        }
+        return values.stream()
+                .filter(e -> e != 0)
+                .map(parameterProvider::getParameterByValue)
+                .collect(Collectors.toList());
 
-        return new ArrayList<>(resultList);
+//        GenericRawResults<Parameter> queryResult = parameterDao.queryRaw(query, parameterDao.getRawRowMapper());
+//        List<Parameter> resultList = queryResult.getResults();
+//        queryResult.close();
+//        if (resultList.size() == 0) {
+//            return Collections.emptyList();
+//        }
+
+//        return new ArrayList<>(resultList);
     }
 
     public List<DataEventWithSessionId>
@@ -973,11 +980,11 @@ public class DaoService {
         if (value == 0) {
             return null;
         }
-        List<Parameter> parameterList = parameterDao.queryForEq("value", value);
-        if (parameterList.size() == 0) {
-            return null;
-        }
-        Parameter parameter = parameterList.get(0);
+//        List<Parameter> parameterList = parameterDao.queryForEq("value", value);
+//        if (parameterList.size() == 0) {
+//            return null;
+//        }
+        Parameter parameter = parameterProvider.getParameterByValue(value);
         com.insidious.plugin.pojo.Parameter convertedParameter = Parameter.toParameter(parameter);
 
         DataEventWithSessionId dataEvent = this.getDataEventById(parameter.getEventId());
@@ -1090,70 +1097,6 @@ public class DaoService {
     }
 
 
-    public void createOrUpdateParameter(Collection<com.insidious.plugin.pojo.Parameter> parameterList) {
-        try {
-//            int i = 0;
-//            int total = parameterList.size();
-//            Parameter newParam = new Parameter();
-            long start = new Date().getTime();
-
-
-            List<Parameter> daoParamList = parameterList.stream()
-                    .map(Parameter::fromParameter)
-                    .collect(Collectors.toList());
-            try {
-                parameterDao.executeRaw("DELETE FROM parameter");
-            } catch (Exception e) {
-                logger.warn("Failed to truncate parameter table: " + e.getMessage() + " [" + "]", e);
-                return;
-            }
-            int createdCount = parameterDao.create(daoParamList);
-//            for (com.insidious.plugin.pojo.Parameter parameter : parameterList) {
-//                if (i % 100 == 0) {
-//                    checkProgressIndicator(null, i + " / " + total);
-//                }
-//                i++;
-//                newParam.setContainer(parameter.isContainer());
-//                newParam.setException(parameter.isException());
-//                newParam.setProb_id(parameter.getProb());
-//                newParam.setType(parameter.getType());
-//                List<com.insidious.plugin.pojo.Parameter> templateMap1 = parameter.getTemplateMap();
-//                List<Parameter> transformedTemplateMap = new ArrayList<>();
-//                for (com.insidious.plugin.pojo.Parameter param : templateMap1) {
-//                    transformedTemplateMap.add(Parameter.fromParameter(param));
-//                }
-//                newParam.setNames(parameter.getNames());
-//                newParam.setTemplateMap(transformedTemplateMap);
-//                newParam.setProbeInfo_id(parameter.getProbeInfo());
-//                newParam.setValue(parameter.getValue());
-//
-//                parameterDao.createOrUpdate(newParam);
-//            }
-            long end = new Date().getTime();
-            long timeInSeconds = (end - start) / 1000;
-            if (timeInSeconds == 0) {
-                timeInSeconds = 1;
-            }
-            logger.warn("updated " + parameterList.size() + " parameters took [" + timeInSeconds + "] seconds" +
-                    " => " + parameterList.size() / timeInSeconds + " params/second");
-        } catch (Exception e) {
-            logger.error("failed to save parameters: " + e.getMessage(), e);
-            e.printStackTrace();
-        }
-    }
-
-//    public List<com.insidious.plugin.pojo.Parameter> getParametersByType(String typeName) {
-//        try {
-//            return parameterDao.queryForEq("type", typeName)
-//                    .stream()
-//                    .map(Parameter::toParameter)
-//                    .collect(Collectors.toList());
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            return Collections.emptyList();
-//        }
-//    }
-
     public long getMaxCallId() {
         try {
             long result = methodCallExpressionDao.queryRawValue("select max(id) from method_call");
@@ -1167,27 +1110,6 @@ public class DaoService {
     public void close() throws Exception {
         connectionSource.close();
     }
-
-//    public List<String> getPackageNames() {
-//        List<String> packageList = new LinkedList<>();
-//
-//        try {
-//            GenericRawResults<Object[]> parameterIdList = parameterDao
-//                    .queryRaw("select distinct(type) from parameter order by type;", new DataType[]{DataType.STRING});
-//
-//            for (Object[] objects : parameterIdList) {
-//                String className = (String) objects[0];
-//                packageList.add(className);
-//            }
-//            parameterIdList.close();
-//
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return Collections.emptyList();
-//        }
-//
-//        return packageList;
-//    }
 
     public List<LogFile> getLogFiles() {
         try {
@@ -1314,7 +1236,7 @@ public class DaoService {
 
         try {
 
-            GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
+            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
                     .queryRaw(TEST_CANDIDATE_BY_PUBLIC_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
                             methodName);
 
@@ -1340,7 +1262,7 @@ public class DaoService {
 
         try {
 
-            GenericRawResults<TestCandidateMetadata> parameterIds = parameterDao
+            GenericRawResults<TestCandidateMetadata> parameterIds = testCandidateDao
                     .queryRaw(TEST_CANDIDATE_BY_ALL_METHOD_SELECT, testCandidateDao.getRawRowMapper(), className,
                             methodName);
 
@@ -1378,7 +1300,8 @@ public class DaoService {
         // for static classes we wont have a constructor call captured
         if (callListFromDb.size() == 0) {
 
-            List<Parameter> parametersOfSameType = parameterDao.queryForEq("type", parameter.getType());
+//            List<Parameter> parametersOfSameType = parameterDao.queryForEq("type", parameter.getType());
+            List<Parameter> parametersOfSameType = new ArrayList<>();
             if (parametersOfSameType.size() > 1) {
 
                 List<Parameter> theOtherParameter = parametersOfSameType.stream()
@@ -1426,11 +1349,8 @@ public class DaoService {
         testCandidate.setEntryProbeIndex(constructorMethodExpression.getEntryProbe_id());
         testCandidate.setMainMethod(constructorMethodExpression.getId());
 
-        com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata constructorCandidate
-                = convertTestCandidateMetadata(testCandidate, true);
 
-
-        return constructorCandidate;
+        return convertTestCandidateMetadata(testCandidate, true);
 
 
     }
@@ -1564,14 +1484,6 @@ public class DaoService {
         daoThreadState.setValueStack(gson.toJson(threadState.getValueStack()));
         daoThreadState.setNextNewObjectStack(gson.toJson(threadState.getNextNewObjectTypeStack()));
         threadStateDao.createOrUpdate(daoThreadState);
-    }
-
-    public String getFieldA() {
-        return fieldA;
-    }
-
-    public void setFieldA(String fieldA) {
-        this.fieldA = fieldA;
     }
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {

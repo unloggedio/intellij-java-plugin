@@ -100,4 +100,7 @@ public class ChronicleVariableContainer {
     }
 
 
+    public void close() {
+        parameterMap.close();
+    }
 }

@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 public class AgentResponseComponent {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = false;
+    private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
     private final String oldResponse;
     private final String agentResponse;
     private final InsidiousService insidiousService;

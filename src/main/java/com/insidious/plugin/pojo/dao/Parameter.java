@@ -6,7 +6,9 @@ import com.insidious.plugin.util.Strings;
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -21,7 +23,7 @@ public class Parameter {
      * Value is either a long number or a string value if the value was actually a Ljava/lang/String
      */
     @DatabaseField(id = true)
-    Long value;
+    long value;
     @DatabaseField
     String type;
     @DatabaseField
@@ -41,6 +43,9 @@ public class Parameter {
     public static Parameter fromParameter(com.insidious.plugin.pojo.Parameter e) {
         if (e == null) {
             return null;
+        }
+        if (e.getValue() == 0) {
+            return new Parameter();
         }
         Parameter newParam = new Parameter();
         newParam.setContainer(e.isContainer());
@@ -147,7 +152,7 @@ public class Parameter {
         this.names = Strings.join(names.stream().filter(e -> e.length() > 1).collect(Collectors.toList()), ",");
     }
 
-    public Long getValue() {
+    public long getValue() {
         return value;
     }
 
@@ -159,8 +164,8 @@ public class Parameter {
         return eventId;
     }
 
-    public void setEventId(DataEventWithSessionId eventId) {
-        this.eventId = eventId.getEventId();
+    public void setEventId(DataEventWithSessionId dataEvent) {
+        this.eventId = dataEvent.getEventId();
     }
 
     public int getProbeInfo_id() {
@@ -178,13 +183,13 @@ public class Parameter {
 
         Parameter parameter = (Parameter) o;
 
-        if (value != null ? !value.equals(parameter.value) : parameter.value != null) return false;
+        if (value != parameter.value) return false;
         return type != null ? type.equals(parameter.type) : parameter.type == null;
     }
 
     @Override
     public int hashCode() {
-        int result = value != null ? value.hashCode() : 0;
+        int result = (int) value;
         result = 31 * result + (type != null ? type.hashCode() : 0);
         return result;
     }
