@@ -91,7 +91,6 @@ public class MethodExecutorComponent {
             );
             return;
         }
-        clearResponsePanel();
         JvmParameter[] parameters = null;
         if (method != null) {
             parameters = method.getParameters();
