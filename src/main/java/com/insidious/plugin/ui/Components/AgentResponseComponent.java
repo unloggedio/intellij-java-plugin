@@ -40,8 +40,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -52,16 +52,16 @@ public class AgentResponseComponent {
     private final String oldResponse;
     private final String agentResponse;
     private final InsidiousService insidiousService;
-    private Map<String, String> parameters;
     private final TestCandidateMetadata testCandidateMetadata;
     private final AgentCommandResponse agentCommandResponse;
     private final boolean MOCK_MODE = false;
     String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
-//    String s1 = "";
+    //    String s1 = "";
     String d1 = "1";
     String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
-//    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+    //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
     String d2 = "1";
+    private Map<String, String> parameters;
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel topPanel;
@@ -75,8 +75,8 @@ public class AgentResponseComponent {
     private JPanel topP;
     private JButton closeButton;
     private JPanel tableParent;
-    private JPanel inputsParent;
-    private JPanel InputBorderParent;
+    private JPanel methodArgumentsPanel;
+    //    private JPanel InputBorderParent;
     private JPanel identifierPanel;
     private JPanel statusPanel;
     private JButton acceptButton;
@@ -95,18 +95,17 @@ public class AgentResponseComponent {
         this.parameters = parameters;
 
         if (MOCK_MODE) {
-            if(alt) {
+            if (alt) {
                 this.oldResponse = s1;
                 this.agentResponse = s2;
-            }
-            else
-            {
+            } else {
                 this.oldResponse = d1;
                 this.agentResponse = d2;
             }
-            tryTestDiff(this.oldResponse,this.agentResponse);
+            tryTestDiff(this.oldResponse, this.agentResponse);
         } else {
-            this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            this.oldResponse = new String(
+                    testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
             this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
             computeDifferences();
         }
@@ -249,15 +248,17 @@ public class AgentResponseComponent {
     }
 
     private void renderTableWithDifferences(List<DifferenceInstance> differenceInstances) {
-        CompareTableModel newModel = new CompareTableModel(differenceInstances,this.mainTable);
+        CompareTableModel newModel = new CompareTableModel(differenceInstances, this.mainTable);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
+        this.mainTable.repaint();
     }
 
     private void renderTableForResponse(Map<String, Object> rightOnly) {
         ResponseMapTable newModel = new ResponseMapTable(rightOnly);
         this.mainTable.setModel(newModel);
         this.mainTable.revalidate();
+        this.mainTable.repaint();
     }
 
     public Map<String, Object> flatten(Map<String, Object> map) {
@@ -324,34 +325,31 @@ public class AgentResponseComponent {
         return differenceInstances;
     }
 
-    private void loadInputTree()
-    {
-        this.InputBorderParent.removeAll();
-        if(MOCK_MODE)
-        {
+    private void loadInputTree() {
+        this.methodArgumentsPanel.removeAll();
+        if (MOCK_MODE) {
             this.parameters = new TreeMap<>();
-            this.parameters.put("ival1","1");
-            this.parameters.put("eval",s1);
+            this.parameters.put("ival1", "1");
+            this.parameters.put("eval", s1);
         }
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        for(String key : this.parameters.keySet())
-        {
-            DefaultMutableTreeNode node = buildJsonTree(this.parameters.get(key),key);
+        for (String key : this.parameters.keySet()) {
+            DefaultMutableTreeNode node = buildJsonTree(this.parameters.get(key), key);
             inputRoot.add(node);
         }
 
-        this.InputBorderParent.setLayout(new GridLayout(1, 1));
+        this.methodArgumentsPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
         constraints.setRow(1);
         JTree inputTree = new Tree(inputRoot);
         JScrollPane scrollPane = new JBScrollPane(inputTree);
         scrollPane.setBorder(new EtchedBorder());
-        this.InputBorderParent.setPreferredSize(scrollPane.getSize());
-        this.InputBorderParent.add(scrollPane, BorderLayout.CENTER);
+        this.methodArgumentsPanel.setPreferredSize(scrollPane.getSize());
+        this.methodArgumentsPanel.add(scrollPane, BorderLayout.CENTER);
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
-        this.InputBorderParent.revalidate();
+        this.methodArgumentsPanel.revalidate();
     }
 
     private DefaultMutableTreeNode buildJsonTree(String source, String name) {
@@ -360,7 +358,7 @@ public class AgentResponseComponent {
         } else if (source.startsWith("[")) {
             return handleArray(new JSONArray(source), new DefaultMutableTreeNode(name));
         } else {
-            return new DefaultMutableTreeNode(name+" = "+source);
+            return new DefaultMutableTreeNode(name + " = " + source);
         }
     }
 
@@ -407,9 +405,8 @@ public class AgentResponseComponent {
         return root;
     }
 
-    public void setBorderTitle(int x)
-    {
-        TitledBorder b  = new TitledBorder("Input Set "+x);
+    public void setBorderTitle(int x) {
+        TitledBorder b = new TitledBorder("Input Set " + x);
         this.borderParent.setBorder(b);
     }
 }

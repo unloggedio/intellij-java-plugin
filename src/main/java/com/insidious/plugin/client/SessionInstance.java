@@ -1817,11 +1817,14 @@ public class SessionInstance {
     }
 
     private String getFileStreamFromArchive(File sessionArchive, String archiveFile) throws IOException, FailedToReadClassWeaveException {
-        logger.warn("Read events from file [1826]: " + archiveFile);
+        long start = new Date().getTime();
         String eventFile = createFileOnDiskFromSessionArchiveFileV2(sessionArchive, archiveFile);
         if (eventFile == null) {
             throw new FailedToReadClassWeaveException(archiveFile + " not found in " + sessionArchive.getName());
         }
+
+        long end = new Date().getTime();
+        logger.warn("Read events from file [1826]: " + archiveFile + " took " + (end - start) + " ms");
         return eventFile;
     }
 
@@ -2472,6 +2475,8 @@ public class SessionInstance {
             DataInfo probeInfo = probeInfoIndex.get(eventBlock.probeId());
             if (probeInfo == null) {
                 try {
+                    logger.warn(
+                            "probe info is null, reading latest classWeaveInfo: " + currentSessionArchiveBeingProcessed.getName());
                     readClassWeaveInfoStream(currentSessionArchiveBeingProcessed);
                     probeInfo = probeInfoIndex.get(eventBlock.probeId());
                 } catch (FailedToReadClassWeaveException ex) {
@@ -3458,7 +3463,7 @@ public class SessionInstance {
         long timeInMs = (new Date().getTime() - start.getTime()) + 1;
         long eventsPerSecond = 1000 * (eventsSublist.size() / timeInMs);
         logger.warn(
-                "[" + "] Took [" + timeInMs + " ms] for [" + eventsSublist.size() + " events" +
+                "[3466] Took [" + timeInMs + " ms] for [" + eventsSublist.size() + " events" +
                         "]  => " + eventsPerSecond + " EPS");
         logger.debug("parameterContainer = " + parameterContainer.all()
                 .size() + ",  eventsToSave = " + eventsToSave.size() + ",  probesToSave = " + probesToSave.size());
@@ -3564,6 +3569,8 @@ public class SessionInstance {
     private TypeInfoDocument getTypeFromTypeIndex(int typeId) throws FailedToReadClassWeaveException, IOException {
         TypeInfoDocument typeInfoDocument = typeInfoIndex.get(typeId);
         if (typeInfoDocument == null) {
+            logger.warn(
+                    "typeInfo is null for [" + typeId + "] reading latest classWeaveInfo from: " + currentSessionArchiveBeingProcessed.getName());
             readClassWeaveInfoStream(this.currentSessionArchiveBeingProcessed);
             typeInfoDocument = typeInfoIndex.get(typeId);
             if (typeInfoDocument == null) {

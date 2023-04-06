@@ -4,7 +4,6 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.lang.jvm.JvmParameter;
@@ -27,6 +26,7 @@ public class MethodExecutorComponent {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
+    private final boolean MOCK_MODE = false;
     private PsiMethod methodElement;
     private JPanel rootContent;
     private JButton executeAndShowDifferencesButton;
@@ -45,7 +45,6 @@ public class MethodExecutorComponent {
     private int componentCounter = 0;
     private int mockCallCount = 2;
     private boolean alt = true;
-    private final boolean MOCK_MODE=false;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -73,13 +72,10 @@ public class MethodExecutorComponent {
         setupScrollablePanel();
     }
 
-    public void executeAll(PsiMethod method)
-    {
+    public void executeAll(PsiMethod method) {
         clearResponsePanel();
-        if(MOCK_MODE)
-        {
-            for(int i=0;i<mockCallCount;i++)
-            {
+        if (MOCK_MODE) {
+            for (int i = 0; i < mockCallCount; i++) {
                 tryTestDiff();
             }
             return;
@@ -114,7 +110,7 @@ public class MethodExecutorComponent {
     }
 
     public void clearResponsePanel() {
-        this.componentCounter=0;
+        this.componentCounter = 0;
         this.scrollablePanel.removeAll();
         this.scrollablePanel.revalidate();
     }
@@ -138,7 +134,8 @@ public class MethodExecutorComponent {
                         false);
 
 
-        candidateCountLabel.setText(methodTestCandidates.size() + " set of inputs for " + methodElement.getName());        TestCandidateMetadata mostRecentTestCandidate = null;
+        candidateCountLabel.setText(methodTestCandidates.size() + " set of inputs for " + methodElement.getName());
+        TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         if (methodTestCandidates.size() > 0) {
             mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
@@ -191,9 +188,10 @@ public class MethodExecutorComponent {
 
     public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
                             Map<String, String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
-                parameters,alt);
-        alt=!alt;
+        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse,
+                this.insidiousService,
+                parameters, alt);
+        alt = !alt;
         response.setBorderTitle(++this.componentCounter);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
