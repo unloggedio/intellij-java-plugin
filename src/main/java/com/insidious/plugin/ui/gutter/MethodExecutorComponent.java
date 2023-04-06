@@ -46,10 +46,9 @@ public class MethodExecutorComponent {
     private ScrollablePanel scrollablePanel;
     private int componentCounter = 0;
     private int mockCallCount = 1;
-    private boolean alt = false;
-
-    private ArrayList<Boolean> currentDiffList = new ArrayList<>();
-
+    private boolean alt = true;
+    private int callCount = 0;
+    private boolean isDifferent=false;
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
 
@@ -78,21 +77,13 @@ public class MethodExecutorComponent {
 
     public void executeAll(PsiMethod method)
     {
-        this.currentDiffList = new ArrayList<>();
+        this.isDifferent=false;
         clearResponsePanel();
         if (MOCK_MODE) {
+            callCount=mockCallCount;
             for (int i = 0; i < mockCallCount; i++) {
                 tryTestDiff();
             }
-            if(this.currentDiffList.size()>0 && this.currentDiffList.contains(true))
-            {
-                insidiousService.getExecutionRecord().put(methodElement.getName(),true);
-            }
-            else
-            {
-                insidiousService.getExecutionRecord().put(methodElement.getName(),false);
-            }
-            DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
             return;
         }
         if (methodTestCandidates.size() == 0) {
@@ -102,6 +93,7 @@ public class MethodExecutorComponent {
             );
             return;
         }
+        callCount=methodTestCandidates.size();
         JvmParameter[] parameters = null;
         if (method != null) {
             parameters = method.getParameters();
@@ -118,20 +110,9 @@ public class MethodExecutorComponent {
                     String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
                     parameterInputMap.put(methodParameter.getName(), parameterValue);
                 }
-
             }
             execute(candidateMetadata, methodArgumentValues, parameterInputMap);
         }
-        System.out.println("Current Diff LIST - "+currentDiffList.toString());
-        if(this.currentDiffList.size()>0 && this.currentDiffList.contains(true))
-        {
-            insidiousService.getExecutionRecord().put(methodElement.getName(),true);
-        }
-        else
-        {
-            insidiousService.getExecutionRecord().put(methodElement.getName(),false);
-        }
-        DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
     }
 
     public void clearResponsePanel() {
@@ -216,11 +197,26 @@ public class MethodExecutorComponent {
         AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
                 parameters,alt);
         boolean isDiff = response.computeDifferences();
-        this.currentDiffList.add(isDiff);
         alt=!alt;
         response.setBorderTitle(++this.componentCounter);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
+        if(isDiff)
+        {
+            this.isDifferent=true;
+        }
+        if((componentCounter)==callCount)
+        {
+            if(this.isDifferent)
+            {
+                insidiousService.getExecutionRecord().put(methodElement.getName(),true);
+            }
+            else
+            {
+                insidiousService.getExecutionRecord().put(methodElement.getName(),false);
+            }
+            DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
+        }
     }
 
     //temporary function to test mock differences between responses (json)

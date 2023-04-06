@@ -59,7 +59,6 @@ public class LineHighlighter implements LineMarkerProvider {
         Project project = method.getProject();
         InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class)
                 .getGutterStateFor(method);
-        System.out.println("Got State : "+state.toString()+" for method "+method.getName());
         switch (state)
         {
             case NO_DIFF:

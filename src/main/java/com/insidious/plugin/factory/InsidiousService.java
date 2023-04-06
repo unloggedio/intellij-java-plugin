@@ -1191,7 +1191,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     {
         String path = Constants.VIDEOBUG_AGENT_PATH.toString();
         File agentFile = new File(path);
-        System.out.println("Does agent exist? " + agentFile.exists());
         return agentFile.exists();
     }
 
