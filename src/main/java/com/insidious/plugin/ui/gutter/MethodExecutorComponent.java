@@ -6,10 +6,12 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.util.LoggerUtil;
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
@@ -43,8 +45,10 @@ public class MethodExecutorComponent {
     private List<TestCandidateMetadata> methodTestCandidates;
     private ScrollablePanel scrollablePanel;
     private int componentCounter = 0;
-    private int mockCallCount = 2;
-    private boolean alt = true;
+    private int mockCallCount = 1;
+    private boolean alt = false;
+
+    private ArrayList<Boolean> currentDiffList = new ArrayList<>();
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -72,12 +76,23 @@ public class MethodExecutorComponent {
         setupScrollablePanel();
     }
 
-    public void executeAll(PsiMethod method) {
+    public void executeAll(PsiMethod method)
+    {
+        this.currentDiffList = new ArrayList<>();
         clearResponsePanel();
         if (MOCK_MODE) {
             for (int i = 0; i < mockCallCount; i++) {
                 tryTestDiff();
             }
+            if(this.currentDiffList.size()>0 && this.currentDiffList.contains(true))
+            {
+                insidiousService.getExecutionRecord().put(methodElement.getName(),true);
+            }
+            else
+            {
+                insidiousService.getExecutionRecord().put(methodElement.getName(),false);
+            }
+            DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
             return;
         }
         if (methodTestCandidates.size() == 0) {
@@ -107,6 +122,16 @@ public class MethodExecutorComponent {
             }
             execute(candidateMetadata, methodArgumentValues, parameterInputMap);
         }
+        System.out.println("Current Diff LIST - "+currentDiffList.toString());
+        if(this.currentDiffList.size()>0 && this.currentDiffList.contains(true))
+        {
+            insidiousService.getExecutionRecord().put(methodElement.getName(),true);
+        }
+        else
+        {
+            insidiousService.getExecutionRecord().put(methodElement.getName(),false);
+        }
+        DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
     }
 
     public void clearResponsePanel() {
@@ -188,10 +213,11 @@ public class MethodExecutorComponent {
 
     public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
                             Map<String, String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse,
-                this.insidiousService,
-                parameters, alt);
-        alt = !alt;
+        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
+                parameters,alt);
+        boolean isDiff = response.computeDifferences();
+        this.currentDiffList.add(isDiff);
+        alt=!alt;
         response.setBorderTitle(++this.componentCounter);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();

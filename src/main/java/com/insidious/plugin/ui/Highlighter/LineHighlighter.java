@@ -1,13 +1,16 @@
 package com.insidious.plugin.ui.Highlighter;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.UIUtils;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.sun.istack.NotNull;
 import org.jetbrains.annotations.Nls;
 
+import javax.swing.*;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,10 +46,30 @@ public class LineHighlighter implements LineMarkerProvider {
                     psiMethod.isConstructor()) {
                 return null;
             }
+            Icon gutter_Icon = getIconForState(psiMethod);
             return new LineMarkerInfo<>((PsiIdentifier) element,
-                    element.getTextRange(), UIUtils.RE_EXECUTE, null, navHandler,
+                    element.getTextRange(), gutter_Icon, null, navHandler,
                     GutterIconRenderer.Alignment.LEFT, accessibleNameProvider);
         }
         return null;
+    }
+
+    public Icon getIconForState(PsiMethod method)
+    {
+        Project project = method.getProject();
+        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class)
+                .getGutterStateFor(method);
+        System.out.println("Got State : "+state.toString()+" for method "+method.getName());
+        switch (state)
+        {
+            case NO_DIFF:
+                return UIUtils.NO_DIFF_GUTTER;
+            case DIFF:
+                return UIUtils.DIFF_GUTTER;
+            case NO_AGENT:
+                return UIUtils.NO_AGENT_GUTTER;
+            default:
+                return UIUtils.RE_EXECUTE;
+        }
     }
 }

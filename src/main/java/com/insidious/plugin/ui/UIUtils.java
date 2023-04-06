@@ -48,6 +48,9 @@ public class UIUtils {
     public static Icon TEST_TUBE_ICON_SVG = IconLoader.getIcon("/icons/svg/test_tube_icon_green.svg", UIUtils.class);
     public static Icon TEST_TUBE_FILL = IconLoader.getIcon("/icons/svg/test_tube_unlogged.svg", UIUtils.class);
     public static Icon RE_EXECUTE = IconLoader.getIcon("/icons/svg/re_execute.svg", UIUtils.class);
+    public static Icon DIFF_GUTTER = IconLoader.getIcon("/icons/svg/diff_gutter.svg", UIUtils.class);
+    public static Icon NO_DIFF_GUTTER = IconLoader.getIcon("/icons/svg/no_diff_gutter.svg", UIUtils.class);
+    public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);

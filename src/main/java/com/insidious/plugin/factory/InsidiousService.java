@@ -79,6 +79,7 @@ import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
@@ -1150,6 +1151,48 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
             this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
             this.methodExecutorToolWindow.executeAll(method);
         }
+    }
+    private Map<String,Boolean> executionRecord = new TreeMap<>();
+
+    public enum GUTTER_STATE {NO_AGENT,EXECUTE,DIFF,NO_DIFF}
+
+    public GUTTER_STATE getGutterStateFor(PsiMethod method)
+    {
+        //check for agent here before other comps
+        if(!doesAgentExist())
+        {
+            return GUTTER_STATE.NO_AGENT;
+        }
+        if(executionRecord.containsKey(method.getName()))
+        {
+            Boolean value = executionRecord.get(method.getName());
+            //true if it has differences, false if no differences
+            if(value)
+            {
+                return GUTTER_STATE.DIFF;
+            }
+            else
+            {
+                return GUTTER_STATE.NO_DIFF;
+            }
+        }
+        else
+        {
+            return GUTTER_STATE.EXECUTE;
+        }
+    }
+
+    public Map<String,Boolean> getExecutionRecord()
+    {
+        return this.executionRecord;
+    }
+
+    public boolean doesAgentExist()
+    {
+        String path = Constants.VIDEOBUG_AGENT_PATH.toString();
+        File agentFile = new File(path);
+        System.out.println("Does agent exist? " + agentFile.exists());
+        return agentFile.exists();
     }
 
 }

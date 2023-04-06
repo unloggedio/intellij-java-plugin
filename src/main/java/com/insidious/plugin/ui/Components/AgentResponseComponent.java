@@ -49,8 +49,8 @@ public class AgentResponseComponent {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
-    private final String oldResponse;
-    private final String agentResponse;
+    private String oldResponse;
+    private String agentResponse;
     private final InsidiousService insidiousService;
     private final TestCandidateMetadata testCandidateMetadata;
     private final AgentCommandResponse agentCommandResponse;
@@ -81,6 +81,7 @@ public class AgentResponseComponent {
     private JPanel statusPanel;
     private JButton acceptButton;
     private JPanel centerTop;
+    private boolean alt;
 
     public AgentResponseComponent(
             TestCandidateMetadata testCandidateMetadata,
@@ -93,22 +94,8 @@ public class AgentResponseComponent {
         this.agentCommandResponse = agentCommandResponse;
         this.insidiousService = insidiousService;
         this.parameters = parameters;
+        this.alt=alt;
 
-        if (MOCK_MODE) {
-            if (alt) {
-                this.oldResponse = s1;
-                this.agentResponse = s2;
-            } else {
-                this.oldResponse = d1;
-                this.agentResponse = d2;
-            }
-            tryTestDiff(this.oldResponse, this.agentResponse);
-        } else {
-            this.oldResponse = new String(
-                    testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
-            computeDifferences();
-        }
         loadInputTree();
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
@@ -172,16 +159,30 @@ public class AgentResponseComponent {
     }
 
     //constructor to take string difference and parameter/mce from candidate
-    public void computeDifferences() {
-        calculateDifferences(this.oldResponse, this.agentResponse);
+    public boolean computeDifferences() {
+        if (MOCK_MODE) {
+            if(alt) {
+                this.oldResponse = s1;
+                this.agentResponse = s2;
+            }
+            else
+            {
+                this.oldResponse = d1;
+                this.agentResponse = d2;
+            }
+            return tryTestDiff(this.oldResponse,this.agentResponse);
+        } else {
+            this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
+            return calculateDifferences(this.oldResponse, this.agentResponse);
+        }
     }
 
-    public void tryTestDiff(String s1, String s2) {
-
-        calculateDifferences(s1, s2);
+    public boolean tryTestDiff(String s1, String s2) {
+        return calculateDifferences(s1, s2);
     }
 
-    private void calculateDifferences(String s1, String s2) {
+    private boolean calculateDifferences(String s1, String s2) {
         ObjectMapper om = new ObjectMapper();
         try {
             Map<String, Object> m1;
@@ -217,15 +218,17 @@ public class AgentResponseComponent {
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
                 this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
-                return;
+                return false;
             } else if (s1 == null || s1.isEmpty()) {
                 this.statusLabel.setText("No previous Candidate found, current response.");
                 renderTableForResponse(rightOnly);
+                return true;
             } else {
                 //merge left and right differneces
                 //or iterate and create a new pojo that works with 1 table model
                 this.statusLabel.setText("Differences Found.");
                 renderTableWithDifferences(differenceInstances);
+                return true;
             }
         } catch (Exception e) {
             System.out.println("TestDiff Exception: " + e);
@@ -235,7 +238,7 @@ public class AgentResponseComponent {
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
                 this.statusLabel.setForeground(UIUtils.green);
                 this.tableParent.setVisible(false);
-                return;
+                return false;
             }
             this.statusLabel.setText("Differences Found.");
             //happens for malformed jsons or primitives.
@@ -244,6 +247,7 @@ public class AgentResponseComponent {
             ArrayList<DifferenceInstance> differenceInstances = new ArrayList<>();
             differenceInstances.add(instance);
             renderTableWithDifferences(differenceInstances);
+            return true;
         }
     }
 
