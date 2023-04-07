@@ -5,7 +5,10 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
+import com.insidious.plugin.ui.Components.CompareControlComponent;
+import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
@@ -13,10 +16,10 @@ import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
-import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -24,32 +27,32 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class MethodExecutorComponent {
+public class MethodExecutorComponent implements MethodExecutionListener{
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final boolean MOCK_MODE = false;
     private PsiMethod methodElement;
     private JPanel rootContent;
+    private JPanel borderParentMain;
+    private JPanel centerPanel;
+    private JPanel topPanel;
     private JButton executeAndShowDifferencesButton;
-    private JPanel executeFromRecordedPanel;
     private JPanel methodParameterContainer;
-    private JPanel executeUsingNewParameterPanel;
-    private JButton executeButton;
     private JLabel candidateCountLabel;
+    private JPanel borderParentScroll;
+    private JPanel diffContentPanel;
+    private JPanel compareViewer;
     private JPanel borderParent;
-    private JPanel topParent;
-    private JPanel responseRenderSection;
-    private JPanel ResponseRendererPanel;
-    private JPanel topAligner;
     private List<TestCandidateMetadata> methodTestCandidates;
-    private ScrollablePanel scrollablePanel;
     private int componentCounter = 0;
     private int mockCallCount = 1;
     private boolean alt = true;
     private int callCount = 0;
-    private boolean isDifferent = false;
+    private boolean isDifferent=false;
+    List<CompareControlComponent> components;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -57,36 +60,54 @@ public class MethodExecutorComponent {
         executeAndShowDifferencesButton.addActionListener(e -> {
             executeAll(methodElement);
         });
-
-//        executeButton.addActionListener(e -> {
-//            List<String> methodArgumentValues = new ArrayList<>();
-//            for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
-//                methodArgumentValues.add(parameterInputComponent.getParameterValue());
-//            }
-//            execute(null, methodArgumentValues);
-//        });
-
-//        executeAndShowDifferencesButton.addActionListener(e -> {
-//            clearResponsePanel();
-//            for(int i=0;i<mockCallCount;i++)
-//            {
-//                tryTestDiff();
-//            }
-//        });
-
-        setupScrollablePanel();
     }
 
-    public void executeAll(PsiMethod method) {
-        this.isDifferent = false;
-        clearResponsePanel();
-        if (MOCK_MODE) {
-            callCount = mockCallCount;
-            for (int i = 0; i < mockCallCount; i++) {
-                tryTestDiff();
-            }
+    public void loadMethodCandidates()
+    {
+        components = new ArrayList<>();
+        this.borderParentScroll.removeAll();
+        if (methodTestCandidates==null || methodTestCandidates.size() == 0) {
+            InsidiousNotification.notifyMessage(
+                    "Please use the agent to record values for replay.",
+                    NotificationType.WARNING
+            );
             return;
         }
+
+        int callToMake = methodTestCandidates.size();
+        int GridRows = 3;
+        if (callToMake > GridRows) {
+            GridRows = callToMake;
+        }
+        GridLayout gridLayout = new GridLayout(GridRows, 1);
+        gridLayout.setVgap(8);
+        JPanel gridPanel = new JPanel(gridLayout);
+        gridPanel.setBorder(JBUI.Borders.empty());
+        for (int i = 0; i < methodTestCandidates.size(); i++) {
+            GridConstraints constraints = new GridConstraints();
+            constraints.setRow(i);
+            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+                    methodTestCandidates.get(i));
+            CompareControlComponent comp = new CompareControlComponent(methodTestCandidates.get(i),
+                    methodArgumentValues,methodElement, this);
+            components.add(comp);
+            gridPanel.add(comp.getComponent(), constraints);
+        }
+
+        gridPanel.setBorder(JBUI.Borders.empty());
+        JScrollPane scrollPane = new JBScrollPane(gridPanel);
+        scrollPane.setBorder(JBUI.Borders.empty());
+        borderParentScroll.setPreferredSize(scrollPane.getSize());
+        borderParentScroll.add(scrollPane, BorderLayout.CENTER);
+        if (callToMake <= 3) {
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        }
+        this.borderParentScroll.revalidate();
+    }
+
+    public void executeAll(PsiMethod method)
+    {
+        this.isDifferent=false;
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
@@ -94,154 +115,239 @@ public class MethodExecutorComponent {
             );
             return;
         }
-        callCount = methodTestCandidates.size();
-        JvmParameter[] parameters = null;
-        if (method != null) {
-            parameters = method.getParameters();
+        loadMethodCandidates();
+        callCount = this.components.size();
+        componentCounter=0;
+        for(CompareControlComponent component : this.components)
+        {
+            execute_save(component.getCandidateMetadata(),component.getMethodArgumentValues(),component);
         }
-        for (TestCandidateMetadata candidateMetadata : methodTestCandidates) {
-            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                    candidateMetadata);
-            logger.info("[EXEC SENDING REQUEST FOR IP] " + methodArgumentValues.toString());
-
-            Map<String, String> parameterInputMap = new TreeMap<>();
-            if (parameters != null) {
-                for (int i = 0; i < parameters.length; i++) {
-                    JvmParameter methodParameter = parameters[i];
-                    String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                    parameterInputMap.put(methodParameter.getName(), parameterValue);
-                }
-            }
-            execute(candidateMetadata, methodArgumentValues, parameterInputMap);
-        }
-    }
-
-    public void clearResponsePanel() {
-        this.componentCounter = 0;
-        this.scrollablePanel.removeAll();
-        this.scrollablePanel.revalidate();
     }
 
     public void refresh() {
         if (methodElement == null) {
             return;
         }
-        ApplicationManager.getApplication().runReadAction(() -> renderForMethod(methodElement));
+        ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
     }
 
-    public void renderForMethod(PsiMethod methodElement) {
-        logger.warn("render method executor for: " + methodElement.getName());
-        this.methodElement = methodElement;
-        JvmParameter[] methodParameters = methodElement.getParameters();
-
-        methodTestCandidates = this.insidiousService
+    public void refreshAndReloadCandidates(PsiMethod method)
+    {
+        this.methodElement = method;
+        List<TestCandidateMetadata> candidates = this.insidiousService
                 .getSessionInstance()
                 .getTestCandidatesForAllMethod(methodElement.getContainingClass().getQualifiedName(),
                         methodElement.getName(),
                         false);
-
-
-        candidateCountLabel.setText(methodTestCandidates.size() + " set of inputs for " + methodElement.getName());
-        TestCandidateMetadata mostRecentTestCandidate = null;
-        List<String> methodArgumentValues = null;
-        if (methodTestCandidates.size() > 0) {
-            mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
-            methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                    mostRecentTestCandidate);
-        }
-
-        methodParameterContainer.removeAll();
-        parameterInputComponents.clear();
-
-        if (methodParameters.length > 0) {
-            methodParameterContainer.setLayout(new GridLayout(0, 1));
-            for (int i = 0; i < methodParameters.length; i++) {
-                JvmParameter methodParameter = methodParameters[i];
-                String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                ParameterInputComponent parameterContainer = new ParameterInputComponent(methodParameter,
-                        parameterValue);
-                parameterInputComponents.add(parameterContainer);
-                methodParameterContainer.add(parameterContainer.getContent());
+        this.methodTestCandidates = deDuplicateList(candidates);
+        if(methodTestCandidates!=null && methodTestCandidates.size()>0) {
+            if(this.components!=null)
+            {
+                if(this.components.size()==0) {
+                    loadMethodCandidates();
+                }
+                else
+                {
+                    mergeComponentList();
+                }
             }
-        } else {
-            JBLabel noParametersLabel = new JBLabel("Method has no parameters");
-            methodParameterContainer.add(noParametersLabel);
+            else
+            {
+                loadMethodCandidates();
+            }
         }
-
+        this.candidateCountLabel.setText(""+components.size()+" candidates for "+method.getName());
     }
 
-    public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues, Map<String, String> parameters) {
+    private void mergeComponentList() {
+        List<Integer> iohashes = new ArrayList<>();
+        for(CompareControlComponent component : this.components)
+        {
+            iohashes.add(component.getHash());
+        }
+        List<TestCandidateMetadata> toAdd = new ArrayList<>();
+        for(TestCandidateMetadata metadata : this.methodTestCandidates)
+        {
+            List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
+            String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            String concat = inputs.toString()+output;
+            int hash = concat.toString().hashCode();
+            if(!iohashes.contains(hash))
+            {
+                toAdd.add(metadata);
+            }
+        }
+        if(toAdd.size()>0)
+        {
+            this.borderParentScroll.removeAll();
+
+            int callToMake = components.size()+toAdd.size();
+            int GridRows = 3;
+            if (callToMake > GridRows) {
+                GridRows = callToMake;
+            }
+            GridLayout gridLayout = new GridLayout(GridRows, 1);
+            gridLayout.setVgap(8);
+            JPanel gridPanel = new JPanel(gridLayout);
+            gridPanel.setBorder(JBUI.Borders.empty());
+            int x=0;
+            for (int i = 0; i < components.size(); i++) {
+                GridConstraints constraints = new GridConstraints();
+                constraints.setRow(i);
+                gridPanel.add(components.get(i).getComponent(), constraints);
+                x++;
+            }
+            for(int j=0;j<toAdd.size();j++)
+            {
+                GridConstraints constraints = new GridConstraints();
+                constraints.setRow(x+j);
+                List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+                        toAdd.get(j));
+                CompareControlComponent comp = new CompareControlComponent(toAdd.get(j),
+                        methodArgumentValues,methodElement, this);
+                components.add(comp);
+                gridPanel.add(comp.getComponent(), constraints);
+            }
+            gridPanel.setBorder(JBUI.Borders.empty());
+            JScrollPane scrollPane = new JBScrollPane(gridPanel);
+            scrollPane.setBorder(JBUI.Borders.empty());
+            borderParentScroll.setPreferredSize(scrollPane.getSize());
+            borderParentScroll.add(scrollPane, BorderLayout.CENTER);
+            if (callToMake <= 3) {
+                scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+            }
+            this.borderParentScroll.revalidate();
+        }
+    }
+
+    public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list)
+    {
+        List<TestCandidateMetadata> resList = new ArrayList<>();
+        Map<Integer,TestCandidateMetadata> ioHashMap = new TreeMap<>();
+        for(TestCandidateMetadata metadata : list)
+        {
+            List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
+            String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            String concat = inputs.toString()+output;
+            int hash = concat.toString().hashCode();
+            if(!ioHashMap.containsKey(hash))
+            {
+                ioHashMap.put(hash,metadata);
+            }
+        }
+        for(int key : ioHashMap.keySet())
+        {
+            resList.add(ioHashMap.get(key));
+        }
+        return resList;
+    }
+
+    public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
+                        CompareControlComponent controlComponent) {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+                    if (agentCommandResponse.getResponseType()!=null && agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
                         InsidiousNotification.notifyMessage(
                                 "Failed to execute method: " + agentCommandResponse.getMessage(),
                                 NotificationType.ERROR
                         );
-                    } else {
-                        renderResponse(testCandidate, agentCommandResponse, parameters);
+                    }
+                    else {
+                        AgentResponseComponent responseComponent = postProcessExecute(testCandidate, agentCommandResponse, controlComponent);
+                        controlComponent.setAndDisplayResponse(responseComponent);
                     }
                 });
     }
 
-    private void renderResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
-                                Map<String, String> parameters) {
-        // render differences table
-        // append to output panel
-//        if (testCandidateMetadata != null) {
-        addResponse(testCandidateMetadata, agentCommandResponse, parameters);
-//        } else {
-//            addResponse(null, String.valueOf(agentCommandResponse.getMethodReturnValue()), parameters);
-//        }
+    public void execute_save(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
+                             CompareControlComponent controlComponent) {
+        insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
+                (agentCommandRequest, agentCommandResponse) -> {
+                    logger.warn("Agent command execution response: " + agentCommandResponse);
+                    if (agentCommandResponse.getResponseType()!=null && agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+                        InsidiousNotification.notifyMessage(
+                                "Failed to execute method: " + agentCommandResponse.getMessage(),
+                                NotificationType.ERROR
+                        );
+                    }
+                    else {
+                        AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate, agentCommandResponse, controlComponent);
+                        controlComponent.setResposeComponent(responseComponent);
+                    }
+                });
+    }
+
+    public AgentResponseComponent postProcessExecute(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
+                                                     CompareControlComponent controlComponent)
+    {
+        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse, this.insidiousService,
+                controlComponent.getParameterMap(),alt);
+        boolean isDiff = response.computeDifferences();
+        alt=!alt;
+        componentCounter++;
+        if(isDiff)
+        {
+            this.isDifferent=true;
+        }
+        if(componentCounter == callCount) {
+            if (this.isDifferent) {
+                insidiousService.getExecutionRecord().put(methodElement.getName(), true);
+            } else {
+                insidiousService.getExecutionRecord().put(methodElement.getName(), false);
+            }
+            DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
+            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+        }
+        return response;
+    }
+
+    public AgentResponseComponent postProcessExecute_save(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
+                                                          CompareControlComponent controlComponent)
+    {
+        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse, this.insidiousService,
+                controlComponent.getParameterMap(),alt);
+        boolean isDiff = response.computeDifferences();
+        alt=!alt;
+        response.setBorderTitle(++this.componentCounter);
+        if(isDiff)
+        {
+            this.isDifferent=true;
+        }
+        if(this.isDifferent)
+        {
+            insidiousService.getExecutionRecord().put(methodElement.getName(),true);
+        }
+        else
+        {
+            insidiousService.getExecutionRecord().put(methodElement.getName(),false);
+        }
+        DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
+        return response;
     }
 
     public JComponent getContent() {
         return rootContent;
     }
 
-    public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
-                            Map<String, String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse,
-                this.insidiousService,
-                parameters, alt);
-        boolean isDiff = response.computeDifferences();
-        alt = !alt;
-        response.setBorderTitle(++this.componentCounter);
-        scrollablePanel.add(response.getComponent(), 0);
-        scrollablePanel.revalidate();
-        if (isDiff) {
-            this.isDifferent = true;
-        }
-        if ((componentCounter) == callCount) {
-            logger.warn("update execution record for: " + methodElement.getName() + " => " + this.isDifferent);
-            insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
-            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
-            DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
-        }
+    public void renderComparission(AgentResponseComponent component)
+    {
+        this.diffContentPanel.removeAll();
+        this.diffContentPanel.setLayout(new GridLayout(1, 1));
+        GridConstraints constraints = new GridConstraints();
+        constraints.setRow(1);
+        this.diffContentPanel.add(component.getComponent(), constraints);
+        this.diffContentPanel.revalidate();
     }
 
-    //temporary function to test mock differences between responses (json)
-    public void tryTestDiff() {
-        try {
-            addResponse(null, null, null);
-        } catch (Exception e) {
-            System.out.println("TestDiff Exception: " + e);
-            e.printStackTrace();
-        }
+    @Override
+    public void ExecuteCandidate(TestCandidateMetadata metadata,
+                                 CompareControlComponent component) {
+        execute(metadata,component.getMethodArgumentValues(),component);
     }
 
-    public void setupScrollablePanel() {
-        scrollablePanel = new ScrollablePanel();
-        scrollablePanel.setLayout(new BoxLayout(scrollablePanel, BoxLayout.Y_AXIS));
-        JBScrollPane scrollPane = new JBScrollPane();
-        scrollPane.setViewportView(scrollablePanel);
-        scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollPane.setBorder(null);
-        scrollPane.setViewportBorder(null);
-
-        this.borderParent.removeAll();
-        borderParent.add(scrollPane, BorderLayout.PAGE_START);
-        this.borderParent.revalidate();
+    @Override
+    public void displayResponse(AgentResponseComponent responseComponent) {
+        renderComparission(responseComponent);
     }
 }

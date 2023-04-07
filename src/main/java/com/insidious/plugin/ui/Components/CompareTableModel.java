@@ -15,11 +15,8 @@ public class CompareTableModel extends AbstractTableModel {
     private final String[] columnNames = {
             "Key", "Old Value", "New Value"
     };
-
     private JTable table;
-
     private boolean headerSetup = false;
-
     private Color defaultColor = null;
     private Color defaultForeground = null;
 
@@ -82,7 +79,7 @@ public class CompareTableModel extends AbstractTableModel {
         {
             try
             {
-                setupHeader();
+                //setupHeader();
             }
             catch (Exception e)
             {
@@ -150,5 +147,10 @@ public class CompareTableModel extends AbstractTableModel {
         column2.setHeaderRenderer(renderer);
         column2.setHeaderValue(newHeader);
         headerSetup = true;
+    }
+
+    @Override
+    public String getColumnName(int column) {
+        return columnNames[column];
     }
 }

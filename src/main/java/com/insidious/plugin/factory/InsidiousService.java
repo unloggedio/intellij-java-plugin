@@ -982,7 +982,7 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        methodExecutorToolWindow.renderForMethod(method);
+        methodExecutorToolWindow.refreshAndReloadCandidates(method);
 
 
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
@@ -1184,7 +1184,7 @@ final public class InsidiousService implements Disposable,
     public void executeWithAgentForMethod(PsiMethod method) {
         if (this.methodExecutorToolWindow != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
-            this.methodExecutorToolWindow.executeAll(method);
+            //this.methodExecutorToolWindow.executeAll(method);
         }
     }
 

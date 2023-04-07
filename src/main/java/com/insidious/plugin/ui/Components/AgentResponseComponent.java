@@ -64,23 +64,16 @@ public class AgentResponseComponent {
     private Map<String, String> parameters;
     private JPanel mainPanel;
     private JPanel borderParent;
-    private JPanel topPanel;
-    private JPanel bottomPanel;
     private JPanel centerPanel;
     private JPanel bottomControlPanel;
     private JButton viewFullButton;
     private JTable mainTable;
     private JLabel statusLabel;
-    private JScrollPane scrollParent;
-    private JPanel topP;
     private JButton closeButton;
     private JPanel tableParent;
     private JPanel methodArgumentsPanel;
-    //    private JPanel InputBorderParent;
-    private JPanel identifierPanel;
-    private JPanel statusPanel;
     private JButton acceptButton;
-    private JPanel centerTop;
+    private JScrollPane scrollParent;
     private boolean alt;
 
     public AgentResponseComponent(
@@ -96,7 +89,6 @@ public class AgentResponseComponent {
         this.parameters = parameters;
         this.alt=alt;
 
-        loadInputTree();
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -183,6 +175,8 @@ public class AgentResponseComponent {
     }
 
     private boolean calculateDifferences(String s1, String s2) {
+        System.out.println("COMPARE OLD : "+s1);
+        System.out.println("COMPARE NEW : "+s2);
         ObjectMapper om = new ObjectMapper();
         try {
             Map<String, Object> m1;
@@ -193,23 +187,17 @@ public class AgentResponseComponent {
             }
             Map<String, Object> m2 = (Map<String, Object>) (om.readValue(s2, Map.class));
 
-            System.out.println("Differences : ");
             MapDifference<String, Object> res = Maps.difference(flatten(m1), flatten(m2));
             System.out.println(res);
 
-            System.out.println("Left Entries");
             res.entriesOnlyOnLeft().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, Object> leftOnly = res.entriesOnlyOnLeft();
 
-            System.out.println("Right Entries");
             res.entriesOnlyOnRight().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, Object> rightOnly = res.entriesOnlyOnRight();
 
-            System.out.println("Differing entries");
             res.entriesDiffering().forEach((key, value) -> System.out.println(key + ": " + value));
             Map<String, MapDifference.ValueDifference<Object>> differences = res.entriesDiffering();
-            logger.info("[COMP DIFF] " + differences);
-            logger.info("[COMP DIFF LEN] " + differences.size());
             List<DifferenceInstance> differenceInstances = getDifferenceModel(leftOnly,
                     rightOnly, differences);
             if (differenceInstances.size() == 0) {
@@ -224,8 +212,8 @@ public class AgentResponseComponent {
                 renderTableForResponse(rightOnly);
                 return true;
             } else {
-                //merge left and right differneces
-                //or iterate and create a new pojo that works with 1 table model
+//                merge left and right differneces
+//                or iterate and create a new pojo that works with 1 table model
                 this.statusLabel.setText("Differences Found.");
                 renderTableWithDifferences(differenceInstances);
                 return true;
@@ -240,7 +228,7 @@ public class AgentResponseComponent {
                 this.tableParent.setVisible(false);
                 return false;
             }
-            this.statusLabel.setText("Differences Found.");
+            //this.statusLabel.setText("Differences Found.");
             //happens for malformed jsons or primitives.
             DifferenceInstance instance = new DifferenceInstance("Return Value", s1, s2,
                     DifferenceInstance.DIFFERENCE_TYPE.DIFFERENCE);
@@ -410,7 +398,7 @@ public class AgentResponseComponent {
     }
 
     public void setBorderTitle(int x) {
-        TitledBorder b = new TitledBorder("Input Set " + x);
-        this.borderParent.setBorder(b);
+//        TitledBorder b = new TitledBorder("Input Set " + x);
+//        this.borderParent.setBorder(b);
     }
 }
