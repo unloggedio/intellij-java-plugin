@@ -71,6 +71,7 @@ import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -159,8 +160,6 @@ public class SessionInstance {
         executorPool = Executors.newFixedThreadPool(4);
 
         this.sessionArchives = refreshSessionArchivesList(false);
-//        zipConsumer.checkNewFiles();
-//        executorPool.submit(databasePipe);
         executorPool.submit(zipConsumer);
 
     }
@@ -247,10 +246,10 @@ public class SessionInstance {
     }
 
     private List<File> refreshSessionArchivesList(boolean forceRefresh) throws IOException {
+        long start = new Date().getTime();
         if (sessionDirectory.listFiles() == null) {
             return Collections.emptyList();
         }
-        logger.info("refresh session archives list");
         List<File> sessionFiles = Arrays.stream(Objects.requireNonNull(sessionDirectory.listFiles()))
                 .sorted((a, b) -> -1 * a.getName().compareTo(b.getName()))
                 .filter(e -> e.getName().endsWith(".zip") && e.getName().startsWith("index-"))
@@ -322,6 +321,8 @@ public class SessionInstance {
 
         sessionFiles.removeAll(filesToRemove);
         Collections.sort(sessionFiles);
+        long end = new Date().getTime();
+        logger.info("refresh session archives list in  [" + (end - start) + "] ms");
         return sessionFiles;
     }
 
@@ -457,13 +458,19 @@ public class SessionInstance {
     }
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
+        long start = new Date().getTime();
         AtomicInteger counter = new AtomicInteger(0);
 
         checkProgressIndicator("Loading class mappings to scan events", null);
 
-//        List<MethodDefinition> methodDefinitionList = new ArrayList<>();
+        FileInputStream classWeaverReader = new FileInputStream(fileName);
+        ByteBuffer wrap = ByteBuffer.wrap(classWeaverReader.readAllBytes());
         KaitaiInsidiousClassWeaveParser classWeaveInfo = new KaitaiInsidiousClassWeaveParser(
-                new RandomAccessFileKaitaiStream(fileName));
+                new ByteBufferKaitaiStream(wrap));
+        classWeaverReader.close();
+        logger.warn(
+                "reading class weave info took: " + (new Date().getTime() - start) + " ms => "
+                        + classWeaveInfo.classInfo().size() + " classes");
         long totalClassCount = classWeaveInfo.classInfo().size();
 
         for (KaitaiInsidiousClassWeaveParser.ClassInfo classInfo : classWeaveInfo.classInfo()) {
@@ -593,6 +600,9 @@ public class SessionInstance {
                 .map(e -> MethodDefinition.fromMethodInfo(e, classInfoIndex.get(e.getClassId()), false))
                 .collect(Collectors.toList()));
         classWeaveInfo._io().close();
+        long end = new Date().getTime();
+        logger.warn("refresh weave information took: " + (end - start) + " ms");
+
     }
 
     private ChronicleMap<Integer, DataInfo> createProbeInfoIndex() throws IOException {

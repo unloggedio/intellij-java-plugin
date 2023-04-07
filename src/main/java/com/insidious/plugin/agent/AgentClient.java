@@ -30,7 +30,7 @@ public class AgentClient {
             String responseBody = response.body().string();
             return objectMapper.readValue(responseBody, AgentCommandResponse.class);
         } catch (Exception e) {
-            logger.error("Failed to invoke call to agent server: " + e.getMessage());
+            logger.warn("Failed to invoke call to agent server: " + e.getMessage());
             AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
             agentCommandResponse.setResponseType(ResponseType.FAILED);
             agentCommandResponse.setMessage("Failed to invoke call to agent server: " + e.getMessage());

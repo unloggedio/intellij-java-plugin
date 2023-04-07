@@ -1,17 +1,18 @@
 package com.insidious.plugin.ui.gutter;
 
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBLabel;
@@ -48,7 +49,8 @@ public class MethodExecutorComponent {
     private int mockCallCount = 1;
     private boolean alt = true;
     private int callCount = 0;
-    private boolean isDifferent=false;
+    private boolean isDifferent = false;
+
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
 
@@ -75,12 +77,11 @@ public class MethodExecutorComponent {
         setupScrollablePanel();
     }
 
-    public void executeAll(PsiMethod method)
-    {
-        this.isDifferent=false;
+    public void executeAll(PsiMethod method) {
+        this.isDifferent = false;
         clearResponsePanel();
         if (MOCK_MODE) {
-            callCount=mockCallCount;
+            callCount = mockCallCount;
             for (int i = 0; i < mockCallCount; i++) {
                 tryTestDiff();
             }
@@ -93,7 +94,7 @@ public class MethodExecutorComponent {
             );
             return;
         }
-        callCount=methodTestCandidates.size();
+        callCount = methodTestCandidates.size();
         JvmParameter[] parameters = null;
         if (method != null) {
             parameters = method.getParameters();
@@ -173,7 +174,14 @@ public class MethodExecutorComponent {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    renderResponse(testCandidate, agentCommandResponse, parameters);
+                    if (agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+                        InsidiousNotification.notifyMessage(
+                                "Failed to execute method: " + agentCommandResponse.getMessage(),
+                                NotificationType.ERROR
+                        );
+                    } else {
+                        renderResponse(testCandidate, agentCommandResponse, parameters);
+                    }
                 });
     }
 
@@ -194,27 +202,21 @@ public class MethodExecutorComponent {
 
     public void addResponse(TestCandidateMetadata testCandidateMetadata, AgentCommandResponse agentCommandResponse,
                             Map<String, String> parameters) {
-        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse, this.insidiousService,
-                parameters,alt);
+        AgentResponseComponent response = new AgentResponseComponent(testCandidateMetadata, agentCommandResponse,
+                this.insidiousService,
+                parameters, alt);
         boolean isDiff = response.computeDifferences();
-        alt=!alt;
+        alt = !alt;
         response.setBorderTitle(++this.componentCounter);
         scrollablePanel.add(response.getComponent(), 0);
         scrollablePanel.revalidate();
-        if(isDiff)
-        {
-            this.isDifferent=true;
+        if (isDiff) {
+            this.isDifferent = true;
         }
-        if((componentCounter)==callCount)
-        {
-            if(this.isDifferent)
-            {
-                insidiousService.getExecutionRecord().put(methodElement.getName(),true);
-            }
-            else
-            {
-                insidiousService.getExecutionRecord().put(methodElement.getName(),false);
-            }
+        if ((componentCounter) == callCount) {
+            logger.warn("update execution record for: " + methodElement.getName() + " => " + this.isDifferent);
+            insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+            ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
             DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         }
     }

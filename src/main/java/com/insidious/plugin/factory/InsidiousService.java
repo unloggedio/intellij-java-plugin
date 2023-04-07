@@ -28,6 +28,7 @@ import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.gutter.MethodExecutorComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
@@ -38,6 +39,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.event.EditorEventMulticaster;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -52,6 +54,8 @@ import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
+import com.intellij.openapi.util.ThrowableComputable;
+import com.intellij.openapi.vcs.BranchChangeListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.openapi.wm.ToolWindow;
@@ -79,7 +83,6 @@ import java.awt.datatransfer.StringSelection;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.*;
@@ -90,7 +93,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
-final public class InsidiousService implements Disposable, NewTestCandidateIdentifiedListener {
+final public class InsidiousService implements Disposable,
+        NewTestCandidateIdentifiedListener, BranchChangeListener {
     public static final String HOSTNAME = System.getProperty("user.name");
     private static final Key<Long> PSI_MODIFICATION_STAMP = Key.create("psi.modification.stamp");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
@@ -136,6 +140,8 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     private InsidiousInlayHintsCollector inlayHintsCollector;
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
+    private Map<String, Boolean> executionRecord = new TreeMap<>();
+    private boolean agentJarExists = false;
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -147,11 +153,28 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         this.client = new VideobugLocalClient(pathToSessions, project);
         this.sessionLoader = new SessionLoader(client, this);
         threadPoolExecutor.submit(this.sessionLoader);
+        threadPoolExecutor.submit(() -> {
+            while (true) {
+                String path = Constants.VIDEOBUG_AGENT_PATH.toString();
+                File agentFile = new File(path);
+                if (agentFile.exists()) {
+                    logger.warn("Found agent jar at: " + path);
+                    agentJarExists = true;
+                    break;
+                }
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
 
 
         EditorEventMulticaster multicaster = EditorFactory.getInstance().getEventMulticaster();
         InsidiousCaretListener listener = new InsidiousCaretListener(project);
         multicaster.addEditorMouseListener(listener, this);
+//        multicaster.add
 
     }
 
@@ -1052,7 +1075,6 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return testCaseService;
     }
 
-
     public synchronized void setSession(ExecutionSession executionSession) throws SQLException, IOException {
         if (client == null) {
             String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
@@ -1068,6 +1090,7 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
                 throw new RuntimeException(e);
             }
         }
+        this.executionRecord.clear();
         logger.warn("Loading session: " + executionSession.getSessionId());
         sessionInstance = new SessionInstance(executionSession, project);
         sessionInstance.setTestCandidateListener(this);
@@ -1097,8 +1120,24 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-//        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
-        DaemonCodeAnalyzer.getInstance(project).restart();
+        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+//        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
+
+        ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
+        Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
+        for (Editor editor : currentOpenEditorsList) {
+            @Nullable PsiFile psiFile = ApplicationManager.getApplication().runReadAction(
+                    (ThrowableComputable<PsiFile, RuntimeException>) () -> PsiDocumentManager.getInstance(project)
+                            .getPsiFile(editor.getDocument()));
+            if (psiFile == null) {
+                continue;
+            }
+            logger.warn("Restart for: " + psiFile.getName());
+            ApplicationManager.getApplication().runReadAction(
+                    () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
+        }
+
+
         if (methodExecutorToolWindow != null) {
             methodExecutorToolWindow.refresh();
         }
@@ -1112,13 +1151,13 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
 
-    public InsidiousInlayHintsCollector getInlayHintsCollector() {
-        return inlayHintsCollector;
-    }
-
 //    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
 //        return executionPairs.get(executionPairKey);
 //    }
+
+    public InsidiousInlayHintsCollector getInlayHintsCollector() {
+        return inlayHintsCollector;
+    }
 
     public void loadDefaultSession() {
         String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions/na";
@@ -1142,56 +1181,45 @@ final public class InsidiousService implements Disposable, NewTestCandidateIdent
         return sessionInstance;
     }
 
-    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
-    public void executeWithAgentForMethod(PsiMethod method)
-    {
-        if(this.methodExecutorToolWindow!=null)
-        {
+    public void executeWithAgentForMethod(PsiMethod method) {
+        if (this.methodExecutorToolWindow != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
             this.methodExecutorToolWindow.executeAll(method);
         }
     }
-    private Map<String,Boolean> executionRecord = new TreeMap<>();
 
-    public enum GUTTER_STATE {NO_AGENT,EXECUTE,DIFF,NO_DIFF}
-
-    public GUTTER_STATE getGutterStateFor(PsiMethod method)
-    {
+    public GUTTER_STATE getGutterStateFor(PsiMethod method) {
         //check for agent here before other comps
-        if(!doesAgentExist())
-        {
+        if (!doesAgentExist()) {
             return GUTTER_STATE.NO_AGENT;
         }
-        if(executionRecord.containsKey(method.getName()))
-        {
-            Boolean value = executionRecord.get(method.getName());
-            //true if it has differences, false if no differences
-            if(value)
-            {
-                return GUTTER_STATE.DIFF;
-            }
-            else
-            {
-                return GUTTER_STATE.NO_DIFF;
-            }
-        }
-        else
-        {
+        if (executionRecord.containsKey(method.getName())) {
+            return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+        } else {
             return GUTTER_STATE.EXECUTE;
         }
     }
 
-    public Map<String,Boolean> getExecutionRecord()
-    {
+    public Map<String, Boolean> getExecutionRecord() {
         return this.executionRecord;
     }
 
-    public boolean doesAgentExist()
-    {
-        String path = Constants.VIDEOBUG_AGENT_PATH.toString();
-        File agentFile = new File(path);
-        return agentFile.exists();
+    public boolean doesAgentExist() {
+        return agentJarExists;
     }
+
+    @Override
+    public void branchWillChange(@NotNull String branchName) {
+
+    }
+
+    @Override
+    public void branchHasChanged(@NotNull String branchName) {
+        logger.warn("branch has changed: " + branchName);
+    }
+
+    public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
+
+    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF}
 
 }
