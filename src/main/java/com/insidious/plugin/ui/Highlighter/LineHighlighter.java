@@ -59,7 +59,7 @@ public class LineHighlighter implements LineMarkerProvider {
     public Icon getIconForState(PsiMethod method) {
         Project project = method.getProject();
         InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class).getGutterStateFor(method);
-        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
+//        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
         switch (state) {
             case NO_DIFF:
                 return UIUtils.NO_DIFF_GUTTER;

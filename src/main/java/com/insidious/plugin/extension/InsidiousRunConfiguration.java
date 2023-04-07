@@ -27,11 +27,6 @@ public class InsidiousRunConfiguration extends ApplicationConfiguration implemen
 
     @Override
     public void checkConfiguration() throws RuntimeConfigurationException {
-//        JavaParametersUtil.checkAlternativeJRE(this);
-//        final String className = getMainClassName();
-//        if (className == null || className.length() == 0) {
-//            throw new RuntimeConfigurationError(ExecutionBundle.message("no.main.class.specified.error.text"));
-//        }
         ProgramParametersUtil.checkWorkingDirectoryExist(this, getProject(), getConfigurationModule().getModule());
         JavaRunConfigurationExtensionManager.checkConfigurationIsValid(this);
     }

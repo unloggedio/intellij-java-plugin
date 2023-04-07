@@ -24,13 +24,16 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.notification.NotificationType;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.impl.view.EditorView;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
@@ -57,7 +60,7 @@ import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class TestCaseDesigner {
+public class TestCaseDesigner implements Disposable {
     private static final Logger logger = LoggerUtil.getInstance(TestCaseDesigner.class);
     Random random = new Random(new Date().getTime());
     private JPanel mainContainer;
@@ -356,7 +359,6 @@ public class TestCaseDesigner {
             editor = editorFactory.createEditor(document, currentMethod.getProject(), PlainTextFileType.INSTANCE, true);
             currentClass = null;
             currentMethod = null;
-
         }
 
 
@@ -806,7 +808,7 @@ public class TestCaseDesigner {
                     @Nullable PsiClass parameterClassReference = getClassByName(parameterClassName);
 
                     if (parameterClassReference == null) {
-                        logger.error("did not find class reference: " + parameterClassName +
+                        logger.warn("did not find class reference: " + parameterClassName +
                                 " for parameter: " + parameter.getName() +
                                 " in class " + currentClass.getQualifiedName());
                         continue;
@@ -939,5 +941,10 @@ public class TestCaseDesigner {
             default:
         }
         return canonicalText;
+    }
+
+    @Override
+    public void dispose() {
+//        Disposer.dispose((EditorView) editor);
     }
 }

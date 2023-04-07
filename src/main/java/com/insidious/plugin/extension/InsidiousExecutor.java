@@ -1,6 +1,7 @@
 package com.insidious.plugin.extension;
 
 import com.intellij.execution.Executor;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.openapi.wm.ToolWindowId;
 import org.jetbrains.annotations.Nls;
@@ -63,5 +64,13 @@ public class InsidiousExecutor extends Executor {
         return null;
     }
 
+    @Override
+    public boolean isSupportedOnTarget() {
+        return true;
+    }
 
+    @Override
+    public boolean isApplicable(@NotNull Project project) {
+        return true;
+    }
 }

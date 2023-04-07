@@ -26,7 +26,7 @@ public class InsidiousProgramRunner extends GenericDebuggerRunner {
         // only run our quarkus config type
         if (profile instanceof RunConfiguration && executorId.equals("InsidiousTimeTravel"))
             return ((RunConfiguration) profile).getType() instanceof InsidiousRunConfigTypeInterface;
-        return false;
+        return true;
     }
 
     @Nullable

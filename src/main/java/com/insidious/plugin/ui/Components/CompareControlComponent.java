@@ -19,12 +19,18 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 public class CompareControlComponent {
+    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
+    //    String s1 = "";
+    String d1 = "1";
+    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
+    //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
+    String d2 = "1";
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel controlPanel;
@@ -32,31 +38,20 @@ public class CompareControlComponent {
     private JPanel mainContentPanel;
     private JLabel executeLabel;
     private JPanel gridParent;
-    private Map<String,String> parameterMap;
+    private Map<String, String> parameterMap;
     private TestCandidateMetadata candidateMetadata;
     private PsiMethod method;
     private List<String> methodArgumentValues;
     private MethodExecutionListener listener;
     private AgentResponseComponent responseComponent;
 
-    public JPanel getComponent()
-    {
-        return this.mainPanel;
-    }
-
-    public TestCandidateMetadata getCandidateMetadata() {
-        return candidateMetadata;
-    }
-
-    public CompareControlComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues , PsiMethod method,
-                                   MethodExecutionListener listener)
-    {
+    public CompareControlComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues, PsiMethod method,
+                                   MethodExecutionListener listener) {
         this.candidateMetadata = candidateMetadata;
         this.method = method;
         this.listener = listener;
         this.methodArgumentValues = methodArgumentValues;
-        if(candidateMetadata==null)
-        {
+        if (candidateMetadata == null) {
             return;
         }
         this.parameterMap = generateParameterMap();
@@ -84,9 +79,16 @@ public class CompareControlComponent {
         });
     }
 
+    public JPanel getComponent() {
+        return this.mainPanel;
+    }
+
+    public TestCandidateMetadata getCandidateMetadata() {
+        return candidateMetadata;
+    }
+
     private void displayResponse() {
-        if(this.responseComponent!=null)
-        {
+        if (this.responseComponent != null) {
             this.listener.displayResponse(this.responseComponent);
         }
     }
@@ -169,18 +171,14 @@ public class CompareControlComponent {
     }
 
     public Map<String, String> getParameterMap() {
-        if(this.parameterMap==null || this.parameterMap.size()==0)
-        {
+        if (this.parameterMap == null || this.parameterMap.size() == 0) {
             return generateParameterMap();
-        }
-        else
-        {
+        } else {
             return this.parameterMap;
         }
     }
 
-    public Map<String,String> generateParameterMap()
-    {
+    public Map<String, String> generateParameterMap() {
         JvmParameter[] parameters = method.getParameters();
         Map<String, String> parameterInputMap = new TreeMap<>();
         if (parameters != null) {
@@ -197,22 +195,18 @@ public class CompareControlComponent {
         return methodArgumentValues;
     }
 
-    public void executeCandidate()
-    {
-        this.listener.ExecuteCandidate(this.candidateMetadata,this);
+    public void executeCandidate() {
+        this.listener.executeCandidate(this.candidateMetadata, this);
     }
 
     public void setResposeComponent(AgentResponseComponent responseComponent) {
         this.responseComponent = responseComponent;
         boolean status = this.responseComponent.computeDifferences();
-        if(!status)
-        {
+        if (!status) {
             //no diff
             this.statusLabel.setText("Same");
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
-        }
-        else
-        {
+        } else {
             //diff
             this.statusLabel.setText("Different");
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
@@ -222,14 +216,11 @@ public class CompareControlComponent {
     public void setAndDisplayResponse(AgentResponseComponent responseComponent) {
         this.responseComponent = responseComponent;
         boolean status = this.responseComponent.computeDifferences();
-        if(!status)
-        {
+        if (!status) {
             //no diff
             this.statusLabel.setText("Same");
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
-        }
-        else
-        {
+        } else {
             //diff
             this.statusLabel.setText("Different");
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
@@ -237,30 +228,23 @@ public class CompareControlComponent {
         displayResponse();
     }
 
-    public int getHash()
-    {
+    public int getHash() {
         int hash = -1;
-        if(this.candidateMetadata!=null && this.methodArgumentValues!=null)
-        {
-            String output = new String(this.candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = this.methodArgumentValues.toString()+output;
+        if (this.candidateMetadata != null && this.methodArgumentValues != null) {
+            String output = new String(
+                    this.candidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            String concat = this.methodArgumentValues.toString() + output;
             hash = concat.toString().hashCode();
         }
         return hash;
     }
-    String s1 = "{\"indicate\":[{\"name\":\"c\",\"age\":24},\"doing\",\"brain\"],\"thousand\":false,\"number\":\"machine\",\"wut\":\"ay\",\"get\":\"ay\",\"sut\":\"ay\",\"put\":\"ay\",\"fut\":\"ay\"}";
-    //    String s1 = "";
-    String d1 = "1";
-    String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
-    //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
-    String d2 = "1";
-    public Map<String,String> generateMockParameterMap()
-    {
-        Map<String,String> map = new TreeMap<>();
-        map.put("val1",s1);
-        map.put("val2",s2);
-        map.put("val3",d1);
-        map.put("val4",d2);
+
+    public Map<String, String> generateMockParameterMap() {
+        Map<String, String> map = new TreeMap<>();
+        map.put("val1", s1);
+        map.put("val2", s2);
+        map.put("val3", d1);
+        map.put("val4", d2);
         return map;
     }
 }

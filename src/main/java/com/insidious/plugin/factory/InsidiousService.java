@@ -28,6 +28,7 @@ import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.gutter.MethodExecutorComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.codeInsight.editorActions.TypedHandlerDelegate;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
@@ -38,6 +39,7 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -70,7 +72,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
-import com.intellij.xdebugger.XDebugSession;
 import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
@@ -109,7 +110,7 @@ final public class InsidiousService implements Disposable,
     private Module currentModule;
     private String packageName = "YOUR.PACKAGE.NAME";
     private SingleWindowView singleWindowView;
-    private XDebugSession debugSession;
+    //    private XDebugSession debugSession;
     private InsidiousJavaDebugProcess debugProcess;
     private ToolWindow toolWindow;
     private String appToken;
@@ -145,7 +146,7 @@ final public class InsidiousService implements Disposable,
 
     public InsidiousService(Project project) {
         this.project = project;
-        logger.info("starting insidious service");
+        logger.info("starting insidious service: " + project);
 
 
         String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
@@ -786,6 +787,13 @@ final public class InsidiousService implements Disposable,
             this.client = null;
             currentModule = null;
         }
+        if (this.sessionInstance != null) {
+            try {
+                this.sessionInstance.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void generateAndUploadReport() {
@@ -1039,13 +1047,6 @@ final public class InsidiousService implements Disposable,
         agentCommandRequest.setMethodParameters(parameterValues);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
-
-//            List<String> methodParameters = new ArrayList<>();
-//            JvmParameter[] methodParametersSource = method.getParameters();
-            //                JvmParameter jvmParameter = methodParametersSource[i];
-            //                logger.warn("Add value for parameter " +
-            //                        "[" + jvmParameter.getType() + "]" +
-            //                        "[" + jvmParameter.getName() + "] => " + argumentValue);
 
             try {
                 AgentCommandResponse agentCommandResponse = agentClient.executeCommand(agentCommandRequest);

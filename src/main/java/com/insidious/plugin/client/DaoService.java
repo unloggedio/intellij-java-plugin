@@ -1488,6 +1488,7 @@ public class DaoService {
 
     public void createOrUpdateClassDefinitions(Collection<ClassDefinition> classDefinitions) {
         try {
+            logger.warn("create [" + classDefinitions.size() + "] class definitons");
             classDefinitionsDao.executeRaw("delete from class_definition");
             classDefinitionsDao.create(classDefinitions);
         } catch (SQLException e) {

@@ -24,10 +24,14 @@ public class InsidiousCaretListener implements EditorMouseListener {
 
     @Override
     public void mouseReleased(@NotNull EditorMouseEvent event) {
+        if (project == null) {
+            return;
+        }
         EditorMouseListener.super.mousePressed(event);
         if (event.getArea() == null || !event.getArea().equals(EditorMouseEventArea.EDITING_AREA)) {
             return;
         }
+
         InsidiousService insidiousService = project.getService(InsidiousService.class);
 
         Editor editor = event.getEditor();

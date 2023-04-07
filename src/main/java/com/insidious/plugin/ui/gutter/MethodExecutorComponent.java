@@ -5,14 +5,12 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.pojo.MethodCallExpression;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.ui.Components.CompareControlComponent;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
-import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
@@ -27,13 +25,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class MethodExecutorComponent implements MethodExecutionListener{
+public class MethodExecutorComponent implements MethodExecutionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
-    private final boolean MOCK_MODE = false;
+    private final List<CompareControlComponent> components = new ArrayList<>();
     private PsiMethod methodElement;
     private JPanel rootContent;
     private JPanel borderParentMain;
@@ -51,8 +48,7 @@ public class MethodExecutorComponent implements MethodExecutionListener{
     private int mockCallCount = 1;
     private boolean alt = true;
     private int callCount = 0;
-    private boolean isDifferent=false;
-    List<CompareControlComponent> components;
+    private boolean isDifferent = false;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -62,11 +58,10 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         });
     }
 
-    public void loadMethodCandidates()
-    {
-        components = new ArrayList<>();
+    public void loadMethodCandidates() {
+        components.clear();
         this.borderParentScroll.removeAll();
-        if (methodTestCandidates==null || methodTestCandidates.size() == 0) {
+        if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay.",
                     NotificationType.WARNING
@@ -89,7 +84,7 @@ public class MethodExecutorComponent implements MethodExecutionListener{
             List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
                     methodTestCandidates.get(i));
             CompareControlComponent comp = new CompareControlComponent(methodTestCandidates.get(i),
-                    methodArgumentValues,methodElement, this);
+                    methodArgumentValues, methodElement, this);
             components.add(comp);
             gridPanel.add(comp.getComponent(), constraints);
         }
@@ -105,9 +100,8 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         this.borderParentScroll.revalidate();
     }
 
-    public void executeAll(PsiMethod method)
-    {
-        this.isDifferent=false;
+    public void executeAll(PsiMethod method) {
+        this.isDifferent = false;
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
@@ -117,10 +111,9 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         }
         loadMethodCandidates();
         callCount = this.components.size();
-        componentCounter=0;
-        for(CompareControlComponent component : this.components)
-        {
-            execute_save(component.getCandidateMetadata(),component.getMethodArgumentValues(),component);
+        componentCounter = 0;
+        for (CompareControlComponent component : this.components) {
+            execute_save(component.getCandidateMetadata(), component.getMethodArgumentValues(), component);
         }
     }
 
@@ -131,8 +124,7 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
     }
 
-    public void refreshAndReloadCandidates(PsiMethod method)
-    {
+    public void refreshAndReloadCandidates(PsiMethod method) {
         this.methodElement = method;
         List<TestCandidateMetadata> candidates = this.insidiousService
                 .getSessionInstance()
@@ -140,48 +132,39 @@ public class MethodExecutorComponent implements MethodExecutionListener{
                         methodElement.getName(),
                         false);
         this.methodTestCandidates = deDuplicateList(candidates);
-        if(methodTestCandidates!=null && methodTestCandidates.size()>0) {
-            if(this.components!=null)
-            {
-                if(this.components.size()==0) {
+        if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
+            if (this.components != null) {
+                if (this.components.size() == 0) {
                     loadMethodCandidates();
-                }
-                else
-                {
+                } else {
                     mergeComponentList();
                 }
-            }
-            else
-            {
+            } else {
                 loadMethodCandidates();
             }
         }
-        this.candidateCountLabel.setText(""+components.size()+" candidates for "+method.getName());
+        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
     }
 
     private void mergeComponentList() {
         List<Integer> iohashes = new ArrayList<>();
-        for(CompareControlComponent component : this.components)
-        {
+        for (CompareControlComponent component : this.components) {
             iohashes.add(component.getHash());
         }
         List<TestCandidateMetadata> toAdd = new ArrayList<>();
-        for(TestCandidateMetadata metadata : this.methodTestCandidates)
-        {
+        for (TestCandidateMetadata metadata : this.methodTestCandidates) {
             List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
             String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = inputs.toString()+output;
-            int hash = concat.toString().hashCode();
-            if(!iohashes.contains(hash))
-            {
+            String concat = inputs + output;
+            int hash = concat.hashCode();
+            if (!iohashes.contains(hash)) {
                 toAdd.add(metadata);
             }
         }
-        if(toAdd.size()>0)
-        {
+        if (toAdd.size() > 0) {
             this.borderParentScroll.removeAll();
 
-            int callToMake = components.size()+toAdd.size();
+            int callToMake = components.size() + toAdd.size();
             int GridRows = 3;
             if (callToMake > GridRows) {
                 GridRows = callToMake;
@@ -190,21 +173,20 @@ public class MethodExecutorComponent implements MethodExecutionListener{
             gridLayout.setVgap(8);
             JPanel gridPanel = new JPanel(gridLayout);
             gridPanel.setBorder(JBUI.Borders.empty());
-            int x=0;
+            int x = 0;
             for (int i = 0; i < components.size(); i++) {
                 GridConstraints constraints = new GridConstraints();
                 constraints.setRow(i);
                 gridPanel.add(components.get(i).getComponent(), constraints);
                 x++;
             }
-            for(int j=0;j<toAdd.size();j++)
-            {
+            for (int j = 0; j < toAdd.size(); j++) {
                 GridConstraints constraints = new GridConstraints();
-                constraints.setRow(x+j);
+                constraints.setRow(x + j);
                 List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
                         toAdd.get(j));
                 CompareControlComponent comp = new CompareControlComponent(toAdd.get(j),
-                        methodArgumentValues,methodElement, this);
+                        methodArgumentValues, methodElement, this);
                 components.add(comp);
                 gridPanel.add(comp.getComponent(), constraints);
             }
@@ -220,23 +202,19 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         }
     }
 
-    public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list)
-    {
+    public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
         List<TestCandidateMetadata> resList = new ArrayList<>();
-        Map<Integer,TestCandidateMetadata> ioHashMap = new TreeMap<>();
-        for(TestCandidateMetadata metadata : list)
-        {
+        Map<Integer, TestCandidateMetadata> ioHashMap = new TreeMap<>();
+        for (TestCandidateMetadata metadata : list) {
             List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
             String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = inputs.toString()+output;
+            String concat = inputs.toString() + output;
             int hash = concat.toString().hashCode();
-            if(!ioHashMap.containsKey(hash))
-            {
-                ioHashMap.put(hash,metadata);
+            if (!ioHashMap.containsKey(hash)) {
+                ioHashMap.put(hash, metadata);
             }
         }
-        for(int key : ioHashMap.keySet())
-        {
+        for (int key : ioHashMap.keySet()) {
             resList.add(ioHashMap.get(key));
         }
         return resList;
@@ -247,14 +225,15 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (agentCommandResponse.getResponseType()!=null && agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+                    if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
+                            .equals(ResponseType.FAILED)) {
                         InsidiousNotification.notifyMessage(
                                 "Failed to execute method: " + agentCommandResponse.getMessage(),
                                 NotificationType.ERROR
                         );
-                    }
-                    else {
-                        AgentResponseComponent responseComponent = postProcessExecute(testCandidate, agentCommandResponse, controlComponent);
+                    } else {
+                        AgentResponseComponent responseComponent = postProcessExecute(testCandidate,
+                                agentCommandResponse, controlComponent);
                         controlComponent.setAndDisplayResponse(responseComponent);
                     }
                 });
@@ -265,32 +244,32 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (agentCommandResponse.getResponseType()!=null && agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+                    if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
+                            .equals(ResponseType.FAILED)) {
                         InsidiousNotification.notifyMessage(
                                 "Failed to execute method: " + agentCommandResponse.getMessage(),
                                 NotificationType.ERROR
                         );
-                    }
-                    else {
-                        AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate, agentCommandResponse, controlComponent);
+                    } else {
+                        AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate,
+                                agentCommandResponse, controlComponent);
                         controlComponent.setResposeComponent(responseComponent);
                     }
                 });
     }
 
     public AgentResponseComponent postProcessExecute(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                     CompareControlComponent controlComponent)
-    {
-        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse, this.insidiousService,
-                controlComponent.getParameterMap(),alt);
+                                                     CompareControlComponent controlComponent) {
+        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
+                this.insidiousService,
+                controlComponent.getParameterMap(), alt);
         boolean isDiff = response.computeDifferences();
-        alt=!alt;
+        alt = !alt;
         componentCounter++;
-        if(isDiff)
-        {
-            this.isDifferent=true;
+        if (isDiff) {
+            this.isDifferent = true;
         }
-        if(componentCounter == callCount) {
+        if (componentCounter == callCount) {
             if (this.isDifferent) {
                 insidiousService.getExecutionRecord().put(methodElement.getName(), true);
             } else {
@@ -303,24 +282,20 @@ public class MethodExecutorComponent implements MethodExecutionListener{
     }
 
     public AgentResponseComponent postProcessExecute_save(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                          CompareControlComponent controlComponent)
-    {
-        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse, this.insidiousService,
-                controlComponent.getParameterMap(),alt);
+                                                          CompareControlComponent controlComponent) {
+        AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
+                this.insidiousService,
+                controlComponent.getParameterMap(), alt);
         boolean isDiff = response.computeDifferences();
-        alt=!alt;
+        alt = !alt;
         response.setBorderTitle(++this.componentCounter);
-        if(isDiff)
-        {
-            this.isDifferent=true;
+        if (isDiff) {
+            this.isDifferent = true;
         }
-        if(this.isDifferent)
-        {
-            insidiousService.getExecutionRecord().put(methodElement.getName(),true);
-        }
-        else
-        {
-            insidiousService.getExecutionRecord().put(methodElement.getName(),false);
+        if (this.isDifferent) {
+            insidiousService.getExecutionRecord().put(methodElement.getName(), true);
+        } else {
+            insidiousService.getExecutionRecord().put(methodElement.getName(), false);
         }
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         return response;
@@ -330,8 +305,7 @@ public class MethodExecutorComponent implements MethodExecutionListener{
         return rootContent;
     }
 
-    public void renderComparission(AgentResponseComponent component)
-    {
+    public void renderComparission(AgentResponseComponent component) {
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
@@ -341,9 +315,9 @@ public class MethodExecutorComponent implements MethodExecutionListener{
     }
 
     @Override
-    public void ExecuteCandidate(TestCandidateMetadata metadata,
+    public void executeCandidate(TestCandidateMetadata metadata,
                                  CompareControlComponent component) {
-        execute(metadata,component.getMethodArgumentValues(),component);
+        execute(metadata, component.getMethodArgumentValues(), component);
     }
 
     @Override

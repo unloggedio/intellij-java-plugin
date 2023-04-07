@@ -74,13 +74,11 @@
         <toolWindow id="Unlogged" canCloseContents="false" secondary="false" icon="/icons/png/logo_unlogged.png"
                     anchor="right"
                     factoryClass="com.insidious.plugin.factory.DebuggerFactory"/>
-        <projectService preload="true" serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
+        <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousService"/>
         <projectService serviceImplementation="com.insidious.plugin.factory.InsidiousConfigurationState"/>
         <programRunner implementation="com.insidious.plugin.extension.InsidiousProgramRunner"/>
         <configurationType implementation="com.insidious.plugin.extension.InsidiousRunConfigType"/>
         <executor implementation="com.insidious.plugin.extension.InsidiousExecutor"/>
-        <!--        <editorFactoryMouseListener-->
-        <!--                implementation="com.insidious.plugin.ui.InsidiousCaretListener"/>-->
     </extensions>
 
     <extensions defaultExtensionNs="com.intellij">
