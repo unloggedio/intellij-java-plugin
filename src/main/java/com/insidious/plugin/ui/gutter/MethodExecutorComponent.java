@@ -30,7 +30,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
-    private final List<CompareControlComponent> components = new ArrayList<>();
+    private List<CompareControlComponent> components = new ArrayList<>();
     private PsiMethod methodElement;
     private JPanel rootContent;
     private JPanel borderParentMain;
@@ -146,6 +146,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             } else {
                 loadMethodCandidates();
             }
+        }
+        if(this.methodTestCandidates.size()==0)
+        {
+            this.components = new ArrayList<>();
         }
         this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
     }
