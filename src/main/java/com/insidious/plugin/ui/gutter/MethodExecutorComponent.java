@@ -125,6 +125,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public void refreshAndReloadCandidates(PsiMethod method) {
+        if(this.methodElement!=null && !this.methodElement.equals(method))
+        {
+            clearBoard();
+        }
         this.methodElement = method;
         List<TestCandidateMetadata> candidates = this.insidiousService
                 .getSessionInstance()
@@ -144,6 +148,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             }
         }
         this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
+    }
+
+    private void clearBoard() {
+        this.borderParentScroll.removeAll();
+        this.borderParentScroll.revalidate();
     }
 
     private void mergeComponentList() {
