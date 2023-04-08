@@ -1136,7 +1136,7 @@ final public class InsidiousService implements Disposable,
             if (psiFile == null) {
                 continue;
             }
-            logger.warn("Restart for: " + psiFile.getName());
+//            logger.warn("Restart for: " + psiFile.getName());
             ApplicationManager.getApplication().runReadAction(
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }

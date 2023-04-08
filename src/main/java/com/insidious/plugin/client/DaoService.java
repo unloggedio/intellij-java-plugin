@@ -92,7 +92,7 @@ public class DaoService {
             "join method_definition md on md.id = mc.methodDefinitionId\n" +
             "where md.ownerType = ?\n" +
             "  and mc.methodName = ?\n" +
-            "order by mc.methodName asc, tc.entryProbeIndex desc limit 50;";
+            "order by tc.entryProbeIndex desc limit 50;";
     public static final Type LIST_STRING_TYPE = new TypeToken<ArrayList<String>>() {
     }.getType();
     public static final Type LIST_CANDIDATE_TYPE = new TypeToken<ArrayList<TestCandidateMetadata>>() {
@@ -1045,7 +1045,9 @@ public class DaoService {
             throw new RuntimeException(e);
         } finally {
             long end = new Date().getTime();
-            logger.warn("saving " + callsToSave.size() + " calls took: " + (end - start) + " ms");
+            if (end - start > 200) {
+                logger.warn("saving " + callsToSave.size() + " calls took: " + (end - start) + " ms");
+            }
         }
     }
 
