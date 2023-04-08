@@ -3039,10 +3039,8 @@ public class SessionInstance {
                         existingParameter = parameterContainer.getParameterByValueUsing(eventValue, existingParameter);
                         if (existingParameter.getValue() == 0
                                 && ((methodInfo.getAccess() & 8) == 8)
-                                && !methodInfo.getMethodName()
-                                .startsWith("<")
-                                && !methodInfo.getMethodName()
-                                .contains("$")) {
+                                && !methodInfo.getMethodName().startsWith("<")
+                                && !methodInfo.getMethodName().contains("$")) {
                             String ownerClass = ClassTypeUtils.getJavaClassName(
                                     classInfoIndex.get(probeInfo.getClassId())
                                             .getClassName());
