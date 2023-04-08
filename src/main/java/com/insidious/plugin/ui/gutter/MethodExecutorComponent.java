@@ -125,8 +125,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public void refreshAndReloadCandidates(PsiMethod method) {
-        if(this.methodElement!=null && !this.methodElement.equals(method))
-        {
+        if (this.methodElement != null && !this.methodElement.equals(method)) {
             clearBoard();
         }
         this.methodElement = method;
@@ -147,8 +146,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                 loadMethodCandidates();
             }
         }
-        if(this.methodTestCandidates.size()==0)
-        {
+        if (this.methodTestCandidates.size() == 0) {
             this.components = new ArrayList<>();
         }
         this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());

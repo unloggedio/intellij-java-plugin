@@ -365,7 +365,7 @@ public class TestCaseDesigner implements Disposable {
         testCasePreviewPanel.removeAll();
         testCasePreviewPanel.add(editor.getComponent(), BorderLayout.CENTER);
         editor.getCaretModel().getCurrentCaret().moveToOffset(offset);
-        logger.warn("scroll to line: " + scrollIndex);
+        logger.info("scroll to line: " + scrollIndex);
         editor.getScrollingModel().scrollVertically(scrollIndex);
         testCasePreviewPanel.revalidate();
         testCasePreviewPanel.repaint();
@@ -657,7 +657,7 @@ public class TestCaseDesigner implements Disposable {
             PsiExpressionListImpl callParameterExpression
     ) {
 
-        logger.warn("Find matching method for [" + methodName + "] - " + classReference.getName());
+        logger.info("Find matching method for [" + methodName + "] - " + classReference.getName());
 
         Set<PsiClass> classesToCheck = new HashSet<>();
         classesToCheck.add(classReference);
@@ -675,7 +675,7 @@ public class TestCaseDesigner implements Disposable {
             }
             for (PsiMethod matchedMethod : matchedMethods) {
                 boolean isMismatch = false;
-                logger.warn(
+                logger.info(
                         "Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
                 PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
                 PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();

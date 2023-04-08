@@ -28,7 +28,6 @@ import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.gutter.MethodExecutorComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
-import com.intellij.codeInsight.editorActions.TypedHandlerDelegate;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
@@ -39,7 +38,6 @@ import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
@@ -95,7 +93,7 @@ import java.util.stream.Collectors;
 
 @Storage("insidious.xml")
 final public class InsidiousService implements Disposable,
-        NewTestCandidateIdentifiedListener, BranchChangeListener {
+        NewTestCandidateIdentifiedListener, BranchChangeListener, ConnectionStateListener {
     public static final String HOSTNAME = System.getProperty("user.name");
     private static final Key<Long> PSI_MODIFICATION_STAMP = Key.create("psi.modification.stamp");
     private final static Logger logger = LoggerUtil.getInstance(InsidiousService.class);
@@ -104,7 +102,7 @@ final public class InsidiousService implements Disposable,
     private final Map<String, Pair<AgentCommandRequest, AgentCommandResponse>> executionPairs = new HashMap<>();
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
-    private final AgentClient agentClient = new AgentClient("http://localhost:12100");
+    private final AgentClient agentClient = new AgentClient("http://localhost:12100", this);
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -787,6 +785,7 @@ final public class InsidiousService implements Disposable,
             this.client = null;
             currentModule = null;
         }
+        agentClient.close();
         if (this.sessionInstance != null) {
             try {
                 this.sessionInstance.close();
@@ -1031,6 +1030,10 @@ final public class InsidiousService implements Disposable,
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
+    public boolean isConnectedToAgent() {
+        return agentClient != null && agentClient.isConnected();
+    }
+
     public void reExecuteMethodInRunningProcess(
             PsiMethod method,
             List<String> parameterValues,
@@ -1069,8 +1072,8 @@ final public class InsidiousService implements Disposable,
 
     public TestCaseService getTestCaseService() {
         if (testCaseService == null) {
-//            loadSession();
-            InsidiousNotification.notifyMessage("Session isn't loaded yet, loading session", NotificationType.WARNING);
+            InsidiousNotification.notifyMessage(
+                    "Session isn't loaded yet, loading session", NotificationType.WARNING);
             return null;
         }
         return testCaseService;
@@ -1217,6 +1220,18 @@ final public class InsidiousService implements Disposable,
     @Override
     public void branchHasChanged(@NotNull String branchName) {
         logger.warn("branch has changed: " + branchName);
+    }
+
+    @Override
+    public void onConnectedToAgentServer() {
+        logger.warn("connected to agent");
+        // connected to agent
+    }
+
+    @Override
+    public void onDisconnectedFromAgentServer() {
+        logger.warn("disconnected from agent");
+        // disconnected from agent
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
