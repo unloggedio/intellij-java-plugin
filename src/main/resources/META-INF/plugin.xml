@@ -34,6 +34,7 @@
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.xdebugger</depends>
     <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
     <depends>org.jetbrains.idea.maven</depends>
     <depends>org.jetbrains.plugins.gradle</depends>
     <depends>org.jetbrains.plugins.gradle.maven</depends>
@@ -85,6 +86,9 @@
         <codeInsight.lineMarkerProvider
                 language="JAVA"
                 implementationClass="com.insidious.plugin.ui.Highlighter.LineHighlighter"/>
+        <codeInsight.lineMarkerProvider
+                language="kotlin"
+                implementationClass="com.insidious.plugin.ui.Highlighter.KotlinLineHighlighter"/>
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
     </extensions>

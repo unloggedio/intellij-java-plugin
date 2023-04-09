@@ -25,11 +25,12 @@ import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.Components.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.adapter.ClassAdapter;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
 import com.insidious.plugin.ui.gutter.MethodExecutorComponent;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
-import com.intellij.debugger.engine.JVMNameUtil;
 import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
@@ -949,12 +950,12 @@ final public class InsidiousService implements Disposable,
         return programRunners.size() > 0;
     }
 
-    public void methodFocussedHandler(final PsiMethod method) {
+    public void methodFocussedHandler(final MethodAdapter method) {
 
         if (method == null) {
             return;
         }
-        final PsiClass psiClass = method.getContainingClass();
+        final ClassAdapter psiClass = method.getContainingClass();
         if (psiClass.getName() == null) {
             return;
         }
@@ -975,16 +976,11 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-
-//        String classQualifiedName = method.getContainingClass().getQualifiedName();
-
-
         if (this.gptWindow != null) {
             this.gptWindow.updateUI(psiClass, method);
         }
 
         if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
-//            UsageInsightTracker.getInstance().RecordEvent("ToolWindowNull", eventProperties);
             logger.warn("test case designer window is not ready to create test case for " + methodName);
             return;
         }
@@ -1030,17 +1026,93 @@ final public class InsidiousService implements Disposable,
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
+//    public void methodFocussedHandler(final KtNamedFunction method) {
+//
+//        if (method == null) {
+//            return;
+//        }
+//        final PsiClass psiClass = method.getContainingClass();
+//        if (psiClass.getName() == null) {
+//            return;
+//        }
+//
+//        DumbService dumbService = project.getService(DumbService.class);
+//        String methodName = method.getName();
+//
+//        if (dumbService.isDumb()) {
+//            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
+//                    NotificationType.WARNING);
+//            dumbService.runWhenSmart(() -> {
+//                if (testCaseDesignerWindow == null) {
+//                    logger.warn("test case designer window is not ready to create test case for " + methodName);
+//                    return;
+//                }
+//                methodFocussedHandler(method);
+//            });
+//            return;
+//        }
+//
+//        if (this.gptWindow != null) {
+//            this.gptWindow.updateUI(psiClass, method);
+//        }
+//
+//        if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
+//            logger.warn("test case designer window is not ready to create test case for " + methodName);
+//            return;
+//        }
+//
+//        methodExecutorToolWindow.refreshAndReloadCandidates(method);
+//
+//
+////        ModuleManager moduleManager = ModuleManager.getInstance(project);
+////        CompilerManager.getInstance(project).compile(
+////                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+////                new CompileStatusNotification() {
+////                    @Override
+////                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
+////                        logger.warn("compiled class: " + compileContext);
+////                        Module moduleByFile = compileContext.getModuleByFile(
+////                                psiClass.getContainingFile().getVirtualFile());
+////                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
+////                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
+////
+////                        try {
+////                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
+////                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
+////                            File compiledTargetFile = new File(compiledClassTargetFile);
+////                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
+////                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
+////                            targetStream.close();
+////
+////                        } catch (IOException e) {
+////                            throw new RuntimeException(e);
+////                        }
+////
+////                    }
+////                }
+////        );
+////
+//////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
+//////                psiClass.getContainingFile().getText()).create().get();
+//////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
+//////            Object classInstance = firstConstructor.newInstance();
+////
+//
+//
+//        testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
+//    }
+
     public boolean isConnectedToAgent() {
         return agentClient != null && agentClient.isConnected();
     }
 
     public void reExecuteMethodInRunningProcess(
-            PsiMethod method,
+            MethodAdapter method,
             List<String> parameterValues,
             ExecutionResponseListener executionResponseListener
     ) {
 
-        String methodJniSignature = JVMNameUtil.getJVMSignature(method).toString();
+        String methodJniSignature = method.getJVMSignature();
 
         AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
         agentCommandRequest.setCommand(AgentCommand.EXECUTE);
@@ -1192,13 +1264,13 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public GUTTER_STATE getGutterStateFor(PsiMethod method) {
+    public GUTTER_STATE getGutterStateFor(String methodName) {
         //check for agent here before other comps
         if (!doesAgentExist()) {
             return GUTTER_STATE.NO_AGENT;
         }
-        if (executionRecord.containsKey(method.getName())) {
-            return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+        if (executionRecord.containsKey(methodName)) {
+            return executionRecord.get(methodName) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
         } else {
             return GUTTER_STATE.EXECUTE;
         }

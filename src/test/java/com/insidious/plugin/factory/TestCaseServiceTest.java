@@ -5,6 +5,7 @@ import com.insidious.common.FilteredDataEventsRequest;
 import com.insidious.common.PageInfo;
 import com.insidious.common.weaver.*;
 import com.insidious.plugin.client.DaoService;
+import com.insidious.plugin.client.ParameterProvider;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugLocalClient;
 import com.insidious.plugin.client.exception.SessionNotSelectedException;
@@ -82,7 +83,12 @@ public class TestCaseServiceTest {
     @NotNull
     private static DaoService getDaoService(String url) throws SQLException {
         ConnectionSource connectionSource = new JdbcConnectionSource(url);
-        DaoService daoService = new DaoService(connectionSource);
+        DaoService daoService = new DaoService(connectionSource, new ParameterProvider() {
+            @Override
+            public com.insidious.plugin.pojo.dao.Parameter getParameterByValue(Long value) {
+                return null;
+            }
+        });
         return daoService;
     }
 

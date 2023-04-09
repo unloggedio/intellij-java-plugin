@@ -4,6 +4,8 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
+import com.insidious.plugin.ui.adapter.ParameterAdapter;
 import com.intellij.lang.jvm.JvmParameter;
 import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBScrollPane;
@@ -40,12 +42,13 @@ public class CompareControlComponent {
     private JPanel gridParent;
     private Map<String, String> parameterMap;
     private TestCandidateMetadata candidateMetadata;
-    private PsiMethod method;
+    private MethodAdapter method;
     private List<String> methodArgumentValues;
     private MethodExecutionListener listener;
     private AgentResponseComponent responseComponent;
 
-    public CompareControlComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues, PsiMethod method,
+    public CompareControlComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues,
+                                   MethodAdapter method,
                                    MethodExecutionListener listener) {
         this.candidateMetadata = candidateMetadata;
         this.method = method;
@@ -179,11 +182,11 @@ public class CompareControlComponent {
     }
 
     public Map<String, String> generateParameterMap() {
-        JvmParameter[] parameters = method.getParameters();
+        ParameterAdapter[] parameters = method.getParameters();
         Map<String, String> parameterInputMap = new TreeMap<>();
         if (parameters != null) {
             for (int i = 0; i < parameters.length; i++) {
-                JvmParameter methodParameter = parameters[i];
+                ParameterAdapter methodParameter = parameters[i];
                 String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
                 parameterInputMap.put(methodParameter.getName(), parameterValue);
             }

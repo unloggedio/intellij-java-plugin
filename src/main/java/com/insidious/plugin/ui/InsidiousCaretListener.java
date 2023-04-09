@@ -1,13 +1,13 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.ui.adapter.java.JavaMethodAdapter;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.EditorMouseEvent;
 import com.intellij.openapi.editor.event.EditorMouseEventArea;
 import com.intellij.openapi.editor.event.EditorMouseListener;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
@@ -45,7 +45,7 @@ public class InsidiousCaretListener implements EditorMouseListener {
 //        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
 
 
-        insidiousService.methodFocussedHandler(method);
+        insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
     }
 
 }

@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiModifierList;
 import com.sun.istack.NotNull;
 
 import javax.swing.*;
@@ -58,7 +57,8 @@ public class LineHighlighter implements LineMarkerProvider {
 
     public Icon getIconForState(PsiMethod method) {
         Project project = method.getProject();
-        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class).getGutterStateFor(method);
+        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class).getGutterStateFor(
+                method.getName());
 //        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
         switch (state) {
             case NO_DIFF:

@@ -20,6 +20,11 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
+import com.insidious.plugin.ui.adapter.ClassAdapter;
+import com.insidious.plugin.ui.adapter.FieldAdapter;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
+import com.insidious.plugin.ui.adapter.ParameterAdapter;
+import com.insidious.plugin.ui.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
@@ -29,11 +34,10 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
-import com.intellij.openapi.editor.impl.view.EditorView;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.PlainTextFileType;
-import com.intellij.openapi.util.Disposer;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
@@ -46,8 +50,6 @@ import com.intellij.psi.impl.source.tree.java.PsiThisExpressionImpl;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.FileContentUtil;
 import org.apache.commons.lang.StringUtils;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.objectweb.asm.Opcodes;
 
@@ -85,8 +87,8 @@ public class TestCaseDesigner implements Disposable {
     private JPanel addFieldMocksConfigPanel;
     private JTable assertionTable;
     //    private JButton addNewAssertionButton;
-    private PsiMethod currentMethod;
-    private PsiClass currentClass;
+    private MethodAdapter currentMethod;
+    private ClassAdapter currentClass;
     private String basePath;
     private Editor editor;
     private MethodCallExpression mainMethod;
@@ -133,7 +135,7 @@ public class TestCaseDesigner implements Disposable {
                 saveMethodToExistingFile(testcaseFile);
             }
 
-            @Nullable VirtualFile newFile = VirtualFileManager.getInstance()
+            VirtualFile newFile = VirtualFileManager.getInstance()
                     .refreshAndFindFileByUrl(FileSystems.getDefault()
                             .getPath(testcaseFile.getAbsolutePath())
                             .toUri()
@@ -147,8 +149,7 @@ public class TestCaseDesigner implements Disposable {
             List<VirtualFile> newFile1 = new ArrayList<>();
             newFile1.add(newFile);
             FileContentUtil.reparseFiles(currentClass.getProject(), newFile1, true);
-            @Nullable Document newDocument = FileDocumentManager.getInstance()
-                    .getDocument(newFile);
+            Document newDocument = FileDocumentManager.getInstance().getDocument(newFile);
 
             FileEditorManager.getInstance(currentClass.getProject())
                     .openFile(newFile, true, true);
@@ -246,17 +247,19 @@ public class TestCaseDesigner implements Disposable {
         return mainContainer;
     }
 
-    public void renderTestDesignerInterface(PsiClass psiClass, PsiMethod method) {
+    public void renderTestDesignerInterface(ClassAdapter psiClass, MethodAdapter method) {
         if (this.currentMethod != null && this.currentMethod.equals(method)) {
             return;
         }
-        InsidiousService insidiousService = method.getProject().getService(InsidiousService.class);
+        Project project = method.getProject();
+        InsidiousService insidiousService = project.getService(InsidiousService.class);
 
-        if (method.getContainingFile().getVirtualFile() == null ||
-                method.getContainingFile().getVirtualFile().getPath().contains("/test/")) {
+        PsiFile containingFile = method.getContainingFile();
+        if (containingFile.getVirtualFile() == null ||
+                containingFile.getVirtualFile().getPath().contains("/test/")) {
             return;
         }
-        basePath = insidiousService.getBasePathForVirtualFile(method.getContainingFile().getVirtualFile());
+        basePath = insidiousService.getBasePathForVirtualFile(containingFile.getVirtualFile());
         if (basePath == null) {
             basePath = currentMethod.getProject().getBasePath();
         }
@@ -324,7 +327,8 @@ public class TestCaseDesigner implements Disposable {
 
                 if (saveLocationTextField.getText().isEmpty()) {
 
-                    String packageName = ((PsiJavaFileImpl) currentClass.getContainingFile()).getPackageName();
+                    PsiJavaFileImpl containingFile = currentClass.getContainingFile();
+                    String packageName = containingFile.getPackageName();
                     String testOutputDirPath = insidiousService.getTestDirectory(packageName, basePath);
 
                     saveLocationTextField.setText(testOutputDirPath + "/Test" + currentClass.getName() + "V.java");
@@ -379,8 +383,8 @@ public class TestCaseDesigner implements Disposable {
         fieldMapByName = new HashMap<>();
         VariableContainer fieldContainer = new VariableContainer();
 
-        PsiField[] fields = currentClass.getFields();
-        for (PsiField field : fields) {
+        FieldAdapter[] fields = currentClass.getFields();
+        for (FieldAdapter field : fields) {
             if (field.hasModifier(JvmModifier.STATIC)) {
                 continue;
             }
@@ -431,9 +435,9 @@ public class TestCaseDesigner implements Disposable {
         }
 
         // method parameters
-        PsiParameterList parameterList = currentMethod.getParameterList();
-        List<Parameter> arguments = new ArrayList<>(parameterList.getParametersCount());
-        for (PsiParameter parameter : parameterList.getParameters()) {
+        ParameterAdapter[] parameterList = currentMethod.getParameters();
+        List<Parameter> arguments = new ArrayList<>(parameterList.length);
+        for (ParameterAdapter parameter : parameterList) {
             Parameter argumentParameter = new Parameter();
 
             argumentParameter.setValue(random.nextLong());
@@ -509,7 +513,7 @@ public class TestCaseDesigner implements Disposable {
         return testCandidateMetadataList;
     }
 
-    private List<MethodCallExpression> extractMethodCalls(PsiMethod method) {
+    private List<MethodCallExpression> extractMethodCalls(MethodAdapter method) {
         List<MethodCallExpression> collectedMceList = new ArrayList<>();
 
         List<PsiMethodCallExpression> mceList = collectMethodCallExpressions(method.getBody());
@@ -558,7 +562,7 @@ public class TestCaseDesigner implements Disposable {
                         List<Parameter> methodArguments = new ArrayList<>();
                         Parameter methodReturnValue = new Parameter();
 
-                        PsiClass calledMethodClassReference = getClassByName(fieldByName.getType());
+                        ClassAdapter calledMethodClassReference = getClassByName(fieldByName.getType());
                         if (calledMethodClassReference == null) {
                             logger.error("called class reference for method not found ["
                                     + psiMethodCallExpression + "]");
@@ -567,7 +571,7 @@ public class TestCaseDesigner implements Disposable {
 
 
                         String methodName = methodNameNode.getText();
-                        PsiMethod matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
+                        MethodAdapter matchedMethod = getMatchingMethod(calledMethodClassReference, methodName,
                                 callParameterExpression);
                         if (matchedMethod == null) {
                             logger.warn("could not resolve reference to method: [" +
@@ -576,9 +580,9 @@ public class TestCaseDesigner implements Disposable {
                         }
 
                         PsiExpression[] actualParameterExpressions = callParameterExpression.getExpressions();
-                        PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
+                        ParameterAdapter[] parameters = matchedMethod.getParameters();
                         for (int i = 0; i < parameters.length; i++) {
-                            PsiParameter parameter = parameters[i];
+                            ParameterAdapter parameter = parameters[i];
                             PsiExpression parameterExpression = actualParameterExpressions[i];
 
                             Parameter callParameter = new Parameter();
@@ -600,7 +604,7 @@ public class TestCaseDesigner implements Disposable {
                             methodArguments.add(callParameter);
                         }
 
-                        @Nullable PsiType methodReturnPsiReference = matchedMethod.getReturnType();
+                        PsiType methodReturnPsiReference = matchedMethod.getReturnType();
 
                         methodReturnValue.setValue(random.nextLong());
                         setParameterTypeFromPsiType(methodReturnValue, methodReturnPsiReference, true);
@@ -643,7 +647,7 @@ public class TestCaseDesigner implements Disposable {
     }
 
     private List<MethodCallExpression> getCallsFromMethod(PsiExpressionListImpl callParameterExpression, String invokedMethodName) {
-        PsiMethod matchedMethod = getMatchingMethod(currentClass, invokedMethodName, callParameterExpression);
+        MethodAdapter matchedMethod = getMatchingMethod(currentClass, invokedMethodName, callParameterExpression);
         if (matchedMethod == null) {
             return Collections.emptyList();
         }
@@ -651,36 +655,36 @@ public class TestCaseDesigner implements Disposable {
         return extractMethodCalls(matchedMethod);
     }
 
-    private PsiMethod getMatchingMethod(
-            PsiClass classReference,
+    private MethodAdapter getMatchingMethod(
+            ClassAdapter classReference,
             String methodName,
             PsiExpressionListImpl callParameterExpression
     ) {
 
         logger.info("Find matching method for [" + methodName + "] - " + classReference.getName());
 
-        Set<PsiClass> classesToCheck = new HashSet<>();
+        Set<ClassAdapter> classesToCheck = new HashSet<>();
         classesToCheck.add(classReference);
-        Set<PsiClass> interfaces = getInterfaces(classReference);
+        Set<ClassAdapter> interfaces = getInterfaces(classReference);
         classesToCheck.addAll(interfaces);
 
-        for (PsiClass psiClass : classesToCheck) {
-            List<PsiMethod> matchedMethods = Arrays.stream(psiClass.getMethods())
+        for (ClassAdapter psiClass : classesToCheck) {
+            MethodAdapter[] methods = psiClass.getMethods();
+            List<MethodAdapter> matchedMethods = Arrays.stream(methods)
                     .filter(e -> e.getName().equals(methodName))
-                    .filter(e -> e.getParameterList().getParametersCount()
-                            == callParameterExpression.getExpressionCount())
+                    .filter(e -> e.getParameters().length == callParameterExpression.getExpressionCount())
                     .collect(Collectors.toList());
             if (matchedMethods.size() == 0) {
                 continue;
             }
-            for (PsiMethod matchedMethod : matchedMethods) {
+            for (MethodAdapter matchedMethod : matchedMethods) {
                 boolean isMismatch = false;
                 logger.info(
                         "Check matched method: [" + matchedMethod + "] in class [" + psiClass.getQualifiedName() + "]");
                 PsiType[] expectedExpressionType = callParameterExpression.getExpressionTypes();
-                PsiParameter @NotNull [] parameters = matchedMethod.getParameterList().getParameters();
+                ParameterAdapter[] parameters = matchedMethod.getParameters();
                 for (int i = 0; i < parameters.length; i++) {
-                    PsiParameter parameter = parameters[i];
+                    ParameterAdapter parameter = parameters[i];
                     PsiType type = parameter.getType();
                     if (type instanceof PsiClassReferenceType && type.getCanonicalText().length() == 1) {
                         // this is a generic type, wont match with the actual expression type
@@ -702,15 +706,15 @@ public class TestCaseDesigner implements Disposable {
         return null;
     }
 
-    private Set<PsiClass> getInterfaces(PsiClass psiClass) {
-        Set<PsiClass> interfacesList = new HashSet<>();
-        PsiClass[] interfaces = psiClass.getInterfaces();
-        for (PsiClass anInterface : interfaces) {
+    private Set<ClassAdapter> getInterfaces(ClassAdapter psiClass) {
+        Set<ClassAdapter> interfacesList = new HashSet<>();
+        ClassAdapter[] interfaces = psiClass.getInterfaces();
+        for (ClassAdapter anInterface : interfaces) {
             interfacesList.add(anInterface);
             interfacesList.addAll(getInterfaces(anInterface));
         }
-        PsiClass[] supers = psiClass.getSupers();
-        for (PsiClass aSuper : supers) {
+        ClassAdapter[] supers = psiClass.getSupers();
+        for (ClassAdapter aSuper : supers) {
             interfacesList.add(aSuper);
             interfacesList.addAll(getInterfaces(aSuper));
         }
@@ -720,10 +724,10 @@ public class TestCaseDesigner implements Disposable {
     }
 
     private List<TestCandidateMetadata> buildConstructorCandidate(
-            PsiClass currentClass, Parameter testSubject, VariableContainer fieldContainer) {
+            ClassAdapter currentClass, Parameter testSubject, VariableContainer fieldContainer) {
         List<TestCandidateMetadata> candidateList = new ArrayList<>();
 
-        PsiMethod[] constructors = currentClass.getConstructors();
+        MethodAdapter[] constructors = currentClass.getConstructors();
         if (constructors.length == 0) {
             TestCandidateMetadata newTestCaseMetadata = new TestCandidateMetadata();
             MethodCallExpression constructorMethod = new MethodCallExpression("<init>", testSubject,
@@ -736,17 +740,19 @@ public class TestCaseDesigner implements Disposable {
 
             return candidateList;
         }
-        PsiMethod selectedConstructor = null;
-        for (PsiMethod constructor : constructors) {
+        MethodAdapter selectedConstructor = null;
+        for (MethodAdapter constructor : constructors) {
             if (selectedConstructor == null) {
                 selectedConstructor = constructor;
                 continue;
             }
-            if (constructor.getParameterList().getParametersCount() > selectedConstructor.getParameterList()
-                    .getParametersCount()) {
+            ParameterAdapter[] constructorParameterList = constructor.getParameters();
+            ParameterAdapter[] selectedConstructorParameterList = selectedConstructor.getParameters();
+            if (constructorParameterList.length > selectedConstructorParameterList.length) {
                 boolean isRecursiveConstructor = false;
-                for (PsiParameter parameter : constructor.getParameterList().getParameters()) {
-                    if (currentClass.getQualifiedName().equals(parameter.getType().getCanonicalText())) {
+                for (ParameterAdapter parameter : constructorParameterList) {
+                    PsiType type = parameter.getType();
+                    if (currentClass.getQualifiedName().equals(type.getCanonicalText())) {
                         isRecursiveConstructor = true;
                     }
                 }
@@ -766,9 +772,9 @@ public class TestCaseDesigner implements Disposable {
 
 
         TestCandidateMetadata candidate = new TestCandidateMetadata();
-        List<Parameter> methodArguments = new ArrayList<>(selectedConstructor.getParameterList().getParametersCount());
+        List<Parameter> methodArguments = new ArrayList<>(selectedConstructor.getParameters().length);
 
-        for (PsiParameter parameter : selectedConstructor.getParameterList().getParameters()) {
+        for (ParameterAdapter parameter : selectedConstructor.getParameters()) {
 
             List<Parameter> fieldParameterByType = fieldContainer.getParametersByType(
                     parameter.getType().getCanonicalText());
@@ -805,7 +811,7 @@ public class TestCaseDesigner implements Disposable {
                     if (parameter.getType() instanceof PsiClassReferenceType) {
                         parameterClassName = ((PsiClassReferenceType) parameter.getType()).rawType().getCanonicalText();
                     }
-                    @Nullable PsiClass parameterClassReference = getClassByName(parameterClassName);
+                    ClassAdapter parameterClassReference = getClassByName(parameterClassName);
 
                     if (parameterClassReference == null) {
                         logger.warn("did not find class reference: " + parameterClassName +
@@ -838,11 +844,14 @@ public class TestCaseDesigner implements Disposable {
         return candidateList;
     }
 
-    @Nullable
-    private PsiClass getClassByName(String className) {
-        return JavaPsiFacade.getInstance(currentClass.getProject())
+    private ClassAdapter getClassByName(String className) {
+        PsiClass aClass = JavaPsiFacade.getInstance(currentClass.getProject())
                 .findClass(ClassTypeUtils.getJavaClassName(className),
                         GlobalSearchScope.allScope(currentClass.getProject()));
+        if (aClass == null) {
+            return null;
+        }
+        return new JavaClassAdapter(aClass);
     }
 
     private void setParameterTypeFromPsiType(Parameter parameter, PsiType psiType, boolean isReturnParameter) {

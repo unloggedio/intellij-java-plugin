@@ -2,36 +2,39 @@ package com.insidious.plugin.ui.Highlighter;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.ui.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.ui.adapter.kotlin.KotlinMethodAdapter;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.psi.KtClass;
+import org.jetbrains.kotlin.psi.KtNamedFunction;
 
 import java.awt.event.MouseEvent;
 import java.util.LinkedList;
 import java.util.List;
 
-public class UnloggedGutterNavigationHandler implements GutterIconNavigationHandler<PsiIdentifier> {
+public class KotlinUnloggedGutterNavigationHandler implements GutterIconNavigationHandler<LeafPsiElement> {
 
     @Override
-    public void navigate(MouseEvent e, PsiIdentifier identifier) {
-        PsiMethod method = (PsiMethod) identifier.getParent();
-        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
-                method.getTextOffset(), PsiClass.class, false);
-        InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
-        insidiousService.openTestCaseDesigner(psiClass.getProject());
-        insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
-        UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
+    public void navigate(MouseEvent e, LeafPsiElement identifier) {
+        KtNamedFunction method = (KtNamedFunction) identifier.getParent();
+        KtClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(method.getContainingFile(),
+                    method.getTextOffset(), KtClass.class, false);
+            InsidiousService insidiousService = psiClass.getProject().getService(InsidiousService.class);
+            insidiousService.openTestCaseDesigner(psiClass.getProject());
+            insidiousService.methodFocussedHandler(new KotlinMethodAdapter(method));
+            UsageInsightTracker.getInstance().RecordEvent("TestIconClick", null);
 
 
         @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
-        insidiousService.executeWithAgentForMethod(method);
+//        insidiousService.executeWithAgentForMethod(method);
 
 
 //        MethodExecutorComponent gutterMethodPanel = new MethodExecutorComponent((PsiMethod) identifier.getParent());

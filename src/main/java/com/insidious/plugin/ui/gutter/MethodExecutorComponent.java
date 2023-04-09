@@ -8,6 +8,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.ui.Components.CompareControlComponent;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
@@ -31,7 +32,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private List<CompareControlComponent> components = new ArrayList<>();
-    private PsiMethod methodElement;
+    private MethodAdapter methodElement;
     private JPanel rootContent;
     private JPanel borderParentMain;
     private JPanel centerPanel;
@@ -100,7 +101,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.borderParentScroll.revalidate();
     }
 
-    public void executeAll(PsiMethod method) {
+    public void executeAll(MethodAdapter method) {
         this.isDifferent = false;
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
@@ -124,7 +125,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
     }
 
-    public void refreshAndReloadCandidates(PsiMethod method) {
+    public void refreshAndReloadCandidates(MethodAdapter method) {
         if (this.methodElement != null && !this.methodElement.equals(method)) {
             clearBoard();
         }

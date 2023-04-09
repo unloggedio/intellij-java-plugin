@@ -10,6 +10,8 @@ import com.insidious.plugin.ui.Components.GPTResponse.ChatGPTResponse;
 import com.insidious.plugin.ui.Components.GPTResponse.ErrorResponse;
 import com.insidious.plugin.ui.Components.UnloggedGPTNavigationBar;
 import com.insidious.plugin.ui.Components.UnloggedGptListener;
+import com.insidious.plugin.ui.adapter.ClassAdapter;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -41,8 +43,8 @@ public class UnloggedGPT implements UnloggedGptListener {
     private JButton discordButton;
     //public JBCefBrowser jbCefBrowser;
     private UnloggedGPTNavigationBar navigationBar;
-    private PsiClass currentClass;
-    private PsiMethod currentMethod;
+    private ClassAdapter currentClass;
+    private MethodAdapter currentMethod;
     private String chatURL = "https://chat.openai.com/chat";
     private ChatGptMode currentMode = ChatGptMode.API;
     private InsidiousService insidiousService;
@@ -256,7 +258,7 @@ public class UnloggedGPT implements UnloggedGptListener {
         insidiousService.refreshGPTWindow();
     }
 
-    public void updateUI(PsiClass psiClass, PsiMethod method) {
+    public void updateUI(ClassAdapter psiClass, MethodAdapter method) {
         this.currentMethod = method;
         this.currentClass = psiClass;
         if (this.navigationBar != null) {
