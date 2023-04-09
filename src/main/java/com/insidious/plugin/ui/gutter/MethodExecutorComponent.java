@@ -125,8 +125,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public void refreshAndReloadCandidates(PsiMethod method) {
+        boolean isNew = false;
         if (this.methodElement != null && !this.methodElement.equals(method)) {
             clearBoard();
+            isNew=true;
         }
         this.methodElement = method;
         List<TestCandidateMetadata> candidates = this.insidiousService
@@ -135,26 +137,34 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                         methodElement.getName(),
                         false);
         this.methodTestCandidates = deDuplicateList(candidates);
+        if(this.methodTestCandidates.size()==0)
+        {
+            this.components = new ArrayList<>();
+        }
+        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
         if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
+            if(isNew)
+            {
+                loadMethodCandidates();
+                return;
+            }
             if (this.components != null) {
                 if (this.components.size() == 0) {
                     loadMethodCandidates();
                 } else {
-                    mergeComponentList();
+                        mergeComponentList();
                 }
             } else {
                 loadMethodCandidates();
             }
         }
-        if (this.methodTestCandidates.size() == 0) {
-            this.components = new ArrayList<>();
-        }
-        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
     }
 
     private void clearBoard() {
         this.borderParentScroll.removeAll();
+        this.diffContentPanel.removeAll();
         this.borderParentScroll.revalidate();
+        this.diffContentPanel.removeAll();
     }
 
     private void mergeComponentList() {
