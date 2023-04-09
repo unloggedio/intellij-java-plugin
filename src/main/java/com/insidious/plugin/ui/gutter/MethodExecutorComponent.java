@@ -8,7 +8,6 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.ui.Components.CompareControlComponent;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.ui.adapter.MethodAdapter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
@@ -32,7 +31,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private List<CompareControlComponent> components = new ArrayList<>();
-    private MethodAdapter methodElement;
+    private PsiMethod methodElement;
     private JPanel rootContent;
     private JPanel borderParentMain;
     private JPanel centerPanel;
@@ -101,7 +100,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.borderParentScroll.revalidate();
     }
 
-    public void executeAll(MethodAdapter method) {
+    public void executeAll(PsiMethod method) {
         this.isDifferent = false;
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
@@ -125,9 +124,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
     }
 
-    public void refreshAndReloadCandidates(MethodAdapter method) {
+    public void refreshAndReloadCandidates(PsiMethod method) {
+        boolean isNew = false;
         if (this.methodElement != null && !this.methodElement.equals(method)) {
             clearBoard();
+            isNew=true;
         }
         this.methodElement = method;
         List<TestCandidateMetadata> candidates = this.insidiousService
@@ -136,26 +137,34 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                         methodElement.getName(),
                         false);
         this.methodTestCandidates = deDuplicateList(candidates);
+        if(this.methodTestCandidates.size()==0)
+        {
+            this.components = new ArrayList<>();
+        }
+        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
         if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
+            if(isNew)
+            {
+                loadMethodCandidates();
+                return;
+            }
             if (this.components != null) {
                 if (this.components.size() == 0) {
                     loadMethodCandidates();
                 } else {
-                    mergeComponentList();
+                        mergeComponentList();
                 }
             } else {
                 loadMethodCandidates();
             }
         }
-        if (this.methodTestCandidates.size() == 0) {
-            this.components = new ArrayList<>();
-        }
-        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
     }
 
     private void clearBoard() {
         this.borderParentScroll.removeAll();
+        this.diffContentPanel.removeAll();
         this.borderParentScroll.revalidate();
+        this.diffContentPanel.removeAll();
     }
 
     private void mergeComponentList() {
