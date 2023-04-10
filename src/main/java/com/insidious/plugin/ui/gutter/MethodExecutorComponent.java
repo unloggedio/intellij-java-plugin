@@ -52,7 +52,6 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
-
         executeAndShowDifferencesButton.addActionListener(e -> {
             executeAll();
         });
@@ -250,11 +249,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                                 "Failed to execute method: " + agentCommandResponse.getMessage(),
                                 NotificationType.ERROR
                         );
-                    } else {
+                    }
                         AgentResponseComponent responseComponent = postProcessExecute(testCandidate,
                                 agentCommandResponse, controlComponent);
                         controlComponent.setAndDisplayResponse(responseComponent);
-                    }
                 });
     }
 
@@ -269,11 +267,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                                 "Failed to execute method: " + agentCommandResponse.getMessage(),
                                 NotificationType.ERROR
                         );
-                    } else {
-                        AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate,
-                                agentCommandResponse, controlComponent);
-                        controlComponent.setResposeComponent(responseComponent);
                     }
+                    AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate,
+                            agentCommandResponse, controlComponent);
+                    controlComponent.setResposeComponent(responseComponent);
                 });
     }
 
@@ -282,7 +279,12 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService,
                 controlComponent.getParameterMap(), alt);
-        boolean isDiff = response.computeDifferences();
+        Boolean isDiff = response.computeDifferences();
+        if(isDiff==null)
+        {
+            //exception case
+            isDiff=false;
+        }
         alt = !alt;
         componentCounter++;
         if (isDiff) {
@@ -305,7 +307,12 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService,
                 controlComponent.getParameterMap(), alt);
-        boolean isDiff = response.computeDifferences();
+        Boolean isDiff = response.computeDifferences();
+        if(isDiff==null)
+        {
+            //exception case
+            isDiff = false;
+        }
         alt = !alt;
         response.setBorderTitle(++this.componentCounter);
         if (isDiff) {

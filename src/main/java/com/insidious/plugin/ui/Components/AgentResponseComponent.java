@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.insidious.plugin.agent.AgentCommandResponse;
+import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
@@ -151,7 +152,7 @@ public class AgentResponseComponent {
     }
 
     //constructor to take string difference and parameter/mce from candidate
-    public boolean computeDifferences() {
+    public Boolean computeDifferences() {
         if (MOCK_MODE) {
             if(alt) {
                 this.oldResponse = s1;
@@ -170,14 +171,25 @@ public class AgentResponseComponent {
         }
     }
 
-    public boolean tryTestDiff(String s1, String s2) {
+    public Boolean tryTestDiff(String s1, String s2) {
         return calculateDifferences(s1, s2);
     }
 
-    private boolean calculateDifferences(String s1, String s2) {
+    private Boolean calculateDifferences(String s1, String s2) {
         System.out.println("COMPARE OLD : "+s1);
         System.out.println("COMPARE NEW : "+s2);
         ObjectMapper om = new ObjectMapper();
+
+        //replace Boolean with enum
+        if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
+                .equals(ResponseType.FAILED))
+        {
+            this.statusLabel.setText(""+this.agentCommandResponse.getMessage());
+            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            this.statusLabel.setForeground(UIUtils.red);
+            this.tableParent.setVisible(false);
+            return null;
+        }
         try {
             Map<String, Object> m1;
             if (s1 == null || s1.isEmpty()) {
@@ -400,5 +412,9 @@ public class AgentResponseComponent {
     public void setBorderTitle(int x) {
 //        TitledBorder b = new TitledBorder("Input Set " + x);
 //        this.borderParent.setBorder(b);
+    }
+
+    public AgentCommandResponse getAgentCommandResponse() {
+        return agentCommandResponse;
     }
 }

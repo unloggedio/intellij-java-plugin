@@ -99,9 +99,16 @@ public class CompareControlComponent {
     private void loadInputTree() {
         this.mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        for (String key : this.parameterMap.keySet()) {
-            DefaultMutableTreeNode node = buildJsonTree(this.parameterMap.get(key), key);
+        if(this.parameterMap.keySet()==null || this.parameterMap.keySet().size()==0)
+        {
+            DefaultMutableTreeNode node = new DefaultMutableTreeNode("No inputs for this method.");
             inputRoot.add(node);
+        }
+        else {
+            for (String key : this.parameterMap.keySet()) {
+                DefaultMutableTreeNode node = buildJsonTree(this.parameterMap.get(key), key);
+                inputRoot.add(node);
+            }
         }
 
         this.mainContentPanel.setLayout(new GridLayout(1, 1));
@@ -204,7 +211,13 @@ public class CompareControlComponent {
 
     public void setResposeComponent(AgentResponseComponent responseComponent) {
         this.responseComponent = responseComponent;
-        boolean status = this.responseComponent.computeDifferences();
+        Boolean status = this.responseComponent.computeDifferences();
+        if(status==null)
+        {
+            this.statusLabel.setText("Exception");
+            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            return;
+        }
         if (!status) {
             //no diff
             this.statusLabel.setText("Same");
@@ -218,7 +231,16 @@ public class CompareControlComponent {
 
     public void setAndDisplayResponse(AgentResponseComponent responseComponent) {
         this.responseComponent = responseComponent;
-        boolean status = this.responseComponent.computeDifferences();
+        Boolean status = this.responseComponent.computeDifferences();
+        if(status==null)
+        {
+            this.statusLabel.setText("Exception");
+            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            System.out.println("Exception message : "+this.responseComponent
+                    .getAgentCommandResponse().getMessage());
+            displayResponse();
+            return;
+        }
         if (!status) {
             //no diff
             this.statusLabel.setText("Same");
