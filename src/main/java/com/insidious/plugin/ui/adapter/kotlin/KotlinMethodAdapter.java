@@ -8,6 +8,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.PsiType;
+import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 
 public class KotlinMethodAdapter implements MethodAdapter {
@@ -19,17 +20,18 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public ClassAdapter getContainingClass() {
-        return null;
+        KtClass kotlinClass = (KtClass) method.getParent().getParent();
+        return new KotlinClassAdapter(kotlinClass);
     }
 
     @Override
     public String getName() {
-        return null;
+        return method.getName();
     }
 
     @Override
     public String getText() {
-        return null;
+        return method.getText();
     }
 
     @Override
@@ -39,12 +41,12 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public Project getProject() {
-        return null;
+        return method.getProject();
     }
 
     @Override
     public PsiFile getContainingFile() {
-        return null;
+        return method.getContainingFile();
     }
 
     @Override
@@ -64,7 +66,7 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public PsiElement getBody() {
-        return null;
+        return method.getBodyExpression();
     }
 
     @Override

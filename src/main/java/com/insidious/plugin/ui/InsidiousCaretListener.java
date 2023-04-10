@@ -2,6 +2,7 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.ui.adapter.kotlin.KotlinMethodAdapter;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.EditorMouseEvent;
@@ -13,6 +14,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.kotlin.psi.KtNamedFunction;
 
 public class InsidiousCaretListener implements EditorMouseListener {
     private final Project project;
@@ -42,10 +44,19 @@ public class InsidiousCaretListener implements EditorMouseListener {
             return;
         }
         PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
+        if (method != null) {
+            insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
+            return;
+        }
+        KtNamedFunction kotlinMethod = PsiTreeUtil.findElementOfClassAtOffset(file, offset, KtNamedFunction.class,
+                false);
+        if (kotlinMethod != null) {
+            insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
+            return;
+        }
 //        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
 
 
-        insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
     }
 
 }

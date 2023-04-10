@@ -8,13 +8,13 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.AgentResponseComponent;
 import com.insidious.plugin.ui.Components.CompareControlComponent;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.ui.adapter.MethodAdapter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
-import com.intellij.psi.PsiMethod;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
@@ -31,7 +31,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private List<CompareControlComponent> components = new ArrayList<>();
-    private PsiMethod methodElement;
+    private MethodAdapter methodElement;
     private JPanel rootContent;
     private JPanel borderParentMain;
     private JPanel centerPanel;
@@ -54,7 +54,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.insidiousService = insidiousService;
 
         executeAndShowDifferencesButton.addActionListener(e -> {
-            executeAll(methodElement);
+            executeAll();
         });
     }
 
@@ -100,7 +100,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.borderParentScroll.revalidate();
     }
 
-    public void executeAll(PsiMethod method) {
+    public void executeAll() {
         this.isDifferent = false;
         if (methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
@@ -124,11 +124,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         ApplicationManager.getApplication().runReadAction(() -> refreshAndReloadCandidates(methodElement));
     }
 
-    public void refreshAndReloadCandidates(PsiMethod method) {
+    public void refreshAndReloadCandidates(MethodAdapter method) {
         boolean isNew = false;
         if (this.methodElement != null && !this.methodElement.equals(method)) {
             clearBoard();
-            isNew=true;
+            isNew = true;
         }
         this.methodElement = method;
         List<TestCandidateMetadata> candidates = this.insidiousService
@@ -137,14 +137,12 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                         methodElement.getName(),
                         false);
         this.methodTestCandidates = deDuplicateList(candidates);
-        if(this.methodTestCandidates.size()==0)
-        {
+        if (this.methodTestCandidates.size() == 0) {
             this.components = new ArrayList<>();
         }
         this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
         if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
-            if(isNew)
-            {
+            if (isNew) {
                 loadMethodCandidates();
                 return;
             }
@@ -152,7 +150,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                 if (this.components.size() == 0) {
                     loadMethodCandidates();
                 } else {
-                        mergeComponentList();
+                    mergeComponentList();
                 }
             } else {
                 loadMethodCandidates();
@@ -164,7 +162,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.borderParentScroll.removeAll();
         this.diffContentPanel.removeAll();
         this.borderParentScroll.revalidate();
-        this.diffContentPanel.removeAll();
+        this.diffContentPanel.revalidate();
     }
 
     private void mergeComponentList() {
@@ -229,7 +227,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         for (TestCandidateMetadata metadata : list) {
             List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
             String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = inputs.toString() + output;
+            String concat = inputs + output;
             int hash = concat.toString().hashCode();
             if (!ioHashMap.containsKey(hash)) {
                 ioHashMap.put(hash, metadata);

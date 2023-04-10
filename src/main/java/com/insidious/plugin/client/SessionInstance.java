@@ -1159,8 +1159,7 @@ public class SessionInstance {
         Path path = FileSystems.getDefault()
                 .getPath(this.sessionDirectory.getAbsolutePath(), cacheKey, indexFilterType.getFileName());
         Path parentPath = path.getParent();
-        parentPath.toFile()
-                .mkdirs();
+        parentPath.toFile().mkdirs();
 
         if (!path.toFile()
                 .exists()) {
@@ -3966,7 +3965,7 @@ public class SessionInstance {
         if (objectInfoIndex != null) {
             objectInfoIndex.close();
         }
-
+        archiveIndex.close();
         archiveIndex = null;
     }
 
