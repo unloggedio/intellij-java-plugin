@@ -10,6 +10,9 @@ import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.PsiType;
 import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
+import org.jetbrains.kotlin.psi.KtParameter;
+
+import java.util.List;
 
 public class KotlinMethodAdapter implements MethodAdapter {
     private final KtNamedFunction method;
@@ -36,7 +39,14 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public ParameterAdapter[] getParameters() {
-        return new ParameterAdapter[0];
+        List<KtParameter> params = method.getValueParameters();
+        ParameterAdapter[] adapterParamsList = new ParameterAdapter[params.size()];
+        for (int i = 0; i < params.size(); i++) {
+            KtParameter param = params.get(i);
+            adapterParamsList[i] = new KotlinParameterAdapter(param);
+        }
+
+        return adapterParamsList;
     }
 
     @Override

@@ -49,7 +49,7 @@ public class AgentClient {
         try (Response response = client.newCall(request).execute()) {
             String responseBody = response.body().string();
             return objectMapper.readValue(responseBody, AgentCommandResponse.class);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());
             AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
             agentCommandResponse.setResponseType(ResponseType.FAILED);
