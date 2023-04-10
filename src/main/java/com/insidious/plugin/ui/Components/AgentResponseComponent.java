@@ -176,18 +176,16 @@ public class AgentResponseComponent {
     }
 
     private Boolean calculateDifferences(String s1, String s2) {
-        System.out.println("COMPARE OLD : "+s1);
-        System.out.println("COMPARE NEW : "+s2);
         ObjectMapper om = new ObjectMapper();
-
         //replace Boolean with enum
         if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
-                .equals(ResponseType.FAILED))
+                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED))
         {
             this.statusLabel.setText(""+this.agentCommandResponse.getMessage());
             this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
             this.statusLabel.setForeground(UIUtils.red);
             this.tableParent.setVisible(false);
+            showExceptionTrace(s2);
             return null;
         }
         try {
@@ -416,5 +414,18 @@ public class AgentResponseComponent {
 
     public AgentCommandResponse getAgentCommandResponse() {
         return agentCommandResponse;
+    }
+
+    public void showExceptionTrace(String response)
+    {
+        this.tableParent.removeAll();
+        JTextArea textArea = new JTextArea();
+        textArea.setText(response);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        JScrollPane scroll = new JBScrollPane (textArea,
+                JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        this.tableParent.add(textArea,BorderLayout.CENTER);
+        this.tableParent.revalidate();
     }
 }
