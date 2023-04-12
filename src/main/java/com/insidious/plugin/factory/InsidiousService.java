@@ -1258,7 +1258,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void executeWithAgentForMethod(PsiMethod method) {
-        if (this.methodExecutorToolWindow != null) {
+        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow!=null) {
             this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
             //this.methodExecutorToolWindow.executeAll(method);
         }
