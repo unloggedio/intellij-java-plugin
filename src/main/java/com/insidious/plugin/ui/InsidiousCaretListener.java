@@ -1,8 +1,10 @@
 package com.insidious.plugin.ui;
 
+import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.ui.adapter.kotlin.KotlinMethodAdapter;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.event.EditorMouseEvent;
@@ -15,6 +17,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
+import com.intellij.serviceContainer.AlreadyDisposedException;
 
 public class InsidiousCaretListener implements EditorMouseListener {
     private final Project project;
@@ -34,25 +37,41 @@ public class InsidiousCaretListener implements EditorMouseListener {
             return;
         }
 
-        InsidiousService insidiousService = project.getService(InsidiousService.class);
+        try {
+            InsidiousService insidiousService = project.getService(InsidiousService.class);
 
-        Editor editor = event.getEditor();
-        int offset = editor.getCaretModel().getOffset();
-        Document document = editor.getDocument();
-        PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(document);
-        if (file == null) {
-            return;
+            Editor editor = event.getEditor();
+            int offset = editor.getCaretModel().getOffset();
+            Document document = editor.getDocument();
+            PsiFile file = PsiDocumentManager.getInstance(project).getPsiFile(document);
+            if (file == null) {
+                return;
+            }
+            PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
+            if (method != null) {
+                insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
+                return;
+            }
+            KtNamedFunction kotlinMethod = PsiTreeUtil.findElementOfClassAtOffset(file, offset, KtNamedFunction.class,
+                    false);
+            if (kotlinMethod != null) {
+                insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
+                return;
+            }
         }
-        PsiMethod method = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiMethod.class, false);
-        if (method != null) {
-            insidiousService.methodFocussedHandler(new JavaMethodAdapter(method));
-            return;
+        catch (AlreadyDisposedException e)
+        {
+            //case where insidious service may not be ready/null.
+            System.out.println("Exception (AlreadyDisposed): "+e);
+            e.printStackTrace();
+            InsidiousNotification.notifyMessage("Please try again when Unlogged is ready",
+                    NotificationType.ERROR);
         }
-        KtNamedFunction kotlinMethod = PsiTreeUtil.findElementOfClassAtOffset(file, offset, KtNamedFunction.class,
-                false);
-        if (kotlinMethod != null) {
-            insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
-            return;
+        catch (Exception ex)
+        {
+            //other exception
+            System.out.println("Exception : "+ex);
+            ex.printStackTrace();
         }
 //        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);
 
