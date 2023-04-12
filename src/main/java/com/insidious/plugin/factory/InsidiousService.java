@@ -1158,7 +1158,7 @@ final public class InsidiousService implements Disposable,
             this.client = new VideobugLocalClient(pathToSessions, project);
         }
 
-        if (sessionInstance != null) {
+        if (sessionInstance != null && this.sessionInstance.getArchiveIndex()!=null) {
             try {
                 sessionInstance.close();
             } catch (Exception e) {

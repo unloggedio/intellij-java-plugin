@@ -4018,4 +4018,8 @@ public class SessionInstance {
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         return daoService.getClassMethodCallAggregates(qualifiedName);
     }
+
+    public ArchiveIndex getArchiveIndex() {
+        return archiveIndex;
+    }
 }
