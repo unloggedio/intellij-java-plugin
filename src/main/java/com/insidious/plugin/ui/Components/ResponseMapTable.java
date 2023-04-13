@@ -8,13 +8,10 @@ import java.util.Map;
 
 public class ResponseMapTable extends AbstractTableModel {
     private ArrayList<String> keys = new ArrayList<>();
-
     private final String[] columnNames = {
-            "Key", "Old Value", "New Value"
+            "Key", "Value"
     };
-
     private Map<String,Object> response;
-
 
     public ResponseMapTable(Map<String, Object> rightOnly) {
         this.response=rightOnly;
@@ -40,15 +37,10 @@ public class ResponseMapTable extends AbstractTableModel {
         {
             String key = keys.get(rowIndex);
             key = key.replaceAll("/",".");
-            key = "root"+key;
             return key;
         }
         Object value = response.get(keys.get(rowIndex));
         if(columnIndex==1)
-        {
-            return null;
-        }
-        else if(columnIndex==2)
         {
             return value;
         }

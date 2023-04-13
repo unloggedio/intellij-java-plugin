@@ -82,13 +82,18 @@ public class AgentResponseComponent {
             AgentCommandResponse agentCommandResponse,
             InsidiousService insidiousService,
             Map<String, String> parameters,
-            boolean alt
+            boolean showaccept
     ) {
         this.testCandidateMetadata = testCandidateMetadata;
         this.agentCommandResponse = agentCommandResponse;
         this.insidiousService = insidiousService;
         this.parameters = parameters;
-        this.alt=alt;
+        this.alt=showaccept;
+
+        if(!showaccept)
+        {
+            this.bottomControlPanel.setVisible(false);
+        }
 
         viewFullButton.addMouseListener(new MouseAdapter() {
             @Override

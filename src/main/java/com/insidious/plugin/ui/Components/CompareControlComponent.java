@@ -96,6 +96,10 @@ public class CompareControlComponent {
         }
     }
 
+    private void displayExceptionResponse(AgentExceptionResponseComponent comp) {
+            this.listener.displayExceptionResponse(comp);
+    }
+
     private void loadInputTree() {
         this.mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
@@ -251,6 +255,13 @@ public class CompareControlComponent {
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
         }
         displayResponse();
+    }
+
+    public void DisplayExceptionResponse(AgentExceptionResponseComponent exceptionResponseComponent)
+    {
+        this.statusLabel.setText("Exception");
+        this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+        displayExceptionResponse(exceptionResponseComponent);
     }
 
     public int getHash() {
