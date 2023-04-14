@@ -85,10 +85,10 @@
     <extensions defaultExtensionNs="com.intellij">
         <codeInsight.lineMarkerProvider
                 language="JAVA"
-                implementationClass="com.insidious.plugin.ui.Highlighter.LineHighlighter"/>
+                implementationClass="com.insidious.plugin.ui.highlighter.LineHighlighter"/>
         <codeInsight.lineMarkerProvider
                 language="kotlin"
-                implementationClass="com.insidious.plugin.ui.Highlighter.KotlinLineHighlighter"/>
+                implementationClass="com.insidious.plugin.ui.highlighter.KotlinLineHighlighter"/>
         <codeInsight.inlayProvider implementationClass="com.insidious.plugin.inlay.InsidiousInlayHintsProvider"
                                    language="JAVA"/>
     </extensions>

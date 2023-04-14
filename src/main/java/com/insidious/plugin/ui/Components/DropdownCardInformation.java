@@ -10,6 +10,7 @@ public class DropdownCardInformation {
     OnboardingScaffoldV3.DROP_TYPES type;
     Integer defaultSelected = null;
     boolean showRefresh = false;
+
     public DropdownCardInformation(String heading, List<String> options, String description) {
         this.heading = heading;
         this.options = options;

@@ -1,9 +1,9 @@
 package com.insidious.plugin.ui;
 
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
-import com.insidious.plugin.ui.Components.AgentExceptionResponseComponent;
-import com.insidious.plugin.ui.Components.AgentResponseComponent;
-import com.insidious.plugin.ui.Components.CompareControlComponent;
+import com.insidious.plugin.ui.methodscope.AgentExceptionResponseComponent;
+import com.insidious.plugin.ui.methodscope.AgentResponseComponent;
+import com.insidious.plugin.ui.methodscope.CompareControlComponent;
 
 public interface MethodExecutionListener {
 

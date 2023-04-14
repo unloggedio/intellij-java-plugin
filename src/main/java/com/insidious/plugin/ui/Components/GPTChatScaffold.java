@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.roots.ui.componentsList.components.ScrollablePanel;
 import com.intellij.ui.components.JBScrollPane;
 

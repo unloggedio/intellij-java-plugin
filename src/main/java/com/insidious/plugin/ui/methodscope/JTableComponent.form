@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="com.insidious.plugin.ui.methodscope.JTableComponent">
+  <grid id="fc1cf" binding="mainPanel" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+    <margin top="4" left="4" bottom="4" right="4"/>
+    <constraints>
+      <xy x="9" y="5" width="386" height="210"/>
+    </constraints>
+    <properties>
+      <maximumSize width="2147483647" height="60"/>
+      <minimumSize width="26" height="32"/>
+      <preferredSize width="458" height="40"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <scrollpane id="cf29e">
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="184bd" class="javax.swing.JTable" binding="mainTable">
+            <constraints/>
+            <properties/>
+          </component>
+        </children>
+      </scrollpane>
+    </children>
+  </grid>
+</form>

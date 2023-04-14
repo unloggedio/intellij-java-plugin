@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.extension.InsidiousNotification;
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.notification.NotificationType;
 
 import javax.swing.*;

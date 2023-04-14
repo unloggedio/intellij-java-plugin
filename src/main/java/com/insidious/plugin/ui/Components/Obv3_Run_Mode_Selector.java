@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.pojo.ProjectTypeInfo;
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;

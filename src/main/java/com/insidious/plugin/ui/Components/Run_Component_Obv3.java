@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.pojo.ProjectTypeInfo;
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

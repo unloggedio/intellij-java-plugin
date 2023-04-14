@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.Components;
 
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.openapi.ui.VerticalFlowLayout;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;

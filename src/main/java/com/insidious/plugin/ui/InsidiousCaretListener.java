@@ -2,8 +2,8 @@ package com.insidious.plugin.ui;
 
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.ui.adapter.java.JavaMethodAdapter;
-import com.insidious.plugin.ui.adapter.kotlin.KotlinMethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -15,9 +15,9 @@ import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.serviceContainer.AlreadyDisposedException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
-import com.intellij.serviceContainer.AlreadyDisposedException;
 
 public class InsidiousCaretListener implements EditorMouseListener {
     private final Project project;
@@ -58,19 +58,15 @@ public class InsidiousCaretListener implements EditorMouseListener {
                 insidiousService.methodFocussedHandler(new KotlinMethodAdapter(kotlinMethod));
                 return;
             }
-        }
-        catch (AlreadyDisposedException e)
-        {
+        } catch (AlreadyDisposedException e) {
             //case where insidious service may not be ready/null.
-            System.out.println("Exception (AlreadyDisposed): "+e);
+            System.out.println("Exception (AlreadyDisposed): " + e);
             e.printStackTrace();
             InsidiousNotification.notifyMessage("Please try again when Unlogged is ready",
                     NotificationType.ERROR);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             //other exception
-            System.out.println("Exception : "+ex);
+            System.out.println("Exception : " + ex);
             ex.printStackTrace();
         }
 //        PsiClass psiClass = PsiTreeUtil.findElementOfClassAtOffset(file, offset, PsiClass.class, false);

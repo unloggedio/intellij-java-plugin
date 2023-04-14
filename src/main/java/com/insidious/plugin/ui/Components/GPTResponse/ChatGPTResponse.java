@@ -8,13 +8,25 @@ Root root = om.readValue(myJsonString, Root.class); */
 
 import java.util.ArrayList;
 
-public class ChatGPTResponse{
+public class ChatGPTResponse {
     public String id;
     public String object;
     public int created;
     public String model;
     public ArrayList<Choice> choices;
     public Usage usage;
+
+    public ChatGPTResponse() {
+    }
+
+    public ChatGPTResponse(String id, String object, int created, String model, ArrayList<Choice> choices, Usage usage) {
+        this.id = id;
+        this.object = object;
+        this.created = created;
+        this.model = model;
+        this.choices = choices;
+        this.usage = usage;
+    }
 
     public String getId() {
         return id;
@@ -61,18 +73,6 @@ public class ChatGPTResponse{
     }
 
     public void setUsage(Usage usage) {
-        this.usage = usage;
-    }
-
-    public ChatGPTResponse() {
-    }
-
-    public ChatGPTResponse(String id, String object, int created, String model, ArrayList<Choice> choices, Usage usage) {
-        this.id = id;
-        this.object = object;
-        this.created = created;
-        this.model = model;
-        this.choices = choices;
         this.usage = usage;
     }
 

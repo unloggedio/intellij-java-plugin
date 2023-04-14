@@ -1,7 +1,7 @@
 package com.insidious.plugin.ui.Components;
 
 import com.insidious.plugin.factory.UsageInsightTracker;
-import com.insidious.plugin.ui.UIUtils;
+import com.insidious.plugin.util.UIUtils;
 import org.json.JSONObject;
 
 import javax.swing.*;
