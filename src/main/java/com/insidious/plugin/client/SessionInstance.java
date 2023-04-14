@@ -432,10 +432,8 @@ public class SessionInstance {
                 for (int i = 0; i < dataInfoList.size(); i++) {
                     DataInfo dataInfo = dataInfoList.get(i);
                     if (dataInfo.getEventType() == CALL) {
-                        if (dataInfoList.get(i - 1)
-                                .getEventType() == GET_INSTANCE_FIELD_RESULT
-                                || dataInfoList.get(i - 1)
-                                .getEventType() == GET_STATIC_FIELD) {
+                        if (dataInfoList.get(i - 1).getEventType() == GET_INSTANCE_FIELD_RESULT
+                                || dataInfoList.get(i - 1).getEventType() == GET_STATIC_FIELD) {
                             methodDefinition.setUsesFields(true);
                             break;
                         }
