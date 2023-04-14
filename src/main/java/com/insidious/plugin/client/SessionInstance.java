@@ -453,8 +453,7 @@ public class SessionInstance {
 
         daoService.createOrUpdateClassDefinitions(classDefinitionList);
         daoService.createOrUpdateMethodDefinitions(methodDefinitionList);
-        classWeaveInfo._io()
-                .close();
+        classWeaveInfo._io().close();
     }
 
     private void refreshWeaveInformationStream(String fileName) throws IOException {
@@ -3965,8 +3964,10 @@ public class SessionInstance {
         if (objectInfoIndex != null) {
             objectInfoIndex.close();
         }
-        archiveIndex.close();
-        archiveIndex = null;
+        if (archiveIndex != null) {
+            archiveIndex.close();
+            archiveIndex = null;
+        }
     }
 
     public void submitTask(Runnable testCaseService) {

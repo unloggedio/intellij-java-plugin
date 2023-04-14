@@ -1159,7 +1159,7 @@ final public class InsidiousService implements Disposable,
             this.client = new VideobugLocalClient(pathToSessions, project);
         }
 
-        if (sessionInstance != null && this.sessionInstance.getArchiveIndex()!=null) {
+        if (sessionInstance != null) {
             try {
                 sessionInstance.close();
             } catch (Exception e) {
@@ -1259,7 +1259,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void executeWithAgentForMethod(PsiMethod method) {
-        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow!=null) {
+        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
             //this.methodExecutorToolWindow.executeAll(method);
         }

@@ -141,7 +141,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         if (this.methodTestCandidates.size() == 0) {
             this.components = new ArrayList<>();
         }
-        this.candidateCountLabel.setText("" + components.size() + " candidates for " + method.getName());
+        this.candidateCountLabel.setText(methodTestCandidates.size() + " unique candidates for " + method.getName());
         if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
             if (isNew) {
                 loadMethodCandidates();
@@ -246,16 +246,15 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if(testCandidate.getMainMethod().getReturnValue().isException()
+                    if (testCandidate.getMainMethod().getReturnValue().isException()
                             || (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
                             .equals(ResponseType.FAILED) || agentCommandResponse.getResponseType()
-                            .equals(ResponseType.EXCEPTION)))
-                    {
-                        AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(testCandidate,
-                                agentCommandResponse,comp.getSource());
+                            .equals(ResponseType.EXCEPTION))) {
+                        AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(
+                                testCandidate,
+                                agentCommandResponse, comp.getSource());
                         comp.setAndDisplayExceptionFlow(exceptionResponseComponent);
-                    }
-                    else {
+                    } else {
                         AgentResponseComponent responseComponent = postProcessExecute(testCandidate,
                                 agentCommandResponse, comp.getSource());
                         comp.getSource().setAndDisplayResponse(responseComponent);
@@ -269,16 +268,15 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
                 (agentCommandRequest, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if(testCandidate.getMainMethod().getReturnValue().isException()
-                    || (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
+                    if (testCandidate.getMainMethod().getReturnValue().isException()
+                            || (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
                             .equals(ResponseType.FAILED) || agentCommandResponse.getResponseType()
-                            .equals(ResponseType.EXCEPTION)))
-                    {
-                        AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(testCandidate,
-                                agentCommandResponse,comp.getSource());
+                            .equals(ResponseType.EXCEPTION))) {
+                        AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(
+                                testCandidate,
+                                agentCommandResponse, comp.getSource());
                         comp.setExceptionResponse(exceptionResponseComponent);
-                    }
-                    else {
+                    } else {
                         AgentResponseComponent responseComponent = postProcessExecute_save(testCandidate,
                                 agentCommandResponse, comp.getSource());
                         comp.setNormalResponse(responseComponent);
@@ -287,15 +285,14 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentResponseComponent postProcessExecute_save(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                     CompareControlComponent controlComponent) {
+                                                          CompareControlComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService,
                 controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
-        if(isDiff==null)
-        {
+        if (isDiff == null) {
             //exception case
-            isDiff=false;
+            isDiff = false;
         }
         componentCounter++;
         if (isDiff) {
@@ -314,8 +311,9 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentExceptionResponseComponent postProcessExecute_Exception(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                     CompareControlComponent controlComponent) {
-        AgentExceptionResponseComponent response = new AgentExceptionResponseComponent(metadata, agentCommandResponse, this.insidiousService);
+                                                                        CompareControlComponent controlComponent) {
+        AgentExceptionResponseComponent response = new AgentExceptionResponseComponent(metadata, agentCommandResponse,
+                this.insidiousService);
         Boolean isDiff = true;
 
         if (isDiff) {
@@ -331,13 +329,12 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentResponseComponent postProcessExecute(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                          CompareControlComponent controlComponent) {
+                                                     CompareControlComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService,
                 controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
-        if(isDiff==null)
-        {
+        if (isDiff == null) {
             //exception case
             isDiff = false;
         }
@@ -371,15 +368,13 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     public void executeCandidate(TestCandidateMetadata metadata,
                                  CompareControlComponent component) {
         ComponentContainer cont = null;
-        for(ComponentContainer container : components)
-        {
-            if(container.getSource().equals(component))
-            {
+        for (ComponentContainer container : components) {
+            if (container.getSource().equals(component)) {
                 cont = container;
                 break;
             }
         }
-        if(cont!=null) {
+        if (cont != null) {
             execute(metadata, component.getMethodArgumentValues(), cont);
         }
     }
