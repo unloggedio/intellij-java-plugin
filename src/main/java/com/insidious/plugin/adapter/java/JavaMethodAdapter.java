@@ -79,4 +79,5 @@ public class JavaMethodAdapter implements MethodAdapter {
     public String getJVMSignature() {
         return JVMNameUtil.getJVMSignature(psiMethod).toString();
     }
+
 }

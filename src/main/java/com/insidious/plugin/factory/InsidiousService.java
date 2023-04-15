@@ -1,5 +1,6 @@
 package com.insidious.plugin.factory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
@@ -10,6 +11,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
+import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -23,12 +26,11 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.*;
-import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.ui.eventviewer.SingleWindowView;
+import com.insidious.plugin.ui.methodscope.ManualMethodExecutor;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
+import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
@@ -145,6 +147,9 @@ final public class InsidiousService implements Disposable,
     private Content methodExecutorWindow;
     private Map<String, Boolean> executionRecord = new TreeMap<>();
     private boolean agentJarExists = false;
+    private ManualMethodExecutor manualMethodExecutor;
+    private Content manualMethodExecutorWindow;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -750,6 +755,16 @@ final public class InsidiousService implements Disposable,
         methodExecutorWindow.setIcon(UIUtils.COMPARE_TAB);
         contentManager.addContent(methodExecutorWindow);
 
+
+        manualMethodExecutor = new ManualMethodExecutor(this);
+        @NotNull Content manualMethodExecutorWindow =
+                contentFactory.createContent(manualMethodExecutor.getContent(), "Execute manually", false);
+        this.manualMethodExecutorWindow = manualMethodExecutorWindow;
+        manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);
+        contentManager.addContent(manualMethodExecutorWindow);
+
+
         gptWindow = new UnloggedGPT(this);
         gptContent = contentFactory.createContent(gptWindow.getComponent(), "UnloggedGPT", false);
         gptContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
@@ -990,6 +1005,7 @@ final public class InsidiousService implements Disposable,
         }
 
         methodExecutorToolWindow.refreshAndReloadCandidates(method);
+        manualMethodExecutor.renderForMethod(method);
 
 
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
@@ -1110,20 +1126,11 @@ final public class InsidiousService implements Disposable,
         return agentClient != null && agentClient.isConnected();
     }
 
-    public void reExecuteMethodInRunningProcess(
-            MethodAdapter method,
-            List<String> parameterValues,
+    public void executeMethodInRunningProcess(
+            AgentCommandRequest agentCommandRequest,
             ExecutionResponseListener executionResponseListener
     ) {
 
-        String methodJniSignature = method.getJVMSignature();
-
-        AgentCommandRequest agentCommandRequest = new AgentCommandRequest();
-        agentCommandRequest.setCommand(AgentCommand.EXECUTE);
-        agentCommandRequest.setClassName(method.getContainingClass().getQualifiedName());
-        agentCommandRequest.setMethodName(method.getName());
-        agentCommandRequest.setMethodSignature(methodJniSignature);
-        agentCommandRequest.setMethodParameters(parameterValues);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -1308,6 +1315,10 @@ final public class InsidiousService implements Disposable,
     public void onDisconnectedFromAgentServer() {
         logger.warn("disconnected from agent");
         // disconnected from agent
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

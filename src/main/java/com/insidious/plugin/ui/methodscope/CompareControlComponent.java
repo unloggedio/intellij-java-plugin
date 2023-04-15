@@ -203,7 +203,7 @@ public class CompareControlComponent {
         this.listener.executeCandidate(this.candidateMetadata, this);
     }
 
-    public void setResposeComponent(AgentResponseComponent responseComponent) {
+    public void setResponseComponent(AgentResponseComponent responseComponent) {
         this.responseComponent = responseComponent;
         Boolean status = this.responseComponent.computeDifferences();
         if (status == null) {

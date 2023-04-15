@@ -1,10 +1,17 @@
 package com.insidious.plugin.agent;
 
 public class AgentCommandResponse {
-    private Object methodReturnValue;
+    private String methodReturnValue;
     private ResponseType responseType;
     private String responseClassName;
     private String message;
+
+    public AgentCommandResponse(ResponseType responseType) {
+        this.responseType = responseType;
+    }
+
+    public AgentCommandResponse() {
+    }
 
     public String getMessage() {
         return message;
@@ -30,11 +37,11 @@ public class AgentCommandResponse {
         this.responseClassName = responseClassName;
     }
 
-    public Object getMethodReturnValue() {
+    public String getMethodReturnValue() {
         return methodReturnValue;
     }
 
-    public void setMethodReturnValue(Object methodReturnValue) {
+    public void setMethodReturnValue(String methodReturnValue) {
         this.methodReturnValue = methodReturnValue;
     }
 

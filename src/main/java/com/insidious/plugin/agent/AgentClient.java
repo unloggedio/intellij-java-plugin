@@ -51,8 +51,7 @@ public class AgentClient {
             return objectMapper.readValue(responseBody, AgentCommandResponse.class);
         } catch (Throwable e) {
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());
-            AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
-            agentCommandResponse.setResponseType(ResponseType.FAILED);
+            AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
             agentCommandResponse.setMessage("Failed to invoke call to agent server: " + e.getMessage());
             return agentCommandResponse;
         }
@@ -66,8 +65,7 @@ public class AgentClient {
             response.close();
             return objectMapper.readValue(responseBody, AgentCommandResponse.class);
         } catch (Throwable e) {
-            AgentCommandResponse agentCommandResponse = new AgentCommandResponse();
-            agentCommandResponse.setResponseType(ResponseType.FAILED);
+            AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
             agentCommandResponse.setMessage("Failed to invoke call to agent server: " + e.getMessage());
             return agentCommandResponse;
         }

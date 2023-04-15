@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
-import com.intellij.lang.jvm.JvmParameter;
+import com.insidious.plugin.adapter.ParameterAdapter;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -8,10 +8,12 @@ import javax.swing.border.TitledBorder;
 public class ParameterInputComponent {
     private JPanel rootContent;
     private JTextField parameterValue;
+    private JLabel parameterName;
 
-    public ParameterInputComponent(JvmParameter parameter, String defaultParameterValue) {
+    public ParameterInputComponent(ParameterAdapter parameter, String defaultParameterValue) {
         super();
-        ((TitledBorder) rootContent.getBorder()).setTitle(parameter.getName());
+        ((TitledBorder) rootContent.getBorder()).setTitle(parameter.getType().getPresentableText());
+        parameterName.setText(parameter.getName());
         parameterValue.setText(defaultParameterValue);
 
     }

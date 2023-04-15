@@ -7,6 +7,11 @@ import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.insidious.common.weaver.DataInfo;
+import com.insidious.plugin.adapter.ClassAdapter;
+import com.insidious.plugin.adapter.FieldAdapter;
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.extension.InsidiousNotification;
@@ -20,11 +25,6 @@ import com.insidious.plugin.factory.testcase.util.ClassTypeUtils;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.AssertionType;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.adapter.ClassAdapter;
-import com.insidious.plugin.adapter.FieldAdapter;
-import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.ParameterAdapter;
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.util.LoggerUtil;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.lang.jvm.JvmModifier;
@@ -525,7 +525,16 @@ public class TestCaseDesigner implements Disposable {
 //            logger.warn("call expression child: " + psiMethodCallExpression);
             if (callExpressionChildren[0] instanceof PsiReferenceExpressionImpl) {
                 PsiReferenceExpressionImpl callReferenceExpression = (PsiReferenceExpressionImpl) callExpressionChildren[0];
-                PsiExpressionListImpl callParameterExpression = (PsiExpressionListImpl) callExpressionChildren[1];
+                PsiExpressionListImpl callParameterExpression = null;
+                if (callExpressionChildren[1] instanceof PsiExpressionListImpl) {
+                    callParameterExpression = (PsiExpressionListImpl) callExpressionChildren[1];
+                } else if (callExpressionChildren[2] instanceof PsiExpressionListImpl) {
+                    callParameterExpression = (PsiExpressionListImpl) callExpressionChildren[2];
+                }
+                if (callParameterExpression == null) {
+                    logger.warn("failed to extract call from call expression: " + psiMethodCallExpression.getText());
+                    continue;
+                }
 
                 PsiElement[] referenceChildren = callReferenceExpression.getChildren();
                 if (referenceChildren.length == 4) {
@@ -817,6 +826,10 @@ public class TestCaseDesigner implements Disposable {
                         logger.warn("did not find class reference: " + parameterClassName +
                                 " for parameter: " + parameter.getName() +
                                 " in class " + currentClass.getQualifiedName());
+                        continue;
+                    }
+
+                    if (parameterClassReference.getQualifiedName().equals(currentClass.getQualifiedName())) {
                         continue;
                     }
 

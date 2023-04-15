@@ -19,8 +19,8 @@ import com.insidious.plugin.pojo.TestFramework;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.TestCaseGenerationConfiguration;
-import com.insidious.plugin.util.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.diff.DiffContentFactory;
 import com.intellij.diff.DiffManager;
 import com.intellij.diff.contents.DocumentContent;
@@ -50,8 +50,6 @@ public class AgentResponseComponent {
     private static final Logger logger = LoggerUtil.getInstance(AgentResponseComponent.class);
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private static final boolean SHOW_TEST_CASE_CREATE_BUTTON = true;
-    private String oldResponse;
-    private String agentResponse;
     private final InsidiousService insidiousService;
     private final TestCandidateMetadata testCandidateMetadata;
     private final AgentCommandResponse agentCommandResponse;
@@ -62,6 +60,8 @@ public class AgentResponseComponent {
     String s2 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"dababy\",\"e\":\"f\"}";
     //    String s1 = "{\"indicate\":[{\"name\":\"a\",\"age\":25},\"doing\",\"e\"],\"thousand\":false,\"number\":\"daboi\"}";
     String d2 = "1";
+    private String oldResponse;
+    private String agentResponse;
     private Map<String, String> parameters;
     private JPanel mainPanel;
     private JPanel borderParent;
@@ -88,10 +88,9 @@ public class AgentResponseComponent {
         this.agentCommandResponse = agentCommandResponse;
         this.insidiousService = insidiousService;
         this.parameters = parameters;
-        this.alt=showaccept;
+        this.alt = showaccept;
 
-        if(!showaccept)
-        {
+        if (!showaccept) {
             this.bottomControlPanel.setVisible(false);
         }
 
@@ -106,50 +105,50 @@ public class AgentResponseComponent {
             }
         });
 
-        if (SHOW_TEST_CASE_CREATE_BUTTON) {
-            JButton createTestCaseButton = new JButton("Create test case");
-            bottomControlPanel.add(createTestCaseButton, new GridConstraints());
-            createTestCaseButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    logger.warn("Create test case: " + testCandidateMetadata);
-
-                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
-                            .getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), true);
-
-
-                    String testMethodName =
-                            "testMethod" + ClassTypeUtils.upperInstanceName(
-                                    loadedTestCandidate.getMainMethod().getMethodName());
-                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
-                            TestFramework.JUnit5,
-                            MockFramework.Mockito,
-                            JsonFramework.JACKSON,
-                            ResourceEmbedMode.IN_FILE
-                    );
-
-
-                    // mock all calls by default
-                    testCaseGenerationConfiguration.getCallExpressionList()
-                            .addAll(loadedTestCandidate.getCallsList());
-
-
-                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
-
-
-                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
-                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
-
-
-                    try {
-                        insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
-                    } catch (Exception ex) {
-                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
-                                NotificationType.ERROR);
-                    }
-                }
-            });
-        }
+//        if (SHOW_TEST_CASE_CREATE_BUTTON) {
+//            JButton createTestCaseButton = new JButton("Create test case");
+//            bottomControlPanel.add(createTestCaseButton, new GridConstraints());
+//            createTestCaseButton.addActionListener(new ActionListener() {
+//                @Override
+//                public void actionPerformed(ActionEvent e) {
+//                    logger.warn("Create test case: " + testCandidateMetadata);
+//
+//                    TestCandidateMetadata loadedTestCandidate = insidiousService.getSessionInstance()
+//                            .getTestCandidateById(testCandidateMetadata.getEntryProbeIndex(), true);
+//
+//
+//                    String testMethodName =
+//                            "testMethod" + ClassTypeUtils.upperInstanceName(
+//                                    loadedTestCandidate.getMainMethod().getMethodName());
+//                    TestCaseGenerationConfiguration testCaseGenerationConfiguration = new TestCaseGenerationConfiguration(
+//                            TestFramework.JUnit5,
+//                            MockFramework.Mockito,
+//                            JsonFramework.JACKSON,
+//                            ResourceEmbedMode.IN_FILE
+//                    );
+//
+//
+//                    // mock all calls by default
+//                    testCaseGenerationConfiguration.getCallExpressionList()
+//                            .addAll(loadedTestCandidate.getCallsList());
+//
+//
+//                    testCaseGenerationConfiguration.setTestMethodName(testMethodName);
+//
+//
+//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().clear();
+//                    testCaseGenerationConfiguration.getTestCandidateMetadataList().add(loadedTestCandidate);
+//
+//
+//                    try {
+//                        insidiousService.generateAndSaveTestCase(testCaseGenerationConfiguration);
+//                    } catch (Exception ex) {
+//                        InsidiousNotification.notifyMessage("Failed to generate test case: " + ex.getMessage(),
+//                                NotificationType.ERROR);
+//                    }
+//                }
+//            });
+//        }
     }
 
     public JPanel getComponent() {
@@ -159,18 +158,17 @@ public class AgentResponseComponent {
     //constructor to take string difference and parameter/mce from candidate
     public Boolean computeDifferences() {
         if (MOCK_MODE) {
-            if(alt) {
+            if (alt) {
                 this.oldResponse = s1;
                 this.agentResponse = s2;
-            }
-            else
-            {
+            } else {
                 this.oldResponse = d1;
                 this.agentResponse = d2;
             }
-            return tryTestDiff(this.oldResponse,this.agentResponse);
+            return tryTestDiff(this.oldResponse, this.agentResponse);
         } else {
-            this.oldResponse = new String(testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
+            this.oldResponse = new String(
+                    testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
             this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
             return calculateDifferences(this.oldResponse, this.agentResponse);
         }
@@ -184,9 +182,8 @@ public class AgentResponseComponent {
         ObjectMapper om = new ObjectMapper();
         //replace Boolean with enum
         if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
-                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED))
-        {
-            this.statusLabel.setText(""+this.agentCommandResponse.getMessage());
+                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+            this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
             this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
             this.statusLabel.setForeground(UIUtils.red);
             this.tableParent.setVisible(false);
@@ -332,33 +329,6 @@ public class AgentResponseComponent {
         return differenceInstances;
     }
 
-    private void loadInputTree() {
-        this.methodArgumentsPanel.removeAll();
-        if (MOCK_MODE) {
-            this.parameters = new TreeMap<>();
-            this.parameters.put("ival1", "1");
-            this.parameters.put("eval", s1);
-        }
-        DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        for (String key : this.parameters.keySet()) {
-            DefaultMutableTreeNode node = buildJsonTree(this.parameters.get(key), key);
-            inputRoot.add(node);
-        }
-
-        this.methodArgumentsPanel.setLayout(new GridLayout(1, 1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(1);
-        JTree inputTree = new Tree(inputRoot);
-        JScrollPane scrollPane = new JBScrollPane(inputTree);
-        scrollPane.setBorder(new EtchedBorder());
-        this.methodArgumentsPanel.setPreferredSize(scrollPane.getSize());
-        this.methodArgumentsPanel.add(scrollPane, BorderLayout.CENTER);
-        inputTree.setCellRenderer(new IOTreeCellRenderer());
-        inputTree.setRootVisible(false);
-        inputTree.setShowsRootHandles(true);
-        this.methodArgumentsPanel.revalidate();
-    }
-
     private DefaultMutableTreeNode buildJsonTree(String source, String name) {
         if (source.startsWith("{")) {
             return handleObject(new JSONObject(source), new DefaultMutableTreeNode(name));
@@ -421,16 +391,15 @@ public class AgentResponseComponent {
         return agentCommandResponse;
     }
 
-    public void showExceptionTrace(String response)
-    {
+    public void showExceptionTrace(String response) {
         this.tableParent.removeAll();
         JTextArea textArea = new JTextArea();
         textArea.setText(response);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        JScrollPane scroll = new JBScrollPane (textArea,
+        JScrollPane scroll = new JBScrollPane(textArea,
                 JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        this.tableParent.add(textArea,BorderLayout.CENTER);
+        this.tableParent.add(textArea, BorderLayout.CENTER);
         this.tableParent.revalidate();
     }
 }

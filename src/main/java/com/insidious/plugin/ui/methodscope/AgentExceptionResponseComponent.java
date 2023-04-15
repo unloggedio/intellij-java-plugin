@@ -6,11 +6,12 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
+import com.intellij.ui.table.JBTable;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -27,54 +28,46 @@ public class AgentExceptionResponseComponent {
 
     private AgentCommandResponse response;
 
-    public JPanel getComponent() {
-        return this.mainPanel;
-    }
-
     public AgentExceptionResponseComponent(TestCandidateMetadata metadata, AgentCommandResponse response, InsidiousService insidiousService) {
 
         this.insidiousService = insidiousService;
         this.metadata = metadata;
         this.response = response;
 
-        if(response.getResponseType()!=null && (response.getResponseType().equals(ResponseType.EXCEPTION)
-                || response.getResponseType().equals(ResponseType.FAILED)))
-        {
+        if (response.getResponseType() != null && (response.getResponseType().equals(ResponseType.EXCEPTION)
+                || response.getResponseType().equals(ResponseType.FAILED))) {
             //load after as Exception.
             loadAfterAsException();
-        }
-        else
-        {
+        } else {
             //load after as notmal response.
             loadAfterAsNormal();
         }
 
-        if(metadata.getMainMethod().getReturnValue().isException())
-        {
+        if (metadata.getMainMethod().getReturnValue().isException()) {
             //load Before As Exception.
             loadBeforeAsException();
-        }
-        else
-        {
+        } else {
             //load before as normal response.
             loadBeforeAsNormal();
         }
 
     }
 
-    public void loadAfterAsException()
-    {
+    public JPanel getComponent() {
+        return this.mainPanel;
+    }
+
+    public void loadAfterAsException() {
         this.afterBorderParent.removeAll();
-        System.out.println("EXCEPTION AFTER MSG : "+response.getMessage());
-        System.out.println("EXCEPTION AFTER DATA : "+response.getMethodReturnValue());
+        System.out.println("EXCEPTION AFTER MSG : " + response.getMessage());
+        System.out.println("EXCEPTION AFTER DATA : " + response.getMethodReturnValue());
         ExceptionOptionsComponent options = new ExceptionOptionsComponent(response.getMessage(),
-                String.valueOf(response.getMethodReturnValue()),insidiousService);
+                String.valueOf(response.getMethodReturnValue()), insidiousService);
         this.afterBorderParent.add(options.getComponent(), BorderLayout.CENTER);
         this.afterBorderParent.revalidate();
     }
 
-    public void loadAfterAsNormal()
-    {
+    public void loadAfterAsNormal() {
         this.afterBorderParent.removeAll();
         String value = String.valueOf(response.getMethodReturnValue());
         JTableComponent comp =
@@ -83,21 +76,19 @@ public class AgentExceptionResponseComponent {
         this.afterBorderParent.revalidate();
     }
 
-    public void loadBeforeAsException()
-    {
+    public void loadBeforeAsException() {
         this.beforeBorderParent.removeAll();
         String value1 = metadata.getMainMethod().getReturnValue().getStringValue();
         String value2 = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-        System.out.println("EXCEPTION BEFORE V1 : "+value1);
-        System.out.println("EXCEPTION BEFORE V2 : "+value2);
+        System.out.println("EXCEPTION BEFORE V1 : " + value1);
+        System.out.println("EXCEPTION BEFORE V2 : " + value2);
         ExceptionOptionsComponent options = new ExceptionOptionsComponent("Exception message",
-                String.valueOf(metadata.getMainMethod().getReturnValue().getStringValue()),insidiousService);
+                String.valueOf(metadata.getMainMethod().getReturnValue().getStringValue()), insidiousService);
         this.beforeBorderParent.add(options.getComponent(), BorderLayout.CENTER);
         this.beforeBorderParent.revalidate();
     }
 
-    public void loadBeforeAsNormal()
-    {
+    public void loadBeforeAsNormal() {
         this.beforeBorderParent.removeAll();
         String response = new String(metadata.getMainMethod().getReturnDataEvent()
                 .getSerializedValue());
@@ -121,7 +112,7 @@ public class AgentExceptionResponseComponent {
             System.out.println("Model make Exception: " + e);
             e.printStackTrace();
             Map<String, Object> m1 = new TreeMap<>();
-            m1.put("value",s1);
+            m1.put("value", s1);
             return new ResponseMapTable(m1);
         }
     }

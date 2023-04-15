@@ -1,7 +1,10 @@
 package com.insidious.plugin.adapter;
 
+import com.insidious.plugin.agent.AgentCommandRequest;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
+
+import java.util.List;
 
 public interface MethodAdapter {
     ClassAdapter getContainingClass();
@@ -25,4 +28,5 @@ public interface MethodAdapter {
     PsiElement getBody();
 
     String getJVMSignature();
+
 }

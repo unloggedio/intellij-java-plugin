@@ -1,22 +1,19 @@
 package com.insidious.plugin.ui.Components;
 
-import com.google.common.collect.MapDifference;
-
 import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.Map;
 
 public class ResponseMapTable extends AbstractTableModel {
-    private ArrayList<String> keys = new ArrayList<>();
     private final String[] columnNames = {
             "Key", "Value"
     };
-    private Map<String,Object> response;
+    private ArrayList<String> keys = new ArrayList<>();
+    private Map<String, Object> response;
 
     public ResponseMapTable(Map<String, Object> rightOnly) {
-        this.response=rightOnly;
-        for(String key : response.keySet())
-        {
+        this.response = rightOnly;
+        for (String key : response.keySet()) {
             keys.add(key);
         }
     }
@@ -33,15 +30,13 @@ public class ResponseMapTable extends AbstractTableModel {
 
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
-        if(columnIndex==0)
-        {
+        if (columnIndex == 0) {
             String key = keys.get(rowIndex);
-            key = key.replaceAll("/",".");
+            key = key.replaceAll("/", ".");
             return key;
         }
         Object value = response.get(keys.get(rowIndex));
-        if(columnIndex==1)
-        {
+        if (columnIndex == 1) {
             return value;
         }
         return null;

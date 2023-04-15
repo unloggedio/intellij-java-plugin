@@ -29,7 +29,7 @@ public class ComponentContainer {
 
     public void setNormalResponse(AgentResponseComponent normalResponse) {
         this.normalResponse = normalResponse;
-        this.source.setResposeComponent(normalResponse);
+        this.source.setResponseComponent(normalResponse);
     }
 
     public AgentExceptionResponseComponent getExceptionResponse() {

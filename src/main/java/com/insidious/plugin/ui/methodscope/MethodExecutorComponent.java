@@ -1,13 +1,15 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
-import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.MethodUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
@@ -248,16 +250,16 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
                         ComponentContainer comp) {
-        insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
-                (agentCommandRequest, agentCommandResponse) -> {
+
+        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
+                methodArgumentValues);
+        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                (request, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (testCandidate.getMainMethod().getReturnValue().isException()
-                            || (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
-                            .equals(ResponseType.FAILED) || agentCommandResponse.getResponseType()
-                            .equals(ResponseType.EXCEPTION))) {
+                    if (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
+                            agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
                         AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(
-                                testCandidate,
-                                agentCommandResponse, comp.getSource());
+                                testCandidate, agentCommandResponse, comp.getSource());
                         comp.setAndDisplayExceptionFlow(exceptionResponseComponent);
                     } else {
                         AgentResponseComponent responseComponent = postProcessExecute(testCandidate,
@@ -270,8 +272,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     public void execute_save(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
                              ComponentContainer comp) {
-        insidiousService.reExecuteMethodInRunningProcess(methodElement, methodArgumentValues,
-                (agentCommandRequest, agentCommandResponse) -> {
+        AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
+                methodArgumentValues);
+        insidiousService.executeMethodInRunningProcess(agentCommandRequest,
+                (request, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
                     if (testCandidate.getMainMethod().getReturnValue().isException()
                             || (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
@@ -292,8 +296,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     public AgentResponseComponent postProcessExecute_save(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
                                                           CompareControlComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
-                this.insidiousService,
-                controlComponent.getParameterMap(), true);
+                this.insidiousService, controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
         if (isDiff == null) {
             //exception case
@@ -321,14 +324,9 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                 this.insidiousService);
         Boolean isDiff = true;
 
-        if (isDiff) {
-            this.isDifferent = true;
-        }
-        if (this.isDifferent) {
-            insidiousService.getExecutionRecord().put(methodElement.getName(), true);
-        } else {
-            insidiousService.getExecutionRecord().put(methodElement.getName(), false);
-        }
+        this.isDifferent = isDiff;
+        insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+        // this is to update gutter icons
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         return response;
     }
@@ -336,22 +334,16 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     public AgentResponseComponent postProcessExecute(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
                                                      CompareControlComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
-                this.insidiousService,
-                controlComponent.getParameterMap(), true);
+                this.insidiousService, controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
         if (isDiff == null) {
             //exception case
             isDiff = false;
         }
         response.setBorderTitle(++this.componentCounter);
-        if (isDiff) {
-            this.isDifferent = true;
-        }
-        if (this.isDifferent) {
-            insidiousService.getExecutionRecord().put(methodElement.getName(), true);
-        } else {
-            insidiousService.getExecutionRecord().put(methodElement.getName(), false);
-        }
+        this.isDifferent = isDiff;
+        insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+        // this is to update gutter icons
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         return response;
     }
@@ -360,7 +352,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         return rootContent;
     }
 
-    public void renderComparission(AgentResponseComponent component) {
+    public void renderComparison(AgentResponseComponent component) {
         this.diffContentPanel.removeAll();
         this.diffContentPanel.setLayout(new GridLayout(1, 1));
         GridConstraints constraints = new GridConstraints();
@@ -386,7 +378,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     @Override
     public void displayResponse(AgentResponseComponent responseComponent) {
-        renderComparission(responseComponent);
+        renderComparison(responseComponent);
     }
 
     @Override

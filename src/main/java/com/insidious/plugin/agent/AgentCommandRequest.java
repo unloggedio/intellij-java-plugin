@@ -45,6 +45,10 @@ public class AgentCommandRequest {
         return methodParameters;
     }
 
+    public void setMethodParameters(List<String> methodParameters) {
+        this.methodParameters = methodParameters;
+    }
+
     @Override
     public String toString() {
         return "AgentCommandRequest{" +
@@ -54,9 +58,5 @@ public class AgentCommandRequest {
                 ", methodSignature='" + methodSignature + '\'' +
                 ", methodParameters=" + methodParameters +
                 '}';
-    }
-
-    public void setMethodParameters(List<String> methodParameters) {
-        this.methodParameters = methodParameters;
     }
 }
