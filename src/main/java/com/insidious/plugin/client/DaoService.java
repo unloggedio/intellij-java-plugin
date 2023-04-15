@@ -565,8 +565,7 @@ public class DaoService {
                 .collect(Collectors.toSet());
 
         GenericRawResults<MethodDefinition> methodDefinitionsResultSet = methodDefinitionsDao.queryRaw(
-                METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", Strings.join(methodDefinitionIds
-                        , ", ")),
+                METHOD_DEFINITIONS_BY_ID_IN.replace("IDS", Strings.join(methodDefinitionIds, ", ")),
                 methodDefinitionsDao.getRawRowMapper());
         List<MethodDefinition> methodDefinitionList = methodDefinitionsResultSet.getResults();
 

@@ -7,19 +7,19 @@ import java.util.List;
 
 public class ComponentContainer {
 
-    private CompareControlComponent source;
+    private TestCandidateListedItemComponent source;
     private AgentResponseComponent normalResponse = null;
     private AgentExceptionResponseComponent exceptionResponse = null;
 
-    public ComponentContainer(CompareControlComponent source) {
+    public ComponentContainer(TestCandidateListedItemComponent source) {
         this.source = source;
     }
 
-    public CompareControlComponent getSource() {
+    public TestCandidateListedItemComponent getSource() {
         return source;
     }
 
-    public void setSource(CompareControlComponent source) {
+    public void setSource(TestCandidateListedItemComponent source) {
         this.source = source;
     }
 

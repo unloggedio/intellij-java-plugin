@@ -311,6 +311,9 @@ public class TestCaseDesigner implements Disposable {
         EditorFactory editorFactory = EditorFactory.getInstance();
         int scrollIndex = 0;
         int offset = 0;
+        if (editor != null && !editor.isDisposed()) {
+            EditorFactory.getInstance().releaseEditor(editor);
+        }
         try {
             if (mainMethod.isMethodPublic() && !currentMethod.isConstructor()) {
 
@@ -967,6 +970,8 @@ public class TestCaseDesigner implements Disposable {
 
     @Override
     public void dispose() {
-//        Disposer.dispose((EditorView) editor);
+        if (editor != null && !editor.isDisposed()) {
+            EditorFactory.getInstance().releaseEditor(editor);
+        }
     }
 }

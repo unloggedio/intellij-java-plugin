@@ -121,4 +121,5 @@ public class TestCandidateMetadata {
     public List<TestAssertion> getAssertionList() {
         return assertionList;
     }
+
 }

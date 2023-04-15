@@ -10,6 +10,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
+import com.insidious.plugin.util.TestCandidateUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
 import com.intellij.notification.NotificationType;
@@ -39,7 +40,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private JButton executeAndShowDifferencesButton;
     private JPanel methodParameterContainer;
     private JLabel candidateCountLabel;
-    private JPanel borderParentScroll;
+    private JPanel candidateListPanel;
     private JPanel diffContentPanel;
     private JPanel compareViewer;
     private JPanel borderParent;
@@ -52,13 +53,20 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     public MethodExecutorComponent(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
         executeAndShowDifferencesButton.addActionListener(e -> {
+            if (methodTestCandidates.size() == 0) {
+                InsidiousNotification.notifyMessage(
+                        "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
+                        NotificationType.WARNING
+                );
+                return;
+            }
             executeAll();
         });
     }
 
     public void loadMethodCandidates() {
         components.clear();
-        this.borderParentScroll.removeAll();
+        this.candidateListPanel.removeAll();
         if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
             InsidiousNotification.notifyMessage(
                     "Please use the agent to record values for replay.",
@@ -80,44 +88,29 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             TestCandidateMetadata candidateMetadata = methodTestCandidates.get(i);
-            List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+            List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
                     candidateMetadata);
-            CompareControlComponent comp = new CompareControlComponent(candidateMetadata,
+            TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(candidateMetadata,
                     methodArgumentValues, methodElement, this);
             ComponentContainer container = new ComponentContainer(comp);
             components.add(container);
             JPanel candidateDisplayPanel = comp.getComponent();
-            int inputArgumentCount = candidateMetadata.getMainMethod().getArgumentProbes().size();
-//            if (inputArgumentCount < 3) {
-            candidateDisplayPanel.setMaximumSize(new Dimension(100, 50));
-            candidateDisplayPanel.setPreferredSize(new Dimension(100, 50));
-//            candidateDisplayPanel.revalidate();
-//            candidateDisplayPanel.repaint();
-//            }
             gridPanel.add(candidateDisplayPanel, constraints);
         }
 
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
-        borderParentScroll.setPreferredSize(scrollPane.getSize());
-        borderParentScroll.add(scrollPane, BorderLayout.CENTER);
+        candidateListPanel.setPreferredSize(scrollPane.getSize());
+        candidateListPanel.add(scrollPane, BorderLayout.CENTER);
         if (callToMake <= 3) {
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
         }
-        this.borderParentScroll.revalidate();
+        this.candidateListPanel.revalidate();
     }
 
     public void executeAll() {
         this.isDifferent = false;
-        if (methodTestCandidates.size() == 0) {
-            InsidiousNotification.notifyMessage(
-                    "Please use the agent to record values for replay. No candidates found for " + methodElement.getName(),
-                    NotificationType.WARNING
-            );
-            return;
-        }
-        loadMethodCandidates();
         callCount = this.components.size();
         componentCounter = 0;
         for (ComponentContainer component : this.components) {
@@ -139,59 +132,57 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             isNew = true;
         }
         this.methodElement = method;
+        String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+        String methodName = methodElement.getName();
         List<TestCandidateMetadata> candidates = this.insidiousService
                 .getSessionInstance()
-                .getTestCandidatesForAllMethod(methodElement.getContainingClass().getQualifiedName(),
-                        methodElement.getName(),
-                        false);
+                .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
         this.methodTestCandidates = deDuplicateList(candidates);
         if (this.methodTestCandidates.size() == 0) {
             this.components = new ArrayList<>();
         }
         this.candidateCountLabel.setText(methodTestCandidates.size() + " unique candidates for " + method.getName());
         if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
-            if (isNew) {
-                loadMethodCandidates();
-                return;
-            }
-            if (this.components != null) {
-                if (this.components.size() == 0) {
-                    loadMethodCandidates();
-                } else {
-                    mergeComponentList();
-                }
-            } else {
-                loadMethodCandidates();
-            }
+            loadMethodCandidates();
+//            if (isNew) {
+//                loadMethodCandidates();
+//                return;
+//            }
+//            if (this.components != null) {
+//                if (this.components.size() == 0) {
+//                    loadMethodCandidates();
+//                } else {
+//                    mergeComponentList();
+//                }
+//            } else {
+//                loadMethodCandidates();
+//            }
         }
     }
 
     private void clearBoard() {
-        this.borderParentScroll.removeAll();
+        this.candidateListPanel.removeAll();
         this.diffContentPanel.removeAll();
-        this.borderParentScroll.revalidate();
+        this.candidateListPanel.revalidate();
         this.diffContentPanel.revalidate();
     }
 
     private void mergeComponentList() {
-        List<Integer> iohashes = new ArrayList<>();
+        List<Integer> candidateHashes = new ArrayList<>();
         for (ComponentContainer component : this.components) {
-            iohashes.add(component.getHash());
+            candidateHashes.add(component.getHash());
         }
-        List<TestCandidateMetadata> toAdd = new ArrayList<>();
+        List<TestCandidateMetadata> newCandidateList = new ArrayList<>();
         for (TestCandidateMetadata metadata : this.methodTestCandidates) {
-            List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
-            String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = inputs + output;
-            int hash = concat.hashCode();
-            if (!iohashes.contains(hash)) {
-                toAdd.add(metadata);
+            int candidateSimilarityHash = TestCandidateUtils.getCandidateSimilarityHash(metadata);
+            if (!candidateHashes.contains(candidateSimilarityHash)) {
+                newCandidateList.add(metadata);
             }
         }
-        if (toAdd.size() > 0) {
-            this.borderParentScroll.removeAll();
+        if (newCandidateList.size() > 0) {
+            this.candidateListPanel.removeAll();
 
-            int callToMake = components.size() + toAdd.size();
+            int callToMake = components.size() + newCandidateList.size();
             int GridRows = 3;
             if (callToMake > GridRows) {
                 GridRows = callToMake;
@@ -207,12 +198,12 @@ public class MethodExecutorComponent implements MethodExecutionListener {
                 gridPanel.add(components.get(i).getComponent(), constraints);
                 x++;
             }
-            for (int j = 0; j < toAdd.size(); j++) {
+            for (int j = 0; j < newCandidateList.size(); j++) {
                 GridConstraints constraints = new GridConstraints();
                 constraints.setRow(x + j);
-                List<String> methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
-                        toAdd.get(j));
-                CompareControlComponent comp = new CompareControlComponent(toAdd.get(j),
+                List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+                        newCandidateList.get(j));
+                TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(newCandidateList.get(j),
                         methodArgumentValues, methodElement, this);
                 ComponentContainer container = new ComponentContainer(comp);
                 components.add(container);
@@ -221,31 +212,24 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             gridPanel.setBorder(JBUI.Borders.empty());
             JScrollPane scrollPane = new JBScrollPane(gridPanel);
             scrollPane.setBorder(JBUI.Borders.empty());
-            borderParentScroll.setPreferredSize(scrollPane.getSize());
-            borderParentScroll.add(scrollPane, BorderLayout.CENTER);
+            candidateListPanel.setPreferredSize(scrollPane.getSize());
+            candidateListPanel.add(scrollPane, BorderLayout.CENTER);
             if (callToMake <= 3) {
                 scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
             }
-            this.borderParentScroll.revalidate();
+            this.candidateListPanel.revalidate();
         }
     }
 
     public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
-        List<TestCandidateMetadata> resList = new ArrayList<>();
-        Map<Integer, TestCandidateMetadata> ioHashMap = new TreeMap<>();
+        Map<Integer, TestCandidateMetadata> candidateHashMap = new TreeMap<>();
         for (TestCandidateMetadata metadata : list) {
-            List<String> inputs = insidiousService.buildArgumentValuesFromTestCandidate(metadata);
-            String output = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
-            String concat = inputs + output;
-            int hash = concat.toString().hashCode();
-            if (!ioHashMap.containsKey(hash)) {
-                ioHashMap.put(hash, metadata);
+            int candidateHash = TestCandidateUtils.getCandidateSimilarityHash(metadata);
+            if (!candidateHashMap.containsKey(candidateHash)) {
+                candidateHashMap.put(candidateHash, metadata);
             }
         }
-        for (int key : ioHashMap.keySet()) {
-            resList.add(ioHashMap.get(key));
-        }
-        return resList;
+        return new ArrayList<>(candidateHashMap.values());
     }
 
     public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
@@ -294,7 +278,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentResponseComponent postProcessExecute_save(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                          CompareControlComponent controlComponent) {
+                                                          TestCandidateListedItemComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService, controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
@@ -307,11 +291,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             this.isDifferent = true;
         }
         if (componentCounter == callCount) {
-            if (this.isDifferent) {
-                insidiousService.getExecutionRecord().put(methodElement.getName(), true);
-            } else {
-                insidiousService.getExecutionRecord().put(methodElement.getName(), false);
-            }
+            insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
             DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
             ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         }
@@ -319,12 +299,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentExceptionResponseComponent postProcessExecute_Exception(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                                        CompareControlComponent controlComponent) {
+                                                                        TestCandidateListedItemComponent controlComponent) {
         AgentExceptionResponseComponent response = new AgentExceptionResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService);
-        Boolean isDiff = true;
 
-        this.isDifferent = isDiff;
+        this.isDifferent = true;
         insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
         // this is to update gutter icons
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
@@ -332,7 +311,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public AgentResponseComponent postProcessExecute(TestCandidateMetadata metadata, AgentCommandResponse agentCommandResponse,
-                                                     CompareControlComponent controlComponent) {
+                                                     TestCandidateListedItemComponent controlComponent) {
         AgentResponseComponent response = new AgentResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService, controlComponent.getParameterMap(), true);
         Boolean isDiff = response.computeDifferences();
@@ -363,7 +342,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     @Override
     public void executeCandidate(TestCandidateMetadata metadata,
-                                 CompareControlComponent component) {
+                                 TestCandidateListedItemComponent component) {
         ComponentContainer cont = null;
         for (ComponentContainer container : components) {
             if (container.getSource().equals(component)) {

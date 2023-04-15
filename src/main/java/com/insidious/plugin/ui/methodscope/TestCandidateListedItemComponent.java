@@ -1,11 +1,11 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.UIUtils;
-import com.insidious.plugin.adapter.MethodAdapter;
-import com.insidious.plugin.adapter.ParameterAdapter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -24,7 +24,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class CompareControlComponent {
+public class TestCandidateListedItemComponent {
+    private final TestCandidateMetadata candidateMetadata;
+    private final MethodAdapter method;
+    private final List<String> methodArgumentValues;
+    private final MethodExecutionListener listener;
     private JPanel mainPanel;
     private JPanel borderParent;
     private JPanel controlPanel;
@@ -33,15 +37,11 @@ public class CompareControlComponent {
     private JLabel executeLabel;
     private JPanel gridParent;
     private Map<String, String> parameterMap;
-    private TestCandidateMetadata candidateMetadata;
-    private MethodAdapter method;
-    private List<String> methodArgumentValues;
-    private MethodExecutionListener listener;
     private AgentResponseComponent responseComponent;
 
-    public CompareControlComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues,
-                                   MethodAdapter method,
-                                   MethodExecutionListener listener) {
+    public TestCandidateListedItemComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues,
+                                            MethodAdapter method,
+                                            MethodExecutionListener listener) {
         this.candidateMetadata = candidateMetadata;
         this.method = method;
         this.listener = listener;

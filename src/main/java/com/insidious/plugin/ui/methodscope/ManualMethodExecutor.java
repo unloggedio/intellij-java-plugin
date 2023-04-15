@@ -11,6 +11,7 @@ import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
+import com.insidious.plugin.util.TestCandidateUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBLabel;
 
@@ -45,14 +46,14 @@ public class ManualMethodExecutor {
 
             ParameterAdapter[] parameters = methodElement.getParameters();
 
-            Map<String, String> parameterInputMap = new TreeMap<>();
-            if (parameters != null) {
-                for (int i = 0; i < parameters.length; i++) {
-                    ParameterAdapter methodParameter = parameters[i];
-                    String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
-                    parameterInputMap.put(methodParameter.getName(), parameterValue);
-                }
-            }
+//            Map<String, String> parameterInputMap = new TreeMap<>();
+//            if (parameters != null) {
+//                for (int i = 0; i < parameters.length; i++) {
+//                    ParameterAdapter methodParameter = parameters[i];
+//                    String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
+//                    parameterInputMap.put(methodParameter.getName(), parameterValue);
+//                }
+//            }
 
             AgentCommandRequest agentCommandRequest =
                     MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
@@ -62,7 +63,8 @@ public class ManualMethodExecutor {
                         logger.warn("Agent command execution response: " + agentCommandResponse);
 
 
-                        if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType().equals(ResponseType.NORMAL)) {
+                        if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
+                                .equals(ResponseType.NORMAL)) {
                             ((TitledBorder) returnValuePanel.getBorder()).setTitle(
                                     methodElement.getReturnType().getPresentableText());
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
@@ -88,22 +90,27 @@ public class ManualMethodExecutor {
     }
 
     public void renderForMethod(MethodAdapter methodElement) {
-        logger.warn("render method executor for: " + methodElement.getName());
+        if (methodElement == null || methodElement.equals(this.methodElement)) {
+            return;
+        }
+        String methodName = methodElement.getName();
+        String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
+
+        logger.warn("render method executor for: " + methodName);
         this.methodElement = methodElement;
         ParameterAdapter[] methodParameters = methodElement.getParameters();
 
+
         List<TestCandidateMetadata> methodTestCandidates = this.insidiousService
                 .getSessionInstance()
-                .getTestCandidatesForAllMethod(methodElement.getContainingClass().getQualifiedName(),
-                        methodElement.getName(),
-                        false);
+                .getTestCandidatesForAllMethod(classQualifiedName, methodName, false);
 
 
         TestCandidateMetadata mostRecentTestCandidate = null;
         List<String> methodArgumentValues = null;
         if (methodTestCandidates.size() > 0) {
             mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
-            methodArgumentValues = insidiousService.buildArgumentValuesFromTestCandidate(
+            methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
                     mostRecentTestCandidate);
         }
 
@@ -121,7 +128,7 @@ public class ManualMethodExecutor {
                 methodParameterContainer.add(parameterContainer.getContent());
             }
         } else {
-            JBLabel noParametersLabel = new JBLabel("Method " + methodElement.getName() + "() has no parameters");
+            JBLabel noParametersLabel = new JBLabel("Method " + methodName + "() has no parameters");
             methodParameterContainer.add(noParametersLabel);
         }
     }

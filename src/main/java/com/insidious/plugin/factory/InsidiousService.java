@@ -18,12 +18,10 @@ import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
 import com.insidious.plugin.client.VideobugClientInterface;
 import com.insidious.plugin.client.VideobugLocalClient;
-import com.insidious.plugin.client.pojo.DataEventWithSessionId;
 import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
-import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
@@ -58,6 +56,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Pair;
 import com.intellij.openapi.util.ThrowableComputable;
@@ -109,6 +108,7 @@ final public class InsidiousService implements Disposable,
     private final ProjectTypeInfo projectTypeInfo = new ProjectTypeInfo();
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient = new AgentClient("http://localhost:12100", this);
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -149,7 +149,6 @@ final public class InsidiousService implements Disposable,
     private boolean agentJarExists = false;
     private ManualMethodExecutor manualMethodExecutor;
     private Content manualMethodExecutorWindow;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -186,18 +185,6 @@ final public class InsidiousService implements Disposable,
 
     }
 
-    public List<String> buildArgumentValuesFromTestCandidate(TestCandidateMetadata testCandidateMetadata) {
-        List<String> methodArgumentValues = new ArrayList<>();
-        MethodCallExpression mce = testCandidateMetadata.getMainMethod();
-        for (DataEventWithSessionId argumentProbe : mce.getArgumentProbes()) {
-            if (argumentProbe.getSerializedValue() != null && argumentProbe.getSerializedValue().length > 0) {
-                methodArgumentValues.add(new String(argumentProbe.getSerializedValue()));
-            } else {
-                methodArgumentValues.add(String.valueOf(argumentProbe.getValue()));
-            }
-        }
-        return methodArgumentValues;
-    }
 
     @NotNull
     public String getTestDirectory(String packageName, String basePath) {
@@ -739,8 +726,9 @@ final public class InsidiousService implements Disposable,
 
         // test case designer form
         testCaseDesignerWindow = new TestCaseDesigner();
+        Disposer.register(this, testCaseDesignerWindow);
         @NotNull Content testCaseCreatorWindowContent =
-                contentFactory.createContent(testCaseDesignerWindow.getContent(), "Test case boilerplate", false);
+                contentFactory.createContent(testCaseDesignerWindow.getContent(), "TestCase Boilerplate", false);
         this.testDesignerContent = testCaseCreatorWindowContent;
         testCaseCreatorWindowContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         testCaseCreatorWindowContent.setIcon(UIUtils.UNLOGGED_ICON_DARK);
@@ -749,7 +737,7 @@ final public class InsidiousService implements Disposable,
         // method executor window
         methodExecutorToolWindow = new MethodExecutorComponent(this);
         @NotNull Content methodExecutorWindow =
-                contentFactory.createContent(methodExecutorToolWindow.getContent(), "Execute method", false);
+                contentFactory.createContent(methodExecutorToolWindow.getContent(), "Execute Method", false);
         this.methodExecutorWindow = methodExecutorWindow;
         methodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         methodExecutorWindow.setIcon(UIUtils.COMPARE_TAB);
@@ -758,7 +746,7 @@ final public class InsidiousService implements Disposable,
 
         manualMethodExecutor = new ManualMethodExecutor(this);
         @NotNull Content manualMethodExecutorWindow =
-                contentFactory.createContent(manualMethodExecutor.getContent(), "Execute manually", false);
+                contentFactory.createContent(manualMethodExecutor.getContent(), "Direct Invoke", false);
         this.manualMethodExecutorWindow = manualMethodExecutorWindow;
         manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);

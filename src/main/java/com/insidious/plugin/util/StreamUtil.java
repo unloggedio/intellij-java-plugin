@@ -20,8 +20,7 @@ public class StreamUtil {
     }
 
     public static String streamToString(InputStream stream) throws IOException {
-        int bufferSize = 1024;
-        char[] buffer = new char[bufferSize];
+        char[] buffer = new char[BUFFER_SIZE];
         StringBuilder out = new StringBuilder();
         Reader in = new InputStreamReader(stream, StandardCharsets.UTF_8);
         for (int numRead; (numRead = in.read(buffer, 0, buffer.length)) > 0; ) {
