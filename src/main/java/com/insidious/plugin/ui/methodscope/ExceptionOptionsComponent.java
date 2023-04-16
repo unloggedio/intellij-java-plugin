@@ -22,15 +22,11 @@ public class ExceptionOptionsComponent {
 
     private InsidiousService service;
 
-    public JPanel getComponent() {
-        return this.mainPanel;
-    }
-
     public ExceptionOptionsComponent(String message, String stacktrace, InsidiousService insidiousService) {
         this.message = message;
         this.stackTrace = stacktrace;
         this.service = insidiousService;
-        this.exceptionArea.setText(message);
+        this.exceptionArea.setText(stacktrace);
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
         showfulltrace.addMouseListener(new MouseAdapter() {
             @Override
@@ -40,8 +36,11 @@ public class ExceptionOptionsComponent {
         });
     }
 
-    public void displayFullStackTrace()
-    {
+    public JPanel getComponent() {
+        return this.mainPanel;
+    }
+
+    public void displayFullStackTrace() {
         LightVirtualFile file = new LightVirtualFile("Exception trace", PlainTextFileType.INSTANCE, stackTrace);
         file.setWritable(false);
         FileEditorManager.getInstance(service.getProject()).openFile(file, true);

@@ -8,6 +8,7 @@ public class AgentCommandRequest {
     private String methodName;
     private String methodSignature;
     private List<String> methodParameters;
+    private AgentCommandRequestType requestType;
 
     public AgentCommand getCommand() {
         return command;
@@ -52,11 +53,19 @@ public class AgentCommandRequest {
     @Override
     public String toString() {
         return "AgentCommandRequest{" +
-                "command=" + command +
+                "command=" + command + "(" + requestType + ")" +
                 ", className='" + className + '\'' +
                 ", methodName='" + methodName + '\'' +
                 ", methodSignature='" + methodSignature + '\'' +
                 ", methodParameters=" + methodParameters +
                 '}';
+    }
+
+    public AgentCommandRequestType getRequestType() {
+        return requestType;
+    }
+
+    public void setRequestType(AgentCommandRequestType requestType) {
+        this.requestType = requestType;
     }
 }

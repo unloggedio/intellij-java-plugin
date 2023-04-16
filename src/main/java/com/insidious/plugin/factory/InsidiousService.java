@@ -996,119 +996,8 @@ final public class InsidiousService implements Disposable,
         manualMethodExecutor.renderForMethod(method);
 
 
-//        ModuleManager moduleManager = ModuleManager.getInstance(project);
-//        CompilerManager.getInstance(project).compile(
-//                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
-//                new CompileStatusNotification() {
-//                    @Override
-//                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
-//                        logger.warn("compiled class: " + compileContext);
-//                        Module moduleByFile = compileContext.getModuleByFile(
-//                                psiClass.getContainingFile().getVirtualFile());
-//                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
-//                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
-//
-//                        try {
-//                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
-//                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
-//                            File compiledTargetFile = new File(compiledClassTargetFile);
-//                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
-//                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
-//                            targetStream.close();
-//
-//                        } catch (IOException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//
-//                    }
-//                }
-//        );
-//
-////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
-////                psiClass.getContainingFile().getText()).create().get();
-////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
-////            Object classInstance = firstConstructor.newInstance();
-//
-
-
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
-
-//    public void methodFocussedHandler(final KtNamedFunction method) {
-//
-//        if (method == null) {
-//            return;
-//        }
-//        final PsiClass psiClass = method.getContainingClass();
-//        if (psiClass.getName() == null) {
-//            return;
-//        }
-//
-//        DumbService dumbService = project.getService(DumbService.class);
-//        String methodName = method.getName();
-//
-//        if (dumbService.isDumb()) {
-//            InsidiousNotification.notifyMessage("Please wait for IDE indexing to finish to start creating tests",
-//                    NotificationType.WARNING);
-//            dumbService.runWhenSmart(() -> {
-//                if (testCaseDesignerWindow == null) {
-//                    logger.warn("test case designer window is not ready to create test case for " + methodName);
-//                    return;
-//                }
-//                methodFocussedHandler(method);
-//            });
-//            return;
-//        }
-//
-//        if (this.gptWindow != null) {
-//            this.gptWindow.updateUI(psiClass, method);
-//        }
-//
-//        if (testCaseDesignerWindow == null || !this.toolWindow.isVisible()) {
-//            logger.warn("test case designer window is not ready to create test case for " + methodName);
-//            return;
-//        }
-//
-//        methodExecutorToolWindow.refreshAndReloadCandidates(method);
-//
-//
-////        ModuleManager moduleManager = ModuleManager.getInstance(project);
-////        CompilerManager.getInstance(project).compile(
-////                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
-////                new CompileStatusNotification() {
-////                    @Override
-////                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
-////                        logger.warn("compiled class: " + compileContext);
-////                        Module moduleByFile = compileContext.getModuleByFile(
-////                                psiClass.getContainingFile().getVirtualFile());
-////                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
-////                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
-////
-////                        try {
-////                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
-////                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
-////                            File compiledTargetFile = new File(compiledClassTargetFile);
-////                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
-////                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
-////                            targetStream.close();
-////
-////                        } catch (IOException e) {
-////                            throw new RuntimeException(e);
-////                        }
-////
-////                    }
-////                }
-////        );
-////
-//////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
-//////                psiClass.getContainingFile().getText()).create().get();
-//////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
-//////            Object classInstance = firstConstructor.newInstance();
-////
-//
-//
-//        testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
-//    }
 
     public boolean isConnectedToAgent() {
         return agentClient != null && agentClient.isConnected();
@@ -1118,7 +1007,6 @@ final public class InsidiousService implements Disposable,
             AgentCommandRequest agentCommandRequest,
             ExecutionResponseListener executionResponseListener
     ) {
-
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 

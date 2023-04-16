@@ -57,7 +57,9 @@
           <component id="284ce" class="javax.swing.JTextArea" binding="returnValueTextArea">
             <constraints/>
             <properties>
-              <enabled value="false"/>
+              <editable value="false"/>
+              <enabled value="true"/>
+              <font name="JetBrains Mono" size="14"/>
               <lineWrap value="true"/>
             </properties>
           </component>

@@ -206,8 +206,8 @@ public class SessionInstance {
                 hasGenericTemplate = true;
                 break;
             }
-            logger.warn("Setting template type for parameter[" + templateChar + "]: "
-                    + canonicalText + " for parameter: [" + classReferenceType);
+//            logger.warn("Setting template type for parameter[" + templateChar + "]: "
+//                    + canonicalText + " for parameter: [" + classReferenceType);
             value.setType(canonicalText);
             String templateKey = String.valueOf(templateChar);
             value.setName(templateKey);

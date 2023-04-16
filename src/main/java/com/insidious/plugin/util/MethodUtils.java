@@ -3,6 +3,7 @@ package com.insidious.plugin.util;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommand;
 import com.insidious.plugin.agent.AgentCommandRequest;
+import com.insidious.plugin.agent.AgentCommandRequestType;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class MethodUtils {
         agentCommandRequest.setMethodName(methodAdapter.getName());
         agentCommandRequest.setMethodSignature(methodJniSignature);
         agentCommandRequest.setMethodParameters(parameterValues);
+        agentCommandRequest.setRequestType(AgentCommandRequestType.REPEAT_INVOKE);
         return agentCommandRequest;
     }
 

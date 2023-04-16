@@ -6,9 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
+import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
+import com.insidious.plugin.util.ExceptionUtils;
 import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.MethodUtils;
 import com.insidious.plugin.util.TestCandidateUtils;
@@ -20,8 +22,6 @@ import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class ManualMethodExecutor {
     private static final Logger logger = LoggerUtil.getInstance(ManualMethodExecutor.class);
@@ -57,31 +57,47 @@ public class ManualMethodExecutor {
 
             AgentCommandRequest agentCommandRequest =
                     MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
+            agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
             returnValueTextArea.setText("");
             insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                     (request, agentCommandResponse) -> {
                         logger.warn("Agent command execution response: " + agentCommandResponse);
 
 
-                        if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
-                                .equals(ResponseType.NORMAL)) {
+                        ResponseType responseType = agentCommandResponse.getResponseType();
+                        String responseMessage = agentCommandResponse.getMessage() == null ? "" :
+                                agentCommandResponse.getMessage() + "\n";
+                        if (responseType == null) {
+                            ((TitledBorder) returnValuePanel.getBorder()).setTitle(
+                                    agentCommandResponse.getResponseClassName());
+                            returnValueTextArea.setText(responseMessage
+                                    + agentCommandResponse.getMethodReturnValue());
+                            return;
+                        }
+
+                        if (responseType.equals(ResponseType.NORMAL)) {
                             ((TitledBorder) returnValuePanel.getBorder()).setTitle(
                                     methodElement.getReturnType().getPresentableText());
                             ObjectMapper objectMapper = insidiousService.getObjectMapper();
                             try {
                                 JsonNode jsonNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(),
                                         JsonNode.class);
-                                returnValueTextArea.setText(objectMapper.writerWithDefaultPrettyPrinter()
+                                returnValueTextArea.setText(objectMapper
+                                        .writerWithDefaultPrettyPrinter()
                                         .writeValueAsString(jsonNode));
                                 returnValueTextArea.setLineWrap(true);
                             } catch (JsonProcessingException ex) {
                                 throw new RuntimeException(ex);
                             }
+                        } else if (responseType.equals(ResponseType.EXCEPTION)) {
+                            ((TitledBorder) returnValuePanel.getBorder()).setTitle(
+                                    agentCommandResponse.getResponseClassName());
+                            returnValueTextArea.setText(
+                                    ExceptionUtils.prettyPrintException(agentCommandResponse.getMethodReturnValue()));
                         } else {
                             ((TitledBorder) returnValuePanel.getBorder()).setTitle(
                                     agentCommandResponse.getResponseClassName());
-                            returnValueTextArea.setText(agentCommandResponse.getMessage() + "\n"
-                                    + agentCommandResponse.getMethodReturnValue());
+                            returnValueTextArea.setText(responseMessage + agentCommandResponse.getMethodReturnValue());
                         }
                     });
 

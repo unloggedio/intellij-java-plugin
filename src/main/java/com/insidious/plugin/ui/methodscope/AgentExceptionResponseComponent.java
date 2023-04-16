@@ -6,7 +6,7 @@ import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.Components.ResponseMapTable;
-import com.intellij.ui.table.JBTable;
+import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class AgentExceptionResponseComponent {
+    private final ObjectMapper objectMapper;
     private JPanel mainPanel;
     private JPanel afterSection;
     private JPanel beforeSection;
@@ -31,6 +32,7 @@ public class AgentExceptionResponseComponent {
     public AgentExceptionResponseComponent(TestCandidateMetadata metadata, AgentCommandResponse response, InsidiousService insidiousService) {
 
         this.insidiousService = insidiousService;
+        this.objectMapper = insidiousService.getObjectMapper();
         this.metadata = metadata;
         this.response = response;
 
@@ -39,7 +41,7 @@ public class AgentExceptionResponseComponent {
             //load after as Exception.
             loadAfterAsException();
         } else {
-            //load after as notmal response.
+            //load after as normal response.
             loadAfterAsNormal();
         }
 
@@ -61,8 +63,14 @@ public class AgentExceptionResponseComponent {
         this.afterBorderParent.removeAll();
         System.out.println("EXCEPTION AFTER MSG : " + response.getMessage());
         System.out.println("EXCEPTION AFTER DATA : " + response.getMethodReturnValue());
-        ExceptionOptionsComponent options = new ExceptionOptionsComponent(response.getMessage(),
-                String.valueOf(response.getMethodReturnValue()), insidiousService);
+        ExceptionOptionsComponent options;
+        if (response.getResponseType().equals(ResponseType.EXCEPTION)) {
+            options = new ExceptionOptionsComponent(response.getMessage(),
+                    ExceptionUtils.prettyPrintException(response.getMethodReturnValue()), insidiousService);
+        } else {
+            options = new ExceptionOptionsComponent(response.getMessage(),
+                    String.valueOf(response.getMethodReturnValue()), insidiousService);
+        }
         this.afterBorderParent.add(options.getComponent(), BorderLayout.CENTER);
         this.afterBorderParent.revalidate();
     }
@@ -70,8 +78,7 @@ public class AgentExceptionResponseComponent {
     public void loadAfterAsNormal() {
         this.afterBorderParent.removeAll();
         String value = String.valueOf(response.getMethodReturnValue());
-        JTableComponent comp =
-                new JTableComponent(getModelFor(value));
+        JTableComponent comp = new JTableComponent(getModelFor(value));
         this.afterBorderParent.add(comp.getComponent(), BorderLayout.CENTER);
         this.afterBorderParent.revalidate();
     }
@@ -83,15 +90,14 @@ public class AgentExceptionResponseComponent {
         System.out.println("EXCEPTION BEFORE V1 : " + value1);
         System.out.println("EXCEPTION BEFORE V2 : " + value2);
         ExceptionOptionsComponent options = new ExceptionOptionsComponent("Exception message",
-                String.valueOf(metadata.getMainMethod().getReturnValue().getStringValue()), insidiousService);
+                ExceptionUtils.prettyPrintException(metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()), insidiousService);
         this.beforeBorderParent.add(options.getComponent(), BorderLayout.CENTER);
         this.beforeBorderParent.revalidate();
     }
 
     public void loadBeforeAsNormal() {
         this.beforeBorderParent.removeAll();
-        String response = new String(metadata.getMainMethod().getReturnDataEvent()
-                .getSerializedValue());
+        String response = new String(metadata.getMainMethod().getReturnDataEvent().getSerializedValue());
         JTableComponent comp = new JTableComponent(getModelFor(response));
         this.beforeBorderParent.add(comp.getComponent(), BorderLayout.CENTER);
         this.beforeBorderParent.revalidate();
