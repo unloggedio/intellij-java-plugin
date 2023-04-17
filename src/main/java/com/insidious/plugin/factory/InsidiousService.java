@@ -1083,7 +1083,7 @@ final public class InsidiousService implements Disposable,
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
+//        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
 //        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
 
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();

@@ -5,16 +5,15 @@ import com.insidious.plugin.adapter.ParameterAdapter;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
+import com.insidious.plugin.util.TestCandidateUtils;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.treeStructure.Tree;
-import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import javax.swing.*;
-import javax.swing.border.EtchedBorder;
 import javax.swing.tree.DefaultMutableTreeNode;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -29,27 +28,24 @@ public class TestCandidateListedItemComponent {
     private final MethodAdapter method;
     private final List<String> methodArgumentValues;
     private final MethodExecutionListener listener;
+    private final Map<String, String> parameterMap;
     private JPanel mainPanel;
-    private JPanel borderParent;
+    //    private JPanel borderParent;
     private JPanel controlPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
     private JLabel executeLabel;
-    private JPanel gridParent;
-    private Map<String, String> parameterMap;
     private AgentResponseComponent responseComponent;
 
-    public TestCandidateListedItemComponent(TestCandidateMetadata candidateMetadata, List<String> methodArgumentValues,
-                                            MethodAdapter method,
+    public TestCandidateListedItemComponent(TestCandidateMetadata candidateMetadata, MethodAdapter method,
                                             MethodExecutionListener listener) {
         this.candidateMetadata = candidateMetadata;
         this.method = method;
         this.listener = listener;
-        this.methodArgumentValues = methodArgumentValues;
-        if (candidateMetadata == null) {
-            return;
-        }
+        this.methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
+                candidateMetadata);
         this.parameterMap = generateParameterMap();
+
         loadInputTree();
         executeLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -66,7 +62,7 @@ public class TestCandidateListedItemComponent {
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        borderParent.addMouseListener(new MouseAdapter() {
+        mainPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 displayResponse();
@@ -95,30 +91,58 @@ public class TestCandidateListedItemComponent {
     private void loadInputTree() {
         this.mainContentPanel.removeAll();
         DefaultMutableTreeNode inputRoot = new DefaultMutableTreeNode("");
-        if (this.parameterMap.keySet() == null || this.parameterMap.keySet().size() == 0) {
+        Set<String> methodArgumentNames = this.parameterMap.keySet();
+        int methodArgumentCount = methodArgumentNames.size();
+        if (methodArgumentCount == 0) {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode("No inputs for this method.");
             inputRoot.add(node);
         } else {
-            for (String key : this.parameterMap.keySet()) {
+            for (String key : methodArgumentNames) {
                 DefaultMutableTreeNode node = buildJsonTree(this.parameterMap.get(key), key);
                 inputRoot.add(node);
             }
         }
 
-        this.mainContentPanel.setLayout(new GridLayout(1, 1));
-        GridConstraints constraints = new GridConstraints();
-        constraints.setRow(1);
+//        GridConstraints constraints = new GridConstraints();
+//        constraints.setRow(1);
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
-        JScrollPane scrollPane = new JBScrollPane(inputTree);
-        scrollPane.setBorder(new EtchedBorder());
-        this.mainContentPanel.setPreferredSize(scrollPane.getSize());
-        scrollPane.setBorder(JBUI.Borders.empty());
-        this.mainContentPanel.add(scrollPane, BorderLayout.CENTER);
+
+
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
-        this.mainContentPanel.revalidate();
+
+        GridLayout gridLayout = new GridLayout(1, 1);
+        Dimension preferredSize = new Dimension(-1, 50);
+
+//        mainContentPanel.setPreferredSize(preferredSize);
+//        mainContentPanel.setMaximumSize(preferredSize);
+//        gridLayout.preferredLayoutSize(mainContentPanel);
+
+        mainContentPanel.setLayout(gridLayout);
+
+
+        inputTree.setSize(new Dimension(-1, 50));
+        inputTree.setMaximumSize(new Dimension(-1, 50));
+
+        JScrollPane scrollPane = new JBScrollPane(inputTree);
+        scrollPane.setBorder(JBUI.Borders.empty());
+
+        scrollPane.setPreferredSize(new Dimension(-1, 50));
+        scrollPane.setMaximumSize(new Dimension(-1, 50));
+        scrollPane.setSize(new Dimension(-1, 50));
+
+
+        mainPanel.setPreferredSize(preferredSize);
+        mainPanel.setMaximumSize(preferredSize);
+
+        mainContentPanel.setMaximumSize(preferredSize);
+        mainContentPanel.setPreferredSize(preferredSize);
+        mainContentPanel.add(scrollPane);
+
+        mainContentPanel.revalidate();
+        mainContentPanel.repaint();
     }
 
     private DefaultMutableTreeNode buildJsonTree(String source, String name) {

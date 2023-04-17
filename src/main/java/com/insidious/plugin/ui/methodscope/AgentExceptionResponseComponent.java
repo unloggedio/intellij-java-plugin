@@ -65,8 +65,13 @@ public class AgentExceptionResponseComponent {
         System.out.println("EXCEPTION AFTER DATA : " + response.getMethodReturnValue());
         ExceptionOptionsComponent options;
         if (response.getResponseType().equals(ResponseType.EXCEPTION)) {
-            options = new ExceptionOptionsComponent(response.getMessage(),
-                    ExceptionUtils.prettyPrintException(response.getMethodReturnValue()), insidiousService);
+            if (response.getMethodReturnValue() != null) {
+                options = new ExceptionOptionsComponent(response.getMessage(),
+                        ExceptionUtils.prettyPrintException(response.getMethodReturnValue()), insidiousService);
+            } else {
+                options = new ExceptionOptionsComponent(response.getMessage(),
+                        ExceptionUtils.prettyPrintException(response.getMessage()), insidiousService);
+            }
         } else {
             options = new ExceptionOptionsComponent(response.getMessage(),
                     String.valueOf(response.getMethodReturnValue()), insidiousService);
@@ -90,7 +95,8 @@ public class AgentExceptionResponseComponent {
         System.out.println("EXCEPTION BEFORE V1 : " + value1);
         System.out.println("EXCEPTION BEFORE V2 : " + value2);
         ExceptionOptionsComponent options = new ExceptionOptionsComponent("Exception message",
-                ExceptionUtils.prettyPrintException(metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()), insidiousService);
+                ExceptionUtils.prettyPrintException(
+                        metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()), insidiousService);
         this.beforeBorderParent.add(options.getComponent(), BorderLayout.CENTER);
         this.beforeBorderParent.revalidate();
     }

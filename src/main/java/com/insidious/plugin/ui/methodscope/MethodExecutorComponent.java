@@ -34,15 +34,15 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private List<ComponentContainer> components = new ArrayList<>();
     private MethodAdapter methodElement;
     private JPanel rootContent;
-    private JPanel borderParentMain;
-    private JPanel centerPanel;
-    private JPanel topPanel;
     private JButton executeAndShowDifferencesButton;
     private JPanel methodParameterContainer;
     private JLabel candidateCountLabel;
-    private JPanel candidateListPanel;
+    private JScrollPane candidateListScroller;
     private JPanel diffContentPanel;
-    private JPanel compareViewer;
+    private JPanel candidateDisplayPanel;
+    private JPanel topPanel;
+    private JPanel centerPanel;
+    private JPanel bottomPanel;
     private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
     private int componentCounter = 0;
@@ -66,12 +66,9 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     public void loadMethodCandidates() {
         components.clear();
-        this.candidateListPanel.removeAll();
+        centerPanel.removeAll();
+
         if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
-            InsidiousNotification.notifyMessage(
-                    "Please use the agent to record values for replay.",
-                    NotificationType.WARNING
-            );
             return;
         }
 
@@ -88,10 +85,8 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             TestCandidateMetadata candidateMetadata = methodTestCandidates.get(i);
-            List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                    candidateMetadata);
             TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(candidateMetadata,
-                    methodArgumentValues, methodElement, this);
+                    methodElement, this);
             ComponentContainer container = new ComponentContainer(comp);
             components.add(container);
             JPanel candidateDisplayPanel = comp.getComponent();
@@ -101,12 +96,15 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
-        candidateListPanel.setPreferredSize(scrollPane.getSize());
-        candidateListPanel.add(scrollPane, BorderLayout.CENTER);
-        if (callToMake <= 3) {
-            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-        }
-        this.candidateListPanel.revalidate();
+//        candidateListPanel.setPreferredSize(scrollPane.getSize());
+//        candidateListPanel.add(scrollPane, BorderLayout.CENTER);
+//        if (callToMake <= 3) {
+//            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+//        }
+//        this.candidateListPanel.revalidate();
+        centerPanel.add(scrollPane, BorderLayout.CENTER);
+        centerPanel.revalidate();
+        centerPanel.repaint();
     }
 
     public void executeAll() {
@@ -126,11 +124,14 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public void refreshAndReloadCandidates(MethodAdapter method) {
-        boolean isNew = false;
-        if (this.methodElement != null && !this.methodElement.equals(method)) {
-            clearBoard();
-            isNew = true;
-        }
+//        boolean isNew = false;
+//        if (method.equals(this.methodElement)) {
+//            return;
+//        }
+//        if (this.methodElement != null && !this.methodElement.equals(method)) {
+        clearBoard();
+//            isNew = true;
+//        }
         this.methodElement = method;
         String classQualifiedName = methodElement.getContainingClass().getQualifiedName();
         String methodName = methodElement.getName();
@@ -142,83 +143,30 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             this.components = new ArrayList<>();
         }
         this.candidateCountLabel.setText(methodTestCandidates.size() + " unique candidates for " + method.getName());
-        if (methodTestCandidates != null && methodTestCandidates.size() > 0) {
-            loadMethodCandidates();
-//            if (isNew) {
-//                loadMethodCandidates();
-//                return;
-//            }
-//            if (this.components != null) {
-//                if (this.components.size() == 0) {
-//                    loadMethodCandidates();
-//                } else {
-//                    mergeComponentList();
-//                }
-//            } else {
-//                loadMethodCandidates();
-//            }
-        }
+        loadMethodCandidates();
+//        if (methodTestCandidates.size() > 0) {
+////            if (isNew) {
+////                loadMethodCandidates();
+////                return;
+////            }
+////            if (this.components != null) {
+////                if (this.components.size() == 0) {
+////                    loadMethodCandidates();
+////                } else {
+////                    mergeComponentList();
+////                }
+////            } else {
+////                loadMethodCandidates();
+////            }
+//        }
     }
 
     private void clearBoard() {
-        this.candidateListPanel.removeAll();
+//        this.candidateListScroller.removeAll();
         this.diffContentPanel.removeAll();
-        this.candidateListPanel.revalidate();
         this.diffContentPanel.revalidate();
-    }
-
-    private void mergeComponentList() {
-        List<Integer> candidateHashes = new ArrayList<>();
-        for (ComponentContainer component : this.components) {
-            candidateHashes.add(component.getHash());
-        }
-        List<TestCandidateMetadata> newCandidateList = new ArrayList<>();
-        for (TestCandidateMetadata metadata : this.methodTestCandidates) {
-            int candidateSimilarityHash = TestCandidateUtils.getCandidateSimilarityHash(metadata);
-            if (!candidateHashes.contains(candidateSimilarityHash)) {
-                newCandidateList.add(metadata);
-            }
-        }
-        if (newCandidateList.size() > 0) {
-            this.candidateListPanel.removeAll();
-
-            int callToMake = components.size() + newCandidateList.size();
-            int GridRows = 3;
-            if (callToMake > GridRows) {
-                GridRows = callToMake;
-            }
-            GridLayout gridLayout = new GridLayout(GridRows, 1);
-            gridLayout.setVgap(8);
-            JPanel gridPanel = new JPanel(gridLayout);
-            gridPanel.setBorder(JBUI.Borders.empty());
-            int x = 0;
-            for (int i = 0; i < components.size(); i++) {
-                GridConstraints constraints = new GridConstraints();
-                constraints.setRow(i);
-                gridPanel.add(components.get(i).getComponent(), constraints);
-                x++;
-            }
-            for (int j = 0; j < newCandidateList.size(); j++) {
-                GridConstraints constraints = new GridConstraints();
-                constraints.setRow(x + j);
-                List<String> methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
-                        newCandidateList.get(j));
-                TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(newCandidateList.get(j),
-                        methodArgumentValues, methodElement, this);
-                ComponentContainer container = new ComponentContainer(comp);
-                components.add(container);
-                gridPanel.add(comp.getComponent(), constraints);
-            }
-            gridPanel.setBorder(JBUI.Borders.empty());
-            JScrollPane scrollPane = new JBScrollPane(gridPanel);
-            scrollPane.setBorder(JBUI.Borders.empty());
-            candidateListPanel.setPreferredSize(scrollPane.getSize());
-            candidateListPanel.add(scrollPane, BorderLayout.CENTER);
-            if (callToMake <= 3) {
-                scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-            }
-            this.candidateListPanel.revalidate();
-        }
+        this.centerPanel.revalidate();
+        this.centerPanel.repaint();
     }
 
     public List<TestCandidateMetadata> deDuplicateList(List<TestCandidateMetadata> list) {
