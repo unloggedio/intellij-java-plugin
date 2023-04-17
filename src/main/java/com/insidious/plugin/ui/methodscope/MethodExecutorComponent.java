@@ -43,6 +43,8 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private JPanel topPanel;
     private JPanel centerPanel;
     private JPanel bottomPanel;
+    private JPanel mainContent;
+    private JPanel centerParent;
     private JPanel borderParent;
     private List<TestCandidateMetadata> methodTestCandidates;
     private int componentCounter = 0;
@@ -188,8 +190,9 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
-                            agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
+                    if (agentCommandResponse.getResponseType()!=null &&
+                            (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
+                            agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
                         AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(
                                 testCandidate, agentCommandResponse, comp.getSource());
                         comp.setAndDisplayExceptionFlow(exceptionResponseComponent);

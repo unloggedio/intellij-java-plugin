@@ -17,6 +17,8 @@ public class ExceptionOptionsComponent {
     private JButton accept;
     private JTextArea exceptionArea;
     private JLabel iconLabel;
+    private JPanel topPanel;
+    private JPanel topAligner;
     private String message;
     private String stackTrace;
 
@@ -26,7 +28,7 @@ public class ExceptionOptionsComponent {
         this.message = message;
         this.stackTrace = stacktrace;
         this.service = insidiousService;
-        this.exceptionArea.setText(stacktrace);
+        this.exceptionArea.setText(message);
         this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
         showfulltrace.addMouseListener(new MouseAdapter() {
             @Override

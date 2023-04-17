@@ -5,8 +5,10 @@
     <constraints>
       <xy x="6" y="5" width="540" height="68"/>
     </constraints>
-    <properties/>
-    <border type="bevel-lowered">
+    <properties>
+      <maximumSize width="2147483647" height="56"/>
+    </properties>
+    <border type="line">
       <color color="-4473925"/>
     </border>
     <children>
@@ -41,9 +43,9 @@
         <margin top="0" left="0" bottom="0" right="0"/>
         <constraints>
           <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false">
-            <minimum-size width="-1" height="40"/>
-            <preferred-size width="500" height="-1"/>
-            <maximum-size width="-1" height="200"/>
+            <minimum-size width="-1" height="56"/>
+            <preferred-size width="56" height="-1"/>
+            <maximum-size width="-1" height="56"/>
           </grid>
         </constraints>
         <properties/>

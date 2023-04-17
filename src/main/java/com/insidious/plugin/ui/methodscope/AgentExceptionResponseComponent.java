@@ -9,6 +9,7 @@ import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -18,8 +19,7 @@ import java.util.stream.Stream;
 public class AgentExceptionResponseComponent {
     private final ObjectMapper objectMapper;
     private JPanel mainPanel;
-    private JPanel afterSection;
-    private JPanel beforeSection;
+    private JPanel defParent;
     private JPanel afterBorderParent;
     private JPanel beforeBorderParent;
 
@@ -36,23 +36,78 @@ public class AgentExceptionResponseComponent {
         this.metadata = metadata;
         this.response = response;
 
+        setupDefLayout();
+    }
+
+    public void setupDefLayout()
+    {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+//        String value1 = "B1 Stack trace";
+//            String value2 = "B2\n" +
+//                    "b2 line2\n" +
+//                    "File : b1.file\n" +
+//                    "Line Number : 12";
+//        ExceptionOptionsComponent options1 = new ExceptionOptionsComponent(value2,
+//                value1, insidiousService);
+//        panel.add(options1.getComponent());
+//
+//                    Map<String,String> value = new TreeMap<>();
+//                    value.put("A","a");
+//                    value.put("B","a");
+//                    value.put("C","a");
+//                    value.put("D","a");
+//                    value.put("e","a");
+//            String json = "{\"red\":false,\"student\":44,\"basis\":false,\"she\":66,\"story\":88,\"unless\":true}";
+//            JTableComponent comp = new JTableComponent(getModelFor(json));
+//                    panel.add(comp.getComponent());
+
         if (response.getResponseType() != null && (response.getResponseType().equals(ResponseType.EXCEPTION)
                 || response.getResponseType().equals(ResponseType.FAILED))) {
             //load after as Exception.
-            loadAfterAsException();
+            //loadAfterAsException();
+            ExceptionOptionsComponent options;
+            if (response.getResponseType().equals(ResponseType.EXCEPTION)) {
+                if (response.getMethodReturnValue() != null) {
+                    options = new ExceptionOptionsComponent(response.getMessage(),
+                            ExceptionUtils.prettyPrintException(response.getMethodReturnValue()), insidiousService);
+                } else {
+                    options = new ExceptionOptionsComponent(response.getMessage(),
+                            response.getMessage(), insidiousService);
+                }
+            } else {
+                options = new ExceptionOptionsComponent(response.getMessage(),
+                        String.valueOf(response.getMethodReturnValue()), insidiousService);
+            }
+            panel.add(options.getComponent());
         } else {
             //load after as normal response.
-            loadAfterAsNormal();
+            //loadAfterAsNormal();
+            String value = String.valueOf(response.getMethodReturnValue());
+            JTableComponent comp = new JTableComponent(getModelFor(value));
+            panel.add(comp.getComponent());
         }
 
         if (metadata.getMainMethod().getReturnValue().isException()) {
             //load Before As Exception.
-            loadBeforeAsException();
+            //loadBeforeAsException();
+            ExceptionOptionsComponent options = new ExceptionOptionsComponent("Exception message",
+                    ExceptionUtils.prettyPrintException(
+                            metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()), insidiousService);
+            panel.add(options.getComponent());
+
         } else {
             //load before as normal response.
-            loadBeforeAsNormal();
+            //loadBeforeAsNormal();
+            String value = String.valueOf(response.getMethodReturnValue());
+            JTableComponent comp = new JTableComponent(getModelFor(value));
+            panel.add(comp.getComponent());
         }
 
+        this.defParent.add(panel, BorderLayout.CENTER);
+        panel.revalidate();
+        this.defParent.revalidate();
     }
 
     public JPanel getComponent() {
@@ -61,8 +116,6 @@ public class AgentExceptionResponseComponent {
 
     public void loadAfterAsException() {
         this.afterBorderParent.removeAll();
-        System.out.println("EXCEPTION AFTER MSG : " + response.getMessage());
-        System.out.println("EXCEPTION AFTER DATA : " + response.getMethodReturnValue());
         ExceptionOptionsComponent options;
         if (response.getResponseType().equals(ResponseType.EXCEPTION)) {
             if (response.getMethodReturnValue() != null) {

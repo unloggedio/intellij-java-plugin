@@ -181,8 +181,8 @@ public class AgentResponseComponent {
     private Boolean calculateDifferences(String s1, String s2) {
         ObjectMapper om = new ObjectMapper();
         //replace Boolean with enum
-        if (agentCommandResponse.getResponseType() != null && agentCommandResponse.getResponseType()
-                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED)) {
+        if (agentCommandResponse.getResponseType() != null && (agentCommandResponse.getResponseType()
+                .equals(ResponseType.EXCEPTION) || agentCommandResponse.getResponseType().equals(ResponseType.FAILED))) {
             this.statusLabel.setText("" + this.agentCommandResponse.getMessage());
             this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
             this.statusLabel.setForeground(UIUtils.red);
@@ -233,6 +233,7 @@ public class AgentResponseComponent {
         } catch (Exception e) {
             System.out.println("TestDiff Exception: " + e);
             e.printStackTrace();
+            System.out.println("S1 AND S2 : "+s1+", "+s2);
             if (s1.equals(s2)) {
                 this.statusLabel.setText("Both Responses are Equal.");
                 this.statusLabel.setIcon(UIUtils.CHECK_GREEN_SMALL);
