@@ -70,7 +70,7 @@ public class AgentExceptionResponseComponent {
                         ExceptionUtils.prettyPrintException(response.getMethodReturnValue()), insidiousService);
             } else {
                 options = new ExceptionOptionsComponent(response.getMessage(),
-                        ExceptionUtils.prettyPrintException(response.getMessage()), insidiousService);
+                        response.getMessage(), insidiousService);
             }
         } else {
             options = new ExceptionOptionsComponent(response.getMessage(),
