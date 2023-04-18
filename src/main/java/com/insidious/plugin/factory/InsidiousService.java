@@ -1267,6 +1267,7 @@ final public class InsidiousService implements Disposable,
         logger.warn("connected to agent");
         // connected to agent
         this.isAgentServerRunning = true;
+        triggerGutterIconReload();
     }
 
     @Override
@@ -1274,10 +1275,26 @@ final public class InsidiousService implements Disposable,
         logger.warn("disconnected from agent");
         // disconnected from agent
         this.isAgentServerRunning = false;
+        triggerGutterIconReload();
     }
 
     public ObjectMapper getObjectMapper() {
         return objectMapper;
+    }
+
+    public void triggerGutterIconReload()
+    {
+        Document currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor().getDocument();
+        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(currentDoc);
+        String fileName = currentFile.getPath();
+
+        PsiFile[] searchResults = FilenameIndex.getFilesByName(project, fileName,
+                GlobalSearchScope.projectScope(project));
+        if(searchResults.length>0)
+        {
+            ApplicationManager.getApplication().runReadAction(
+                    () -> DaemonCodeAnalyzer.getInstance(project).restart(searchResults[0]));
+        }
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
