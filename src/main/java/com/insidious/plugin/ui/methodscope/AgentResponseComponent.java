@@ -170,6 +170,7 @@ public class AgentResponseComponent {
             this.oldResponse = new String(
                     testCandidateMetadata.getMainMethod().getReturnDataEvent().getSerializedValue());
             this.agentResponse = String.valueOf(agentCommandResponse.getMethodReturnValue());
+            System.out.println("Agent Response : "+agentCommandResponse.getMethodReturnValue());
             return calculateDifferences(this.oldResponse, this.agentResponse);
         }
     }

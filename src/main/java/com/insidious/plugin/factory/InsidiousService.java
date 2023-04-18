@@ -22,6 +22,7 @@ import com.insidious.plugin.client.pojo.ExecutionSession;
 import com.insidious.plugin.extension.InsidiousJavaDebugProcess;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.testcase.TestCaseService;
+import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
@@ -146,6 +147,7 @@ final public class InsidiousService implements Disposable,
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
     private Map<String, Boolean> executionRecord = new TreeMap<>();
+    private Map<String,Integer> methodHash = new TreeMap();
     private boolean agentJarExists = false;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content manualMethodExecutorWindow;
@@ -1160,6 +1162,87 @@ final public class InsidiousService implements Disposable,
         }
     }
 
+    public GUTTER_STATE getGutterStateFor(PsiMethod method) {
+        //check for agent here before other comps
+        if (!doesAgentExist()) {
+            return GUTTER_STATE.NO_AGENT;
+        }
+        if(this.isAgentServerRunning)
+        {
+            List<TestCandidateMetadata> candidates = getSessionInstance()
+                    .getTestCandidatesForAllMethod(method.getContainingClass().getQualifiedName(), method.getName(), false);
+            if(candidates.size()>0)
+            {
+                //check for change
+                if(this.methodHash.containsKey(method.getContainingClass().getQualifiedName()+"."+method.getName()))
+                {
+                    int lastHash = this.methodHash.get(method.getContainingClass().getQualifiedName()+"."+method.getName());
+                    int currentHash = method.getText().hashCode();
+                    if(lastHash == currentHash)
+                    {
+                        //no change in method body
+                        if (executionRecord.containsKey(method.getName())) {
+                            return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+                        }
+                        else
+                        {
+                            //data available state
+                            return GUTTER_STATE.DATA_AVAILABE;
+                        }
+                    }
+                    else {
+                        //re rexecute as there are hash diffs
+                        //update hash after execution is complete for this method,
+                        // to prevent state change before exec complete.
+                        return GUTTER_STATE.EXECUTE;
+                    }
+                }
+                else
+                {
+                    //register new hash
+                    this.methodHash.put(
+                            method.getContainingClass().getQualifiedName()+"."+method.getName(),
+                            method.getText().hashCode());
+                    //check for recorded executions
+                    if (executionRecord.containsKey(method.getName())) {
+                        return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+                    }
+                    else
+                    {
+                        //show data available
+                        return GUTTER_STATE.DATA_AVAILABE;
+                    }
+                }
+            }
+            else
+            {
+                //display process running
+                return GUTTER_STATE.PROCESS_RUNNING;
+            }
+        }
+        else
+        {
+            // return not running
+            return GUTTER_STATE.PROCESS_NOT_RUNNING;
+        }
+    }
+
+    public void updateMethodHashForExecutedMethod(PsiMethod method)
+    {
+        if(this.executionRecord.containsKey(method.getName()))
+        {
+            this.methodHash.put(method.getContainingClass().getQualifiedName()+"."+method.getName(),
+                    method.getText().hashCode());
+            ApplicationManager.getApplication().runReadAction(
+                    () -> DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile()));
+        }
+        else
+        {
+            //don't update hash
+            //failed execution
+        }
+    }
+
     public Map<String, Boolean> getExecutionRecord() {
         return this.executionRecord;
     }
@@ -1178,16 +1261,19 @@ final public class InsidiousService implements Disposable,
         logger.warn("branch has changed: " + branchName);
     }
 
+    private boolean isAgentServerRunning = false;
     @Override
     public void onConnectedToAgentServer() {
         logger.warn("connected to agent");
         // connected to agent
+        this.isAgentServerRunning = true;
     }
 
     @Override
     public void onDisconnectedFromAgentServer() {
         logger.warn("disconnected from agent");
         // disconnected from agent
+        this.isAgentServerRunning = false;
     }
 
     public ObjectMapper getObjectMapper() {
@@ -1196,6 +1282,6 @@ final public class InsidiousService implements Disposable,
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
-    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF}
+    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF, PROCESS_NOT_RUNNING, PROCESS_RUNNING, DATA_AVAILABE}
 
 }

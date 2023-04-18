@@ -246,6 +246,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         }
         if (componentCounter == callCount) {
             insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+            insidiousService.updateMethodHashForExecutedMethod(methodElement.getPsiMethod());
             DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
             ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         }
@@ -259,6 +260,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
         this.isDifferent = true;
         insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+        insidiousService.updateMethodHashForExecutedMethod(methodElement.getPsiMethod());
         // this is to update gutter icons
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         return response;
@@ -276,6 +278,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         response.setBorderTitle(++this.componentCounter);
         this.isDifferent = isDiff;
         insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
+        insidiousService.updateMethodHashForExecutedMethod(methodElement.getPsiMethod());
         // this is to update gutter icons
         DaemonCodeAnalyzer.getInstance(insidiousService.getProject()).restart(methodElement.getContainingFile());
         return response;

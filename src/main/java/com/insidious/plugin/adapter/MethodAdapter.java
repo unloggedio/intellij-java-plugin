@@ -29,4 +29,6 @@ public interface MethodAdapter {
 
     String getJVMSignature();
 
+    PsiMethod getPsiMethod();
+
 }

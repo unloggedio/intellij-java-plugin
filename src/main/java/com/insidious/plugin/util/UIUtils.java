@@ -1,5 +1,6 @@
 package com.insidious.plugin.util;
 
+import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.scale.JBUIScale;
@@ -53,6 +54,9 @@ public class UIUtils {
     public static Icon NO_AGENT_GUTTER = IconLoader.getIcon("/icons/svg/no_agent_gutter.svg", UIUtils.class);
     public static Icon EXECUTE_COMPONENT = IconLoader.getIcon("/icons/svg/execute_component.svg", UIUtils.class);
     public static Icon EXCEPTION_CASE = IconLoader.getIcon("/icons/svg/exception_diff_case.svg", UIUtils.class);
+    public static Icon PROCESS_RUNNING = IconLoader.getIcon("/icons/svg/process_running.svg", UIUtils.class);
+    public static Icon PROCESS_NOT_RUNNING = IconLoader.getIcon("/icons/svg/process_not_running.svg", UIUtils.class);
+    public static Icon DATA_AVAILABLE = IconLoader.getIcon("/icons/svg/recording_available.svg", UIUtils.class);
     public static Icon ONBOARDING_ICON_DARK = IconLoader.getIcon("/icons/png/onboarding_icon_dark.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_PINK = IconLoader.getIcon("/icons/png/onboarding_icon_pink.png", UIUtils.class);
     public static Icon ONBOARDING_ICON_TEAL = IconLoader.getIcon("/icons/png/onboarding_icon_teal.png", UIUtils.class);
@@ -180,6 +184,25 @@ public class UIUtils {
             default:
                 return ICON_1_TEAL;
 
+        }
+    }
+
+    public static Icon getGutterIconForState(InsidiousService.GUTTER_STATE state) {
+        switch (state) {
+            case NO_DIFF:
+                return NO_DIFF_GUTTER;
+            case DIFF:
+                return DIFF_GUTTER;
+            case NO_AGENT:
+                return NO_AGENT_GUTTER;
+            case PROCESS_RUNNING:
+                return PROCESS_RUNNING;
+            case PROCESS_NOT_RUNNING:
+                return PROCESS_NOT_RUNNING;
+            case DATA_AVAILABE:
+                return DATA_AVAILABLE;
+            default:
+                return UIUtils.RE_EXECUTE;
         }
     }
 }

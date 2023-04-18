@@ -4,10 +4,7 @@ import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiModifierList;
-import com.intellij.psi.PsiType;
+import com.intellij.psi.*;
 import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtNamedFunction;
 import org.jetbrains.kotlin.psi.KtParameter;
@@ -81,6 +78,10 @@ public class KotlinMethodAdapter implements MethodAdapter {
 
     @Override
     public String getJVMSignature() {
+        return null;
+    }
+    @Override
+    public PsiMethod getPsiMethod() {
         return null;
     }
 

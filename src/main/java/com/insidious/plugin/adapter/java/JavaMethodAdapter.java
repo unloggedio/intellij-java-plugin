@@ -80,4 +80,9 @@ public class JavaMethodAdapter implements MethodAdapter {
         return JVMNameUtil.getJVMSignature(psiMethod).toString();
     }
 
+    @Override
+    public PsiMethod getPsiMethod() {
+        return this.psiMethod;
+    }
+
 }
