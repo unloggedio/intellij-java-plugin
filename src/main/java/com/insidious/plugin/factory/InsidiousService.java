@@ -26,7 +26,7 @@ import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
-import com.insidious.plugin.ui.methodscope.ManualMethodExecutor;
+import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 import com.insidious.plugin.ui.testdesigner.TestCaseDesigner;
 import com.insidious.plugin.ui.testgenerator.LiveViewWindow;
@@ -147,7 +147,7 @@ final public class InsidiousService implements Disposable,
     private Content methodExecutorWindow;
     private Map<String, Boolean> executionRecord = new TreeMap<>();
     private boolean agentJarExists = false;
-    private ManualMethodExecutor manualMethodExecutor;
+    private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content manualMethodExecutorWindow;
 
     public InsidiousService(Project project) {
@@ -744,9 +744,9 @@ final public class InsidiousService implements Disposable,
         contentManager.addContent(methodExecutorWindow);
 
 
-        manualMethodExecutor = new ManualMethodExecutor(this);
+        methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
         @NotNull Content manualMethodExecutorWindow =
-                contentFactory.createContent(manualMethodExecutor.getContent(), "Direct Invoke", false);
+                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
         this.manualMethodExecutorWindow = manualMethodExecutorWindow;
         manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
         manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);
@@ -869,8 +869,7 @@ final public class InsidiousService implements Disposable,
         if (!liveViewAdded) {
             toolWindow.getContentManager()
                     .addContent(liveWindowContent);
-            toolWindow.getContentManager()
-                    .setSelectedContent(liveWindowContent, true);
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
             try {
                 liveViewWindow.setTreeStateToLoading();
@@ -880,8 +879,7 @@ final public class InsidiousService implements Disposable,
                 logger.error("Failed to start scan after proceed.");
             }
         } else {
-            toolWindow.getContentManager()
-                    .setSelectedContent(liveWindowContent);
+            toolWindow.getContentManager().setSelectedContent(liveWindowContent);
         }
     }
 
@@ -993,7 +991,7 @@ final public class InsidiousService implements Disposable,
         }
 
         methodExecutorToolWindow.refreshAndReloadCandidates(method);
-        manualMethodExecutor.renderForMethod(method);
+        methodDirectInvokeComponent.renderForMethod(method);
 
 
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
@@ -1068,16 +1066,15 @@ final public class InsidiousService implements Disposable,
             }
             this.init(this.project, ToolWindowManager.getInstance(project).getToolWindow("Unlogged"));
         }
-        toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
+//        toolWindow.getContentManager().setSelectedContent(this.testDesignerContent);
         toolWindow.show(null);
 
     }
 
     public void refreshGPTWindow() {
-        if (this.gptContent != null) {
-            this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
-
-        }
+//        if (this.gptContent != null) {
+//            this.toolWindow.getContentManager().setSelectedContent(this.gptContent);
+//        }
     }
 
     @Override

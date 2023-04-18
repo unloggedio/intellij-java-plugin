@@ -83,18 +83,21 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         gridLayout.setVgap(8);
         JPanel gridPanel = new JPanel(gridLayout);
         gridPanel.setBorder(JBUI.Borders.empty());
+        int panelHeight = 0;
         for (int i = 0; i < methodTestCandidates.size(); i++) {
             GridConstraints constraints = new GridConstraints();
             constraints.setRow(i);
             TestCandidateMetadata candidateMetadata = methodTestCandidates.get(i);
-            TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(candidateMetadata,
-                    methodElement, this);
+            TestCandidateListedItemComponent comp = new TestCandidateListedItemComponent(
+                    candidateMetadata, methodElement, this);
             ComponentContainer container = new ComponentContainer(comp);
             components.add(container);
             JPanel candidateDisplayPanel = comp.getComponent();
             gridPanel.add(candidateDisplayPanel, constraints);
+            panelHeight += 200;
         }
 
+        gridPanel.setSize(new Dimension(-1, panelHeight));
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());

@@ -27,8 +27,7 @@ public class LineHighlighter implements LineMarkerProvider {
     private final Supplier<String> accessibleNameProvider = () -> "Execute method";
 
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
-        if (element instanceof PsiIdentifier &&
-                element.getParent() instanceof PsiMethod) {
+        if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 
             Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
             if (fileMatcher.matches()) {

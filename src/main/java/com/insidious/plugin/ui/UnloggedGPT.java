@@ -253,7 +253,7 @@ public class UnloggedGPT implements UnloggedGptListener {
 
     @Override
     public void triggerUpdate() {
-        insidiousService.refreshGPTWindow();
+//        insidiousService.refreshGPTWindow();
     }
 
     public void updateUI(ClassAdapter psiClass, MethodAdapter method) {

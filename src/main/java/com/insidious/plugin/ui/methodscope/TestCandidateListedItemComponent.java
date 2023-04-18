@@ -62,7 +62,9 @@ public class TestCandidateListedItemComponent {
         executeLabel.setIcon(UIUtils.EXECUTE_COMPONENT);
         statusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         executeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+//        mainPanel.setSize(new Dimension(-1, Math.max(150, 45 * method.getParameters().length)));
         mainPanel.addMouseListener(new MouseAdapter() {
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 displayResponse();
@@ -121,6 +123,7 @@ public class TestCandidateListedItemComponent {
 //        gridLayout.preferredLayoutSize(mainContentPanel);
 
         mainContentPanel.setLayout(gridLayout);
+        mainContentPanel.setSize(new Dimension(-1, 50 * methodArgumentCount));
 
 
         inputTree.setSize(new Dimension(-1, 50));
