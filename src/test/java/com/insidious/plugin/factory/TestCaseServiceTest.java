@@ -38,47 +38,6 @@ public class TestCaseServiceTest {
 
     private final static Logger logger = Logger.getLogger(TestCaseServiceTest.class.getName());
 
-//    @Test
-//    void testGenerationUsingClassWeave() throws APICallException, IOException, InterruptedException {
-//        Project project = Mockito.mock(Project.class);
-//        Mockito.when(project.getBasePath()).thenReturn("./");
-//
-//        VideobugLocalClient client = new VideobugLocalClient(
-//                System.getenv("USERPROFILE") + "/.videobug/sessions");
-//
-//        TestCaseService testCaseService = new TestCaseService(project, client);
-//
-//        List<TestCandidate> testCandidateList = new LinkedList<>();
-//        BlockingQueue<String> waiter = new ArrayBlockingQueue<>(1);
-//        testCaseService.getTestCandidates(
-//                new ClientCallBack<>() {
-//                    @Override
-//                    public void error(ExceptionResponse errorResponse) {
-//                        assert false;
-//                    }
-//
-//                    @Override
-//                    public void success(Collection<TestCandidate> testCandidates) {
-//
-//                        if (testCandidates.size() == 0) {
-//                            return;
-//                        }
-//                        testCandidateList.addAll(testCandidates);
-//
-//                    }
-//
-//                    public void completed() {
-//                        waiter.offer("ok");
-//                    }
-//                }
-//        );
-//        waiter.take();
-//
-//        TestSuite testSuite = null;
-//        testSuite = testCaseService.generateTestCase(testCandidateList);
-//        System.out.println(testSuite);
-//
-//    }
 
     @NotNull
     private static DaoService getDaoService(String url) throws SQLException {

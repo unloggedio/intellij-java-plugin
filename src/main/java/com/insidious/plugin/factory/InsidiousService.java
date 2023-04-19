@@ -35,7 +35,6 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
-import com.intellij.execution.runners.ProgramRunner;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
@@ -108,6 +107,9 @@ final public class InsidiousService implements Disposable,
     private final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(5);
     private final AgentClient agentClient = new AgentClient("http://localhost:12100", this);
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SessionLoader sessionLoader;
+    private final Map<String, Boolean> executionRecord = new TreeMap<>();
+    private final Map<String, Integer> methodHash = new TreeMap<>();
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -132,7 +134,7 @@ final public class InsidiousService implements Disposable,
     private Content onboardingContent;
     private Map<String, ModuleInformation> moduleMap = new TreeMap<>();
     private String selectedModule = null;
-    private List<ProgramRunner> programRunners = new ArrayList<>();
+    //    private List<ProgramRunner> programRunners = new ArrayList<>();
     private TestCaseDesigner testCaseDesignerWindow;
     private TestCaseService testCaseService;
     private SessionInstance sessionInstance;
@@ -140,12 +142,9 @@ final public class InsidiousService implements Disposable,
     private Content testDesignerContent;
     private UnloggedGPT gptWindow;
     private Content gptContent;
-    private SessionLoader sessionLoader;
     private InsidiousInlayHintsCollector inlayHintsCollector;
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
-    private Map<String, Boolean> executionRecord = new TreeMap<>();
-    private Map<String, Integer> methodHash = new TreeMap();
     private boolean agentJarExists = false;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content manualMethodExecutorWindow;
@@ -164,10 +163,10 @@ final public class InsidiousService implements Disposable,
         threadPoolExecutor.submit(this.sessionLoader);
         threadPoolExecutor.submit(() -> {
             while (true) {
-                String path = Constants.VIDEOBUG_AGENT_PATH.toString();
-                File agentFile = new File(path);
+//                String path = Constants.VIDEOBUG_AGENT_PATH.toString();
+                File agentFile = Constants.VIDEOBUG_AGENT_PATH.toFile();
                 if (agentFile.exists()) {
-                    logger.warn("Found agent jar at: " + path);
+                    logger.warn("Found agent jar at: " + Constants.VIDEOBUG_AGENT_PATH);
                     agentJarExists = true;
                     break;
                 }
@@ -434,12 +433,9 @@ final public class InsidiousService implements Disposable,
                     resourceFile.write(resourceJson.getBytes(StandardCharsets.UTF_8));
                 }
                 VirtualFileManager.getInstance().refreshAndFindFileByUrl(FileSystems.getDefault()
-                        .getPath(testResourcesFilePath)
-                        .toUri()
-                        .toString());
+                        .getPath(testResourcesFilePath).toUri().toString());
 
-                if (testCaseScript.getTestGenerationState()
-                        .isSetupNeedsJsonResources()) {
+                if (testCaseScript.getTestGenerationState().isSetupNeedsJsonResources()) {
 
                     String setupJsonFilePath = testResourcesDirPath + "/" + "setup" + ".json";
                     try (FileOutputStream resourceFile = new FileOutputStream(setupJsonFilePath)) {
@@ -447,9 +443,7 @@ final public class InsidiousService implements Disposable,
                     }
                     VirtualFileManager.getInstance()
                             .refreshAndFindFileByUrl(FileSystems.getDefault()
-                                    .getPath(setupJsonFilePath)
-                                    .toUri()
-                                    .toString());
+                                    .getPath(setupJsonFilePath).toUri().toString());
                 }
             }
 
@@ -468,8 +462,7 @@ final public class InsidiousService implements Disposable,
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage(
                             "Failed to write test case: " + testCaseScript + " -> "
-                                    + e.getMessage(), NotificationType.ERROR
-                    );
+                                    + e.getMessage(), NotificationType.ERROR);
                 }
 
 
@@ -484,13 +477,11 @@ final public class InsidiousService implements Disposable,
                             " add new test case. <br/>" + parsedFile.getProblems() + "</html>", NotificationType.ERROR);
                     return null;
                 }
-                CompilationUnit existingCompilationUnit = parsedFile.getResult()
-                        .get();
-                ClassOrInterfaceDeclaration classDeclaration = existingCompilationUnit.getClassByName(
-                                testCaseScript.getClassName())
-                        .get();
+                CompilationUnit existingCompilationUnit = parsedFile.getResult().get();
+//                ClassOrInterfaceDeclaration classDeclaration = existingCompilationUnit.getClassByName(
+//                                testCaseScript.getClassName()).get();
 
-                TypeSpec newTestSpec = testCaseScript.getTestClassSpec();
+//                TypeSpec newTestSpec = testCaseScript.getTestClassSpec();
 
                 ParseResult<CompilationUnit> parseResult = javaParser.parse(testCaseScript.getCode());
                 if (!parseResult.isSuccessful()) {
@@ -507,15 +498,11 @@ final public class InsidiousService implements Disposable,
                     );
                     return null;
                 }
-                CompilationUnit newCompilationUnit = parseResult
-                        .getResult()
-                        .get();
+                CompilationUnit newCompilationUnit = parseResult.getResult().get();
 
-                MethodDeclaration newMethodDeclaration =
-                        newCompilationUnit.getClassByName(testCaseScript.getClassName())
-                                .get()
-                                .getMethodsByName(newTestSpec.methodSpecs.get(1).name)
-                                .get(0);
+//                MethodDeclaration newMethodDeclaration =
+//                        newCompilationUnit.getClassByName(testCaseScript.getClassName())
+//                                .get().getMethodsByName(newTestSpec.methodSpecs.get(1).name).get(0);
 
                 JavaParserUtils.mergeCompilationUnits(existingCompilationUnit, newCompilationUnit);
 
@@ -825,51 +812,10 @@ final public class InsidiousService implements Disposable,
         rawViewAdded = true;
     }
 
-    public void generateAllTestCandidateCases() throws Exception {
-        SessionInstance sessionInstance = getClient().getSessionInstance();
-        TestCaseService testCaseService = new TestCaseService(sessionInstance);
-
-        TestCaseGenerationConfiguration generationConfiguration = new TestCaseGenerationConfiguration(
-                TestFramework.JUnit5, MockFramework.Mockito, JsonFramework.GSON, ResourceEmbedMode.IN_FILE
-        );
-
-        sessionInstance.getAllTestCandidates(testCandidateMetadata -> {
-            @NotNull TestCaseUnit testCaseUnit = null;
-            try {
-                Parameter testSubject = testCandidateMetadata.getTestSubject();
-                if (testSubject.isException()) {
-                    return;
-                }
-                MethodCallExpression callExpression = testCandidateMetadata.getMainMethod();
-                logger.warn(
-                        "Generating test case: " + testSubject.getType() + "." + callExpression.getMethodName() + "()");
-                generationConfiguration.getTestCandidateMetadataList()
-                        .clear();
-                generationConfiguration.getTestCandidateMetadataList()
-                        .add(testCandidateMetadata);
-
-                generationConfiguration.getCallExpressionList()
-                        .clear();
-                generationConfiguration.getCallExpressionList()
-                        .addAll(testCandidateMetadata.getCallsList());
-
-                testCaseUnit = testCaseService.buildTestCaseUnit(generationConfiguration);
-                List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
-                testCaseUnit1.add(testCaseUnit);
-                TestSuite testSuite = new TestSuite(testCaseUnit1);
-                saveTestSuite(testSuite);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-        });
-    }
-
     public void addLiveView() {
         UsageInsightTracker.getInstance().RecordEvent("ProceedingToLiveView", null);
         if (!liveViewAdded) {
-            toolWindow.getContentManager()
-                    .addContent(liveWindowContent);
+            toolWindow.getContentManager().addContent(liveWindowContent);
             toolWindow.getContentManager().setSelectedContent(liveWindowContent, true);
             liveViewAdded = true;
             try {
@@ -886,10 +832,6 @@ final public class InsidiousService implements Disposable,
 
     public void setCurrentModule(String module) {
         this.selectedModule = module;
-    }
-
-    public String getSelectedModuleName() {
-        return selectedModule;
     }
 
     public ModuleInformation getSelectedModuleInstance() {
@@ -909,14 +851,12 @@ final public class InsidiousService implements Disposable,
     }
 
     public String fetchVersionFromLibName(String name, String lib) {
-        String[] parts = name
-                .split(lib + ":");
-        String version = trimVersion(parts[parts.length - 1].trim());
-        return version;
+        String[] parts = name.split(lib + ":");
+        return trimVersion(parts[parts.length - 1].trim());
     }
 
     public String trimVersion(String version) {
-        String versionParts[] = version.split("\\.");
+        String[] versionParts = version.split("\\.");
         if (versionParts.length > 2) {
             return versionParts[0] + "." + versionParts[1];
         }
@@ -925,27 +865,23 @@ final public class InsidiousService implements Disposable,
 
     public String suggestAgentVersion() {
         String version = null;
-        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance()
-                .getLibraryTable(getProject());
+        LibraryTable libraryTable = LibraryTablesRegistrar.getInstance().getLibraryTable(getProject());
         Iterator<Library> lib_iterator = libraryTable.getLibraryIterator();
         int count = 0;
         while (lib_iterator.hasNext()) {
             Library lib = lib_iterator.next();
-            if (lib.getName()
-                    .contains("jackson-databind:")) {
+            if (lib.getName().contains("jackson-databind:")) {
                 version = fetchVersionFromLibName(lib.getName(), "jackson-databind");
             }
             count++;
         }
         if (count == 0) {
             //libs not ready
-            return getProjectTypeInfo()
-                    .DEFAULT_PREFERRED_JSON_MAPPER();
+            return getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
 
         } else {
             if (version == null) {
-                return getProjectTypeInfo()
-                        .DEFAULT_PREFERRED_JSON_MAPPER();
+                return getProjectTypeInfo().DEFAULT_PREFERRED_JSON_MAPPER();
             } else {
                 return "jackson-" + version;
             }
@@ -953,7 +889,8 @@ final public class InsidiousService implements Disposable,
     }
 
     public boolean hasProgramRunning() {
-        return programRunners.size() > 0;
+        return false;
+//        return programRunners.size() > 0;
     }
 
     public void methodFocussedHandler(final MethodAdapter method) {
@@ -998,8 +935,44 @@ final public class InsidiousService implements Disposable,
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
-    public boolean isConnectedToAgent() {
-        return agentClient != null && agentClient.isConnected();
+    public void compile() {
+
+
+//        ModuleManager moduleManager = ModuleManager.getInstance(project);
+//        CompilerManager.getInstance(project).compile(
+//                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+//                new CompileStatusNotification() {
+//                    @Override
+//                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
+//                        logger.warn("compiled class: " + compileContext);
+//                        Module moduleByFile = compileContext.getModuleByFile(
+//                                psiClass.getContainingFile().getVirtualFile());
+//                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
+//                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
+//
+//                        try {
+//                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
+//                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
+//                            File compiledTargetFile = new File(compiledClassTargetFile);
+//                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
+//                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
+//                            targetStream.close();
+//
+//                        } catch (IOException e) {
+//                            throw new RuntimeException(e);
+//                        }
+//
+//                    }
+//                }
+//        );
+//
+////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
+////                psiClass.getContainingFile().getText()).create().get();
+////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
+////            Object classInstance = firstConstructor.newInstance();
+//
+
+
     }
 
     public void executeMethodInRunningProcess(

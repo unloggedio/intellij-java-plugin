@@ -198,8 +198,7 @@ public class LiveViewWindow implements TreeSelectionListener,
         List<TestCaseUnit> testCaseUnit1 = new ArrayList<>();
         testCaseUnit1.add(testCaseUnit);
         TestSuite testSuite = new TestSuite(testCaseUnit1);
-        project.getService(InsidiousService.class)
-                .saveTestSuite(testSuite);
+        project.getService(InsidiousService.class).saveTestSuite(testSuite);
 
         InsidiousNotification.notifyMessage("Testcase generated for " + testCaseUnit.getTestMethodName() + "()",
                 NotificationType.INFORMATION);

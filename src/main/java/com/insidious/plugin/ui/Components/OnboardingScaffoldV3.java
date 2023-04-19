@@ -22,7 +22,6 @@ import org.json.JSONObject;
 
 import javax.swing.Timer;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -33,10 +32,10 @@ import java.util.stream.Collectors;
 public class OnboardingScaffoldV3 implements CardActionListener {
     private static final Logger logger = LoggerUtil.getInstance(OnboardingScaffoldV3.class);
     private final OnboardingService onboardingService;
-    private OnBoardingStatus status = new OnBoardingStatus();
     private final VMoptionsConstructionService vmOptionsConstructionService = new VMoptionsConstructionService();
     private final Project project;
     List<String> jdkVersions_ref = Arrays.asList("8", "11", "17", "18");
+    private OnBoardingStatus status = new OnBoardingStatus();
     private JPanel mainParentPanel;
     private JPanel MainBorderParent;
     private JPanel NavigationPanelParent;
@@ -56,21 +55,16 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         loadNavigator();
         InsidiousOnboardingStatus status_per =
                 project.getService(InsidiousConfigurationState.class).getOnboardingStatus();
-        if(status_per!=null)
-        {
-            if(status_per.isCompleted()) {
+        if (status_per != null) {
+            if (status_per.isCompleted()) {
                 this.status = status_per.getStatus();
                 loadRunSection(project.getService(InsidiousService.class).areLogsPresent());
                 this.navigator.loadState("Run!");
-            }
-            else
-            {
+            } else {
                 this.status = status_per.getStatus();
                 loadModuleSection();
             }
-        }
-        else
-        {
+        } else {
             status_per = new InsidiousOnboardingStatus();
             status_per.setCompleted(false);
             status_per.setStatus(this.status);
@@ -431,8 +425,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         project.getService(InsidiousConfigurationState.class).getOnboardingStatus().setCompleted(true);
         onboardingService.setSelectedModule(this.status.getCurrentModule());
         updateVMParams(this.status.getCurrentModule());
-        if(!project.getService(InsidiousService.class).areModulesRegistered())
-        {
+        if (!project.getService(InsidiousService.class).areModulesRegistered()) {
             project.getService(InsidiousService.class).setCurrentModule(this.status.getCurrentModule());
             //registering modules
             project.getService(InsidiousService.class).fetchModules();
@@ -592,10 +585,7 @@ public class OnboardingScaffoldV3 implements CardActionListener {
 
     @Override
     public boolean isApplicationRunning() {
-        if (project.getService(InsidiousService.class).hasProgramRunning()) {
-            return true;
-        }
-        return false;
+        return project.getService(InsidiousService.class).hasProgramRunning();
     }
 
     public void setDividerLocation(int location) {
@@ -612,20 +602,18 @@ public class OnboardingScaffoldV3 implements CardActionListener {
         return onboardingService.fetchBasePackageForModule(this.status.getCurrentModule());
     }
 
-    public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
-
-    public enum DROP_TYPES {MODULE, JAVA_VERSION, SERIALIZER}
-
-    public enum ONBOARDING_ACTION {UPDATE_SELECTION, DOWNLOAD_AGENT, ADD_DEPENDENCIES, NEXT_STATE}
-
-    public void updateBasePackage(String text)
-    {
+    public void updateBasePackage(String text) {
         this.vmOptionsConstructionService.setBasePackage(text);
-        if (this.runComponent!=null)
-        {
+        if (this.runComponent != null) {
             this.runComponent.setVMtext(vmOptionsConstructionService.getVMOptionsForRunType(this.status.getRunType()));
             this.runComponent.setBasePackageText(vmOptionsConstructionService.getBasePackage());
             this.runComponent.setFallbackPackage(vmOptionsConstructionService.getBasePackage());
         }
     }
+
+    public enum DOCUMENTATION_TYPE {MODULE, PROJECT_CONFIG, DEPENDENCIES, RUN_TYPE}
+
+    public enum DROP_TYPES {MODULE, JAVA_VERSION, SERIALIZER}
+
+    public enum ONBOARDING_ACTION {UPDATE_SELECTION, DOWNLOAD_AGENT, ADD_DEPENDENCIES, NEXT_STATE}
 }

@@ -1,5 +1,6 @@
 package com.insidious.plugin.upload.minio;
 
+import com.insidious.plugin.Constants;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.upload.zip.ZipFiles;
 import com.insidious.plugin.util.LoggerUtil;
@@ -56,7 +57,7 @@ public class ReportIssue {
                     pathPrefix = seLogDirPath.substring(0, lastIndexOf);
                     zipFileName = seLogDirPath.substring(lastIndexOf + 1) + ".zip";
                 } else {
-                    pathPrefix = System.getProperty("user.home") + File.separator + ".videobug" + File.separator + "sessions";
+                    pathPrefix = Constants.VIDEOBUG_HOME_PATH + File.separator + "sessions";
                     zipFileName = "empty-selogger-folder.zip";
                 }
 
@@ -67,7 +68,8 @@ public class ReportIssue {
                     System.out.println("created zip file to upload at " + pathPrefix + File.separator + zipFileName);
                 } catch (Exception e) {
                     InsidiousNotification.notifyMessage("Failed to zip bug report. Please try again!\n" +
-                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.", NotificationType.ERROR);
+                                    "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>.",
+                            NotificationType.ERROR);
                     logger.warn(e.getMessage(), e);
                     return;
                 }
@@ -79,8 +81,10 @@ public class ReportIssue {
                     fileUploader.uploadFile(objectKey, pathPrefix + File.separator + zipFileName);
                     logger.warn("uploaded zip file at" + pathPrefix + File.separator + zipFileName);
                 } catch (IOException | NoSuchAlgorithmException | InvalidKeyException ex) {
-                    InsidiousNotification.notifyMessage("Failed to upload bug report.\n Check your internet connection! \n " +
-                            "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>", NotificationType.ERROR);
+                    InsidiousNotification.notifyMessage(
+                            "Failed to upload bug report.\n Check your internet connection! \n " +
+                                    "or <a href=\"https://discord.gg/274F2jCrxp\">Reach out to us</a>",
+                            NotificationType.ERROR);
                     logger.warn(ex.getMessage(), ex);
                     ex.printStackTrace();
                     return;
@@ -108,7 +112,8 @@ public class ReportIssue {
         String sessionURI = FileUploader.ENDPOINT + "/" + FileUploader.BUCKET_NAME + "/" + this.sessionKeyObject;
 
         String issueDescription = "Issue Raised by: `" + userEmail + "`\n\n"
-                + (dirName.equals(NO_SELOG_FOLDER_NAME) ? "session folder was empty, session zip only contains idea.log! \n\n" : "")
+                + (dirName.equals(
+                NO_SELOG_FOLDER_NAME) ? "session folder was empty, session zip only contains idea.log! \n\n" : "")
                 + checkBoxLabels.toString()
                 + "\n"
                 + "[Session Logs](" + sessionURI.replace("+", "%2B").replace("@", "%40") + ")"
@@ -125,7 +130,8 @@ public class ReportIssue {
         Desktop desktop = Desktop.getDesktop();
         String gitlabMail = SERVER_REPO_MAIL_ADDRESS;
 
-        String mailFromBrowser = "https://mail.google.com/mail/?view=cm&fs=1&to=" + URLEncoder.encode(gitlabMail, StandardCharsets.UTF_8).replace("+", "%20")
+        String mailFromBrowser = "https://mail.google.com/mail/?view=cm&fs=1&to=" + URLEncoder.encode(gitlabMail,
+                StandardCharsets.UTF_8).replace("+", "%20")
                 + "&su=" + URLEncoder.encode(issueTitle, StandardCharsets.UTF_8).replace("+", "%20")
                 + "&body=" + URLEncoder.encode(formattedDescription, StandardCharsets.UTF_8).replace("+", "%20");
 
@@ -139,7 +145,7 @@ public class ReportIssue {
     }
 
     public String getLatestSeLogFolderPath() {
-        String parentFolder = System.getProperty("user.home") + File.separator + ".videobug" + File.separator + "sessions" + File.separator;
+        String parentFolder = Constants.VIDEOBUG_HOME_PATH + File.separator + "sessions" + File.separator;
         File sessionDirectory = new File(parentFolder);
 
         if (sessionDirectory.listFiles() == null) {

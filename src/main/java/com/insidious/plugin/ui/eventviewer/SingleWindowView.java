@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.eventviewer;
 
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.TestCaseUtils;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.uiDesigner.core.GridConstraints;
@@ -42,8 +43,7 @@ public class SingleWindowView {
     }
 
     public void generateAllTestCandidateCases() throws Exception {
-        insidiousService.generateAllTestCandidateCases();
-
+        TestCaseUtils.generateAllTestCandidateCases(insidiousService);
     }
 
     public JComponent getContent() {

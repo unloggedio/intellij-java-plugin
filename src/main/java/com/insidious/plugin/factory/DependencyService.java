@@ -168,10 +168,8 @@ public class DependencyService {
                         }
                     });
 
-            FileDocumentManager.getInstance()
-                    .saveAllDocuments();
-            MavenProjectsManager.getInstance(project)
-                    .forceUpdateAllProjectsOrFindAllAvailablePomFiles();
+            FileDocumentManager.getInstance().saveAllDocuments();
+            MavenProjectsManager.getInstance(project).forceUpdateAllProjectsOrFindAllAvailablePomFiles();
         } else if (gradleFile != null) {
 
 //            if (gradleFile == null) {

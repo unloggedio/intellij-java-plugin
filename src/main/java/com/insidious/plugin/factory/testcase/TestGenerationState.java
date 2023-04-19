@@ -84,7 +84,7 @@ public class TestGenerationState {
         for (int i = 0; i < 100; i++) {
             referenceNameForValue = targetObjectName + i;
             if (!valueResourceMap.containsKey(referenceNameForValue)) {
-                Object value1 = null;
+                Object value1;
                 try {
                     value1 = gson.fromJson(value, JsonElement.class);
                 } catch (JsonSyntaxException jse) {
