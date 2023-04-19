@@ -69,8 +69,19 @@ public class MethodDirectInvokeComponent {
 
         UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
         List<String> methodArgumentValues = new ArrayList<>();
-        for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
-            methodArgumentValues.add(parameterInputComponent.getParameterValue());
+        ParameterAdapter[] parameters = methodElement.getParameters();
+        for (int i = 0; i < parameterInputComponents.size(); i++) {
+            ParameterInputComponent parameterInputComponent = parameterInputComponents.get(i);
+            ParameterAdapter parameter = parameters[i];
+            String parameterValue = parameterInputComponent.getParameterValue();
+            if (parameter.getType().equals("java.lang.String") && !parameterValue.startsWith("\"")) {
+                try {
+                    parameterValue = objectMapper.writeValueAsString(parameterValue);
+                } catch (JsonProcessingException e) {
+                    // should never happen
+                }
+            }
+            methodArgumentValues.add(parameterValue);
         }
 
         AgentCommandRequest agentCommandRequest =
