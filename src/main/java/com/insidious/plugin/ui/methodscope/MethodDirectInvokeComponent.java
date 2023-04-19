@@ -97,7 +97,7 @@ public class MethodDirectInvokeComponent {
                             returnValueTextArea.setText(objectMapper
                                     .writerWithDefaultPrettyPrinter()
                                     .writeValueAsString(jsonNode));
-                            returnValueTextArea.setLineWrap(true);
+                            returnValueTextArea.setLineWrap(false);
                         } catch (JsonProcessingException ex) {
                             throw new RuntimeException(ex);
                         }
@@ -217,7 +217,7 @@ public class MethodDirectInvokeComponent {
                 if (enumValues.length == 0) {
                     return "";
                 }
-                return enumValues[0].getName();
+                return "\"" + enumValues[0].getName() + "\"";
             }
 
             PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();

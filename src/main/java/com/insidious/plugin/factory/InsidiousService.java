@@ -40,6 +40,7 @@ import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
@@ -57,10 +58,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.libraries.Library;
 import com.intellij.openapi.roots.libraries.LibraryTable;
 import com.intellij.openapi.roots.libraries.LibraryTablesRegistrar;
-import com.intellij.openapi.util.Disposer;
-import com.intellij.openapi.util.Key;
-import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.ThrowableComputable;
+import com.intellij.openapi.util.*;
 import com.intellij.openapi.vcs.BranchChangeListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -147,10 +145,12 @@ final public class InsidiousService implements Disposable,
     private MethodExecutorComponent methodExecutorToolWindow;
     private Content methodExecutorWindow;
     private Map<String, Boolean> executionRecord = new TreeMap<>();
-    private Map<String,Integer> methodHash = new TreeMap();
+    private Map<String, Integer> methodHash = new TreeMap();
     private boolean agentJarExists = false;
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content manualMethodExecutorWindow;
+    private boolean isAgentServerRunning = false;
+
 
     public InsidiousService(Project project) {
         this.project = project;
@@ -186,7 +186,6 @@ final public class InsidiousService implements Disposable,
 //        multicaster.add
 
     }
-
 
     @NotNull
     public String getTestDirectory(String packageName, String basePath) {
@@ -1106,16 +1105,16 @@ final public class InsidiousService implements Disposable,
 
     }
 
+//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
+//        return executionPairs.get(executionPairKey);
+//    }
+
     public ClassMethodAggregates getClassMethodAggregates(String qualifiedName) {
         if (sessionInstance == null) {
             loadDefaultSession();
         }
         return sessionInstance.getClassMethodAggregates(qualifiedName);
     }
-
-//    public Pair<AgentCommandRequest, AgentCommandResponse> getExecutionPairs(String executionPairKey) {
-//        return executionPairs.get(executionPairKey);
-//    }
 
     public InsidiousInlayHintsCollector getInlayHintsCollector() {
         return inlayHintsCollector;
@@ -1150,94 +1149,73 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public GUTTER_STATE getGutterStateFor(String methodName) {
-        //check for agent here before other comps
-        if (!doesAgentExist()) {
-            return GUTTER_STATE.NO_AGENT;
-        }
-        if (executionRecord.containsKey(methodName)) {
-            return executionRecord.get(methodName) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
-        } else {
-            return GUTTER_STATE.EXECUTE;
-        }
-    }
+    public GUTTER_STATE getGutterStateFor(MethodAdapter method) {
 
-    public GUTTER_STATE getGutterStateFor(PsiMethod method) {
         //check for agent here before other comps
         if (!doesAgentExist()) {
             return GUTTER_STATE.NO_AGENT;
         }
-        if(this.isAgentServerRunning)
-        {
-            List<TestCandidateMetadata> candidates = getSessionInstance()
-                    .getTestCandidatesForAllMethod(method.getContainingClass().getQualifiedName(), method.getName(), false);
-            if(candidates.size()>0)
-            {
-                //check for change
-                if(this.methodHash.containsKey(method.getContainingClass().getQualifiedName()+"."+method.getName()))
-                {
-                    int lastHash = this.methodHash.get(method.getContainingClass().getQualifiedName()+"."+method.getName());
-                    int currentHash = method.getText().hashCode();
-                    if(lastHash == currentHash)
-                    {
-                        //no change in method body
-                        if (executionRecord.containsKey(method.getName())) {
-                            return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
-                        }
-                        else
-                        {
-                            //data available state
-                            return GUTTER_STATE.DATA_AVAILABE;
-                        }
-                    }
-                    else {
-                        //re rexecute as there are hash diffs
-                        //update hash after execution is complete for this method,
-                        // to prevent state change before exec complete.
-                        return GUTTER_STATE.EXECUTE;
-                    }
-                }
-                else
-                {
-                    //register new hash
-                    this.methodHash.put(
-                            method.getContainingClass().getQualifiedName()+"."+method.getName(),
-                            method.getText().hashCode());
-                    //check for recorded executions
-                    if (executionRecord.containsKey(method.getName())) {
-                        return executionRecord.get(method.getName()) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
-                    }
-                    else
-                    {
-                        //show data available
-                        return GUTTER_STATE.DATA_AVAILABE;
-                    }
-                }
-            }
-            else
-            {
-                //display process running
-                return GUTTER_STATE.PROCESS_RUNNING;
-            }
-        }
-        else
-        {
-            // return not running
+
+        // agent exists but cannot connect with agent server
+        // so no process is running with the agent
+        if (!this.isAgentServerRunning) {
             return GUTTER_STATE.PROCESS_NOT_RUNNING;
         }
+
+        String methodClassQualifiedName = method.getContainingClass().getQualifiedName();
+        String methodName = method.getName();
+        List<TestCandidateMetadata> candidates = sessionInstance.getTestCandidatesForAllMethod(
+                methodClassQualifiedName, methodName, false);
+        // process is running, but no test candidates for this method
+        if (candidates.size() == 0) {
+            return GUTTER_STATE.PROCESS_RUNNING;
+        }
+
+        // process is running, and there were test candidates for this method
+        // so check if we have executed this before
+
+        //check for change
+        String hashKey = methodClassQualifiedName + "." + methodName;
+
+        // we havent checked anything for this method earlier
+        // store method hash for diffs
+        if (!this.methodHash.containsKey(hashKey)) {
+            //register new hash
+            this.methodHash.put(hashKey, method.getText().hashCode());
+        }
+
+        int lastHash = this.methodHash.get(hashKey);
+        int currentHash = method.getText().hashCode();
+
+        if (lastHash != currentHash) {
+            //re re-execute as there are hash diffs
+            //update hash after execution is complete for this method,
+            // to prevent state change before exec complete.
+            return GUTTER_STATE.EXECUTE;
+        }
+
+        if (!executionRecord.containsKey(methodName)) {
+            return GUTTER_STATE.DATA_AVAILABE;
+        }
+
+        return executionRecord.get(methodName) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+
+
     }
 
-    public void updateMethodHashForExecutedMethod(PsiMethod method)
-    {
-        if(this.executionRecord.containsKey(method.getName()))
-        {
-            this.methodHash.put(method.getContainingClass().getQualifiedName()+"."+method.getName(),
-                    method.getText().hashCode());
-            ApplicationManager.getApplication().runReadAction(
+    public void updateMethodHashForExecutedMethod(PsiMethod method) {
+        if (this.executionRecord.containsKey(method.getName())) {
+            Application application = ApplicationManager.getApplication();
+            PsiClass containingClass = application.runReadAction((Computable<PsiClass>) method::getContainingClass);
+            String qualifiedName = application.runReadAction((Computable<String>) containingClass::getQualifiedName);
+
+            String classMethodHashKey = qualifiedName + "." + method.getName();
+            String methodBody = application.runReadAction((Computable<String>) method::getText);
+            int methodBodyHashCode = methodBody.hashCode();
+            this.methodHash.put(classMethodHashKey, methodBodyHashCode);
+            application.runReadAction(
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile()));
-        }
-        else
-        {
+        } else {
             //don't update hash
             //failed execution
         }
@@ -1261,7 +1239,6 @@ final public class InsidiousService implements Disposable,
         logger.warn("branch has changed: " + branchName);
     }
 
-    private boolean isAgentServerRunning = false;
     @Override
     public void onConnectedToAgentServer() {
         logger.warn("connected to agent");
@@ -1282,16 +1259,14 @@ final public class InsidiousService implements Disposable,
         return objectMapper;
     }
 
-    public void triggerGutterIconReload()
-    {
+    public void triggerGutterIconReload() {
         Document currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor().getDocument();
         VirtualFile currentFile = FileDocumentManager.getInstance().getFile(currentDoc);
         String fileName = currentFile.getPath();
 
         PsiFile[] searchResults = FilenameIndex.getFilesByName(project, fileName,
                 GlobalSearchScope.projectScope(project));
-        if(searchResults.length>0)
-        {
+        if (searchResults.length > 0) {
             ApplicationManager.getApplication().runReadAction(
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(searchResults[0]));
         }

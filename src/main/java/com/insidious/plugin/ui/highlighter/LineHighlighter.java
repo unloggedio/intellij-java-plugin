@@ -1,8 +1,9 @@
 package com.insidious.plugin.ui.highlighter;
 
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.factory.InsidiousService;
-import com.insidious.plugin.util.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
+import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
 import com.intellij.codeInsight.daemon.LineMarkerProvider;
 import com.intellij.openapi.diagnostic.Logger;
@@ -56,9 +57,9 @@ public class LineHighlighter implements LineMarkerProvider {
 
     public Icon getIconForState(PsiMethod method) {
         Project project = method.getProject();
-        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class).getGutterStateFor(
-                method);
-        System.out.println("Got State : "+state+" for method "+method.getName());
+        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class)
+                .getGutterStateFor(new JavaMethodAdapter(method));
+        System.out.println("Got State : " + state + " for method " + method.getName());
 //        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
         return UIUtils.getGutterIconForState(state);
     }

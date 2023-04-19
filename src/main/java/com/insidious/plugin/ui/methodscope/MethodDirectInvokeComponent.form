@@ -60,7 +60,7 @@
               <editable value="false"/>
               <enabled value="true"/>
               <font name="JetBrains Mono" size="14"/>
-              <lineWrap value="true"/>
+              <lineWrap value="false"/>
             </properties>
           </component>
         </children>
