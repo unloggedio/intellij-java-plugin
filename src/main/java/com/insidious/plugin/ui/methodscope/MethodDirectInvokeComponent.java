@@ -35,6 +35,7 @@ public class MethodDirectInvokeComponent {
     private final InsidiousService insidiousService;
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
+    private final List<String> creationStack = new LinkedList<>();
     private JPanel mainContainer;
     private JPanel actionControlPanel;
     private JButton executeButton;
@@ -70,46 +71,48 @@ public class MethodDirectInvokeComponent {
         agentCommandRequest.setRequestType(AgentCommandRequestType.DIRECT_INVOKE);
         returnValueTextArea.setText("");
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
-                (request, agentCommandResponse) -> {
-                    logger.warn("Agent command execution response: " + agentCommandResponse);
+                (request, response) -> {
+                    logger.warn("Agent command execution response: " + response);
 
 
-                    ResponseType responseType = agentCommandResponse.getResponseType();
-                    String responseMessage = agentCommandResponse.getMessage() == null ? "" :
-                            agentCommandResponse.getMessage() + "\n";
+                    ResponseType responseType = response.getResponseType();
+                    String responseMessage = response.getMessage() == null ? "" :
+                            response.getMessage() + "\n";
+                    TitledBorder panelTitledBoarder = (TitledBorder) returnValuePanel.getBorder();
+                    String responseObjectClassName = response.getResponseClassName();
+                    String methodReturnValue = response.getMethodReturnValue();
                     if (responseType == null) {
-                        ((TitledBorder) returnValuePanel.getBorder()).setTitle(
-                                agentCommandResponse.getResponseClassName());
-                        returnValueTextArea.setText(responseMessage + agentCommandResponse.getMethodReturnValue());
+                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        returnValueTextArea.setText(responseMessage + methodReturnValue);
                         return;
                     }
 
                     if (responseType.equals(ResponseType.NORMAL)) {
                         String returnTypePresentableText = ApplicationManager.getApplication()
-                                .runReadAction((Computable<String>) () ->
-                                        methodElement.getReturnType().getPresentableText());
-                        ((TitledBorder) returnValuePanel.getBorder()).setTitle(
-                                returnTypePresentableText);
+                                .runReadAction(
+                                        (Computable<String>) () -> methodElement.getReturnType().getPresentableText());
+                        panelTitledBoarder.setTitle(returnTypePresentableText);
                         ObjectMapper objectMapper = insidiousService.getObjectMapper();
                         try {
-                            JsonNode jsonNode = objectMapper.readValue(agentCommandResponse.getMethodReturnValue(),
-                                    JsonNode.class);
+                            JsonNode jsonNode = objectMapper.readValue(methodReturnValue, JsonNode.class);
                             returnValueTextArea.setText(objectMapper
                                     .writerWithDefaultPrettyPrinter()
                                     .writeValueAsString(jsonNode));
-                            returnValueTextArea.setLineWrap(false);
                         } catch (JsonProcessingException ex) {
-                            throw new RuntimeException(ex);
+                            returnValueTextArea.setText(methodReturnValue);
+//                            throw new RuntimeException(ex);
                         }
                     } else if (responseType.equals(ResponseType.EXCEPTION)) {
-                        ((TitledBorder) returnValuePanel.getBorder()).setTitle(
-                                agentCommandResponse.getResponseClassName());
-                        returnValueTextArea.setText(
-                                ExceptionUtils.prettyPrintException(agentCommandResponse.getMethodReturnValue()));
+                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        if (methodReturnValue != null) {
+                            returnValueTextArea.setText(
+                                    ExceptionUtils.prettyPrintException(methodReturnValue));
+                        } else {
+                            returnValueTextArea.setText(response.getMessage());
+                        }
                     } else {
-                        ((TitledBorder) returnValuePanel.getBorder()).setTitle(
-                                agentCommandResponse.getResponseClassName());
-                        returnValueTextArea.setText(responseMessage + agentCommandResponse.getMethodReturnValue());
+                        panelTitledBoarder.setTitle(responseObjectClassName);
+                        returnValueTextArea.setText(responseMessage + methodReturnValue);
                     }
                 });
     }
@@ -155,6 +158,7 @@ public class MethodDirectInvokeComponent {
                 } else {
                     PsiType parameterType = methodParameter.getType();
                     parameterValue = createDummyValue(parameterType);
+                    creationStack.clear();
                 }
 
                 ParameterInputComponent parameterContainer =
@@ -180,85 +184,96 @@ public class MethodDirectInvokeComponent {
     }
 
     private String createDummyValue(PsiType parameterType) {
-        StringBuilder dummyValue = new StringBuilder();
-        if (parameterType.getCanonicalText().equals("java.lang.String")) {
-            return "\"string\"";
-        }
-        if (parameterType.getCanonicalText().startsWith("java.lang.")) {
-            return "0";
-        }
-
-        if (parameterType.getCanonicalText().equals("java.util.Random")) {
+        String creationKey = parameterType.getCanonicalText();
+        if (creationStack.contains(creationKey)) {
             return "";
         }
-        if (parameterType.getCanonicalText().equals("java.util.Date")) {
-            try {
-                return "\"" + objectMapper.writeValueAsString(new Date()) + "\"";
-            } catch (JsonProcessingException e) {
-                // should never happen
-            }
-        }
-        if (parameterType instanceof PsiArrayType) {
-            PsiArrayType arrayType = (PsiArrayType) parameterType;
-            dummyValue.append("[");
-            dummyValue.append(createDummyValue(arrayType.getComponentType()));
-            dummyValue.append("]");
-            return dummyValue.toString();
-        }
 
-        if (parameterType instanceof PsiClassReferenceType) {
-            PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-            if (classReferenceType.rawType().getCanonicalText().equals("java.util.List")) {
+        try {
+            creationStack.add(creationKey);
+            StringBuilder dummyValue = new StringBuilder();
+            if (parameterType.getCanonicalText().equals("java.lang.String")) {
+                return "\"string\"";
+            }
+            if (parameterType.getCanonicalText().startsWith("java.lang.")) {
+                return "0";
+            }
+
+            if (parameterType.getCanonicalText().equals("java.util.Random")) {
+                return "";
+            }
+            if (parameterType.getCanonicalText().equals("java.util.Date")) {
+                try {
+                    return "\"" + objectMapper.writeValueAsString(new Date()) + "\"";
+                } catch (JsonProcessingException e) {
+                    // should never happen
+                }
+            }
+            if (parameterType instanceof PsiArrayType) {
+                PsiArrayType arrayType = (PsiArrayType) parameterType;
                 dummyValue.append("[");
-                dummyValue.append(createDummyValue(classReferenceType.getParameters()[0]));
+                dummyValue.append(createDummyValue(arrayType.getComponentType()));
                 dummyValue.append("]");
                 return dummyValue.toString();
             }
 
-            PsiClass resolvedClass = JavaPsiFacade.getInstance(
-                            insidiousService.getProject())
-                    .findClass(classReferenceType.getCanonicalText(), parameterType.getResolveScope());
-
-            if (resolvedClass == null) {
-                // class not resolved
-                return dummyValue.toString();
-            }
-
-            if (resolvedClass.isEnum()) {
-                PsiField[] enumValues = resolvedClass.getAllFields();
-                if (enumValues.length == 0) {
-                    return "";
+            if (parameterType instanceof PsiClassReferenceType) {
+                PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
+                if (classReferenceType.rawType().getCanonicalText().equals("java.util.List")) {
+                    dummyValue.append("[");
+                    dummyValue.append(createDummyValue(classReferenceType.getParameters()[0]));
+                    dummyValue.append("]");
+                    return dummyValue.toString();
                 }
-                return "\"" + enumValues[0].getName() + "\"";
-            }
 
-            PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
-            Map<String, String> fieldValueMap = new HashMap<>();
-            dummyValue.append("{");
-            boolean firstField = true;
-            for (PsiField psiField : parameterObjectFieldList) {
-                if (!firstField) {
-                    dummyValue.append(", ");
+                PsiClass resolvedClass = JavaPsiFacade.getInstance(
+                                insidiousService.getProject())
+                        .findClass(classReferenceType.getCanonicalText(), parameterType.getResolveScope());
+
+                if (resolvedClass == null) {
+                    // class not resolved
+                    return dummyValue.toString();
                 }
-                fieldValueMap.put(psiField.getName(), createDummyValue(psiField.getType()));
-                dummyValue.append("\"");
-                dummyValue.append(psiField.getName());
-                dummyValue.append("\"");
-                dummyValue.append(": ");
-                dummyValue.append(createDummyValue(psiField.getType()));
-                firstField = false;
+
+                if (resolvedClass.isEnum()) {
+                    PsiField[] enumValues = resolvedClass.getAllFields();
+                    if (enumValues.length == 0) {
+                        return "";
+                    }
+                    return "\"" + enumValues[0].getName() + "\"";
+                }
+
+                PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
+                Map<String, String> fieldValueMap = new HashMap<>();
+                dummyValue.append("{");
+                boolean firstField = true;
+                for (PsiField psiField : parameterObjectFieldList) {
+                    if (!firstField) {
+                        dummyValue.append(", ");
+                    }
+                    fieldValueMap.put(psiField.getName(), createDummyValue(psiField.getType()));
+                    dummyValue.append("\"");
+                    dummyValue.append(psiField.getName());
+                    dummyValue.append("\"");
+                    dummyValue.append(": ");
+                    dummyValue.append(createDummyValue(psiField.getType()));
+                    firstField = false;
+                }
+                dummyValue.append("}");
+            } else if (parameterType instanceof PsiPrimitiveType) {
+                PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
+                switch (primitiveType.getName()) {
+                    case "boolean":
+                        return "true";
+                }
+                return "0";
             }
-            dummyValue.append("}");
-        } else if (parameterType instanceof PsiPrimitiveType) {
-            PsiPrimitiveType primitiveType = (PsiPrimitiveType) parameterType;
-            switch (primitiveType.getName()) {
-                case "boolean":
-                    return "true";
-            }
-            return "0";
+            return dummyValue.toString();
+
+        } finally {
+            creationStack.remove(creationKey);
         }
 
-        return dummyValue.toString();
     }
 
     public JComponent getContent() {

@@ -30,11 +30,10 @@ public class TestCandidateListedItemComponent {
     private final MethodExecutionListener listener;
     private final Map<String, String> parameterMap;
     private JPanel mainPanel;
-    //    private JPanel borderParent;
-    private JPanel controlPanel;
     private JLabel statusLabel;
     private JPanel mainContentPanel;
     private JLabel executeLabel;
+    private JPanel controlPanel;
     private AgentResponseComponent responseComponent;
 
     public TestCandidateListedItemComponent(TestCandidateMetadata candidateMetadata, MethodAdapter method,
@@ -110,35 +109,42 @@ public class TestCandidateListedItemComponent {
         JTree inputTree = new Tree(inputRoot);
         inputTree.setBorder(JBUI.Borders.empty());
 
+//        for(int i = inputTree.getRowCount() - 1; i >= 0; i--){
+//            inputTree.collapseRow(i);
+//        }
+
 
         inputTree.setCellRenderer(new IOTreeCellRenderer());
         inputTree.setRootVisible(false);
         inputTree.setShowsRootHandles(true);
 
         GridLayout gridLayout = new GridLayout(1, 1);
-        Dimension preferredSize = new Dimension(-1, 50);
+        int desiredHeightPerInput = 30;
+        int desiredHeight = Math.min(inputRoot.getLeafCount() * desiredHeightPerInput, 200);
+        Dimension preferredSize = new Dimension(-1, desiredHeight);
 
 //        mainContentPanel.setPreferredSize(preferredSize);
 //        mainContentPanel.setMaximumSize(preferredSize);
 //        gridLayout.preferredLayoutSize(mainContentPanel);
 
-        mainContentPanel.setLayout(gridLayout);
-        mainContentPanel.setSize(new Dimension(-1, 50 * methodArgumentCount));
 
 
-        inputTree.setSize(new Dimension(-1, 50));
-        inputTree.setMaximumSize(new Dimension(-1, 50));
+        inputTree.setSize(new Dimension(-1, desiredHeight));
+        inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
         JScrollPane scrollPane = new JBScrollPane(inputTree);
         scrollPane.setBorder(JBUI.Borders.empty());
 
-        scrollPane.setPreferredSize(new Dimension(-1, 50));
-        scrollPane.setMaximumSize(new Dimension(-1, 50));
-        scrollPane.setSize(new Dimension(-1, 50));
+        scrollPane.setPreferredSize(new Dimension(-1, desiredHeight));
+        scrollPane.setMaximumSize(new Dimension(-1, desiredHeight));
+        scrollPane.setSize(new Dimension(-1, desiredHeight));
 
 
         mainPanel.setPreferredSize(preferredSize);
         mainPanel.setMaximumSize(preferredSize);
+
+        mainContentPanel.setLayout(gridLayout);
+        mainContentPanel.setSize(new Dimension(-1, desiredHeight));
 
         mainContentPanel.setMaximumSize(preferredSize);
         mainContentPanel.setPreferredSize(preferredSize);

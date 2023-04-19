@@ -30,7 +30,6 @@ import java.util.TreeMap;
 public class MethodExecutorComponent implements MethodExecutionListener {
     private static final Logger logger = LoggerUtil.getInstance(MethodExecutorComponent.class);
     private final InsidiousService insidiousService;
-    private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private List<ComponentContainer> components = new ArrayList<>();
     private MethodAdapter methodElement;
     private JPanel rootContent;
@@ -94,10 +93,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             components.add(container);
             JPanel candidateDisplayPanel = comp.getComponent();
             gridPanel.add(candidateDisplayPanel, constraints);
-            panelHeight += 200;
+            panelHeight += candidateDisplayPanel.getPreferredSize().getHeight();
         }
 
-        gridPanel.setSize(new Dimension(-1, panelHeight));
+//        gridPanel.setSize(new Dimension(-1, panelHeight));
+//        gridPanel.setMaximumSize(new Dimension(-1, panelHeight));
         gridPanel.setBorder(JBUI.Borders.empty());
         JScrollPane scrollPane = new JBScrollPane(gridPanel);
         scrollPane.setBorder(JBUI.Borders.empty());
@@ -185,17 +185,20 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         return new ArrayList<>(candidateHashMap.values());
     }
 
-    public void execute(TestCandidateMetadata testCandidate, List<String> methodArgumentValues,
-                        ComponentContainer comp) {
+    public void execute(
+            TestCandidateMetadata testCandidate,
+            List<String> methodArgumentValues,
+            ComponentContainer comp
+    ) {
 
         AgentCommandRequest agentCommandRequest = MethodUtils.createRequestWithParameters(methodElement,
                 methodArgumentValues);
         insidiousService.executeMethodInRunningProcess(agentCommandRequest,
                 (request, agentCommandResponse) -> {
                     logger.warn("Agent command execution response: " + agentCommandResponse);
-                    if (agentCommandResponse.getResponseType()!=null &&
+                    if (agentCommandResponse.getResponseType() != null &&
                             (agentCommandResponse.getResponseType().equals(ResponseType.FAILED) ||
-                            agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
+                                    agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION))) {
                         AgentExceptionResponseComponent exceptionResponseComponent = postProcessExecute_Exception(
                                 testCandidate, agentCommandResponse, comp.getSource());
                         comp.setAndDisplayExceptionFlow(exceptionResponseComponent);
