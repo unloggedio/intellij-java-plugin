@@ -6,8 +6,6 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.Problem;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
@@ -73,7 +71,6 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
-import com.squareup.javapoet.TypeSpec;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -110,6 +107,7 @@ final public class InsidiousService implements Disposable,
     private final SessionLoader sessionLoader;
     private final Map<String, Boolean> executionRecord = new TreeMap<>();
     private final Map<String, Integer> methodHash = new TreeMap<>();
+    private final DefaultMethodArgumentValueCache methodArgumentValueCache = new DefaultMethodArgumentValueCache();
     private Project project;
     private VideobugClientInterface client;
     private Module currentModule;
@@ -975,10 +973,16 @@ final public class InsidiousService implements Disposable,
 
     }
 
+    public AgentCommandRequest getAgentCommandRequests(AgentCommandRequest agentCommandRequest) {
+        return methodArgumentValueCache.getArgumentSets(agentCommandRequest);
+    }
+
     public void executeMethodInRunningProcess(
             AgentCommandRequest agentCommandRequest,
             ExecutionResponseListener executionResponseListener
     ) {
+
+        methodArgumentValueCache.addArgumentSet(agentCommandRequest);
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
 
@@ -1233,16 +1237,14 @@ final public class InsidiousService implements Disposable,
     }
 
     public void triggerGutterIconReload() {
-        Document currentDoc = FileEditorManager.getInstance(project).getSelectedTextEditor().getDocument();
-        VirtualFile currentFile = FileDocumentManager.getInstance().getFile(currentDoc);
-        String fileName = currentFile.getPath();
 
-        PsiFile[] searchResults = FilenameIndex.getFilesByName(project, fileName,
-                GlobalSearchScope.projectScope(project));
-        if (searchResults.length > 0) {
-            ApplicationManager.getApplication().runReadAction(
-                    () -> DaemonCodeAnalyzer.getInstance(project).restart(searchResults[0]));
+        DumbService instance = DumbService.getInstance(project);
+        if (instance.isDumb()) {
+            instance.runWhenSmart(this::triggerGutterIconReload);
+            return;
         }
+
+        DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}

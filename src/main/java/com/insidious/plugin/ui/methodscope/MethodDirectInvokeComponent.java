@@ -9,6 +9,7 @@ import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandRequestType;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.util.ExceptionUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -21,6 +22,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -61,6 +63,11 @@ public class MethodDirectInvokeComponent {
     }
 
     private void executeMethodWithParameters() {
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("className", methodElement.getContainingClass().getQualifiedName());
+        eventProperties.put("methodName", methodElement.getName());
+
+        UsageInsightTracker.getInstance().RecordEvent("DIRECT_INVOKE", eventProperties);
         List<String> methodArgumentValues = new ArrayList<>();
         for (ParameterInputComponent parameterInputComponent : parameterInputComponents) {
             methodArgumentValues.add(parameterInputComponent.getParameterValue());
@@ -141,6 +148,12 @@ public class MethodDirectInvokeComponent {
             mostRecentTestCandidate = methodTestCandidates.get(methodTestCandidates.size() - 1);
             methodArgumentValues = TestCandidateUtils.buildArgumentValuesFromTestCandidate(
                     mostRecentTestCandidate);
+        }
+        AgentCommandRequest acr = MethodUtils.createRequestWithParameters(methodElement, methodArgumentValues);
+
+        AgentCommandRequest existingRequests = insidiousService.getAgentCommandRequests(acr);
+        if (existingRequests != null) {
+            methodArgumentValues = existingRequests.getMethodParameters();
         }
 
         JPanel methodParameterContainer = new JPanel();

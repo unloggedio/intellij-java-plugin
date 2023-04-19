@@ -91,7 +91,7 @@ public class AgentClient {
             while (true) {
                 AgentCommandResponse response = agentClient.ping();
                 boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
-                if (newState && !currentState) {
+                    if (newState && !currentState) {
                     currentState = true;
                     agentClient.connectionStateListener.onConnectedToAgentServer();
                 } else if (!newState && currentState) {

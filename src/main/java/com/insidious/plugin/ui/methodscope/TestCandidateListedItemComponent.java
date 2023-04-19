@@ -2,6 +2,7 @@ package com.insidious.plugin.ui.methodscope;
 
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.adapter.ParameterAdapter;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.IOTreeCellRenderer;
 import com.insidious.plugin.ui.MethodExecutionListener;
@@ -128,7 +129,6 @@ public class TestCandidateListedItemComponent {
 //        gridLayout.preferredLayoutSize(mainContentPanel);
 
 
-
         inputTree.setSize(new Dimension(-1, desiredHeight));
         inputTree.setMaximumSize(new Dimension(-1, desiredHeight));
 
@@ -233,6 +233,12 @@ public class TestCandidateListedItemComponent {
     }
 
     public void executeCandidate() {
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("className", candidateMetadata.getTestSubject().getType());
+        eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
+
+        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
+
         this.listener.executeCandidate(this.candidateMetadata, this);
     }
 

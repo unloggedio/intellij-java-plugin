@@ -6,6 +6,7 @@ import com.insidious.plugin.agent.AgentCommandResponse;
 import com.insidious.plugin.agent.ResponseType;
 import com.insidious.plugin.extension.InsidiousNotification;
 import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.UsageInsightTracker;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.ui.MethodExecutionListener;
 import com.insidious.plugin.util.LoggerUtil;
@@ -19,6 +20,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.util.ui.JBUI;
+import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
@@ -113,6 +115,11 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     }
 
     public void executeAll() {
+        JSONObject eventProperties = new JSONObject();
+        eventProperties.put("className", methodElement.getContainingClass().getQualifiedName());
+        eventProperties.put("methodName", methodElement.getName());
+        UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
+
         this.isDifferent = false;
         callCount = this.components.size();
         componentCounter = 0;
@@ -261,7 +268,21 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         AgentExceptionResponseComponent response = new AgentExceptionResponseComponent(metadata, agentCommandResponse,
                 this.insidiousService);
 
+
         this.isDifferent = true;
+
+        if (agentCommandResponse.getResponseType().equals(ResponseType.EXCEPTION)) {
+            try {
+                String responseClassName = agentCommandResponse.getResponseClassName();
+                String expectedClassName = metadata.getMainMethod().getReturnValue().getType();
+
+                this.isDifferent = responseClassName.equals(expectedClassName);
+
+            } catch (Exception e) {
+                logger.warn("failed to match expected and returned type: " + agentCommandResponse + "\n" + metadata, e);
+            }
+        }
+
         insidiousService.getExecutionRecord().put(methodElement.getName(), this.isDifferent);
         insidiousService.updateMethodHashForExecutedMethod(methodElement.getPsiMethod());
         // this is to update gutter icons

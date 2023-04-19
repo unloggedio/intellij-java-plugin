@@ -9,7 +9,6 @@ import com.insidious.plugin.ui.Components.ResponseMapTable;
 import com.insidious.plugin.util.ExceptionUtils;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
@@ -39,10 +38,10 @@ public class AgentExceptionResponseComponent {
         setupDefLayout();
     }
 
-    public void setupDefLayout()
-    {
+    public void setupDefLayout() {
         JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+//        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setLayout(new GridLayout(2, 1));
 
 //        String value1 = "B1 Stack trace";
 //            String value2 = "B2\n" +
@@ -80,7 +79,9 @@ public class AgentExceptionResponseComponent {
                 options = new ExceptionOptionsComponent(response.getMessage(),
                         String.valueOf(response.getMethodReturnValue()), insidiousService);
             }
-            panel.add(options.getComponent());
+            JPanel component = options.getComponent();
+//            component.setMaximumSize();
+            panel.add(component);
         } else {
             //load after as normal response.
             //loadAfterAsNormal();
@@ -94,7 +95,8 @@ public class AgentExceptionResponseComponent {
             //loadBeforeAsException();
             ExceptionOptionsComponent options = new ExceptionOptionsComponent("Exception message",
                     ExceptionUtils.prettyPrintException(
-                            metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()), insidiousService);
+                            metadata.getMainMethod().getReturnValue().getProb().getSerializedValue()),
+                    insidiousService);
             panel.add(options.getComponent());
 
         } else {
