@@ -10,11 +10,27 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 
+import java.util.Objects;
+
 public class JavaMethodAdapter implements MethodAdapter {
     private final PsiMethod psiMethod;
 
     public JavaMethodAdapter(PsiMethod methodItem) {
+        assert methodItem != null;
         this.psiMethod = methodItem;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JavaMethodAdapter that = (JavaMethodAdapter) o;
+        return Objects.equals(psiMethod, that.psiMethod);
+    }
+
+    @Override
+    public int hashCode() {
+        return psiMethod.hashCode();
     }
 
     @Override

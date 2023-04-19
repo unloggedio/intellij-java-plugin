@@ -20,6 +20,7 @@ import com.intellij.openapi.util.Computable;
 import com.intellij.psi.*;
 import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.ui.components.JBLabel;
+import com.intellij.ui.components.JBScrollPane;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -35,11 +36,11 @@ public class MethodDirectInvokeComponent {
     private final List<ParameterInputComponent> parameterInputComponents = new ArrayList<>();
     private final ObjectMapper objectMapper;
     private JPanel mainContainer;
-    private JPanel methodParameterContainer;
     private JPanel actionControlPanel;
     private JButton executeButton;
     private JScrollPane returnValuePanel;
     private JTextArea returnValueTextArea;
+    private JPanel methodParameterScrollContainer;
     private MethodAdapter methodElement;
 
     public MethodDirectInvokeComponent(InsidiousService insidiousService) {
@@ -47,7 +48,7 @@ public class MethodDirectInvokeComponent {
         this.objectMapper = this.insidiousService.getObjectMapper();
 
         executeButton.addActionListener(e -> executeMethodWithParameters());
-        methodParameterContainer.addKeyListener(new KeyAdapter() {
+        methodParameterScrollContainer.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
@@ -79,8 +80,7 @@ public class MethodDirectInvokeComponent {
                     if (responseType == null) {
                         ((TitledBorder) returnValuePanel.getBorder()).setTitle(
                                 agentCommandResponse.getResponseClassName());
-                        returnValueTextArea.setText(responseMessage
-                                + agentCommandResponse.getMethodReturnValue());
+                        returnValueTextArea.setText(responseMessage + agentCommandResponse.getMethodReturnValue());
                         return;
                     }
 
@@ -140,7 +140,8 @@ public class MethodDirectInvokeComponent {
                     mostRecentTestCandidate);
         }
 
-        methodParameterContainer.removeAll();
+        JPanel methodParameterContainer = new JPanel();
+
         parameterInputComponents.clear();
 
         if (methodParameters.length > 0) {
@@ -156,8 +157,8 @@ public class MethodDirectInvokeComponent {
                     parameterValue = createDummyValue(parameterType);
                 }
 
-                ParameterInputComponent parameterContainer = new ParameterInputComponent(methodParameter,
-                        parameterValue);
+                ParameterInputComponent parameterContainer =
+                        new ParameterInputComponent(methodParameter, parameterValue);
                 parameterInputComponents.add(parameterContainer);
                 methodParameterContainer.add(parameterContainer.getContent());
             }
@@ -165,6 +166,17 @@ public class MethodDirectInvokeComponent {
             JBLabel noParametersLabel = new JBLabel("Method " + methodName + "() has no parameters");
             methodParameterContainer.add(noParametersLabel);
         }
+
+        methodParameterScrollContainer.removeAll();
+
+        JBScrollPane parameterScrollPanel = new JBScrollPane(methodParameterContainer);
+        parameterScrollPanel.setSize(new Dimension(-1, 500));
+//        parameterScrollPanel.setMinimumSize(new Dimension(-1, 500));
+//        parameterScrollPanel.setMaximumSize(new Dimension(-1, 500));
+
+        methodParameterScrollContainer.add(parameterScrollPanel, BorderLayout.CENTER);
+        methodParameterScrollContainer.revalidate();
+        methodParameterScrollContainer.repaint();
     }
 
     private String createDummyValue(PsiType parameterType) {

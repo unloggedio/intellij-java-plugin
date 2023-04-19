@@ -8,13 +8,14 @@
     <properties/>
     <border type="none"/>
     <children>
-      <grid id="c0623" binding="methodParameterContainer" layout-manager="GridLayoutManager" row-count="1" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="1" left="1" bottom="1" right="1"/>
+      <grid id="c0623" binding="methodParameterScrollContainer" layout-manager="BorderLayout" hgap="0" vgap="0">
         <constraints>
-          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
+            <maximum-size width="-1" height="400"/>
+          </grid>
         </constraints>
         <properties/>
-        <border type="none"/>
+        <border type="bevel-lowered" title="Method arguments"/>
         <children/>
       </grid>
       <vspacer id="e7aaf">
@@ -25,7 +26,7 @@
       <grid id="72ab9" binding="actionControlPanel" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="1" left="1" bottom="1" right="1"/>
         <constraints>
-          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties/>
         <border type="none"/>
@@ -47,7 +48,7 @@
       </grid>
       <scrollpane id="dace4" binding="returnValuePanel">
         <constraints>
-          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+          <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="1" fill="1" indent="0" use-parent-layout="false">
             <preferred-size width="-1" height="400"/>
           </grid>
         </constraints>

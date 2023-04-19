@@ -28,6 +28,7 @@ public class LineHighlighter implements LineMarkerProvider {
     private final Supplier<String> accessibleNameProvider = () -> "Execute method";
 
     public LineMarkerInfo<PsiIdentifier> getLineMarkerInfo(@NotNull PsiElement element) {
+
         if (element instanceof PsiIdentifier && element.getParent() instanceof PsiMethod) {
 
             Matcher fileMatcher = testFileNamePattern.matcher(element.getContainingFile().getName());
@@ -59,7 +60,6 @@ public class LineHighlighter implements LineMarkerProvider {
         Project project = method.getProject();
         InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class)
                 .getGutterStateFor(new JavaMethodAdapter(method));
-        System.out.println("Got State : " + state + " for method " + method.getName());
 //        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
         return UIUtils.getGutterIconForState(state);
     }
