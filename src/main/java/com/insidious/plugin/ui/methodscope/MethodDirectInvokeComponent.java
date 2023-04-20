@@ -227,11 +227,11 @@ public class MethodDirectInvokeComponent {
                 return "";
             }
             if (parameterType.getCanonicalText().equals("java.util.Date")) {
-                try {
-                    return "\"" + objectMapper.writeValueAsString(new Date()) + "\"";
-                } catch (JsonProcessingException e) {
-                    // should never happen
-                }
+//                try {
+                    return "\"" + new Date().toGMTString() + "\"";
+//                } catch (JsonProcessingException e) {
+//                     should never happen
+//                }
             }
             if (parameterType instanceof PsiArrayType) {
                 PsiArrayType arrayType = (PsiArrayType) parameterType;
@@ -270,14 +270,14 @@ public class MethodDirectInvokeComponent {
                 }
 
                 PsiField[] parameterObjectFieldList = resolvedClass.getAllFields();
-                Map<String, String> fieldValueMap = new HashMap<>();
+//                Map<String, String> fieldValueMap = new HashMap<>();
                 dummyValue.append("{");
                 boolean firstField = true;
                 for (PsiField psiField : parameterObjectFieldList) {
                     if (!firstField) {
                         dummyValue.append(", ");
                     }
-                    fieldValueMap.put(psiField.getName(), createDummyValue(psiField.getType()));
+//                    fieldValueMap.put(psiField.getName(), createDummyValue(psiField.getType()));
                     dummyValue.append("\"");
                     dummyValue.append(psiField.getName());
                     dummyValue.append("\"");
