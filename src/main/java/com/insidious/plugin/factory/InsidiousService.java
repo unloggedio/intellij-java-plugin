@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder;
 import com.insidious.plugin.Constants;
 import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.adapter.java.JavaMethodAdapter;
 import com.insidious.plugin.agent.*;
 import com.insidious.plugin.client.ClassMethodAggregates;
 import com.insidious.plugin.client.SessionInstance;
@@ -24,6 +25,7 @@ import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
 import com.insidious.plugin.ui.*;
+import com.insidious.plugin.ui.GutterClickNavigationStates.ComponentScaffold;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
@@ -147,12 +149,12 @@ final public class InsidiousService implements Disposable,
     private MethodDirectInvokeComponent methodDirectInvokeComponent;
     private Content manualMethodExecutorWindow;
     private boolean isAgentServerRunning = false;
-
+    private Content componentScaffoldContent;
+    private ComponentScaffold componentScaffoldWindow;
 
     public InsidiousService(Project project) {
         this.project = project;
         logger.info("starting insidious service: " + project);
-
 
         String pathToSessions = Constants.VIDEOBUG_HOME_PATH + "/sessions";
         FileSystems.getDefault().getPath(pathToSessions).toFile().mkdirs();
@@ -165,7 +167,9 @@ final public class InsidiousService implements Disposable,
                 File agentFile = Constants.VIDEOBUG_AGENT_PATH.toFile();
                 if (agentFile.exists()) {
                     logger.warn("Found agent jar at: " + Constants.VIDEOBUG_AGENT_PATH);
+                    System.out.println("Found agent jar.");
                     agentJarExists = true;
+                    triggerGutterIconReload();
                     break;
                 }
                 try {
@@ -721,13 +725,13 @@ final public class InsidiousService implements Disposable,
         contentManager.addContent(testCaseCreatorWindowContent);
 
         // method executor window
-        methodExecutorToolWindow = new MethodExecutorComponent(this);
-        @NotNull Content methodExecutorWindow =
-                contentFactory.createContent(methodExecutorToolWindow.getContent(), "Execute Method", false);
-        this.methodExecutorWindow = methodExecutorWindow;
-        methodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        methodExecutorWindow.setIcon(UIUtils.COMPARE_TAB);
-        contentManager.addContent(methodExecutorWindow);
+        componentScaffoldWindow = new ComponentScaffold(this);
+        componentScaffoldContent =
+                contentFactory.createContent(componentScaffoldWindow.getContent(), "Configuration", false);
+        //this.methodExecutorWindow = methodExecutorWindow;
+        componentScaffoldContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
+        componentScaffoldContent.setIcon(UIUtils.COMPARE_TAB);
+        contentManager.addContent(componentScaffoldContent);
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
@@ -926,16 +930,13 @@ final public class InsidiousService implements Disposable,
             return;
         }
 
-        methodExecutorToolWindow.refreshAndReloadCandidates(method);
+        //methodExecutorToolWindow.refreshAndReloadCandidates(method);
+        componentScaffoldWindow.triggerMethodExecutorRefresh(method);
         methodDirectInvokeComponent.renderForMethod(method);
-
-
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
     public void compile() {
-
-
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
 //        CompilerManager.getInstance(project).compile(
 //                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
@@ -969,8 +970,6 @@ final public class InsidiousService implements Disposable,
 ////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
 ////            Object classInstance = firstConstructor.newInstance();
 //
-
-
     }
 
     public AgentCommandRequest getAgentCommandRequests(AgentCommandRequest agentCommandRequest) {
@@ -1076,8 +1075,12 @@ final public class InsidiousService implements Disposable,
         }
 
 
-        if (methodExecutorToolWindow != null) {
-            methodExecutorToolWindow.refresh();
+//        if (methodExecutorToolWindow != null) {
+//            methodExecutorToolWindow.refresh();
+//        }
+
+        if (componentScaffoldWindow != null) {
+            componentScaffoldWindow.refresh();
         }
 
     }
@@ -1120,8 +1123,14 @@ final public class InsidiousService implements Disposable,
     }
 
     public void executeWithAgentForMethod(PsiMethod method) {
-        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow != null) {
-            this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
+//        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow != null) {
+//            this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
+//            //this.methodExecutorToolWindow.executeAll(method);
+//        }
+
+        if (this.componentScaffoldWindow != null && this.componentScaffoldContent != null) {
+            this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
+            componentScaffoldWindow.triggerMethodExecutorRefresh(new JavaMethodAdapter(method));
             //this.methodExecutorToolWindow.executeAll(method);
         }
     }
@@ -1165,19 +1174,17 @@ final public class InsidiousService implements Disposable,
         int currentHash = method.getText().hashCode();
 
         if (lastHash != currentHash) {
-            //re re-execute as there are hash diffs
+            //re-execute as there are hash diffs
             //update hash after execution is complete for this method,
-            // to prevent state change before exec complete.
+            //to prevent state change before exec complete.
             return GUTTER_STATE.EXECUTE;
         }
 
         if (!executionRecord.containsKey(methodName)) {
-            return GUTTER_STATE.DATA_AVAILABE;
+            return GUTTER_STATE.DATA_AVAILABLE;
         }
 
         return executionRecord.get(methodName) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
-
-
     }
 
     public void updateMethodHashForExecutedMethod(PsiMethod method) {
@@ -1190,8 +1197,7 @@ final public class InsidiousService implements Disposable,
             String methodBody = application.runReadAction((Computable<String>) method::getText);
             int methodBodyHashCode = methodBody.hashCode();
             this.methodHash.put(classMethodHashKey, methodBodyHashCode);
-            application.runReadAction(
-                    () -> DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile()));
+            DaemonCodeAnalyzer.getInstance(project).restart(method.getContainingFile());
         } else {
             //don't update hash
             //failed execution
@@ -1247,12 +1253,22 @@ final public class InsidiousService implements Disposable,
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
+    public void updateScaffoldForState(GUTTER_STATE state) {
+        if(this.componentScaffoldWindow!=null)
+        {
+            componentScaffoldWindow.loadComponentForState(state);
+            if (this.componentScaffoldContent != null) {
+                this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
+            }
+        }
+    }
+
     public void focusDirectInvokeTab() {
         toolWindow.getContentManager().setSelectedContent(manualMethodExecutorWindow, false);
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
-    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF, PROCESS_NOT_RUNNING, PROCESS_RUNNING, DATA_AVAILABE}
+    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF, PROCESS_NOT_RUNNING, PROCESS_RUNNING, DATA_AVAILABLE}
 
 }

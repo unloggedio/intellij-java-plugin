@@ -22,7 +22,9 @@ import java.util.regex.Pattern;
 public class LineHighlighter implements LineMarkerProvider {
 
     private static final Logger logger = LoggerUtil.getInstance(LineHighlighter.class);
-    private final UnloggedGutterNavigationHandler navHandler = new UnloggedGutterNavigationHandler();
+
+    //switching action based on state
+    //private final UnloggedGutterNavigationHandler navHandler = new UnloggedGutterNavigationHandler();
     private final Pattern testFileNamePattern = Pattern.compile("^Test.*V.java$");
     private final Pattern testMethodNamePattern = Pattern.compile("^test.*");
     private final Supplier<String> accessibleNameProvider = () -> "Execute method";
@@ -48,7 +50,11 @@ public class LineHighlighter implements LineMarkerProvider {
 //                    modifierList.hasModifierProperty(PsiModifier.PROTECTED)) {
 //                return null;
 //            }
-            Icon gutter_Icon = getIconForState(psiMethod);
+            InsidiousService.GUTTER_STATE state = getGutterStateForMethod(psiMethod);
+//            System.out.println("[GOT STATE] {"+state.toString()+"} FOR METHOD {"+psiMethod.getName()+"}");
+            Icon gutter_Icon = UIUtils.getGutterIconForState(state);
+            UnloggedGutterNavigationHandler navHandler = new UnloggedGutterNavigationHandler(state);
+
             return new LineMarkerInfo<>((PsiIdentifier) element,
                     element.getTextRange(), gutter_Icon, null, navHandler,
                     GutterIconRenderer.Alignment.LEFT, accessibleNameProvider);
@@ -56,11 +62,9 @@ public class LineHighlighter implements LineMarkerProvider {
         return null;
     }
 
-    public Icon getIconForState(PsiMethod method) {
-        Project project = method.getProject();
-        InsidiousService.GUTTER_STATE state = project.getService(InsidiousService.class)
+    public InsidiousService.GUTTER_STATE getGutterStateForMethod(PsiMethod method)
+    {
+        return method.getProject().getService(InsidiousService.class)
                 .getGutterStateFor(new JavaMethodAdapter(method));
-//        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");
-        return UIUtils.getGutterIconForState(state);
     }
 }

@@ -17,6 +17,11 @@ import java.util.List;
 
 public class UnloggedGutterNavigationHandler implements GutterIconNavigationHandler<PsiIdentifier> {
 
+    private InsidiousService.GUTTER_STATE state;
+    public UnloggedGutterNavigationHandler(InsidiousService.GUTTER_STATE state) {
+        this.state = state;
+    }
+
     @Override
     public void navigate(MouseEvent e, PsiIdentifier identifier) {
         PsiMethod method = (PsiMethod) identifier.getParent();
@@ -31,6 +36,7 @@ public class UnloggedGutterNavigationHandler implements GutterIconNavigationHand
         @NotNull List<LineMarkerInfo<?>> lineMarkerInfoList = new LinkedList<>();
         lineMarkerInfoList.add(new LineHighlighter().getLineMarkerInfo(identifier));
 
+        insidiousService.updateScaffoldForState(this.state);
         insidiousService.executeWithAgentForMethod(method);
 
 

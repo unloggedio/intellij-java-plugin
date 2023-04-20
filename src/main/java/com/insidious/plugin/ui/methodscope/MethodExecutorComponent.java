@@ -56,6 +56,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
     private boolean isDifferent = false;
 
     public MethodExecutorComponent(InsidiousService insidiousService) {
+        System.out.println("In Constructor mec");
         this.insidiousService = insidiousService;
         executeAndShowDifferencesButton.addActionListener(e -> {
             if (methodTestCandidates.size() == 0) {
@@ -381,5 +382,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         constraints.setRow(1);
         this.diffContentPanel.add(comp.getComponent(), constraints);
         this.diffContentPanel.revalidate();
+    }
+
+    public JPanel getComponent()
+    {
+        return this.rootContent;
     }
 }
