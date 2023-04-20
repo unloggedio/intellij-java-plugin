@@ -199,7 +199,7 @@ public class UIUtils {
                 return PROCESS_RUNNING;
             case PROCESS_NOT_RUNNING:
                 return PROCESS_NOT_RUNNING;
-            case DATA_AVAILABE:
+            case DATA_AVAILABLE:
                 return DATA_AVAILABLE;
             default:
                 return UIUtils.RE_EXECUTE;
