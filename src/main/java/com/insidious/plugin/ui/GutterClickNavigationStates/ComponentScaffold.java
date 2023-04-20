@@ -32,11 +32,11 @@ public class ComponentScaffold {
             AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
-        } else if (state.equals(GutterState.EXECUTE)) {
+        } else if (state.equals(GutterState.EXECUTE) || state.equals(GutterState.DATA_AVAILABLE)) {
             loadExecutionFlow();
         } else {
             this.borderParent.removeAll();
-            GenericNavigationComponent component = new GenericNavigationComponent(state);
+            GenericNavigationComponent component = new GenericNavigationComponent(state,insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
         }
@@ -50,7 +50,8 @@ public class ComponentScaffold {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (GutterState.EXECUTE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(this.currentState) ||
+                GutterState.DATA_AVAILABLE.equals(this.currentState)) {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refreshAndReloadCandidates(method);
             }
@@ -62,10 +63,16 @@ public class ComponentScaffold {
     }
 
     public void refresh() {
-        if (GutterState.EXECUTE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(this.currentState)
+        || GutterState.DATA_AVAILABLE.equals(this.currentState)) {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refresh();
             }
         }
+    }
+
+    public GutterState getCurrentState()
+    {
+        return this.currentState;
     }
 }

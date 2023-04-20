@@ -179,6 +179,7 @@ final public class InsidiousService implements Disposable,
                     System.out.println("Found agent jar.");
                     agentJarExists = true;
                     triggerGutterIconReload();
+                    promoteState();
                     break;
                 }
                 try {
@@ -736,19 +737,19 @@ final public class InsidiousService implements Disposable,
         // method executor window
         componentScaffoldWindow = new ComponentScaffold(this);
         componentScaffoldContent =
-                contentFactory.createContent(componentScaffoldWindow.getContent(), "Configuration", false);
+                contentFactory.createContent(componentScaffoldWindow.getContent(), "Atomic Tests", false);
         //this.methodExecutorWindow = methodExecutorWindow;
         componentScaffoldContent.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        componentScaffoldContent.setIcon(UIUtils.COMPARE_TAB);
+        componentScaffoldContent.setIcon(UIUtils.ATOMIC_TESTS);
         contentManager.addContent(componentScaffoldContent);
 
 
         methodDirectInvokeComponent = new MethodDirectInvokeComponent(this);
         @NotNull Content manualMethodExecutorWindow =
-                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Direct Invoke", false);
+                contentFactory.createContent(methodDirectInvokeComponent.getContent(), "Execute Method", false);
         this.manualMethodExecutorWindow = manualMethodExecutorWindow;
         manualMethodExecutorWindow.putUserData(ToolWindow.SHOW_CONTENT_ICON, Boolean.TRUE);
-        manualMethodExecutorWindow.setIcon(UIUtils.TEST_CASES_ICON_TEAL);
+        manualMethodExecutorWindow.setIcon(UIUtils.EXECUTE_METHOD);
         contentManager.addContent(manualMethodExecutorWindow);
 
 
@@ -1119,8 +1120,6 @@ final public class InsidiousService implements Disposable,
                     }
                 })
                 .show(directInvokeContent.getComponent(), GotItTooltip.TOP_MIDDLE);
-//        GutterActionRenderer
-
 
         if (componentScaffoldWindow != null) {
             componentScaffoldWindow.refresh();
@@ -1166,20 +1165,19 @@ final public class InsidiousService implements Disposable,
     }
 
     public void executeWithAgentForMethod(PsiMethod method) {
-//        if (this.methodExecutorToolWindow != null && this.methodExecutorWindow != null) {
-//            this.toolWindow.getContentManager().setSelectedContent(this.methodExecutorWindow);
-//            //this.methodExecutorToolWindow.executeAll(method);
-//        }
-
         if (this.componentScaffoldWindow != null && this.componentScaffoldContent != null) {
             this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);
             componentScaffoldWindow.triggerMethodExecutorRefresh(new JavaMethodAdapter(method));
-            //this.methodExecutorToolWindow.executeAll(method);
+        }
+    }
+
+    public void openDirectExecuteWindow() {
+        if (this.manualMethodExecutorWindow != null && this.methodDirectInvokeComponent != null) {
+            this.toolWindow.getContentManager().setSelectedContent(this.manualMethodExecutorWindow);
         }
     }
 
     public GutterState getGutterStateFor(MethodAdapter method) {
-
         //check for agent here before other comps
         if (!doesAgentExist()) {
             return GutterState.NO_AGENT;
@@ -1271,12 +1269,10 @@ final public class InsidiousService implements Disposable,
         // connected to agent
         this.isAgentServerRunning = true;
         triggerGutterIconReload();
-
+        promoteState();
 
         InsidiousNotification.notifyMessage("Connected to process", NotificationType.INFORMATION);
         focusDirectInvokeTab();
-
-
     }
 
     @Override
@@ -1285,6 +1281,7 @@ final public class InsidiousService implements Disposable,
         // disconnected from agent
         this.isAgentServerRunning = false;
         triggerGutterIconReload();
+        demoteState();
     }
 
     public ObjectMapper getObjectMapper() {
@@ -1317,4 +1314,140 @@ final public class InsidiousService implements Disposable,
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
+    public String fetchBasePackage() {
+        Set<String> ret = new HashSet<String>();
+        Collection<VirtualFile> virtualFiles =
+                FileBasedIndex.getInstance()
+                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
+                                GlobalSearchScope.projectScope(project));
+        List<String> components = new ArrayList<String>();
+        for (VirtualFile vf : virtualFiles) {
+            PsiFile psifile = PsiManager.getInstance(project)
+                    .findFile(vf);
+            if (psifile instanceof PsiJavaFile) {
+                PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
+                String packageName = psiJavaFile.getPackageName();
+                if (packageName.contains(".")) {
+                    ret.add(packageName);
+                    if (components.size() == 0) {
+                        String[] parts = packageName.split("\\.");
+                        components = Arrays.asList(parts);
+                    } else {
+                        List<String> sp = Arrays.asList(packageName.split("\\."));
+                        List<String> intersection = intersection(components, sp);
+                        if (intersection.size() >= 2) {
+                            components = intersection;
+                        }
+                    }
+                }
+            }
+        }
+        String basePackage = buildPackageNameFromList(components);
+        return basePackage;
+    }
+
+    public String fetchBasePackageForModule(String modulename) {
+        Set<String> ret = new HashSet<>();
+        Collection<VirtualFile> virtualFiles =
+                FileBasedIndex.getInstance()
+                        .getContainingFiles(FileTypeIndex.NAME, JavaFileType.INSTANCE,
+                                GlobalSearchScope.projectScope(project));
+        List<String> components = new ArrayList<>();
+        for (VirtualFile vf : virtualFiles) {
+            PsiFile psifile = PsiManager.getInstance(project)
+                    .findFile(vf);
+            if (psifile instanceof PsiJavaFile && vf.getPath()
+                    .contains(modulename)) {
+                PsiJavaFile psiJavaFile = (PsiJavaFile) psifile;
+                String packageName = psiJavaFile.getPackageName();
+                if (packageName.contains(".") && !packageName.equals("io.unlogged")) {
+                    ret.add(packageName);
+                    if (components.size() == 0) {
+                        String[] parts = packageName.split("\\.");
+                        components = Arrays.asList(parts);
+                    } else {
+                        List<String> sp = Arrays.asList(packageName.split("\\."));
+                        List<String> intersection = intersection(components, sp);
+                        if (intersection.size() >= 2) {
+                            components = intersection;
+                        }
+                    }
+                }
+                else
+                {
+                    //generic package name
+                    ret.add(packageName);
+                }
+            }
+        }
+        String basePackage = buildPackageNameFromList(components);
+        if (basePackage.equals("?")) {
+            return fetchBasePackage();
+        }
+        return basePackage;
+    }
+
+    public String fetchPackagePathForModule(String modulename) {
+        String source = fetchBasePackageForModule(modulename);
+        return source.replaceAll("\\.", "/");
+    }
+
+    private String buildPackageNameFromList(List<String> parts) {
+        if (parts.size() < 2) {
+            return "?";
+        }
+        StringBuilder packagename = new StringBuilder();
+        for (String part : parts) {
+            packagename.append(part)
+                    .append(".");
+        }
+        packagename.deleteCharAt(packagename.length() - 1);
+        return packagename.toString();
+    }
+
+    public <T> List<T> intersection(List<T> list1, List<T> list2) {
+        List<T> list = new ArrayList<T>();
+        for (T t : list1) {
+            if (list2.contains(t)) {
+                list.add(t);
+            }
+        }
+        return list;
+    }
+
+    public void promoteState()
+    {
+        if(this.componentScaffoldWindow!=null)
+        {
+            GutterState state = this.componentScaffoldWindow.getCurrentState();
+            if(state.equals(GutterState.NO_AGENT))
+            {
+                System.out.println("Promoting to PROCESS_NOT_RUNNING");
+                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+            }
+            if(state.equals(GutterState.PROCESS_NOT_RUNNING))
+            {
+                System.out.println("Promoting to PROCESS_RUNNING");
+                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_RUNNING);
+            }
+        }
+    }
+
+    public void demoteState()
+    {
+        if(this.componentScaffoldWindow!=null)
+        {
+            GutterState state = this.componentScaffoldWindow.getCurrentState();
+            if(state.equals(GutterState.PROCESS_RUNNING))
+            {
+                System.out.println("Demoting to PROCESS_NOT_RUNNING");
+                componentScaffoldWindow.loadComponentForState(GutterState.PROCESS_NOT_RUNNING);
+            }
+//            if(state.equals(GutterState.PROCESS_NOT_RUNNING))
+//            {
+//                System.out.println("Demoting to NO_AGENT");
+//                componentScaffoldWindow.loadComponentForState(GutterState.NO_AGENT);
+//            }
+        }
+    }
 }
