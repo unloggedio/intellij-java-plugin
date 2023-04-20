@@ -24,8 +24,8 @@ import com.insidious.plugin.factory.testcase.TestCaseService;
 import com.insidious.plugin.factory.testcase.candidate.TestCandidateMetadata;
 import com.insidious.plugin.inlay.InsidiousInlayHintsCollector;
 import com.insidious.plugin.pojo.*;
-import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.GutterClickNavigationStates.ComponentScaffold;
+import com.insidious.plugin.ui.*;
 import com.insidious.plugin.ui.eventviewer.SingleWindowView;
 import com.insidious.plugin.ui.methodscope.MethodDirectInvokeComponent;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
@@ -35,12 +35,18 @@ import com.insidious.plugin.util.LoggerUtil;
 import com.insidious.plugin.util.UIUtils;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hints.ParameterHintsPassFactory;
+import com.intellij.debugger.DebuggerManagerEx;
+import com.intellij.debugger.impl.DebuggerSession;
+import com.intellij.debugger.ui.HotSwapStatusListener;
+import com.intellij.debugger.ui.HotSwapUIImpl;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.ide.startup.ServiceNotReadyException;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.compiler.CompileStatusNotification;
+import com.intellij.openapi.compiler.CompilerManager;
 import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
@@ -73,6 +79,8 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
 import com.intellij.util.FileContentUtil;
 import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.xdebugger.XDebugSession;
+import com.intellij.xdebugger.XDebuggerManager;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -936,40 +944,67 @@ final public class InsidiousService implements Disposable,
         testCaseDesignerWindow.renderTestDesignerInterface(psiClass, method);
     }
 
-    public void compile() {
+    public void compile(ClassAdapter psiClass, CompileStatusNotification compileStatusNotification) {
 //        ModuleManager moduleManager = ModuleManager.getInstance(project);
-//        CompilerManager.getInstance(project).compile(
-//                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
-//                new CompileStatusNotification() {
-//                    @Override
-//                    public void finished(boolean aborted, int errors, int warnings, @NotNull CompileContext compileContext) {
-//                        logger.warn("compiled class: " + compileContext);
-//                        Module moduleByFile = compileContext.getModuleByFile(
-//                                psiClass.getContainingFile().getVirtualFile());
-//                        CompilerModuleExtension moduleExtension = CompilerModuleExtension.getInstance(moduleByFile);
-//                        VirtualFile outputPath = moduleExtension.getCompilerOutputPath();
-//
-//                        try {
-//                            String compiledClassTargetFile = moduleExtension.getCompilerOutputPath().toString()
-//                                    .substring(7) + "/" + psiClass.getQualifiedName().replace('.', '/') + ".class";
-//                            File compiledTargetFile = new File(compiledClassTargetFile);
-//                            FileInputStream targetStream = FileUtils.openInputStream(compiledTargetFile);
-//                            byte[] compiledClassBytes = StreamUtil.readBytes(targetStream);
-//                            targetStream.close();
-//
-//                        } catch (IOException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//
-//                    }
-//                }
-//        );
-//
-////        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
-////                psiClass.getContainingFile().getText()).create().get();
-////            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
-////            Object classInstance = firstConstructor.newInstance();
-//
+//        BuildManager buildManager = BuildManager.getInstance();
+        XDebuggerManager xDebugManager = XDebuggerManager.getInstance(project);
+        Optional<XDebugSession> currentSessionOption = Arrays
+                .stream(xDebugManager.getDebugSessions())
+                .filter(e -> e.getProject().equals(project))
+                .findFirst();
+        if (!currentSessionOption.isPresent()) {
+            InsidiousNotification.notifyMessage("No debugger session found, cannot trigger hot-reload",
+                    NotificationType.WARNING);
+            return;
+        }
+
+        DebuggerManagerEx debuggerManager = DebuggerManagerEx.getInstanceEx(project);
+        XDebugSession currentXDebugSession = currentSessionOption.get();
+
+        Optional<DebuggerSession> currentDebugSession = debuggerManager.getSessions().stream()
+                .filter(e -> e.getXDebugSession().equals(currentXDebugSession)).findFirst();
+
+        if (!currentDebugSession.isPresent()) {
+            InsidiousNotification.notifyMessage("No debugger session found, cannot trigger hot-reload",
+                    NotificationType.WARNING);
+            return;
+        }
+
+        CompilerManager compilerManager = CompilerManager.getInstance(project);
+        compilerManager.compile(
+                new VirtualFile[]{psiClass.getContainingFile().getVirtualFile()},
+                (aborted, errors, warnings, compileContext) -> {
+                    logger.warn("compiled class: " + compileContext);
+                    if (aborted || errors > 0) {
+                        compileStatusNotification.finished(aborted, errors, warnings, compileContext);
+                        return;
+                    }
+                    HotSwapUIImpl.getInstance(project).reloadChangedClasses(currentDebugSession.get(), false,
+                            new HotSwapStatusListener() {
+                                @Override
+                                public void onCancel(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(true, errors, warnings, compileContext);
+                                }
+
+                                @Override
+                                public void onSuccess(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(false, 0, warnings, compileContext);
+                                }
+
+                                @Override
+                                public void onFailure(List<DebuggerSession> sessions) {
+                                    compileStatusNotification.finished(false, 1, warnings, compileContext);
+                                }
+                            });
+
+                }
+        );
+
+//        Object myClassClass = Reflect.compile(psiClass.getQualifiedName(),
+//                psiClass.getContainingFile().getText()).create().get();
+//            Constructor<?> firstConstructor = myClassClass.getConstructors()[0];
+//            Object classInstance = firstConstructor.newInstance();
+
     }
 
     public AgentCommandRequest getAgentCommandRequests(AgentCommandRequest agentCommandRequest) {
@@ -1254,8 +1289,7 @@ final public class InsidiousService implements Disposable,
     }
 
     public void updateScaffoldForState(GUTTER_STATE state) {
-        if(this.componentScaffoldWindow!=null)
-        {
+        if (this.componentScaffoldWindow != null) {
             componentScaffoldWindow.loadComponentForState(state);
             if (this.componentScaffoldContent != null) {
                 this.toolWindow.getContentManager().setSelectedContent(this.componentScaffoldContent);

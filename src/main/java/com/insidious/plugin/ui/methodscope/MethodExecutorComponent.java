@@ -1,5 +1,6 @@
 package com.insidious.plugin.ui.methodscope;
 
+import com.insidious.plugin.adapter.ClassAdapter;
 import com.insidious.plugin.adapter.MethodAdapter;
 import com.insidious.plugin.agent.AgentCommandRequest;
 import com.insidious.plugin.agent.AgentCommandResponse;
@@ -142,7 +143,8 @@ public class MethodExecutorComponent implements MethodExecutionListener {
 
     public void executeAll() {
         JSONObject eventProperties = new JSONObject();
-        eventProperties.put("className", methodElement.getContainingClass().getQualifiedName());
+        ClassAdapter psiClass = methodElement.getContainingClass();
+        eventProperties.put("className", psiClass.getQualifiedName());
         eventProperties.put("methodName", methodElement.getName());
         UsageInsightTracker.getInstance().RecordEvent("REXECUTE_ALL", eventProperties);
 
@@ -181,10 +183,10 @@ public class MethodExecutorComponent implements MethodExecutionListener {
             this.components = new ArrayList<>();
         }
 //        if (methodTestCandidates.size() > 0) {
-            this.candidateCountLabel.setText(
-                    methodTestCandidates.size() + " unique candidates for " + method.getName());
-            executeAndShowDifferencesButton.setEnabled(true);
-            loadMethodCandidates();
+        this.candidateCountLabel.setText(
+                methodTestCandidates.size() + " unique candidates for " + method.getName());
+        executeAndShowDifferencesButton.setEnabled(true);
+        loadMethodCandidates();
 //        } else {
 //            this.candidateCountLabel.setText("No candidates for " + method.getName());
 //            executeAndShowDifferencesButton.setEnabled(false);
@@ -384,8 +386,7 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         this.diffContentPanel.revalidate();
     }
 
-    public JPanel getComponent()
-    {
+    public JPanel getComponent() {
         return this.rootContent;
     }
 }
