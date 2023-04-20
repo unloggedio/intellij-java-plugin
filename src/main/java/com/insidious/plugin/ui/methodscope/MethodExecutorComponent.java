@@ -24,6 +24,8 @@ import org.json.JSONObject;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,29 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         centerPanel.removeAll();
 
         if (methodTestCandidates == null || methodTestCandidates.size() == 0) {
+
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.setLayout(new BorderLayout());
+
+            JButton takeToDirectInvokeButton = new JButton("Execute method directly");
+            takeToDirectInvokeButton.setMaximumSize(new Dimension(100, 80));
+            takeToDirectInvokeButton.setBackground(Color.BLUE);
+            takeToDirectInvokeButton.setForeground(Color.WHITE);
+            takeToDirectInvokeButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    insidiousService.focusDirectInvokeTab();
+                }
+            });
+
+            buttonPanel.add(takeToDirectInvokeButton, BorderLayout.NORTH);
+            buttonPanel.setSize(new Dimension(-1, 100));
+            buttonPanel.setBorder(JBUI.Borders.empty());
+
+            centerPanel.add(buttonPanel, BorderLayout.CENTER);
+            centerPanel.revalidate();
+            centerPanel.repaint();
+
             return;
         }
 
@@ -154,8 +179,15 @@ public class MethodExecutorComponent implements MethodExecutionListener {
         if (this.methodTestCandidates.size() == 0) {
             this.components = new ArrayList<>();
         }
-        this.candidateCountLabel.setText(methodTestCandidates.size() + " unique candidates for " + method.getName());
-        loadMethodCandidates();
+//        if (methodTestCandidates.size() > 0) {
+            this.candidateCountLabel.setText(
+                    methodTestCandidates.size() + " unique candidates for " + method.getName());
+            executeAndShowDifferencesButton.setEnabled(true);
+            loadMethodCandidates();
+//        } else {
+//            this.candidateCountLabel.setText("No candidates for " + method.getName());
+//            executeAndShowDifferencesButton.setEnabled(false);
+//        }
 //        if (methodTestCandidates.size() > 0) {
 ////            if (isNew) {
 ////                loadMethodCandidates();

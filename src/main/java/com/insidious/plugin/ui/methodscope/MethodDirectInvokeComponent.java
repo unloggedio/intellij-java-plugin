@@ -177,7 +177,7 @@ public class MethodDirectInvokeComponent {
                 ParameterAdapter methodParameter = methodParameters[i];
 
                 String parameterValue = "";
-                if (methodArgumentValues != null) {
+                if (methodArgumentValues != null && i < methodArgumentValues.size()) {
                     parameterValue = methodArgumentValues.get(i);
                 } else {
                     PsiType parameterType = methodParameter.getType();
@@ -243,7 +243,9 @@ public class MethodDirectInvokeComponent {
 
             if (parameterType instanceof PsiClassReferenceType) {
                 PsiClassReferenceType classReferenceType = (PsiClassReferenceType) parameterType;
-                if (classReferenceType.rawType().getCanonicalText().equals("java.util.List")) {
+                if (classReferenceType.rawType().getCanonicalText().equals("java.util.List") ||
+                        classReferenceType.rawType().getCanonicalText().equals("java.util.Set")
+                ) {
                     dummyValue.append("[");
                     dummyValue.append(createDummyValue(classReferenceType.getParameters()[0]));
                     dummyValue.append("]");

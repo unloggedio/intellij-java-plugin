@@ -1247,6 +1247,10 @@ final public class InsidiousService implements Disposable,
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
+    public void focusDirectInvokeTab() {
+        toolWindow.getContentManager().setSelectedContent(manualMethodExecutorWindow, false);
+    }
+
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
 
     public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF, PROCESS_NOT_RUNNING, PROCESS_RUNNING, DATA_AVAILABE}

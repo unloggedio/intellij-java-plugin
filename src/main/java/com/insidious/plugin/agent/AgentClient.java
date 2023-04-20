@@ -13,6 +13,8 @@ import java.util.concurrent.Executors;
 
 public class AgentClient {
     public static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    public static final String NO_SERVER_CONNECT_ERROR_MESSAGE = "Failed to invoke call to agent server: \n" +
+            "Make sure the process is running with unlogged java agent\n\n";
     private static final Logger logger = LoggerUtil.getInstance(AgentClient.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String agentUrl;
@@ -52,8 +54,7 @@ public class AgentClient {
         } catch (Throwable e) {
             logger.warn("Failed to invoke call to agent server: " + e.getMessage());
             AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
-            agentCommandResponse.setMessage("Failed to invoke call to agent server: \n" +
-                    "make sure the your process is running with unlogged java agent\n\n" + e.getMessage());
+            agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;
         }
 
@@ -67,8 +68,7 @@ public class AgentClient {
             return objectMapper.readValue(responseBody, AgentCommandResponse.class);
         } catch (Throwable e) {
             AgentCommandResponse agentCommandResponse = new AgentCommandResponse(ResponseType.FAILED);
-            agentCommandResponse.setMessage("Failed to invoke call to agent server: \n" +
-                    "make sure the your process is running with unlogged java agent\n\n" + e.getMessage());
+            agentCommandResponse.setMessage(NO_SERVER_CONNECT_ERROR_MESSAGE + e.getMessage());
             return agentCommandResponse;
         }
     }
@@ -91,7 +91,7 @@ public class AgentClient {
             while (true) {
                 AgentCommandResponse response = agentClient.ping();
                 boolean newState = response.getResponseType().equals(ResponseType.NORMAL);
-                    if (newState && !currentState) {
+                if (newState && !currentState) {
                     currentState = true;
                     agentClient.connectionStateListener.onConnectedToAgentServer();
                 } else if (!newState && currentState) {

@@ -221,7 +221,8 @@ public class TestCandidateListedItemComponent {
         if (parameters != null) {
             for (int i = 0; i < parameters.length; i++) {
                 ParameterAdapter methodParameter = parameters[i];
-                String parameterValue = methodArgumentValues == null ? "" : methodArgumentValues.get(i);
+                String parameterValue = methodArgumentValues == null || methodArgumentValues.size() <= i ? "" :
+                        methodArgumentValues.get(i);
                 parameterInputMap.put(methodParameter.getName(), parameterValue);
             }
         }
