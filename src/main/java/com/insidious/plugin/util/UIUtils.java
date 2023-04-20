@@ -1,6 +1,6 @@
 package com.insidious.plugin.util;
 
-import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.pojo.ProjectTypeInfo;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.ui.scale.JBUIScale;
@@ -187,7 +187,7 @@ public class UIUtils {
         }
     }
 
-    public static Icon getGutterIconForState(InsidiousService.GUTTER_STATE state) {
+    public static Icon getGutterIconForState(GutterState state) {
         switch (state) {
             case NO_DIFF:
                 return NO_DIFF_GUTTER;

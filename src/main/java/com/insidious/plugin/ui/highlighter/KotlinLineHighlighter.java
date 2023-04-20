@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.highlighter;
 
 import com.insidious.plugin.adapter.kotlin.KotlinMethodAdapter;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.util.UIUtils;
 import com.insidious.plugin.util.LoggerUtil;
@@ -58,7 +59,7 @@ public class KotlinLineHighlighter implements LineMarkerProvider {
 
     public Icon getIconForState(KtNamedFunction method) {
         Project project = method.getProject();
-        InsidiousService.GUTTER_STATE state = project
+        GutterState state = project
                 .getService(InsidiousService.class)
                 .getGutterStateFor(new KotlinMethodAdapter(method));
 //        logger.warn("Get unlogged gutter icon for: " + method.getName() + " at state [" + state + "]");

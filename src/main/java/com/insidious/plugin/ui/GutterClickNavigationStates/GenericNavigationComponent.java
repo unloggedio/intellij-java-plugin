@@ -1,6 +1,6 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
-import com.insidious.plugin.factory.InsidiousService;
+import com.insidious.plugin.factory.GutterState;
 
 import javax.swing.*;
 import java.awt.event.MouseAdapter;
@@ -15,12 +15,12 @@ public class GenericNavigationComponent {
     private JButton actionButton;
     private JTextArea mainContentText;
     private JPanel demoImageHolder;
-    private InsidiousService.GUTTER_STATE currentState;
-    public GenericNavigationComponent(InsidiousService.GUTTER_STATE state)
+    private GutterState currentState;
+    public GenericNavigationComponent(GutterState state)
     {
         this.currentState = state;
         setTopText(state.toString());
-        if(state.equals(InsidiousService.GUTTER_STATE.NO_AGENT))
+        if(state.equals(GutterState.NO_AGENT))
         {
             //display button
             this.actionButton.setVisible(true);
@@ -46,7 +46,7 @@ public class GenericNavigationComponent {
 
     public void triggerAgentDownload()
     {
-        if(this.currentState.equals(InsidiousService.GUTTER_STATE.NO_AGENT))
+        if(this.currentState.equals(GutterState.NO_AGENT))
         {
             System.out.println("Download Agent triggered");
         }

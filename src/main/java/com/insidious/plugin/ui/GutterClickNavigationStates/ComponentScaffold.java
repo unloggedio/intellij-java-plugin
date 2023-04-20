@@ -1,6 +1,7 @@
 package com.insidious.plugin.ui.GutterClickNavigationStates;
 
 import com.insidious.plugin.adapter.MethodAdapter;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.ui.methodscope.MethodExecutorComponent;
 
@@ -13,7 +14,7 @@ public class ComponentScaffold {
     private InsidiousService insidiousService;
     private MethodExecutorComponent methodExecutorComponent;
 
-    private InsidiousService.GUTTER_STATE currentState;
+    private GutterState currentState;
 
     public ComponentScaffold(InsidiousService insidiousService) {
         this.insidiousService = insidiousService;
@@ -23,15 +24,15 @@ public class ComponentScaffold {
         return this.mainPanel;
     }
 
-    public void loadComponentForState(InsidiousService.GUTTER_STATE state) {
+    public void loadComponentForState(GutterState state) {
         System.out.println("Loading Component for state : " + state);
         this.currentState = state;
-        if (state.equals(InsidiousService.GUTTER_STATE.PROCESS_NOT_RUNNING)) {
+        if (state.equals(GutterState.PROCESS_NOT_RUNNING)) {
             this.borderParent.removeAll();
             AgentConfigComponent component = new AgentConfigComponent(this.insidiousService);
             this.borderParent.add(component.getComponent(), BorderLayout.CENTER);
             this.borderParent.revalidate();
-        } else if (state.equals(InsidiousService.GUTTER_STATE.EXECUTE)) {
+        } else if (state.equals(GutterState.EXECUTE)) {
             loadExecutionFlow();
         } else {
             this.borderParent.removeAll();
@@ -49,7 +50,7 @@ public class ComponentScaffold {
     }
 
     public void triggerMethodExecutorRefresh(MethodAdapter method) {
-        if (InsidiousService.GUTTER_STATE.EXECUTE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(this.currentState)) {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refreshAndReloadCandidates(method);
             }
@@ -61,7 +62,7 @@ public class ComponentScaffold {
     }
 
     public void refresh() {
-        if (InsidiousService.GUTTER_STATE.EXECUTE.equals(this.currentState)) {
+        if (GutterState.EXECUTE.equals(this.currentState)) {
             if (methodExecutorComponent != null) {
                 methodExecutorComponent.refresh();
             }

@@ -1,13 +1,11 @@
 package com.insidious.plugin.ui.highlighter;
 
-import com.insidious.plugin.adapter.java.JavaClassAdapter;
 import com.insidious.plugin.adapter.java.JavaMethodAdapter;
+import com.insidious.plugin.factory.GutterState;
 import com.insidious.plugin.factory.InsidiousService;
 import com.insidious.plugin.factory.UsageInsightTracker;
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler;
 import com.intellij.codeInsight.daemon.LineMarkerInfo;
-import com.intellij.openapi.compiler.CompileContext;
-import com.intellij.openapi.compiler.CompileStatusNotification;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
@@ -20,9 +18,9 @@ import java.util.List;
 
 public class UnloggedGutterNavigationHandler implements GutterIconNavigationHandler<PsiIdentifier> {
 
-    private InsidiousService.GUTTER_STATE state;
+    private GutterState state;
 
-    public UnloggedGutterNavigationHandler(InsidiousService.GUTTER_STATE state) {
+    public UnloggedGutterNavigationHandler(GutterState state) {
         this.state = state;
     }
 

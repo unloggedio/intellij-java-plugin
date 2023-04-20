@@ -74,6 +74,7 @@ import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.ui.GotItTooltip;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.content.ContentManager;
@@ -1029,7 +1030,7 @@ final public class InsidiousService implements Disposable,
                     logger.warn("no body listening for the response");
                 }
             } catch (IOException e) {
-                logger.warn("failed to execute command - " + e.getMessage());
+                logger.warn("failed to execute command - " + e.getMessage(), e);
             }
 
         });
@@ -1092,8 +1093,6 @@ final public class InsidiousService implements Disposable,
     @Override
     public void onNewTestCandidateIdentified(int completedCount, int totalCount) {
         logger.warn("new test cases identified [" + completedCount + "/" + totalCount + "]");
-//        FileEditorManager fileEditorManager = FileEditorManager.getInstance(project);
-//        @Nullable FileEditor selectedEditor = fileEditorManager.getSelectedEditor();
 
         ParameterHintsPassFactory.forceHintsUpdateOnNextPass();
         Editor[] currentOpenEditorsList = EditorFactory.getInstance().getAllEditors();
@@ -1104,15 +1103,24 @@ final public class InsidiousService implements Disposable,
             if (psiFile == null) {
                 continue;
             }
-//            logger.warn("Restart for: " + psiFile.getName());
             ApplicationManager.getApplication().runReadAction(
                     () -> DaemonCodeAnalyzer.getInstance(project).restart(psiFile));
         }
 
 
-//        if (methodExecutorToolWindow != null) {
-//            methodExecutorToolWindow.refresh();
-//        }
+        @NotNull ContentManager contentManager = toolWindow.getContentManager();
+        @Nullable Content directInvokeContent = contentManager.getContent(2);
+
+        new GotItTooltip("io.unlogged.candidate.new", "New candidates processed", this)
+                .withLink("Disable for all files", new Runnable() {
+                    @Override
+                    public void run() {
+                        compile(null, null);
+                    }
+                })
+                .show(directInvokeContent.getComponent(), GotItTooltip.TOP_MIDDLE);
+//        GutterActionRenderer
+
 
         if (componentScaffoldWindow != null) {
             componentScaffoldWindow.refresh();
@@ -1170,17 +1178,17 @@ final public class InsidiousService implements Disposable,
         }
     }
 
-    public GUTTER_STATE getGutterStateFor(MethodAdapter method) {
+    public GutterState getGutterStateFor(MethodAdapter method) {
 
         //check for agent here before other comps
         if (!doesAgentExist()) {
-            return GUTTER_STATE.NO_AGENT;
+            return GutterState.NO_AGENT;
         }
 
         // agent exists but cannot connect with agent server
         // so no process is running with the agent
         if (!this.isAgentServerRunning) {
-            return GUTTER_STATE.PROCESS_NOT_RUNNING;
+            return GutterState.PROCESS_NOT_RUNNING;
         }
 
         String methodClassQualifiedName = method.getContainingClass().getQualifiedName();
@@ -1189,7 +1197,7 @@ final public class InsidiousService implements Disposable,
                 methodClassQualifiedName, methodName, false);
         // process is running, but no test candidates for this method
         if (candidates.size() == 0) {
-            return GUTTER_STATE.PROCESS_RUNNING;
+            return GutterState.PROCESS_RUNNING;
         }
 
         // process is running, and there were test candidates for this method
@@ -1212,14 +1220,14 @@ final public class InsidiousService implements Disposable,
             //re-execute as there are hash diffs
             //update hash after execution is complete for this method,
             //to prevent state change before exec complete.
-            return GUTTER_STATE.EXECUTE;
+            return GutterState.EXECUTE;
         }
 
         if (!executionRecord.containsKey(methodName)) {
-            return GUTTER_STATE.DATA_AVAILABLE;
+            return GutterState.DATA_AVAILABLE;
         }
 
-        return executionRecord.get(methodName) ? GUTTER_STATE.DIFF : GUTTER_STATE.NO_DIFF;
+        return executionRecord.get(methodName) ? GutterState.DIFF : GutterState.NO_DIFF;
     }
 
     public void updateMethodHashForExecutedMethod(PsiMethod method) {
@@ -1263,6 +1271,12 @@ final public class InsidiousService implements Disposable,
         // connected to agent
         this.isAgentServerRunning = true;
         triggerGutterIconReload();
+
+
+        InsidiousNotification.notifyMessage("Connected to process", NotificationType.INFORMATION);
+        focusDirectInvokeTab();
+
+
     }
 
     @Override
@@ -1288,7 +1302,7 @@ final public class InsidiousService implements Disposable,
         DaemonCodeAnalyzer.getInstance(project).restart();
     }
 
-    public void updateScaffoldForState(GUTTER_STATE state) {
+    public void updateScaffoldForState(GutterState state) {
         if (this.componentScaffoldWindow != null) {
             componentScaffoldWindow.loadComponentForState(state);
             if (this.componentScaffoldContent != null) {
@@ -1302,7 +1316,5 @@ final public class InsidiousService implements Disposable,
     }
 
     public enum PROJECT_BUILD_SYSTEM {MAVEN, GRADLE, DEF}
-
-    public enum GUTTER_STATE {NO_AGENT, EXECUTE, DIFF, NO_DIFF, PROCESS_NOT_RUNNING, PROCESS_RUNNING, DATA_AVAILABLE}
 
 }
