@@ -10,7 +10,11 @@
       <minimumSize width="225" height="80"/>
       <preferredSize width="225" height="80"/>
     </properties>
-    <border type="line"/>
+    <border type="line">
+      <font/>
+      <title-color color="-4473925"/>
+      <color color="-4473925"/>
+    </border>
     <children>
       <grid id="6d64a" binding="topAligner" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="0" left="0" bottom="0" right="0"/>
@@ -44,7 +48,7 @@
                 </constraints>
                 <properties>
                   <editable value="false"/>
-                  <foreground color="-694939"/>
+                  <foreground color="-2266336"/>
                   <lineWrap value="true"/>
                   <opaque value="false"/>
                   <rows value="2"/>

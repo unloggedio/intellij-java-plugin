@@ -29,7 +29,7 @@ public class ExceptionOptionsComponent {
         this.stackTrace = stacktrace;
         this.service = insidiousService;
         this.exceptionArea.setText(stacktrace);
-        this.iconLabel.setIcon(UIUtils.EXCEPTION_CASE);
+        this.iconLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
         showfulltrace.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {

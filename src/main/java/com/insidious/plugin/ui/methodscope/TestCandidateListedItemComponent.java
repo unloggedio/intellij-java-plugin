@@ -237,9 +237,7 @@ public class TestCandidateListedItemComponent {
         JSONObject eventProperties = new JSONObject();
         eventProperties.put("className", candidateMetadata.getTestSubject().getType());
         eventProperties.put("methodName", candidateMetadata.getMainMethod().getMethodName());
-
         UsageInsightTracker.getInstance().RecordEvent("REXECUTE_SINGLE", eventProperties);
-
         this.listener.executeCandidate(this.candidateMetadata, this);
     }
 
@@ -248,16 +246,19 @@ public class TestCandidateListedItemComponent {
         Boolean status = this.responseComponent.computeDifferences();
         if (status == null) {
             this.statusLabel.setText("Exception");
-            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            this.statusLabel.setForeground(UIUtils.orange);
+            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
             return;
         }
         if (!status) {
             //no diff
             this.statusLabel.setText("Same");
+            this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
         } else {
             //diff
             this.statusLabel.setText("Different");
+            this.statusLabel.setForeground(UIUtils.red);
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
         }
     }
@@ -267,7 +268,8 @@ public class TestCandidateListedItemComponent {
         Boolean status = this.responseComponent.computeDifferences();
         if (status == null) {
             this.statusLabel.setText("Exception");
-            this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+            this.statusLabel.setForeground(UIUtils.orange);
+            this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
             System.out.println("Exception message : " + this.responseComponent
                     .getAgentCommandResponse().getMessage());
             displayResponse();
@@ -276,10 +278,12 @@ public class TestCandidateListedItemComponent {
         if (!status) {
             //no diff
             this.statusLabel.setText("Same");
+            this.statusLabel.setForeground(UIUtils.green);
             this.statusLabel.setIcon(UIUtils.NO_DIFF_GUTTER);
         } else {
             //diff
             this.statusLabel.setText("Different");
+            this.statusLabel.setForeground(UIUtils.red);
             this.statusLabel.setIcon(UIUtils.DIFF_GUTTER);
         }
         displayResponse();
@@ -287,7 +291,8 @@ public class TestCandidateListedItemComponent {
 
     public void DisplayExceptionResponse(AgentExceptionResponseComponent exceptionResponseComponent) {
         this.statusLabel.setText("Exception");
-        this.statusLabel.setIcon(UIUtils.EXCEPTION_CASE);
+        this.statusLabel.setIcon(UIUtils.ORANGE_EXCEPTION);
+        this.statusLabel.setForeground(UIUtils.orange);
         displayExceptionResponse(exceptionResponseComponent);
     }
 
